@@ -1,0 +1,66 @@
+name: Deploy Clintware Consulting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "consulting/**"
+      - ".github/workflows/deploy-consulting-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "clintware-consulting-pages"
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: consulting
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install test dependencies
+        run: pip install beautifulsoup4 tinycss2
+
+      - name: Run five regression checks
+        run: python tests/regression.py
+
+  deploy:
+    needs: validate
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload consulting site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: consulting
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
