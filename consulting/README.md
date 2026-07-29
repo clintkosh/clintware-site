@@ -19,15 +19,22 @@ Clintware Consulting helps growing SaaS and cybersecurity companies protect the 
 
 ## Deployment
 
-The repository workflow `.github/workflows/deploy-consulting-pages.yml` publishes the `consulting/` directory to GitHub Pages and declares `consulting.clintware.com` through `CNAME`.
+The repository workflow `.github/workflows/deploy-consulting-pages.yml` validates and publishes the `consulting/` directory through GitHub Pages.
 
-Required DNS record:
+Required GitHub Pages settings:
+
+1. Open **Settings → Pages** for `clintkosh/clintware-site`.
+2. Set **Build and deployment → Source** to **GitHub Actions**.
+3. Set **Custom domain** to `consulting.clintware.com`.
+4. Enable HTTPS after GitHub makes the option available.
+
+Required DNS record at the domain provider:
 
 - Type: `CNAME`
 - Host: `consulting`
-- Value: the GitHub Pages hostname shown after Pages deployment is enabled for this repository
+- Value: `clintkosh.github.io`
 
-GitHub Pages must be configured to use **GitHub Actions** as the source. The workflow can then deploy the site artifact.
+The included `CNAME` file documents the intended hostname, but custom GitHub Actions deployments use the domain configured in the repository's Pages settings.
 
 ## Validation
 
