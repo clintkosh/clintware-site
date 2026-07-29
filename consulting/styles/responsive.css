@@ -1,0 +1,284 @@
+@media (max-width: 1080px) {
+  .desktop-nav,
+  .desktop-home-link {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .hero-grid,
+  .calculator-shell,
+  .outcomes-grid,
+  .fit-shell,
+  .contact-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: auto;
+  }
+
+  .hero-copy {
+    max-width: 860px;
+  }
+
+  .hero-visual {
+    max-width: 720px;
+  }
+
+  .friction-grid,
+  .services-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .method-track {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 740px;
+  }
+
+  .price-card {
+    min-height: auto;
+  }
+
+  .price-card h3,
+  .price-card > p:not(.price) {
+    min-height: auto;
+  }
+
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-heading {
+    position: static;
+  }
+
+  .contact-copy {
+    max-width: 780px;
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    width: min(calc(100% - 28px), var(--container));
+  }
+
+  .section-pad {
+    padding: 78px 0;
+  }
+
+  .header-inner {
+    min-height: 70px;
+  }
+
+  .header-actions > .button {
+    display: none;
+  }
+
+  .mobile-nav {
+    inset: 70px 0 auto 0;
+  }
+
+  .hero {
+    padding-top: 62px;
+  }
+
+  h1 {
+    font-size: clamp(2.75rem, 13vw, 4.5rem);
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .hero-proof {
+    margin-top: 26px;
+  }
+
+  .command-card {
+    padding: 18px;
+  }
+
+  .signal-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .signal-state {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .command-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .flow-line {
+    width: 100%;
+  }
+
+  .trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trust-grid p,
+  .trust-grid p:first-child {
+    padding: 18px 14px;
+  }
+
+  .trust-grid p:nth-child(2) {
+    border-right: 0;
+  }
+
+  .trust-grid p:nth-child(-n+2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .split-heading,
+  .friction-grid,
+  .services-grid,
+  .method-track,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .split-heading {
+    align-items: start;
+    gap: 26px;
+  }
+
+  .friction-card {
+    min-height: auto;
+  }
+
+  .card-number {
+    margin-bottom: 34px;
+  }
+
+  .service-card {
+    min-height: auto;
+  }
+
+  .service-card > p {
+    min-height: auto;
+  }
+
+  .calculator-shell {
+    padding: 25px 18px;
+  }
+
+  .burden-calculator {
+    padding: 20px 16px;
+  }
+
+  .method-track::before {
+    display: none;
+  }
+
+  .method-step {
+    min-height: auto;
+  }
+
+  .method-step > span {
+    margin-bottom: 36px;
+  }
+
+  .fit-chips span {
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .contact-form {
+    padding: 24px 17px;
+  }
+
+  .form-field.full-width {
+    grid-column: auto;
+  }
+
+  .form-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-footer .button {
+    width: 100%;
+  }
+
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .footer-top .button {
+    justify-self: start;
+  }
+
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-copy strong {
+    font-size: 0.82rem;
+  }
+
+  .brand-copy small {
+    font-size: 0.53rem;
+  }
+
+  .trust-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-grid p,
+  .trust-grid p:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .trust-grid p:last-child {
+    border-bottom: 0;
+  }
+
+  .range-row {
+    grid-template-columns: 1fr 64px;
+  }
+}
+
+@media (pointer: coarse) {
+  .cursor-aura {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
