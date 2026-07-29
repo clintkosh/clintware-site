@@ -6,6 +6,10 @@ on:
     paths:
       - "consulting/**"
       - ".github/workflows/deploy-consulting-pages.yml"
+  pull_request:
+    paths:
+      - "consulting/**"
+      - ".github/workflows/deploy-consulting-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -14,7 +18,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "clintware-consulting-pages"
+  group: "clintware-consulting-pages-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +48,7 @@ jobs:
         run: python tests/regression.py
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: validate
     environment:
       name: github-pages
@@ -57,7 +62,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload consulting site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: consulting
 
