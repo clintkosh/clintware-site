@@ -1,0 +1,16 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Runtime order data must remain outside the web root
+clintware_private_orders/
+private-orders/
+orders/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

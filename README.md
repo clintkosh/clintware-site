@@ -1,32 +1,24 @@
-# Clintware Audio Lab
+# Clintware Family Media Studio — PayPal edition
 
-High-contrast AI music studio for generating tracks from creative direction and adapting uploaded audio.
+A deployable manual-review beta for `clintware.com/family-media/`.
 
-## Production target
+## Payment design
 
-- URL: `https://audiolab.clintware.com`
-- Repository: `clintkosh/clintware-site`
-- Static deployment: GitHub Pages through `.github/workflows/deploy-pages.yml`
-- Custom domain declaration: `CNAME`
+The default payment path is PayPal invoicing after order review. This works with the currently connected PayPal capability and prevents customers from paying for requests that must be declined or changed. Optional PayPal-hosted Payment Links can be inserted later in one configuration file.
 
-## Included functionality
+## Files
 
-- Prompt-to-music workflow
-- Local browser demo renderer when no hosted provider is connected
-- Audio upload, decode, waveform preview, and playback
-- Restyle, extend, instrumental, master, and alternate-version workflows
-- Render queue with WAV and project JSON exports
-- Responsive high-contrast desktop and mobile interface
-- Optional provider adapter can be added behind `/api/health` and `/api/music`
+- `family-media/index.html` — storefront and local preview
+- `family-media/order.html` — package-aware order form
+- `family-media/submit-order.php` — validated form and private upload handler
+- `family-media/config.php` — server configuration
+- `family-media/assets/js/paypal-config.js` — optional public PayPal link URLs
+- `PAYPAL-SETUP.md` — invoice and direct-link workflow
+- `DEPLOY-NAMECHEAP.md` — deployment and test steps
 
-## Validation
+## Security boundaries
 
-Five independent headless-Chromium regression passes completed successfully. See `TEST_REPORT.md`, `TEST_REPORT.json`, and `tests/regression.py`.
-
-## Local use
-
-Open `index.html` directly or serve the repository as a static site.
-
-## Hosted provider connection
-
-GitHub Pages serves the browser application and its built-in local renderer. To use an external paid music model, deploy a server-side adapter and route `/api/health` and `/api/music` to it. Provider credentials must remain server-side.
+- No PayPal secrets are included.
+- Uploads are MIME-checked, renamed, size-limited, and stored outside the public web root.
+- Real-person likeness and minor consent are explicitly required.
+- Manual review remains mandatory.
