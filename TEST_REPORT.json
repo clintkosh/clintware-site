@@ -1,0 +1,29 @@
+{
+  "suite": "Clintware Audio Lab virtual browser regression",
+  "target_artifact": "self-contained production index.html",
+  "artifact_sha256": "f45b27a553d1a2b533868a3668688b1b480aa6a540406e3c1e5866d249f3261f",
+  "rounds_requested": 5,
+  "rounds_completed": 5,
+  "all_passed": true,
+  "results": [
+    {"round": 1, "status": "PASS", "duration_seconds": 11.02},
+    {"round": 2, "status": "PASS", "duration_seconds": 10.39},
+    {"round": 3, "status": "PASS", "duration_seconds": 10.73},
+    {"round": 4, "status": "PASS", "duration_seconds": 11.0},
+    {"round": 5, "status": "PASS", "duration_seconds": 11.22}
+  ],
+  "checks_each_round": [
+    "desktop-load-layout",
+    "prompt-generation-render-exports",
+    "upload-waveform-adaptation",
+    "project-reset",
+    "mobile-responsive-layout",
+    "runtime-error-free"
+  ],
+  "packaging_smoke": {
+    "round": 6,
+    "status": "PASS",
+    "duration_seconds": 10.59,
+    "artifact": "inlined production build"
+  }
+}
