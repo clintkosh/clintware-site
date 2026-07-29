@@ -1,0 +1,32 @@
+{
+  "site": "Clintware Consulting",
+  "target": "https://consulting.clintware.com/",
+  "passed": true,
+  "tests": [
+    {
+      "name": "Static structure, SEO, and form accessibility",
+      "passed": true,
+      "detail": "Required sections, metadata, structured data, and labeled fields are present."
+    },
+    {
+      "name": "Navigation, identifiers, and interaction integrity",
+      "passed": true,
+      "detail": "All internal anchors resolve, IDs are unique, and 37 interactive controls remain labeled."
+    },
+    {
+      "name": "HTTP routes and production assets",
+      "passed": true,
+      "detail": "All 8 production routes returned HTTP 200 with the expected content."
+    },
+    {
+      "name": "Calculator, validation, and consultation-request logic",
+      "passed": true,
+      "detail": "JavaScript syntax, boundary handling, burden calculation, validation, and mailto generation passed."
+    },
+    {
+      "name": "Desktop/mobile layout and reduced-motion CSS contract",
+      "passed": true,
+      "detail": "CSS parsed without errors across 221 rules with desktop, tablet, mobile, narrow-mobile, coarse-pointer, and reduced-motion handling."
+    }
+  ]
+}
