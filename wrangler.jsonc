@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clintware-site",
+  "compatibility_date": "2026-07-29",
+  "assets": {
+    "directory": "."
+  },
+  "routes": [
+    {
+      "pattern": "clintware.com",
+      "custom_domain": true
+    }
+  ],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  }
+}
