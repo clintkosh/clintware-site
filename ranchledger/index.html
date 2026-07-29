@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101711">
+<meta name="description" content="Clintware Ranch Ledger: ranch journal, animal accounts, feed inventory, budgets, and financial records.">
+<title>Clintware Ranch Ledger</title>
+<style>html,body{margin:0;min-height:100%;background:#0b100c;color:#f3f1e9;font:16px/1.5 system-ui}.load{display:grid;place-items:center;min-height:100vh;text-align:center}.load b{display:block;font-size:1.2rem;margin-bottom:.5rem}</style>
+</head>
+<body><div class="load"><div><b>Clintware Ranch Ledger</b>Loading ranch workspace…</div></div>
+<script>
+(async()=>{
+  const files=["payload/0.txt", "payload/1.txt", "payload/2.txt", "payload/3.txt", "payload/4.txt", "payload/5.txt", "payload/6.txt", "payload/7.txt"];
+  const parts=await Promise.all(files.map(async f=>{const r=await fetch(f);if(!r.ok)throw new Error(`Failed to load ${f}`);return r.text()}));
+  const bytes=Uint8Array.from(atob(parts.join('')),c=>c.charCodeAt(0));
+  const html=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  document.open();document.write(html);document.close();
+})().catch(e=>{document.body.innerHTML='<main style="padding:2rem"><h1>Unable to load Ranch Ledger</h1><pre>'+String(e)+'</pre></main>'});
+</script></body></html>
