@@ -5,6 +5,7 @@ import zlib
 
 EXPECTED_PARTS = 8
 EXPECTED_SHA256 = "f45b27a553d1a2b533868a3668688b1b480aa6a540406e3c1e5866d249f3261f"
+CUSTOM_DOMAIN = "audiolab.clintware.com"
 
 parts = [Path(f"payload/part{i:02}.txt") for i in range(1, EXPECTED_PARTS + 1)]
 missing = [str(path) for path in parts if not path.exists()]
@@ -17,8 +18,22 @@ actual_sha256 = hashlib.sha256(site_bytes).hexdigest()
 if actual_sha256 != EXPECTED_SHA256:
     raise SystemExit(f"Artifact hash mismatch: {actual_sha256}")
 
+cname_path = Path("CNAME")
+if not cname_path.exists():
+    raise SystemExit("Missing CNAME file")
+
+configured_domain = cname_path.read_text().strip()
+if configured_domain != CUSTOM_DOMAIN:
+    raise SystemExit(
+        f"CNAME mismatch: expected {CUSTOM_DOMAIN}, found {configured_domain or '<empty>'}"
+    )
+
 out = Path("dist")
 out.mkdir(exist_ok=True)
 (out / "index.html").write_bytes(site_bytes)
+(out / "CNAME").write_text(f"{CUSTOM_DOMAIN}\n")
 (out / ".nojekyll").write_text("")
-print(f"Built {out / 'index.html'} from {len(parts)} verified payload parts ({actual_sha256})")
+print(
+    f"Built {out / 'index.html'} from {len(parts)} verified payload parts "
+    f"({actual_sha256}) for https://{CUSTOM_DOMAIN}"
+)
