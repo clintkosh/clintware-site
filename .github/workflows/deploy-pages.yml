@@ -2,7 +2,7 @@ name: Deploy Audio Lab to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [audio-lab]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: audio-lab-pages
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate musical output quality
+        run: node tests/audio-quality.mjs
       - name: Build and verify static Audio Lab
         run: python build_site.py
       - name: Configure Pages
