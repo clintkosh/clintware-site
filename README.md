@@ -1,32 +1,33 @@
-# Clintware Audio Lab
+# Clintware
 
-High-contrast AI music studio for generating tracks from creative direction and adapting uploaded audio.
+Production source for the public Clintware company site.
 
-## Production target
+## Public launch target
 
-- URL: `https://audiolab.clintware.com`
+- Primary URL: `https://clintware.com`
+- Canonical web URL: `https://www.clintware.com`
 - Repository: `clintkosh/clintware-site`
-- Static deployment: GitHub Pages through `.github/workflows/deploy-pages.yml`
-- Custom domain declaration: `CNAME`
+- Branch: `main`
+- Production artifact: `public/`
 
-## Included functionality
+## Separation from Audio Lab
 
-- Prompt-to-music workflow
-- Local browser demo renderer when no hosted provider is connected
-- Audio upload, decode, waveform preview, and playback
-- Restyle, extend, instrumental, master, and alternate-version workflows
-- Render queue with WAV and project JSON exports
-- Responsive high-contrast desktop and mobile interface
-- Optional provider adapter can be added behind `/api/health` and `/api/music`
+The company homepage and Audio Lab are separate deployments. The `audio-lab` branch is retained only as the historical static Audio Lab source. The full-stack Audio Lab now has its own Site and server-side music route, so publishing the homepage cannot replace the music product.
 
-## Validation
+## Included public routes
 
-Five independent headless-Chromium regression passes completed successfully. See `TEST_REPORT.md`, `TEST_REPORT.json`, and `tests/regression.py`.
+- `/` — company overview
+- `/tools/` — Clintware apps and labs
+- `/blog/` — field notes
+- `/privacy/`
+- `/contact/`
 
-## Local use
+## Deployment control
 
-Open `index.html` directly or serve the repository as a static site.
+The GitHub Pages workflow is manual until the official domain move. It validates and uploads `public/`. Do not enable push deployment or change the apex domain until Audio Lab's independent hostname is active and the official cutover is approved.
 
-## Hosted provider connection
+## Domain boundaries
 
-GitHub Pages serves the browser application and its built-in local renderer. To use an external paid music model, deploy a server-side adapter and route `/api/health` and `/api/music` to it. Provider credentials must remain server-side.
+- Keep RenewNudge on its existing Lovable deployment until that project is changed there.
+- Keep separate codeFEDDY properties outside the Clintware product map.
+- Never deploy the retired Aggieland Media Lab address as the public Family Media Lab.
