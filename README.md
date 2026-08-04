@@ -14,6 +14,8 @@ Production source for the public Clintware company site.
 
 The company homepage and Audio Lab are separate deployments. The `audio-lab` branch is retained only as the historical static Audio Lab source. The full-stack Audio Lab now has its own Site and server-side music route, so publishing the homepage cannot replace the music product.
 
+The legacy `clintware-audiolab` Cloudflare Pages project uses `audio-lab` as its production branch and has preview deployments disabled. Pushes to `main` must not trigger Audio Lab builds.
+
 ## Included public routes
 
 - `/` — company overview
