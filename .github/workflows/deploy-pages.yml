@@ -1,6 +1,17 @@
 name: Deploy Clintware Homepage
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "build_site.py"
+      - ".github/workflows/deploy-pages.yml"
+  pull_request:
+    paths:
+      - "public/**"
+      - "build_site.py"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -9,11 +20,27 @@ permissions:
   id-token: write
 
 concurrency:
-  group: clintware-homepage-pages
+  group: "clintware-homepage-pages-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  verify-and-deploy:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out homepage source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify production bundle
+        run: python build_site.py
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -21,17 +48,6 @@ jobs:
     steps:
       - name: Check out homepage source
         uses: actions/checkout@v4
-
-      - name: Verify production bundle
-        run: |
-          test -s public/index.html
-          test -s public/tools/index.html
-          test -s public/blog/index.html
-          test -s public/privacy/index.html
-          test -s public/contact/index.html
-          test -s public/robots.txt
-          test -s public/sitemap.xml
-          ! grep -Ril "Aggieland" public
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
