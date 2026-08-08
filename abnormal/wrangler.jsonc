@@ -3,8 +3,5 @@
   "name": "abnormal-cs-command-center",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-08",
-  "workers_dev": false,
-  "routes": [
-    { "pattern": "an.clintware.com", "custom_domain": true }
-  ]
+  "workers_dev": false
 }
