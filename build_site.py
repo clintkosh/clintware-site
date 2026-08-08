@@ -61,13 +61,54 @@ def strip_known_optional_recommender(text: str, path: Path) -> str:
     return text
 
 
-def materialize_pdf_from_parts(directory: Path, output_name: str, part_names: list[str]) -> None:
-    """Rebuild a verified PDF binary from UTF-8 base64 payload files.
+def harden_crm_storage(text: str, path: Path) -> str:
+    """Keep the CRM functional when browser storage is unavailable.
 
-    GitHub text writes cannot replace binary PDFs directly, so the repository stores
-    the visually QA'd PDF bytes as base64 text. Deployment turns them back into the
-    real PDF file and refuses to publish a malformed/blank placeholder.
+    Some browsers/privacy contexts can throw when localStorage/sessionStorage is
+    merely accessed. The source historically did this during startup, which could
+    prevent all click handlers from binding. Replace those exact startup/write
+    paths with fail-soft wrappers. Records still work for the current session;
+    persistence is best-effort.
     """
+    if path.parent.name != "summertime-crmdemo":
+        return text
+
+    old_init = "let activeAccount=null,notes=JSON.parse(localStorage.getItem(NOTES_KEY)||'{}'),meetingAdds=JSON.parse(localStorage.getItem(MEETINGS_KEY)||'{}'),peopleAdds=JSON.parse(localStorage.getItem(PEOPLE_KEY)||'{}');"
+    new_init = "function safeLocalParse(k,f){try{return JSON.parse(localStorage.getItem(k)||f)}catch(e){return JSON.parse(f)}}function safeSessionGet(k){try{return sessionStorage.getItem(k)}catch(e){return null}}function safeSessionSet(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}function safeSessionRemove(k){try{sessionStorage.removeItem(k)}catch(e){}}let activeAccount=null,notes=safeLocalParse(NOTES_KEY,'{}'),meetingAdds=safeLocalParse(MEETINGS_KEY,'{}'),peopleAdds=safeLocalParse(PEOPLE_KEY,'{}');"
+    text = text.replace(old_init, new_init)
+    text = text.replace(
+        "function store(k,v){localStorage.setItem(k,JSON.stringify(v))}",
+        "function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}",
+    )
+    text = text.replace(
+        "function unlock(){sessionStorage.setItem(SESSION_KEY,'1');document.body.classList.add('unlocked');document.title='DTEX Customer Success Measurement System'}",
+        "function unlock(){safeSessionSet(SESSION_KEY,'1');document.body.classList.add('unlocked');document.title='DTEX Customer Success Measurement System'}",
+    )
+    text = text.replace(
+        "function lock(){sessionStorage.removeItem(SESSION_KEY);document.body.classList.remove('unlocked');document.title='Private Customer Success Demo';document.getElementById('pw').value=''}",
+        "function lock(){safeSessionRemove(SESSION_KEY);document.body.classList.remove('unlocked');document.title='Private Customer Success Demo';document.getElementById('pw').value=''}",
+    )
+    text = text.replace(
+        "if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();",
+        "if(safeSessionGet(SESSION_KEY)==='1')unlock();",
+    )
+    text = text.replace(
+        "themeApply(localStorage.getItem(THEME_KEY)||'dark');",
+        "let savedTheme='dark';try{savedTheme=localStorage.getItem(THEME_KEY)||'dark'}catch(e){}themeApply(savedTheme);",
+    )
+    text = text.replace(
+        "localStorage.setItem(THEME_KEY,n);themeApply(n);",
+        "try{localStorage.setItem(THEME_KEY,n)}catch(e){}themeApply(n);",
+    )
+
+    required = ("function safeLocalParse(", "function safeSessionGet(", "function store(k,v){try{")
+    if not all(marker in text for marker in required):
+        raise SystemExit(f"CRM storage hardening did not apply cleanly to {path}")
+    return text
+
+
+def materialize_pdf_from_parts(directory: Path, output_name: str, part_names: list[str]) -> None:
+    """Rebuild a verified PDF binary from UTF-8 base64 payload files."""
     paths = [directory / name for name in part_names]
     missing_parts = [str(p) for p in paths if not p.is_file()]
     if missing_parts:
@@ -91,17 +132,14 @@ def materialize_crm_deliverables(directory: Path) -> None:
         "csm-guide.pdf",
         [f"pdf-guide.part{i}.txt" for i in range(1, 7)],
     )
-    materialize_pdf_from_parts(
-        directory,
-        "meeting-brief.pdf",
-        ["pdf-brief.part1.txt"],
-    )
+    materialize_pdf_from_parts(directory, "meeting-brief.pdf", ["pdf-brief.part1.txt"])
 
 
 def instrument_crm(path: Path) -> None:
     """Inject shared presentation, analytics, and tested CRM runtime plumbing."""
     text = path.read_text(encoding="utf-8", errors="ignore")
     text = strip_known_optional_recommender(text, path)
+    text = harden_crm_storage(text, path)
     demo_id = demo_id_for(path)
 
     ga_head = f'''\n<!-- Clintware CRM analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>\n<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','{ANALYTICS_ID}',{{'anonymize_ip':true}});</script>\n'''
