@@ -26,8 +26,14 @@ published_html = [Path("index.html")]
 for section in ("blog", "consulting", "public", "ranchledger", "tools"):
     published_html.extend(Path(section).rglob("*.html"))
 
+# Interview/demo surfaces intentionally remain outside production analytics.
+analytics_exempt = {"dtex-crmdemo"}
 missing_analytics = []
+analytics_checked = 0
 for path in published_html:
+    if any(part in analytics_exempt for part in path.parts):
+        continue
+    analytics_checked += 1
     text = path.read_text(encoding="utf-8", errors="ignore")
     if ANALYTICS_ID not in text or "gtag('config'" not in text:
         missing_analytics.append(str(path))
@@ -39,5 +45,5 @@ if missing_analytics:
 
 print(
     f"Validated Clintware homepage bundle in {PUBLIC} "
-    f"({len(REQUIRED)} required files, {len(published_html)} analytics-enabled pages)."
+    f"({len(REQUIRED)} required files, {analytics_checked} analytics-enabled pages)."
 )
