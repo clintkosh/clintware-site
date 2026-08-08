@@ -55,3 +55,14 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{"hostname":"an.clintware.com","service":"abnormal-cs-command-center"}')
           echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("success") is True, data; print("Custom domain attached:", data["result"]["hostname"])'
+      - name: Verify private login gate over HTTPS
+        run: |
+          set -euo pipefail
+          body=$(curl --fail-with-body -sS --retry 12 --retry-delay 5 --retry-all-errors https://an.clintware.com/)
+          grep -Fq "Private Abnormal CS concept" <<< "$body"
+          grep -Fq "Synthetic data only" <<< "$body"
+          if grep -Fq "Portfolio Command" <<< "$body"; then
+            echo "Authenticated CRM content leaked through the public gate" >&2
+            exit 1
+          fi
+          echo "Live HTTPS gate verified: https://an.clintware.com"
