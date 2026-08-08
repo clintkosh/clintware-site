@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           body=$(curl --fail-with-body -sS --retry 12 --retry-delay 5 --retry-all-errors https://an.clintware.com/)
-          grep -Fq "Private Abnormal CS concept" <<< "$body"
+          grep -Fq "Private Customer Success Command Center" <<< "$body"
           grep -Fq "Synthetic data only" <<< "$body"
           if grep -Fq "Portfolio Command" <<< "$body"; then
             echo "Authenticated CRM content leaked through the public gate" >&2
