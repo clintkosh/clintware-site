@@ -26,8 +26,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate Worker syntax
-        run: node --check src/worker.js
+      - name: Validate Worker and workspace syntax
+        run: |
+          node --check src/worker.js
+          node --check src/enhancer.js
+      - name: Smoke test workspace injection
+        run: node tests/enhancer.mjs
       - name: Validate privacy and deployment guardrails
         run: python3 tests/regression.py
 
