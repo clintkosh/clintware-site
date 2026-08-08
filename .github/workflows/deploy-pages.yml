@@ -6,11 +6,13 @@ on:
     paths:
       - "public/**"
       - "build_site.py"
+      - "generate_crm_pdfs.py"
       - ".github/workflows/deploy-pages.yml"
   pull_request:
     paths:
       - "public/**"
       - "build_site.py"
+      - "generate_crm_pdfs.py"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -35,6 +37,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install PDF build dependency
+        run: python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+
       - name: Verify production bundle
         run: python build_site.py
 
@@ -53,6 +58,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
+      - name: Install PDF build dependency
+        run: python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
 
       - name: Build instrumented production bundle
         run: python build_site.py
