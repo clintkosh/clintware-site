@@ -62,14 +62,7 @@ def strip_known_optional_recommender(text: str, path: Path) -> str:
 
 
 def harden_crm_storage(text: str, path: Path) -> str:
-    """Keep the CRM functional when browser storage is unavailable.
-
-    Some browsers/privacy contexts can throw when localStorage/sessionStorage is
-    merely accessed. The source historically did this during startup, which could
-    prevent all click handlers from binding. Replace those exact startup/write
-    paths with fail-soft wrappers. Records still work for the current session;
-    persistence is best-effort.
-    """
+    """Keep the CRM functional when browser storage is unavailable."""
     if path.parent.name != "summertime-crmdemo":
         return text
 
@@ -107,6 +100,50 @@ def harden_crm_storage(text: str, path: Path) -> str:
     return text
 
 
+def polish_crm_copy(text: str, path: Path) -> str:
+    """Keep the visible DTEX demo copy confident and product-focused.
+
+    The functional boundary stays the same, but the UI should describe what the
+    system does well instead of repeatedly explaining what optional automation is
+    absent. A single understated roadmap note is retained for future AI-assisted
+    suggestions with human review.
+    """
+    if path.parent.name != "summertime-crmdemo":
+        return text
+
+    replacements = {
+        "Synthetic data only. The application calculates explicit metrics and thresholds; it does not guess patterns or generate recommendations.":
+            "Synthetic customer and commercial data are used throughout this independent proof of concept.",
+        "No classifier, recommender, next-best-action engine, expansion guess, or free-text pattern analysis is used. Thresholds and formulas are disclosed.":
+            "Transparent health formulas, account records, meeting history, stakeholder mapping, and playbook references keep the operating model easy to inspect.",
+        "<strong>Measurement boundary:</strong>":
+            "<strong>Operating foundation:</strong>",
+        "<span>No pattern guessing or generated recommendations.</span>":
+            "<span>Built for repeatable Customer Success workflows.</span>",
+        "Accounts sorted only by disclosed threshold exceptions and renewal timing.":
+            "Accounts sorted by disclosed threshold exceptions and renewal timing.",
+        "Stored synthetic meeting dates; no inferred priority.":
+            "Scheduled synthetic meeting dates from account records.",
+        "All values are synthetic and structured. The application does not infer sentiment or meaning from free text.":
+            "All customer, commercial, and usage values shown here are synthetic for the demo.",
+        "Static reference only; the system does not assign work automatically.":
+            "Reference model for coordinating Customer Success, Technical Success, i³, Support, Product, Engineering, and Sales.",
+        "Direct structured values; no automatic pattern interpretation.":
+            "Structured portfolio view across the six Customer Success health dimensions.",
+        "Assembles stored account values and records without generating advice.":
+            "Brings account metrics, stakeholders, success plans, notes, and meeting history into one preparation view.",
+        "Stored request status only.":
+            "Current request status and service context.",
+        "Independent proof of concept built from public DTEX materials plus synthetic data. No recommendation engine, classifier, next-best-action system, sentiment analysis, or free-text pattern inference is present. Playbooks are static reference checklists.":
+            "Independent proof of concept built from public DTEX materials plus synthetic data. Playbooks provide consistent review checklists, and account records are designed to support repeatable CSM operating rhythms.<br>Roadmap: a future iteration could layer AI-assisted suggestions on top of this structured foundation, with CSM review before action.",
+        "This brief assembles stored values and records only. It does not generate recommendations.":
+            "Prepared from the account workspace for CSM review.",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
+
 def materialize_pdf_from_parts(directory: Path, output_name: str, part_names: list[str]) -> None:
     """Rebuild a verified PDF binary from UTF-8 base64 payload files."""
     paths = [directory / name for name in part_names]
@@ -140,6 +177,7 @@ def instrument_crm(path: Path) -> None:
     text = path.read_text(encoding="utf-8", errors="ignore")
     text = strip_known_optional_recommender(text, path)
     text = harden_crm_storage(text, path)
+    text = polish_crm_copy(text, path)
     demo_id = demo_id_for(path)
 
     ga_head = f'''\n<!-- Clintware CRM analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>\n<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','{ANALYTICS_ID}',{{'anonymize_ip':true}});</script>\n'''
