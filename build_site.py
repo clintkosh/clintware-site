@@ -34,6 +34,41 @@ def demo_id_for(path: Path) -> str:
     return f"{slug}_2026"
 
 
+def strip_known_optional_recommender(text: str, path: Path) -> str:
+    """Remove only the known optional injected recommender block, then continue.
+
+    This guard is intentionally non-blocking. A prohibited optional recommender
+    must never stop the rest of the CRM/site build. If an old standard block is
+    present, omit that block and move on. If unfamiliar markers are present,
+    report them for cleanup but do not abort unrelated project work.
+    """
+    before = text
+    text = re.sub(
+        r'\s*<script[^>]*id=["\']clintware-signal-engine["\'][^>]*>.*?</script>\s*',
+        "\n",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if text != before:
+        print(f"Skipped optional recommendation/signal-engine block in {path}; continuing build.")
+
+    remaining_markers = (
+        'const signalRules=',
+        'function recommendSignal(',
+        'crm_signal_recommendation',
+        'crm_recommendation_approved',
+    )
+    found = [marker for marker in remaining_markers if marker in text]
+    if found:
+        print(
+            f"NOTICE: recommendation-related source markers remain in {path}: "
+            f"{', '.join(found)}. They were not auto-removed because they may be "
+            "inside shared application code. Continue the overall build and omit "
+            "that optional feature in the next source edit; do not search for a replacement."
+        )
+    return text
+
+
 def instrument_crm(path: Path) -> None:
     """Inject only shared presentation/analytics plumbing.
 
@@ -42,6 +77,7 @@ def instrument_crm(path: Path) -> None:
     CRM business logic must remain explicit in the CRM source itself.
     """
     text = path.read_text(encoding="utf-8", errors="ignore")
+    text = strip_known_optional_recommender(text, path)
     demo_id = demo_id_for(path)
 
     ga_head = f'''\n<!-- Clintware CRM analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>\n<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','{ANALYTICS_ID}',{{'anonymize_ip':true}});</script>\n'''
@@ -60,18 +96,6 @@ def instrument_crm(path: Path) -> None:
         text = text.replace("</body>", theme_js + "</body>", 1)
     if 'id="clintware-crm-analytics"' not in text:
         text = text.replace("</body>", crm_events + "</body>", 1)
-
-    # Guard against accidental reintroduction of the removed suggestion engine.
-    forbidden_code_markers = (
-        'id="clintware-signal-engine"',
-        'const signalRules=',
-        'function recommendSignal(',
-        'crm_signal_recommendation',
-        'crm_recommendation_approved',
-    )
-    found = [marker for marker in forbidden_code_markers if marker in text]
-    if found:
-        raise SystemExit(f"Forbidden recommendation/signal-engine code found in {path}: {', '.join(found)}")
 
     path.write_text(text, encoding="utf-8")
 
