@@ -1,1 +1,1 @@
-Private CRM demo entry point. Use the summertime-crmdemo host. Do not link the underlying application route publicly.
+Private CRM demo entry point. Use the summertime-crmdemo host. Company-specific branding appears only after unlock. A matching CSM guide is generated at csm-guide.pdf and linked from the unlocked application.
