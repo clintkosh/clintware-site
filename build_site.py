@@ -1,6 +1,8 @@
 from pathlib import Path
 import base64
 import re
+import subprocess
+import sys
 
 PUBLIC = Path("public")
 ANALYTICS_ID = "G-DCY144YM9P"
@@ -101,13 +103,7 @@ def harden_crm_storage(text: str, path: Path) -> str:
 
 
 def polish_crm_copy(text: str, path: Path) -> str:
-    """Keep the visible DTEX demo copy confident and product-focused.
-
-    The functional boundary stays the same, but the UI should describe what the
-    system does well instead of repeatedly explaining what optional automation is
-    absent. A single understated roadmap note is retained for future AI-assisted
-    suggestions with human review.
-    """
+    """Keep the visible DTEX demo copy confident and product-focused."""
     if path.parent.name != "summertime-crmdemo":
         return text
 
@@ -207,6 +203,13 @@ def instrument_crm(path: Path) -> None:
 
 for crm_index in PUBLIC.glob("*crmdemo/index.html"):
     instrument_crm(crm_index)
+
+# Regenerate the polished DTEX PDF deliverables from source after any legacy
+# payload materialization so both GitHub Pages and Cloudflare builds publish
+# the current documentation wording.
+pdf_generator = Path("generate_crm_pdfs.py")
+if pdf_generator.is_file():
+    subprocess.run([sys.executable, str(pdf_generator)], check=True)
 
 published_html = [Path("index.html")]
 for section in ("blog", "consulting", "public", "ranchledger", "tools"):
