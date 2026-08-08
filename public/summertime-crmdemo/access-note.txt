@@ -1,0 +1,1 @@
+Entry route is intended for the summertime-crmdemo subdomain. The sign-in screen is neutral and does not identify the customer-specific demo until access is granted.
