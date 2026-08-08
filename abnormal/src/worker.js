@@ -2,6 +2,7 @@ import { enhanceApp } from "./enhancer.js";
 
 const PASSWORD_SHA256 = "04df7e1d9915c05c8b9af3f7ebedddccdd48361b04c382706c38d9bb072b7abb";
 const SOURCE_URL = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/abnormal/src/index.js";
+const DEMO_VISIT_SCRIPT = `<script id="cw-demo-visit-signal">(function(){window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};window.gtag('event','private_demo_visited',{demo_name:'customer_success_command_center',demo_access:'authenticated',demo_signal:'visit'});})();</script>`;
 let appCache;
 
 function bytesToHex(buf) {
@@ -48,6 +49,11 @@ async function gunzipBase64(value) {
   return await new Response(stream).text();
 }
 
+function addVisitSignal(html) {
+  if (!html || html.includes('id="cw-demo-visit-signal"')) return html;
+  return html.includes("</body>") ? html.replace("</body>", DEMO_VISIT_SCRIPT + "</body>") : html + DEMO_VISIT_SCRIPT;
+}
+
 async function loadApp() {
   if (appCache) return appCache;
   const sourceResponse = await fetch(SOURCE_URL, { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -55,7 +61,7 @@ async function loadApp() {
   const source = await sourceResponse.text();
   const match = source.match(/const APP_GZ_B64="([A-Za-z0-9+/=]+)"/);
   if (!match) throw new Error("CRM bundle not found");
-  appCache = enhanceApp(await gunzipBase64(match[1]));
+  appCache = addVisitSignal(enhanceApp(await gunzipBase64(match[1])));
   return appCache;
 }
 
