@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import re
 
 PUBLIC = Path("public")
@@ -35,13 +36,7 @@ def demo_id_for(path: Path) -> str:
 
 
 def strip_known_optional_recommender(text: str, path: Path) -> str:
-    """Remove only the known optional injected recommender block, then continue.
-
-    This guard is intentionally non-blocking. A prohibited optional recommender
-    must never stop the rest of the CRM/site build. If an old standard block is
-    present, omit that block and move on. If unfamiliar markers are present,
-    report them for cleanup but do not abort unrelated project work.
-    """
+    """Skip prohibited optional recommender code without stopping the project."""
     before = text
     text = re.sub(
         r'\s*<script[^>]*id=["\']clintware-signal-engine["\'][^>]*>.*?</script>\s*',
@@ -51,31 +46,60 @@ def strip_known_optional_recommender(text: str, path: Path) -> str:
     )
     if text != before:
         print(f"Skipped optional recommendation/signal-engine block in {path}; continuing build.")
-
-    remaining_markers = (
+    remaining = (
         'const signalRules=',
         'function recommendSignal(',
         'crm_signal_recommendation',
         'crm_recommendation_approved',
     )
-    found = [marker for marker in remaining_markers if marker in text]
+    found = [marker for marker in remaining if marker in text]
     if found:
         print(
-            f"NOTICE: recommendation-related source markers remain in {path}: "
-            f"{', '.join(found)}. They were not auto-removed because they may be "
-            "inside shared application code. Continue the overall build and omit "
-            "that optional feature in the next source edit; do not search for a replacement."
+            f"NOTICE: optional recommendation markers remain in {path}: {', '.join(found)}. "
+            "Continue the overall build; do not search for or substitute another recommender."
         )
     return text
 
 
-def instrument_crm(path: Path) -> None:
-    """Inject only shared presentation/analytics plumbing.
+def materialize_pdf_from_parts(directory: Path, output_name: str, part_names: list[str]) -> None:
+    """Rebuild a verified PDF binary from UTF-8 base64 payload files.
 
-    Deliberately does NOT inject recommendation engines, classifiers,
-    signal analyzers, next-best-action logic, or free-text pattern inference.
-    CRM business logic must remain explicit in the CRM source itself.
+    GitHub text writes cannot replace binary PDFs directly, so the repository stores
+    the visually QA'd PDF bytes as base64 text. Deployment turns them back into the
+    real PDF file and refuses to publish a malformed/blank placeholder.
     """
+    paths = [directory / name for name in part_names]
+    missing_parts = [str(p) for p in paths if not p.is_file()]
+    if missing_parts:
+        raise SystemExit(f"Missing PDF payload part(s) for {output_name}: {', '.join(missing_parts)}")
+    encoded = "".join(p.read_text(encoding="ascii").strip() for p in paths)
+    try:
+        payload = base64.b64decode(encoded, validate=True)
+    except Exception as exc:
+        raise SystemExit(f"Invalid base64 PDF payload for {output_name}: {exc}") from exc
+    if not payload.startswith(b"%PDF-") or len(payload) < 1500 or b"%%EOF" not in payload[-2048:]:
+        raise SystemExit(f"Refusing to publish invalid/blank PDF payload for {output_name}")
+    (directory / output_name).write_bytes(payload)
+    print(f"Materialized verified {output_name} ({len(payload)} bytes).")
+
+
+def materialize_crm_deliverables(directory: Path) -> None:
+    if directory.name != "summertime-crmdemo":
+        return
+    materialize_pdf_from_parts(
+        directory,
+        "csm-guide.pdf",
+        [f"pdf-guide.part{i}.txt" for i in range(1, 7)],
+    )
+    materialize_pdf_from_parts(
+        directory,
+        "meeting-brief.pdf",
+        ["pdf-brief.part1.txt"],
+    )
+
+
+def instrument_crm(path: Path) -> None:
+    """Inject shared presentation, analytics, and tested CRM runtime plumbing."""
     text = path.read_text(encoding="utf-8", errors="ignore")
     text = strip_known_optional_recommender(text, path)
     demo_id = demo_id_for(path)
@@ -84,9 +108,11 @@ def instrument_crm(path: Path) -> None:
 
     theme_css = '''\n<style id="clintware-crm-theme">\n:root{color-scheme:light dark}.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:112px}\nbody.crm-dark{background:#0d1020;color:#f4f5f8}body.crm-light{background:#f6f7f4;color:#11121c}\n@media(prefers-reduced-motion:no-preference){body,.card,.kpi,.btn,input,select,textarea{transition:background-color .18s ease,color .18s ease,border-color .18s ease}}\n</style>\n'''
 
-    theme_js = '''\n<script id="clintware-crm-theme-js">(function(){const KEY='clintware-crm-theme',DEFAULT='dark';function apply(mode){const dark=mode==='dark';document.body.classList.toggle('crm-dark',dark);document.body.classList.toggle('crm-light',!dark);const b=document.getElementById('theme-toggle');if(b){b.setAttribute('aria-pressed',String(dark));b.title=dark?'Switch to light mode':'Switch to dark mode';b.textContent=dark?'Light mode':'Dark mode';}}document.addEventListener('DOMContentLoaded',function(){const a=document.querySelector('.top-actions');if(a&&!document.getElementById('theme-toggle')){const b=document.createElement('button');b.type='button';b.id='theme-toggle';b.className='btn theme-toggle';a.insertBefore(b,a.firstChild);}apply(localStorage.getItem(KEY)||DEFAULT);const b=document.getElementById('theme-toggle');if(b)b.onclick=function(){const n=document.body.classList.contains('crm-dark')?'light':'dark';localStorage.setItem(KEY,n);apply(n);if(typeof gtag==='function')gtag('event','crm_theme_toggle',{theme:n});};});})();</script>\n'''
+    theme_js = '''\n<script id="clintware-crm-theme-js">(function(){const KEY='clintware-crm-theme',DEFAULT='dark';function apply(mode){const dark=mode==='dark';document.body.classList.toggle('crm-dark',dark);document.body.classList.toggle('crm-light',!dark);const b=document.getElementById('theme-toggle');if(b){b.setAttribute('aria-pressed',String(dark));b.title=dark?'Switch to light mode':'Switch to dark mode';b.textContent=dark?'Light mode':'Dark mode';}}document.addEventListener('DOMContentLoaded',function(){const a=document.querySelector('.top-actions');if(a&&!document.getElementById('theme-toggle')){const b=document.createElement('button');b.type='button';b.id='theme-toggle';b.className='btn theme-toggle';a.insertBefore(b,a.firstChild);}let saved=DEFAULT;try{saved=localStorage.getItem(KEY)||DEFAULT}catch(e){}apply(saved);const b=document.getElementById('theme-toggle');if(b)b.onclick=function(){const n=document.body.classList.contains('crm-dark')?'light':'dark';try{localStorage.setItem(KEY,n)}catch(e){}apply(n);if(typeof gtag==='function')gtag('event','crm_theme_toggle',{theme:n});};});})();</script>\n'''
 
-    crm_events = f'''\n<script id="clintware-crm-analytics">(function(){{const demoId={demo_id!r};let unlocked=document.body.classList.contains('unlocked'),engagedSent=false;const send=(name,params={{}})=>{{if(typeof gtag==='function')gtag('event',name,Object.assign({{demo_id:demoId,host:location.hostname}},params));}};const engaged=()=>{{if(!engagedSent&&document.body.classList.contains('unlocked')){{engagedSent=true;send('crm_session_engaged');}}}};document.addEventListener('DOMContentLoaded',()=>{{send('crm_gate_view');const bo=new MutationObserver(()=>{{const now=document.body.classList.contains('unlocked');if(now&&!unlocked){{send('crm_unlock_success');engaged();}}unlocked=now;}});bo.observe(document.body,{{attributes:true,attributeFilter:['class']}});const ge=document.getElementById('gate-error');if(ge){{let last=ge.textContent.trim();new MutationObserver(()=>{{const cur=ge.textContent.trim();if(cur&&cur!==last)send('crm_unlock_failed');last=cur;}}).observe(ge,{{childList:true,characterData:true,subtree:true}});}}document.addEventListener('click',e=>{{const t=e.target.closest('a,button,tr.account,tr.account-row');if(!t)return;if(t.matches('a[href*="csm-guide.pdf"]')){{send('crm_guide_open',{{guide_name:'csm_field_guide'}});engaged();}}if(t.matches('tr.account,tr.account-row')){{send('crm_account_open',{{account_segment:t.dataset.segment||'synthetic'}});engaged();}}}});document.addEventListener('change',e=>{{if(e.target.matches('.filters input,.filters select,.table-tools input,.table-tools select')){{send('crm_filter_use',{{filter_type:e.target.id||e.target.name||e.target.tagName.toLowerCase()}});engaged();}}}});}});}})();</script>\n'''
+    crm_events = f'''\n<script id="clintware-crm-analytics">(function(){{const demoId={demo_id!r};let unlocked=document.body.classList.contains('unlocked'),engagedSent=false;const send=(name,params={{}})=>{{if(typeof gtag==='function')gtag('event',name,Object.assign({{demo_id:demoId,host:location.hostname}},params));}};const engaged=()=>{{if(!engagedSent&&document.body.classList.contains('unlocked')){{engagedSent=true;send('crm_session_engaged');}}}};document.addEventListener('DOMContentLoaded',()=>{{send('crm_gate_view');const bo=new MutationObserver(()=>{{const now=document.body.classList.contains('unlocked');if(now&&!unlocked){{send('crm_unlock_success');engaged();}}unlocked=now;}});bo.observe(document.body,{{attributes:true,attributeFilter:['class']}});const ge=document.getElementById('gate-error');if(ge){{let last=ge.textContent.trim();new MutationObserver(()=>{{const cur=ge.textContent.trim();if(cur&&cur!==last)send('crm_unlock_failed');last=cur;}}).observe(ge,{{childList:true,characterData:true,subtree:true}});}}document.addEventListener('click',e=>{{const t=e.target.closest('a,button,tr.account,tr.account-row');if(!t)return;if(t.matches('a[href*="csm-guide.pdf"],a[href*="meeting-brief.pdf"]')){{send('crm_guide_open',{{guide_name:t.getAttribute('href').includes('meeting')?'meeting_brief':'csm_field_guide'}});engaged();}}if(t.matches('tr.account,tr.account-row')){{send('crm_account_open',{{account_segment:t.dataset.segment||'synthetic'}});engaged();}}}});document.addEventListener('change',e=>{{if(e.target.matches('.filters input,.filters select,.table-tools input,.table-tools select')){{send('crm_filter_use',{{filter_type:e.target.id||e.target.name||e.target.tagName.toLowerCase()}});engaged();}}}});}});}})();</script>\n'''
+
+    runtime_js = '<script id="clintware-crm-runtime-fix" src="crm-runtime-fix.js"></script>\n'
 
     if ANALYTICS_ID not in text:
         text = text.replace("</head>", ga_head + theme_css + "</head>", 1)
@@ -96,8 +122,11 @@ def instrument_crm(path: Path) -> None:
         text = text.replace("</body>", theme_js + "</body>", 1)
     if 'id="clintware-crm-analytics"' not in text:
         text = text.replace("</body>", crm_events + "</body>", 1)
+    if path.parent.name == "summertime-crmdemo" and 'id="clintware-crm-runtime-fix"' not in text:
+        text = text.replace("</body>", runtime_js + "</body>", 1)
 
     path.write_text(text, encoding="utf-8")
+    materialize_crm_deliverables(path.parent)
 
 
 for crm_index in PUBLIC.glob("*crmdemo/index.html"):
