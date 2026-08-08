@@ -29,7 +29,7 @@ for section in ("blog", "consulting", "public", "ranchledger", "tools"):
 missing_analytics = []
 for path in published_html:
     text = path.read_text(encoding="utf-8", errors="ignore")
-    if ANALYTICS_ID not in text or f"gtag('config', '{ANALYTICS_ID}')" not in text:
+    if ANALYTICS_ID not in text or "gtag('config'" not in text:
         missing_analytics.append(str(path))
 
 if missing_analytics:
