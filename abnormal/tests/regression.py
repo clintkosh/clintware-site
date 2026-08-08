@@ -11,6 +11,10 @@ assert '04df7e1d9915c05c8b9af3f7ebedddccdd48361b04c382706c38d9bb072b7abb' in wor
 assert 'noindex, nofollow, noarchive' in worker
 assert 'enhanceApp' in worker
 assert 'an_demo_attribution_v1' in worker
+assert 'private_demo_visited' in worker
+assert 'demo_signal' in worker
+assert 'demo_access' in worker
+assert 'cw-demo-visit-signal' in worker
 
 m=re.search(r'const APP_GZ_B64="([A-Za-z0-9+/=]+)"',src)
 assert m, 'compressed app bundle missing'
@@ -62,4 +66,4 @@ for required in [
 
 assert "demo_account_name" not in enhancer
 assert "demo_notes" not in enhancer
-print('PASS: privacy/product/editable-persistence/daily-reset/analytics guardrails')
+print('PASS: privacy/product/editable-persistence/daily-reset/analytics/visit-signal guardrails')
