@@ -10,6 +10,7 @@ REQUIRED = [
     PUBLIC / "index.html",
     PUBLIC / "tools" / "index.html",
     PUBLIC / "blog" / "index.html",
+    PUBLIC / "blog" / "the-runway-and-the-work" / "index.html",
     PUBLIC / "privacy" / "index.html",
     PUBLIC / "contact" / "index.html",
     PUBLIC / "robots.txt",
