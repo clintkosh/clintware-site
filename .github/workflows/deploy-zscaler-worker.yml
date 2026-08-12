@@ -48,7 +48,20 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd zscaler
 
-      - name: Verify stable zsc.clintware.com binding without mutating DNS
+      - name: Repair zsc.clintware.com custom domain binding once
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"zsc.clintware.com","service":"zscaler-cs-business-operations"}' \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; print("Repaired custom domain binding for zsc.clintware.com")'
+
+      - name: Verify stable zsc.clintware.com binding
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -70,7 +83,25 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); assert len(r)==0, r; print("Legacy zs.clintware.com binding removed")'
 
-      - name: Verify zsc.clintware.com DNS HTTPS and direct-render login mode
+      - name: Verify public DNS on Cloudflare and Google resolvers
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsutils >/dev/null
+          for i in $(seq 1 30); do
+            cf=$(dig +short @1.1.1.1 zsc.clintware.com A | head -n1)
+            gg=$(dig +short @8.8.8.8 zsc.clintware.com A | head -n1)
+            if [ -n "$cf" ] && [ -n "$gg" ]; then
+              echo "Public DNS resolved: Cloudflare=$cf Google=$gg"
+              exit 0
+            fi
+            echo "Waiting for public DNS after custom-domain repair (attempt $i/30): Cloudflare=${cf:-NONE} Google=${gg:-NONE}"
+            sleep 10
+          done
+          echo "Public DNS still unresolved after repair" >&2
+          exit 1
+
+      - name: Verify zsc.clintware.com HTTPS and direct-render login mode
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
@@ -83,14 +114,14 @@ jobs:
               && grep -Fq '"ok":true' <<< "$auth" \
               && grep -Fq '"app":true' <<< "$auth" \
               && grep -Fq '"mode":"crm-direct-render"' <<< "$auth"; then
-              echo "zsc.clintware.com DNS, HTTPS gate, app runtime, and exact CRM direct-render mode verified"
+              echo "zsc.clintware.com HTTPS gate, app runtime, and exact CRM direct-render mode verified"
               break
             fi
             if [ "$i" = 20 ]; then
               echo "zsc.clintware.com runtime verification failed" >&2
               exit 1
             fi
-            echo "Waiting for live zsc.clintware.com after Worker deploy (attempt $i/20)"
+            echo "Waiting for live zsc.clintware.com after repair (attempt $i/20)"
             sleep 3
           done
 
