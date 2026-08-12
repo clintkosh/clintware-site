@@ -49,6 +49,18 @@ assert 'data.accounts=[]' in html and "route='accounts'" in html
 assert "THEME='zs_ops_theme_v2'" in html
 assert "document.documentElement.dataset.theme" in html
 
+# Every account workspace section must support persisted edits, not just display
+# seeded records or expose add/remove-only controls.
+for marker in [
+    'data-edit-contact', 'data-edit-success', 'data-edit-technical',
+    'data-edit-meeting', 'data-edit-note', 'data-edit-commercial',
+    'data-edit-risk', 'data-add-risk', 'function upsertRecord(',
+    "save(data);closeModal();render()", "localStorage.setItem(STORE,JSON.stringify(x))"
+]:
+    assert marker in html, marker
+for form in ['contactForm','successForm','technicalForm','meetingForm','noteForm','commercialForm','riskForm']:
+    assert f'function {form}(' in html, form
+
 # Browser-global regression: window.top already exists in browsers.  The app must
 # never define a global top() function again or its initial render will abort.
 assert 'function top(){' not in html

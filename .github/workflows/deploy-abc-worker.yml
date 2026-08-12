@@ -141,8 +141,80 @@ jobs:
           await page.waitForFunction(() => document.body.classList.contains('unlocked'));
           const appText = (await page.locator('#app').textContent()) || '';
           if (!appText.includes('Command Center') || !appText.includes('Accounts')) throw new Error('unlocked app content missing');
+
+          // Exercise every editable account workspace against the deployed app.
+          await page.click('[data-route="accounts"]');
+          await page.locator('[data-open]').first().click();
+          const accountId = await page.evaluate(() => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id);
+
+          await page.click('[data-edit-account]');
+          await page.fill('#f-summary','Production E2E account summary');
+          await page.click('#save-account');
+
+          await page.click('[data-tab="stakeholders"]');
+          await page.locator('[data-edit-contact]').first().click();
+          await page.fill('#c-name','Production E2E Stakeholder');
+          await page.click('#save-contact');
+
+          await page.click('[data-tab="success"]');
+          await page.locator('[data-edit-success]').first().click();
+          await page.fill('#s-objective','Production E2E customer outcome');
+          await page.fill('#s-progress','77');
+          await page.click('#save-success');
+
+          await page.click('[data-tab="technical"]');
+          await page.click('[data-edit-technical]');
+          await page.fill('#t-owner','Production E2E Technical Owner');
+          await page.fill('#t-coverage','91');
+          await page.fill('#t-modules','Core, Analytics, E2E Module');
+          await page.click('#save-technical');
+
+          await page.click('[data-tab="meetings"]');
+          await page.locator('[data-edit-meeting]').first().click();
+          await page.fill('#m-title','Production E2E Meeting');
+          await page.fill('#m-notes','Production E2E meeting notes persisted.');
+          await page.click('#save-meeting');
+
+          await page.click('[data-tab="notes"]');
+          await page.locator('[data-edit-note]').first().click();
+          await page.fill('#n-text','Production E2E account note persisted.');
+          await page.click('#save-note');
+
+          await page.click('[data-tab="commercial"]');
+          await page.click('[data-edit-commercial]');
+          await page.fill('#co-ae','Production E2E Account Executive');
+          await page.fill('#co-value','86');
+          await page.fill('#co-stakeholder','87');
+          await page.fill('#co-ready','88');
+          await page.click('#save-commercial');
+
+          await page.click('[data-tab="summary"]');
+          await page.click('[data-add-risk]');
+          await page.fill('#r-title','Production E2E Risk');
+          await page.fill('#r-owner','Production E2E Risk Owner');
+          await page.click('#save-risk');
+          await page.locator('[data-edit-risk]').last().click();
+          await page.fill('#r-status','Mitigating');
+          await page.click('#save-risk');
+
+          const stored = await page.evaluate(id => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a => a.id === id), accountId);
+          if (stored.summary !== 'Production E2E account summary') throw new Error('account edit did not persist');
+          if (stored.contacts[0].name !== 'Production E2E Stakeholder') throw new Error('stakeholder edit did not persist');
+          if (stored.successPlans[0].objective !== 'Production E2E customer outcome' || stored.successPlans[0].progress !== 77) throw new Error('success-plan edit did not persist');
+          if (stored.serviceOwner !== 'Production E2E Technical Owner' || stored.technicalCoverage !== 91 || !stored.activeModules.includes('E2E Module')) throw new Error('technical edit did not persist');
+          if (stored.meetings[0].title !== 'Production E2E Meeting') throw new Error('meeting edit did not persist');
+          if (stored.notes[0].text !== 'Production E2E account note persisted.') throw new Error('note edit did not persist');
+          if (stored.accountExec !== 'Production E2E Account Executive' || stored.commercialReadiness !== 88) throw new Error('commercial edit did not persist');
+          if (!stored.risks.some(r => r.title === 'Production E2E Risk' && r.status === 'Mitigating')) throw new Error('risk add/edit did not persist');
+
           await page.reload({waitUntil:'domcontentloaded'});
           await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+          await page.click('[data-route="accounts"]');
+          await page.locator(`[data-open="${accountId}"]`).click();
+          await page.click('[data-tab="stakeholders"]');
+          if (!((await page.locator('#app').textContent()) || '').includes('Production E2E Stakeholder')) throw new Error('stakeholder edit missing after reload');
+          await page.click('[data-tab="technical"]');
+          if (!((await page.locator('#app').textContent()) || '').includes('Production E2E Technical Owner')) throw new Error('technical edit missing after reload');
           await browser.close();
           NODE
           CHROME="$chrome" node test.mjs
