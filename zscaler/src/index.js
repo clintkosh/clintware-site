@@ -43,8 +43,8 @@ async function gunzipBase64(value) {
 function applyDtexGate(html) {
   let out = html.replace("</title>", `</title>${GA_HEAD}`);
   out = out.replace("</head>", `${DTEX_GATE_CSS}</head>`);
-  out = out.replace(/<body([^>]*)>/i, `<body$1>${DTEX_GATE_HTML}<div id="app">`);
-  out = out.replace(/<\/body>/i, `</div>${DTEX_GATE_JS}</body>`);
+  out = out.replace(/<body([^>]*)>/i, `<body$1>${DTEX_GATE_HTML}`);
+  out = out.replace(/<\/body>/i, `${DTEX_GATE_JS}</body>`);
   return out;
 }
 
