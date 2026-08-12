@@ -36,6 +36,12 @@ jobs:
           node tests/enhancer.mjs
           node tests/account-users.mjs
           node tests/analyze-base.mjs
+      - name: Probe base CRM in Chrome before workspace E2E
+        run: |
+          set -euo pipefail
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          test -n "$chrome"
+          CHROME="$chrome" timeout 20s node tests/cdp-probe.mjs
       - name: Validate account user workflow in real Chrome via DevTools
         run: |
           set -euo pipefail
