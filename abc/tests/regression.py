@@ -58,6 +58,8 @@ for marker in [
     "save(data);closeModal();render()", "localStorage.setItem(STORE,JSON.stringify(x))"
 ]:
     assert marker in html, marker
+assert "metaX=Math.max(320,W-M-meta.length*4.15)" in html
+assert "`,564,742,8,false" not in html
 for form in ['contactForm','successForm','technicalForm','meetingForm','noteForm','commercialForm','riskForm']:
     assert f'function {form}(' in html, form
 for marker in [

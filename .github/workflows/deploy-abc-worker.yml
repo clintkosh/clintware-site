@@ -226,6 +226,12 @@ jobs:
           if (pdfBytes.length < 5000 || !pdfText.startsWith('%PDF-1.4')) throw new Error('meeting brief download is not a valid-sized PDF');
           if (!pdfText.includes('Production E2E account note persisted.')) throw new Error('custom account note missing from generated PDF');
           if (!pdfText.includes('LIVE CALL NOTES') || !pdfText.includes('DECISIONS AND COMMITMENTS')) throw new Error('manual call-note sections missing from generated PDF');
+          const headerMeta = [...pdfText.matchAll(/1 0 0 1 ([0-9.]+) 742 Tm \(Prepared ([^)]+)\)/g)];
+          if (!headerMeta.length) throw new Error('PDF page metadata labels are missing');
+          for (const match of headerMeta) {
+            const x=Number(match[1]),estimatedRight=x+match[2].length*4.15;
+            if (x < 320 || estimatedRight > 565) throw new Error(`PDF page metadata clips printable boundary: x=${x}, right=${estimatedRight}`);
+          }
           await page.click('[data-close]');
 
           await page.reload({waitUntil:'domcontentloaded'});
