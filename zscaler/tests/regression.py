@@ -5,11 +5,11 @@ worker=(root/'src/index.js').read_text()
 config=(root/'wrangler.jsonc').read_text()
 assert 'ZSClint2026' not in worker
 assert '2$C\\@L3RK0S$H2026' not in worker
-assert 'f6acf1768cd83f94d0a8b4c84e11c087612d11084e3dd829a6106617593102b2' in worker
-for marker in ['SESSION_COOKIE', 'makeSession', 'verifySession', 'Set-Cookie', 'HttpOnly', 'SameSite=Strict', 'url.pathname === "/health/auth"', 'mode: "crm-redirect"', 'return redirect("/", `${SESSION_COOKIE}=', 'status: 302']:
+assert '0758948c6837fc67872c56f1c95668556f9d755e654a65e6ff8de8973a045dc6' in worker
+for marker in ['url.pathname === "/health/auth"', 'mode: "crm-direct-render"', 'return new Response(await loadApp(), { status: 200, headers: responseHeaders() });', 'url.pathname === "/login" && request.method === "POST"']:
     assert marker in worker, marker
-assert 'history.replaceState' not in worker
-assert 'mode: "direct-render"' not in worker
+for forbidden in ['SESSION_COOKIE', 'makeSession', 'verifySession', 'Set-Cookie', 'SameSite=Strict', 'mode: "crm-redirect"', 'history.replaceState']:
+    assert forbidden not in worker, forbidden
 assert '"main": "src/index.js"' in config
 parts=[]
 for p in sorted((root/'src').glob('app-part*.js')):
@@ -27,4 +27,4 @@ assert 'clear-accounts' in html and 'seed-accounts' in html
 assert 'data.accounts=[]' in html and "route='accounts'" in html
 assert "THEME='zs_ops_theme_v2'" in html
 assert "document.documentElement.dataset.theme" in html
-print('DTex-modeled regression and CRM-style redirect auth checks passed')
+print('DTex-modeled regression and exact working-CRM direct-render auth checks passed')
