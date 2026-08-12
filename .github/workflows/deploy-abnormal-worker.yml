@@ -35,12 +35,25 @@ jobs:
         run: |
           node tests/enhancer.mjs
           node tests/account-users.mjs
-      - name: Validate account user workflow in real Chrome
+      - name: Validate account user workflow in native Chrome
         run: |
-          npm install --silent --no-save playwright-core
+          set -euo pipefail
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$chrome"
-          CHROME="$chrome" node tests/account-users-browser.mjs
+          rm -rf /tmp/abnormal-browser-fixture
+          node tests/account-users-browser.mjs
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory /tmp/abnormal-browser-fixture >/tmp/abnormal-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          sleep 1
+          "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=7000 --dump-dom http://127.0.0.1:8765/ > /tmp/abnormal-browser-dom.html
+          grep -Fq 'data-cw-browser-test="pass"' /tmp/abnormal-browser-dom.html
+          grep -Fq 'PASS: account open + 3 seeded stakeholders + add + edit + persistence + remove all work' /tmp/abnormal-browser-dom.html
+          if grep -Fq 'data-cw-browser-test="fail"' /tmp/abnormal-browser-dom.html; then
+            grep -o 'FAIL: [^<]*' /tmp/abnormal-browser-dom.html || true
+            exit 1
+          fi
+          echo "PASS: native Chrome completed full editable account stakeholder workflow"
       - name: Validate privacy and deployment guardrails
         run: python3 tests/regression.py
 
