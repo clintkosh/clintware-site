@@ -88,28 +88,40 @@ jobs:
             done
           done
 
-      - name: Verify DTEX gate and runtime on both hostnames
+      - name: Wait for DTEX gate runtime on both hostnames
         run: |
           set -euo pipefail
           for host in zsc.clintware.com zc.clintware.com; do
-            body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/")
-            health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/health")
-            auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/health/auth")
-            grep -Fq "Restricted preview" <<< "$body"
-            grep -Fq "Private Customer Success Demo" <<< "$body"
-            grep -Fq "Unlock demo" <<< "$body"
-            grep -Fq "Command Center" <<< "$body"
-            grep -Fq "Seed Demo Accounts" <<< "$body"
-            grep -Fq "SESSION_KEY='summertime_demo_access'" <<< "$body"
-            grep -Fq "pw.value===PASS" <<< "$body"
-            grep -Fq '"ok":true' <<< "$health"
-            grep -Fq '"ok":true' <<< "$auth"
-            grep -Fq '"app":true' <<< "$auth"
-            grep -Fq '"gate":true' <<< "$auth"
-            grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"
+            ready=0
+            for i in $(seq 1 24); do
+              body=$(curl -sS --connect-timeout 5 --max-time 20 "https://${host}/" || true)
+              health=$(curl -sS --connect-timeout 5 --max-time 20 "https://${host}/health" || true)
+              auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://${host}/health/auth" || true)
+              if grep -Fq "Restricted preview" <<< "$body" \
+                && grep -Fq "Private Customer Success Demo" <<< "$body" \
+                && grep -Fq "Unlock demo" <<< "$body" \
+                && grep -Fq "Command Center" <<< "$body" \
+                && grep -Fq "Seed Demo Accounts" <<< "$body" \
+                && grep -Fq "SESSION_KEY='summertime_demo_access'" <<< "$body" \
+                && grep -Fq "pw.value===PASS" <<< "$body" \
+                && grep -Fq '"ok":true' <<< "$health" \
+                && grep -Fq '"ok":true' <<< "$auth" \
+                && grep -Fq '"app":true' <<< "$auth" \
+                && grep -Fq '"gate":true' <<< "$auth" \
+                && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
+                ready=1
+                echo "$host is serving the DTEX client-side gate and full app"
+                break
+              fi
+              echo "Waiting for DTEX gate propagation on $host (attempt $i/24)"
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "$host never served the expected DTEX gate/runtime" >&2
+              exit 1
+            fi
             post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://${host}/login")
             test "$post_code" = "405"
-            echo "$host serves the DTEX client-side gate and full app in one response"
           done
 
       - name: Render DTEX gate in Chrome on both hostnames
@@ -151,7 +163,9 @@ jobs:
             if (!(await page.getByText('Command Center',{exact:true}).count())) throw new Error(`${host}: Command Center missing after unlock`);
             await page.reload({waitUntil:'domcontentloaded'});
             await page.waitForFunction(() => document.body.classList.contains('unlocked'));
-            console.log(`${host}: exact DTEX login flow passed in Chrome`);
+            const stillVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
+            if (!stillVisible) throw new Error(`${host}: app hidden after same-tab reload`);
+            console.log(`${host}: exact DTEX login + refresh flow passed in Chrome`);
             await page.close();
           }
           await browser.close();
