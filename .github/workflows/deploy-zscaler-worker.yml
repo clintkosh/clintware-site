@@ -32,7 +32,7 @@ jobs:
           node --check src/app.js
           node tests/smoke.mjs
           python3 tests/regression.py
-      - name: Exercise exact working CRM login flow with disposable password
+      - name: Exercise exact DTEX client login gate
         run: node tests/auth-roundtrip.mjs
 
   deploy:
@@ -40,6 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Deploy private post-sales operations Worker
         uses: cloudflare/wrangler-action@v3
         with:
@@ -48,72 +52,18 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd zscaler
 
-      - name: Verify stable zsc.clintware.com binding without mutating DNS
+      - name: Verify both custom-domain bindings without mutating DNS
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zsc.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="zsc.clintware.com" and x.get("service")=="zscaler-cs-business-operations", x; print("Stable custom domain verified:", x["hostname"], "->", x["service"])'
-
-      - name: Ensure zc.clintware.com copy binding exists
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          current=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zc.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          state=$(echo "$current" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); print("missing" if len(r)==0 else ("same" if len(r)==1 and r[0].get("service")=="zscaler-cs-business-operations" else "conflict"))')
-          if [ "$state" = "missing" ]; then
-            curl --fail-with-body -sS -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              --data '{"hostname":"zc.clintware.com","service":"zscaler-cs-business-operations"}' >/tmp/zc-domain.json
-            python3 -c 'import json; d=json.load(open("/tmp/zc-domain.json")); assert d.get("success") is True, d; print("Created zc.clintware.com -> zscaler-cs-business-operations")'
-          elif [ "$state" = "same" ]; then
-            echo "zc.clintware.com is already attached to zscaler-cs-business-operations; no DNS mutation performed"
-          else
-            echo "zc.clintware.com already exists on a different Worker; refusing to overwrite it" >&2
-            exit 1
-          fi
-
-      - name: Verify zc.clintware.com binding
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
+          for host in zsc.clintware.com zc.clintware.com; do
             response=$(curl --fail-with-body -sS \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zc.clintware.com" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-            if echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True; assert len(r)==1; assert r[0].get("hostname")=="zc.clintware.com" and r[0].get("service")=="zscaler-cs-business-operations"' 2>/dev/null; then
-              echo "zc.clintware.com custom domain binding verified"
-              break
-            fi
-            if [ "$i" = 20 ]; then
-              echo "zc.clintware.com custom-domain binding did not stabilize" >&2
-              exit 1
-            fi
-            sleep 3
+            HOST="$host" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")==os.environ["HOST"] and x.get("service")=="zscaler-cs-business-operations", x; print("Stable custom domain verified:", x["hostname"], "->", x["service"])' <<< "$response"
           done
-
-      - name: Verify legacy zs.clintware.com binding is gone
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); assert len(r)==0, r; print("Legacy zs.clintware.com binding removed")'
 
       - name: Verify public DNS on Cloudflare and Google resolvers
         run: |
@@ -138,37 +88,72 @@ jobs:
             done
           done
 
-      - name: Verify HTTPS and direct-render login mode on both hostnames
+      - name: Verify DTEX gate and runtime on both hostnames
         run: |
           set -euo pipefail
           for host in zsc.clintware.com zc.clintware.com; do
-            body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 "https://${host}/")
-            health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 "https://${host}/health")
-            auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 "https://${host}/health/auth")
-            grep -Fq "Open the operating platform" <<< "$body"
-            grep -Fq "Synthetic data only" <<< "$body"
+            body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/")
+            health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/health")
+            auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 20 "https://${host}/health/auth")
+            grep -Fq "Restricted preview" <<< "$body"
+            grep -Fq "Private Customer Success Demo" <<< "$body"
+            grep -Fq "Unlock demo" <<< "$body"
+            grep -Fq "Command Center" <<< "$body"
+            grep -Fq "Seed Demo Accounts" <<< "$body"
+            grep -Fq "SESSION_KEY='summertime_demo_access'" <<< "$body"
+            grep -Fq "pw.value===PASS" <<< "$body"
             grep -Fq '"ok":true' <<< "$health"
             grep -Fq '"ok":true' <<< "$auth"
             grep -Fq '"app":true' <<< "$auth"
-            grep -Fq '"mode":"crm-direct-render"' <<< "$auth"
-            bad_file="/tmp/$(echo "$host" | tr '.' '-')-bad-login.html"
-            bad_code=$(curl -sS -o "$bad_file" -w '%{http_code}' \
-              -X POST "https://${host}/login" \
-              -H 'Content-Type: application/x-www-form-urlencoded' \
-              --data-urlencode 'password=definitely-not-the-password')
-            test "$bad_code" = "401"
-            grep -Fq "Access denied" "$bad_file"
-            echo "$host HTTPS, runtime, and login rejection path verified"
+            grep -Fq '"gate":true' <<< "$auth"
+            grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"
+            post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://${host}/login")
+            test "$post_code" = "405"
+            echo "$host serves the DTEX client-side gate and full app in one response"
           done
 
-      - name: Render both production hostnames in Chrome
+      - name: Render DTEX gate in Chrome on both hostnames
         run: |
           set -euo pipefail
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           for host in zsc.clintware.com zc.clintware.com; do
             chrome_file="/tmp/$(echo "$host" | tr '.' '-')-chrome.html"
             "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=3000 --dump-dom "https://${host}/" > "$chrome_file"
-            grep -Fq "Open the operating platform" "$chrome_file"
-            grep -Fq "Private review access" "$chrome_file"
-            echo "Chrome rendered $host successfully"
+            grep -Fq "Restricted preview" "$chrome_file"
+            grep -Fq "Unlock demo" "$chrome_file"
+            grep -Fq 'id="pw"' "$chrome_file"
+            echo "Chrome rendered DTEX gate on $host"
           done
+
+      - name: Exercise exact password in a real Chrome session on both hostnames
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-playwright
+          cd /tmp/zsc-playwright
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > test.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
+          for (const host of ['zsc.clintware.com','zc.clintware.com']) {
+            const page = await browser.newPage();
+            await page.goto(`https://${host}/`, {waitUntil:'domcontentloaded', timeout:30000});
+            if (!(await page.locator('#gate').count())) throw new Error(`${host}: gate missing`);
+            await page.fill('#pw','wrong-password');
+            await page.click('#access-form button[type="submit"]');
+            if ((await page.textContent('#gate-error')) !== 'Incorrect password.') throw new Error(`${host}: wrong-password behavior failed`);
+            await page.fill('#pw','2$C@L3RK0S$H2026');
+            await page.click('#access-form button[type="submit"]');
+            await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+            const appVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
+            if (!appVisible) throw new Error(`${host}: app did not become visible`);
+            if (!(await page.getByText('Command Center',{exact:true}).count())) throw new Error(`${host}: Command Center missing after unlock`);
+            await page.reload({waitUntil:'domcontentloaded'});
+            await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+            console.log(`${host}: exact DTEX login flow passed in Chrome`);
+            await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node test.mjs
