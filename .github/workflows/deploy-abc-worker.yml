@@ -1,4 +1,4 @@
-name: Deploy ABC DTEX Customer Success Demo
+name: Deploy ZS DTEX Customer Success Demo
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: abc-dtex-customer-success-demo
+  group: zs-dtex-customer-success-demo
   cancel-in-progress: true
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Deploy ABC DTEX demo Worker
+      - name: Deploy moved DTEX demo Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -52,47 +52,79 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd abc
 
-      - name: Attach abc.clintware.com custom domain
+      - name: Remove existing zs.clintware.com binding
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             -H "Content-Type: application/json"             --data '{"hostname":"abc.clintware.com","service":"abc-cs-business-operations"}')
-          echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("success") is True, data; print("Custom domain attached:", data["result"]["hostname"])'
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="zs.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows))' <<< "$response")
+          if [ -n "$domain_ids" ]; then
+            while IFS= read -r domain_id; do
+              deleted=$(curl --fail-with-body -sS -X DELETE \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$deleted"
+            done <<< "$domain_ids"
+          fi
 
-      - name: Verify custom-domain binding
+      - name: Attach zs.clintware.com to moved ABC Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="abc.clintware.com" and x.get("service")=="abc-cs-business-operations", x; print("Custom domain verified:", x["hostname"], "->", x["service"])' <<< "$response"
+          response=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"zs.clintware.com","service":"abc-cs-business-operations"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; assert d["result"]["hostname"]=="zs.clintware.com",d' <<< "$response"
 
-      - name: Wait for DTEX gate runtime
+      - name: Verify zs custom-domain binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="zs.clintware.com" and x.get("service")=="abc-cs-business-operations",x' <<< "$response"
+
+      - name: Wait for moved DTEX gate runtime
         run: |
           set -euo pipefail
           ready=0
-          for i in $(seq 1 24); do
-            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/" || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health" || true)
-            auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health/auth" || true)
-            if grep -Fq "Restricted preview" <<< "$body"               && grep -Fq "Private Customer Success Demo" <<< "$body"               && grep -Fq "Unlock demo" <<< "$body"               && grep -Fq "Command Center" <<< "$body"               && grep -Fq "Seed Demo Accounts" <<< "$body"               && grep -Fq "SESSION_KEY='summertime_demo_access'" <<< "$body"               && grep -Fq "pw.value===PASS" <<< "$body"               && grep -Fq '"ok":true' <<< "$health"               && grep -Fq '"ok":true' <<< "$auth"               && grep -Fq '"app":true' <<< "$auth"               && grep -Fq '"gate":true' <<< "$auth"               && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
+          for i in $(seq 1 30); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/" || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health" || true)
+            auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health/auth" || true)
+            if grep -Fq "Secure access." <<< "$body" \
+              && grep -Fq "Private Customer Success Demo" <<< "$body" \
+              && grep -Fq "Unlock demo" <<< "$body" \
+              && grep -Fq "Command Center" <<< "$body" \
+              && grep -Fq "Seed Demo Accounts" <<< "$body" \
+              && grep -Fq '"ok":true' <<< "$health" \
+              && grep -Fq '"ok":true' <<< "$auth" \
+              && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
               ready=1
               break
             fi
             sleep 5
           done
           test "$ready" = "1"
-          post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://abc.clintware.com/login")
+          post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://zs.clintware.com/login")
           test "$post_code" = "405"
 
-      - name: Exercise exact DTEX password and rendered app in Chrome
+      - name: Exercise password and app in real Chrome at zs
         run: |
           set -euo pipefail
-          mkdir -p /tmp/abc-playwright
-          cd /tmp/abc-playwright
+          mkdir -p /tmp/zs-playwright
+          cd /tmp/zs-playwright
           npm init -y >/dev/null 2>&1
           npm install --silent --no-save playwright-core >/dev/null 2>&1
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
@@ -100,7 +132,7 @@ jobs:
           import { chromium } from 'playwright-core';
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
           const page = await browser.newPage();
-          await page.goto('https://abc.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
+          await page.goto('https://zs.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
           if ((await page.textContent('#gate-error')) !== 'Incorrect password.') throw new Error('wrong-password behavior failed');
@@ -114,3 +146,27 @@ jobs:
           await browser.close();
           NODE
           CHROME="$chrome" node test.mjs
+
+      - name: Remove old abc.clintware.com binding after successful cutover
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="abc.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows))' <<< "$response")
+          if [ -n "$domain_ids" ]; then
+            while IFS= read -r domain_id; do
+              deleted=$(curl --fail-with-body -sS -X DELETE \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$deleted"
+            done <<< "$domain_ids"
+          fi
+          remaining=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True and d.get("result",[])==[],d' <<< "$remaining"
+
