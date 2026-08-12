@@ -160,11 +160,15 @@ jobs:
             await page.waitForFunction(() => document.body.classList.contains('unlocked'));
             const appVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
             if (!appVisible) throw new Error(`${host}: app did not become visible`);
-            if (!(await page.getByText('Command Center',{exact:true}).count())) throw new Error(`${host}: Command Center missing after unlock`);
+            const appText = await page.locator('#app').textContent();
+            if (!appText || !appText.includes('Command Center')) throw new Error(`${host}: unlocked app content missing Command Center`);
+            if (!appText.includes('Accounts')) throw new Error(`${host}: unlocked app content missing Accounts`);
             await page.reload({waitUntil:'domcontentloaded'});
             await page.waitForFunction(() => document.body.classList.contains('unlocked'));
             const stillVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
             if (!stillVisible) throw new Error(`${host}: app hidden after same-tab reload`);
+            const refreshText = await page.locator('#app').textContent();
+            if (!refreshText || !refreshText.includes('Command Center')) throw new Error(`${host}: app content missing after reload`);
             console.log(`${host}: exact DTEX login + refresh flow passed in Chrome`);
             await page.close();
           }
