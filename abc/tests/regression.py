@@ -60,6 +60,13 @@ for marker in [
     assert marker in html, marker
 for form in ['contactForm','successForm','technicalForm','meetingForm','noteForm','commercialForm','riskForm']:
     assert f'function {form}(' in html, form
+for marker in [
+    'function buildMeetingBriefPdf(a)', 'function downloadMeetingBriefPdf(a)',
+    'id="download-brief-pdf">Download PDF', "section('Custom account notes - complete record')",
+    "section('Live call notes')", "section('Decisions and commitments')",
+    "section('Follow-up')", "type:'application/pdf'"
+]:
+    assert marker in html, marker
 
 # Browser-global regression: window.top already exists in browsers.  The app must
 # never define a global top() function again or its initial render will abort.

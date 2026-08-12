@@ -132,6 +132,7 @@ jobs:
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           cat > test.mjs <<'NODE'
           import { chromium } from 'playwright-core';
+          import fs from 'node:fs/promises';
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
           const page = await browser.newPage();
           const pageErrors=[];
@@ -214,6 +215,18 @@ jobs:
           if (stored.notes[0].text !== 'Production E2E account note persisted.') throw new Error('note edit did not persist');
           if (stored.accountExec !== 'Production E2E Account Executive' || stored.commercialReadiness !== 88) throw new Error('commercial edit did not persist');
           if (!stored.risks.some(r => r.title === 'Production E2E Risk' && r.status === 'Mitigating')) throw new Error('risk add/edit did not persist');
+
+          const downloadStarted = page.waitForEvent('download');
+          await page.click('[data-brief]');
+          await page.click('#download-brief-pdf');
+          const pdfDownload = await downloadStarted;
+          const pdfBytes = await fs.readFile(await pdfDownload.path());
+          const pdfText = pdfBytes.toString('latin1');
+          if (!pdfDownload.suggestedFilename().endsWith('-meeting-brief.pdf')) throw new Error('meeting brief PDF filename is incorrect');
+          if (pdfBytes.length < 5000 || !pdfText.startsWith('%PDF-1.4')) throw new Error('meeting brief download is not a valid-sized PDF');
+          if (!pdfText.includes('Production E2E account note persisted.')) throw new Error('custom account note missing from generated PDF');
+          if (!pdfText.includes('LIVE CALL NOTES') || !pdfText.includes('DECISIONS AND COMMITMENTS')) throw new Error('manual call-note sections missing from generated PDF');
+          await page.click('[data-close]');
 
           await page.reload({waitUntil:'domcontentloaded'});
           await page.waitForFunction(() => document.body.classList.contains('unlocked'));
