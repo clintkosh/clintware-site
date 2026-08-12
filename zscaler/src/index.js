@@ -1,22 +1,23 @@
 import { APP_GZ_B64 } from "./app.js";
 
-const PASSWORD_SHA256 = "50993525d502b7b3862dbed6128884a03f90eedea611d9a69c59ef1da03d599e";
 const GA_HEAD = `<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments)};gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true,demo_name:'zs_cs_business_operations',hostname:location.hostname,page_path:location.pathname});</script>`;
 
-function bytesToHex(buf) {
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+const DTEX_GATE_CSS = `<style id="dtex-gate-css">
+:root{--lime:#c8ff3d;--mint:#49e5b3}
+#gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 80% 8%,rgba(74,199,255,.18),transparent 28%),radial-gradient(circle at 12% 84%,rgba(200,255,61,.12),transparent 30%),#080a0e;color:#fff}.gate-card{width:min(440px,100%);padding:34px;border:1px solid #273038;background:rgba(13,17,22,.96);border-radius:22px;box-shadow:0 36px 100px rgba(0,0,0,.42)}.gate-mark{width:58px;height:7px;border-radius:99px;background:linear-gradient(90deg,var(--lime),var(--mint));margin-bottom:26px}.gate-kicker{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#84939a;font-weight:900}.gate-card h1{font-size:29px;letter-spacing:-.045em;margin:8px 0}.gate-card p{color:#aab6bb;line-height:1.6;margin:0 0 24px}.gate-card label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;color:#cad1d4;margin-bottom:7px}.gate-card input{width:100%;background:#090c10;border:1px solid #35414a;color:#fff;border-radius:11px;padding:13px 14px;outline:none}.gate-card input:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(200,255,61,.12)}.gate-card button{width:100%;border:0;border-radius:11px;padding:13px;margin-top:12px;background:var(--lime);color:#0a0d0d;font-weight:950}.gate-error{min-height:18px;color:#ff9297;font-size:12px;margin-top:9px}.gate-fine{font-size:10px;color:#6f7e84;margin-top:17px;line-height:1.5}
+#app{display:none}.unlocked #gate{display:none}.unlocked #app{display:block}
+</style>`;
 
-async function sha256(value) {
-  return bytesToHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
-}
+const DTEX_GATE_HTML = `<main id="gate"><section class="gate-card"><div class="gate-mark"></div><div class="gate-kicker">Restricted preview</div><h1>Private Customer Success Demo</h1><p>Enter the access password to continue to this synthetic Customer Success measurement and account-workspace demonstration.</p><form id="access-form" autocomplete="off"><label for="pw">Access password</label><input id="pw" type="password" autocomplete="current-password" autofocus><button type="submit">Unlock demo</button><div id="gate-error" class="gate-error" role="alert"></div></form><div class="gate-fine">Synthetic data only. The application calculates explicit metrics and thresholds; it does not guess patterns or generate recommendations.</div></section></main>`;
 
-function constantEqual(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
+const DTEX_GATE_JS = `<script id="dtex-gate-js">
+const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';
+function sendEvent(n,p={}){if(typeof gtag==='function')gtag('event',n,Object.assign({demo_id:DEMO_ID,host:location.hostname},p))}
+function unlock(){sessionStorage.setItem(SESSION_KEY,'1');document.body.classList.add('unlocked');document.title='DTEX Customer Success Measurement System'}
+function lock(){sessionStorage.removeItem(SESSION_KEY);document.body.classList.remove('unlocked');document.title='Private Customer Success Demo';document.getElementById('pw').value=''}
+function bind(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>{e.preventDefault();if(pw.value===PASS){err.textContent='';unlock();sendEvent('crm_unlock_success')}else{err.textContent='Incorrect password.';pw.select();sendEvent('crm_unlock_failed')}};if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();sendEvent('crm_gate_view')}
+document.addEventListener('DOMContentLoaded',bind);
+</script>`;
 
 function responseHeaders(type = "text/html; charset=utf-8") {
   return {
@@ -27,21 +28,8 @@ function responseHeaders(type = "text/html; charset=utf-8") {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
   };
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[<>&"']/g, (c) => ({
-    "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;"
-  }[c]));
-}
-
-function loginPage(error = "") {
-  const html = `<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark"><title>Private Business Operations Review</title>${GA_HEAD}<style>
-:root{--bg:#f3f7fb;--panel:#fff;--panel2:#e5f0fb;--ink:#061a52;--muted:#647c9f;--line:#c7d9eb;--blue:#5a5cf5;--pink:#ff00d4;--shadow:0 24px 70px rgba(19,55,110,.14)}html[data-theme=dark]{--bg:#07101f;--panel:#0d1a2e;--panel2:#13243d;--ink:#f7f9ff;--muted:#9cb0ca;--line:#2a4262;--blue:#8585ff;--pink:#ff31da;--shadow:0 28px 80px rgba(0,0,0,.42)}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.bar{height:10px;background:#242424}.top{height:74px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px}.brand{display:flex;align-items:center;gap:11px;font-weight:850}.mark{width:39px;height:28px;border-radius:52% 48% 46% 54%;background:linear-gradient(135deg,var(--blue),#277df5);position:relative;transform:skewX(-14deg)}.mark:after{content:"";position:absolute;width:24px;height:10px;border-radius:50%;background:var(--panel);left:8px;top:8px;transform:rotate(-16deg)}.theme{width:38px;height:38px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;cursor:pointer}.wrap{min-height:calc(100vh - 84px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(380px,.9fr)}.story{padding:72px max(28px,7vw);display:flex;align-items:center;background:linear-gradient(135deg,var(--panel) 0%,var(--panel) 54%,var(--panel2) 100%)}.storyinner{max-width:660px}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:850;color:var(--pink);display:flex;gap:9px;align-items:center}.eyebrow:before{content:"";width:6px;height:6px;background:var(--pink)}h1{font-size:50px;line-height:.98;letter-spacing:-.045em;margin:22px 0 18px}.pink{font-size:22px;line-height:1.1;color:var(--pink);font-weight:800;max-width:560px}.copy{color:var(--muted);max-width:570px;font-size:16px}.bullets{display:grid;gap:10px;margin-top:24px}.bullet{display:flex;gap:10px;align-items:flex-start}.sq{width:6px;height:6px;background:var(--pink);margin-top:7px;flex:none}.gatewrap{background:var(--panel2);display:grid;place-items:center;padding:36px}.gate{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);padding:28px;border-radius:12px;box-shadow:var(--shadow)}.gate h2{font-size:28px;line-height:1.08;letter-spacing:-.035em;margin:0 0 8px}.gate p{color:var(--muted);margin:0 0 18px}.field{width:100%;padding:13px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);outline:none}.field:focus{border-color:var(--blue)}button.submit{border:0;background:var(--pink);color:#fff;padding:12px 21px;font-weight:850;margin-top:12px;min-width:150px;cursor:pointer}.error{color:#d32f52;font-size:11px;min-height:18px;margin-top:8px}.foot{border-top:1px solid var(--line);margin-top:22px;padding-top:13px;color:var(--muted);font-size:10px}.tiny{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}@media(max-width:850px){.wrap{grid-template-columns:1fr}.story{padding:42px 24px}.gatewrap{padding:28px 20px}h1{font-size:38px}}
-</style></head><body><div class="bar"></div><header class="top"><div class="brand"><span class="mark"></span><span>Post-Sales Business Operations</span></div><button class="theme" id="theme" aria-label="Toggle light or dark mode">◐</button></header><main class="wrap"><section class="story"><div class="storyinner"><div class="eyebrow">Private role-mapped prototype</div><h1>Operate Customer Success with clarity.</h1><div class="pink">Structured like the DTex operating build. Styled for an AI-forward Zero Trust environment.</div><p class="copy">Portfolio health, account context, customer outcomes, resource planning, finance, prioritization, business rhythms, and executive review readiness in one working system.</p><div class="bullets"><div class="bullet"><span class="sq"></span><span>Impact over activity</span></div><div class="bullet"><span class="sq"></span><span>Customer obsession with measurable follow-through</span></div><div class="bullet"><span class="sq"></span><span>Ownership, accountability, and visible operating trade-offs</span></div></div></div></section><section class="gatewrap"><div class="gate"><div class="tiny">Private review access</div><h2>Open the operating platform</h2><p>Enter the review password to continue to the Customer Success Business Operations workspace.</p><form method="post" action="/login"><input class="field" type="password" name="password" autocomplete="current-password" aria-label="Access password" autofocus required><button class="submit" type="submit">Get started</button><div class="error">${escapeHtml(error)}</div></form><div class="foot">Synthetic data only · Independent Clintware prototype</div></div></section></main><script>(function(){var k='zs_ops_theme_v2',t=localStorage.getItem(k)||'light';document.documentElement.dataset.theme=t;var b=document.getElementById('theme');function icon(){b.textContent=document.documentElement.dataset.theme==='dark'?'☀':'◐'}icon();b.onclick=function(){var n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem(k,n);icon()}})();</script></body></html>`;
-  return new Response(html, { status: error ? 401 : 200, headers: responseHeaders() });
 }
 
 async function gunzipBase64(value) {
@@ -52,9 +40,16 @@ async function gunzipBase64(value) {
   return await new Response(stream).text();
 }
 
+function applyDtexGate(html) {
+  let out = html.replace("</title>", `</title>${GA_HEAD}`);
+  out = out.replace("</head>", `${DTEX_GATE_CSS}</head>`);
+  out = out.replace(/<body([^>]*)>/i, `<body$1>${DTEX_GATE_HTML}<div id="app">`);
+  out = out.replace(/<\/body>/i, `</div>${DTEX_GATE_JS}</body>`);
+  return out;
+}
+
 async function loadApp() {
-  const html = await gunzipBase64(APP_GZ_B64);
-  return html.replace("</title>", `</title>${GA_HEAD}`);
+  return applyDtexGate(await gunzipBase64(APP_GZ_B64));
 }
 
 export default {
@@ -71,7 +66,8 @@ export default {
       if (url.pathname === "/health/auth") {
         const html = await loadApp();
         const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.length > 10000;
-        return new Response(JSON.stringify({ ok: appOk, app: appOk, mode: "crm-direct-render" }), {
+        const gateOk = html.includes("Restricted preview") && html.includes("Unlock demo") && html.includes("SESSION_KEY='summertime_demo_access'") && html.includes("pw.value===PASS");
+        return new Response(JSON.stringify({ ok: appOk && gateOk, app: appOk, gate: gateOk, mode: "dtex-client-gate" }), {
           headers: responseHeaders("application/json; charset=utf-8")
         });
       }
@@ -80,24 +76,11 @@ export default {
         return new Response("User-agent: *\nDisallow: /\n", { headers: responseHeaders("text/plain; charset=utf-8") });
       }
 
-      if (url.pathname === "/logout") {
-        return new Response(null, { status: 302, headers: { ...responseHeaders(), Location: "/" } });
-      }
-
-      if (url.pathname === "/login" && request.method === "POST") {
-        const form = await request.formData();
-        const digest = await sha256(String(form.get("password") || ""));
-        if (!constantEqual(digest, PASSWORD_SHA256)) {
-          return loginPage("Access denied. Check the password and try again.");
-        }
-        return new Response(await loadApp(), { status: 200, headers: responseHeaders() });
-      }
-
       if (request.method !== "GET") {
         return new Response("Method not allowed", { status: 405, headers: responseHeaders("text/plain; charset=utf-8") });
       }
 
-      return loginPage();
+      return new Response(await loadApp(), { status: 200, headers: responseHeaders() });
     } catch (error) {
       console.error(JSON.stringify({ event: "worker_error", message: String(error) }));
       return new Response("Service temporarily unavailable.", { status: 500, headers: responseHeaders("text/plain; charset=utf-8") });
