@@ -3,7 +3,7 @@ import re,base64,gzip
 root=Path(__file__).resolve().parents[1]
 worker=(root/'src/worker.js').read_text()
 assert '2$C\\@L3RK0S$H2026' not in worker
-assert '0758948c6837fc67872c56f1c95668556f9d755e654a65e6ff8de8973a045dc6' in worker
+assert 'f6acf1768cd83f94d0a8b4c84e11c087612d11084e3dd829a6106617593102b2' in worker
 parts=[]
 for p in sorted((root/'src').glob('app-part*.js')):
     text=p.read_text()
