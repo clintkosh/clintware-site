@@ -3,13 +3,14 @@ import base64, gzip, re
 src=Path('src/index.js').read_text(encoding='utf-8')
 worker=Path('src/worker.js').read_text(encoding='utf-8')
 enhancer=Path('src/enhancer.js').read_text(encoding='utf-8')
+account_users=Path('src/account-users.js').read_text(encoding='utf-8')
 
-assert '@BN0Rm@LK0$H2026' not in src
-assert '@BN0Rm@LK0$H2026' not in worker
-assert '@BN0Rm@LK0$H2026' not in enhancer
+for content in [src, worker, enhancer, account_users]:
+    assert '@BN0Rm@LK0$H2026' not in content
 assert '04df7e1d9915c05c8b9af3f7ebedddccdd48361b04c382706c38d9bb072b7abb' in worker
 assert 'noindex, nofollow, noarchive' in worker
 assert 'enhanceApp' in worker
+assert 'enhanceAccountUsers' in worker
 assert 'an_demo_attribution_v1' in worker
 assert "'demo_visit'" in worker
 assert 'demo_gate_success' in worker
@@ -27,7 +28,7 @@ assert 'AI App Store' in html
 assert 'Human approval' in html and 'Next decision' in html
 assert 'synthetic data only' in html.lower()
 
-# Editable demo workspace guardrails
+# Editable demo account workspace guardrails
 for required in [
     'an_demo_workspace_v2',
     'localStorage.setItem',
@@ -47,7 +48,28 @@ for required in [
 ]:
     assert required in enhancer, f'missing workspace feature: {required}'
 
-# Analytics / Google Ads compatible dataLayer variables. No account names or notes are sent.
+# Full per-account stakeholder/user operations.
+for required in [
+    'Open account',
+    'Stakeholders & users',
+    '+ Add user',
+    'Edit user',
+    'Remove user',
+    'seededUsers',
+    'Chief Information Security Officer',
+    'VP, Information Technology',
+    'Director, Security Operations',
+    'demo_account_user_added',
+    'demo_account_user_updated',
+    'demo_account_user_removed',
+    'demo_account_workspace_open',
+    'localStorage.setItem',
+    'localStorage.getItem',
+    '.example',
+]:
+    assert required in account_users, f'missing account user feature: {required}'
+
+# Analytics / Google Ads compatible dataLayer variables. No account/user PII is sent.
 for required in [
     'window.dataLayer',
     'window.gtag',
@@ -66,4 +88,6 @@ for required in [
 
 assert "demo_account_name" not in enhancer
 assert "demo_notes" not in enhancer
-print('PASS: privacy/product/editable-persistence/daily-reset/analytics/visit-signal guardrails')
+assert "demo_user_name" not in account_users
+assert "demo_user_email" not in account_users
+print('PASS: privacy/product/editable-account/stakeholder-user/persistence/daily-reset/analytics/visit-signal guardrails')
