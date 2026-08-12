@@ -46,23 +46,32 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd zscaler
 
-      - name: Attach zsc.clintware.com custom domain
+      - name: Verify stable zsc.clintware.com binding without mutating DNS
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"zsc.clintware.com","service":"zscaler-cs-business-operations"}' \
-          | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; print("zsc.clintware.com custom domain attached")'
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zsc.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="zsc.clintware.com" and x.get("service")=="zscaler-cs-business-operations", x; print("Stable custom domain verified:", x["hostname"], "->", x["service"])'
 
-      - name: Wait for zsc.clintware.com DNS HTTPS and app runtime
+      - name: Verify legacy zs.clintware.com binding is gone
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          for i in $(seq 1 60); do
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); assert len(r)==0, r; print("Legacy zs.clintware.com binding removed")'
+
+      - name: Verify zsc.clintware.com DNS HTTPS and app runtime
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
             body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/ || true)
             health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health || true)
             auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health/auth || true)
@@ -72,13 +81,13 @@ jobs:
               && grep -Fq '"ok":true' <<< "$auth" \
               && grep -Fq '"session":true' <<< "$auth" \
               && grep -Fq '"app":true' <<< "$auth"; then
-              echo "zsc.clintware.com DNS, HTTPS, login gate, session signer, and app runtime verified"
+              echo "zsc.clintware.com DNS, HTTPS gate, session signer, and app runtime verified"
               exit 0
             fi
-            echo "Waiting for zsc.clintware.com certificate/DNS (attempt $i/60)"
-            sleep 5
+            echo "Waiting for live zsc.clintware.com after Worker deploy (attempt $i/20)"
+            sleep 3
           done
-          echo "zsc.clintware.com did not become healthy" >&2
+          echo "zsc.clintware.com runtime verification failed" >&2
           exit 1
 
       - name: Render zsc.clintware.com in Chrome
@@ -89,36 +98,3 @@ jobs:
           grep -Fq "Open the operating platform" /tmp/zsc-chrome.html
           grep -Fq "Private review access" /tmp/zsc-chrome.html
           echo "Chrome rendered zsc.clintware.com successfully"
-
-      - name: Remove legacy zs.clintware.com custom domain after successful cutover
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          domain_id=$(echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print(r[0].get("id","") if r else "")')
-          if [ -n "$domain_id" ]; then
-            curl --fail-with-body -sS -X DELETE \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; print("Legacy zs.clintware.com binding removed")'
-          else
-            echo "Legacy zs.clintware.com binding already absent"
-          fi
-
-      - name: Verify final zsc.clintware.com binding and HTTPS
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zsc.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="zsc.clintware.com" and x.get("service")=="zscaler-cs-business-operations", x; print("Final custom domain verified:", x["hostname"], "->", x["service"])'
-          curl --fail-with-body -sS https://zsc.clintware.com/health | grep -Fq '"ok":true'
-          curl --fail-with-body -sS https://zsc.clintware.com/health/auth | grep -Fq '"app":true'
-          echo "zsc.clintware.com cutover complete"
