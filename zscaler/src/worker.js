@@ -1,6 +1,8 @@
 import { APP_GZ_B64 } from "./app.js";
 
 const PASSWORD_SHA256 = "f6acf1768cd83f94d0a8b4c84e11c087612d11084e3dd829a6106617593102b2";
+const SESSION_COOKIE = "zs_session";
+const SESSION_SECONDS = 60 * 60 * 8;
 const GA_HEAD = `<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true,demo_name:'zs_cs_business_operations',hostname:location.hostname,page_path:location.pathname});</script>`;
 
 function bytesToHex(buf) {
@@ -18,6 +20,39 @@ function constantEqual(a, b) {
   return diff === 0;
 }
 
+async function sessionSignature(payload) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(PASSWORD_SHA256),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  return bytesToHex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload)));
+}
+
+async function makeSession(seconds = SESSION_SECONDS) {
+  const expires = String(Date.now() + seconds * 1000);
+  return `${expires}.${await sessionSignature(expires)}`;
+}
+
+async function verifySession(token) {
+  if (!token || !token.includes(".")) return false;
+  const [expires, signature] = token.split(".", 2);
+  if (!/^\d+$/.test(expires) || Number(expires) <= Date.now()) return false;
+  const expected = await sessionSignature(expires);
+  return constantEqual(signature || "", expected);
+}
+
+function getCookie(request, name) {
+  const raw = request.headers.get("Cookie") || "";
+  for (const part of raw.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return rest.join("=");
+  }
+  return "";
+}
+
 function responseHeaders(type = "text/html; charset=utf-8") {
   return {
     "Content-Type": type,
@@ -31,6 +66,13 @@ function responseHeaders(type = "text/html; charset=utf-8") {
     "Cross-Origin-Resource-Policy": "same-origin",
     "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
   };
+}
+
+function redirect(location, cookie = "") {
+  const headers = new Headers(responseHeaders("text/plain; charset=utf-8"));
+  headers.set("Location", location);
+  if (cookie) headers.set("Set-Cookie", cookie);
+  return new Response(null, { status: 303, headers });
 }
 
 function escapeHtml(value) {
@@ -54,9 +96,13 @@ async function gunzipBase64(value) {
   return await new Response(stream).text();
 }
 
-async function appResponse() {
+async function appHtml() {
   const html = await gunzipBase64(APP_GZ_B64);
-  return new Response(html.replace("</title>", `</title>${GA_HEAD}`), { headers: responseHeaders() });
+  return html.replace("</title>", `</title>${GA_HEAD}`);
+}
+
+async function appResponse() {
+  return new Response(await appHtml(), { headers: responseHeaders() });
 }
 
 export default {
@@ -70,27 +116,48 @@ export default {
         });
       }
 
+      if (url.pathname === "/health/auth") {
+        const probe = await makeSession(60);
+        const sessionOk = await verifySession(probe);
+        const html = await appHtml();
+        const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.length > 10000;
+        return new Response(JSON.stringify({ ok: sessionOk && appOk, session: sessionOk, app: appOk }), {
+          headers: responseHeaders("application/json; charset=utf-8")
+        });
+      }
+
       if (url.pathname === "/robots.txt") {
         return new Response("User-agent: *\nDisallow: /\n", { headers: responseHeaders("text/plain; charset=utf-8") });
       }
 
       if (url.pathname === "/logout") {
-        return new Response(null, { status: 302, headers: { ...responseHeaders(), Location: "/" } });
+        return redirect("/", `${SESSION_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`);
       }
 
       if (url.pathname === "/login" && request.method === "POST") {
         const form = await request.formData();
-        const digest = await sha256(String(form.get("password") || ""));
+        const supplied = String(form.get("password") || "").trim();
+        const digest = await sha256(supplied);
         if (!constantEqual(digest, PASSWORD_SHA256)) {
           return loginPage("Access denied. Check the password and try again.");
         }
-        return await appResponse();
+        const session = await makeSession();
+        return redirect("/app", `${SESSION_COOKIE}=${session}; Path=/; Max-Age=${SESSION_SECONDS}; Secure; HttpOnly; SameSite=Lax`);
       }
 
       if (request.method !== "GET") {
         return new Response("Method not allowed", { status: 405, headers: responseHeaders("text/plain; charset=utf-8") });
       }
 
+      const sessionValid = await verifySession(getCookie(request, SESSION_COOKIE));
+
+      if (url.pathname === "/app") {
+        if (!sessionValid) return redirect("/");
+        return await appResponse();
+      }
+
+      if (url.pathname === "/" && sessionValid) return redirect("/app");
+      if (url.pathname !== "/") return redirect(sessionValid ? "/app" : "/");
       return loginPage();
     } catch (error) {
       console.error(JSON.stringify({ event: "worker_error", message: String(error) }));
