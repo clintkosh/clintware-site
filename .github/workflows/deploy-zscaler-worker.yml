@@ -1,0 +1,59 @@
+name: Deploy ZS Post-Sales Operations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "zscaler/**"
+      - ".github/workflows/deploy-zscaler-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zscaler-post-sales-operations
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: zscaler
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Worker and app bundle
+        run: |
+          node --check src/worker.js
+          node --check src/app.js
+          node tests/smoke.mjs
+          python3 tests/regression.py
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy private post-sales operations Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd zscaler
+      - name: Verify private login gate over HTTPS
+        run: |
+          set -euo pipefail
+          body=$(curl --fail-with-body -sS --retry 12 --retry-delay 5 --retry-all-errors https://zs.clintware.com/)
+          grep -Fq "Private Business Operations Command Center" <<< "$body"
+          grep -Fq "Synthetic data only" <<< "$body"
+          if grep -Fq "POST-SALES OPS" <<< "$body"; then
+            echo "Authenticated workspace leaked through public gate" >&2
+            exit 1
+          fi
+          curl --fail-with-body -sS https://zs.clintware.com/health | grep -Fq '"ok":true'
+          echo "Live HTTPS gate and health endpoint verified"
