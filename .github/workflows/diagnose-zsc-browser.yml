@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Inspect bundled inline scripts for top identifier
+      - name: Inspect patched bundled inline script identifiers
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -33,12 +33,9 @@ jobs:
           scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
           print('inline script count',len(scripts))
           for i,s in enumerate(scripts):
-              occ=list(re.finditer(r'\btop\b',s))
-              print('SCRIPT',i,'length',len(s),'top occurrences',len(occ))
-              for m in occ[:20]:
-                  print('TOP',i,'AT',m.start(),repr(s[max(0,m.start()-220):m.start()+420]))
+              print('SCRIPT',i,'length',len(s),'top-call occurrences',len(re.findall(r'\btop\s*\(',s)),'renderTopBar occurrences',len(re.findall(r'\brenderTopBar\s*\(',s)))
           PY
-      - name: Inspect browser error stacks and script metadata
+      - name: Inspect browser error stacks and app DOM after current deployment
         run: |
           set -euo pipefail
           mkdir -p /tmp/zdiag && cd /tmp/zdiag
@@ -50,12 +47,16 @@ jobs:
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
           for (const host of ['zsc.clintware.com','zc.clintware.com']) {
             const page = await browser.newPage();
-            const errors=[];
+            const errors=[]; const consoleErrors=[];
             page.on('pageerror', e => errors.push({message:String(e),stack:e.stack||''}));
+            page.on('console', m => {if(m.type()==='error')consoleErrors.push(m.text())});
             await page.goto(`https://${host}/`, {waitUntil:'domcontentloaded',timeout:30000});
             console.log(`HOST ${host}`);
             console.log('PAGE_ERRORS',JSON.stringify(errors));
-            const scripts=await page.evaluate(()=>[...document.scripts].map((s,i)=>({i,src:s.src||'',id:s.id||'',len:(s.textContent||'').length,top:(s.textContent||'').match(/\btop\b/g)?.length||0,sample:(s.textContent||'').slice(0,180)})));
+            console.log('CONSOLE_ERRORS',JSON.stringify(consoleErrors));
+            console.log('APP_HTML_LENGTH',((await page.locator('#app').innerHTML())||'').length);
+            console.log('APP_TEXT_SAMPLE',JSON.stringify(((await page.locator('#app').textContent())||'').slice(0,500)));
+            const scripts=await page.evaluate(()=>[...document.scripts].map((s,i)=>({i,src:s.src||'',id:s.id||'',len:(s.textContent||'').length,topCalls:(s.textContent||'').match(/\btop\s*\(/g)?.length||0,renderTopBar:(s.textContent||'').match(/\brenderTopBar\s*\(/g)?.length||0})));
             console.log('SCRIPTS',JSON.stringify(scripts));
             await page.close();
           }
