@@ -1,6 +1,6 @@
 import { APP_GZ_B64 } from "./app.js";
 
-const PASSWORD_SHA256 = "0758948c6837fc67872c56f1c95668556f9d755e654a65e6ff8de8973a045dc6";
+const PASSWORD_SHA256 = "f6acf1768cd83f94d0a8b4c84e11c087612d11084e3dd829a6106617593102b2";
 const GA_HEAD = `<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true,demo_name:'zs_cs_business_operations',hostname:location.hostname,page_path:location.pathname});</script>`;
 
 function bytesToHex(buf) {
