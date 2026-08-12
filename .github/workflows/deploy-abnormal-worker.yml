@@ -35,30 +35,12 @@ jobs:
         run: |
           node tests/enhancer.mjs
           node tests/account-users.mjs
-      - name: Validate account user workflow in native Chrome
+      - name: Validate account user workflow in real Chrome via DevTools
         run: |
           set -euo pipefail
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$chrome"
-          rm -rf /tmp/abnormal-browser-fixture
-          node tests/account-users-browser.mjs
-          python3 -m http.server 8765 --bind 127.0.0.1 --directory /tmp/abnormal-browser-fixture >/tmp/abnormal-http.log 2>&1 &
-          server_pid=$!
-          trap 'kill $server_pid 2>/dev/null || true' EXIT
-          sleep 1
-          set +e
-          timeout 20s "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=7000 --dump-dom http://127.0.0.1:8765/ > /tmp/abnormal-browser-dom.html 2>/tmp/abnormal-chrome.err
-          chrome_code=$?
-          set -e
-          if grep -Fq 'data-cw-browser-test="pass"' /tmp/abnormal-browser-dom.html && grep -Fq 'PASS: account open + 3 seeded stakeholders + add + edit + persistence + remove all work' /tmp/abnormal-browser-dom.html; then
-            echo "PASS: native Chrome completed full editable account stakeholder workflow"
-          else
-            echo "Chrome exit code: $chrome_code"
-            grep -o 'FAIL: [^<]*' /tmp/abnormal-browser-dom.html || true
-            tail -80 /tmp/abnormal-chrome.err || true
-            grep -Eo 'data-cw-browser-test="[^"]+"' /tmp/abnormal-browser-dom.html || true
-            exit 1
-          fi
+          CHROME="$chrome" timeout 35s node tests/account-users-browser.mjs
       - name: Validate privacy and deployment guardrails
         run: python3 tests/regression.py
 
