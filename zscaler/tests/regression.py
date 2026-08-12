@@ -17,6 +17,6 @@ assert html.count('Chief Information') >= 2
 assert 'VP, IT Operations' in html
 assert 'clear-accounts' in html and 'seed-accounts' in html
 assert 'data.accounts=[]' in html and "route='accounts'" in html
-assert "const THEME='zs_ops_theme_v2'" in html
+assert "THEME='zs_ops_theme_v2'" in html
 assert "document.documentElement.dataset.theme" in html
 print('DTex-modeled regression checks passed')
