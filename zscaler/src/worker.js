@@ -40,8 +40,7 @@ async function verifySession(token) {
   if (!token || !token.includes(".")) return false;
   const [expires, signature] = token.split(".", 2);
   if (!/^\d+$/.test(expires) || Number(expires) <= Date.now()) return false;
-  const expected = await sessionSignature(expires);
-  return constantEqual(signature || "", expected);
+  return constantEqual(signature || "", await sessionSignature(expires));
 }
 
 function getCookie(request, name) {
@@ -58,7 +57,7 @@ function responseHeaders(type = "text/html; charset=utf-8") {
     "Content-Type": type,
     "Cache-Control": "private, no-store, max-age=0",
     Pragma: "no-cache",
-    "X-Robots-Tag": "noindex, nofollow,noarchive",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
@@ -66,13 +65,6 @@ function responseHeaders(type = "text/html; charset=utf-8") {
     "Cross-Origin-Resource-Policy": "same-origin",
     "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
   };
-}
-
-function redirect(location, cookie = "") {
-  const headers = new Headers(responseHeaders("text/plain; charset=utf-8"));
-  headers.set("Location", location);
-  if (cookie) headers.set("Set-Cookie", cookie);
-  return new Response(null, { status: 303, headers });
 }
 
 function escapeHtml(value) {
@@ -98,11 +90,22 @@ async function gunzipBase64(value) {
 
 async function appHtml() {
   const html = await gunzipBase64(APP_GZ_B64);
-  return html.replace("</title>", `</title>${GA_HEAD}`);
+  return html
+    .replace("</title>", `</title>${GA_HEAD}`)
+    .replace("</body>", `<script>try{history.replaceState(null,'','/')}catch(e){}</script></body>`);
 }
 
-async function appResponse() {
-  return new Response(await appHtml(), { headers: responseHeaders() });
+async function appResponse(cookie = "") {
+  const headers = new Headers(responseHeaders());
+  if (cookie) headers.set("Set-Cookie", cookie);
+  return new Response(await appHtml(), { status: 200, headers });
+}
+
+function redirectHome(cookie = "") {
+  const headers = new Headers(responseHeaders("text/plain; charset=utf-8"));
+  headers.set("Location", "/");
+  if (cookie) headers.set("Set-Cookie", cookie);
+  return new Response(null, { status: 303, headers });
 }
 
 export default {
@@ -121,7 +124,7 @@ export default {
         const sessionOk = await verifySession(probe);
         const html = await appHtml();
         const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.length > 10000;
-        return new Response(JSON.stringify({ ok: sessionOk && appOk, session: sessionOk, app: appOk }), {
+        return new Response(JSON.stringify({ ok: sessionOk && appOk, session: sessionOk, app: appOk, mode: "direct-render" }), {
           headers: responseHeaders("application/json; charset=utf-8")
         });
       }
@@ -131,7 +134,7 @@ export default {
       }
 
       if (url.pathname === "/logout") {
-        return redirect("/", `${SESSION_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`);
+        return redirectHome(`${SESSION_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`);
       }
 
       if (url.pathname === "/login" && request.method === "POST") {
@@ -142,7 +145,7 @@ export default {
           return loginPage("Access denied. Check the password and try again.");
         }
         const session = await makeSession();
-        return redirect("/app", `${SESSION_COOKIE}=${session}; Path=/; Max-Age=${SESSION_SECONDS}; Secure; HttpOnly; SameSite=Lax`);
+        return await appResponse(`${SESSION_COOKIE}=${session}; Path=/; Max-Age=${SESSION_SECONDS}; Secure; HttpOnly; SameSite=Lax`);
       }
 
       if (request.method !== "GET") {
@@ -150,14 +153,12 @@ export default {
       }
 
       const sessionValid = await verifySession(getCookie(request, SESSION_COOKIE));
-
-      if (url.pathname === "/app") {
-        if (!sessionValid) return redirect("/");
+      if (sessionValid && (url.pathname === "/" || url.pathname === "/app" || url.pathname === "/login")) {
         return await appResponse();
       }
-
-      if (url.pathname === "/" && sessionValid) return redirect("/app");
-      if (url.pathname !== "/") return redirect(sessionValid ? "/app" : "/");
+      if (url.pathname !== "/" && url.pathname !== "/login" && url.pathname !== "/app") {
+        return redirectHome();
+      }
       return loginPage();
     } catch (error) {
       console.error(JSON.stringify({ event: "worker_error", message: String(error) }));
