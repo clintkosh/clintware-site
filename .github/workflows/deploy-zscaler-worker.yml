@@ -32,7 +32,7 @@ jobs:
           node --check src/app.js
           node tests/smoke.mjs
           python3 tests/regression.py
-      - name: Exercise complete login round trip with disposable password
+      - name: Exercise exact working CRM login flow with disposable password
         run: node tests/auth-roundtrip.mjs
 
   deploy:
@@ -70,7 +70,7 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); assert len(r)==0, r; print("Legacy zs.clintware.com binding removed")'
 
-      - name: Verify zsc.clintware.com DNS HTTPS and app runtime
+      - name: Verify zsc.clintware.com DNS HTTPS and direct-render login mode
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
@@ -81,10 +81,9 @@ jobs:
               && grep -Fq "Synthetic data only" <<< "$body" \
               && grep -Fq '"ok":true' <<< "$health" \
               && grep -Fq '"ok":true' <<< "$auth" \
-              && grep -Fq '"session":true' <<< "$auth" \
               && grep -Fq '"app":true' <<< "$auth" \
-              && grep -Fq '"mode":"crm-redirect"' <<< "$auth"; then
-              echo "zsc.clintware.com DNS, HTTPS gate, session signer, app runtime, and CRM redirect mode verified"
+              && grep -Fq '"mode":"crm-direct-render"' <<< "$auth"; then
+              echo "zsc.clintware.com DNS, HTTPS gate, app runtime, and exact CRM direct-render mode verified"
               break
             fi
             if [ "$i" = 20 ]; then
