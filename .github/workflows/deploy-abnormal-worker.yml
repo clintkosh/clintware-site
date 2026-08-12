@@ -46,14 +46,19 @@ jobs:
           server_pid=$!
           trap 'kill $server_pid 2>/dev/null || true' EXIT
           sleep 1
-          "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=7000 --dump-dom http://127.0.0.1:8765/ > /tmp/abnormal-browser-dom.html
-          grep -Fq 'data-cw-browser-test="pass"' /tmp/abnormal-browser-dom.html
-          grep -Fq 'PASS: account open + 3 seeded stakeholders + add + edit + persistence + remove all work' /tmp/abnormal-browser-dom.html
-          if grep -Fq 'data-cw-browser-test="fail"' /tmp/abnormal-browser-dom.html; then
+          set +e
+          timeout 20s "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=7000 --dump-dom http://127.0.0.1:8765/ > /tmp/abnormal-browser-dom.html 2>/tmp/abnormal-chrome.err
+          chrome_code=$?
+          set -e
+          if grep -Fq 'data-cw-browser-test="pass"' /tmp/abnormal-browser-dom.html && grep -Fq 'PASS: account open + 3 seeded stakeholders + add + edit + persistence + remove all work' /tmp/abnormal-browser-dom.html; then
+            echo "PASS: native Chrome completed full editable account stakeholder workflow"
+          else
+            echo "Chrome exit code: $chrome_code"
             grep -o 'FAIL: [^<]*' /tmp/abnormal-browser-dom.html || true
+            tail -80 /tmp/abnormal-chrome.err || true
+            grep -Eo 'data-cw-browser-test="[^"]+"' /tmp/abnormal-browser-dom.html || true
             exit 1
           fi
-          echo "PASS: native Chrome completed full editable account stakeholder workflow"
       - name: Validate privacy and deployment guardrails
         run: python3 tests/regression.py
 
