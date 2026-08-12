@@ -1,0 +1,117 @@
+name: Deploy ABC DTEX Customer Success Demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "abc/**"
+      - ".github/workflows/deploy-abc-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abc-dtex-customer-success-demo
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: abc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Worker and app bundle
+        run: |
+          node --check src/index.js
+          node --check src/app.js
+          node tests/smoke.mjs
+          python3 tests/regression.py
+      - name: Exercise exact DTEX client login gate
+        run: node tests/auth-roundtrip.mjs
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Deploy ABC DTEX demo Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd abc
+
+      - name: Attach abc.clintware.com custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             -H "Content-Type: application/json"             --data '{"hostname":"abc.clintware.com","service":"abc-cs-business-operations"}')
+          echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("success") is True, data; print("Custom domain attached:", data["result"]["hostname"])'
+
+      - name: Verify custom-domain binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="abc.clintware.com" and x.get("service")=="abc-cs-business-operations", x; print("Custom domain verified:", x["hostname"], "->", x["service"])' <<< "$response"
+
+      - name: Wait for DTEX gate runtime
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/" || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health" || true)
+            auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health/auth" || true)
+            if grep -Fq "Restricted preview" <<< "$body"               && grep -Fq "Private Customer Success Demo" <<< "$body"               && grep -Fq "Unlock demo" <<< "$body"               && grep -Fq "Command Center" <<< "$body"               && grep -Fq "Seed Demo Accounts" <<< "$body"               && grep -Fq "SESSION_KEY='summertime_demo_access'" <<< "$body"               && grep -Fq "pw.value===PASS" <<< "$body"               && grep -Fq '"ok":true' <<< "$health"               && grep -Fq '"ok":true' <<< "$auth"               && grep -Fq '"app":true' <<< "$auth"               && grep -Fq '"gate":true' <<< "$auth"               && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" = "1"
+          post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://abc.clintware.com/login")
+          test "$post_code" = "405"
+
+      - name: Exercise exact DTEX password and rendered app in Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-playwright
+          cd /tmp/abc-playwright
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > test.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page = await browser.newPage();
+          await page.goto('https://abc.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
+          await page.fill('#pw','wrong-password');
+          await page.click('#access-form button[type="submit"]');
+          if ((await page.textContent('#gate-error')) !== 'Incorrect password.') throw new Error('wrong-password behavior failed');
+          await page.fill('#pw','DT3XK0$H2026');
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+          const appText = (await page.locator('#app').textContent()) || '';
+          if (!appText.includes('Command Center') || !appText.includes('Accounts')) throw new Error('unlocked app content missing');
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node test.mjs
+
