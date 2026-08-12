@@ -1,0 +1,54 @@
+name: Inspect deployed DTex login
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-dtex-login.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve DTex Worker and collect sanitized login source
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          mapping=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=summertime-crmdemo.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          service=$(printf '%s' "$mapping" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; print(r[0]["service"])')
+          echo "DTex service: $service"
+          curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${service}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -D /tmp/dtex-worker-headers.txt \
+            -o /tmp/dtex-worker.raw
+          curl --fail-with-body -sS --connect-timeout 5 --max-time 20 \
+            https://summertime-crmdemo.clintware.com/ \
+            -D /tmp/dtex-gate-headers.txt \
+            -o /tmp/dtex-gate.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          raw=Path('/tmp/dtex-worker.raw').read_bytes().decode('utf-8','replace')
+          raw=re.sub(r'(?i)(password(?:_sha256|_hash)?\s*[=:]\s*["\'])[^"]+(["\'])', r'\1<REDACTED>\2', raw)
+          raw=re.sub(r'\b[a-f0-9]{64}\b', '<REDACTED_SHA256>', raw, flags=re.I)
+          raw=re.sub(r'(?i)(authorization:\s*bearer\s+)[^\s"\']+', r'\1<REDACTED>', raw)
+          Path('/tmp/dtex-worker-sanitized.txt').write_text(raw)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dtex-login-inspection
+          path: |
+            /tmp/dtex-worker-sanitized.txt
+            /tmp/dtex-worker-headers.txt
+            /tmp/dtex-gate.html
+            /tmp/dtex-gate-headers.txt
+          retention-days: 1
