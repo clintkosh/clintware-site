@@ -137,7 +137,7 @@ jobs:
             echo "Chrome rendered DTEX gate on $host"
           done
 
-      - name: Exercise exact password in a real Chrome session on both hostnames
+      - name: Exercise exact DTEX password and rendered app in real Chrome on both hostnames
         run: |
           set -euo pipefail
           mkdir -p /tmp/zsc-playwright
@@ -150,26 +150,46 @@ jobs:
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
           for (const host of ['zsc.clintware.com','zc.clintware.com']) {
             const page = await browser.newPage();
-            await page.goto(`https://${host}/`, {waitUntil:'domcontentloaded', timeout:30000});
-            if (!(await page.locator('#gate').count())) throw new Error(`${host}: gate missing`);
+            let ready = false;
+            for (let attempt = 1; attempt <= 15; attempt++) {
+              const pageErrors = [];
+              const onError = e => pageErrors.push(String(e));
+              page.on('pageerror', onError);
+              await page.goto(`https://${host}/?e2e=${Date.now()}`, {waitUntil:'domcontentloaded', timeout:30000});
+              const gateCount = await page.locator('#gate').count();
+              const appCount = await page.locator('#app').count();
+              const appText = appCount ? ((await page.locator('#app').textContent()) || '') : '';
+              page.off('pageerror', onError);
+              if (gateCount === 1 && appCount === 1 && pageErrors.length === 0 && appText.includes('Command Center') && appText.includes('Accounts')) {
+                ready = true;
+                console.log(`${host}: rendered app is ready for login test on attempt ${attempt}`);
+                break;
+              }
+              console.log(`${host}: waiting for rendered app propagation, attempt ${attempt}/15, errors=${JSON.stringify(pageErrors)}, appTextLength=${appText.length}`);
+              await page.waitForTimeout(5000);
+            }
+            if (!ready) throw new Error(`${host}: rendered app never became browser-ready`);
+
             await page.fill('#pw','wrong-password');
             await page.click('#access-form button[type="submit"]');
             if ((await page.textContent('#gate-error')) !== 'Incorrect password.') throw new Error(`${host}: wrong-password behavior failed`);
+            if (await page.evaluate(() => document.body.classList.contains('unlocked'))) throw new Error(`${host}: wrong password unlocked the app`);
+
             await page.fill('#pw','2$C@L3RK0S$H2026');
             await page.click('#access-form button[type="submit"]');
             await page.waitForFunction(() => document.body.classList.contains('unlocked'));
             const appVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
             if (!appVisible) throw new Error(`${host}: app did not become visible`);
-            const appText = await page.locator('#app').textContent();
-            if (!appText || !appText.includes('Command Center')) throw new Error(`${host}: unlocked app content missing Command Center`);
-            if (!appText.includes('Accounts')) throw new Error(`${host}: unlocked app content missing Accounts`);
+            const appText = (await page.locator('#app').textContent()) || '';
+            if (!appText.includes('Command Center') || !appText.includes('Accounts')) throw new Error(`${host}: unlocked app content missing`);
+
             await page.reload({waitUntil:'domcontentloaded'});
             await page.waitForFunction(() => document.body.classList.contains('unlocked'));
             const stillVisible = await page.locator('#app').evaluate(el => getComputedStyle(el).display !== 'none');
             if (!stillVisible) throw new Error(`${host}: app hidden after same-tab reload`);
-            const refreshText = await page.locator('#app').textContent();
-            if (!refreshText || !refreshText.includes('Command Center')) throw new Error(`${host}: app content missing after reload`);
-            console.log(`${host}: exact DTEX login + refresh flow passed in Chrome`);
+            const refreshText = (await page.locator('#app').textContent()) || '';
+            if (!refreshText.includes('Command Center') || !refreshText.includes('Accounts')) throw new Error(`${host}: app content missing after reload`);
+            console.log(`${host}: exact DTEX wrong-password + correct-password + app render + refresh flow passed in Chrome`);
             await page.close();
           }
           await browser.close();
