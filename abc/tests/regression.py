@@ -68,4 +68,10 @@ assert 'function renderTopBar(){' in html
 assert 'renderTopBar()}<main class="shell">${page()}' in html
 assert not re.search(r'\btop\s*\(', html)
 
+# The login gate also has a global bind() function. The app must use a unique
+# binder name or all controls rendered after the first navigation become inert.
+assert 'function bindApp(){' in html
+assert ';bindApp()}' in html
+assert 'function bind(){' not in html
+
 print('ABC regression passed with exact DTEX client-side gate architecture and browser-safe app render')
