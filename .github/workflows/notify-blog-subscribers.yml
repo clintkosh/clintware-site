@@ -1,0 +1,42 @@
+name: Retry Clintware Blog Subscriber Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      post_path:
+        description: "public/blog/<slug>/index.html path to notify manually"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-blog-notifications
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find changed post pages
+        run: |
+          python3 newsletter/scripts/changed_posts.py \
+            --post "${{ inputs.post_path }}" \
+            --output /tmp/clintware-blog-posts.json
+      - id: changed_posts
+        name: Count changed posts
+        run: |
+          count=$(python3 - <<'PY'
+          import json
+          with open("/tmp/clintware-blog-posts.json", encoding="utf-8") as source:
+              print(len(json.load(source)))
+          PY
+          )
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+      - name: Send confirmed subscribers the update
+        if: steps.changed_posts.outputs.count != '0'
+        env:
+          NEWSLETTER_PUBLISH_SECRET: ${{ secrets.NEWSLETTER_PUBLISH_SECRET }}
+        run: python3 newsletter/scripts/notify_posts.py --posts /tmp/clintware-blog-posts.json --endpoint https://newsletter.clintware.com

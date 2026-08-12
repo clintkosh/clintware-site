@@ -78,3 +78,33 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify_blog_subscribers:
+    if: github.event_name == 'push'
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Find changed post pages
+        run: |
+          python3 newsletter/scripts/changed_posts.py \
+            --before "${{ github.event.before }}" \
+            --after "${{ github.sha }}" \
+            --output /tmp/clintware-blog-posts.json
+      - id: changed_posts
+        name: Count changed posts
+        run: |
+          count=$(python3 - <<'PY'
+          import json
+          with open("/tmp/clintware-blog-posts.json", encoding="utf-8") as source:
+              print(len(json.load(source)))
+          PY
+          )
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+      - name: Send confirmed subscribers the update
+        if: steps.changed_posts.outputs.count != '0'
+        env:
+          NEWSLETTER_PUBLISH_SECRET: ${{ secrets.NEWSLETTER_PUBLISH_SECRET }}
+        run: python3 newsletter/scripts/notify_posts.py --posts /tmp/clintware-blog-posts.json --endpoint https://newsletter.clintware.com

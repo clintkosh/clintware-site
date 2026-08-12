@@ -1,0 +1,47 @@
+name: Deploy Clintware Blog Newsletter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "newsletter/**"
+      - ".github/workflows/deploy-newsletter-worker.yml"
+  pull_request:
+    paths:
+      - "newsletter/**"
+      - ".github/workflows/deploy-newsletter-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-blog-newsletter
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run newsletter unit tests
+        run: npm --prefix newsletter test
+      - name: Validate Worker configuration
+        run: XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config newsletter/wrangler.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy newsletter Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd newsletter --keep-vars

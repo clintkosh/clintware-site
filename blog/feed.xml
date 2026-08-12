@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Clintware Blog</title>
+    <link>https://www.clintware.com/blog/</link>
+    <description>Field notes on applied AI, Customer Success, workflow transformation, and useful software.</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 04 Aug 2026 00:00:00 GMT</lastBuildDate>
+    <item>
+      <title>Building the Next Step</title>
+      <link>https://www.clintware.com/blog/building-the-next-step/</link>
+      <guid isPermaLink="true">https://www.clintware.com/blog/building-the-next-step/</guid>
+      <pubDate>Mon, 04 Aug 2026 00:00:00 GMT</pubDate>
+      <description>How an unexpected career reset became a period of active creation, and why Clintware is where experience, practical AI, and what comes next meet.</description>
+    </item>
+  </channel>
+</rss>
