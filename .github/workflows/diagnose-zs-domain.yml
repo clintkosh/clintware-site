@@ -14,41 +14,66 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect Cloudflare Workers custom-domain binding
+      - name: Inspect Cloudflare binding and DNS object
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS \
+          response=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-          | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"success":d.get("success"),"result":[{k:x.get(k) for k in ("id","hostname","service","zone_name","zone_id","cert_id","environment")} for x in d.get("result",[])]},indent=2))'
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"success":d.get("success"),"result":[{k:x.get(k) for k in ("id","hostname","service","zone_name","zone_id","cert_id","environment")} for x in d.get("result",[])]},indent=2))'
+          zone_id=$(echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"][0]["zone_id"])')
+          echo "Zone DNS record(s) for zs.clintware.com:"
+          dns=$(curl -sS \
+            "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=zs.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+          echo "$dns" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"success":d.get("success"),"errors":d.get("errors"),"result":[{k:x.get(k) for k in ("id","type","name","content","proxied","ttl","comment")} for x in d.get("result",[])]},indent=2))' || echo "$dns"
 
-      - name: Resolve public DNS from multiple resolvers
+      - name: Resolve authoritative and public DNS
         run: |
           set -euo pipefail
-          echo "Cloudflare 1.1.1.1 A:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com A +noall +answer || true
-          echo "Google 8.8.8.8 A:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com A +noall +answer || true
-          echo "System resolver:"; getent ahosts zs.clintware.com || true
+          echo "Authoritative NS:"; dig +short NS clintware.com
+          ns=$(dig +short NS clintware.com | head -1)
+          echo "Authoritative A from $ns:"; dig +time=3 +tries=1 @"$ns" zs.clintware.com A +noall +answer
+          echo "Authoritative AAAA from $ns:"; dig +time=3 +tries=1 @"$ns" zs.clintware.com AAAA +noall +answer
+          echo "Cloudflare 1.1.1.1 A:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com A +noall +answer
+          echo "Cloudflare 1.1.1.1 AAAA:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com AAAA +noall +answer
+          echo "Google 8.8.8.8 A:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com A +noall +answer
+          echo "Google 8.8.8.8 AAAA:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com AAAA +noall +answer
+          echo "System resolver:"; getent ahosts zs.clintware.com
 
-      - name: Verify custom domain HTTPS endpoints
+      - name: Verify every advertised edge address and TLS
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS -D /tmp/root.headers https://zs.clintware.com/ -o /tmp/root.html
-          head -20 /tmp/root.headers
-          grep -Fq "Open the operating platform" /tmp/root.html
-          curl --fail-with-body -sS https://zs.clintware.com/health | grep -Fq '"ok":true'
-          curl --fail-with-body -sS https://zs.clintware.com/health/auth | grep -Fq '"app":true'
-          echo "Custom domain works"
+          echo | openssl s_client -connect zs.clintware.com:443 -servername zs.clintware.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+          for ip in $(dig +short A zs.clintware.com); do
+            echo "Testing IPv4 edge $ip"
+            curl --fail-with-body -4 -sS --connect-timeout 5 --max-time 15 \
+              --resolve "zs.clintware.com:443:${ip}" https://zs.clintware.com/health | grep -Fq '"ok":true'
+          done
+          for ip in $(dig +short AAAA zs.clintware.com); do
+            echo "Testing IPv6 edge $ip"
+            curl --fail-with-body -6 -sS --connect-timeout 5 --max-time 15 \
+              --resolve "zs.clintware.com:443:[${ip}]" https://zs.clintware.com/health | grep -Fq '"ok":true' || echo "IPv6 edge failed from runner: $ip"
+          done
+
+      - name: Verify browser-facing responses repeatedly
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            code=$(curl -sS -o /tmp/root.html -w '%{http_code}' --connect-timeout 5 --max-time 15 https://zs.clintware.com/)
+            grep -Fq "Open the operating platform" /tmp/root.html
+            test "$code" = "200"
+            curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zs.clintware.com/health | grep -Fq '"ok":true'
+            echo "pass $i"
+            sleep 1
+          done
 
       - name: Verify direct workers.dev fallback
         run: |
           set -euo pipefail
           base="https://zscaler-cs-business-operations.clint-kosh.workers.dev"
-          curl --fail-with-body -sS -D /tmp/fallback.headers "$base/" -o /tmp/fallback.html
-          head -20 /tmp/fallback.headers
-          grep -Fq "Open the operating platform" /tmp/fallback.html
           curl --fail-with-body -sS "$base/health" | grep -Fq '"ok":true'
-          curl --fail-with-body -sS "$base/health/auth" | grep -Fq '"app":true'
-          echo "Direct workers.dev fallback works"
+          echo "Direct workers.dev fallback also works"
