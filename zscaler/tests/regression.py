@@ -44,4 +44,12 @@ assert 'clear-accounts' in html and 'seed-accounts' in html
 assert 'data.accounts=[]' in html and "route='accounts'" in html
 assert "THEME='zs_ops_theme_v2'" in html
 assert "document.documentElement.dataset.theme" in html
-print('ZSC regression passed with exact DTEX client-side gate architecture')
+
+# Browser-global regression: window.top already exists in browsers.  The app must
+# never define a global top() function again or its initial render will abort.
+assert 'function top(){' not in html
+assert 'function renderTopBar(){' in html
+assert 'renderTopBar()}<main class="shell">${page()}' in html
+assert not re.search(r'\btop\s*\(', html)
+
+print('ZSC regression passed with exact DTEX client-side gate architecture and browser-safe app render')
