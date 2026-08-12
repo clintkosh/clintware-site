@@ -1,63 +1,96 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 import { pathToFileURL } from "node:url";
-import { createHash } from "node:crypto";
 
 const root = path.resolve(import.meta.dirname, "..");
 const sourcePath = path.join(root, "src", "index.js");
-const tempPath = path.join(root, "src", `index.auth-test-${process.pid}.mjs`);
-const productionHash = "50993525d502b7b3862dbed6128884a03f90eedea611d9a69c59ef1da03d599e";
-const testPassword = "zsc-auth-test-2026";
-const testHash = createHash("sha256").update(testPassword).digest("hex");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-try {
-  const source = await fs.readFile(sourcePath, "utf8");
-  assert(source.includes(productionHash), "production password hash marker missing");
-  const testSource = source.replace(productionHash, testHash);
-  await fs.writeFile(tempPath, testSource, "utf8");
+const source = await fs.readFile(sourcePath, "utf8");
+assert(source.includes("const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access'"), "DTEX gate password/session constants missing");
 
-  const moduleUrl = `${pathToFileURL(tempPath).href}?t=${Date.now()}`;
-  const worker = (await import(moduleUrl)).default;
+const worker = (await import(`${pathToFileURL(sourcePath).href}?t=${Date.now()}`)).default;
+const response = await worker.fetch(new Request("https://zsc.clintware.com/"));
+assert(response.status === 200, `GET / expected 200, got ${response.status}`);
+const body = await response.text();
 
-  const gate = await worker.fetch(new Request("https://zsc.clintware.com/"));
-  assert(gate.status === 200, `anonymous gate expected 200, got ${gate.status}`);
-  assert((await gate.text()).includes("Open the operating platform"), "anonymous gate content missing");
+assert(body.includes('id="gate"'), "DTEX gate missing");
+assert(body.includes('id="access-form"'), "DTEX access form missing");
+assert(body.includes('id="pw"'), "DTEX password input missing");
+assert(body.includes("Restricted preview"), "DTEX gate copy missing");
+assert(body.includes("Unlock demo"), "DTEX unlock button missing");
+assert(body.includes("Command Center"), "full ZSC app must be present in the same response");
+assert(body.includes("Seed Demo Accounts"), "ZSC app controls missing from same response");
+assert((body.match(/id="app"/g) || []).length === 1, "DTEX wrapper id=app must occur exactly once");
+assert(!body.includes('action="/login"'), "server login form still present");
 
-  const bad = await worker.fetch(new Request("https://zsc.clintware.com/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ password: "wrong-password" }).toString()
-  }));
-  assert(bad.status === 401, `bad password expected 401, got ${bad.status}`);
-  assert((await bad.text()).includes("Access denied"), "bad password response missing error");
+const scriptMatch = body.match(/<script id="dtex-gate-js">([\s\S]*?)<\/script>/);
+assert(scriptMatch, "DTEX gate script missing");
+const gateScript = scriptMatch[1];
 
-  const login = await worker.fetch(new Request("https://zsc.clintware.com/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ password: testPassword }).toString()
-  }));
-  assert(login.status === 200, `successful login expected direct 200, got ${login.status}`);
-  assert(!login.headers.get("Location"), "working CRM-style login must not redirect");
-  assert(!login.headers.get("Set-Cookie"), "working CRM-style login must not create a session cookie");
-  const appBody = await login.text();
-  assert(appBody.includes("Command Center"), "successful login did not return Command Center");
-  assert(appBody.includes("Seed Demo Accounts"), "successful login did not return seeded-account control");
+const classes = new Set();
+const storage = new Map();
+const form = {};
+const pw = { value: "", selected: false, select(){ this.selected = true; } };
+const err = { textContent: "" };
+const document = {
+  title: "Private Customer Success Demo",
+  body: { classList: {
+    add(c){ classes.add(c); },
+    remove(c){ classes.delete(c); },
+    contains(c){ return classes.has(c); }
+  }},
+  getElementById(id){
+    if (id === "access-form") return form;
+    if (id === "pw") return pw;
+    if (id === "gate-error") return err;
+    return null;
+  },
+  addEventListener(name, fn){ if (name === "DOMContentLoaded") fn(); }
+};
+const sessionStorage = {
+  setItem(k,v){ storage.set(k,String(v)); },
+  getItem(k){ return storage.has(k) ? storage.get(k) : null; },
+  removeItem(k){ storage.delete(k); }
+};
+const context = {
+  document,
+  sessionStorage,
+  location: { hostname: "zsc.clintware.com" },
+  gtag: undefined,
+  console
+};
+vm.createContext(context);
+vm.runInContext(gateScript, context);
+assert(typeof form.onsubmit === "function", "DTEX form handler was not bound");
 
-  const refresh = await worker.fetch(new Request("https://zsc.clintware.com/"));
-  assert(refresh.status === 200, `refresh gate expected 200, got ${refresh.status}`);
-  const refreshBody = await refresh.text();
-  assert(refreshBody.includes("Open the operating platform"), "refresh should return to the same gate as the working CRM");
-  assert(!refreshBody.includes("Command Center"), "refresh unexpectedly retained a session");
+pw.value = "wrong-password";
+form.onsubmit({ preventDefault(){} });
+assert(err.textContent === "Incorrect password.", "wrong password did not show DTEX error");
+assert(pw.selected === true, "wrong password did not select input");
+assert(!classes.has("unlocked"), "wrong password unlocked app");
 
-  const logout = await worker.fetch(new Request("https://zsc.clintware.com/logout", { redirect: "manual" }));
-  assert(logout.status === 302, `logout expected 302, got ${logout.status}`);
-  assert(logout.headers.get("Location") === "/", "logout should redirect to /");
+pw.selected = false;
+pw.value = "2$C@L3RK0S$H2026";
+form.onsubmit({ preventDefault(){} });
+assert(err.textContent === "", "correct password left error text");
+assert(classes.has("unlocked"), "correct password did not add unlocked class");
+assert(storage.get("summertime_demo_access") === "1", "DTEX sessionStorage unlock flag missing");
 
-  console.log("PASS: ZSC matches working CRM gate: anonymous gate -> reject bad password -> direct app HTML on valid password -> no cookie/session -> refresh returns gate");
-} finally {
-  await fs.rm(tempPath, { force: true });
-}
+// Simulate the same-tab refresh behavior DTEX uses.
+classes.clear();
+const form2 = {};
+const pw2 = { value: "", select(){} };
+const err2 = { textContent: "" };
+context.document.getElementById = (id) => id === "access-form" ? form2 : id === "pw" ? pw2 : id === "gate-error" ? err2 : null;
+vm.runInContext(gateScript, context);
+assert(classes.has("unlocked"), "DTEX sessionStorage did not auto-unlock on same-tab reload");
+
+const post = await worker.fetch(new Request("https://zsc.clintware.com/login", { method: "POST" }));
+assert(post.status === 405, `old server /login path should be disabled, got ${post.status}`);
+
+console.log("PASS: exact DTEX client gate works: wrong password rejected, exact password unlocks, sessionStorage preserves unlock, server /login removed");
