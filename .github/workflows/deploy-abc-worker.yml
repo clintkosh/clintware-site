@@ -165,8 +165,16 @@ jobs:
               python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$deleted"
             done <<< "$domain_ids"
           fi
-          remaining=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True and d.get("result",[])==[],d' <<< "$remaining"
-
+          removed=0
+          for i in $(seq 1 20); do
+            remaining=$(curl --fail-with-body -sS \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print(len(d.get("result",[])))' <<< "$remaining")
+            if [ "$count" = "0" ]; then
+              removed=1
+              break
+            fi
+            sleep 3
+          done
+          test "$removed" = "1"
