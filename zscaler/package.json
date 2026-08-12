@@ -1,0 +1,11 @@
+{
+  "name": "zscaler-cs-business-operations",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/worker.js && node --check src/app.js && node tests/smoke.mjs && python3 tests/regression.py"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
