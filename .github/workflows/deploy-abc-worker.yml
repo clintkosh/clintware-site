@@ -145,9 +145,11 @@ jobs:
           if (!appText.includes('Command Center') || !appText.includes('Accounts')) throw new Error('unlocked app content missing');
 
           // Exercise every editable account workspace against the deployed app.
-          await page.click('[data-route="accounts"]');
-          await page.locator('[data-open]').first().click();
           const accountId = await page.evaluate(() => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id);
+          await page.click('[data-route="accounts"]');
+          await page.waitForSelector(`[data-open="${accountId}"]`);
+          await page.locator(`[data-open="${accountId}"]`).click();
+          await page.waitForSelector('[data-edit-account]');
 
           await page.click('[data-edit-account]');
           await page.fill('#f-summary','Production E2E account summary');
