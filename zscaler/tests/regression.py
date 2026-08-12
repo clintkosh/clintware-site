@@ -10,11 +10,13 @@ for p in sorted((root/'src').glob('app-part*.js')):
     assert '2$C\\@L3RK0S$H2026' not in text
     parts.append(re.search(r'"([A-Za-z0-9+/=]+)"',text).group(1))
 html=gzip.decompress(base64.b64decode(''.join(parts))).decode()
-for text in ['Seed Demo Accounts','Clear Accounts','Add your first account','Contacts','Meetings','Notes','Start date','End date','Renewal date','Executive review pack']:
+for text in ['Command Center','Seed Demo Accounts','Clear Accounts','Add your first account','Stakeholders','Meetings','Notes','Start date','End date','Renewal date','Generate meeting brief','Renewal & Readiness','Playbook library','Business Rhythm','Capacity','Finance','Intake','KPIs']:
     assert text in html, text
 assert 'AI Insights' not in html
 assert html.count('Chief Information') >= 2
 assert 'VP, IT Operations' in html
 assert 'clear-accounts' in html and 'seed-accounts' in html
-assert 'data.accounts=[]' in html and "setRoute('accounts')" in html
-print('regression checks passed')
+assert 'data.accounts=[]' in html and "route='accounts'" in html
+assert "const THEME='zs_ops_theme_v2'" in html
+assert "document.documentElement.dataset.theme" in html
+print('DTex-modeled regression checks passed')
