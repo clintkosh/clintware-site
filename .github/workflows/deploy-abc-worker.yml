@@ -134,6 +134,8 @@ jobs:
           import { chromium } from 'playwright-core';
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
           const page = await browser.newPage();
+          const pageErrors=[];
+          page.on('pageerror',error=>pageErrors.push(error.stack||error.message));
           await page.goto('https://zs.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
@@ -149,7 +151,9 @@ jobs:
           await page.click('[data-route="accounts"]');
           await page.waitForSelector(`[data-open="${accountId}"]`);
           await page.locator(`[data-open="${accountId}"]`).click();
-          await page.waitForSelector('[data-edit-account]');
+          await page.waitForTimeout(250);
+          const opened = await page.evaluate(() => ({editCount:document.querySelectorAll('[data-edit-account]').length,bodyClass:document.body.className,appDisplay:getComputedStyle(document.querySelector('#app')).display,text:(document.querySelector('#app').innerText||'').slice(0,500)}));
+          if (opened.editCount !== 1) throw new Error(`account workspace did not open: ${JSON.stringify({opened,pageErrors})}`);
 
           await page.click('[data-edit-account]');
           await page.fill('#f-summary','Production E2E account summary');
