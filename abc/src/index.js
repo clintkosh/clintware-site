@@ -11,7 +11,7 @@ const DTEX_GATE_CSS = `<style id="dtex-gate-css">
 const DTEX_GATE_HTML = `<main id="gate"><section class="gate-card"><div class="gate-mark"></div><div class="gate-kicker">Restricted preview</div><h1>Private Customer Success Demo</h1><p>Enter the access password to continue to this synthetic Customer Success measurement and account-workspace demonstration.</p><form id="access-form" autocomplete="off"><label for="pw">Access password</label><input id="pw" type="password" autocomplete="current-password" autofocus><button type="submit">Unlock demo</button><div id="gate-error" class="gate-error" role="alert"></div></form><div class="gate-fine">Synthetic data only. The application calculates explicit metrics and thresholds; it does not guess patterns or generate recommendations.</div></section></main>`;
 
 const DTEX_GATE_JS = `<script id="dtex-gate-js">
-const PASS='DT3XK0$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';
+const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';
 function sendEvent(n,p={}){if(typeof gtag==='function')gtag('event',n,Object.assign({demo_id:DEMO_ID,host:location.hostname},p))}
 function unlock(){sessionStorage.setItem(SESSION_KEY,'1');document.body.classList.add('unlocked');document.title='DTEX Customer Success Measurement System'}
 function lock(){sessionStorage.removeItem(SESSION_KEY);document.body.classList.remove('unlocked');document.title='Private Customer Success Demo';document.getElementById('pw').value=''}

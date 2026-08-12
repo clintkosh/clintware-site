@@ -11,7 +11,7 @@ function assert(condition, message) {
 }
 
 const source = await fs.readFile(sourcePath, "utf8");
-assert(source.includes("const PASS='DT3XK0$H2026',SESSION_KEY='summertime_demo_access'"), "DTEX gate password/session constants missing");
+assert(source.includes("const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access'"), "DTEX gate password/session constants missing");
 
 const worker = (await import(`${pathToFileURL(sourcePath).href}?t=${Date.now()}`)).default;
 const response = await worker.fetch(new Request("https://abc.clintware.com/"));
@@ -75,7 +75,7 @@ assert(pw.selected === true, "wrong password did not select input");
 assert(!classes.has("unlocked"), "wrong password unlocked app");
 
 pw.selected = false;
-pw.value = "DT3XK0$H2026";
+pw.value = "2$C@L3RK0S$H2026";
 form.onsubmit({ preventDefault(){} });
 assert(err.textContent === "", "correct password left error text");
 assert(classes.has("unlocked"), "correct password did not add unlocked class");

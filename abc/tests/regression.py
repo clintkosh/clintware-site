@@ -6,7 +6,7 @@ config=(root/'wrangler.jsonc').read_text()
 
 # Exact DTEX client-side gate markers, with the DTEX password preserved.
 for marker in [
-    "const PASS='DT3XK0$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';",
+    "const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';",
     '<main id="gate"><section class="gate-card">',
     '<div class="gate-kicker">Restricted preview</div>',
     '<h1>Private Customer Success Demo</h1>',
