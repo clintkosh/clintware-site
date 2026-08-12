@@ -14,9 +14,30 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Inspect bundled source around browser-global declarations
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,gzip
+          root=Path('zscaler/src')
+          parts=[]
+          for p in sorted(root.glob('app-part*.js')):
+              m=re.search(r'"([A-Za-z0-9+/=]+)"',p.read_text())
+              assert m,p
+              parts.append(m.group(1))
+          html=gzip.decompress(base64.b64decode(''.join(parts))).decode()
+          for pat in [r'\bconst\s+top\b',r'\blet\s+top\b',r'\bvar\s+top\b']:
+              for m in re.finditer(pat,html):
+                  print('MATCH',pat,'AT',m.start())
+                  print(html[max(0,m.start()-500):m.start()+1200])
+                  print('---')
+          print('total literal top declarations',len(re.findall(r'\b(?:const|let|var)\s+top\b',html)))
+          PY
       - name: Inspect browser errors and app DOM after DTEX unlock
         run: |
           set -euo pipefail
@@ -34,25 +55,9 @@ jobs:
             page.on('console', m => { if (m.type()==='error') consoleErrors.push(m.text()); });
             await page.goto(`https://${host}/`, {waitUntil:'domcontentloaded',timeout:30000});
             console.log(`HOST ${host}`);
-            console.log('before app count', await page.locator('#app').count());
-            console.log('before app text length', ((await page.locator('#app').textContent())||'').length);
-            console.log('before app html length', ((await page.locator('#app').innerHTML())||'').length);
-            console.log('page errors before unlock', JSON.stringify(errors));
-            console.log('console errors before unlock', JSON.stringify(consoleErrors));
-            await page.fill('#pw','2$C@L3RK0S$H2026');
-            await page.click('#access-form button[type="submit"]');
-            await page.waitForTimeout(750);
-            console.log('unlocked class', await page.evaluate(()=>document.body.classList.contains('unlocked')));
-            console.log('app display', await page.locator('#app').evaluate(el=>getComputedStyle(el).display));
-            const text=(await page.locator('#app').textContent())||'';
-            const html=(await page.locator('#app').innerHTML())||'';
-            console.log('after app text length', text.length);
-            console.log('after app text sample', JSON.stringify(text.slice(0,800)));
-            console.log('after app html length', html.length);
-            console.log('after app html sample', JSON.stringify(html.slice(0,800)));
-            console.log('page errors after unlock', JSON.stringify(errors));
-            console.log('console errors after unlock', JSON.stringify(consoleErrors));
-            console.log('body child ids', JSON.stringify(await page.evaluate(()=>[...document.body.children].map(x=>x.id||x.tagName))));
+            console.log('page errors', JSON.stringify(errors));
+            console.log('console errors', JSON.stringify(consoleErrors));
+            console.log('app text length', ((await page.locator('#app').textContent())||'').length);
             await page.close();
           }
           await browser.close();
