@@ -14,6 +14,7 @@ const match = src.match(/const APP_GZ_B64="([A-Za-z0-9+/=]+)"/);
 if (!match) throw new Error('compressed app bundle missing');
 const base = zlib.gunzipSync(Buffer.from(match[1], 'base64')).toString('utf8');
 const html = enhanceAccountUsers(enhanceApp(base));
+if (!html.includes('id="cw-demo-workspace-script"') || !html.includes('id="cw-account-users-script"')) throw new Error('enhanced browser fixture is missing injected scripts');
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -29,8 +30,25 @@ if (!executablePath) throw new Error('CHROME environment variable is required');
 const browser = await chromium.launch({ headless: true, executablePath, args: ['--no-sandbox','--disable-dev-shm-usage'] });
 try {
   const page = await browser.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on('pageerror', e => pageErrors.push(String(e)));
+  page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('dialog', async dialog => { await dialog.accept(); });
   await page.goto('http://127.0.0.1:8765/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(1500);
+  if ((await page.locator('#cwDemoFab').count()) !== 1) {
+    const dom = await page.content();
+    console.log('DIAG url=', page.url());
+    console.log('DIAG pageErrors=', JSON.stringify(pageErrors));
+    console.log('DIAG consoleErrors=', JSON.stringify(consoleErrors));
+    console.log('DIAG workspaceScriptInDOM=', dom.includes('cw-demo-workspace-script'));
+    console.log('DIAG accountUsersScriptInDOM=', dom.includes('cw-account-users-script'));
+    console.log('DIAG workspaceDrawerInDOM=', dom.includes('cwDemoDrawer'));
+    console.log('DIAG bodyChildCount=', await page.locator('body > *').count());
+    throw new Error('editable workspace failed to install in Chrome fixture');
+  }
+
   await page.click('#cwDemoFab');
   await page.waitForSelector('#cwList .cw-account');
   const firstCard = page.locator('#cwList .cw-account').first();
@@ -73,6 +91,7 @@ try {
   await page.waitForTimeout(100);
   if ((await page.locator('#cwAwUsers .cw-aw-user', { hasText: 'Interview Test User' }).count()) !== 0) throw new Error('remove user failed');
   if ((await page.locator('#cwAwUsers .cw-aw-user').count()) !== 3) throw new Error('expected seeded users after removal');
+  if (pageErrors.length) throw new Error(`page errors during account workflow: ${pageErrors.join(' | ')}`);
   console.log('PASS: account open + seeded stakeholders + add/edit/reload/remove user flow works in real Chrome');
 } finally {
   await browser.close();
