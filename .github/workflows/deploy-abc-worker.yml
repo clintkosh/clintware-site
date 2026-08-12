@@ -61,7 +61,7 @@ jobs:
           response=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="zs.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows))' <<< "$response")
+          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="zs.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows if x.get("service")!="abc-cs-business-operations"))' <<< "$response")
           if [ -n "$domain_ids" ]; then
             while IFS= read -r domain_id; do
               deleted=$(curl --fail-with-body -sS -X DELETE \
@@ -103,7 +103,7 @@ jobs:
             body=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/" || true)
             health=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health" || true)
             auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health/auth" || true)
-            if grep -Fq "Secure access." <<< "$body" \
+            if grep -Fq "Know what needs attention." <<< "$body" \
               && grep -Fq "Private Customer Success Demo" <<< "$body" \
               && grep -Fq "Unlock demo" <<< "$body" \
               && grep -Fq "Command Center" <<< "$body" \

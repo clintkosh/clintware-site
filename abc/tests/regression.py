@@ -8,8 +8,9 @@ config=(root/'wrangler.jsonc').read_text()
 for marker in [
     "const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access',DEMO_ID='summertime_2026';",
     '<main id="gate"><header class="gate-nav">',
-    '<span>Zscaler</span>',
-    '<h1>Secure access.<br>Clear outcomes.</h1>',
+    '<div class="gate-brand">Customer Success Operations</div>',
+    'For interview purposes for Clinton Kosh',
+    '<h1>Know what needs attention.</h1>',
     '<section class="gate-card">',
     '<div class="gate-kicker">Restricted preview</div>',
     '<h2>Private Customer Success Demo</h2>',
