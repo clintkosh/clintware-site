@@ -31,10 +31,11 @@ jobs:
           node --check src/worker.js
           node --check src/enhancer.js
           node --check src/account-users.js
-      - name: Smoke test workspace injection
+      - name: Smoke test workspace injection and inspect base startup
         run: |
           node tests/enhancer.mjs
           node tests/account-users.mjs
+          node tests/analyze-base.mjs
       - name: Validate account user workflow in real Chrome via DevTools
         run: |
           set -euo pipefail
