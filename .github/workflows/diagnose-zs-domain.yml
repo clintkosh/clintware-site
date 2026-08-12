@@ -29,18 +29,26 @@ jobs:
         run: |
           set -euo pipefail
           echo "Cloudflare 1.1.1.1 A:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com A +noall +answer || true
-          echo "Cloudflare 1.1.1.1 AAAA:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com AAAA +noall +answer || true
           echo "Google 8.8.8.8 A:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com A +noall +answer || true
-          echo "Google 8.8.8.8 AAAA:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com AAAA +noall +answer || true
           echo "System resolver:"; getent ahosts zs.clintware.com || true
 
-      - name: Verify public HTTPS endpoints
+      - name: Verify custom domain HTTPS endpoints
         run: |
           set -euo pipefail
           curl --fail-with-body -sS -D /tmp/root.headers https://zs.clintware.com/ -o /tmp/root.html
           head -20 /tmp/root.headers
           grep -Fq "Open the operating platform" /tmp/root.html
-          curl --fail-with-body -sS https://zs.clintware.com/health
-          echo
-          curl --fail-with-body -sS https://zs.clintware.com/health/auth
-          echo
+          curl --fail-with-body -sS https://zs.clintware.com/health | grep -Fq '"ok":true'
+          curl --fail-with-body -sS https://zs.clintware.com/health/auth | grep -Fq '"app":true'
+          echo "Custom domain works"
+
+      - name: Verify direct workers.dev fallback
+        run: |
+          set -euo pipefail
+          base="https://zscaler-cs-business-operations.clint-kosh.workers.dev"
+          curl --fail-with-body -sS -D /tmp/fallback.headers "$base/" -o /tmp/fallback.html
+          head -20 /tmp/fallback.headers
+          grep -Fq "Open the operating platform" /tmp/fallback.html
+          curl --fail-with-body -sS "$base/health" | grep -Fq '"ok":true'
+          curl --fail-with-body -sS "$base/health/auth" | grep -Fq '"app":true'
+          echo "Direct workers.dev fallback works"
