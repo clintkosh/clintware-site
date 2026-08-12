@@ -1,0 +1,60 @@
+name: Diagnose ZSC browser runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-zsc-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect browser errors and app DOM after DTEX unlock
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zdiag && cd /tmp/zdiag
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          for (const host of ['zsc.clintware.com','zc.clintware.com']) {
+            const page = await browser.newPage();
+            const errors=[]; const consoleErrors=[];
+            page.on('pageerror', e => errors.push(String(e)));
+            page.on('console', m => { if (m.type()==='error') consoleErrors.push(m.text()); });
+            await page.goto(`https://${host}/`, {waitUntil:'domcontentloaded',timeout:30000});
+            console.log(`HOST ${host}`);
+            console.log('before app count', await page.locator('#app').count());
+            console.log('before app text length', ((await page.locator('#app').textContent())||'').length);
+            console.log('before app html length', ((await page.locator('#app').innerHTML())||'').length);
+            console.log('page errors before unlock', JSON.stringify(errors));
+            console.log('console errors before unlock', JSON.stringify(consoleErrors));
+            await page.fill('#pw','2$C@L3RK0S$H2026');
+            await page.click('#access-form button[type="submit"]');
+            await page.waitForTimeout(750);
+            console.log('unlocked class', await page.evaluate(()=>document.body.classList.contains('unlocked')));
+            console.log('app display', await page.locator('#app').evaluate(el=>getComputedStyle(el).display));
+            const text=(await page.locator('#app').textContent())||'';
+            const html=(await page.locator('#app').innerHTML())||'';
+            console.log('after app text length', text.length);
+            console.log('after app text sample', JSON.stringify(text.slice(0,800)));
+            console.log('after app html length', html.length);
+            console.log('after app html sample', JSON.stringify(html.slice(0,800)));
+            console.log('page errors after unlock', JSON.stringify(errors));
+            console.log('console errors after unlock', JSON.stringify(consoleErrors));
+            console.log('body child ids', JSON.stringify(await page.evaluate(()=>[...document.body.children].map(x=>x.id||x.tagName))));
+            await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
