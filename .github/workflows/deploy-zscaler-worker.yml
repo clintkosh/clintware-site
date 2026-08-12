@@ -48,20 +48,7 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd zscaler
 
-      - name: Repair zsc.clintware.com custom domain binding once
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"zsc.clintware.com","service":"zscaler-cs-business-operations"}' \
-            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; print("Repaired custom domain binding for zsc.clintware.com")'
-
-      - name: Verify stable zsc.clintware.com binding
+      - name: Verify stable zsc.clintware.com binding without mutating DNS
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -88,50 +75,31 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq dnsutils >/dev/null
-          for i in $(seq 1 30); do
-            cf=$(dig +short @1.1.1.1 zsc.clintware.com A | head -n1)
-            gg=$(dig +short @8.8.8.8 zsc.clintware.com A | head -n1)
-            if [ -n "$cf" ] && [ -n "$gg" ]; then
-              echo "Public DNS resolved: Cloudflare=$cf Google=$gg"
-              exit 0
-            fi
-            echo "Waiting for public DNS after custom-domain repair (attempt $i/30): Cloudflare=${cf:-NONE} Google=${gg:-NONE}"
-            sleep 10
-          done
-          echo "Public DNS still unresolved after repair" >&2
-          exit 1
+          cf=$(dig +short @1.1.1.1 zsc.clintware.com A | head -n1)
+          gg=$(dig +short @8.8.8.8 zsc.clintware.com A | head -n1)
+          test -n "$cf"
+          test -n "$gg"
+          echo "Public DNS resolved: Cloudflare=$cf Google=$gg"
 
       - name: Verify zsc.clintware.com HTTPS and direct-render login mode
         run: |
           set -euo pipefail
-          for i in $(seq 1 20); do
-            body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/ || true)
-            health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health || true)
-            auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health/auth || true)
-            if grep -Fq "Open the operating platform" <<< "$body" \
-              && grep -Fq "Synthetic data only" <<< "$body" \
-              && grep -Fq '"ok":true' <<< "$health" \
-              && grep -Fq '"ok":true' <<< "$auth" \
-              && grep -Fq '"app":true' <<< "$auth" \
-              && grep -Fq '"mode":"crm-direct-render"' <<< "$auth"; then
-              echo "zsc.clintware.com HTTPS gate, app runtime, and exact CRM direct-render mode verified"
-              break
-            fi
-            if [ "$i" = 20 ]; then
-              echo "zsc.clintware.com runtime verification failed" >&2
-              exit 1
-            fi
-            echo "Waiting for live zsc.clintware.com after repair (attempt $i/20)"
-            sleep 3
-          done
-
+          body=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/)
+          health=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health)
+          auth=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health/auth)
+          grep -Fq "Open the operating platform" <<< "$body"
+          grep -Fq "Synthetic data only" <<< "$body"
+          grep -Fq '"ok":true' <<< "$health"
+          grep -Fq '"ok":true' <<< "$auth"
+          grep -Fq '"app":true' <<< "$auth"
+          grep -Fq '"mode":"crm-direct-render"' <<< "$auth"
           bad_code=$(curl -sS -o /tmp/zsc-bad-login.html -w '%{http_code}' \
             -X POST https://zsc.clintware.com/login \
             -H 'Content-Type: application/x-www-form-urlencoded' \
             --data-urlencode 'password=definitely-not-the-password')
           test "$bad_code" = "401"
           grep -Fq "Access denied" /tmp/zsc-bad-login.html
-          echo "Live production POST /login rejection path verified"
+          echo "zsc.clintware.com public DNS, HTTPS, runtime, and login rejection path verified"
 
       - name: Render zsc.clintware.com in Chrome
         run: |
