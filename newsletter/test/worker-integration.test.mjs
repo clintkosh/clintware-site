@@ -75,7 +75,7 @@ after(() => { globalThis.fetch = originalFetch; });
 
 const env = {
   SUBSCRIBERS: { getByName: () => registry },
-  PUBLIC_ENDPOINT: "https://newsletter.clintware.com",
+  PUBLIC_ENDPOINT: "https://clintware-blog-newsletter.clint-kosh.workers.dev",
   SITE_URL: "https://www.clintware.com",
   FROM_EMAIL: "Clintware <hello@clintware.com>",
   REPLY_TO: "hello@clintware.com",
@@ -86,7 +86,7 @@ const env = {
 };
 
 async function invoke(path, options = {}) {
-  return worker.fetch(new Request(`https://newsletter.clintware.com${path}`, options), env);
+  return worker.fetch(new Request(`https://clintware-blog-newsletter.clint-kosh.workers.dev${path}`, options), env);
 }
 
 test("runs the complete request, confirmation, publish, and unsubscribe flow", async () => {

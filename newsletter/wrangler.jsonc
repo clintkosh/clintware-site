@@ -4,9 +4,10 @@
   "compatibility_date": "2026-08-11",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "preview_urls": false,
   "keep_vars": true,
   "vars": {
-    "PUBLIC_ENDPOINT": "https://newsletter.clintware.com",
+    "PUBLIC_ENDPOINT": "https://clintware-blog-newsletter.clint-kosh.workers.dev",
     "SITE_URL": "https://www.clintware.com",
     "FROM_EMAIL": "Clintware <hello@clintware.com>",
     "REPLY_TO": "hello@clintware.com",

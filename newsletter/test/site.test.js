@@ -12,7 +12,7 @@ test("both blog source copies expose the same confirmed-subscription form", asyn
   for (const path of ["blog/index.html", "public/blog/index.html"]) {
     const html = await source(path);
     assert.match(html, /data-newsletter-form/);
-    assert.match(html, /https:\/\/newsletter\.clintware\.com\/subscribe/);
+    assert.match(html, /https:\/\/clintware-blog-newsletter\.clint-kosh\.workers\.dev\/subscribe/);
     assert.match(html, /newsletter\.js/);
     assert.match(html, /newsletter\.css/);
   }
