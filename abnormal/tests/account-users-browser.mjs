@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import http from 'node:http';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { enhanceApp } from '../src/enhancer.js';
 import { enhanceAccountUsers } from '../src/account-users.js';
@@ -11,75 +13,153 @@ const src = await fs.readFile(path.join(root, 'src', 'index.js'), 'utf8');
 const match = src.match(/const APP_GZ_B64="([A-Za-z0-9+/=]+)"/);
 if (!match) throw new Error('compressed app bundle missing');
 const base = zlib.gunzipSync(Buffer.from(match[1], 'base64')).toString('utf8');
-let html = enhanceAccountUsers(enhanceApp(base));
+const html = enhanceAccountUsers(enhanceApp(base));
 if (!html.includes('id="cw-demo-workspace-script"') || !html.includes('id="cw-account-users-script"')) throw new Error('enhanced browser fixture is missing injected scripts');
 
-const SELF_TEST = String.raw`<script id="cw-browser-e2e">
-(function(){
-  function result(ok,msg){
-    document.documentElement.setAttribute('data-cw-browser-test',ok?'pass':'fail');
-    var el=document.getElementById('cwBrowserTestResult');
-    if(!el){el=document.createElement('pre');el.id='cwBrowserTestResult';el.style.cssText='position:fixed;left:0;bottom:0;z-index:2147483647;background:#000;color:#fff;padding:8px';document.body.appendChild(el)}
-    el.textContent=(ok?'PASS: ':'FAIL: ')+msg;
-  }
-  function click(el){if(!el)throw new Error('missing click target');el.click()}
-  function set(el,v){if(!el)throw new Error('missing input');el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}
-  function run(){
-    try{
-      window.confirm=function(){return true};
-      var phase=sessionStorage.getItem('cw_e2e_phase')||'start';
-      var fab=document.getElementById('cwDemoFab');
-      if(!fab)throw new Error('editable account workspace did not install');
-      click(fab);
-      var card=document.querySelector('#cwList .cw-account');
-      if(!card)throw new Error('no account cards rendered');
-      var open=card.querySelector('[data-user-action="open-account"]');
-      if(!open)throw new Error('Open account button missing');
-      click(open);
-      var modal=document.getElementById('cwAccountWorkspaceModal');
-      if(!modal||!modal.classList.contains('cw-open'))throw new Error('account workspace did not open');
-      var users=document.querySelectorAll('#cwAwUsers .cw-aw-user');
-      if(phase==='start'){
-        if(users.length!==3)throw new Error('expected 3 seeded stakeholders, got '+users.length);
-        click(document.querySelector('[data-user-action="add-user"]'));
-        set(document.querySelector('#cwUserForm [name="name"]'),'Interview Test User');
-        set(document.querySelector('#cwUserForm [name="title"]'),'VP, Security Operations');
-        set(document.querySelector('#cwUserForm [name="level"]'),'VP');
-        set(document.querySelector('#cwUserForm [name="lane"]'),'Executive technical sponsor');
-        set(document.querySelector('#cwUserForm [name="email"]'),'interview.user@test-account.example');
-        set(document.querySelector('#cwUserForm [name="status"]'),'Engaged');
-        document.getElementById('cwUserForm').requestSubmit();
-        var added=[...document.querySelectorAll('#cwAwUsers .cw-aw-user')].find(function(x){return x.textContent.includes('Interview Test User')});
-        if(!added||document.querySelectorAll('#cwAwUsers .cw-aw-user').length!==4)throw new Error('add user failed');
-        click(added.querySelector('[data-user-action="edit-user"]'));
-        set(document.querySelector('#cwUserForm [name="title"]'),'Senior VP, Security Operations');
-        document.getElementById('cwUserForm').requestSubmit();
-        if(![...document.querySelectorAll('#cwAwUsers .cw-aw-user')].some(function(x){return x.textContent.includes('Senior VP, Security Operations')}))throw new Error('edit user failed');
-        sessionStorage.setItem('cw_e2e_phase','reload');
-        location.reload();
-        return;
-      }
-      if(phase==='reload'){
-        var persisted=[...users].find(function(x){return x.textContent.includes('Interview Test User')});
-        if(!persisted)throw new Error('user did not persist through reload');
-        if(!persisted.textContent.includes('Senior VP, Security Operations'))throw new Error('edited title did not persist through reload');
-        click(persisted.querySelector('[data-user-action="remove-user"]'));
-        if([...document.querySelectorAll('#cwAwUsers .cw-aw-user')].some(function(x){return x.textContent.includes('Interview Test User')}))throw new Error('remove user failed');
-        if(document.querySelectorAll('#cwAwUsers .cw-aw-user').length!==3)throw new Error('unexpected stakeholder count after removal');
-        sessionStorage.removeItem('cw_e2e_phase');
-        result(true,'account open + 3 seeded stakeholders + add + edit + persistence + remove all work');
-      }
-    }catch(e){result(false,String(e&&e.message||e))}
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(run,250)});else setTimeout(run,250);
-})();
-</script>`;
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(html);
+});
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen(8765, '127.0.0.1', resolve);
+});
 
-const lower = html.toLowerCase();
-const bodyClose = lower.lastIndexOf('</body>');
-html = bodyClose >= 0 ? html.slice(0,bodyClose) + SELF_TEST + html.slice(bodyClose) : html + SELF_TEST;
+const chromePath = process.env.CHROME;
+if (!chromePath) throw new Error('CHROME environment variable is required');
+const profile = `/tmp/abnormal-cdp-${process.pid}`;
+const chrome = spawn(chromePath, [
+  '--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-networking',
+  '--remote-debugging-port=9222', `--user-data-dir=${profile}`, 'about:blank'
+], { stdio: ['ignore', 'ignore', 'pipe'] });
+let chromeErr = '';
+chrome.stderr.on('data', d => { chromeErr += String(d); if (chromeErr.length > 20000) chromeErr = chromeErr.slice(-20000); });
 
-const outDir = process.env.ABNORMAL_BROWSER_FIXTURE || '/tmp/abnormal-browser-fixture';
-await fs.mkdir(outDir, { recursive: true });
-await fs.writeFile(path.join(outDir, 'index.html'), html);
-console.log(path.join(outDir, 'index.html'));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function waitFor(fn, label, timeoutMs = 12000) {
+  const end = Date.now() + timeoutMs;
+  let last;
+  while (Date.now() < end) {
+    try { const v = await fn(); if (v) return v; } catch (e) { last = e; }
+    await sleep(100);
+  }
+  throw new Error(`Timed out waiting for ${label}${last ? `: ${last.message}` : ''}`);
+}
+
+let ws;
+let nextId = 1;
+const pending = new Map();
+const runtimeErrors = [];
+function send(method, params = {}) {
+  return new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    ws.send(JSON.stringify({ id, method, params }));
+    setTimeout(() => {
+      if (pending.has(id)) { pending.delete(id); reject(new Error(`CDP timeout: ${method}`)); }
+    }, 10000).unref();
+  });
+}
+async function evaluate(expression) {
+  const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true });
+  if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text || 'Runtime.evaluate failed');
+  return r.result?.value;
+}
+
+try {
+  await waitFor(async () => {
+    const r = await fetch('http://127.0.0.1:9222/json/version');
+    return r.ok;
+  }, 'Chrome DevTools endpoint');
+
+  const tabResp = await fetch('http://127.0.0.1:9222/json/new?http://127.0.0.1:8765/', { method: 'PUT' });
+  if (!tabResp.ok) throw new Error(`Could not create Chrome tab: ${tabResp.status}`);
+  const tab = await tabResp.json();
+  ws = new WebSocket(tab.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => { ws.addEventListener('open', resolve, { once: true }); ws.addEventListener('error', reject, { once: true }); });
+  ws.addEventListener('message', ev => {
+    const msg = JSON.parse(ev.data);
+    if (msg.id && pending.has(msg.id)) {
+      const p = pending.get(msg.id); pending.delete(msg.id);
+      if (msg.error) p.reject(new Error(`${msg.error.message} (${msg.error.code})`)); else p.resolve(msg.result || {});
+    }
+    if (msg.method === 'Runtime.exceptionThrown') runtimeErrors.push(msg.params?.exceptionDetails?.exception?.description || msg.params?.exceptionDetails?.text || 'browser exception');
+  });
+  await send('Runtime.enable');
+  await send('Page.enable');
+
+  await waitFor(async () => evaluate(`document.readyState !== 'loading' && !!document.getElementById('cwDemoFab')`), 'editable account workspace');
+  if (runtimeErrors.length) throw new Error(`Browser startup error: ${runtimeErrors.join(' | ')}`);
+
+  const phase1 = await evaluate(`(async()=>{
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+    const click=e=>{if(!e)throw new Error('missing click target');e.click()};
+    const set=(e,v)=>{if(!e)throw new Error('missing input');e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))};
+    window.confirm=()=>true;
+    click(q('#cwDemoFab')); await wait(50);
+    const card=q('#cwList .cw-account'); if(!card)throw new Error('no account cards rendered');
+    const accountId=card.dataset.accountId;
+    const open=card.querySelector('[data-user-action="open-account"]'); if(!open)throw new Error('Open account button missing');
+    click(open); await wait(50);
+    if(!q('#cwAccountWorkspaceModal.cw-open'))throw new Error('account workspace did not open');
+    if(qa('#cwAwUsers .cw-aw-user').length!==3)throw new Error('expected 3 seeded stakeholders');
+    click(q('[data-user-action="add-user"]')); await wait(20);
+    set(q('#cwUserForm [name="name"]'),'Interview Test User');
+    set(q('#cwUserForm [name="title"]'),'VP, Security Operations');
+    set(q('#cwUserForm [name="level"]'),'VP');
+    set(q('#cwUserForm [name="lane"]'),'Executive technical sponsor');
+    set(q('#cwUserForm [name="email"]'),'interview.user@test-account.example');
+    set(q('#cwUserForm [name="status"]'),'Engaged');
+    q('#cwUserForm').requestSubmit(); await wait(50);
+    let added=qa('#cwAwUsers .cw-aw-user').find(x=>x.textContent.includes('Interview Test User'));
+    if(!added||qa('#cwAwUsers .cw-aw-user').length!==4)throw new Error('add user failed');
+    click(added.querySelector('[data-user-action="edit-user"]')); await wait(20);
+    set(q('#cwUserForm [name="title"]'),'Senior VP, Security Operations');
+    q('#cwUserForm').requestSubmit(); await wait(50);
+    added=qa('#cwAwUsers .cw-aw-user').find(x=>x.textContent.includes('Interview Test User'));
+    if(!added||!added.textContent.includes('Senior VP, Security Operations'))throw new Error('edit user failed');
+    const stored=JSON.parse(localStorage.getItem('an_demo_workspace_v2')||'{}');
+    const account=(stored.accounts||[]).find(a=>a.id===accountId);
+    const user=account&&Array.isArray(account.users)&&account.users.find(u=>u.name==='Interview Test User');
+    if(!user||user.title!=='Senior VP, Security Operations')throw new Error('edited user not persisted to account storage');
+    return {accountId,userId:user.id,count:account.users.length};
+  })()`);
+  if (!phase1 || phase1.count !== 4) throw new Error(`Unexpected phase1 result: ${JSON.stringify(phase1)}`);
+
+  await send('Page.reload', { ignoreCache: true });
+  await waitFor(async () => evaluate(`document.readyState !== 'loading' && !!document.getElementById('cwDemoFab')`), 'workspace after reload');
+
+  const phase2 = await evaluate(`(async()=>{
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+    window.confirm=()=>true;
+    q('#cwDemoFab').click(); await wait(50);
+    const card=q('#cwList .cw-account[data-account-id="${phase1.accountId}"]'); if(!card)throw new Error('same account missing after reload');
+    card.querySelector('[data-user-action="open-account"]').click(); await wait(50);
+    let user=qa('#cwAwUsers .cw-aw-user').find(x=>x.textContent.includes('Interview Test User'));
+    if(!user)throw new Error('user did not persist through browser reload');
+    if(!user.textContent.includes('Senior VP, Security Operations'))throw new Error('edited title did not persist through reload');
+    user.querySelector('[data-user-action="remove-user"]').click(); await wait(50);
+    if(qa('#cwAwUsers .cw-aw-user').some(x=>x.textContent.includes('Interview Test User')))throw new Error('remove user failed');
+    if(qa('#cwAwUsers .cw-aw-user').length!==3)throw new Error('expected 3 seeded stakeholders after removal');
+    const stored=JSON.parse(localStorage.getItem('an_demo_workspace_v2')||'{}');
+    const account=(stored.accounts||[]).find(a=>a.id==='${phase1.accountId}');
+    if(!account||account.users.some(u=>u.name==='Interview Test User'))throw new Error('removed user still exists in persisted storage');
+    return {count:account.users.length};
+  })()`);
+  if (!phase2 || phase2.count !== 3) throw new Error(`Unexpected phase2 result: ${JSON.stringify(phase2)}`);
+  if (runtimeErrors.length) throw new Error(`Browser runtime error: ${runtimeErrors.join(' | ')}`);
+
+  console.log('PASS: real Chrome account workspace opens; 3 seeded stakeholders render; add, edit, persisted reload, and remove user all work');
+} catch (error) {
+  console.error('BROWSER_E2E_FAILURE:', error.message);
+  if (runtimeErrors.length) console.error('BROWSER_EXCEPTIONS:', runtimeErrors.join(' | '));
+  if (chromeErr) console.error('CHROME_STDERR_TAIL:', chromeErr.slice(-5000));
+  process.exitCode = 1;
+} finally {
+  try { if (ws) ws.close(); } catch {}
+  try { chrome.kill('SIGKILL'); } catch {}
+  await new Promise(resolve => server.close(resolve));
+  await fs.rm(profile, { recursive: true, force: true }).catch(()=>{});
+}
