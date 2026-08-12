@@ -38,5 +38,7 @@ jobs:
       - name: Send confirmed subscribers the update
         if: steps.changed_posts.outputs.count != '0'
         env:
-          NEWSLETTER_PUBLISH_SECRET: ${{ secrets.NEWSLETTER_PUBLISH_SECRET }}
-        run: python3 newsletter/scripts/notify_posts.py --posts /tmp/clintware-blog-posts.json --endpoint https://newsletter.clintware.com
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          export NEWSLETTER_PUBLISH_SECRET=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          python3 newsletter/scripts/notify_posts.py --posts /tmp/clintware-blog-posts.json --endpoint https://newsletter.clintware.com
