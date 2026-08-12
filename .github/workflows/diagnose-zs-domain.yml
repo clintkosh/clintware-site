@@ -1,5 +1,5 @@
 # Post-deploy production browser verification
-name: Diagnose ZS Domain
+name: Diagnose ZSC Domain
 
 on:
   push:
@@ -15,7 +15,18 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect Cloudflare binding and DNS object
+      - name: Inspect zsc.clintware.com Cloudflare binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zsc.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1, d; x=r[0]; assert x.get("hostname")=="zsc.clintware.com" and x.get("service")=="zscaler-cs-business-operations", x; print(json.dumps({k:x.get(k) for k in ("hostname","service","zone_name","cert_id","environment")},indent=2))'
+
+      - name: Confirm legacy zs.clintware.com binding is absent
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -24,7 +35,7 @@ jobs:
           response=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"success":d.get("success"),"result":[{k:x.get(k) for k in ("id","hostname","service","zone_name","zone_id","cert_id","environment")} for x in d.get("result",[])]},indent=2))'
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; assert len(d.get("result",[]))==0, d.get("result"); print("Legacy zs.clintware.com binding is absent")'
 
       - name: Resolve authoritative and public DNS
         run: |
@@ -32,45 +43,38 @@ jobs:
           echo "SOA:"; dig clintware.com SOA +noall +answer
           echo "Authoritative NS:"; dig +short NS clintware.com
           ns=$(dig +short NS clintware.com | head -1)
-          echo "Authoritative A from $ns:"; dig +time=3 +tries=1 @"$ns" zs.clintware.com A +noall +answer
-          echo "Authoritative AAAA from $ns:"; dig +time=3 +tries=1 @"$ns" zs.clintware.com AAAA +noall +answer
-          echo "Cloudflare 1.1.1.1 A:"; dig +time=3 +tries=1 @1.1.1.1 zs.clintware.com A +noall +answer
-          echo "Google 8.8.8.8 A:"; dig +time=3 +tries=1 @8.8.8.8 zs.clintware.com A +noall +answer
-          echo "System resolver:"; getent ahosts zs.clintware.com
+          echo "Authoritative A from $ns:"; dig +time=3 +tries=1 @"$ns" zsc.clintware.com A +noall +answer
+          echo "Authoritative AAAA from $ns:"; dig +time=3 +tries=1 @"$ns" zsc.clintware.com AAAA +noall +answer
+          echo "Cloudflare 1.1.1.1 A:"; dig +time=3 +tries=1 @1.1.1.1 zsc.clintware.com A +noall +answer
+          echo "Google 8.8.8.8 A:"; dig +time=3 +tries=1 @8.8.8.8 zsc.clintware.com A +noall +answer
+          echo "System resolver:"; getent ahosts zsc.clintware.com
 
       - name: Verify TLS and IPv4 edges
         run: |
           set -euo pipefail
-          echo | openssl s_client -connect zs.clintware.com:443 -servername zs.clintware.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
-          for ip in $(dig +short A zs.clintware.com); do
+          echo | openssl s_client -connect zsc.clintware.com:443 -servername zsc.clintware.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+          for ip in $(dig +short A zsc.clintware.com); do
             echo "Testing IPv4 edge $ip"
-            curl --fail-with-body -4 -sS --connect-timeout 5 --max-time 15 --resolve "zs.clintware.com:443:${ip}" https://zs.clintware.com/health | grep -Fq '"ok":true'
+            curl --fail-with-body -4 -sS --connect-timeout 5 --max-time 15 --resolve "zsc.clintware.com:443:${ip}" https://zsc.clintware.com/health | grep -Fq '"ok":true'
           done
 
       - name: Verify browser-facing responses repeatedly
         run: |
           set -euo pipefail
           for i in $(seq 1 20); do
-            code=$(curl -sS -o /tmp/root.html -w '%{http_code}' --connect-timeout 5 --max-time 15 https://zs.clintware.com/)
+            code=$(curl -sS -o /tmp/root.html -w '%{http_code}' --connect-timeout 5 --max-time 15 https://zsc.clintware.com/)
             grep -Fq "Open the operating platform" /tmp/root.html
             test "$code" = "200"
-            curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zs.clintware.com/health | grep -Fq '"ok":true'
+            curl --fail-with-body -sS --connect-timeout 5 --max-time 15 https://zsc.clintware.com/health | grep -Fq '"ok":true'
             echo "pass $i"
             sleep 1
           done
 
-      - name: Render original URL in Chrome
+      - name: Render zsc.clintware.com in Chrome
         run: |
           set -euo pipefail
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
-          "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=3000 --dump-dom https://zs.clintware.com/ > /tmp/chrome.html
+          "$chrome" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=3000 --dump-dom https://zsc.clintware.com/ > /tmp/chrome.html
           grep -Fq "Open the operating platform" /tmp/chrome.html
           grep -Fq "Private review access" /tmp/chrome.html
-          echo "Chrome rendered zs.clintware.com successfully"
-
-      - name: Verify direct workers.dev fallback
-        run: |
-          set -euo pipefail
-          base="https://zscaler-cs-business-operations.clint-kosh.workers.dev"
-          curl --fail-with-body -sS "$base/health" | grep -Fq '"ok":true'
-          echo "Direct workers.dev fallback also works"
+          echo "Chrome rendered zsc.clintware.com successfully"
