@@ -68,8 +68,15 @@ jobs:
             exit 1
           fi
           curl --fail-with-body -sS --retry 5 --retry-delay 2 https://zs.clintware.com/health | grep -Fq '"ok":true'
-          auth=$(curl --fail-with-body -sS --retry 5 --retry-delay 2 https://zs.clintware.com/health/auth)
-          grep -Fq '"ok":true' <<< "$auth"
-          grep -Fq '"session":true' <<< "$auth"
-          grep -Fq '"app":true' <<< "$auth"
-          echo "Live HTTPS gate, session signer, and app runtime verified"
+          auth=""
+          for i in $(seq 1 15); do
+            auth=$(curl --fail-with-body -sS https://zs.clintware.com/health/auth || true)
+            if grep -Fq '"ok":true' <<< "$auth" && grep -Fq '"session":true' <<< "$auth" && grep -Fq '"app":true' <<< "$auth"; then
+              echo "Live HTTPS gate, session signer, and app runtime verified"
+              exit 0
+            fi
+            echo "Waiting for new auth runtime to reach custom domain (attempt $i/15)"
+            sleep 3
+          done
+          echo "Auth runtime verification failed. Last response: $auth" >&2
+          exit 1
