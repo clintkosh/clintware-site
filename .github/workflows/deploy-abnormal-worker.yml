@@ -30,8 +30,17 @@ jobs:
         run: |
           node --check src/worker.js
           node --check src/enhancer.js
+          node --check src/account-users.js
       - name: Smoke test workspace injection
-        run: node tests/enhancer.mjs
+        run: |
+          node tests/enhancer.mjs
+          node tests/account-users.mjs
+      - name: Validate account user workflow in real Chrome
+        run: |
+          npm install --silent --no-save playwright-core
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          test -n "$chrome"
+          CHROME="$chrome" node tests/account-users-browser.mjs
       - name: Validate privacy and deployment guardrails
         run: python3 tests/regression.py
 
@@ -47,18 +56,24 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd abnormal
-      - name: Attach an.clintware.com custom domain
+      - name: Verify an.clintware.com custom domain without unnecessary mutation
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"an.clintware.com","service":"abnormal-cs-command-center"}')
-          echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("success") is True, data; print("Custom domain attached:", data["result"]["hostname"])'
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          count=$(echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))')
+          if [ "$count" = "0" ]; then
+            response=$(curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"an.clintware.com","service":"abnormal-cs-command-center"}')
+          fi
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); x=(r[0] if isinstance(r,list) and r else r); assert x.get("hostname")=="an.clintware.com" and x.get("service")=="abnormal-cs-command-center", x; print("Custom domain verified:",x["hostname"],"->",x["service"])'
       - name: Verify private login gate over HTTPS
         run: |
           set -euo pipefail
