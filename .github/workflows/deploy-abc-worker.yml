@@ -108,6 +108,8 @@ jobs:
               && grep -Fq "Unlock demo" <<< "$body" \
               && grep -Fq "Command Center" <<< "$body" \
               && grep -Fq "Seed Demo Accounts" <<< "$body" \
+              && grep -Fq "Edit technical details" <<< "$body" \
+              && grep -Fq "Edit commercial details" <<< "$body" \
               && grep -Fq '"ok":true' <<< "$health" \
               && grep -Fq '"ok":true' <<< "$auth" \
               && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
