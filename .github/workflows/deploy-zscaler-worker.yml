@@ -28,10 +28,12 @@ jobs:
           node-version: "22"
       - name: Validate Worker and app bundle
         run: |
-          node --check src/worker.js
+          node --check src/index.js
           node --check src/app.js
           node tests/smoke.mjs
           python3 tests/regression.py
+      - name: Exercise complete login round trip with disposable password
+        run: node tests/auth-roundtrip.mjs
 
   deploy:
     needs: validate
@@ -80,15 +82,26 @@ jobs:
               && grep -Fq '"ok":true' <<< "$health" \
               && grep -Fq '"ok":true' <<< "$auth" \
               && grep -Fq '"session":true' <<< "$auth" \
-              && grep -Fq '"app":true' <<< "$auth"; then
-              echo "zsc.clintware.com DNS, HTTPS gate, session signer, and app runtime verified"
-              exit 0
+              && grep -Fq '"app":true' <<< "$auth" \
+              && grep -Fq '"mode":"crm-redirect"' <<< "$auth"; then
+              echo "zsc.clintware.com DNS, HTTPS gate, session signer, app runtime, and CRM redirect mode verified"
+              break
+            fi
+            if [ "$i" = 20 ]; then
+              echo "zsc.clintware.com runtime verification failed" >&2
+              exit 1
             fi
             echo "Waiting for live zsc.clintware.com after Worker deploy (attempt $i/20)"
             sleep 3
           done
-          echo "zsc.clintware.com runtime verification failed" >&2
-          exit 1
+
+          bad_code=$(curl -sS -o /tmp/zsc-bad-login.html -w '%{http_code}' \
+            -X POST https://zsc.clintware.com/login \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode 'password=definitely-not-the-password')
+          test "$bad_code" = "401"
+          grep -Fq "Access denied" /tmp/zsc-bad-login.html
+          echo "Live production POST /login rejection path verified"
 
       - name: Render zsc.clintware.com in Chrome
         run: |
