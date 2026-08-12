@@ -25,7 +25,7 @@ assert(body.includes("Restricted preview"), "DTEX gate copy missing");
 assert(body.includes("Unlock demo"), "DTEX unlock button missing");
 assert(body.includes("Command Center"), "full ZSC app must be present in the same response");
 assert(body.includes("Seed Demo Accounts"), "ZSC app controls missing from same response");
-assert((body.match(/id="app"/g) || []).length === 1, "DTEX wrapper id=app must occur exactly once");
+assert((body.match(/id="app"/g) || []).length === 1, "DTEX must control the existing ZSC id=app element exactly once");
 assert(!body.includes('action="/login"'), "server login form still present");
 
 const scriptMatch = body.match(/<script id="dtex-gate-js">([\s\S]*?)<\/script>/);
@@ -81,13 +81,13 @@ assert(err.textContent === "", "correct password left error text");
 assert(classes.has("unlocked"), "correct password did not add unlocked class");
 assert(storage.get("summertime_demo_access") === "1", "DTEX sessionStorage unlock flag missing");
 
-// Simulate the same-tab refresh behavior DTEX uses.
+// Simulate DTEX's same-tab reload behavior with the same sessionStorage state.
 classes.clear();
 const form2 = {};
 const pw2 = { value: "", select(){} };
 const err2 = { textContent: "" };
 context.document.getElementById = (id) => id === "access-form" ? form2 : id === "pw" ? pw2 : id === "gate-error" ? err2 : null;
-vm.runInContext(gateScript, context);
+vm.runInContext('bind()', context);
 assert(classes.has("unlocked"), "DTEX sessionStorage did not auto-unlock on same-tab reload");
 
 const post = await worker.fetch(new Request("https://zsc.clintware.com/login", { method: "POST" }));
