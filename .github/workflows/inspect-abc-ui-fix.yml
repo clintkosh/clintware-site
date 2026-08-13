@@ -15,7 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode ABC app and print exact targets
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Decode exact implementation targets
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -24,23 +27,40 @@ jobs:
           root=Path('abc/src')
           chunks=[]
           for i in range(1,6):
-              t=(root/f'app-part{i}.js').read_text()
-              m=re.search(r'"([A-Za-z0-9+/=]+)"',t); assert m
-              chunks.append(m.group(1))
+              t=(root/f'app-part{i}.js').read_text();m=re.search(r'"([A-Za-z0-9+/=]+)"',t);assert m;chunks.append(m.group(1))
           html=gzip.decompress(base64.b64decode(''.join(chunks))).decode()
-          print('HTML_LENGTH',len(html))
-          terms=['save-note','data-add-note','data-del-note','function addNote','function note','function command','Command Center','Managed ARR','Portfolio health','At-risk accounts','Executive sponsors','brand','logo','mark','topbar','renderTopBar','data-route="accounts"']
-          for term in terms:
-              print('\n===== TERM',term,'=====')
-              hits=list(re.finditer(re.escape(term),html,re.I))
-              print('COUNT',len(hits))
-              for m in hits[:8]:
-                  print(html[max(0,m.start()-700):m.start()+1600])
-                  print('\n---')
-          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
-          print('SCRIPT_COUNT',len(scripts))
-          for i,s in enumerate(scripts):
-              try:
-                  Path(f'/tmp/script-{i}.js').write_text(s)
-              except: pass
+          for term in ['function kpi','function modal','function addNote','function bind(){','function command(){','function renderTopBar(){','function miniRole']:
+              print('\n===== '+term+' =====')
+              m=re.search(re.escape(term),html)
+              if not m: print('NOT FOUND'); continue
+              print(html[max(0,m.start()-350):m.start()+3200])
           PY
+      - name: Reproduce live note save behavior in Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-note && cd /tmp/abc-note
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > note.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();page.setDefaultTimeout(8000);
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')console.log('CONSOLE_ERROR',m.text())});
+          await page.goto('https://abc.clintware.com/?notecheck='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.accounts?.length===20}catch(e){return false}},{timeout:15000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));const aid=data.accounts[0].id;
+          await page.locator('[data-route="accounts"]').first().click();await page.locator(`[data-open="${aid}"]`).first().click();await page.locator('[data-tab="notes"]').click();
+          const before=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,aid);
+          await page.locator('[data-add-note]').click();await page.fill('#n-text','LIVE NOTE SAVE DIAGNOSTIC '+Date.now());
+          console.log('SAVE_HANDLER',await page.locator('#save-note').evaluate(e=>typeof e.onclick));
+          await page.locator('#save-note').click();await page.waitForTimeout(500);
+          const after=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,aid);
+          console.log('NOTE_BEFORE',before,'NOTE_AFTER',after,'MODAL_COUNT',await page.locator('.modalback').count(),'ERRORS',JSON.stringify(errors));
+          if(after!==before+1)throw new Error('live note save did not persist');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node note.mjs
