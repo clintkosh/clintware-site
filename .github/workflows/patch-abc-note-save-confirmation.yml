@@ -1,0 +1,100 @@
+name: Add Verified Note Save Confirmation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-note-save-confirmation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Patch confirmation tied to actual note persistence
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          css='''\n#abc-save-toast{display:none;position:fixed;right:16px;bottom:16px;z-index:2147483001;padding:10px 14px;border:1px solid rgba(73,229,179,.45);border-radius:10px;background:rgba(12,24,20,.96);color:#dffcf2;font:800 12px/1.2 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.30)}#abc-save-toast.show{display:block}html[data-theme="light"] #abc-save-toast{background:#f3fff9;color:#12664e;border-color:#7fd9bb}\n'''
+          if '#abc-save-toast{' not in s:
+              needle='@media(max-width:700px){#abc-global-logout{top:8px;right:8px;padding:8px 10px;font-size:10px}}\n'
+              assert needle in s
+              s=s.replace(needle,needle+css,1)
+          if 'id="abc-save-toast"' not in s:
+              needle='</main><button id="abc-global-logout"'
+              assert needle in s
+              s=s.replace(needle,'</main><div id="abc-save-toast" role="status" aria-live="polite"></div><button id="abc-global-logout"',1)
+          js="""
+function noteSnapshot(){try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return JSON.stringify((d?.accounts||[]).map(a=>[String(a.id),a.notes||[]]))}catch(e){return ''}}
+function showSavedNotice(msg){const el=document.getElementById('abc-save-toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(showSavedNotice.t);showSavedNotice.t=setTimeout(()=>el.classList.remove('show'),1800)}
+document.addEventListener('click',e=>{const btn=e.target.closest?.('#save-note');if(!btn)return;const before=noteSnapshot();setTimeout(()=>{const after=noteSnapshot();if(after&&after!==before){showSavedNotice('Note saved');sendEvent('crm_note_saved')}},90)},true);
+"""
+          if 'function noteSnapshot()' not in s:
+              needle="document.addEventListener('DOMContentLoaded',bindGate);\n"
+              assert needle in s
+              s=s.replace(needle,js+needle,1)
+          p.write_text(s)
+          PY
+          node --check abc/src/index.js
+          (cd abc && node tests/smoke.mjs && node tests/auth-roundtrip.mjs && python3 tests/regression.py)
+          python3 tests/validate_crm_analytics.py
+      - name: Commit app patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Show confirmation only after note data persists"
+          git push
+      - name: Deploy updated Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd abc
+      - name: Verify live note confirmation
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/note-check && cd /tmp/note-check
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > test.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage(); page.setDefaultTimeout(20000);
+          let ready=false;
+          for(let i=0;i<24;i++){
+            await page.goto('https://an.clintware.com/?note-confirm='+Date.now()+'-'+i,{waitUntil:'domcontentloaded',timeout:30000});
+            if((await page.content()).includes('function noteSnapshot()')){ready=true;break}
+            await page.waitForTimeout(2500);
+          }
+          if(!ready) throw new Error('new note confirmation build not reached');
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw',process.env.AN_PASS); await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'))?.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const id=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id);
+          await page.locator(`[data-open="${id}"]`).first().click();
+          await page.locator('[data-tab="notes"]').first().click();
+          const before=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,id);
+          await page.locator('[data-add-note]').click(); await page.fill('#n-text','Verified note confirmation test'); await page.click('#save-note');
+          await page.waitForFunction(()=>document.querySelector('#abc-save-toast')?.classList.contains('show')&&document.querySelector('#abc-save-toast')?.textContent==='Note saved');
+          const after=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,id);
+          if(after!==before+1) throw new Error('note did not persist');
+          console.log('PASS: note persisted and visible confirmation appeared');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node test.mjs
