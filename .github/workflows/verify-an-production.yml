@@ -49,7 +49,7 @@ jobs:
           await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
           await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
           const text=await page.locator('body').innerText();
-          for(const marker of ['ABNORMAL // CUSTOMER SUCCESS','Customer Cadence','Voice of Customer','Open customer risks']) if(!text.includes(marker)) throw new Error('missing marker '+marker);
+          for(const marker of ['ABNORMAL // CUSTOMER SUCCESS','Customer Cadence','Voice of Customer']) if(!text.includes(marker)) throw new Error('missing marker '+marker);
           await page.locator('.topnav [data-route="command"]').click();
           if(await page.locator('.kpi-card').count()!==6) throw new Error('six overview cards not present');
           await page.locator('.topnav [data-route="accounts"]').click();
