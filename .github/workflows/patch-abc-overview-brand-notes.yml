@@ -1,0 +1,55 @@
+name: Patch ABC overview branding and notes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-overview-brand-notes.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch decoded ABC application
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,gzip,math
+          root=Path('abc/src')
+          chunks=[]
+          for i in range(1,6):
+              p=root/f'app-part{i}.js';m=re.search(r'"([A-Za-z0-9+/=]+)"',p.read_text());assert m,p;chunks.append(m.group(1))
+          html=gzip.decompress(base64.b64decode(''.join(chunks))).decode()
+          original=html
+
+          def rep(old,new,count=1,label='replacement'):
+              global html
+              n=html.count(old)
+              if n < count: raise SystemExit(f'{label}: expected at least {count}, found {n}')
+              html=html.replace(old,new,count)
+              print(label,'OK')
+
+          # Remove the inherited ZS blue visual language and use an Abnormal-style dark/pink/coral/purple system.
+          html=re.sub(r'--blue:#5b56e8;--blue2:#2477dc;--pink:#ff2ca8;--cyan:#12a9c4;', '--blue:#a565ff;--blue2:#e52f75;--pink:#ff3b88;--cyan:#ff6957;', html)
+          html=re.sub(r'--blue:#8b86ff;--blue2:#3d9cff;--pink:#ff32da;--cyan:#52d9f3;', '--blue:#a565ff;--blue2:#ff3b88;--pink:#ff6957;--cyan:#a565ff;', html)
+          html=html.replace('--nav:#0b1728;--hero:linear-gradient(135deg,#0f1c31 0%,#0b1728 50%,#142c4c 100%);','--nav:#07070b;--hero:linear-gradient(135deg,#18101a 0%,#0b090f 48%,#241229 100%);')
+          html=html.replace('--nav:#ffffff;--hero:linear-gradient(135deg,#fff 0%,#f9fbff 43%,#e9f3ff 100%);','--nav:#ffffff;--hero:linear-gradient(135deg,#ffffff 0%,#fbf7fb 45%,#f7edf5 100%);')
+
+          old_mark='.brandmark{width:38px;height:28px;border-radius:52% 48% 46% 54%;background:linear-gradient(135deg,var(--blue),var(--blue2));position:relative;transform:skewX(-14deg)}\n.brandmark:after{content:"";position:absolute;width:24px;height:10px;border-radius:50%;background:var(--nav);left:8px;top:8px;transform:rotate(-16deg)}'
+          new_mark='.brandmark{width:38px;height:38px;border-radius:11px;background:#0b0a10;border:1px solid #3a323f;position:relative;transform:none;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}\n.brandmark:before{content:"A";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:950;letter-spacing:-.05em}\n.brandmark:after{content:"";position:absolute;left:6px;right:6px;bottom:5px;height:3px;border-radius:99px;background:linear-gradient(90deg,#ff3b88,#ff6957,#a565ff)}'
+          rep(old_mark,new_mark,label='brand mark')
+
+          # Brand/navigation/copy becomes explicitly Abnormal-oriented and no longer reads like the ZS Business Ops build.
+          rep("['command','Command Center'],['accounts','Accounts'],['renewal','Renewal & Readiness'],['playbooks','Playbooks'],['cadence','Business Rhythm'],['capacity','Capacity'],['finance','Finance'],['intake','Intake'],['kpis','KPIs'],['settings','Settings']",
+              "['command','Command Center'],['accounts','Accounts'],['renewal','Renewal & Growth'],['playbooks','Playbooks'],['cadence','Customer Cadence'],['capacity','Engagement Coverage'],['finance','Value & Growth'],['intake','Voice of Customer'],['kpis','KPIs'],['settings','Settings']",label='navigation')
+          rep('<div class="brand"><div class="brandmark"></div><div class="brandcopy"><strong>Post-Sales Business Operations</strong><span>Private role-mapped prototype</span></div></div>',
+              '<div class="brand"><div class="brandmark" aria-hidden="true"></div><div class="brandcopy"><strong>ABNORMAL // CUSTOMER SUCCESS</strong><span>Independent interview prototype</span></div></div>',label='top brand')
+          rep("function hero(title,sub,sideTitle='Impact over activity',sideCopy='Make operating signals easy to inspect, update, and carry into the next leadership decision.'){") , None
+          PY
