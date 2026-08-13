@@ -1,6 +1,30 @@
 import { GA_MEASUREMENT_ID } from "./config.js";
 
-export function dashboardHtml(nonce) {
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function serializedPayload(payload) {
+  return JSON.stringify(payload)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+export function dashboardHtml(nonce, options = {}) {
+  const payload = options.payload || null;
+  const loginError = escapeHtml(options.loginError || "");
+  const pagePath = payload ? "/stats/dashboard" : "/stats/login";
+  const initialData = payload
+    ? `<script nonce="${nonce}">window.__CLINTWARE_STATS_DATA__=${serializedPayload(payload)};</script>`
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -13,7 +37,8 @@ export function dashboardHtml(nonce) {
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="stylesheet" href="/styles.css">
   <script nonce="${nonce}" async src="https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"></script>
-  <script nonce="${nonce}">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{anonymize_ip:true,page_path:'/stats/login',demo_name:'clintware_analytics_command_center'});</script>
+  <script nonce="${nonce}">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{anonymize_ip:true,page_path:'${pagePath}',demo_name:'clintware_analytics_command_center'});</script>
+  ${initialData}
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -25,7 +50,7 @@ export function dashboardHtml(nonce) {
     <div class="private-pill">Private analytics</div>
   </header>
 
-  <main id="login-view" class="shell login-wrap">
+  <main id="login-view" class="shell login-wrap${payload ? " hidden" : ""}">
     <section class="login-grid" aria-labelledby="login-title">
       <div class="login-story">
         <div class="eyebrow">Portfolio intelligence</div>
@@ -42,21 +67,21 @@ export function dashboardHtml(nonce) {
         <div class="private-pill">Clint Ware access</div>
         <h2 id="login-title">Open the command center</h2>
         <p>The analytics data and portfolio details remain behind server-validated password access.</p>
-        <form id="login-form" autocomplete="on">
+        <form id="login-form" action="/login" method="post" autocomplete="on">
           <label for="stats-password">Dashboard password</label>
           <div class="password-row">
             <input id="stats-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
             <button id="reveal-password" class="reveal" type="button" aria-label="Show or hide password">Show</button>
           </div>
           <button id="login-button" class="primary" type="submit">Open analytics dashboard</button>
-          <div id="login-error" class="form-error" role="alert" aria-live="polite"></div>
+          <div id="login-error" class="form-error" role="alert" aria-live="polite">${loginError}</div>
         </form>
         <div class="fine-print">Password verification happens on the Cloudflare edge. The plaintext password is not embedded in this page or in the source repository.</div>
       </div>
     </section>
   </main>
 
-  <main id="dashboard-view" class="shell dashboard hidden">
+  <main id="dashboard-view" class="shell dashboard${payload ? "" : " hidden"}">
     <section class="dash-head">
       <div>
         <div class="eyebrow">Clintware portfolio intelligence</div>
@@ -64,9 +89,9 @@ export function dashboardHtml(nonce) {
         <p id="last-refresh">Preparing the latest portfolio status…</p>
       </div>
       <div class="actions">
-        <button id="export-button" class="secondary" type="button" disabled><span aria-hidden="true">↓</span><span>Export CSV</span></button>
-        <button id="refresh-button" class="secondary" type="button"><span class="refresh-icon" aria-hidden="true">↻</span><span>Refresh</span></button>
-        <button id="logout-button" class="ghost" type="button">Lock</button>
+        <a id="export-button" class="secondary" href="/export.csv"><span aria-hidden="true">↓</span><span>Export CSV</span></a>
+        <a id="refresh-button" class="secondary" href="/"><span class="refresh-icon" aria-hidden="true">↻</span><span>Refresh</span></a>
+        <form class="logout-form" action="/logout" method="post"><button id="logout-button" class="ghost" type="submit">Lock</button></form>
       </div>
     </section>
 

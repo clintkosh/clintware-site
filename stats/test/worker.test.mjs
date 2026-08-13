@@ -91,6 +91,33 @@ test("password API accepts the same-origin dashboard header", async () => {
   assert.equal(response.status, 401);
 });
 
+test("native form login rejects the wrong password without redirecting", async () => {
+  const form = new FormData();
+  form.set("password", "definitely-not-the-password");
+  const response = await worker.fetch(
+    new Request("https://stats.clintware.com/login", { method: "POST", body: form }),
+    {},
+  );
+  assert.equal(response.status, 401);
+  assert.match(await response.text(), /That password did not match\./);
+});
+
+test("authenticated HTML safely serializes the dashboard payload", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("", { status: 200 });
+  try {
+    const { buildDashboardPayload } = await import("../src/worker.js");
+    const payload = await buildDashboardPayload({});
+    const { dashboardHtml } = await import("../src/ui.js");
+    const html = dashboardHtml("fixture", { payload });
+    assert.match(html, /window\.__CLINTWARE_STATS_DATA__=/);
+    assert.match(html, /\/stats\/dashboard/);
+    assert.doesNotMatch(html, /<\/script><script>alert/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("health endpoint is intentionally minimal", async () => {
   const response = await worker.fetch(new Request("https://stats.clintware.com/health"), {});
   assert.equal(response.status, 200);

@@ -7,6 +7,8 @@ import { dashboardHtml } from "./ui.js";
 const PASSWORD_SALT = "zJ9CNd8qXn3f4czKN33dUg==";
 const PASSWORD_HASH = "8c8/sUQkhy5uaNXA3QXGL5bmbMy4yYUDCzHTOLzy68U=";
 const PASSWORD_ITERATIONS = 240000;
+const SESSION_COOKIE = "cw_stats_session";
+const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const textEncoder = new TextEncoder();
 
 function bytesFromBase64(value) {
@@ -65,6 +67,41 @@ function passwordFromRequest(request) {
   }
 }
 
+function sessionTokenFromRequest(request) {
+  const cookie = request.headers.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)cw_stats_session=([A-Za-z0-9_-]{40,64})(?:;|$)/);
+  return match ? match[1] : "";
+}
+
+function sessionCacheRequest(token) {
+  return new Request(`https://stats.clintware.com/.session/${token}`);
+}
+
+async function createSession() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const token = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  await caches.default.put(
+    sessionCacheRequest(token),
+    new Response("active", {
+      headers: { "Cache-Control": `public, max-age=${SESSION_TTL_SECONDS}` },
+    }),
+  );
+  return token;
+}
+
+async function sessionIsActive(request) {
+  const token = sessionTokenFromRequest(request);
+  if (!token || typeof caches === "undefined") return false;
+  return Boolean(await caches.default.match(sessionCacheRequest(token)));
+}
+
+async function destroySession(request) {
+  const token = sessionTokenFromRequest(request);
+  if (token && typeof caches !== "undefined") await caches.default.delete(sessionCacheRequest(token));
+}
+
 function nonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(18));
   let binary = "";
@@ -85,11 +122,13 @@ function baseHeaders() {
   };
 }
 
-function htmlResponse() {
+function htmlResponse(options = {}, status = 200, extraHeaders = {}) {
   const pageNonce = nonce();
-  return new Response(dashboardHtml(pageNonce), {
+  return new Response(dashboardHtml(pageNonce, options), {
+    status,
     headers: {
       ...baseHeaders(),
+      ...extraHeaders,
       "Content-Type": "text/html; charset=utf-8",
       "Content-Security-Policy": [
         "default-src 'none'",
@@ -128,6 +167,40 @@ function jsonResponse(body, status = 200) {
 
 function unauthorized() {
   return jsonResponse({ error: "Password required" }, 401);
+}
+
+function redirectResponse(location, cookie = "") {
+  const headers = new Headers({
+    ...baseHeaders(),
+    Location: location,
+  });
+  if (cookie) headers.set("Set-Cookie", cookie);
+  return new Response(null, { status: 303, headers });
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function portfolioCsv(payload) {
+  const analytics = payload.analytics || {};
+  const views = analytics.crmViews || {};
+  const rows = [
+    ["CRM", "Hostname", "GA4 path namespace", "Tracking coverage", "Live", "HTTP status", "30-day views"],
+  ];
+  for (const crm of payload.portfolio) {
+    const health = payload.health.find((item) => item.id === crm.id) || {};
+    rows.push([
+      crm.name,
+      crm.hostname,
+      crm.pathPrefix,
+      crm.coverage,
+      health.ok ? "Yes" : "No",
+      health.status || "",
+      analytics.status === "connected" ? views[crm.id] || 0 : "Reporting not connected",
+    ]);
+  }
+  return rows.map((row) => row.map(csvCell).join(",")).join("\n");
 }
 
 async function checkHealth(crm) {
@@ -171,9 +244,14 @@ export async function buildDashboardPayload(env) {
   };
 }
 
-async function protectedRoute(request, handler) {
+async function isAuthenticated(request) {
   const password = passwordFromRequest(request);
-  if (!(await verifyStatsPassword(password))) return unauthorized();
+  if (password) return verifyStatsPassword(password);
+  return sessionIsActive(request);
+}
+
+async function protectedRoute(request, handler) {
+  if (!(await isAuthenticated(request))) return unauthorized();
   return handler();
 }
 
@@ -184,7 +262,10 @@ export default {
     if (request.method === "GET" && url.pathname === "/health") {
       return jsonResponse({ ok: true, service: "clintware-stats-dashboard" });
     }
-    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/dashboard")) {
+      if (await sessionIsActive(request)) {
+        return htmlResponse({ payload: await buildDashboardPayload(env) });
+      }
       return htmlResponse();
     }
     if (request.method === "GET" && url.pathname === "/styles.css") {
@@ -193,11 +274,42 @@ export default {
     if (request.method === "GET" && url.pathname === "/app.js") {
       return assetResponse(APP_JS, "text/javascript; charset=utf-8");
     }
+    if (request.method === "POST" && url.pathname === "/login") {
+      const form = await request.formData();
+      const password = String(form.get("password") || "");
+      if (!(await verifyStatsPassword(password))) {
+        return htmlResponse({ loginError: "That password did not match." }, 401);
+      }
+      const token = await createSession();
+      return redirectResponse(
+        "/",
+        `${SESSION_COOKIE}=${token}; Path=/; Max-Age=${SESSION_TTL_SECONDS}; HttpOnly; Secure; SameSite=Strict`,
+      );
+    }
+    if (request.method === "POST" && url.pathname === "/logout") {
+      await destroySession(request);
+      return redirectResponse(
+        "/",
+        `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
+      );
+    }
     if (request.method === "POST" && url.pathname === "/api/session") {
       return protectedRoute(request, () => jsonResponse({ ok: true }));
     }
     if (request.method === "GET" && url.pathname === "/api/dashboard") {
       return protectedRoute(request, async () => jsonResponse(await buildDashboardPayload(env)));
+    }
+    if (request.method === "GET" && url.pathname === "/export.csv") {
+      return protectedRoute(request, async () => {
+        const date = new Date().toISOString().slice(0, 10);
+        return new Response(portfolioCsv(await buildDashboardPayload(env)), {
+          headers: {
+            ...baseHeaders(),
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="clintware-crm-analytics-${date}.csv"`,
+          },
+        });
+      });
     }
     if (url.pathname.startsWith("/api/")) return jsonResponse({ error: "Not found" }, 404);
     if (request.method !== "GET") return jsonResponse({ error: "Method not allowed" }, 405);

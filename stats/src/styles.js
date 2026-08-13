@@ -99,6 +99,8 @@ label { display: block; margin-bottom: 8px; color: #c8d1de; font-size: 11px; tex
 .dash-head h1 { margin: 7px 0 7px; font-size: clamp(30px, 4vw, 48px); line-height: 1; letter-spacing: -.055em; }
 .dash-head p { color: var(--muted); margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.actions a { text-decoration: none; }
+.logout-form { display: inline-flex; margin: 0; }
 .refresh-icon { display: inline-block; font-size: 15px; }
 .loading .refresh-icon { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
