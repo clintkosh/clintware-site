@@ -1,0 +1,178 @@
+name: Deploy Abnormal Health Model and P1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-abc-health-p1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Apply health model and P1 patch
+        run: |
+          set -euo pipefail
+          python3 abc/patch_health_p1.py
+          node --check abc/src/index.js
+          grep -q "ABC_HEALTH_DEFAULTS" abc/src/index.js
+          grep -q "abc-save-health-model" abc/src/index.js
+          grep -q "data-edit-technical" abc/src/index.js
+          grep -q "data-edit-commercial" abc/src/index.js
+          grep -q "data-edit-risk" abc/src/index.js
+          grep -q "data-edit-contact" abc/src/index.js
+          grep -q "data-edit-success" abc/src/index.js
+          grep -q "data-edit-meeting" abc/src/index.js
+          grep -q "data-edit-note" abc/src/index.js
+          (cd abc && node tests/smoke.mjs && node tests/auth-roundtrip.mjs && python3 tests/regression.py)
+          python3 tests/validate_crm_analytics.py
+      - name: Commit runtime patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Use standards-based adjustable health scoring and complete P1 workflows"
+            git push
+          fi
+      - name: Deploy ABC-derived Abnormal Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd abc
+      - name: Verify live scoring, P1 editing, analytics, and lock
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-health-p1 && cd /tmp/an-health-p1
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage(); page.setDefaultTimeout(20000);
+          const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+          let ready=false;
+          for(let i=0;i<30;i++){
+            try{
+              await page.goto('https://an.clintware.com/?health-p1='+Date.now()+'-'+i,{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForTimeout(350);
+              const marker=await page.locator('#abc-health-p1-script').count().catch(()=>0);
+              if(marker){ready=true;break}
+            }catch(e){}
+            await page.waitForTimeout(2000);
+          }
+          if(!ready) throw new Error('final P1 build not reached');
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw',process.env.AN_PASS); await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'))?.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.querySelector('.topnav')&&document.querySelector('#abc-global-logout'));
+
+          const getModel=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const expectedHealth=await page.evaluate(()=>{
+            const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')),a=d.accounts[0],w=d.settings.healthWeights;
+            const clamp=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0)));
+            const mt=(a.meetings||[]).filter(m=>m.date).sort((x,y)=>String(y.date).localeCompare(String(x.date)));let rec=35;
+            if(mt.length){const days=Math.max(0,Math.ceil((Date.now()-new Date(mt[0].date+'T12:00:00').getTime())/86400000));rec=days<=30?100:days<=60?85:days<=90?70:days<=120?55:40}
+            const rel=clamp(clamp(a.stakeholderStrength)*.60+rec*.25+((a.contacts||[]).some(c=>c.level==='C-Level')?100:40)*.15);
+            const sev=String(a.supportSeverity||'None').toLowerCase();const sp=sev.includes('sev 1')?25:sev.includes('sev 2')?15:sev.includes('sev 3')?7:0;let rp=0;
+            for(const r of (a.risks||[]).filter(r=>String(r.status||'Open').toLowerCase()!=='closed')){const z=String(r.severity||'').toLowerCase();rp=Math.max(rp,z.includes('critical')?25:z.includes('high')?15:z.includes('medium')?8:z.includes('low')?3:5)}
+            const sr=clamp(clamp(a.supportSla)-Math.max(sp,rp)),plans=a.successPlans||[],ps=plans.length?clamp(plans.reduce((s,x)=>s+clamp(x.progress),0)/plans.length):50;
+            const sig={adoption:clamp(a.adoption),value:clamp(a.valueEvidence),relationship:rel,technical:clamp(a.technicalCoverage),supportRisk:sr,successPlan:ps};
+            return clamp(Object.keys(w).reduce((s,k)=>s+sig[k]*Number(w[k]||0),0)/Object.values(w).reduce((s,x)=>s+Number(x||0),0));
+          });
+          let model=await getModel(); if(model.accounts[0].health!==expectedHealth) throw new Error(`health formula mismatch ${model.accounts[0].health} != ${expectedHealth}`);
+          const defaults=model.settings.healthWeights;
+          if(JSON.stringify(defaults)!==JSON.stringify({adoption:25,value:25,relationship:20,technical:15,supportRisk:10,successPlan:5})) throw new Error('recommended health weights wrong '+JSON.stringify(defaults));
+
+          // Settings are adjustable, validated to 100, and recalculate immediately.
+          await page.locator('.topnav [data-route="settings"]').click();
+          if(await page.locator('.abc-health-weight').count()!==6) throw new Error('six health weights not visible');
+          if((await page.locator('#abc-health-total').innerText()).trim()!=='100') throw new Error('health weight total is not 100');
+          await page.locator('[data-health-key="adoption"]').fill('30');
+          await page.locator('[data-health-key="value"]').fill('20');
+          await page.click('#abc-save-health-model');
+          await page.waitForTimeout(150);
+          model=await getModel(); if(model.settings.healthWeights.adoption!==30||model.settings.healthWeights.value!==20) throw new Error('health settings did not persist');
+          await page.locator('.topnav [data-route="settings"]').click(); await page.click('#abc-reset-health-model'); await page.waitForTimeout(120);
+          model=await getModel(); if(model.settings.healthWeights.adoption!==25||model.settings.healthWeights.value!==25) throw new Error('health defaults did not reset');
+
+          // Account form: health is calculated, adoption is a real input.
+          await page.locator('.topnav [data-route="accounts"]').click(); model=await getModel(); const id=model.accounts[0].id;
+          await page.locator(`[data-open="${id}"]`).first().click(); await page.waitForSelector('[data-tab="summary"]');
+          await page.locator('[data-edit-account]').click();
+          if(await page.locator('#f-health').count()) throw new Error('manual health input still present');
+          if(!(await page.locator('#f-adoption').count())) throw new Error('adoption input missing from account edit');
+          await page.click('[data-close]');
+
+          // Risk add/edit/remove.
+          await page.locator('[data-tab="summary"]').click();
+          await page.locator('[data-add-risk]').click(); await page.fill('#r-title','P1 audit risk'); await page.fill('#r-severity','High'); await page.fill('#r-owner','CSM'); await page.click('#save-risk');
+          model=await getModel(); let a=model.accounts.find(x=>String(x.id)===String(id)); let risk=a.risks.find(x=>x.title==='P1 audit risk'); if(!risk) throw new Error('risk add failed');
+          await page.locator(`[data-edit-risk="${id}|${risk.id}"]`).click(); await page.fill('#r-status','Closed'); await page.click('#save-risk');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); risk=a.risks.find(x=>x.title==='P1 audit risk'); if(risk.status!=='Closed') throw new Error('risk edit failed');
+          await page.locator(`[data-del-risk="${id}|${risk.id}"]`).click(); model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); if(a.risks.some(x=>x.id===risk.id)) throw new Error('risk remove failed');
+
+          // Stakeholder add/edit/remove.
+          await page.locator('[data-tab="stakeholders"]').click(); await page.locator('[data-add-contact]').click();
+          await page.fill('#c-name','P1 Audit Stakeholder'); await page.fill('#c-title','Director'); await page.fill('#c-email','audit@example.com'); await page.fill('#c-role','Program Champion'); await page.fill('#c-level','Director'); await page.click('#save-contact');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); let c=a.contacts.find(x=>x.name==='P1 Audit Stakeholder'); if(!c) throw new Error('stakeholder add failed');
+          await page.locator(`[data-edit-contact="${id}|${c.id}"]`).click(); await page.fill('#c-title','VP Security'); await page.click('#save-contact');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); c=a.contacts.find(x=>x.id===c.id); if(c.title!=='VP Security') throw new Error('stakeholder edit failed');
+          await page.locator(`[data-del-contact="${id}|${c.id}"]`).click();
+
+          // Success plan add/edit/remove.
+          await page.locator('[data-tab="success"]').click(); await page.locator('[data-add-success]').click(); await page.fill('#s-objective','P1 Audit Outcome'); await page.fill('#s-progress','25'); await page.fill('#s-owner','CSM + CISO'); await page.fill('#s-proof','ROI evidence'); await page.click('#save-success');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); let sp=a.successPlans.find(x=>x.objective==='P1 Audit Outcome'); if(!sp) throw new Error('success add failed');
+          await page.locator(`[data-edit-success="${id}|${sp.id}"]`).click(); await page.fill('#s-progress','75'); await page.click('#save-success');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); sp=a.successPlans.find(x=>x.id===sp.id); if(sp.progress!==75) throw new Error('success edit failed');
+          await page.locator(`[data-del-success="${id}|${sp.id}"]`).click();
+
+          // Meeting add/edit/remove.
+          await page.locator('[data-tab="meetings"]').click(); await page.locator('[data-add-meeting]').click(); await page.fill('#m-title','P1 Audit Meeting'); await page.fill('#m-attendees','CISO, CSM'); await page.fill('#m-notes','Initial'); await page.click('#save-meeting');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); let m=a.meetings.find(x=>x.title==='P1 Audit Meeting'); if(!m) throw new Error('meeting add failed');
+          await page.locator(`[data-edit-meeting="${id}|${m.id}"]`).click(); await page.fill('#m-notes','Edited'); await page.click('#save-meeting');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); m=a.meetings.find(x=>x.id===m.id); if(m.notes!=='Edited') throw new Error('meeting edit failed');
+          await page.locator(`[data-del-meeting="${id}|${m.id}"]`).click();
+
+          // Note add/edit/remove.
+          await page.locator('[data-tab="notes"]').click(); await page.locator('[data-add-note]').click(); await page.fill('#n-text','P1 Audit Note'); await page.click('#save-note');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); let n=a.notes.find(x=>x.text==='P1 Audit Note'); if(!n) throw new Error('note add failed');
+          await page.locator(`[data-edit-note="${id}|${n.id}"]`).click(); await page.fill('#n-text','P1 Audit Note Edited'); await page.click('#save-note');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); n=a.notes.find(x=>x.id===n.id); if(n.text!=='P1 Audit Note Edited') throw new Error('note edit failed');
+          await page.locator(`[data-del-note="${id}|${n.id}"]`).click();
+
+          // Technical & Services editable.
+          await page.locator('[data-tab="technical"]').click(); if(!(await page.locator('[data-edit-technical]').count())) throw new Error('technical edit missing');
+          await page.locator('[data-edit-technical]').click(); await page.fill('#t-coverage','66'); await page.fill('#t-support','88'); await page.fill('#t-severity','Sev 3'); await page.click('#save-technical');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); if(a.technicalCoverage!==66||a.supportSla!==88||a.supportSeverity!=='Sev 3') throw new Error('technical edit failed');
+
+          // Commercial & Value editable.
+          await page.locator('[data-tab="commercial"]').click(); if(!(await page.locator('[data-edit-commercial]').count())) throw new Error('commercial edit missing');
+          await page.locator('[data-edit-commercial]').click(); await page.fill('#cm-value','77'); await page.fill('#cm-relationship','73'); await page.fill('#cm-readiness','69'); await page.click('#save-commercial');
+          model=await getModel(); a=model.accounts.find(x=>String(x.id)===String(id)); if(a.valueEvidence!==77||a.stakeholderStrength!==73||a.commercialReadiness!==69) throw new Error('commercial edit failed');
+
+          // Analytics: all main routes and account tabs must emit /an/ paths.
+          const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>n.dataset.route));
+          for(const r of routes){await page.locator(`.topnav [data-route="${r}"]`).click();await page.waitForTimeout(35)}
+          await page.locator('.topnav [data-route="accounts"]').click(); model=await getModel(); await page.locator(`[data-open="${id}"]`).first().click();
+          const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Set(ns.map(n=>n.dataset.tab))]); for(const t of tabs){await page.locator(`[data-tab="${t}"]`).first().click();await page.waitForTimeout(35)}
+          const paths=await page.evaluate(()=> (window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean));
+          const joined=JSON.stringify(paths); for(const r of routes) if(!joined.includes('/an/'+r)) throw new Error('missing GA route '+r); for(const t of tabs) if(!joined.includes('/an/account/'+t)) throw new Error('missing GA tab '+t);
+          if(errors.length) throw new Error('browser errors: '+errors.join(' | '));
+          console.log('PASS: adjustable standards-based health model + full P1 CRUD + /an/ analytics');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
