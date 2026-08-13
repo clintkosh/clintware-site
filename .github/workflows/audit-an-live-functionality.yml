@@ -1,0 +1,163 @@
+name: Audit an.clintware.com Live Functionality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit-an-live-functionality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Audit analytics and visible controls in production Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-audit && cd /tmp/an-audit
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > audit.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(15000);
+          const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+          await page.goto('https://an.clintware.com/?audit='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw',process.env.AN_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topnav'),{timeout:30000});
+
+          const getDataLayer=()=>page.evaluate(()=> (window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}));
+          const pageViews=async()=> (await getDataLayer()).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]||{});
+          const normalize=s=>(s||'').replace(/\s+/g,' ').trim();
+          const inventory=[];
+          const placeholders=[];
+          const mainRoutes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>({route:n.dataset.route,text:(n.textContent||'').trim()})));
+          if(!mainRoutes.length) throw new Error('No main navigation routes discovered');
+
+          async function capture(scope){
+            const body=normalize(await page.locator('#app').innerText());
+            for(const re of [/coming soon/i,/not implemented/i,/placeholder/i,/lorem ipsum/i,/dummy\b/i,/todo\b/i,/fake\b/i]) if(re.test(body)) placeholders.push({scope,match:re.source});
+            const controls=await page.locator('#app button:visible,#app a:visible').evaluateAll(ns=>ns.map(n=>({tag:n.tagName,text:(n.textContent||'').replace(/\s+/g,' ').trim(),id:n.id||'',href:n.getAttribute('href')||'',route:n.dataset.route||'',tab:n.dataset.tab||'',action:n.dataset.action||'',open:n.dataset.open||'',brief:n.hasAttribute('data-brief'),disabled:!!n.disabled,aria:n.getAttribute('aria-label')||'',cls:n.className||''})));
+            inventory.push({scope,controls});
+          }
+
+          // Main pages: each must render, retain Logout, and emit a GA SPA page_view.
+          for(const item of mainRoutes){
+            await page.locator(`.topnav [data-route="${item.route}"]`).click();
+            await page.waitForTimeout(120);
+            if(!(await page.locator('#abc-global-logout:visible').count())) throw new Error(`Logout missing on main route ${item.route}`);
+            await capture('route:'+item.route);
+          }
+
+          // Open first account and audit every account tab.
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const accountId=model.accounts[0].id;
+          await page.locator(`[data-open="${accountId}"]`).first().click();
+          await page.waitForSelector('[data-tab]');
+          const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Map(ns.map(n=>[n.dataset.tab,{tab:n.dataset.tab,text:(n.textContent||'').trim()}])).values()]);
+          if(!tabs.length) throw new Error('No account tabs discovered');
+          for(const t of tabs){
+            await page.locator(`[data-tab="${t.tab}"]`).first().click();
+            await page.waitForTimeout(100);
+            if(!(await page.locator('#abc-global-logout:visible').count())) throw new Error(`Logout missing on account tab ${t.tab}`);
+            await capture('account:'+t.tab);
+          }
+
+          // Functional smoke tests for the visible state-changing workflows.
+          // Notes add/save must persist and show confirmation.
+          await page.locator('[data-tab="notes"]').first().click();
+          const beforeNotes=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,accountId);
+          await page.locator('[data-add-note]').click();
+          await page.fill('#n-text','Live functionality audit note');
+          await page.click('#save-note');
+          await page.waitForTimeout(100);
+          const afterNotes=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,accountId);
+          if(afterNotes!==beforeNotes+1) throw new Error('Add Note save did not persist');
+          const noteBody=normalize(await page.locator('#app').innerText());
+          if(!/saved/i.test(noteBody)) throw new Error('Add Note save has no visible saved confirmation');
+
+          // Stakeholder add/remove.
+          await page.locator('[data-tab="stakeholders"]').first().click();
+          if(await page.locator('[data-add-contact]').count()){
+            await page.locator('[data-add-contact]').click();
+            await page.fill('#c-name','Live Audit Stakeholder');
+            if(await page.locator('#c-title').count()) await page.fill('#c-title','Security Leader');
+            await page.click('#save-contact');
+            const exists=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).contacts.some(c=>c.name==='Live Audit Stakeholder'),accountId);
+            if(!exists) throw new Error('Stakeholder save did not persist');
+          }
+
+          // Success plan add.
+          await page.locator('[data-tab="success"]').first().click();
+          if(await page.locator('[data-add-success]').count()){
+            await page.locator('[data-add-success]').click();
+            await page.fill('#s-objective','Live Audit Objective');
+            if(await page.locator('#s-progress').count()) await page.fill('#s-progress','25');
+            await page.click('#save-success');
+            const exists=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).successPlans.some(s=>s.objective==='Live Audit Objective'),accountId);
+            if(!exists) throw new Error('Success Plan save did not persist');
+          }
+
+          // Meeting add.
+          await page.locator('[data-tab="meetings"]').first().click();
+          if(await page.locator('[data-add-meeting]').count()){
+            await page.locator('[data-add-meeting]').click();
+            await page.fill('#m-title','Live Audit Meeting');
+            if(await page.locator('#m-notes').count()) await page.fill('#m-notes','Audit meeting notes');
+            await page.click('#save-meeting');
+            const exists=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).meetings.some(m=>m.title==='Live Audit Meeting'),accountId);
+            if(!exists) throw new Error('Meeting save did not persist');
+          }
+
+          // Meeting brief + printable view must open if visible.
+          await page.locator('[data-tab="summary"]').first().click();
+          if(await page.locator('[data-brief]').count()){
+            await page.locator('[data-brief]').first().click();
+            if(!(await page.locator('#copy-brief').count())) throw new Error('Meeting brief Copy control missing after opening brief');
+            if(!(await page.locator('#print-brief').count())) throw new Error('Meeting brief Print / Save PDF control missing');
+            if(await page.locator('[data-close]').count()) await page.locator('[data-close]').first().click();
+          }
+
+          // Analytics: initial config + page_view coverage for every discovered main route and account tab.
+          const dl=await getDataLayer();
+          const hasConfig=dl.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P');
+          if(!hasConfig) throw new Error('GA4 config G-DCY144YM9P missing');
+          const views=await pageViews();
+          const viewText=JSON.stringify(views);
+          const missing=[];
+          for(const r of mainRoutes) if(!viewText.includes(r.route)) missing.push('route:'+r.route);
+          for(const t of tabs) if(!viewText.includes(t.tab)) missing.push('account:'+t.tab);
+
+          // Flag suspicious visible controls: no identifying action/route/tab/open/href/id and not obvious form submit/close/theme/logout.
+          const suspicious=[];
+          for(const group of inventory){
+            for(const c of group.controls){
+              const label=normalize(c.text||c.aria);
+              if(c.disabled) continue;
+              const known=c.route||c.tab||c.action||c.open||c.brief||c.href||c.id||/close|cancel|save|add|edit|delete|remove|copy|print|seed|clear|theme|logout|lock|back|open/i.test(label);
+              if(!known) suspicious.push({scope:group.scope,label,tag:c.tag,cls:c.cls});
+            }
+          }
+
+          const report={status:(missing.length||errors.length)?'FAIL':'PASS',measurement_id:'G-DCY144YM9P',main_routes:mainRoutes,account_tabs:tabs,page_view_count:views.length,missing_page_views:missing,placeholder_markers:[...new Map(placeholders.map(x=>[JSON.stringify(x),x])).values()],suspicious_controls:[...new Map(suspicious.map(x=>[JSON.stringify(x),x])).values()],browser_errors:errors,inventory};
+          console.log('AUDIT_REPORT='+JSON.stringify(report));
+          if(missing.length) throw new Error('Missing GA page_view coverage: '+missing.join(', '));
+          if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node audit.mjs
