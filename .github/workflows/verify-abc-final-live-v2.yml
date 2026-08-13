@@ -1,0 +1,73 @@
+name: Verify ABC Final Live V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-abc-final-live-v2.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Exercise supported stable production workflow including repaired reseed
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-final-v2 && cd /tmp/abc-final-v2
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > test.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(7000);
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('dialog',async d=>d.accept());
+          const load=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          await page.goto('https://abc.clintware.com/?finalv2='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          const src=(await page.locator('script').allTextContents()).join('\n');
+          if(!src.includes("#seed-top,#seed-accounts"))throw new Error('reseed fix is not live');
+          await page.fill('#pw','wrong-password');await page.click('#access-form button[type="submit"]');
+          if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong-password rejection failed');
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'}catch(e){return false}},{timeout:20000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          let d=await load();const aid=d.accounts[0].id;
+          if(d.healthModel.adoption!==30||d.healthModel.valueRealization!==25||d.healthModel.stakeholderAlignment!==20||d.healthModel.riskAndEscalation!==15||d.healthModel.renewalAndGrowth!==10)throw new Error('Abnormal health weighting incorrect');
+          const appText=(await page.locator('#app').innerText()).toLowerCase();for(const x of ['customer cadence','engagement coverage','value & growth','voice of customer','intellectual honesty'])if(!appText.includes(x))throw new Error('missing Abnormal copy '+x);
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(200);
+          const open=page.locator(`[data-open="${aid}"]`).first();if(await open.evaluate(e=>typeof e.onclick)!=='function')throw new Error('account handler missing');await open.click();await page.waitForTimeout(200);
+          if(!(await page.locator('[data-tab="stakeholders"]').count()))throw new Error('account workspace did not open');
+          await page.locator('[data-edit-account]').click();await page.fill('#f-summary','ABC final V2 persistence check');await page.click('#save-account');
+          d=await load();let a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC final V2 persistence check')throw new Error('account edit failed');
+          const c0=a.contacts.length;await page.locator('[data-tab="stakeholders"]').click();await page.locator('[data-add-contact]').click();await page.fill('#c-name','ABC Final V2 Stakeholder');await page.fill('#c-title','VP Information Security');await page.fill('#c-email','finalv2@lone-mesa-energy.example');await page.click('#save-contact');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const c=a.contacts.find(x=>x.name==='ABC Final V2 Stakeholder');if(!c||a.contacts.length!==c0+1)throw new Error('stakeholder add failed');await page.locator(`[data-del-contact="${aid}|${c.id}"]`).click();await page.waitForTimeout(100);d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.contacts.length!==c0)throw new Error('stakeholder remove failed');
+          const s0=a.successPlans.length;await page.locator('[data-tab="success"]').click();await page.locator('[data-add-success]').click();await page.fill('#s-objective','ABC final V2 measurable outcome');await page.fill('#s-progress','81');await page.fill('#s-owner','Customer + CSM');await page.fill('#s-proof','Adoption evidence and executive confirmation');await page.click('#save-success');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const s=a.successPlans.find(x=>x.objective==='ABC final V2 measurable outcome');if(!s||a.successPlans.length!==s0+1)throw new Error('success objective add failed');await page.locator(`[data-del-success="${aid}|${s.id}"]`).click();await page.waitForTimeout(100);
+          d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.successPlans.length!==s0)throw new Error('success objective remove failed');
+          const m0=a.meetings.length;await page.locator('[data-tab="meetings"]').click();await page.locator('[data-add-meeting]').click();await page.fill('#m-date','2026-08-13');await page.fill('#m-title','ABC Final V2 Executive Review');await page.fill('#m-notes','ABC final V2 adoption and value review.');await page.click('#save-meeting');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const m=a.meetings.find(x=>x.title==='ABC Final V2 Executive Review');if(!m||a.meetings.length!==m0+1)throw new Error('meeting add failed');
+          const n0=a.notes.length;await page.locator('[data-tab="notes"]').click();await page.locator('[data-add-note]').click();await page.fill('#n-text','ABC final V2 customer voice note.');await page.click('#save-note');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const n=a.notes.find(x=>x.text==='ABC final V2 customer voice note.');if(!n||a.notes.length!==n0+1)throw new Error('note add failed');
+          await page.locator('[data-tab="technical"]').click();if(!(await page.locator('#app').innerText()).includes('Customer Success + Technical Success'))throw new Error('technical context missing');
+          await page.locator('[data-tab="commercial"]').click();if(!(await page.locator('#app').innerText()).includes('Renewal & growth readiness'))throw new Error('commercial context missing');
+          await page.locator('[data-tab="summary"]').click();if(!(await page.locator('#app').innerText()).includes('Open risks'))throw new Error('risk context missing');
+          await page.locator('[data-brief]').first().click();const bt=await page.locator('.modal').innerText();for(const x of ['WHY WE STARTED','WHAT WE DECIDE NEXT','ABC final V2 customer voice note.'])if(!bt.includes(x))throw new Error('meeting brief missing '+x);if(!(await page.locator('#copy-brief').count()))throw new Error('copy brief missing');await page.locator('[data-close]').click();
+          await page.locator('[data-tab="meetings"]').click();await page.locator(`[data-del-meeting="${aid}|${m.id}"]`).click();await page.waitForTimeout(100);await page.locator('[data-tab="notes"]').click();await page.locator(`[data-del-note="${aid}|${n.id}"]`).click();await page.waitForTimeout(100);
+          await page.reload({waitUntil:'domcontentloaded',timeout:30000});await page.waitForFunction(()=>document.body.classList.contains('unlocked'));d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC final V2 persistence check')throw new Error('reload persistence failed');
+          await page.locator('[data-route="accounts"]').first().click();await page.click('#clear-top');await page.waitForSelector('#confirm-clear');await page.click('#confirm-clear');await page.waitForTimeout(200);d=await load();if(d.accounts.length!==0)throw new Error('clear failed');
+          await page.click('#seed-top');
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'&&d.abcAbnormalModelVersion===4}catch(e){return false}},{timeout:15000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});
+          d=await load();if(d.accounts[0].region!=='Houston, TX'||d.accounts[1].region!=='Dallas, TX')throw new Error('TOLA reseed mapping failed');
+          if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          console.log('PASS FINAL ABC V2: exact login, Abnormal model/weights/copy, account open/edit, stakeholder add/remove, success add/remove, meeting/note add/remove, technical/commercial/risk context, deterministic meeting brief/copy, reload persistence, clear, and repaired Abnormal/TOLA reseed');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node test.mjs
