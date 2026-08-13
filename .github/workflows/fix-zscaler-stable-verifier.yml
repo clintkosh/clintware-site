@@ -1,0 +1,34 @@
+name: Fix Zscaler Stable Verifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-zscaler-stable-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct hidden script wait
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/verify-zscaler-gainsight-stable.yml')
+          s=p.read_text()
+          old="await page.waitForSelector('#abc-health-p1-script');"
+          new="await page.waitForSelector('#abc-health-p1-script',{state:'attached'});"
+          if old not in s:
+              raise SystemExit('expected verifier marker not found')
+          p.write_text(s.replace(old,new,1))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/verify-zscaler-gainsight-stable.yml
+          git commit -m "Wait for attached Zscaler scoring script in stable verifier"
+          git push
