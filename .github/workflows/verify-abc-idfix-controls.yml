@@ -1,0 +1,76 @@
+name: Verify ABC ID Fix and Controls
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-abc-idfix-controls.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Open exact account on stable current build and inventory controls
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcidfix && cd /tmp/abcidfix
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          let ready=false;
+          for(let i=1;i<=40;i++){
+            await page.goto('https://abc.clintware.com/?idfix='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(1200);
+            const gate=await page.locator('#gate').count();
+            const scripts=await page.locator('script').allTextContents();
+            const source=scripts.join('\n');
+            const idfix=source.includes('data.accounts.find(x=>String(x.id)===String(selected))');
+            const observer=source.includes('function observeAbnormalPresentation()');
+            if(gate&&idfix&&observer){ready=true;console.log('CURRENT_IDFIX_BUILD_ATTEMPT',i);break}
+            console.log('WAIT_IDFIX',i,'gate='+gate,'idfix='+idfix,'observer='+observer,'title='+(await page.title().catch(()=>'')));
+            await page.waitForTimeout(5000);
+          }
+          if(!ready)throw new Error('current ID-fix build never appeared');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForTimeout(1800);
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const id=model.accounts[0].id;
+          const route=page.locator('[data-route="accounts"]');
+          if(await route.count())await route.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
+          await page.waitForTimeout(500);
+          const exact=page.locator(`[data-open="${id}"]`).first();
+          console.log('EXACT_ACCOUNT_ID',id,'COUNT',await page.locator(`[data-open="${id}"]`).count());
+          if(!(await exact.count()))throw new Error('exact account opener missing');
+          await exact.click();
+          await page.waitForTimeout(800);
+          const tabs=await page.locator('[data-tab]').allTextContents();
+          console.log('TABS',JSON.stringify(tabs));
+          const accountText=await page.locator('#app').innerText();
+          console.log('ACCOUNT_TEXT',JSON.stringify(accountText.slice(-12000)));
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map((e,i)=>({i,tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',type:e.getAttribute('type')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,200),value:('value'in e?String(e.value).slice(0,180):''),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).reduce((o,a)=>(o[a.name]=a.value,o),{})})).filter(x=>x.id||x.name||x.text||Object.keys(x.data).length));
+          console.log('CONTROLS',JSON.stringify(controls));
+          if(!tabs.some(t=>t.includes('Stakeholders'))||!tabs.some(t=>t.includes('Success Plan'))||!tabs.some(t=>t.includes('Technical'))||!tabs.some(t=>t.includes('Meetings'))||!tabs.some(t=>t.includes('Notes'))||!tabs.some(t=>t.includes('Commercial')))throw new Error('account workspace tabs missing');
+          if(!accountText.includes('Lone Mesa Energy'))throw new Error('account workspace did not open');
+          if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          console.log('PASS: numeric/string ID bug fixed; exact account workspace opens in stable Chrome');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
