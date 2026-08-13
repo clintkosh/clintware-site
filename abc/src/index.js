@@ -25,6 +25,14 @@ html[data-theme="light"]{--bg:#f8f6f9!important;--bg2:#f1edf3!important;--panel:
 html[data-theme="dark"] body{background:radial-gradient(circle at 48% -20%,rgba(255,59,136,.10),transparent 30%),radial-gradient(circle at 92% 8%,rgba(165,101,255,.08),transparent 24%),#07070b!important;color:#f7f6f8!important}html[data-theme="light"] body{background:linear-gradient(180deg,#fbf9fc,#f5f1f6)!important;color:#211a23!important}
 html[data-theme="dark"] .sidebar,html[data-theme="dark"] .topbar,html[data-theme="dark"] [class*="card"],html[data-theme="dark"] [class*="panel"],html[data-theme="dark"] [class*="modal"],html[data-theme="dark"] [class*="drawer"]{border-color:#2b2833!important}html[data-theme="dark"] button:focus-visible,html[data-theme="dark"] input:focus,html[data-theme="dark"] select:focus,html[data-theme="dark"] textarea:focus{outline-color:#ff3b88!important;box-shadow:0 0 0 3px rgba(255,59,136,.10)!important}
 #abc-role-context{margin:0;padding:9px 16px;border-bottom:1px solid rgba(255,59,136,.24);background:linear-gradient(90deg,rgba(255,59,136,.08),rgba(255,105,87,.05),rgba(165,101,255,.07));font:700 10px/1.4 Inter,system-ui,sans-serif;letter-spacing:.01em;color:inherit}#abc-role-context b{color:#ff6ea7}#abc-role-context .abc-values{font-weight:600;opacity:.72;margin-left:8px}
+#app [data-open]{color:#ff6ea7!important;font-weight:800}
+#app [data-open]:hover{color:#ff97bd!important}
+#app .abc-primary-action{background:linear-gradient(90deg,#f23b7e,#e65468)!important;border-color:transparent!important;color:#fff!important}
+#app .abc-brand-mark{filter:hue-rotate(115deg) saturate(1.45) brightness(1.05)}
+#app .abc-accent-link{color:#ff6ea7!important}
+#app progress::-webkit-progress-value{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
+#app [class*="progress"]>span,#app [class*="meter"]>span{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
+
 </style>`;
 
 const ABNORMAL_MODEL_SCRIPT = `<script id="abnormal-model-script">
@@ -82,10 +90,12 @@ function retune(force=false){
   if(data.settings&&data.settings.weights){Object.keys(data.settings.weights).forEach(k=>{const x=k.toLowerCase();if(x.includes('adoption'))data.settings.weights[k]=30;else if(x.includes('value'))data.settings.weights[k]=25;else if(x.includes('stakeholder')||x.includes('executive'))data.settings.weights[k]=20;else if(x.includes('risk')||x.includes('technical')||x.includes('support'))data.settings.weights[k]=15;else if(x.includes('renewal')||x.includes('commercial'))data.settings.weights[k]=10})}
   localStorage.setItem(KEY,JSON.stringify(data));return true;
 }
+
+function applyAbnormalVisualClasses(){document.querySelectorAll('#app button,#app a').forEach(el=>{const t=(el.textContent||'').trim();if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link')});const brand=document.querySelector('#app header svg,#app nav svg,#app [class*="brand"] svg,#app [class*="logo"] svg');if(brand)brand.classList.add('abc-brand-mark')}
 function addContext(){const app=document.getElementById('app');if(!app||document.getElementById('abc-role-context'))return;const bar=document.createElement('div');bar.id='abc-role-context';bar.innerHTML='<b>Enterprise CS health model:</b> Adoption 30% · Value realization 25% · Stakeholder alignment 20% · Risk & escalation 15% · Renewal/growth 10% <span class="abc-values">VOICE: Velocity · Ownership · Intellectual Honesty · Customer Obsession · Excellence</span>';app.prepend(bar)}
 if(!localStorage.getItem(THEME))localStorage.setItem(THEME,'dark');
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
-document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.target.closest('#seed-accounts,[data-action="seed-accounts"],.seed-accounts');if(t)setTimeout(()=>{if(retune(true)){sessionStorage.setItem(RELOAD,'1');location.reload()}},180)},true);
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();applyAbnormalVisualClasses();if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
+document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);const t=e.target&&e.target.closest&&e.target.closest('#seed-accounts,[data-action="seed-accounts"],.seed-accounts');if(t)setTimeout(()=>{if(retune(true)){sessionStorage.setItem(RELOAD,'1');location.reload()}},180)},true);
 })();
 </script>`;
 
@@ -98,6 +108,34 @@ const STATIC_REPLACEMENTS = [
   ["Finance","Value & Growth"],
   ["Intake","Voice of Customer"],
   ["Playbook library","Success playbook library"]
+];
+
+const ABNORMAL_ROLE_REPLACEMENTS = [
+  ["CUSTOMER SUCCESS BUSINESS OPERATIONS","ENTERPRISE CUSTOMER SUCCESS"],
+  ["Run the post-sales business with one operating picture.","Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture."],
+  ["Modeled on the DTex Command Center flow: portfolio health \u2192 account drill-down \u2192 working records \u2192 meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.","Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action."],
+  ["Impact over activity","Customer outcomes over activity"],
+  ["Make operating signals easy to inspect, update, and carry into the next leadership decision.","Make customer signals easy to inspect, update, and carry into the next measurable customer action."],
+  ["Accountability","Intellectual Honesty"],
+  ["Headcount planning signal","Accounts requiring coordinated mitigation"],
+  ["Commercial readiness window","Renewal and expansion readiness"],
+  ["DTex-style portfolio table with the business-operations signals this role needs.","Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence."],
+  ["Renewal & commercial readiness","Renewal & growth readiness"],
+  ["Timing together with evidence, coverage, and health.","Value evidence, stakeholder confidence, adoption, and timing together."],
+  ["Lowest-health accounts and operating dependencies.","Accounts requiring coordinated risk mitigation and customer follow-through."],
+  ["Role operating model","Enterprise Customer Success motion"],
+  ["Structure across the core responsibilities in the listing.","Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role."],
+  ["BUSINESS RHYTHM","VALUE REALIZATION"],
+  ["MBR, QBR, AOP and executive reviews","Success criteria, ROI, QBRs/EBRs and measurable customer outcomes"],
+  ["RESOURCE RIGOR","ADOPTION & ENABLEMENT"],
+  ["Engagement Coverage, workload and headcount visibility","Feature engagement, best practices, roadmap education and technical coverage"],
+  ["VALUE & GROWTH PARTNERSHIP","RENEWAL & EXPANSION"],
+  ["Budget, forecast and investment visibility","Value evidence, executive confidence and commercial readiness"],
+  ["PRIORITIZATION","RISK & ESCALATION"],
+  ["Structured intake and decision transparency","Proactive health signals, coordinated mitigation and commitment follow-through"],
+  ["CUSTOMER OUTCOMES","VOICE OF CUSTOMER"],
+  ["Account context, evidence and readiness","Stakeholder feedback, product requests, success criteria and next actions"],
+  ["Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.","Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness."],
 ];
 
 function responseHeaders(type = "text/html; charset=utf-8") {
@@ -124,6 +162,7 @@ async function gunzipBase64(value) {
 function applyAbnormalExperience(html) {
   let out = html;
   for (const [from,to] of STATIC_REPLACEMENTS) out = out.split(from).join(to);
+  for (const [from,to] of ABNORMAL_ROLE_REPLACEMENTS) out = out.split(from).join(to);
   out = out.split('#ff00d4').join('#ff3b88').split('#061a52').join('#211a23').split('#4ac7ff').join('#ff6957');
   out = out.replace("</title>", `</title>${GA_HEAD}`);
   out = out.replace("</head>", `${ABNORMAL_GATE_CSS}${ABNORMAL_APP_CSS}${ABNORMAL_MODEL_SCRIPT}</head>`);
