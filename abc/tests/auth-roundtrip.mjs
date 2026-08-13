@@ -14,7 +14,7 @@ const source = await fs.readFile(sourcePath, "utf8");
 assert(source.includes("const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access'"), "DTEX gate password/session constants missing");
 
 const worker = (await import(`${pathToFileURL(sourcePath).href}?t=${Date.now()}`)).default;
-const response = await worker.fetch(new Request("https://zs.clintware.com/"));
+const response = await worker.fetch(new Request("https://zsc.clintware.com/"));
 assert(response.status === 200, `GET / expected 200, got ${response.status}`);
 const body = await response.text();
 
@@ -25,7 +25,7 @@ assert(body.includes("Restricted preview"), "DTEX gate copy missing");
 assert(body.includes("Unlock demo"), "DTEX unlock button missing");
 assert(body.includes("Command Center"), "full ZSC app must be present in the same response");
 assert(body.includes("Seed Demo Accounts"), "ZSC app controls missing from same response");
-assert((body.match(/id="app"/g) || []).length === 1, "DTEX must control the existing ABC id=app element exactly once");
+assert((body.match(/id="app"/g) || []).length === 1, "DTEX must control the existing ZSC id=app element exactly once");
 assert(!body.includes('action="/login"'), "server login form still present");
 
 const scriptMatch = body.match(/<script id="dtex-gate-js">([\s\S]*?)<\/script>/);
@@ -60,7 +60,7 @@ const sessionStorage = {
 const context = {
   document,
   sessionStorage,
-  location: { hostname: "zs.clintware.com" },
+  location: { hostname: "zsc.clintware.com" },
   gtag: undefined,
   console
 };
@@ -90,7 +90,7 @@ context.document.getElementById = (id) => id === "access-form" ? form2 : id === 
 vm.runInContext('bind()', context);
 assert(classes.has("unlocked"), "DTEX sessionStorage did not auto-unlock on same-tab reload");
 
-const post = await worker.fetch(new Request("https://zs.clintware.com/login", { method: "POST" }));
+const post = await worker.fetch(new Request("https://zsc.clintware.com/login", { method: "POST" }));
 assert(post.status === 405, `old server /login path should be disabled, got ${post.status}`);
 
 console.log("PASS: exact DTEX client gate works: wrong password rejected, exact password unlocks, sessionStorage preserves unlock, server /login removed");

@@ -114,7 +114,7 @@ export default {
       const url = new URL(request.url);
 
       if (url.pathname === "/health") {
-        return new Response(JSON.stringify({ ok: true, service: "abc-cs-business-operations" }), {
+        return new Response(JSON.stringify({ ok: true, service: "zscaler-cs-business-operations" }), {
           headers: responseHeaders("application/json; charset=utf-8")
         });
       }
