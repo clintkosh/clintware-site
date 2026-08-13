@@ -75,9 +75,11 @@ for text in [
     'Post-Sales Business Operations','Command Center','Seed Demo Accounts','Clear Accounts',
     'Add your first account','Stakeholders','Meetings','Notes','Start date','End date','Renewal date',
     'Generate meeting brief','Renewal & Readiness','Playbook library','Business Rhythm','Capacity',
-    'Finance','Intake','KPIs','Edit technical details','Edit commercial details','download-brief-pdf',
-    'data-edit-account','data-edit-contact','data-edit-success','data-edit-meeting','data-edit-note',
-    'data-edit-commercial','data-add-risk','data-edit-risk','localStorage'
+    'Finance','Intake','KPIs','download-brief-pdf',
+    'data-edit-account','data-edit-contact','data-edit-success','data-edit-technical',
+    'data-edit-meeting','data-edit-note','data-edit-commercial','data-add-risk','data-edit-risk',
+    'save-account','save-contact','save-success','save-technical','save-meeting','save-note',
+    'save-commercial','save-risk','localStorage'
 ]:
     assert text in html, text
 assert 'AI Insights' not in html
