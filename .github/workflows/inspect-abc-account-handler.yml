@@ -1,0 +1,39 @@
+name: Inspect ABC Account Handler
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-abc-account-handler.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode copied ZS bundle and inspect account-open handlers
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,gzip
+          root=Path('abc/src')
+          parts=[]
+          for p in sorted(root.glob('app-part*.js')):
+              m=re.search(r'"([A-Za-z0-9+/=]+)"',p.read_text()); assert m,p
+              parts.append(m.group(1))
+          html=gzip.decompress(base64.b64decode(''.join(parts))).decode()
+          print('HTML_LENGTH',len(html))
+          terms=['data-open','selected','route=','route =','addEventListener','closest(','data-tab','openAccount','renderAccount','selectedAccount','drawer','account-detail']
+          for term in terms:
+              print('\n### TERM',term)
+              starts=[m.start() for m in re.finditer(re.escape(term),html,re.I)]
+              print('COUNT',len(starts))
+              for i,pos in enumerate(starts[:12]):
+                  print('\n--',i,'AT',pos,'--')
+                  print(html[max(0,pos-1800):pos+4200])
+          PY
