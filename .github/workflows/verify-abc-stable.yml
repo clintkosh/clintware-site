@@ -34,12 +34,19 @@ jobs:
           const errors=[];page.on('pageerror',e=>errors.push(String(e)));
           let ready=false;
           for(let i=1;i<=30;i++){
-            await page.goto('https://abc.clintware.com/?stable-current='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
-            const html=await page.content();
-            const hasGate=await page.locator('#gate').count();
-            const hasCurrentMarker=html.includes('applyAbnormalRuntimeCopy');
-            if(hasGate && hasCurrentMarker){ready=true;console.log('CURRENT_BUILD_READY_ATTEMPT',i);break}
-            console.log('WAIT_CURRENT_BUILD',i,'gate='+hasGate,'runtimeCopy='+hasCurrentMarker,'title='+(await page.title()));
+            try{
+              await page.goto('https://abc.clintware.com/?stable-current='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForTimeout(1400);
+              const hasGate=await page.locator('#gate').count();
+              const modelScript=page.locator('#abnormal-model-script');
+              const modelScriptCount=await modelScript.count();
+              const modelText=modelScriptCount ? ((await modelScript.textContent().catch(()=>''))||'') : '';
+              const hasCurrentMarker=modelText.includes('applyAbnormalRuntimeCopy');
+              if(hasGate && hasCurrentMarker){ready=true;console.log('CURRENT_BUILD_READY_ATTEMPT',i);break}
+              console.log('WAIT_CURRENT_BUILD',i,'gate='+hasGate,'modelScript='+modelScriptCount,'runtimeCopy='+hasCurrentMarker,'title='+(await page.title().catch(()=>'')));
+            }catch(e){
+              console.log('WAIT_CURRENT_BUILD_ERROR',i,String(e));
+            }
             await page.waitForTimeout(5000);
           }
           if(!ready)throw new Error('current runtime-copy ABC build never appeared in Chrome');
