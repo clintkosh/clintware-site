@@ -1,0 +1,108 @@
+name: Deploy DTEX P1 Edit Parity and Stable Verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/patch_dtex_edit_parity.py"
+      - ".github/workflows/deploy-dtex-edit-parity-stable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dtex-gainsight-health-p1
+  cancel-in-progress: true
+
+jobs:
+  deploy-verify:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Apply edit parity and validate source
+        run: |
+          set -euo pipefail
+          python3 tools/patch_dtex_edit_parity.py
+          f=public/summertime-crmdemo/index.html
+          grep -q 'id="dtex-p1-edit-parity"' "$f"
+          grep -q 'data-edit-note' "$f"
+          grep -q 'data-update-note' "$f"
+          grep -q 'data-edit-meeting' "$f"
+          grep -q 'data-update-meeting' "$f"
+          grep -q 'data-edit-person' "$f"
+          grep -q 'data-update-person' "$f"
+          grep -q 'Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities' "$f"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('public/summertime-crmdemo/index.html').read_text()
+          for i,script in enumerate(re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',text)):
+              if script.strip():Path(f'/tmp/dtex-final-{i}.js').write_text(script)
+          PY
+          for f in /tmp/dtex-final-*.js; do node --check "$f"; done
+      - name: Commit DTEX edit parity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/summertime-crmdemo/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Complete DTEX stakeholder meeting and note edit parity"
+            git push
+          fi
+      - name: Build production bundle
+        run: |
+          python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+          python build_site.py
+          grep -q 'id="dtex-p1-edit-parity"' public/summertime-crmdemo/index.html
+          python3 tests/validate_crm_analytics.py
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Stable live DTEX end-to-end verification
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dtex-final && cd /tmp/dtex-final
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const base=process.env.PAGE_URL.endsWith('/')?process.env.PAGE_URL:process.env.PAGE_URL+'/';const url=base+'summertime-crmdemo/';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});const page=await browser.newPage();page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+          await page.goto(url+'?final='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});await page.waitForSelector('#dtex-gainsight-p1-script',{state:'attached'});await page.waitForSelector('#dtex-p1-edit-parity',{state:'attached'});
+          await page.fill('#pw','wrong');await page.click('#access-form button[type="submit"]');if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong password behavior failed');await page.fill('#pw','DT3XK0$H2026');await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          const views=await page.locator('.nav [data-view]').evaluateAll(ns=>ns.map(n=>n.dataset.view));for(const v of views){await page.click(`.nav [data-view="${v}"]`);if(!(await page.locator('#lock:visible').count()))throw new Error('Lock missing on '+v);await page.waitForTimeout(25)}
+          await page.click('.nav [data-view="healthsettings"]');const note=await page.locator('#dtex-health-settings-body').innerText();if(!note.includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities'))throw new Error('model basis note missing');const vals=await page.locator('.dtex-health-weight').evaluateAll(ns=>Object.fromEntries(ns.map(n=>[n.dataset.healthKey,Number(n.value)])));if(JSON.stringify(vals)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:10,successPlan:10}))throw new Error('DTEX defaults wrong '+JSON.stringify(vals));if((await page.locator('#dtex-health-total').innerText()).trim()!=='100')throw new Error('weight total not 100');
+          const logic=await page.evaluate(()=>{const a=accounts[0],w={adoption:20,value:20,relationship:15,technical:25,supportRisk:10,successPlan:10},cl=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0))),ms=allMeetings(a).filter(m=>m.date).sort((x,y)=>String(y.date).localeCompare(String(x.date)));let rec=35;if(ms.length){const days=Math.max(0,Math.ceil((Date.now()-new Date(ms[0].date+'T12:00:00').getTime())/86400000));rec=days<=30?100:days<=60?85:days<=90?70:days<=120?55:40}const relationship=cl(cl(a.stakeholder)*.60+rec*.25+(allPeople(a).some(p=>/executive sponsor|ciso|security vp/i.test((p.role||'')+' '+(p.lane||'')))?100:40)*.15),sev=String(a.supportSev||'None').toLowerCase(),pen=sev.includes('sev 1')?25:sev.includes('sev 2')?15:sev.includes('sev 3')?7:sev.includes('sev 4')?3:0,supportRisk=cl(cl(a.support)-pen),successPlan=a.goals?.length?cl(a.goals.reduce((s,g)=>s+cl(g.progress),0)/a.goals.length):50,sig={adoption:cl(a.adoption),value:cl(a.value),relationship,technical:cl(a.coverage),supportRisk,successPlan},expected=cl(Object.keys(w).reduce((s,k)=>s+sig[k]*w[k],0)/100);return{stored:a.health,expected,sig,commercial:a.commercial,renewalDays:a.renewalDays}});if(logic.stored!==logic.expected)throw new Error('health formula mismatch '+JSON.stringify(logic));
+          await page.locator('[data-health-key="adoption"]').fill('25');await page.locator('[data-health-key="value"]').fill('15');await page.click('#dtex-save-health');await page.waitForTimeout(80);let settings=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_health_settings_v2')));if(settings.weights.adoption!==25||settings.weights.value!==15)throw new Error('settings save failed');await page.click('#dtex-reset-health');settings=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_health_settings_v2')));if(settings.weights.technical!==25||settings.weights.successPlan!==10)throw new Error('settings reset failed');
+          await page.click('.nav [data-view="accounts"]');const row=page.locator('tr.account-row').first(),id=await row.getAttribute('data-id');await row.click();await page.waitForSelector('#account-drawer.open');const sec=n=>page.locator('#drawer-body details.section summary').filter({hasText:n}).first();
+          await sec('Technical lifecycle').click();await page.fill('#dtex-t-coverage','73');await page.fill('#dtex-t-support','89');await page.fill('#dtex-t-sev','Sev 3');await page.click('[data-save-dtex-technical]');let ov=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_account_overrides_v2')));if(ov[id].coverage!==73||ov[id].support!==89||ov[id].supportSev!=='Sev 3')throw new Error('technical edit/persist failed');
+          await sec('Commercial record').click();await page.fill('#dtex-c-adoption','82');await page.fill('#dtex-c-value','79');await page.fill('#dtex-c-stakeholder','77');await page.fill('#dtex-c-commercial','66');await page.click('[data-save-dtex-commercial]');ov=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_account_overrides_v2')));if(ov[id].adoption!==82||ov[id].value!==79||ov[id].stakeholder!==77||ov[id].commercial!==66)throw new Error('adoption/value/commercial edit failed');
+          await sec('Success plan').click();await page.fill('#dtex-goal-name','Final objective');await page.fill('#dtex-goal-progress','30');await page.fill('#dtex-goal-owner','CSM + Customer');await page.fill('#dtex-goal-proof','Outcome evidence');await page.click('[data-save-dtex-goal]');ov=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_account_overrides_v2')));let gi=ov[id].goals.findIndex(g=>g.name==='Final objective');if(gi<0)throw new Error('goal add failed');await page.locator(`[data-edit-dtex-goal="${id}:${gi}"]`).click();await page.fill('#dtex-goal-progress','75');await page.click('[data-save-dtex-goal]');ov=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_account_overrides_v2')));gi=ov[id].goals.findIndex(g=>g.name==='Final objective');if(ov[id].goals[gi].progress!==75)throw new Error('goal edit failed');await page.locator(`[data-del-dtex-goal="${id}:${gi}"]`).click();
+          await sec('Account notes').click();await page.fill('#account-note-text','Final note');await page.click(`[data-add-note="${id}"]`);await page.locator(`[data-edit-note^="${id}:"]`).last().click();await page.fill('#account-note-text','Final note edited');await page.click(`[data-update-note^="${id}:"]`);if(!(await page.locator('#drawer-body').innerText()).includes('Final note edited'))throw new Error('note edit failed');await page.locator(`[data-del-note^="${id}:"]`).last().click();
+          await sec('Meeting log').click();await page.fill('#meeting-type','Final EBR');await page.fill('#meeting-attendees','CISO, CSM');await page.fill('#meeting-notes','Initial meeting record');await page.click(`[data-add-meeting="${id}"]`);await page.locator(`[data-edit-meeting^="${id}:"]`).last().click();await page.fill('#meeting-notes','Edited meeting record');await page.click(`[data-update-meeting^="${id}:"]`);if(!(await page.locator('#drawer-body').innerText()).includes('Edited meeting record'))throw new Error('meeting edit failed');await page.locator(`[data-del-meeting^="${id}:"]`).last().click();
+          await sec('Employees & stakeholder map').click();await page.fill('#person-name','Final Stakeholder');await page.fill('#person-role','Director');await page.selectOption('#person-status','Active');await page.fill('#person-lane','Program Champion');await page.click(`[data-add-person="${id}"]`);await page.locator(`[data-edit-person^="${id}:"]`).last().click();await page.fill('#person-role','VP Security');await page.click(`[data-update-person^="${id}:"]`);if(!(await page.locator('#drawer-body').innerText()).includes('VP Security'))throw new Error('stakeholder edit failed');await page.locator(`[data-del-person^="${id}:"]`).last().click();
+          await page.click('#drawer-close');for(const v of views){await page.click(`.nav [data-view="${v}"]`);await page.waitForTimeout(25)}const paths=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean));const joined=JSON.stringify(paths);for(const v of views)if(!joined.includes('/dtex/'+v))throw new Error('missing GA view '+v);
+          await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.body.classList.contains('unlocked'));ov=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_account_overrides_v2')));if(ov[id].coverage!==73||ov[id].adoption!==82||ov[id].value!==79||ov[id].commercial!==66)throw new Error('override persistence failed after reload');if(errors.length)throw new Error('browser errors '+errors.join(' | '));console.log('PASS DTEX final: Gainsight-default company override, formula, Settings, full P1 edit parity, persistence, Lock, Analytics');await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
