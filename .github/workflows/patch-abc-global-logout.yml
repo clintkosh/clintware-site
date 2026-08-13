@@ -1,0 +1,176 @@
+name: Add Persistent Logout to Abnormal CRM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-global-logout.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Add global Logout control using existing lock behavior
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('abc/src/index.js')
+          s = p.read_text()
+
+          if 'id="abc-global-logout"' not in s:
+              old = '.unlocked #gate{display:none}.unlocked #app{display:block}\n</style>`;'
+              new = '''.unlocked #gate{display:none}.unlocked #app{display:block}
+          #abc-global-logout{display:none;position:fixed;top:12px;right:14px;z-index:2147483000;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:9px 13px;background:rgba(17,16,25,.94);color:#f7f6f8;font:800 11px/1 Inter,system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 8px 28px rgba(0,0,0,.28);cursor:pointer;backdrop-filter:blur(12px)}
+          #abc-global-logout:hover{border-color:rgba(255,59,136,.65);background:rgba(37,23,35,.97);color:#fff}#abc-global-logout:focus-visible{outline:2px solid #ff3b88;outline-offset:2px}.unlocked #abc-global-logout{display:inline-flex}
+          html[data-theme="light"] #abc-global-logout{background:rgba(255,255,255,.96);color:#211a23;border-color:#d8cfd9;box-shadow:0 8px 24px rgba(51,35,50,.12)}html[data-theme="light"] #abc-global-logout:hover{border-color:#e52f75;background:#fff}
+          @media(max-width:700px){#abc-global-logout{top:8px;right:8px;padding:8px 10px;font-size:10px}}
+          </style>`;'''
+              if old not in s:
+                  raise SystemExit('Gate CSS anchor not found')
+              s = s.replace(old, new, 1)
+
+              pat = re.compile(r'(const ABNORMAL_GATE_HTML = `<main id="gate">.*?</section></main>)(`;)', re.S)
+              s, n = pat.subn(r'\1<button id="abc-global-logout" type="button" aria-label="Logout and lock private demo" title="Logout and lock demo"><span aria-hidden="true">&#128274;</span><span>Logout</span></button>\2', s, count=1)
+              if n != 1:
+                  raise SystemExit(f'Gate HTML patch count={n}')
+
+              old_bind = "function bindGate(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>"
+              new_bind = "function bindGate(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error'),logoutBtn=document.getElementById('abc-global-logout');if(logoutBtn)logoutBtn.onclick=()=>{lock();err.textContent='';sendEvent('crm_logout');requestAnimationFrame(()=>pw.focus())};form.onsubmit=e=>"
+              if old_bind not in s:
+                  raise SystemExit('Gate JS bind anchor not found')
+              s = s.replace(old_bind, new_bind, 1)
+
+          required = [
+              'id="abc-global-logout"',
+              '.unlocked #abc-global-logout{display:inline-flex}',
+              "sendEvent('crm_logout')",
+              "sessionStorage.removeItem(SESSION_KEY)",
+          ]
+          for marker in required:
+              if marker not in s:
+                  raise SystemExit('Missing logout marker: ' + marker)
+
+          p.write_text(s)
+          print('Persistent Logout control patched')
+          PY
+
+          node --check abc/src/index.js
+          node --check abc/src/app.js
+          (cd abc && node tests/smoke.mjs && node tests/auth-roundtrip.mjs && python3 tests/regression.py)
+          python3 tests/validate_crm_analytics.py
+
+      - name: Commit application change
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js; then
+            echo "Logout patch already present"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add abc/src/index.js
+            git commit -m "Expose persistent Logout lock control in Abnormal CRM"
+            git push origin HEAD:main
+          fi
+
+      - name: Deploy updated ABC-derived Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd abc
+
+      - name: Verify an.clintware.com binding remains on ABC service
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="an.clintware.com" and x.get("service")=="abnormal-enterprise-customer-success",x; print("Binding OK:",x["hostname"],"->",x["service"])' <<< "$response"
+
+      - name: Verify Logout visible everywhere and lock persists in production Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-logout && cd /tmp/an-logout
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(20000);
+          let ready=false;
+          for(let i=1;i<=24;i++){
+            await page.goto(`https://an.clintware.com/?logoutverify=${Date.now()}-${i}`,{waitUntil:'domcontentloaded',timeout:30000});
+            const html=await page.content();
+            if(html.includes('abc-global-logout')&&html.includes("crm_logout")&&html.includes('ABNORMAL // CUSTOMER SUCCESS')){ready=true;break}
+            await page.waitForTimeout(2500);
+          }
+          if(!ready) throw new Error('new Logout build did not reach an.clintware.com');
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          if(await page.locator('#abc-global-logout').isVisible()) throw new Error('Logout visible while locked');
+
+          await page.fill('#pw',process.env.AN_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+
+          const assertLogoutVisible=async label=>{
+            if(!(await page.locator('#abc-global-logout').isVisible())) throw new Error('Logout not visible in '+label);
+            const text=(await page.locator('#abc-global-logout').innerText()).trim();
+            if(!text.includes('Logout')) throw new Error('Logout label missing in '+label);
+          };
+
+          await assertLogoutVisible('Command Center');
+          for(const route of ['accounts','renewal','playbooks','cadence','capacity','finance','intake','kpis','settings']){
+            await page.locator(`.topnav [data-route="${route}"]`).click();
+            await assertLogoutVisible(route);
+          }
+
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          await page.locator(`[data-open="${model.accounts[0].id}"]`).first().click();
+          await page.waitForSelector('[data-tab="notes"]');
+          for(const tab of ['summary','stakeholders','success','technical','meetings','notes','commercial']){
+            await page.locator(`[data-tab="${tab}"]`).click();
+            await assertLogoutVisible('account/'+tab);
+          }
+
+          await page.locator('#abc-global-logout').click();
+          await page.waitForFunction(()=>!document.body.classList.contains('unlocked'));
+          if(!(await page.locator('#gate').isVisible())) throw new Error('gate not visible after Logout');
+          if(await page.locator('#abc-global-logout').isVisible()) throw new Error('Logout still visible after lock');
+          const session=await page.evaluate(()=>sessionStorage.getItem('abnormal_enterprise_demo_access'));
+          if(session!==null) throw new Error('session key not cleared by Logout');
+
+          await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          if(await page.evaluate(()=>document.body.classList.contains('unlocked'))) throw new Error('refresh re-unlocked after Logout');
+          if(!(await page.locator('#gate').isVisible())) throw new Error('gate missing after locked refresh');
+
+          const rows=await page.evaluate(()=>{const x=(window.dataLayer||[]).map(v=>{try{return Array.from(v)}catch(e){return v}});return x});
+          if(!rows.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P')) throw new Error('GA config missing after logout build');
+          console.log('PASS: persistent Logout is visible across all CRM areas and restores the lock gate');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
