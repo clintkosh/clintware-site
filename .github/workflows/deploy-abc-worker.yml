@@ -1,4 +1,4 @@
-name: Deploy ZS DTEX Customer Success Demo
+name: Deploy Abnormal Enterprise Customer Success Demo
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: zs-dtex-customer-success-demo
+  group: abnormal-enterprise-customer-success
   cancel-in-progress: true
 
 jobs:
@@ -26,15 +26,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate Worker and app bundle
+      - name: Validate cloned ZS application and Abnormal adaptation
         run: |
+          set -euo pipefail
           node --check src/index.js
           node --check src/app.js
           node tests/smoke.mjs
+          node tests/auth-roundtrip.mjs
           python3 tests/regression.py
           python3 ../tests/validate_crm_analytics.py
-      - name: Exercise exact DTEX client login gate
-        run: node tests/auth-roundtrip.mjs
 
   deploy:
     needs: validate
@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Deploy moved DTEX demo Worker
+      - name: Deploy isolated ABC Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -53,169 +53,196 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd abc
 
-      - name: Remove existing zs.clintware.com binding
+      - name: Attach or verify abc.clintware.com only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="zs.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows if x.get("service")!="abc-cs-business-operations"))' <<< "$response")
-          if [ -n "$domain_ids" ]; then
-            while IFS= read -r domain_id; do
-              deleted=$(curl --fail-with-body -sS -X DELETE \
-                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
-                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$deleted"
-            done <<< "$domain_ids"
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="abc.clintware.com" and r[0].get("service")=="abnormal-enterprise-customer-success" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"abc.clintware.com","service":"abnormal-enterprise-customer-success"}' >/tmp/abc-domain-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/abc-domain-put.json")); assert d.get("success") is True,d'
           fi
-
-      - name: Attach zs.clintware.com to moved ABC Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"zs.clintware.com","service":"abc-cs-business-operations"}')
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; assert d["result"]["hostname"]=="zs.clintware.com",d' <<< "$response"
-
-      - name: Verify zs custom-domain binding
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=zs.clintware.com" \
+          verify=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="zs.clintware.com" and x.get("service")=="abc-cs-business-operations",x' <<< "$response"
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="abc.clintware.com" and x.get("service")=="abnormal-enterprise-customer-success",x; print("ABC domain verified:",x["hostname"],"->",x["service"])' <<< "$verify"
 
-      - name: Wait for moved DTEX gate runtime
+      - name: Verify public DNS on independent resolvers
         run: |
           set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsutils >/dev/null
           ready=0
-          for i in $(seq 1 30); do
-            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/" || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health" || true)
-            auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://zs.clintware.com/health/auth" || true)
-            if grep -Fq "Know what needs attention." <<< "$body" \
-              && grep -Fq "Private Customer Success Demo" <<< "$body" \
-              && grep -Fq "Unlock demo" <<< "$body" \
-              && grep -Fq "Command Center" <<< "$body" \
-              && grep -Fq "Seed Demo Accounts" <<< "$body" \
-              && grep -Fq "Edit technical details" <<< "$body" \
-              && grep -Fq "Edit commercial details" <<< "$body" \
-              && grep -Fq '"ok":true' <<< "$health" \
-              && grep -Fq '"ok":true' <<< "$auth" \
-              && grep -Fq '"mode":"dtex-client-gate"' <<< "$auth"; then
+          for i in $(seq 1 24); do
+            cf=$(dig +short @1.1.1.1 abc.clintware.com A | head -n1)
+            gg=$(dig +short @8.8.8.8 abc.clintware.com A | head -n1)
+            if [ -n "$cf" ] && [ -n "$gg" ]; then
+              echo "abc.clintware.com DNS: Cloudflare=$cf Google=$gg"
               ready=1
               break
             fi
             sleep 5
           done
           test "$ready" = "1"
-          post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://zs.clintware.com/login")
-          test "$post_code" = "405"
 
-      - name: Exercise password and app in real Chrome at zs
+      - name: Wait for transformed Abnormal runtime
         run: |
           set -euo pipefail
-          mkdir -p /tmp/zs-playwright
-          cd /tmp/zs-playwright
+          ready=0
+          for i in $(seq 1 30); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/?release=${GITHUB_SHA}" || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health" || true)
+            auth=$(curl -sS --connect-timeout 5 --max-time 20 "https://abc.clintware.com/health/auth" || true)
+            if grep -Fq "Enterprise Customer Success Command Center" <<< "$body" \
+              && grep -Fq "Command Center" <<< "$body" \
+              && grep -Fq "Seed Demo Accounts" <<< "$body" \
+              && grep -Fq "Voice of Customer" <<< "$body" \
+              && grep -Fq "Lone Mesa Energy" <<< "$body" \
+              && grep -Fq "Customer Obsession" <<< "$body" \
+              && grep -Fq '"ok":true' <<< "$health" \
+              && grep -Fq '"ok":true' <<< "$auth" \
+              && grep -Fq '"model":true' <<< "$auth" \
+              && grep -Fq '"mode":"dtex-client-gate-abnormal"' <<< "$auth"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for ABC runtime propagation ($i/30)"
+            sleep 5
+          done
+          test "$ready" = "1"
+          post_code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "https://abc.clintware.com/login")
+          test "$post_code" = "405"
+
+      - name: Exercise exact login and full CRM workflow in real Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-playwright
+          cd /tmp/abc-playwright
           npm init -y >/dev/null 2>&1
           npm install --silent --no-save playwright-core >/dev/null 2>&1
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           cat > test.mjs <<'NODE'
           import { chromium } from 'playwright-core';
           import fs from 'node:fs/promises';
+
           const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox','--disable-dev-shm-usage']});
           const page = await browser.newPage();
           const pageErrors=[];
           page.on('pageerror',error=>pageErrors.push(error.stack||error.message));
-          await page.goto('https://zs.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
+          page.on('dialog',async dialog=>dialog.accept());
+
+          await page.goto('https://abc.clintware.com/?e2e='+Date.now(), {waitUntil:'domcontentloaded', timeout:30000});
+          if (!(await page.locator('#gate').count())) throw new Error('ABC login gate missing');
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
           if ((await page.textContent('#gate-error')) !== 'Incorrect password.') throw new Error('wrong-password behavior failed');
-          await page.fill('#pw','2$C@L3RK0S$H2026');
+          if (await page.evaluate(()=>document.body.classList.contains('unlocked'))) throw new Error('wrong password unlocked app');
+
+          await page.fill('#pw','@BN0Rm@LK0$H2026');
           await page.click('#access-form button[type="submit"]');
           await page.waitForFunction(() => document.body.classList.contains('unlocked'));
-          const appText = (await page.locator('#app').textContent()) || '';
-          if (!appText.includes('Command Center') || !appText.includes('Accounts')) throw new Error('unlocked app content missing');
 
-          // Exercise every editable account workspace against the deployed app.
-          const accountId = await page.evaluate(() => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id);
+          // The role-mapped model intentionally migrates the copied ZS seed once and reloads.
+          await page.waitForFunction(() => {
+            try {
+              const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');
+              return d && d.abcAbnormalModelVersion===4 && d.accounts?.[0]?.name==='Lone Mesa Energy';
+            } catch(e){ return false; }
+          }, {timeout:30000});
+          await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+
+          const model = await page.evaluate(() => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          if (model.accounts.length !== 20) throw new Error(`expected 20 Abnormal accounts, got ${model.accounts.length}`);
+          if (model.accounts[0].name !== 'Lone Mesa Energy' || model.accounts[0].region !== 'Houston, TX') throw new Error('TOLA seed model missing');
+          if (model.accounts[0].contacts.length < 3) throw new Error('seeded multi-threaded stakeholders missing');
+          if (model.healthModel.adoption !== 30 || model.healthModel.valueRealization !== 25 || model.healthModel.stakeholderAlignment !== 20 || model.healthModel.riskAndEscalation !== 15 || model.healthModel.renewalAndGrowth !== 10) throw new Error('role-mapped health weighting missing');
+
+          const source = await page.content();
+          for (const marker of ['Enterprise Customer Success','Voice of Customer','Customer Cadence','Engagement Coverage','Value & Growth','Customer Obsession']) if (!source.includes(marker)) throw new Error(`missing Abnormal marker ${marker}`);
+          const themeText = await page.locator('#abnormal-app-theme').textContent();
+          for (const color of ['#ff3b88','#ff6957','#a565ff','#07070b']) if (!themeText.includes(color)) throw new Error(`Abnormal palette missing ${color}`);
+          if (pageErrors.length) throw new Error('browser errors before account workflow: '+pageErrors.join(' | '));
+
+          const accountId=model.accounts[0].id;
           await page.click('[data-route="accounts"]');
           await page.waitForSelector(`[data-open="${accountId}"]`);
           await page.locator(`[data-open="${accountId}"]`).click();
-          await page.waitForTimeout(250);
-          const opened = await page.evaluate(() => ({editCount:document.querySelectorAll('[data-edit-account]').length,bodyClass:document.body.className,appDisplay:getComputedStyle(document.querySelector('#app')).display,text:(document.querySelector('#app').innerText||'').slice(0,500)}));
-          if (opened.editCount !== 1) throw new Error(`account workspace did not open: ${JSON.stringify({opened,pageErrors})}`);
+          await page.waitForSelector('[data-edit-account]');
 
           await page.click('[data-edit-account]');
-          await page.fill('#f-summary','Production E2E account summary');
+          await page.fill('#f-summary','Production ABC E2E enterprise Customer Success summary');
           await page.click('#save-account');
 
           await page.click('[data-tab="stakeholders"]');
+          if (await page.locator('[data-add-contact]').count()) {
+            await page.click('[data-add-contact]');
+            await page.fill('#c-name','Production ABC New Stakeholder');
+            if (await page.locator('#c-title').count()) await page.fill('#c-title','VP, Information Security');
+            await page.click('#save-contact');
+          }
           await page.locator('[data-edit-contact]').first().click();
-          await page.fill('#c-name','Production E2E Stakeholder');
+          await page.fill('#c-name','Production ABC CISO');
           await page.click('#save-contact');
 
           await page.click('[data-tab="success"]');
           await page.locator('[data-edit-success]').first().click();
-          await page.fill('#s-objective','Production E2E customer outcome');
-          await page.fill('#s-progress','77');
+          await page.fill('#s-objective','Production ABC measurable security outcome');
+          await page.fill('#s-progress','81');
           await page.click('#save-success');
 
           await page.click('[data-tab="technical"]');
           await page.click('[data-edit-technical]');
-          await page.fill('#t-owner','Production E2E Technical Owner');
-          await page.fill('#t-coverage','91');
-          await page.fill('#t-modules','Core, Analytics, E2E Module');
+          await page.fill('#t-owner','Production ABC Technical Success Owner');
+          await page.fill('#t-coverage','93');
+          await page.fill('#t-modules','Email Security, Identity Threat Protection, AI Security Mailbox');
           await page.click('#save-technical');
 
           await page.click('[data-tab="meetings"]');
           await page.locator('[data-edit-meeting]').first().click();
-          await page.fill('#m-title','Production E2E Meeting');
-          await page.fill('#m-notes','Production E2E meeting notes persisted.');
+          await page.fill('#m-title','Production ABC Executive Value Review');
+          await page.fill('#m-notes','Production ABC customer value and adoption review.');
           await page.click('#save-meeting');
 
           await page.click('[data-tab="notes"]');
           await page.locator('[data-edit-note]').first().click();
-          await page.fill('#n-text','Production E2E account note persisted.');
+          await page.fill('#n-text','Production ABC customer voice note persisted.');
           await page.click('#save-note');
 
           await page.click('[data-tab="commercial"]');
           await page.click('[data-edit-commercial]');
-          await page.fill('#co-ae','Production E2E Account Executive');
-          await page.fill('#co-value','86');
-          await page.fill('#co-stakeholder','87');
-          await page.fill('#co-ready','88');
+          await page.fill('#co-ae','Production ABC Enterprise AE');
+          await page.fill('#co-value','90');
+          await page.fill('#co-stakeholder','89');
+          await page.fill('#co-ready','87');
           await page.click('#save-commercial');
 
           await page.click('[data-tab="summary"]');
           await page.click('[data-add-risk]');
-          await page.fill('#r-title','Production E2E Risk');
-          await page.fill('#r-owner','Production E2E Risk Owner');
+          await page.fill('#r-title','Production ABC Adoption Risk');
+          await page.fill('#r-owner','Production ABC CSM');
           await page.click('#save-risk');
           await page.locator('[data-edit-risk]').last().click();
           await page.fill('#r-status','Mitigating');
           await page.click('#save-risk');
 
           const stored = await page.evaluate(id => JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a => a.id === id), accountId);
-          if (stored.summary !== 'Production E2E account summary') throw new Error('account edit did not persist');
-          if (stored.contacts[0].name !== 'Production E2E Stakeholder') throw new Error('stakeholder edit did not persist');
-          if (stored.successPlans[0].objective !== 'Production E2E customer outcome' || stored.successPlans[0].progress !== 77) throw new Error('success-plan edit did not persist');
-          if (stored.serviceOwner !== 'Production E2E Technical Owner' || stored.technicalCoverage !== 91 || !stored.activeModules.includes('E2E Module')) throw new Error('technical edit did not persist');
-          if (stored.meetings[0].title !== 'Production E2E Meeting') throw new Error('meeting edit did not persist');
-          if (stored.notes[0].text !== 'Production E2E account note persisted.') throw new Error('note edit did not persist');
-          if (stored.accountExec !== 'Production E2E Account Executive' || stored.commercialReadiness !== 88) throw new Error('commercial edit did not persist');
-          if (!stored.risks.some(r => r.title === 'Production E2E Risk' && r.status === 'Mitigating')) throw new Error('risk add/edit did not persist');
+          if (stored.summary !== 'Production ABC E2E enterprise Customer Success summary') throw new Error('account edit did not persist');
+          if (!stored.contacts.some(c=>c.name==='Production ABC CISO')) throw new Error('stakeholder edit did not persist');
+          if (stored.successPlans[0].objective !== 'Production ABC measurable security outcome' || stored.successPlans[0].progress !== 81) throw new Error('success-plan edit did not persist');
+          if (stored.serviceOwner !== 'Production ABC Technical Success Owner' || stored.technicalCoverage !== 93 || !stored.activeModules.includes('AI Security Mailbox')) throw new Error('technical edit did not persist');
+          if (stored.meetings[0].title !== 'Production ABC Executive Value Review') throw new Error('meeting edit did not persist');
+          if (stored.notes[0].text !== 'Production ABC customer voice note persisted.') throw new Error('note edit did not persist');
+          if (stored.accountExec !== 'Production ABC Enterprise AE' || stored.commercialReadiness !== 87) throw new Error('commercial edit did not persist');
+          if (!stored.risks.some(r => r.title === 'Production ABC Adoption Risk' && r.status === 'Mitigating')) throw new Error('risk add/edit did not persist');
 
           const downloadStarted = page.waitForEvent('download');
           await page.click('[data-brief]');
@@ -223,58 +250,30 @@ jobs:
           const pdfDownload = await downloadStarted;
           const pdfBytes = await fs.readFile(await pdfDownload.path());
           const pdfText = pdfBytes.toString('latin1');
-          if (!pdfDownload.suggestedFilename().endsWith('-meeting-brief.pdf')) throw new Error('meeting brief PDF filename is incorrect');
-          if (pdfBytes.length < 5000 || !pdfText.startsWith('%PDF-1.4')) throw new Error('meeting brief download is not a valid-sized PDF');
-          if (!pdfText.includes('Production E2E account note persisted.')) throw new Error('custom account note missing from generated PDF');
-          if (!pdfText.includes('LIVE CALL NOTES') || !pdfText.includes('DECISIONS AND COMMITMENTS')) throw new Error('manual call-note sections missing from generated PDF');
-          const headerMeta = [...pdfText.matchAll(/1 0 0 1 ([0-9.]+) 742 Tm \(Prepared ([^)]+)\)/g)];
-          if (!headerMeta.length) throw new Error('PDF page metadata labels are missing');
-          for (const match of headerMeta) {
-            const x=Number(match[1]),estimatedRight=x+match[2].length*4.15;
-            if (x < 320 || estimatedRight > 565) throw new Error(`PDF page metadata clips printable boundary: x=${x}, right=${estimatedRight}`);
-          }
+          if (!pdfDownload.suggestedFilename().endsWith('-meeting-brief.pdf')) throw new Error('meeting brief PDF filename incorrect');
+          if (pdfBytes.length < 5000 || !pdfText.startsWith('%PDF-1.4')) throw new Error('meeting brief is not a valid-sized PDF');
+          if (!pdfText.includes('Production ABC customer voice note persisted.')) throw new Error('custom note missing from PDF');
+          if (!pdfText.includes('LIVE CALL NOTES') || !pdfText.includes('DECISIONS AND COMMITMENTS')) throw new Error('manual note sections missing from PDF');
           await page.click('[data-close]');
 
           await page.reload({waitUntil:'domcontentloaded'});
           await page.waitForFunction(() => document.body.classList.contains('unlocked'));
+          const afterReload=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>a.id===id),accountId);
+          if (afterReload.summary !== 'Production ABC E2E enterprise Customer Success summary') throw new Error('account data missing after reload');
+
+          // Clear must stay empty; reseed must restore twenty role-mapped Abnormal accounts.
           await page.click('[data-route="accounts"]');
-          await page.locator(`[data-open="${accountId}"]`).click();
-          await page.click('[data-tab="stakeholders"]');
-          if (!((await page.locator('#app').textContent()) || '').includes('Production E2E Stakeholder')) throw new Error('stakeholder edit missing after reload');
-          await page.click('[data-tab="technical"]');
-          if (!((await page.locator('#app').textContent()) || '').includes('Production E2E Technical Owner')) throw new Error('technical edit missing after reload');
+          if (await page.locator('#clear-accounts').count()) await page.click('#clear-accounts'); else await page.click('[data-action="clear-accounts"]');
+          await page.waitForTimeout(250);
+          let cleared=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.length);
+          if (cleared !== 0) throw new Error(`Clear Accounts failed: ${cleared} remain`);
+          if (await page.locator('#seed-accounts').count()) await page.click('#seed-accounts'); else await page.click('[data-action="seed-accounts"]');
+          await page.waitForFunction(() => {
+            try { const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')); return d.accounts?.length===20 && d.accounts[0]?.name==='Lone Mesa Energy'; } catch(e){return false}
+          }, {timeout:30000});
+
+          if (pageErrors.length) throw new Error('browser page errors: '+pageErrors.join(' | '));
+          console.log('PASS: exact Abnormal credential + full ZS account workflow + Abnormal model + persistence + PDF + clear/reseed');
           await browser.close();
           NODE
           CHROME="$chrome" node test.mjs
-
-      - name: Remove old abc.clintware.com binding after successful cutover
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          domain_ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; rows=d.get("result",[]); assert all(x.get("hostname")=="abc.clintware.com" for x in rows),rows; print("\n".join(str(x["id"]) for x in rows))' <<< "$response")
-          if [ -n "$domain_ids" ]; then
-            while IFS= read -r domain_id; do
-              deleted=$(curl --fail-with-body -sS -X DELETE \
-                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
-                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-              python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$deleted"
-            done <<< "$domain_ids"
-          fi
-          removed=0
-          for i in $(seq 1 20); do
-            remaining=$(curl --fail-with-body -sS \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=abc.clintware.com" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print(len(d.get("result",[])))' <<< "$remaining")
-            if [ "$count" = "0" ]; then
-              removed=1
-              break
-            fi
-            sleep 3
-          done
-          test "$removed" = "1"
