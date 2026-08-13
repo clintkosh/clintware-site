@@ -1,0 +1,91 @@
+name: Verify Stable ABC Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-abc-stable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify stable production in Chrome without redeploying
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcverify && cd /tmp/abcverify
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS=$(python3 - <<'PY'
+          import re
+          s=open("$GITHUB_WORKSPACE/abc/src/index.js").read()
+          m=re.search(r"const PASS='([^']+)'",s)
+          assert m
+          print(m.group(1))
+          PY
+          )
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          let ready=false;
+          for(let i=1;i<=24;i++){
+            await page.goto('https://abc.clintware.com/?stable='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            if(await page.locator('#gate').count()){ready=true;console.log('gate ready attempt',i);break}
+            console.log('waiting for gate',i,await page.title(),page.url());
+            await page.waitForTimeout(5000);
+          }
+          if(!ready)throw new Error('stable ABC gate never appeared');
+          await page.screenshot({path:'/tmp/abc-gate.png',fullPage:true});
+          await page.fill('#pw','wrong-password');
+          await page.click('#access-form button[type="submit"]');
+          if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong password rejection failed');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d&&d.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForTimeout(800);
+          await page.screenshot({path:'/tmp/abc-command-center.png',fullPage:true});
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          console.log('MODEL',JSON.stringify({count:model.accounts.length,first:model.accounts[0],healthModel:model.healthModel}).slice(0,4500));
+          console.log('APP_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(0,4200)));
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,[data-route],[data-open]')].map(e=>({tag:e.tagName,id:e.id||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,110),route:e.getAttribute('data-route')||'',open:e.getAttribute('data-open')||'',tab:e.getAttribute('data-tab')||'',action:e.getAttribute('data-action')||''})).filter(x=>x.text||x.route||x.open||x.tab||x.action));
+          console.log('CONTROLS',JSON.stringify(controls.slice(0,260)));
+          const accounts=page.locator('[data-route="accounts"]');
+          if(await accounts.count())await accounts.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
+          await page.waitForTimeout(400);
+          await page.screenshot({path:'/tmp/abc-accounts.png',fullPage:true});
+          const first=page.locator('[data-open]').first();
+          if(!(await first.count()))throw new Error('no account open control found');
+          console.log('FIRST_ACCOUNT_CONTROL',await first.getAttribute('data-open'),(await first.innerText().catch(()=>'' )).slice(0,300));
+          await first.click();
+          await page.waitForTimeout(400);
+          await page.screenshot({path:'/tmp/abc-account-open.png',fullPage:true});
+          const accountControls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map(e=>({tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,100),tab:e.getAttribute('data-tab')||'',attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value).join('|')})).filter(x=>x.id||x.text||x.tab||x.attrs));
+          console.log('ACCOUNT_CONTROLS',JSON.stringify(accountControls.slice(0,350)));
+          console.log('ACCOUNT_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-7000)));
+          if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: abc-stable-production-screens
+          path: |
+            /tmp/abc-gate.png
+            /tmp/abc-command-center.png
+            /tmp/abc-accounts.png
+            /tmp/abc-account-open.png
+          retention-days: 1
+          if-no-files-found: error
