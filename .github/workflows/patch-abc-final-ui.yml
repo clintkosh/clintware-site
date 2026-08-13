@@ -1,5 +1,4 @@
 name: Patch ABC final UI
-# rerun after final regression updates
 
 on:
   push:
@@ -7,6 +6,7 @@ on:
     paths:
       - ".github/workflows/patch-abc-final-ui.yml"
       - "abc/tools/patch_final_ui.py"
+      - "abc/tools/postpatch_cleanup.py"
 
 permissions:
   contents: write
@@ -25,6 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 abc/tools/patch_final_ui.py
+          python3 abc/tools/postpatch_cleanup.py
           node --check abc/src/index.js
           node abc/tests/smoke.mjs
           python3 abc/tests/regression.py
