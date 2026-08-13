@@ -1,0 +1,58 @@
+name: Diagnose ABC PDF popup
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-pdf-popup.yml"
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect live printable popup
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-pdf-diag && cd /tmp/abc-pdf-diag
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();page.setDefaultTimeout(15000);
+          const parentErrors=[],parentConsole=[];
+          page.on('pageerror',e=>parentErrors.push(e.stack||String(e)));
+          page.on('console',m=>{if(m.type()==='error')parentConsole.push(m.text())});
+          await page.goto('https://abc.clintware.com/?pdfdiag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'))),aid=model.accounts[0].id;
+          await page.locator('.topnav [data-route="accounts"]').click();await page.locator(`[data-open="${aid}"]`).first().click();await page.waitForSelector('[data-brief]');
+          console.log('FUNCTION_TYPES',JSON.stringify(await page.evaluate(()=>({brief:typeof window.brief,printBrief:typeof window.printBrief,notify:typeof window.notify}))));
+          await page.locator('[data-brief]').first().click();
+          console.log('BRIEF_MODAL_TEXT',JSON.stringify((await page.locator('.modal').innerText()).slice(0,600)));
+          const popupPromise=page.waitForEvent('popup');
+          await page.click('#print-brief');
+          const popup=await popupPromise;const popErrors=[],popConsole=[];
+          popup.on('pageerror',e=>popErrors.push(e.stack||String(e)));popup.on('console',m=>{if(m.type()==='error')popConsole.push(m.text())});
+          await popup.waitForTimeout(1500);
+          console.log('PARENT_ERRORS',JSON.stringify(parentErrors));
+          console.log('PARENT_CONSOLE',JSON.stringify(parentConsole));
+          console.log('POPUP_URL',popup.url());
+          console.log('POPUP_ERRORS',JSON.stringify(popErrors));
+          console.log('POPUP_CONSOLE',JSON.stringify(popConsole));
+          const pd=await popup.evaluate(()=>({ready:document.readyState,title:document.title,bodyText:(document.body?.innerText||'').slice(0,1600),bodyHtml:(document.body?.innerHTML||'').slice(0,2200),htmlLen:document.documentElement?.outerHTML.length||0,styles:[...document.styleSheets].length})).catch(e=>({evaluateError:String(e)}));
+          console.log('POPUP_DIAG',JSON.stringify(pd));
+          console.log('PARENT_AFTER',JSON.stringify({errors:parentErrors,modal:await page.locator('.modal').count(),toast:await page.locator('.abc-toast').allTextContents()}));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
