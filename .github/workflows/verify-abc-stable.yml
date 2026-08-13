@@ -41,15 +41,17 @@ jobs:
               const modelScript=page.locator('#abnormal-model-script');
               const modelScriptCount=await modelScript.count();
               const modelText=modelScriptCount ? ((await modelScript.textContent().catch(()=>''))||'') : '';
-              const hasCurrentMarker=modelText.includes('applyAbnormalRuntimeCopy');
+              const hasRuntimeCopy=modelText.includes('applyAbnormalRuntimeCopy');
+              const hasPostRenderTiming=modelText.includes('[120,350,900,1600]');
+              const hasCurrentMarker=hasRuntimeCopy && hasPostRenderTiming;
               if(hasGate && hasCurrentMarker){ready=true;console.log('CURRENT_BUILD_READY_ATTEMPT',i);break}
-              console.log('WAIT_CURRENT_BUILD',i,'gate='+hasGate,'modelScript='+modelScriptCount,'runtimeCopy='+hasCurrentMarker,'title='+(await page.title().catch(()=>'')));
+              console.log('WAIT_CURRENT_BUILD',i,'gate='+hasGate,'modelScript='+modelScriptCount,'runtimeCopy='+hasRuntimeCopy,'postRenderTiming='+hasPostRenderTiming,'title='+(await page.title().catch(()=>'')));
             }catch(e){
               console.log('WAIT_CURRENT_BUILD_ERROR',i,String(e));
             }
             await page.waitForTimeout(5000);
           }
-          if(!ready)throw new Error('current runtime-copy ABC build never appeared in Chrome');
+          if(!ready)throw new Error('current post-render-timed ABC build never appeared in Chrome');
 
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
@@ -59,7 +61,7 @@ jobs:
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
           await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d&&d.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
-          await page.waitForTimeout(900);
+          await page.waitForTimeout(1800);
 
           const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
           const accountId=model.accounts[0].id;
@@ -68,9 +70,10 @@ jobs:
           for(const required of [
             'Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.',
             'Customer outcomes over activity','Intellectual Honesty','Enterprise Customer Success motion',
-            'Customer Cadence','Engagement Coverage','Value & Growth','Voice of Customer'
+            'Customer Cadence','Engagement Coverage','Value & Growth','Voice of Customer',
+            'VALUE REALIZATION','ADOPTION & ENABLEMENT','RENEWAL & EXPANSION','RISK & ESCALATION','VOICE OF CUSTOMER'
           ]) if(!appText.toLowerCase().includes(required.toLowerCase())) throw new Error('final Abnormal copy missing: '+required);
-          for(const forbidden of ['Run the post-sales business with one operating picture.','Headcount planning signal','RESOURCE RIGOR','Budget, forecast and investment visibility']) if(appText.includes(forbidden))throw new Error('old ZS copy still visible: '+forbidden);
+          for(const forbidden of ['Run the post-sales business with one operating picture.','Headcount planning signal','RESOURCE RIGOR','Budget, forecast and investment visibility','CUSTOMER SUCCESS BUSINESS OPERATIONS']) if(appText.includes(forbidden))throw new Error('old ZS copy still visible: '+forbidden);
           if(model.accounts.length!==20||model.accounts[0].name!=='Lone Mesa Energy'||model.accounts[0].region!=='Houston, TX')throw new Error('TOLA model changed');
           if(model.healthModel.adoption!==30||model.healthModel.valueRealization!==25||model.healthModel.stakeholderAlignment!==20||model.healthModel.riskAndEscalation!==15||model.healthModel.renewalAndGrowth!==10)throw new Error('health model changed');
           if(model.accounts[0].contacts.length<3)throw new Error('multi-threaded stakeholder model missing');
@@ -82,14 +85,14 @@ jobs:
 
           const accountsRoute=page.locator('[data-route="accounts"]');
           if(await accountsRoute.count())await accountsRoute.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(700);
 
           const exact=page.locator(`[data-open="${accountId}"]`).first();
           console.log('ACCOUNT_ID',accountId,'EXACT_COUNT',await page.locator(`[data-open="${accountId}"]`).count());
           if(!(await exact.count()))throw new Error('exact first account open control not found');
           console.log('EXACT_OUTER_HTML',await exact.evaluate(el=>el.outerHTML));
           await exact.click();
-          await page.waitForTimeout(700);
+          await page.waitForTimeout(900);
 
           const tabs=page.locator('[data-tab]');
           console.log('TAB_COUNT',await tabs.count());
@@ -102,7 +105,7 @@ jobs:
           if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
           for(const t of ['Stakeholders','Success Plan','Technical','Meetings','Notes','Commercial']) if(!tabText.some(x=>x.includes(t)))throw new Error('missing account tab: '+t);
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
-          console.log('PASS: current stable ABC build, role-aligned Command Center, exact account workspace, and tabs verified');
+          console.log('PASS: current stable ABC build, final Abnormal copy, exact account workspace, and tabs verified');
           await browser.close();
           NODE
           CHROME="$chrome" node verify.mjs
