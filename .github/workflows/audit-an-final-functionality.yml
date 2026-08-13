@@ -1,0 +1,102 @@
+name: Final Stable an.clintware.com Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit-an-final-functionality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Audit live analytics, workflows, and placeholder UI
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-final-audit && cd /tmp/an-final-audit
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > audit.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage(); page.setDefaultTimeout(18000);
+          const pageErrors=[]; page.on('pageerror',e=>pageErrors.push(e.message));
+          await page.goto('https://an.clintware.com/?final-audit='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw',process.env.AN_PASS); await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'))?.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topnav'),{timeout:30000});
+
+          const norm=s=>(s||'').replace(/\s+/g,' ').trim();
+          const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>({route:n.dataset.route,text:(n.textContent||'').trim()})));
+          const routeControls={}; const placeholders=[];
+          for(const r of routes){
+            await page.locator(`.topnav [data-route="${r.route}"]`).click(); await page.waitForTimeout(100);
+            if(!(await page.locator('#abc-global-logout:visible').count())) throw new Error('Logout missing on '+r.route);
+            const text=norm(await page.locator('#app').innerText());
+            for(const w of ['coming soon','not implemented','placeholder','lorem ipsum','dummy','todo','fake']) if(text.toLowerCase().includes(w)) placeholders.push({scope:'route:'+r.route,word:w});
+            routeControls[r.route]=await page.locator('#app button:visible,#app a:visible').evaluateAll(ns=>ns.map(n=>({text:(n.textContent||'').replace(/\s+/g,' ').trim(),id:n.id||'',route:n.dataset.route||'',action:n.dataset.action||'',href:n.getAttribute('href')||'',open:n.dataset.open||'',disabled:!!n.disabled})).filter(x=>x.text));
+          }
+
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const id=model.accounts[0].id;
+          await page.locator(`[data-open="${id}"]`).first().click(); await page.waitForSelector('[data-tab]');
+          const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Map(ns.map(n=>[n.dataset.tab,{tab:n.dataset.tab,text:(n.textContent||'').trim()}])).values()]);
+          const tabControls={};
+          for(const t of tabs){
+            await page.locator(`[data-tab="${t.tab}"]`).first().click(); await page.waitForTimeout(80);
+            if(!(await page.locator('#abc-global-logout:visible').count())) throw new Error('Logout missing on tab '+t.tab);
+            const text=norm(await page.locator('#app').innerText());
+            for(const w of ['coming soon','not implemented','placeholder','lorem ipsum','dummy','todo','fake']) if(text.toLowerCase().includes(w)) placeholders.push({scope:'account:'+t.tab,word:w});
+            tabControls[t.tab]=await page.locator('#app button:visible,#app a:visible').evaluateAll(ns=>ns.map(n=>({text:(n.textContent||'').replace(/\s+/g,' ').trim(),id:n.id||'',tab:n.dataset.tab||'',action:n.dataset.action||'',href:n.getAttribute('href')||'',disabled:!!n.disabled})).filter(x=>x.text));
+          }
+
+          // Note save + visible confirmation, tied to actual storage change.
+          await page.locator('[data-tab="notes"]').first().click();
+          const before=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,id);
+          await page.locator('[data-add-note]').click(); await page.fill('#n-text','Final audit note '+Date.now()); await page.click('#save-note');
+          await page.waitForFunction(()=>document.querySelector('#abc-save-toast')?.classList.contains('show')&&document.querySelector('#abc-save-toast')?.textContent==='Note saved');
+          const after=await page.evaluate(id=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.find(a=>String(a.id)===String(id)).notes.length,id);
+          if(after!==before+1) throw new Error('Note save did not persist');
+
+          // Other state-changing account workflows present in this build.
+          const workflowChecks=[];
+          await page.locator('[data-tab="stakeholders"]').first().click(); workflowChecks.push({name:'stakeholder_add',present:!!(await page.locator('[data-add-contact]').count())});
+          await page.locator('[data-tab="success"]').first().click(); workflowChecks.push({name:'success_plan_add',present:!!(await page.locator('[data-add-success]').count())});
+          await page.locator('[data-tab="meetings"]').first().click(); workflowChecks.push({name:'meeting_add',present:!!(await page.locator('[data-add-meeting]').count())});
+          await page.locator('[data-tab="summary"]').first().click(); workflowChecks.push({name:'meeting_brief',present:!!(await page.locator('[data-brief]').count())});
+          if(workflowChecks.some(x=>!x.present)) throw new Error('Expected account workflow missing: '+JSON.stringify(workflowChecks));
+
+          // GA4 config + SPA page views for every discovered route and account tab.
+          const dl=await page.evaluate(()=> (window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}));
+          if(!dl.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P')) throw new Error('GA4 config missing');
+          const views=dl.filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]||{});
+          const vt=JSON.stringify(views); const missingViews=[];
+          for(const r of routes) if(!vt.includes(r.route)) missingViews.push('route:'+r.route);
+          for(const t of tabs) if(!vt.includes(t.tab)) missingViews.push('account:'+t.tab);
+          if(missingViews.length) throw new Error('Missing GA page views: '+missingViews.join(', '));
+
+          // Suspicious visible controls: report, do not automatically call them broken.
+          const suspicious=[];
+          const scan=(scope,arr)=>{for(const c of arr){if(c.disabled)continue;const label=norm(c.text);const known=c.id||c.route||c.action||c.href||/add|edit|remove|delete|save|clear|seed|copy|print|brief|open|close|cancel|theme|logout|lock|back|account|review|view|generate/i.test(label);if(!known)suspicious.push({scope,label});}};
+          for(const [k,v] of Object.entries(routeControls)) scan('route:'+k,v);
+          for(const [k,v] of Object.entries(tabControls)) scan('account:'+k,v);
+          const uniq=(xs)=>[...new Map(xs.map(x=>[JSON.stringify(x),x])).values()];
+          const report={status:'PASS',measurement_id:'G-DCY144YM9P',routes:routes.map(x=>x.route),account_tabs:tabs.map(x=>x.tab),page_view_events:views.length,missing_page_views:missingViews,placeholder_markers:uniq(placeholders),suspicious_controls:uniq(suspicious),workflow_checks:workflowChecks,browser_errors:pageErrors};
+          console.log('FINAL_AUDIT_REPORT='+JSON.stringify(report));
+          if(pageErrors.length) throw new Error('Browser errors: '+pageErrors.join(' | '));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node audit.mjs
