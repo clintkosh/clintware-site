@@ -4,6 +4,8 @@ root=Path(__file__).resolve().parents[1]
 worker=(root/'src/index.js').read_text()
 config=(root/'wrangler.jsonc').read_text()
 
+# Final production regression marker: clickable overview, note save feedback,
+# print/PDF date safety, Abnormal-style branding, and SPA analytics are required.
 # ABC is the ZS account-management engine with an Abnormal-specific presentation,
 # customer model, health weighting, and the existing Abnormal demo credential.
 for marker in [
@@ -54,7 +56,6 @@ for text in [
 ]:
     assert text in html, text
 
-# The visible ZS identity must be gone while the full account engine remains.
 assert 'Post-Sales Business Operations' not in html
 assert 'AI Insights' not in html
 assert html.count('Chief Information') >= 2
@@ -68,7 +69,6 @@ assert 'function renderTopBar(){' in html
 assert 'renderTopBar()}<main class="shell">${page()}' in html
 assert not re.search(r'\btop\s*\(', html)
 
-# Every main SPA route and every account tab is tracked through the single render hook.
 assert "route==='account'?('account/'+accountTab):route" in html
 assert "bind();trackPageView()" in html
 for route in ['command','accounts','renewal','playbooks','cadence','capacity','finance','intake','kpis','settings']:
