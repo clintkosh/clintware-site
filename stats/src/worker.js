@@ -53,6 +53,8 @@ export async function verifyStatsPassword(password) {
 }
 
 function passwordFromRequest(request) {
+  const direct = request.headers.get("X-Clintware-Password");
+  if (direct) return direct;
   const header = request.headers.get("Authorization") || "";
   if (!header.startsWith("Basic ")) return "";
   try {

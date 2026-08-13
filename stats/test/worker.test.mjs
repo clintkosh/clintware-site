@@ -80,6 +80,17 @@ test("public shell is noindex and protected API rejects anonymous requests", asy
   assert.equal(api.headers.get("cache-control"), "no-store, max-age=0");
 });
 
+test("password API accepts the same-origin dashboard header", async () => {
+  const response = await worker.fetch(
+    new Request("https://stats.clintware.com/api/session", {
+      method: "POST",
+      headers: { "X-Clintware-Password": "definitely-not-the-password" },
+    }),
+    {},
+  );
+  assert.equal(response.status, 401);
+});
+
 test("health endpoint is intentionally minimal", async () => {
   const response = await worker.fetch(new Request("https://stats.clintware.com/health"), {});
   assert.equal(response.status, 200);

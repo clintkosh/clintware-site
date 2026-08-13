@@ -29,15 +29,11 @@ export const APP_JS = String.raw`
     return new Intl.NumberFormat('en-US', { notation: number >= 100000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(number);
   }
 
-  function authorization(password) {
-    return 'Basic ' + btoa('clint:' + password);
-  }
-
   async function request(path, password, method) {
     var response = await fetch(path, {
       method: method || 'GET',
       headers: {
-        Authorization: authorization(password),
+        'X-Clintware-Password': password,
         Accept: 'application/json'
       },
       cache: 'no-store'
