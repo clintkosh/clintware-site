@@ -1,0 +1,52 @@
+name: Attach an.clintware.com to verified ABC Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/attach-an-to-abc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attach an.clintware.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+          if [ "$count" = "0" ]; then
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"an.clintware.com","service":"abnormal-enterprise-customer-success"}' >/tmp/an-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/an-put.json")); assert d.get("success") is True,d'
+          fi
+          verify=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert len(r)==1,d; x=r[0]; assert x.get("service")=="abnormal-enterprise-customer-success",x; print("BOUND",x["hostname"],"->",x["service"])' <<< "$verify"
+      - name: Verify promoted site
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 30); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://an.clintware.com/?cutover=${GITHUB_SHA}-${i}" || true)
+            if grep -Fq "ABNORMAL // CUSTOMER SUCCESS" <<< "$body" \
+              && grep -Fq "Print / Save PDF" <<< "$body" \
+              && grep -Fq "G-DCY144YM9P" <<< "$body"; then ok=1; break; fi
+            sleep 3
+          done
+          test "$ok" = "1"
+          echo "an.clintware.com now serves the verified ABC build"
