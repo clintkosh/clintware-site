@@ -1,0 +1,29 @@
+name: Inspect ABC postpatch leftovers
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-abc-postpatch-leftovers.yml"
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch in temp checkout and show legacy contexts
+        run: |
+          set -euo pipefail
+          python3 abc/tools/patch_final_ui.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,gzip
+          parts=[]
+          for p in sorted(Path('abc/src').glob('app-part*.js')):
+            parts.append(re.search(r'"([A-Za-z0-9+/=]+)"',p.read_text()).group(1))
+          h=gzip.decompress(base64.b64decode(''.join(parts))).decode()
+          for term in ['Post-Sales Business Operations','Business Operations','Zscaler','DTex','blue']:
+            hits=list(re.finditer(re.escape(term),h,re.I))
+            print('\nTERM',term,'COUNT',len(hits))
+            for m in hits[:20]: print(repr(h[max(0,m.start()-300):m.start()+650]))
+          PY
