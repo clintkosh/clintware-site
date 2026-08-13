@@ -91,8 +91,15 @@ jobs:
           await page.locator('[data-brief]').first().click();
           if(await page.locator('#print-brief').count()!==1)throw new Error('Print / Save PDF missing');
           await page.click('#print-brief');const popup=await popupPromise;popup.setDefaultTimeout(15000);
-          await popup.waitForFunction(()=>document.body?.innerText.includes('Manual notes / decisions'));
-          const ptext=await popup.locator('body').innerText();
+          // document.open()/write() replaces the original about:blank execution context.
+          // Poll the replacement DOM from Node rather than waitForFunction on the old context.
+          let ptext='';
+          for(let i=0;i<24;i++){
+            try{ptext=await popup.locator('body').innerText({timeout:1000})}catch(e){ptext=''}
+            if(ptext.includes('Manual notes / decisions'))break;
+            await popup.waitForTimeout(250);
+          }
+          if(!ptext.includes('Manual notes / decisions'))throw new Error('printable brief never finished writing');
           if(!ptext.includes(note))throw new Error('custom note missing from printable brief');
           if(!ptext.includes('EBR storyline'))throw new Error('EBR storyline missing from printable brief');
           const layout=await popup.evaluate(()=>{const body=document.body.getBoundingClientRect();const dates=[...document.querySelectorAll('.date-value')].map(el=>{const r=el.getBoundingClientRect(),cs=getComputedStyle(el);return{text:el.textContent,whiteSpace:cs.whiteSpace,left:r.left,right:r.right,bodyLeft:body.left,bodyRight:body.right}});return{dates,overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+1}});
