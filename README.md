@@ -33,3 +33,15 @@ The GitHub Pages workflow is manual until the official domain move. It validates
 - Keep RenewNudge on its existing Lovable deployment until that project is changed there.
 - Keep separate codeFEDDY properties outside the Clintware product map.
 - Never deploy the retired Aggieland Media Lab address as the public Family Media Lab.
+
+## CRM analytics requirement
+
+Every interview CRM must load and initialize the shared Clintware GA4 property
+`G-DCY144YM9P`. Worker-based CRMs must also allow Google Tag Manager and Google
+Analytics collection in their Content Security Policy. The repository-wide
+`tests/validate_crm_analytics.py` check discovers CRM Workers and static CRM
+pages automatically and blocks validation when analytics coverage is missing.
+
+New CRM Worker names or source must include a durable CRM marker such as
+`customer success`, `command center`, `crm`, or `-cs-` so the shared audit
+discovers them without a manually maintained site list.

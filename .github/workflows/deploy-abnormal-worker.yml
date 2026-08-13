@@ -49,7 +49,9 @@ jobs:
           test -n "$chrome"
           CHROME="$chrome" timeout 35s node tests/account-users-browser.mjs
       - name: Validate privacy and deployment guardrails
-        run: python3 tests/regression.py
+        run: |
+          python3 tests/regression.py
+          python3 ../tests/validate_crm_analytics.py
 
   deploy:
     needs: validate

@@ -32,6 +32,7 @@ jobs:
           node --check src/app.js
           node tests/smoke.mjs
           python3 tests/regression.py
+          python3 ../tests/validate_crm_analytics.py
       - name: Exercise exact DTEX client login gate
         run: node tests/auth-roundtrip.mjs
 
