@@ -1,0 +1,123 @@
+name: Deploy Zscaler Gainsight Health and P1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "zscaler/patch_gainsight_p1.py"
+      - ".github/workflows/deploy-zscaler-gainsight-p1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zscaler-post-sales-operations
+  cancel-in-progress: true
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Apply Zscaler health and P1 patch
+        run: |
+          set -euo pipefail
+          python3 zscaler/patch_gainsight_p1.py
+          node --check zscaler/src/index.js
+          grep -q "const ZSCALER_HEALTH_P1_SCRIPT" zscaler/src/index.js
+          grep -q "adoption:20,value:20,relationship:15,technical:25,supportRisk:15,successPlan:5" zscaler/src/index.js
+          grep -q "Defaulted to Gainsight-style Customer Success health practices except where overridden by Zscaler priorities" zscaler/src/index.js
+          grep -q "data-edit-technical" zscaler/src/index.js
+          grep -q "data-edit-commercial" zscaler/src/index.js
+          grep -q "data-edit-risk" zscaler/src/index.js
+          grep -q "data-edit-contact" zscaler/src/index.js
+          grep -q "data-edit-success" zscaler/src/index.js
+          grep -q "data-edit-meeting" zscaler/src/index.js
+          grep -q "data-edit-note" zscaler/src/index.js
+          grep -q "const root='/zsc/'" zscaler/src/index.js
+          grep -q "function bindGate" zscaler/src/index.js
+          (cd zscaler && node tests/smoke.mjs && python3 tests/regression.py && node tests/auth-roundtrip.mjs)
+          python3 tests/validate_crm_analytics.py
+
+      - name: Commit corrected Zscaler runtime
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add zscaler/src/index.js zscaler/tests/auth-roundtrip.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m "Use Gainsight-default Zscaler-tuned health scoring and complete P1 workflows"
+            git push
+          fi
+
+      - name: Deploy Zscaler Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd zscaler
+
+      - name: Verify stable custom-domain bindings
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          for host in zsc.clintware.com zc.clintware.com; do
+            response=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            HOST="$host" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")==os.environ["HOST"] and x.get("service")=="zscaler-cs-business-operations",x; print("binding ok",x["hostname"])' <<< "$response"
+          done
+
+      - name: Verify live scoring, Settings, P1 workflows and Analytics
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-health-p1 && cd /tmp/zsc-health-p1
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          for(const host of ['zsc.clintware.com','zc.clintware.com']){
+            const page=await browser.newPage(); page.setDefaultTimeout(20000); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+            let ready=false;
+            for(let i=0;i<30;i++){
+              try{await page.goto(`https://${host}/?gainsight-p1=${Date.now()}-${i}`,{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(300);if(await page.locator('#abc-health-p1-script').count()){ready=true;break}}catch(e){}
+              await page.waitForTimeout(1500);
+            }
+            if(!ready)throw new Error(host+': final scoring build not reached');
+            await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+            await page.fill('#pw','wrong-password');await page.click('#access-form button[type="submit"]');if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error(host+': wrong-password behavior failed');
+            await page.fill('#pw','2$C@L3RK0S$H2026');await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+            await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'))?.accounts?.length===20}catch(e){return false}},{timeout:30000});
+            const model=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+            let d=await model();
+            const expected=await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')),a=d.accounts[0],w=d.settings.healthWeights,cl=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0))),mt=(a.meetings||[]).filter(m=>m.date).sort((x,y)=>String(y.date).localeCompare(String(x.date)));let rec=35;if(mt.length){const days=Math.max(0,Math.ceil((Date.now()-new Date(mt[0].date+'T12:00:00').getTime())/86400000));rec=days<=30?100:days<=60?85:days<=90?70:days<=120?55:40}const rel=cl(cl(a.stakeholderStrength)*.60+rec*.25+((a.contacts||[]).some(c=>c.level==='C-Level')?100:40)*.15),sev=String(a.supportSeverity||'None').toLowerCase(),sp=sev.includes('sev 1')?25:sev.includes('sev 2')?15:sev.includes('sev 3')?7:0;let rp=0;for(const r of(a.risks||[]).filter(r=>String(r.status||'Open').toLowerCase()!=='closed')){const z=String(r.severity||'').toLowerCase();rp=Math.max(rp,z.includes('critical')?25:z.includes('high')?15:z.includes('medium')?8:z.includes('low')?3:5)}const sr=cl(cl(a.supportSla)-Math.max(sp,rp)),plans=a.successPlans||[],ps=plans.length?cl(plans.reduce((s,x)=>s+cl(x.progress),0)/plans.length):50,sig={adoption:cl(a.adoption),value:cl(a.valueEvidence),relationship:rel,technical:cl(a.technicalCoverage),supportRisk:sr,successPlan:ps};return cl(Object.keys(w).reduce((s,k)=>s+sig[k]*Number(w[k]||0),0)/Object.values(w).reduce((s,x)=>s+Number(x||0),0))});
+            if(d.accounts[0].health!==expected)throw new Error(host+`: formula mismatch ${d.accounts[0].health} != ${expected}`);
+            if(JSON.stringify(d.settings.healthWeights)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:15,successPlan:5}))throw new Error(host+': Zscaler defaults wrong');
+            await page.locator('.topnav [data-route="settings"]').click();
+            if((await page.locator('.abc-health-weight').count())!==6)throw new Error(host+': six health weights missing');
+            const settingsText=await page.locator('#app').innerText();if(!settingsText.includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by Zscaler priorities'))throw new Error(host+': Gainsight/company override note missing');
+            await page.locator('[data-health-key="adoption"]').fill('25');await page.locator('[data-health-key="value"]').fill('15');await page.click('#abc-save-health-model');await page.waitForTimeout(100);d=await model();if(d.settings.healthWeights.adoption!==25||d.settings.healthWeights.value!==15)throw new Error(host+': settings save failed');
+            await page.locator('.topnav [data-route="settings"]').click();await page.click('#abc-reset-health-model');await page.waitForTimeout(100);d=await model();if(d.settings.healthWeights.technical!==25||d.settings.healthWeights.supportRisk!==15)throw new Error(host+': reset failed');
+            await page.locator('.topnav [data-route="accounts"]').click();const id=d.accounts[0].id;await page.locator(`[data-open="${id}"]`).first().click();await page.waitForSelector('[data-tab="summary"]');
+            await page.locator('[data-edit-account]').click();if(await page.locator('#f-health').count())throw new Error(host+': manual health input still exists');if(!(await page.locator('#f-adoption').count()))throw new Error(host+': adoption input missing');await page.click('[data-close]');
+            await page.locator('[data-tab="summary"]').click();await page.locator('[data-add-risk]').click();await page.fill('#r-title','ZSC E2E risk');await page.fill('#r-severity','High');await page.fill('#r-owner','CSM');await page.click('#save-risk');d=await model();let a=d.accounts.find(x=>String(x.id)===String(id)),r=a.risks.find(x=>x.title==='ZSC E2E risk');if(!r)throw new Error(host+': risk add failed');await page.locator(`[data-edit-risk="${id}|${r.id}"]`).click();await page.fill('#r-status','Closed');await page.click('#save-risk');await page.locator(`[data-del-risk="${id}|${r.id}"]`).click();
+            await page.locator('[data-tab="stakeholders"]').click();await page.locator('[data-add-contact]').click();await page.fill('#c-name','ZSC E2E Stakeholder');await page.fill('#c-title','Director');await page.fill('#c-email','e2e@example.com');await page.fill('#c-role','Program Champion');await page.fill('#c-level','Director');await page.click('#save-contact');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));let c=a.contacts.find(x=>x.name==='ZSC E2E Stakeholder');if(!c)throw new Error(host+': stakeholder add failed');await page.locator(`[data-edit-contact="${id}|${c.id}"]`).click();await page.fill('#c-title','VP Security');await page.click('#save-contact');await page.locator(`[data-del-contact="${id}|${c.id}"]`).click();
+            await page.locator('[data-tab="success"]').click();await page.locator('[data-add-success]').click();await page.fill('#s-objective','ZSC E2E outcome');await page.fill('#s-progress','25');await page.fill('#s-owner','CSM + Customer');await page.fill('#s-proof','Measured value');await page.click('#save-success');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));let sp=a.successPlans.find(x=>x.objective==='ZSC E2E outcome');if(!sp)throw new Error(host+': success add failed');await page.locator(`[data-edit-success="${id}|${sp.id}"]`).click();await page.fill('#s-progress','75');await page.click('#save-success');await page.locator(`[data-del-success="${id}|${sp.id}"]`).click();
+            await page.locator('[data-tab="meetings"]').click();await page.locator('[data-add-meeting]').click();await page.fill('#m-title','ZSC E2E Meeting');await page.fill('#m-attendees','CSM, CISO');await page.fill('#m-notes','Initial');await page.click('#save-meeting');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));let m=a.meetings.find(x=>x.title==='ZSC E2E Meeting');if(!m)throw new Error(host+': meeting add failed');await page.locator(`[data-edit-meeting="${id}|${m.id}"]`).click();await page.fill('#m-notes','Edited');await page.click('#save-meeting');await page.locator(`[data-del-meeting="${id}|${m.id}"]`).click();
+            await page.locator('[data-tab="notes"]').click();await page.locator('[data-add-note]').click();await page.fill('#n-text','ZSC E2E Note');await page.click('#save-note');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));let n=a.notes.find(x=>x.text==='ZSC E2E Note');if(!n)throw new Error(host+': note add failed');await page.locator(`[data-edit-note="${id}|${n.id}"]`).click();await page.fill('#n-text','ZSC E2E Note Edited');await page.click('#save-note');await page.locator(`[data-del-note="${id}|${n.id}"]`).click();
+            await page.locator('[data-tab="technical"]').click();await page.locator('[data-edit-technical]').click();await page.fill('#t-coverage','72');await page.fill('#t-support','90');await page.fill('#t-severity','Sev 3');await page.click('#save-technical');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));if(a.technicalCoverage!==72||a.supportSla!==90)throw new Error(host+': technical edit failed');
+            await page.locator('[data-tab="commercial"]').click();await page.locator('[data-edit-commercial]').click();await page.fill('#cm-value','81');await page.fill('#cm-relationship','78');await page.fill('#cm-readiness','70');await page.click('#save-commercial');d=await model();a=d.accounts.find(x=>String(x.id)===String(id));if(a.valueEvidence!==81||a.stakeholderStrength!==78||a.commercialReadiness!==70)throw new Error(host+': commercial edit failed');
+            const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>n.dataset.route));for(const x of routes){await page.locator(`.topnav [data-route="${x}"]`).click();await page.waitForTimeout(25)}await page.locator('.topnav [data-route="accounts"]').click();await page.locator(`[data-open="${id}"]`).first().click();const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Set(ns.map(n=>n.dataset.tab))]);for(const t of tabs){await page.locator(`[data-tab="${t}"]`).first().click();await page.waitForTimeout(25)}const paths=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean));const joined=JSON.stringify(paths);for(const x of routes)if(!joined.includes('/zsc/'+x))throw new Error(host+': missing GA route '+x);for(const t of tabs)if(!joined.includes('/zsc/account/'+t))throw new Error(host+': missing GA tab '+t);
+            if(errors.length)throw new Error(host+': browser errors '+errors.join(' | '));
+            console.log(host+': PASS Gainsight-default Zscaler override + P1 + Analytics');await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
