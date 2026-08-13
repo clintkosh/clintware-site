@@ -2,9 +2,10 @@ from pathlib import Path
 import json
 import re
 
-abc_path = Path('abc/src/index.js')
-zsc_path = Path('zscaler/src/index.js')
-auth_path = Path('zscaler/tests/auth-roundtrip.mjs')
+repo = Path(__file__).resolve().parents[1]
+abc_path = repo / 'abc/src/index.js'
+zsc_path = repo / 'zscaler/src/index.js'
+auth_path = repo / 'zscaler/tests/auth-roundtrip.mjs'
 abc = abc_path.read_text()
 zsc = zsc_path.read_text()
 
@@ -30,7 +31,7 @@ script = script.replace("page_title:'Abnormal CS '+view", "page_title:'Zscaler C
 script = script.replace("const root=location.hostname.toLowerCase().startsWith('an.')?'/an/':'/abc/';", "const root='/zsc/';")
 
 # The older ZS bundle calls trackPageView() during its initial render but does
-# not define it.  Define a harmless prelude before the inherited app executes;
+# not define it. Define a harmless prelude before the inherited app executes;
 # the health/P1 layer replaces it with the real /zsc/ SPA tracker on DOM ready.
 script = '<script id="zsc-track-page-prelude">function trackPageView(){}</script>' + script
 
@@ -59,8 +60,8 @@ if old_body in zsc:
     zsc = zsc.replace(old_body, 'const bodyClose = out.toLowerCase().lastIndexOf("</body>");\n  out = bodyClose >= 0 ? `${out.slice(0, bodyClose)}${DTEX_GATE_JS}${out.slice(bodyClose)}` : `${out}${DTEX_GATE_JS}`;', 1)
 
 # Cloudflare Web Analytics may inject its own beacon on the custom domain.
-# Permit that first-party platform script/collector so a valid page does not
-# generate a CSP console violation during production verification.
+# Permit that platform script/collector so a valid page does not generate a
+# CSP browser-console violation during production verification.
 zsc = zsc.replace(
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com",
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com"
