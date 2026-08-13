@@ -1,0 +1,45 @@
+name: Inspect ABC Scoring Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-abc-scoring.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode and inspect scoring/settings source
+        run: |
+          python3 - <<'PY'
+          import re,base64,gzip
+          from pathlib import Path
+          s=Path('abc/src/app.js').read_text()
+          m=re.search(r'APP_GZ_B64\s*=\s*[`\"\']([^`\"\']+)',s)
+          if not m:
+              print(s[:1000]); raise SystemExit('APP_GZ_B64 not found')
+          raw=gzip.decompress(base64.b64decode(m.group(1))).decode('utf-8')
+          Path('/tmp/abc-decoded.html').write_text(raw)
+          lines=raw.splitlines()
+          terms=['settings','weight','health','adoption','stakeholder','technicalCoverage','valueEvidence','commercialReadiness','successPlan','successPlans','renewal','score','renderSettings','save-settings','saveSettings','technical','commercial']
+          hits=[]
+          for i,line in enumerate(lines,1):
+              if any(t.lower() in line.lower() for t in terms): hits.append(i)
+          keep=set()
+          for i in hits:
+              for j in range(max(1,i-3),min(len(lines),i+3)+1): keep.add(j)
+          print('DECODED_LINES',len(lines),'HITS',len(hits))
+          start=None; prev=None
+          for i in sorted(keep):
+              if start is None or (prev is not None and i>prev+1):
+                  if start is not None: print('---')
+                  start=i
+              print(f'{i:05d}: {lines[i-1][:1800]}')
+              prev=i
+          PY
