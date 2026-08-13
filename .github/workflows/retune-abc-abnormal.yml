@@ -1,0 +1,128 @@
+name: Retune ABC for Abnormal Enterprise CS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/retune-abc-abnormal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  retune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Retune copied ZS presentation to Abnormal Enterprise Customer Success
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+
+          # Extend the existing transform list. These changes affect presentation/copy only;
+          # the copied ZS application engine and persistence model remain untouched.
+          start=s.index('const STATIC_REPLACEMENTS = [')
+          end=s.index('];', start)
+          block=s[start:end]
+          additions=[
+            ('CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'),
+            ('Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'),
+            ('Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'),
+            ('Impact over activity','Customer outcomes over activity'),
+            ('Make operating signals easy to inspect, update, and carry into the next leadership decision.','Make customer signals easy to inspect, update, and carry into the next measurable customer action.'),
+            ('Accountability','Intellectual Honesty'),
+            ('Headcount planning signal','Accounts requiring coordinated mitigation'),
+            ('Commercial readiness window','Renewal and expansion readiness'),
+            ('DTex-style portfolio table with the business-operations signals this role needs.','Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence.'),
+            ('Renewal & commercial readiness','Renewal & growth readiness'),
+            ('Timing together with evidence, coverage, and health.','Value evidence, stakeholder confidence, adoption, and timing together.'),
+            ('Lowest-health accounts and operating dependencies.','Accounts requiring coordinated risk mitigation and customer follow-through.'),
+            ('Role operating model','Enterprise Customer Success motion'),
+            ('Structure across the core responsibilities in the listing.','Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role.'),
+            ('BUSINESS RHYTHM','VALUE REALIZATION'),
+            ('MBR, QBR, AOP and executive reviews','Success criteria, ROI, QBRs/EBRs and measurable customer outcomes'),
+            ('RESOURCE RIGOR','ADOPTION & ENABLEMENT'),
+            ('Engagement Coverage, workload and headcount visibility','Feature engagement, best practices, roadmap education and technical coverage'),
+            ('VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'),
+            ('Budget, forecast and investment visibility','Value evidence, executive confidence and commercial readiness'),
+            ('PRIORITIZATION','RISK & ESCALATION'),
+            ('Structured intake and decision transparency','Proactive health signals, coordinated mitigation and commitment follow-through'),
+            ('CUSTOMER OUTCOMES','VOICE OF CUSTOMER'),
+            ('Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'),
+            ('Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.'),
+            ('CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'),
+          ]
+          lines=[]
+          for a,b in additions:
+              token='  ['+repr(a).replace("'",'"')+','+repr(b).replace("'",'"')+'],'
+              if a not in block or b not in block:
+                  lines.append(token)
+          if lines:
+              s=s[:end]+'\n'+'\n'.join(lines)+s[end:]
+
+          # Add a narrow Abnormal visual override after the existing app-theme rules.
+          # This removes the remaining blue ZS accents while preserving health/risk colors.
+          css='''
+#app [data-open]{color:#ff6ea7!important;font-weight:800}
+#app [data-open]:hover{color:#ff97bd!important}
+#app .abc-primary-action{background:linear-gradient(90deg,#f23b7e,#e65468)!important;border-color:transparent!important;color:#fff!important}
+#app .abc-brand-mark{filter:hue-rotate(115deg) saturate(1.45) brightness(1.05)}
+#app .abc-accent-link{color:#ff6ea7!important}
+#app progress::-webkit-progress-value{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
+#app [class*="progress"]>span,#app [class*="meter"]>span{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
+'''
+          if '.abc-primary-action' not in s:
+              marker='#abc-role-context .abc-values{font-weight:600;opacity:.72;margin-left:8px}'
+              i=s.index(marker)+len(marker)
+              s=s[:i]+css+s[i:]
+
+          # Add role-safe visual class assignment. Text-based classing is deliberately
+          # presentation-only and leaves all existing event handlers/functionality intact.
+          js='''
+function applyAbnormalVisualClasses(){
+  document.querySelectorAll('#app button,#app a').forEach(el=>{
+    const t=(el.textContent||'').trim();
+    if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');
+    if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link');
+  });
+  const brand=document.querySelector('#app header svg,#app nav svg,#app [class*="brand"] svg,#app [class*="logo"] svg');
+  if(brand)brand.classList.add('abc-brand-mark');
+}
+'''
+          if 'function applyAbnormalVisualClasses()' not in s:
+              target='function addContext(){'
+              i=s.index(target)
+              s=s[:i]+js+s[i:]
+              # Call after DOM/model render and after route clicks/rerenders.
+              s=s.replace('addContext();if(changed', 'addContext();applyAbnormalVisualClasses();if(changed', 1)
+              s=s.replace("document.addEventListener('click',e=>{", "document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);", 1)
+
+          p.write_text(s)
+          PY
+
+          node --check abc/src/index.js
+          node abc/tests/smoke.mjs
+          node abc/tests/auth-roundtrip.mjs
+          python3 abc/tests/regression.py
+          python3 tests/validate_crm_analytics.py
+
+      - name: Commit final Abnormal retune
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js; then
+            echo "ABC already retuned"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          git commit -m "Finish Abnormal Enterprise CS retune for ABC"
+          git push origin HEAD:main
