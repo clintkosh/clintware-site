@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { CRM_PORTFOLIO, crmForPage, GA_MEASUREMENT_ID } from "../src/config.js";
 import { reportingConfiguration, summarizeReports } from "../src/google-analytics.js";
-import worker, { constantTimeEqual, derivePassword } from "../src/worker.js";
+import worker, { constantTimeEqual, createSession, derivePassword } from "../src/worker.js";
 
 test("portfolio uses one measurement ID and unique page namespaces", () => {
   assert.equal(GA_MEASUREMENT_ID, "G-DCY144YM9P");
@@ -115,6 +115,36 @@ test("authenticated HTML safely serializes the dashboard payload", async () => {
     assert.doesNotMatch(html, /<\/script><script>alert/);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("an active edge session renders the protected dashboard", async () => {
+  const stored = new Map();
+  const originalCaches = globalThis.caches;
+  const originalFetch = globalThis.fetch;
+  globalThis.caches = {
+    default: {
+      async put(request, response) { stored.set(request.url, response.clone()); },
+      async match(request) { return stored.get(request.url)?.clone(); },
+      async delete(request) { return stored.delete(request.url); },
+    },
+  };
+  globalThis.fetch = async () => new Response("", { status: 200 });
+  try {
+    const token = await createSession();
+    const cookie = `cw_stats_session=${token}`;
+    const dashboard = await worker.fetch(
+      new Request("https://stats.clintware.com/", { headers: { Cookie: cookie } }),
+      {},
+    );
+    const html = await dashboard.text();
+    assert.equal(dashboard.status, 200);
+    assert.match(html, /window\.__CLINTWARE_STATS_DATA__=/);
+    assert.match(html, /an\.clintware\.com/);
+    assert.match(html, /renewnudge\.clintware\.com/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
   }
 });
 

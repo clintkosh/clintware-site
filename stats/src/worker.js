@@ -64,7 +64,7 @@ function sessionCacheRequest(token) {
   return new Request(`https://stats.clintware.com/.session/${token}`);
 }
 
-async function createSession() {
+export async function createSession() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
