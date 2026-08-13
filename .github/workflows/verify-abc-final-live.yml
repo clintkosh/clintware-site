@@ -49,14 +49,10 @@ jobs:
           }
           if(!finalReady) throw new Error('Chrome never reached final ABC build');
 
-          // The hidden app intentionally performs a one-time model migration/reload even
-          // while the access gate is locked. Wait for that reload to finish before testing
-          // wrong-password feedback so the reload cannot erase the error message.
-          await page.waitForFunction(()=>{
-            try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}
-          },{timeout:30000});
+          // Wait until the gate's actual submit handler is attached before interacting.
+          // The role-mapped account-model migration happens only after a successful unlock.
           await page.waitForFunction(()=>document.querySelector('#access-form')&&typeof document.querySelector('#access-form').onsubmit==='function',{timeout:15000});
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(300);
 
           const pageErrors=[];
           page.on('pageerror',e=>pageErrors.push(e.stack||e.message));
@@ -71,6 +67,9 @@ jobs:
           await page.fill('#pw',process.env.ABC_PASS);
           await page.click('#access-form button[type="submit"]');
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'),{timeout:15000});
+          await page.waitForFunction(()=>{
+            try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}
+          },{timeout:30000});
           await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:15000});
 
           // Branding and overview cards.
