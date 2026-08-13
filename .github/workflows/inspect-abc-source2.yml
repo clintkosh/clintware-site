@@ -20,6 +20,6 @@ jobs:
           for i in range(1,6):
             m=re.search(r'"([A-Za-z0-9+/=]+)"',(Path('abc/src')/f'app-part{i}.js').read_text());chunks.append(m.group(1))
           h=gzip.decompress(base64.b64decode(''.join(chunks))).decode()
-          for term in ['function kpi','function modal','function command(){','function renderTopBar(){','function addNote(a){']:
-            m=h.find(term);print('\n###',term,'###\n',h[m:m+4200] if m>=0 else 'NOT FOUND')
+          for term in ['let route','let accountTab','function page(){','function render(){','function setRoute','function brief(a){','.brandmark{','.card{']:
+            m=h.find(term);print('\n###',term,'###\n',h[max(0,m-500):m+5200] if m>=0 else 'NOT FOUND')
           PY
