@@ -1,0 +1,65 @@
+name: Extract ABC Handler Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/extract-abc-handler-source.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decode bundle and extract click handler source
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,gzip
+          root=Path('abc/src')
+          parts=[]
+          for p in sorted(root.glob('app-part*.js')):
+              m=re.search(r'"([A-Za-z0-9+/=]+)"',p.read_text()); assert m,p
+              parts.append(m.group(1))
+          html=gzip.decompress(base64.b64decode(''.join(parts))).decode()
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
+          matches=[]
+          for si,s in enumerate(scripts):
+              if 'data-open' in s or '[data-open]' in s:
+                  matches.append((si,s))
+          out=[]
+          out.append(f'HTML_LENGTH={len(html)} SCRIPTS={len(scripts)} MATCHES={len(matches)}')
+          for si,s in matches:
+              out.append(f'\n===== SCRIPT {si} LENGTH {len(s)} =====\n')
+              # Include handler-bearing regions around every data-open / closest / addEventListener occurrence.
+              positions=[]
+              for pat in ['data-open','closest(','addEventListener','data-tab','selected=','selected =','route=','route =']:
+                  positions += [m.start() for m in re.finditer(re.escape(pat),s,re.I)]
+              positions=sorted(set(positions))
+              merged=[]
+              for pos in positions:
+                  a=max(0,pos-3500); b=min(len(s),pos+6000)
+                  if merged and a<=merged[-1][1]: merged[-1]=(merged[-1][0],max(merged[-1][1],b))
+                  else: merged.append((a,b))
+              for n,(a,b) in enumerate(merged):
+                  out.append(f'\n--- REGION {n} {a}:{b} ---\n{s[a:b]}\n')
+          Path('.debug').mkdir(exist_ok=True)
+          Path('.debug/abc-handler-extract.txt').write_text('\n'.join(out))
+          PY
+          wc -c .debug/abc-handler-extract.txt
+          sed -n '1,40p' .debug/abc-handler-extract.txt
+      - name: Commit extract for inspection
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .debug/abc-handler-extract.txt
+          git commit -m "Extract ABC account handler for debugging"
+          git push origin HEAD:main
