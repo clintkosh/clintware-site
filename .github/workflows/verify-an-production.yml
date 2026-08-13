@@ -1,0 +1,66 @@
+name: Verify an.clintware.com Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-an-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify live promoted Abnormal CRM
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-final && cd /tmp/an-final
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export AN_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(20000);
+          let ready=false;
+          for(let i=1;i<=24;i++){
+            await page.goto(`https://an.clintware.com/?final=${Date.now()}-${i}`,{waitUntil:'domcontentloaded',timeout:30000});
+            const html=await page.content();
+            if(html.includes('ABNORMAL // CUSTOMER SUCCESS')&&html.includes('Print / Save PDF')&&html.includes('G-DCY144YM9P')){ready=true;break}
+            await page.waitForTimeout(2500);
+          }
+          if(!ready) throw new Error('promoted ABC build not reached');
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw','wrong-password');
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.querySelector('#gate-error')?.textContent==='Incorrect password.');
+          await page.fill('#pw',process.env.AN_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+          const text=await page.locator('body').innerText();
+          for(const marker of ['ABNORMAL // CUSTOMER SUCCESS','Customer Cadence','Voice of Customer','Open customer risks']) if(!text.includes(marker)) throw new Error('missing marker '+marker);
+          await page.locator('.topnav [data-route="command"]').click();
+          if(await page.locator('.kpi-card').count()!==6) throw new Error('six overview cards not present');
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          await page.locator(`[data-open="${model.accounts[0].id}"]`).first().click();
+          await page.waitForSelector('[data-tab="notes"]');
+          await page.locator('[data-tab="notes"]').click();
+          if(!(await page.locator('[data-add-note]').count())) throw new Error('add note control missing');
+          const rows=await page.evaluate(()=>{const x=(window.dataLayer||[]).map(v=>{try{return Array.from(v)}catch(e){return v}});return x});
+          if(!rows.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P')) throw new Error('GA config missing');
+          console.log('PASS: an.clintware.com is the verified ABC-derived Abnormal CRM');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
