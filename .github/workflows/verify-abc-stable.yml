@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/verify-abc-stable.yml"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Verify stable production in Chrome without redeploying
+      - name: Verify stable production and exact account workspace in Chrome
         run: |
           set -euo pipefail
           mkdir -p /tmp/abcverify && cd /tmp/abcverify
@@ -35,12 +35,13 @@ jobs:
           let ready=false;
           for(let i=1;i<=24;i++){
             await page.goto('https://abc.clintware.com/?stable='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
-            if(await page.locator('#gate').count()){ready=true;console.log('gate ready attempt',i);break}
-            console.log('waiting for gate',i,await page.title(),page.url());
+            if(await page.locator('#gate').count()){ready=true;console.log('GATE_READY_ATTEMPT',i);break}
+            console.log('WAIT_GATE',i,await page.title(),page.url());
             await page.waitForTimeout(5000);
           }
           if(!ready)throw new Error('stable ABC gate never appeared');
           await page.screenshot({path:'/tmp/abc-gate.png',fullPage:true});
+
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
           if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong password rejection failed');
@@ -49,34 +50,56 @@ jobs:
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
           await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d&&d.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
-          await page.waitForTimeout(800);
-          await page.screenshot({path:'/tmp/abc-command-center.png',fullPage:true});
+          await page.waitForTimeout(900);
+
           const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
-          console.log('MODEL',JSON.stringify({count:model.accounts.length,first:model.accounts[0],healthModel:model.healthModel}).slice(0,4500));
-          console.log('APP_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(0,4200)));
-          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,[data-route],[data-open]')].map(e=>({tag:e.tagName,id:e.id||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,110),route:e.getAttribute('data-route')||'',open:e.getAttribute('data-open')||'',tab:e.getAttribute('data-tab')||'',action:e.getAttribute('data-action')||''})).filter(x=>x.text||x.route||x.open||x.tab||x.action));
-          console.log('CONTROLS',JSON.stringify(controls.slice(0,260)));
-          const accounts=page.locator('[data-route="accounts"]');
-          if(await accounts.count())await accounts.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
-          await page.waitForTimeout(400);
+          const accountId=model.accounts[0].id;
+          const appText=await page.locator('#app').innerText();
+          for(const required of [
+            'Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.',
+            'Customer outcomes over activity','Intellectual Honesty','Enterprise Customer Success motion',
+            'VALUE REALIZATION','ADOPTION & ENABLEMENT','RENEWAL & EXPANSION','RISK & ESCALATION','VOICE OF CUSTOMER'
+          ]) if(!appText.includes(required)) throw new Error('final Abnormal copy missing: '+required);
+          for(const forbidden of ['Run the post-sales business with one operating picture.','Headcount planning signal','RESOURCE RIGOR','Budget, forecast and investment visibility']) if(appText.includes(forbidden))throw new Error('old ZS copy still visible: '+forbidden);
+          if(model.healthModel.adoption!==30||model.healthModel.valueRealization!==25||model.healthModel.stakeholderAlignment!==20||model.healthModel.riskAndEscalation!==15||model.healthModel.renewalAndGrowth!==10)throw new Error('health model changed');
+          await page.screenshot({path:'/tmp/abc-command-center.png',fullPage:true});
+
+          const accountLinks=page.locator('[data-open]');
+          if(!(await accountLinks.count()))throw new Error('no account links on Command Center');
+          const pink=await accountLinks.first().evaluate(el=>getComputedStyle(el).color);
+          console.log('ACCOUNT_LINK_COLOR',pink);
+
+          const accountsRoute=page.locator('[data-route="accounts"]');
+          if(await accountsRoute.count())await accountsRoute.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
+          await page.waitForTimeout(500);
           await page.screenshot({path:'/tmp/abc-accounts.png',fullPage:true});
-          const first=page.locator('[data-open]').first();
-          if(!(await first.count()))throw new Error('no account open control found');
-          console.log('FIRST_ACCOUNT_CONTROL',await first.getAttribute('data-open'),(await first.innerText().catch(()=>'' )).slice(0,300));
-          await first.click();
-          await page.waitForTimeout(400);
+
+          const exact=page.locator(`[data-open="${accountId}"]`).first();
+          console.log('ACCOUNT_ID',accountId,'EXACT_COUNT',await page.locator(`[data-open="${accountId}"]`).count());
+          if(!(await exact.count()))throw new Error('exact first account open control not found');
+          console.log('EXACT_OUTER_HTML',await exact.evaluate(el=>el.outerHTML));
+          await exact.click();
+          await page.waitForTimeout(700);
+          console.log('AFTER_CLICK_APP_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-6500)));
+          const tabs=page.locator('[data-tab]');
+          console.log('TAB_COUNT',await tabs.count());
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map(e=>({tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,120),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value)})).filter(x=>x.id||x.text||x.name||x.data.length));
+          console.log('AFTER_CLICK_CONTROLS',JSON.stringify(controls.slice(0,420)));
           await page.screenshot({path:'/tmp/abc-account-open.png',fullPage:true});
-          const accountControls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map(e=>({tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,100),tab:e.getAttribute('data-tab')||'',attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value).join('|')})).filter(x=>x.id||x.text||x.tab||x.attrs));
-          console.log('ACCOUNT_CONTROLS',JSON.stringify(accountControls.slice(0,350)));
-          console.log('ACCOUNT_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-7000)));
+
+          if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
+          const tabText=await tabs.allTextContents();
+          console.log('ACCOUNT_TABS',JSON.stringify(tabText));
+          for(const t of ['Stakeholders','Success Plan','Technical','Meetings','Notes','Commercial']) if(!tabText.some(x=>x.includes(t)))throw new Error('missing account tab: '+t);
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          console.log('PASS: stable final ABC gate, retuned Command Center, exact account workspace, and tabs verified');
           await browser.close();
           NODE
           CHROME="$chrome" node verify.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: abc-stable-production-screens
+          name: abc-final-stable-screens
           path: |
             /tmp/abc-gate.png
             /tmp/abc-command-center.png
