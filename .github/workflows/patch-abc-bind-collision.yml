@@ -1,0 +1,64 @@
+name: Patch ABC Bind Collision
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-bind-collision.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Namespace the login gate binder away from the CRM binder
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          old="function bind(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>{e.preventDefault();if(pw.value===PASS){err.textContent='';unlock();sendEvent('crm_unlock_success')}else{err.textContent='Incorrect password.';pw.select();sendEvent('crm_unlock_failed')}};if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();sendEvent('crm_gate_view')}\ndocument.addEventListener('DOMContentLoaded',bind);"
+          new="function bindGate(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>{e.preventDefault();if(pw.value===PASS){err.textContent='';unlock();sendEvent('crm_unlock_success')}else{err.textContent='Incorrect password.';pw.select();sendEvent('crm_unlock_failed')}};if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();sendEvent('crm_gate_view')}\ndocument.addEventListener('DOMContentLoaded',bindGate);"
+          if new not in s:
+              assert old in s,'gate bind block not found'
+              s=s.replace(old,new,1)
+          p.write_text(s)
+
+          t=Path('abc/tests/auth-roundtrip.mjs')
+          q=t.read_text()
+          q=q.replace("vm.runInContext('bind()', context);","vm.runInContext('bindGate()', context);")
+          q=q.replace('DTEX form handler was not bound','gate form handler was not bound')
+          t.write_text(q)
+          PY
+
+          node --check abc/src/index.js
+          node --check abc/tests/auth-roundtrip.mjs
+          node abc/tests/smoke.mjs
+          node abc/tests/auth-roundtrip.mjs
+          python3 abc/tests/regression.py
+          python3 tests/validate_crm_analytics.py
+          grep -Fq 'function bindGate()' abc/src/index.js
+          grep -Fq "DOMContentLoaded',bindGate" abc/src/index.js
+          if grep -Fq "DOMContentLoaded',bind);" abc/src/index.js; then
+            echo 'Gate still installs global bind; refusing commit' >&2
+            exit 1
+          fi
+      - name: Commit binder collision fix
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js abc/tests/auth-roundtrip.mjs; then
+            echo "Bind collision already fixed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js abc/tests/auth-roundtrip.mjs
+          git commit -m "Fix ABC login gate collision with CRM binder"
+          git push origin HEAD:main
