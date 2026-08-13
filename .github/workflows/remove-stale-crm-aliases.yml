@@ -1,0 +1,63 @@
+name: Remove stale CRM aliases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/remove-stale-crm-aliases.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remove-aliases:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Resolve Clintware zone
+        id: zone
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/zones?name=clintware.com&account.id=${CLOUDFLARE_ACCOUNT_ID}"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert len(r)==1,d; print(r[0]["id"])' <<< "$response")
+          echo "zone_id=$zone_id" >> "$GITHUB_OUTPUT"
+
+      - name: Remove only the two stale descriptive aliases
+        shell: bash
+        env:
+          ZONE_ID: ${{ steps.zone.outputs.zone_id }}
+        run: |
+          set -euo pipefail
+          for hostname in abnormal.clintware.com nvidia.clintware.com; do
+            response=$(curl --fail-with-body -sS               "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${hostname}"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            mapfile -t record_ids < <(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print("\n".join(x["id"] for x in d.get("result",[])))' <<< "$response")
+            for record_id in "${record_ids[@]}"; do
+              test -n "$record_id" || continue
+              curl --fail-with-body -sS -X DELETE                 "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${record_id}"                 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" >/dev/null
+            done
+            verify=$(curl --fail-with-body -sS               "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${hostname}"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; assert not d.get("result"),d' <<< "$verify"
+            echo "Removed DNS records for $hostname"
+          done
+
+      - name: Verify discreet canonical CRM hostnames remain healthy
+        shell: bash
+        run: |
+          set -euo pipefail
+          for url in https://an.clintware.com https://nv.clintware.com; do
+            healthy=0
+            for attempt in $(seq 1 12); do
+              status=$(curl -L -sS -o /tmp/crm-body -w '%{http_code}' --connect-timeout 8 --max-time 25 "$url" || true)
+              if [ "$status" = "200" ] && grep -Fq "G-DCY144YM9P" /tmp/crm-body; then
+                healthy=1
+                break
+              fi
+              sleep 5
+            done
+            test "$healthy" = "1"
+            echo "Healthy canonical CRM: $url"
+          done
