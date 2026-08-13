@@ -11,25 +11,36 @@ function assert(condition, message) {
 }
 
 const source = await fs.readFile(sourcePath, "utf8");
-assert(source.includes("const PASS='2$C@L3RK0S$H2026',SESSION_KEY='summertime_demo_access'"), "DTEX gate password/session constants missing");
+assert(source.includes("const PASS='@BN0Rm@LK0$H2026',SESSION_KEY='abnormal_enterprise_demo_access'"), "Abnormal gate password/session constants missing");
+assert(source.includes("Lone Mesa Energy"), "Abnormal TOLA seed model missing");
+assert(source.includes("Adoption 30%"), "Abnormal role-mapped health weighting missing");
+assert(source.includes("Customer Obsession"), "Abnormal VOICE values context missing");
 
 const worker = (await import(`${pathToFileURL(sourcePath).href}?t=${Date.now()}`)).default;
-const response = await worker.fetch(new Request("https://zsc.clintware.com/"));
+const response = await worker.fetch(new Request("https://abc.clintware.com/"));
 assert(response.status === 200, `GET / expected 200, got ${response.status}`);
 const body = await response.text();
 
-assert(body.includes('id="gate"'), "DTEX gate missing");
-assert(body.includes('id="access-form"'), "DTEX access form missing");
-assert(body.includes('id="pw"'), "DTEX password input missing");
-assert(body.includes("Restricted preview"), "DTEX gate copy missing");
-assert(body.includes("Unlock demo"), "DTEX unlock button missing");
-assert(body.includes("Command Center"), "full ZSC app must be present in the same response");
-assert(body.includes("Seed Demo Accounts"), "ZSC app controls missing from same response");
-assert((body.match(/id="app"/g) || []).length === 1, "DTEX must control the existing ZSC id=app element exactly once");
+for (const marker of [
+  'id="gate"',
+  'id="access-form"',
+  'id="pw"',
+  'Enterprise Customer Success Command Center',
+  'Unlock demo',
+  'Command Center',
+  'Seed Demo Accounts',
+  'Voice of Customer',
+  'Engagement Coverage',
+  'Value & Growth',
+  'Lone Mesa Energy',
+  'AI Security Mailbox',
+  'Customer Obsession',
+]) assert(body.includes(marker), `missing transformed marker: ${marker}`);
+assert((body.match(/id="app"/g) || []).length === 1, "gate must control one existing app element");
 assert(!body.includes('action="/login"'), "server login form still present");
 
 const scriptMatch = body.match(/<script id="dtex-gate-js">([\s\S]*?)<\/script>/);
-assert(scriptMatch, "DTEX gate script missing");
+assert(scriptMatch, "gate script missing");
 const gateScript = scriptMatch[1];
 
 const classes = new Set();
@@ -38,7 +49,7 @@ const form = {};
 const pw = { value: "", selected: false, select(){ this.selected = true; } };
 const err = { textContent: "" };
 const document = {
-  title: "Private Customer Success Demo",
+  title: "Private Enterprise Customer Success Demo",
   body: { classList: {
     add(c){ classes.add(c); },
     remove(c){ classes.delete(c); },
@@ -60,37 +71,40 @@ const sessionStorage = {
 const context = {
   document,
   sessionStorage,
-  location: { hostname: "zsc.clintware.com" },
+  location: { hostname: "abc.clintware.com" },
   gtag: undefined,
   console
 };
 vm.createContext(context);
 vm.runInContext(gateScript, context);
-assert(typeof form.onsubmit === "function", "DTEX form handler was not bound");
+assert(typeof form.onsubmit === "function", "gate form handler was not bound");
 
 pw.value = "wrong-password";
 form.onsubmit({ preventDefault(){} });
-assert(err.textContent === "Incorrect password.", "wrong password did not show DTEX error");
+assert(err.textContent === "Incorrect password.", "wrong password did not show error");
 assert(pw.selected === true, "wrong password did not select input");
 assert(!classes.has("unlocked"), "wrong password unlocked app");
 
 pw.selected = false;
-pw.value = "2$C@L3RK0S$H2026";
+pw.value = "@BN0Rm@LK0$H2026";
 form.onsubmit({ preventDefault(){} });
 assert(err.textContent === "", "correct password left error text");
-assert(classes.has("unlocked"), "correct password did not add unlocked class");
-assert(storage.get("summertime_demo_access") === "1", "DTEX sessionStorage unlock flag missing");
+assert(classes.has("unlocked"), "correct password did not unlock app");
+assert(storage.get("abnormal_enterprise_demo_access") === "1", "sessionStorage unlock flag missing");
 
-// Simulate DTEX's same-tab reload behavior with the same sessionStorage state.
 classes.clear();
 const form2 = {};
 const pw2 = { value: "", select(){} };
 const err2 = { textContent: "" };
 context.document.getElementById = (id) => id === "access-form" ? form2 : id === "pw" ? pw2 : id === "gate-error" ? err2 : null;
 vm.runInContext('bind()', context);
-assert(classes.has("unlocked"), "DTEX sessionStorage did not auto-unlock on same-tab reload");
+assert(classes.has("unlocked"), "sessionStorage did not auto-unlock on same-tab reload");
 
-const post = await worker.fetch(new Request("https://zsc.clintware.com/login", { method: "POST" }));
-assert(post.status === 405, `old server /login path should be disabled, got ${post.status}`);
+const post = await worker.fetch(new Request("https://abc.clintware.com/login", { method: "POST" }));
+assert(post.status === 405, `server /login should be disabled, got ${post.status}`);
 
-console.log("PASS: exact DTEX client gate works: wrong password rejected, exact password unlocks, sessionStorage preserves unlock, server /login removed");
+const auth = await worker.fetch(new Request("https://abc.clintware.com/health/auth"));
+const authData = await auth.json();
+assert(authData.ok === true && authData.model === true && authData.mode === "dtex-client-gate-abnormal", "health/auth did not validate transformed model");
+
+console.log("PASS: ABC uses exact Abnormal password, ZS client-gate behavior, and Abnormal role-mapped model");
