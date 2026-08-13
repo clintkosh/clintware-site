@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import zlib from 'node:zlib';
 import { enhanceApp } from '../src/enhancer.js';
 import { enhanceAccountUsers } from '../src/account-users.js';
+import { enhanceFunctionalCards } from '../src/functional-cards.js';
 
 const toy = '<!doctype html><html><body><main>CRM</main></body></html>';
 const toyOnce = enhanceAccountUsers(enhanceApp(toy));
@@ -55,3 +56,10 @@ const bodyClose = real.toLowerCase().lastIndexOf('</body>');
 const usersIndex = real.indexOf('id="cw-account-users-style"');
 if (bodyClose < 0 || usersIndex > bodyClose) throw new Error('account user injection is not inside the final body');
 console.log('PASS: editable per-account stakeholder/user workspace injection and real-app HTML placement');
+
+const functional = enhanceFunctionalCards(real);
+for (const required of ['id="cw-functional-cards-script"','Custom overview cards','Download meeting brief PDF','Download formatted meeting brief PDF','cwBuildAbnormalMeetingBrief','cwBaseAbnormalBriefAccount','demo_custom_card_added','demo_portfolio_card_drilldown']) {
+  if (!functional.includes(required)) throw new Error(`missing functional-card feature: ${required}`);
+}
+if (enhanceFunctionalCards(functional) !== functional) throw new Error('functional-card enhancer is not idempotent');
+console.log('PASS: functional cards, drill-downs, and PDF brief injection');

@@ -1,5 +1,6 @@
 import { enhanceApp } from "./enhancer.js";
 import { enhanceAccountUsers } from "./account-users.js";
+import { enhanceFunctionalCards } from "./functional-cards.js";
 
 const PASSWORD_SHA256 = "04df7e1d9915c05c8b9af3f7ebedddccdd48361b04c382706c38d9bb072b7abb";
 const SOURCE_URL = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/abnormal/src/index.js";
@@ -64,7 +65,7 @@ async function loadApp() {
   const match = source.match(/const APP_GZ_B64="([A-Za-z0-9+/=]+)"/);
   if (!match) throw new Error("CRM bundle not found");
   const baseApp = await gunzipBase64(match[1]);
-  appCache = addVisitSignal(enhanceAccountUsers(enhanceApp(baseApp)));
+  appCache = addVisitSignal(enhanceFunctionalCards(enhanceAccountUsers(enhanceApp(baseApp))));
   return appCache;
 }
 

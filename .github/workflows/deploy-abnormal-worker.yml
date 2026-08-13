@@ -31,6 +31,7 @@ jobs:
           node --check src/worker.js
           node --check src/enhancer.js
           node --check src/account-users.js
+          node --check src/functional-cards.js
       - name: Smoke test workspace injection and inspect base startup
         run: |
           node tests/enhancer.mjs

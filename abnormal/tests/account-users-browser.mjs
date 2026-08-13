@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { enhanceApp } from '../src/enhancer.js';
 import { enhanceAccountUsers } from '../src/account-users.js';
+import { enhanceFunctionalCards } from '../src/functional-cards.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -13,8 +14,8 @@ const src = await fs.readFile(path.join(root, 'src', 'index.js'), 'utf8');
 const match = src.match(/const APP_GZ_B64="([A-Za-z0-9+/=]+)"/);
 if (!match) throw new Error('compressed app bundle missing');
 const base = zlib.gunzipSync(Buffer.from(match[1], 'base64')).toString('utf8');
-const html = enhanceAccountUsers(enhanceApp(base));
-if (!html.includes('id="cw-demo-workspace-script"') || !html.includes('id="cw-account-users-script"')) throw new Error('enhanced browser fixture is missing injected scripts');
+const html = enhanceFunctionalCards(enhanceAccountUsers(enhanceApp(base)));
+if (!html.includes('id="cw-demo-workspace-script"') || !html.includes('id="cw-account-users-script"') || !html.includes('id="cw-functional-cards-script"')) throw new Error('enhanced browser fixture is missing injected scripts');
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -97,6 +98,19 @@ try {
     const click=e=>{if(!e)throw new Error('missing click target');e.click()};
     const set=(e,v)=>{if(!e)throw new Error('missing input');e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))};
     window.confirm=()=>true;
+    const portfolioCard=q('.metrics .metric'); if(!portfolioCard)throw new Error('portfolio overview card missing');
+    click(portfolioCard); await wait(20);
+    if(!q('#cwOverviewDialog.cw-open')||!q('#cwOverviewCopy').textContent.trim())throw new Error('portfolio card drill-down failed');
+    click(q('#cwOverviewClose')); await wait(10);
+    const baseAccountLink=q('.focus .linkbtn'); if(!baseAccountLink)throw new Error('base account link missing');
+    click(baseAccountLink); await wait(20);
+    const briefTab=qa('#accountModal .tabs button').find(x=>x.textContent.includes('Meeting brief')); if(!briefTab)throw new Error('base meeting brief tab missing');
+    click(briefTab); await wait(20);
+    if(!q('#accountModal #brief [data-cw-base-pdf]'))throw new Error('base meeting brief PDF button missing');
+    const basePdfAccount=window.cwBaseAbnormalBriefAccount();
+    const basePdf=await window.cwBuildAbnormalMeetingBrief(basePdfAccount).text();
+    if(!basePdf.includes('Meeting Brief')||!basePdf.includes('Success outcome'))throw new Error('base meeting brief PDF content failed');
+    click(q('#accountModal .close')); await wait(10);
     click(q('#cwDemoFab')); await wait(50);
     const card=q('#cwList .cw-account'); if(!card)throw new Error('no account cards rendered');
     const accountId=card.dataset.accountId;
@@ -104,6 +118,23 @@ try {
     click(open); await wait(50);
     if(!q('#cwAccountWorkspaceModal.cw-open'))throw new Error('account workspace did not open');
     if(qa('#cwAwUsers .cw-aw-user').length!==3)throw new Error('expected 3 seeded stakeholders');
+    click(q('.cw-aw-summary [data-drill="health"]')); await wait(20);
+    if(!q('#cwAwDrill.cw-open')||!q('#cwAwDrillCopy').textContent.includes('Risk:'))throw new Error('health overview drill-down failed');
+    click(q('[data-fn-action="add-card"]')); await wait(20);
+    set(q('#cwCardForm [name="title"]'),'Call readiness');
+    set(q('#cwCardForm [name="value"]'),'Ready with gaps');
+    set(q('#cwCardForm [name="detail"]'),'Confirm sponsor and decision date');
+    q('#cwCardForm').requestSubmit(); await wait(40);
+    let custom=qa('#cwCustomCards [data-custom-card-id]').find(x=>x.textContent.includes('Call readiness'));
+    if(!custom)throw new Error('custom card add failed');
+    click(custom.querySelector('[data-fn-action="edit-card"]')); await wait(20);
+    set(q('#cwCardForm [name="value"]'),'Decision ready');
+    q('#cwCardForm').requestSubmit(); await wait(40);
+    custom=qa('#cwCustomCards [data-custom-card-id]').find(x=>x.textContent.includes('Call readiness'));
+    if(!custom||!custom.textContent.includes('Decision ready'))throw new Error('custom card edit failed');
+    const pdfAccount=JSON.parse(localStorage.getItem('an_demo_workspace_v2')).accounts.find(a=>a.id===accountId);
+    const pdf=await window.cwBuildAbnormalMeetingBrief(pdfAccount).text();
+    if(!pdf.startsWith('%PDF-1.4')||!pdf.includes('Meeting Brief')||!pdf.includes('Manual call notes')||!pdf.includes('Page 1 of'))throw new Error('meeting brief PDF structure failed');
     click(q('[data-user-action="add-user"]')); await wait(20);
     set(q('#cwUserForm [name="name"]'),'Interview Test User');
     set(q('#cwUserForm [name="title"]'),'VP, Security Operations');
@@ -123,7 +154,9 @@ try {
     const account=(stored.accounts||[]).find(a=>a.id===accountId);
     const user=account&&Array.isArray(account.users)&&account.users.find(u=>u.name==='Interview Test User');
     if(!user||user.title!=='Senior VP, Security Operations')throw new Error('edited user not persisted to account storage');
-    return {accountId,userId:user.id,count:account.users.length};
+    const savedCard=account.customCards.find(c=>c.title==='Call readiness');
+    if(!savedCard||savedCard.value!=='Decision ready')throw new Error('custom card not persisted');
+    return {accountId,userId:user.id,cardId:savedCard.id,count:account.users.length};
   })()`);
   if (!phase1 || phase1.count !== 4) throw new Error(`Unexpected phase1 result: ${JSON.stringify(phase1)}`);
 
@@ -137,6 +170,12 @@ try {
     q('#cwDemoFab').click(); await wait(50);
     const card=q('#cwList .cw-account[data-account-id="${phase1.accountId}"]'); if(!card)throw new Error('same account missing after reload');
     card.querySelector('[data-user-action="open-account"]').click(); await wait(50);
+    let custom=qa('#cwCustomCards [data-custom-card-id]').find(x=>x.dataset.customCardId==='${phase1.cardId}');
+    if(!custom||!custom.textContent.includes('Decision ready'))throw new Error('custom card did not persist through reload');
+    custom.querySelector('[data-fn-action="drill-custom"]').click(); await wait(20);
+    if(!q('#cwAwDrill.cw-open')||!q('#cwAwDrillCopy').textContent.includes('Decision ready'))throw new Error('custom card drill-down failed after reload');
+    custom.querySelector('[data-fn-action="remove-card"]').click(); await wait(30);
+    if(q('#cwCustomCards [data-custom-card-id="${phase1.cardId}"]'))throw new Error('custom card remove failed');
     let user=qa('#cwAwUsers .cw-aw-user').find(x=>x.textContent.includes('Interview Test User'));
     if(!user)throw new Error('user did not persist through browser reload');
     if(!user.textContent.includes('Senior VP, Security Operations'))throw new Error('edited title did not persist through reload');
@@ -151,7 +190,7 @@ try {
   if (!phase2 || phase2.count !== 3) throw new Error(`Unexpected phase2 result: ${JSON.stringify(phase2)}`);
   if (runtimeErrors.length) throw new Error(`Browser runtime error: ${runtimeErrors.join(' | ')}`);
 
-  console.log('PASS: real Chrome account workspace opens; 3 seeded stakeholders render; add, edit, persisted reload, and remove user all work');
+  console.log('PASS: real Chrome validates portfolio and account drill-downs, editable persisted custom cards, PDF generation, and stakeholder CRUD');
 } catch (error) {
   console.error('BROWSER_E2E_FAILURE:', error.message);
   if (runtimeErrors.length) console.error('BROWSER_EXCEPTIONS:', runtimeErrors.join(' | '));
