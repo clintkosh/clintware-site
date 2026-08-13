@@ -1,0 +1,39 @@
+name: Diagnose Zscaler Health Init
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/diagnose-zscaler-health-init.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect live runtime
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-diag && cd /tmp/zsc-diag
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ZSC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"zscaler/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push('console:'+m.text())});
+          await page.goto('https://zsc.clintware.com/?diag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(1200);
+          console.log('SCRIPT_MARKER',await page.locator('#abc-health-p1-script').count());console.log('PRE_ERRORS',JSON.stringify(errors));
+          console.log('PRE_STORAGE',JSON.stringify(await page.evaluate(()=>Object.fromEntries(Object.keys(localStorage).map(k=>[k,localStorage.getItem(k)?.slice(0,500)])))));
+          console.log('RUNTIME_TYPES',JSON.stringify(await page.evaluate(()=>({data:typeof data,render:typeof render,settingsView:typeof settingsView,bind:typeof bind,route:typeof route}))));
+          await page.fill('#pw',process.env.ZSC_PASS);await page.click('#access-form button[type="submit"]');await page.waitForTimeout(1200);
+          console.log('UNLOCKED',await page.evaluate(()=>document.body.classList.contains('unlocked')));console.log('POST_ERRORS',JSON.stringify(errors));
+          console.log('POST_MODEL',JSON.stringify(await page.evaluate(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return{settings:d?.settings,accountCount:d?.accounts?.length,firstHealth:d?.accounts?.[0]?.health}}catch(e){return{parseError:e.message}}})));
+          await page.evaluate(()=>{try{setRoute('settings')}catch(e){}});await page.waitForTimeout(200);console.log('SETTINGS_TEXT',(await page.locator('#app').innerText()).slice(-4000));
+          console.log('FINAL_ERRORS',JSON.stringify(errors));await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
