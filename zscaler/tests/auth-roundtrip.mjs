@@ -87,7 +87,7 @@ const form2 = {};
 const pw2 = { value: "", select(){} };
 const err2 = { textContent: "" };
 context.document.getElementById = (id) => id === "access-form" ? form2 : id === "pw" ? pw2 : id === "gate-error" ? err2 : null;
-vm.runInContext('bind()', context);
+vm.runInContext('bindGate()', context);
 assert(classes.has("unlocked"), "DTEX sessionStorage did not auto-unlock on same-tab reload");
 
 const post = await worker.fetch(new Request("https://zsc.clintware.com/login", { method: "POST" }));
