@@ -1,2 +1,2 @@
-Final ABC deployment trigger after inherited account-ID normalization.
-Source account-ID fix commit: 1e3b5f7
+Final ABC deployment trigger after login-gate/CRM binder collision fix.
+Source binder-collision fix commit: df623bd
