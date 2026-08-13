@@ -1,0 +1,76 @@
+name: Patch ABC Mutation Copy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-mutation-copy.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Observe inherited renderer and reapply Abnormal presentation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          fn="""
+function observeAbnormalPresentation(){
+  const root=document.getElementById('app');
+  if(!root||root.dataset.abcObserver==='1')return;
+  root.dataset.abcObserver='1';
+  let applying=false,timer=null;
+  const apply=()=>{
+    if(applying)return;
+    applying=true;
+    try{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()}finally{applying=false}
+  };
+  const observer=new MutationObserver(()=>{
+    if(applying)return;
+    clearTimeout(timer);
+    timer=setTimeout(apply,20);
+  });
+  observer.observe(root,{childList:true,subtree:true,characterData:true});
+  apply();
+}
+"""
+          if 'function observeAbnormalPresentation()' not in s:
+              marker='function addContext(){'
+              assert marker in s
+              s=s.replace(marker,fn+'\n'+marker,1)
+          old='addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed'
+          new='addContext();observeAbnormalPresentation();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed'
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          node --check abc/src/index.js
+          node abc/tests/smoke.mjs
+          node abc/tests/auth-roundtrip.mjs
+          python3 abc/tests/regression.py
+          python3 tests/validate_crm_analytics.py
+          grep -Fq 'function observeAbnormalPresentation()' abc/src/index.js
+          grep -Fq "observer.observe(root,{childList:true,subtree:true,characterData:true})" abc/src/index.js
+      - name: Commit mutation observer
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js; then
+            echo "Mutation observer already present"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          git commit -m "Keep Abnormal presentation synced after ABC renders"
+          git push origin HEAD:main
