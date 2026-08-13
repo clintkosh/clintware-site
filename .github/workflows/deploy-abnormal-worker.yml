@@ -1,4 +1,4 @@
-name: Deploy Abnormal CS Command Center
+name: Deploy Legacy Abnormal CS Worker
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$chrome"
           CHROME="$chrome" timeout 35s node tests/account-users-browser.mjs
-      - name: Validate privacy and deployment guardrails
+      - name: Validate privacy and analytics guardrails
         run: |
           python3 tests/regression.py
           python3 ../tests/validate_crm_analytics.py
@@ -59,14 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy private CRM to Cloudflare Workers
+      - name: Deploy legacy worker without production custom-domain binding
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd abnormal
-      - name: Verify an.clintware.com custom domain without unnecessary mutation
+      - name: Confirm production hostname is owned by promoted ABC service
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -75,23 +75,4 @@ jobs:
           response=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          count=$(echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))')
-          if [ "$count" = "0" ]; then
-            response=$(curl --fail-with-body -sS -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              --data '{"hostname":"an.clintware.com","service":"abnormal-cs-command-center"}')
-          fi
-          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d; r=d.get("result",[]); x=(r[0] if isinstance(r,list) and r else r); assert x.get("hostname")=="an.clintware.com" and x.get("service")=="abnormal-cs-command-center", x; print("Custom domain verified:",x["hostname"],"->",x["service"])'
-      - name: Verify private login gate over HTTPS
-        run: |
-          set -euo pipefail
-          body=$(curl --fail-with-body -sS --retry 12 --retry-delay 5 --retry-all-errors https://an.clintware.com/)
-          grep -Fq "Private Customer Success Command Center" <<< "$body"
-          grep -Fq "Synthetic data only" <<< "$body"
-          if grep -Fq "Portfolio Command" <<< "$body"; then
-            echo "Authenticated CRM content leaked through the public gate" >&2
-            exit 1
-          fi
-          echo "Live HTTPS gate verified: https://an.clintware.com"
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert len(r)==1,d; x=r[0]; assert x.get("service")=="abnormal-enterprise-customer-success",x; print("Production hostname preserved:",x["hostname"],"->",x["service"])'
