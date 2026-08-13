@@ -1,0 +1,63 @@
+name: Verify Stable Zscaler Gainsight P1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-zscaler-gainsight-stable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Stable production browser verification
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-stable && cd /tmp/zsc-stable
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          async function login(host){
+            const page=await browser.newPage();page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.goto(`https://${host}/?stable=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForSelector('#abc-health-p1-script');await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+            await page.fill('#pw','2$C@L3RK0S$H2026');await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+            await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.accounts?.length===20&&d?.settings?.healthWeights}catch(e){return false}},{timeout:30000});
+            return {page,errors};
+          }
+          for(const host of ['zsc.clintware.com','zc.clintware.com']){
+            const {page,errors}=await login(host);let d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+            const expected=await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')),a=d.accounts[0],w=d.settings.healthWeights,cl=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0))),mt=(a.meetings||[]).filter(m=>m.date).sort((x,y)=>String(y.date).localeCompare(String(x.date)));let rec=35;if(mt.length){const days=Math.max(0,Math.ceil((Date.now()-new Date(mt[0].date+'T12:00:00').getTime())/86400000));rec=days<=30?100:days<=60?85:days<=90?70:days<=120?55:40}const rel=cl(cl(a.stakeholderStrength)*.60+rec*.25+((a.contacts||[]).some(c=>c.level==='C-Level')?100:40)*.15),sev=String(a.supportSeverity||'None').toLowerCase(),sp=sev.includes('sev 1')?25:sev.includes('sev 2')?15:sev.includes('sev 3')?7:0;let rp=0;for(const r of(a.risks||[]).filter(r=>String(r.status||'Open').toLowerCase()!=='closed')){const z=String(r.severity||'').toLowerCase();rp=Math.max(rp,z.includes('critical')?25:z.includes('high')?15:z.includes('medium')?8:z.includes('low')?3:5)}const sr=cl(cl(a.supportSla)-Math.max(sp,rp)),plans=a.successPlans||[],ps=plans.length?cl(plans.reduce((s,x)=>s+cl(x.progress),0)/plans.length):50,sig={adoption:cl(a.adoption),value:cl(a.valueEvidence),relationship:rel,technical:cl(a.technicalCoverage),supportRisk:sr,successPlan:ps};return cl(Object.keys(w).reduce((s,k)=>s+sig[k]*Number(w[k]||0),0)/Object.values(w).reduce((s,x)=>s+Number(x||0),0))});
+            if(d.accounts[0].health!==expected)throw new Error(host+': health formula mismatch');
+            if(JSON.stringify(d.settings.healthWeights)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:15,successPlan:5}))throw new Error(host+': default weights wrong');
+            await page.locator('.topnav [data-route="settings"]').click();const st=await page.locator('#app').innerText();if(!st.includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by Zscaler priorities'))throw new Error(host+': model basis note missing');if((await page.locator('.abc-health-weight').count())!==6)throw new Error(host+': health settings incomplete');
+            const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>n.dataset.route));for(const r of routes){await page.locator(`.topnav [data-route="${r}"]`).click();await page.waitForTimeout(30)}
+            if(errors.length)throw new Error(host+': browser errors '+errors.join(' | '));console.log(host+': base scoring/route PASS');
+            if(host==='zsc.clintware.com'){
+              await page.locator('.topnav [data-route="settings"]').click();await page.locator('[data-health-key="adoption"]').fill('25');await page.locator('[data-health-key="value"]').fill('15');await page.click('#abc-save-health-model');await page.waitForTimeout(100);d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));if(d.settings.healthWeights.adoption!==25||d.settings.healthWeights.value!==15)throw new Error('settings save failed');await page.locator('.topnav [data-route="settings"]').click();await page.click('#abc-reset-health-model');
+              await page.locator('.topnav [data-route="accounts"]').click();d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));const id=d.accounts[0].id;await page.locator(`[data-open="${id}"]`).first().click();await page.locator('[data-edit-account]').click();if(await page.locator('#f-health').count())throw new Error('manual Health field still present');if(!(await page.locator('#f-adoption').count()))throw new Error('Adoption field missing');await page.click('[data-close]');
+              await page.locator('[data-tab="summary"]').click();await page.locator('[data-add-risk]').click();await page.fill('#r-title','Stable risk');await page.fill('#r-severity','High');await page.fill('#r-owner','CSM');await page.click('#save-risk');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));let a=d.accounts.find(x=>String(x.id)===String(id)),risk=a.risks.find(x=>x.title==='Stable risk');if(!risk)throw new Error('risk add failed');await page.locator(`[data-edit-risk="${id}|${risk.id}"]`).click();await page.fill('#r-status','Closed');await page.click('#save-risk');await page.locator(`[data-del-risk="${id}|${risk.id}"]`).click();
+              await page.locator('[data-tab="stakeholders"]').click();await page.locator('[data-add-contact]').click();await page.fill('#c-name','Stable Stakeholder');await page.fill('#c-title','Director');await page.fill('#c-email','stable@example.com');await page.fill('#c-role','Program Champion');await page.fill('#c-level','Director');await page.click('#save-contact');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));let c=a.contacts.find(x=>x.name==='Stable Stakeholder');if(!c)throw new Error('stakeholder add failed');await page.locator(`[data-edit-contact="${id}|${c.id}"]`).click();await page.fill('#c-title','VP Security');await page.click('#save-contact');await page.locator(`[data-del-contact="${id}|${c.id}"]`).click();
+              await page.locator('[data-tab="success"]').click();await page.locator('[data-add-success]').click();await page.fill('#s-objective','Stable outcome');await page.fill('#s-progress','30');await page.fill('#s-owner','CSM + Customer');await page.fill('#s-proof','Evidence');await page.click('#save-success');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));let sp=a.successPlans.find(x=>x.objective==='Stable outcome');if(!sp)throw new Error('success add failed');await page.locator(`[data-edit-success="${id}|${sp.id}"]`).click();await page.fill('#s-progress','75');await page.click('#save-success');await page.locator(`[data-del-success="${id}|${sp.id}"]`).click();
+              await page.locator('[data-tab="meetings"]').click();await page.locator('[data-add-meeting]').click();await page.fill('#m-title','Stable Meeting');await page.fill('#m-attendees','CISO, CSM');await page.fill('#m-notes','Initial');await page.click('#save-meeting');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));let m=a.meetings.find(x=>x.title==='Stable Meeting');if(!m)throw new Error('meeting add failed');await page.locator(`[data-edit-meeting="${id}|${m.id}"]`).click();await page.fill('#m-notes','Edited');await page.click('#save-meeting');await page.locator(`[data-del-meeting="${id}|${m.id}"]`).click();
+              await page.locator('[data-tab="notes"]').click();await page.locator('[data-add-note]').click();await page.fill('#n-text','Stable Note');await page.click('#save-note');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));let n=a.notes.find(x=>x.text==='Stable Note');if(!n)throw new Error('note add failed');await page.locator(`[data-edit-note="${id}|${n.id}"]`).click();await page.fill('#n-text','Stable Note Edited');await page.click('#save-note');await page.locator(`[data-del-note="${id}|${n.id}"]`).click();
+              await page.locator('[data-tab="technical"]').click();await page.locator('[data-edit-technical]').click();await page.fill('#t-coverage','74');await page.fill('#t-support','91');await page.click('#save-technical');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));if(a.technicalCoverage!==74||a.supportSla!==91)throw new Error('technical edit failed');
+              await page.locator('[data-tab="commercial"]').click();await page.locator('[data-edit-commercial]').click();await page.fill('#cm-value','82');await page.fill('#cm-relationship','79');await page.fill('#cm-readiness','71');await page.click('#save-commercial');d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));a=d.accounts.find(x=>String(x.id)===String(id));if(a.valueEvidence!==82||a.stakeholderStrength!==79||a.commercialReadiness!==71)throw new Error('commercial edit failed');
+              const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Set(ns.map(n=>n.dataset.tab))]);for(const t of tabs){await page.locator(`[data-tab="${t}"]`).first().click();await page.waitForTimeout(25)}const paths=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean));const joined=JSON.stringify(paths);for(const r of routes)if(!joined.includes('/zsc/'+r))throw new Error('missing GA route '+r);for(const t of tabs)if(!joined.includes('/zsc/account/'+t))throw new Error('missing GA tab '+t);console.log('zsc.clintware.com: full P1 + Analytics PASS');
+            }
+            await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
