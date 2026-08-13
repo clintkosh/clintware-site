@@ -1,0 +1,172 @@
+from pathlib import Path
+import re
+import base64
+import gzip
+import math
+
+root = Path(__file__).resolve().parents[1] / "src"
+chunks = []
+for i in range(1, 6):
+    p = root / f"app-part{i}.js"
+    m = re.search(r'"([A-Za-z0-9+/=]+)"', p.read_text())
+    assert m, p
+    chunks.append(m.group(1))
+html = gzip.decompress(base64.b64decode("".join(chunks))).decode()
+
+
+def replace_once(old: str, new: str, label: str):
+    global html
+    n = html.count(old)
+    if n != 1:
+        raise RuntimeError(f"{label}: expected exactly 1 occurrence, found {n}")
+    html = html.replace(old, new, 1)
+    print("PATCH", label)
+
+
+# Abnormal-style palette and header mark.  This is an independent interview
+# prototype, not an official Abnormal product or a copied trademark asset.
+for old, new in [
+    ("#5b56e8", "#a565ff"),
+    ("#2477dc", "#e52f75"),
+    ("#12a9c4", "#ff6957"),
+    ("#8b86ff", "#a565ff"),
+    ("#3d9cff", "#ff3b88"),
+    ("#52d9f3", "#ff6957"),
+    ("#ff32da", "#ff3b88"),
+]:
+    html = html.replace(old, new)
+
+replace_once(
+    '.brandmark{width:38px;height:28px;border-radius:52% 48% 46% 54%;background:linear-gradient(135deg,var(--blue),var(--blue2));position:relative;transform:skewX(-14deg)}\n.brandmark:after{content:"";position:absolute;width:24px;height:10px;border-radius:50%;background:var(--nav);left:8px;top:8px;transform:rotate(-16deg)}',
+    '.brandmark{width:38px;height:38px;border-radius:10px;background:#0b0a10;border:1px solid #3a323f;position:relative;transform:none;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}\n.brandmark:before{content:"A";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:950;letter-spacing:-.05em}\n.brandmark:after{content:"";position:absolute;left:6px;right:6px;bottom:5px;height:3px;border-radius:99px;background:linear-gradient(90deg,#ff3b88,#ff6957,#a565ff)}',
+    "brand mark",
+)
+html = html.replace(
+    ".btn.blue{border-color:transparent;background:var(--blue2);color:#fff}",
+    ".btn.blue{border-color:transparent;background:linear-gradient(90deg,#f23b7e,#e65468);color:#fff}",
+)
+html = html.replace(
+    ".link{background:none;border:0;padding:0;color:var(--blue2);font-weight:800;text-align:left}",
+    ".link{background:none;border:0;padding:0;color:var(--pink);font-weight:800;text-align:left}",
+)
+html = html.replace(
+    ".bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--blue2),var(--cyan))}",
+    ".bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--blue))}",
+)
+html = html.replace(
+    ".card.tight{padding:12px}",
+    ".card.tight{padding:12px}\n"
+    ".kpi-card{width:100%;text-align:left;color:inherit;cursor:pointer;appearance:none;font:inherit;transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}"
+    ".kpi-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--pink) 65%,var(--line));box-shadow:0 10px 28px rgba(0,0,0,.12)}"
+    ".kpi-card:focus-visible{outline:2px solid var(--pink);outline-offset:2px}"
+    ".abc-toast{position:fixed;right:18px;top:86px;z-index:220;background:#111019;color:#fff;border:1px solid #3a323f;border-left:3px solid #ff3b88;border-radius:10px;padding:10px 13px;box-shadow:0 18px 50px rgba(0,0,0,.35);font-size:12px;font-weight:800}",
+)
+
+replace_once(
+    "['command','Command Center'],['accounts','Accounts'],['renewal','Renewal & Readiness'],['playbooks','Playbooks'],['cadence','Business Rhythm'],['capacity','Capacity'],['finance','Finance'],['intake','Intake'],['kpis','KPIs'],['settings','Settings']",
+    "['command','Command Center'],['accounts','Accounts'],['renewal','Renewal & Growth'],['playbooks','Playbooks'],['cadence','Customer Cadence'],['capacity','Engagement Coverage'],['finance','Value & Growth'],['intake','Voice of Customer'],['kpis','KPIs'],['settings','Settings']",
+    "navigation labels",
+)
+replace_once(
+    '<div class="brand"><div class="brandmark"></div><div class="brandcopy"><strong>Post-Sales Business Operations</strong><span>Private role-mapped prototype</span></div></div>',
+    '<div class="brand"><div class="brandmark" aria-hidden="true"></div><div class="brandcopy"><strong>ABNORMAL // CUSTOMER SUCCESS</strong><span>Independent interview prototype</span></div></div>',
+    "top brand",
+)
+html = html.replace(
+    "function hero(title,sub,sideTitle='Impact over activity',sideCopy='Make operating signals easy to inspect, update, and carry into the next leadership decision.')",
+    "function hero(title,sub,sideTitle='Customer outcomes over activity',sideCopy='Make customer signals easy to inspect, update, and carry into the next measurable customer action.')",
+)
+html = html.replace(
+    '<div class="eyebrow">Customer Success Business Operations</div>',
+    '<div class="eyebrow">Enterprise Customer Success</div>',
+)
+html = html.replace(
+    '<span class="pill"><span class="dot good"></span>Customer obsession</span><span class="pill">Ownership</span><span class="pill">Accountability</span>',
+    '<span class="pill"><span class="dot good"></span>Customer Obsession</span><span class="pill">Ownership</span><span class="pill">Intellectual Honesty</span>',
+)
+
+# Make every overview KPI a real navigation control into an existing,
+# meaningful workspace rather than a dead display card.
+replace_once(
+    "function kpi(label,value,sub,pct,cls=''){return `<div class=\"card\"><div class=\"kpi-label\">${label}</div><div class=\"kpi-value\">${value}</div><div class=\"kpi-sub\">${sub}</div><div class=\"bar ${cls}\"><span style=\"width:${Math.max(3,Math.min(100,pct))}%\"></span></div></div>`}",
+    "function kpi(label,value,sub,pct,cls='',r=''){if(r)return `<button type=\"button\" class=\"card kpi-card\" data-route=\"${r}\" aria-label=\"Open ${esc(label)} workspace\"><div class=\"kpi-label\">${label}</div><div class=\"kpi-value\">${value}</div><div class=\"kpi-sub\">${sub}</div><div class=\"bar ${cls}\"><span style=\"width:${Math.max(3,Math.min(100,pct))}%\"></span></div></button>`;return `<div class=\"card\"><div class=\"kpi-label\">${label}</div><div class=\"kpi-value\">${value}</div><div class=\"kpi-sub\">${sub}</div><div class=\"bar ${cls}\"><span style=\"width:${Math.max(3,Math.min(100,pct))}%\"></span></div></div>`}",
+    "clickable KPI function",
+)
+for old, new, label in [
+    ("${kpi('Managed ARR',fmtMoney(s.arr),'Synthetic portfolio context',82)}", "${kpi('Managed ARR',fmtMoney(s.arr),'Open enterprise account portfolio',82,'','accounts')}", "Managed ARR card"),
+    ("${kpi('Portfolio health',s.avg+'/100',healthLabel(s.avg),s.avg)}", "${kpi('Portfolio health',s.avg+'/100',healthLabel(s.avg),s.avg,'','kpis')}", "Portfolio health card"),
+    ("${kpi('≤120d renewals',s.due,'Commercial readiness window',Math.min(100,s.due*8))}", "${kpi('≤120d renewals',s.due,'Renewal and expansion readiness',Math.min(100,s.due*8),'','renewal')}", "Renewals card"),
+    ("${kpi('At-risk accounts',s.risk,'Health below 70',Math.min(100,s.risk*14),'pink')}", "${kpi('At-risk accounts',s.risk,'Accounts requiring coordinated mitigation',Math.min(100,s.risk*14),'pink','accounts')}", "At-risk card"),
+    ("${kpi('Executive sponsors',s.exec,'C-level coverage',Math.min(100,s.exec*5))}", "${kpi('Executive sponsors',s.exec,'Executive stakeholder coverage',Math.min(100,s.exec*5),'','accounts')}", "Executive sponsor card"),
+    ("${kpi('Open critical roles',data.headcount.critical,'Headcount planning signal',44,'pink')}", "${kpi('Open customer risks',data.accounts.filter(a=>a.risks&&a.risks.some(r=>r.status!=='Closed')).length,'Risk and escalation playbooks',44,'pink','playbooks')}", "Customer risk card"),
+]:
+    replace_once(old, new, label)
+
+# Notes: validate, prepend to the list so users see the result immediately,
+# keep the Notes tab active, and display explicit success feedback.
+old_note = "function addNote(a){modal(`<h3>Add account note</h3>${f('Date','n-date',new Date().toISOString().slice(0,10),'date')}<div class=\"field\" style=\"margin-top:10px\"><label>Note</label><textarea class=\"textarea\" id=\"n-text\"></textarea></div><div class=\"modal-actions\"><button class=\"btn\" data-close>Cancel</button><button class=\"btn primary\" id=\"save-note\">Add note</button></div>`,()=>{document.querySelector('#save-note').onclick=()=>{a.notes.push({id:uid('note'),date:v('n-date'),text:v('n-text')});save(data);closeModal();render()}})}"
+new_note = "function notify(msg){document.querySelector('.abc-toast')?.remove();const t=document.createElement('div');t.className='abc-toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}\nfunction addNote(a){modal(`<h3>Add account note</h3>${f('Date','n-date',new Date().toISOString().slice(0,10),'date')}<div class=\"field\" style=\"margin-top:10px\"><label>Note</label><textarea class=\"textarea\" id=\"n-text\" placeholder=\"Decision, commitment, customer feedback, risk, or follow-up context\"></textarea><div id=\"note-error\" class=\"small-muted\" style=\"min-height:16px;margin-top:6px;color:var(--bad)\"></div></div><div class=\"modal-actions\"><button class=\"btn\" data-close>Cancel</button><button class=\"btn primary\" id=\"save-note\">Save note</button></div>`,()=>{document.querySelector('#save-note').onclick=()=>{const text=v('n-text').trim(),date=v('n-date');if(!text){document.getElementById('note-error').textContent='Enter a note before saving.';document.getElementById('n-text').focus();return}a.notes.unshift({id:uid('note'),date,text});save(data);closeModal();accountTab='notes';render();notify('Note saved')}})}"
+replace_once(old_note, new_note, "note save")
+
+# Meeting brief print/PDF.  Date values use nowrap, fixed print margins,
+# and tabular numbers so no date is truncated at a page edge.
+brief_match = re.search(r"function brief\(a\)\{[\s\S]*?\n\}\nfunction modal\(body,after\)\{", html)
+if not brief_match:
+    raise RuntimeError("brief function block not found")
+new_brief = r'''function printBrief(a,text){
+ const w=window.open('','_blank','width=900,height=1000');if(!w){notify('Allow pop-ups to open the printable brief.');return}
+ const meetings=[...a.meetings].sort((x,y)=>y.date.localeCompare(x.date)).slice(0,5),notes=[...a.notes].sort((x,y)=>y.date.localeCompare(x.date)).slice(0,8);
+ const risks=(a.risks||[]).map(r=>`<li><strong>${esc(r.title)}</strong> · ${esc(r.severity)} · ${esc(r.status)} · Owner ${esc(r.owner)}</li>`).join('')||'<li>No stored open risks.</li>';
+ const people=(a.contacts||[]).map(c=>`<li><strong>${esc(c.name)}</strong> · ${esc(c.title)} · ${esc(c.role)}</li>`).join('')||'<li>No stakeholders stored.</li>';
+ const plans=(a.successPlans||[]).map(s=>`<li><strong>${esc(s.objective)}</strong> · ${s.progress}% · Owner ${esc(s.owner)}<br><span>${esc(s.proof||'')}</span></li>`).join('')||'<li>No success-plan objectives stored.</li>';
+ const meetingRows=meetings.map(m=>`<div class="entry"><span class="date-value">${esc(fmtDate(m.date))}</span><div><strong>${esc(m.type)}</strong> · ${esc(m.title||'')}<br><span>${esc(m.notes||'')}</span></div></div>`).join('')||'<p>None logged.</p>';
+ const noteRows=notes.map(n=>`<div class="entry"><span class="date-value">${esc(fmtDate(n.date))}</span><div>${esc(n.text)}</div></div>`).join('')||'<p>None logged.</p>';
+ const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(a.name)} - Meeting Brief</title><style>@page{size:Letter;margin:.48in .52in}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#17131a;font:10.5pt/1.38 Arial,sans-serif}body{max-width:7.46in;margin:0 auto}h1{font-size:20pt;margin:0 0 4px;letter-spacing:-.03em}h2{font-size:10pt;text-transform:uppercase;letter-spacing:.09em;margin:18px 0 7px;border-bottom:1px solid #d8d1da;padding-bottom:4px;color:#5d5261}.kicker{font-size:8pt;text-transform:uppercase;letter-spacing:.14em;color:#8f335d;font-weight:700}.accent{height:4px;width:1.1in;border-radius:10px;background:linear-gradient(90deg,#ff3b88,#ff6957,#a565ff);margin:8px 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 18px}.kv{display:grid;grid-template-columns:1.05in minmax(0,1fr);gap:8px;border-bottom:1px solid #eee9ef;padding:4px 0}.kv span:first-child{color:#756b79}.date-value{white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important;display:inline-block;font-variant-numeric:tabular-nums}.section,.entry,li{break-inside:avoid;page-break-inside:avoid}.entry{display:grid;grid-template-columns:1.18in minmax(0,1fr);gap:10px;padding:5px 0;border-bottom:1px solid #eee9ef}.entry .date-value{width:1.18in}ul{margin:4px 0 0;padding-left:18px}li{margin:4px 0}.story{font-weight:700;font-size:9pt;padding:8px 10px;border-left:3px solid #ff3b88;background:#faf6f9}.manual-line{height:.28in;border-bottom:1px solid #bdb5c0}.footer{margin-top:14px;font-size:7.5pt;color:#7b727f}.printbar{display:flex;gap:8px;margin:0 0 14px}.printbar button{border:0;border-radius:7px;padding:8px 12px;font-weight:700;cursor:pointer}.primary{background:#e52f75;color:white}.secondary{background:#eee9ef;color:#251e27}@media print{.printbar{display:none}body{max-width:none}.date-value{white-space:nowrap!important}}</style></head><body><div class="printbar"><button class="primary" onclick="window.print()">Print / Save PDF</button><button class="secondary" onclick="window.close()">Close</button></div><div class="kicker">Independent interview prototype · Enterprise Customer Success</div><h1>${esc(a.name)} · Meeting Brief</h1><div class="accent"></div><div class="grid"><div class="kv"><span>Industry</span><strong>${esc(a.industry)}</strong></div><div class="kv"><span>Region</span><strong>${esc(a.region)}</strong></div><div class="kv"><span>ARR</span><strong>${esc(fmtMoney(a.arr))}</strong></div><div class="kv"><span>Health</span><strong>${a.health}/100 · ${esc(healthLabel(a.health))}</strong></div><div class="kv"><span>Renewal</span><strong class="date-value">${esc(fmtDate(a.renewalDate))}</strong></div><div class="kv"><span>Days left</span><strong>${daysTo(a.renewalDate)}</strong></div><div class="kv"><span>Start</span><strong class="date-value">${esc(fmtDate(a.startDate))}</strong></div><div class="kv"><span>End</span><strong class="date-value">${esc(fmtDate(a.endDate))}</strong></div></div><div class="section"><h2>Current customer signals</h2><div class="grid"><div class="kv"><span>Adoption</span><strong>${a.adoption}%</strong></div><div class="kv"><span>Tech coverage</span><strong>${a.technicalCoverage}%</strong></div><div class="kv"><span>Value evidence</span><strong>${a.valueEvidence}%</strong></div><div class="kv"><span>Stakeholders</span><strong>${a.stakeholderStrength}%</strong></div><div class="kv"><span>Support confidence</span><strong>${a.supportSla}%</strong></div><div class="kv"><span>Commercial</span><strong>${a.commercialReadiness}%</strong></div></div></div><div class="section"><h2>Customer outcome</h2><div>${esc(a.primaryOutcome||a.summary||'')}</div></div><div class="section"><h2>Open risks & mitigation</h2><ul>${risks}</ul></div><div class="section"><h2>Stakeholders</h2><ul>${people}</ul></div><div class="section"><h2>Success plan</h2><ul>${plans}</ul></div><div class="section"><h2>Recent meetings</h2>${meetingRows}</div><div class="section"><h2>Account notes</h2>${noteRows}</div><div class="section"><h2>EBR storyline</h2><div class="story">WHY WE STARTED → WHAT CHANGED → WHAT IMPROVED → WHAT IS OPEN → WHAT WE DECIDE NEXT</div></div><div class="section"><h2>Manual notes / decisions</h2>${'<div class="manual-line"></div>'.repeat(8)}</div><div class="footer">Synthetic data only · Prepared for interview demonstration · Dates are kept on one line for print/PDF output.</div></body></html>`;
+ w.document.open();w.document.write(doc);w.document.close();if(typeof gtag==='function')gtag('event','meeting_brief_pdf_open',{demo_name:'abnormal_enterprise_customer_success'});setTimeout(()=>{w.focus()},120)
+}
+function brief(a){
+ const lastM=[...a.meetings].sort((x,y)=>y.date.localeCompare(x.date))[0], lastN=[...a.notes].sort((x,y)=>y.date.localeCompare(x.date))[0];
+ const breached=[['Health',a.health,70],['Adoption',a.adoption,70],['Value evidence',a.valueEvidence,70],['Stakeholder strength',a.stakeholderStrength,70],['Commercial readiness',a.commercialReadiness,65]].filter(x=>x[1]<x[2]);
+ const story=`WHY WE STARTED → WHAT CHANGED → WHAT IMPROVED → WHAT IS OPEN → WHAT WE DECIDE NEXT`;
+ const text=`EXECUTIVE REVIEW / MEETING READINESS\n\nACCOUNT\n${a.name} · ${a.industry} · ${a.region}\nARR: ${fmtMoney(a.arr)}\nHealth: ${a.health}/100 (${healthLabel(a.health)})\nRenewal: ${fmtDate(a.renewalDate)} · ${daysTo(a.renewalDate)} days\nOwner: ${a.owner}\n\nCURRENT CUSTOMER SIGNALS\nAdoption: ${a.adoption}%\nTechnical coverage: ${a.technicalCoverage}%\nValue evidence: ${a.valueEvidence}%\nStakeholder strength: ${a.stakeholderStrength}%\nSupport confidence: ${a.supportSla}%\nCommercial readiness: ${a.commercialReadiness}%\n\nTHRESHOLDS / ATTENTION\n${breached.length?breached.map(x=>`- ${x[0]}: ${x[1]} (threshold ${x[2]})`).join('\n'):'- No configured threshold breaches'}\n\nSTAKEHOLDERS\n${a.contacts.map(c=>`- ${c.name} · ${c.title} · ${c.role}`).join('\n')}\n\nSUCCESS PLAN\n${a.successPlans.map(s=>`- ${s.objective} · ${s.progress}% · Owner ${s.owner}\n  Proof: ${s.proof}`).join('\n')}\n\nRECENT MEETING\n${lastM?`${fmtDate(lastM.date)} · ${lastM.type}\n${lastM.notes}`:'No meeting logged'}\n\nRECENT NOTE\n${lastN?`${fmtDate(lastN.date)} · ${lastN.text}`:'No note logged'}\n\nEBR STORYLINE\n${story}\n\nDECISIONS TO DRIVE\n- Confirm the next customer outcome and named owner.\n- Validate open dependencies and timing.\n- Agree what evidence must exist before the next executive or commercial checkpoint.`;
+ modal(`<h3>${esc(a.name)} · Meeting readiness</h3><div class="story"><span>WHY WE STARTED</span><span>WHAT CHANGED</span><span>WHAT IMPROVED</span><span>WHAT IS OPEN</span><span>WHAT WE DECIDE NEXT</span></div><div class="reviewpack" style="margin-top:12px">${esc(text)}</div><div class="modal-actions"><button class="btn" data-close>Close</button><button class="btn" id="copy-brief">Copy brief</button><button class="btn primary" id="print-brief">Print / Save PDF</button></div>`,()=>{document.querySelector('#copy-brief')?.addEventListener('click',()=>{navigator.clipboard?.writeText(text);notify('Brief copied')});document.querySelector('#print-brief')?.addEventListener('click',()=>printBrief(a,text))})
+}
+function modal(body,after){'''
+html = html[: brief_match.start()] + new_brief + html[brief_match.end() :]
+print("PATCH meeting brief PDF")
+
+# Deduped page_view event on every main SPA route and every account tab.
+replace_once(
+    "function page(){",
+    "let lastAnalyticsView='';\nfunction trackPageView(){const view=route==='account'?('account/'+accountTab):route;if(view===lastAnalyticsView)return;lastAnalyticsView=view;if(typeof gtag==='function')gtag('event','page_view',{page_title:'ABC '+view,page_location:location.href,page_path:'/abc/'+view,demo_name:'abnormal_enterprise_customer_success'})}\nfunction page(){",
+    "analytics tracker",
+)
+replace_once(
+    "function render(){document.getElementById('app').innerHTML=`<div class=\"app\">${renderTopBar()}<main class=\"shell\">${page()}</main></div>`;bind()}",
+    "function render(){document.getElementById('app').innerHTML=`<div class=\"app\">${renderTopBar()}<main class=\"shell\">${page()}</main></div>`;bind();trackPageView()}",
+    "analytics render hook",
+)
+
+required = [
+    "ABNORMAL // CUSTOMER SUCCESS",
+    "kpi-card",
+    "Note saved",
+    "Print / Save PDF",
+    "date-value",
+    "white-space:nowrap",
+    "trackPageView",
+    "page_path:'/abc/'",
+    "Open customer risks",
+]
+for marker in required:
+    assert marker in html, marker
+assert "a.notes.unshift" in html
+assert "function notify(msg)" in html
+
+encoded = base64.b64encode(gzip.compress(html.encode(), compresslevel=9, mtime=0)).decode()
+size = math.ceil(len(encoded) / 5)
+out = [encoded[i * size : (i + 1) * size] for i in range(5)]
+assert "".join(out) == encoded and all(out)
+for i, chunk in enumerate(out, 1):
+    (root / f"app-part{i}.js").write_text(f'export const PART_{i} = "{chunk}";\n')
+print("PATCHED", len(html), "HTML bytes", len(encoded), "base64 bytes")
