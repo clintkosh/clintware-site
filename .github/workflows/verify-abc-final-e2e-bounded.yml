@@ -1,0 +1,73 @@
+name: Verify ABC Final E2E Bounded
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-abc-final-e2e-bounded.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Exercise exact supported production functionality with bounded waits
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abce2eb && cd /tmp/abce2eb
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > e2e.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const context=await browser.newContext();
+          const page=await context.newPage();
+          page.setDefaultTimeout(5000);
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('dialog',async d=>d.accept());
+          const log=x=>console.log('E2E',x);
+          let ready=false;
+          for(let i=1;i<=30;i++){
+            await page.goto('https://abc.clintware.com/?bounded='+Date.now(),{waitUntil:'domcontentloaded',timeout:15000});
+            await page.waitForTimeout(700);
+            const src=(await page.locator('script').allTextContents()).join('\n');
+            if(await page.locator('#gate').count()&&src.includes('function bindGate()')&&src.includes('String(x.id)===String(selected)')&&src.includes('observeAbnormalPresentation')){ready=true;log('current build '+i);break}
+            await page.waitForTimeout(3000);
+          }
+          if(!ready)throw new Error('current build not served');
+          await page.fill('#pw','wrong-password');await page.click('#access-form button[type="submit"]');
+          if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('bad-password rejection');
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},null,{timeout:15000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});await page.waitForTimeout(1000);log('login');
+          const load=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          let d=await load();const aid=d.accounts[0].id;
+          if(d.accounts.length!==20||d.healthModel.adoption!==30||d.healthModel.valueRealization!==25)throw new Error('model');
+          const cc=await page.locator('#app').innerText();for(const x of ['Customer Cadence','Engagement Coverage','Value & Growth','Voice of Customer','Intellectual Honesty'])if(!cc.toLowerCase().includes(x.toLowerCase()))throw new Error('copy '+x);log('model/copy');
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(200);const op=page.locator(`[data-open="${aid}"]`).first();if(await op.evaluate(e=>typeof e.onclick)!=='function')throw new Error('account handler');await op.click();await page.waitForTimeout(200);if(!(await page.locator('[data-tab="stakeholders"]').count()))throw new Error('account open');log('account open');
+          await page.locator('[data-edit-account]').click();await page.fill('#f-summary','ABC bounded E2E summary');await page.click('#save-account');d=await load();let a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC bounded E2E summary')throw new Error('edit account');log('account edit');
+          const c0=a.contacts.length;await page.locator('[data-tab="stakeholders"]').click();await page.locator('[data-add-contact]').click();await page.fill('#c-name','ABC Bounded Stakeholder');await page.fill('#c-title','VP Information Security');await page.fill('#c-email','bounded@lone-mesa-energy.example');await page.click('#save-contact');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const c=a.contacts.find(x=>x.name==='ABC Bounded Stakeholder');if(!c||a.contacts.length!==c0+1)throw new Error('add contact');await page.locator(`[data-del-contact="${aid}|${c.id}"]`).click();await page.waitForTimeout(100);d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.contacts.length!==c0)throw new Error('delete contact');log('stakeholder add/remove');
+          const s0=a.successPlans.length;await page.locator('[data-tab="success"]').click();await page.locator('[data-add-success]').click();await page.fill('#s-out','ABC bounded measurable outcome');await page.fill('#s-owner','Customer + CSM');await page.fill('#s-date','2026-10-15');await page.fill('#s-progress','81');await page.click('#save-success');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const s=a.successPlans.find(x=>x.outcome==='ABC bounded measurable outcome');if(!s||a.successPlans.length!==s0+1)throw new Error('add success');await page.locator(`[data-del-success="${aid}|${s.id}"]`).click();await page.waitForTimeout(100);d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.successPlans.length!==s0)throw new Error('delete success');log('success add/remove');
+          const m0=a.meetings.length;await page.locator('[data-tab="meetings"]').click();await page.locator('[data-add-meeting]').click();await page.fill('#m-date','2026-08-13');await page.fill('#m-title','ABC Bounded Executive Review');await page.fill('#m-notes','ABC bounded value adoption risk review.');await page.click('#save-meeting');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const m=a.meetings.find(x=>x.title==='ABC Bounded Executive Review');if(!m||a.meetings.length!==m0+1)throw new Error('add meeting');log('meeting add');
+          const n0=a.notes.length;await page.locator('[data-tab="notes"]').click();await page.locator('[data-add-note]').click();await page.fill('#n-text','ABC bounded customer voice note.');await page.click('#save-note');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const n=a.notes.find(x=>x.text==='ABC bounded customer voice note.');if(!n||a.notes.length!==n0+1)throw new Error('add note');log('note add');
+          await page.locator('[data-tab="technical"]').click();if(!(await page.locator('#app').innerText()).includes('Customer Success + Technical Success'))throw new Error('technical');await page.locator('[data-tab="commercial"]').click();if(!(await page.locator('#app').innerText()).includes('Renewal & growth readiness'))throw new Error('commercial');await page.locator('[data-tab="summary"]').click();if(!(await page.locator('#app').innerText()).includes('Open risks'))throw new Error('risks');log('read-only context');
+          await page.locator('[data-brief]').first().click();const bt=await page.locator('.modal').innerText();for(const x of ['WHY WE STARTED','WHAT WE DECIDE NEXT','ABC bounded customer voice note.'])if(!bt.includes(x))throw new Error('brief '+x);if(!(await page.locator('#copy-brief').count()))throw new Error('copy brief');await page.click('#copy-brief');await page.locator('[data-close]').click();log('meeting brief/copy');
+          await page.locator('[data-tab="meetings"]').click();await page.locator(`[data-del-meeting="${aid}|${m.id}"]`).click();await page.waitForTimeout(100);await page.locator('[data-tab="notes"]').click();await page.locator(`[data-del-note="${aid}|${n.id}"]`).click();await page.waitForTimeout(100);d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.meetings.length!==m0||a.notes.length!==n0)throw new Error('cleanup records');log('meeting/note remove');
+          await page.reload({waitUntil:'domcontentloaded',timeout:15000});await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC bounded E2E summary')throw new Error('reload persist');log('reload persist');
+          await page.locator('[data-route="accounts"]').first().click();await page.click('#clear-top');await page.waitForTimeout(200);d=await load();if(d.accounts.length!==0)throw new Error('clear');if(!(await page.locator('#app').innerText()).includes('Add your first account'))throw new Error('empty prompt');log('clear');
+          await page.click('#seed-top');await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'}catch(e){return false}},null,{timeout:15000});await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});log('reseed');
+          if(errors.length)throw new Error('page errors '+errors.join(' | '));
+          console.log('PASS FINAL ABC: login, model, account open/edit, stakeholder, success, meeting, note, technical/commercial/risk context, meeting brief/copy, persistence, clear/reseed');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node e2e.mjs
