@@ -1,0 +1,213 @@
+name: Verify ABC Final E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-abc-final-e2e.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Exercise exact stable production workflow in Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abce2e && cd /tmp/abce2e
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > e2e.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const context=await browser.newContext({permissions:['clipboard-read','clipboard-write']});
+          const page=await context.newPage();
+          const pageErrors=[];
+          page.on('pageerror',e=>pageErrors.push(String(e)));
+          page.on('dialog',async d=>d.accept());
+
+          // Refuse stale Cloudflare edge copies. Require all substantive fixes in the exact browser response.
+          let ready=false;
+          for(let i=1;i<=40;i++){
+            await page.goto('https://abc.clintware.com/?final-e2e='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(1000);
+            const src=(await page.locator('script').allTextContents()).join('\n');
+            const current=src.includes('function bindGate()')
+              && src.includes('data.accounts.find(x=>String(x.id)===String(selected))')
+              && src.includes('function observeAbnormalPresentation()')
+              && !src.includes("DOMContentLoaded',bind);");
+            if(await page.locator('#gate').count()&&current){ready=true;console.log('CURRENT_FINAL_BUILD_ATTEMPT',i);break}
+            console.log('WAIT_FINAL_BUILD',i,current,await page.title().catch(()=>''));
+            await page.waitForTimeout(4000);
+          }
+          if(!ready)throw new Error('current final ABC build never appeared');
+
+          // Exact gate behavior.
+          await page.fill('#pw','wrong-password');
+          await page.click('#access-form button[type="submit"]');
+          if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong password rejection failed');
+          if(await page.evaluate(()=>document.body.classList.contains('unlocked')))throw new Error('wrong password unlocked app');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForTimeout(1800);
+
+          const loadModel=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          let model=await loadModel();
+          if(model.accounts.length!==20)throw new Error('expected 20 TOLA demo accounts');
+          if(model.accounts[0].region!=='Houston, TX'||model.accounts[0].contacts.length<3)throw new Error('TOLA/multi-thread model missing');
+          if(JSON.stringify(model.healthModel)!==JSON.stringify({adoption:30,valueRealization:25,stakeholderAlignment:20,riskAndEscalation:15,renewalAndGrowth:10}))throw new Error('Abnormal health weighting changed');
+          const accountId=model.accounts[0].id;
+
+          // Visual / role alignment markers on actual rendered page.
+          const commandText=await page.locator('#app').innerText();
+          for(const required of ['Enterprise Customer Success','Customer Cadence','Engagement Coverage','Value & Growth','Voice of Customer','Customer Obsession','Intellectual Honesty']) if(!commandText.toLowerCase().includes(required.toLowerCase()))throw new Error('role/presentation marker missing: '+required);
+          const accountLinkColor=await page.locator('[data-open]').first().evaluate(el=>getComputedStyle(el).color);
+          if(!accountLinkColor.includes('255, 110, 167'))throw new Error('Abnormal pink account-link accent missing: '+accountLinkColor);
+
+          // Open exact account. This verifies the inherited bind() collision and dataset-ID fixes together.
+          await page.locator('[data-route="accounts"]').first().click();
+          await page.waitForTimeout(300);
+          const opener=page.locator(`[data-open="${accountId}"]`).first();
+          if(!(await opener.count()))throw new Error('exact account opener missing');
+          if(await opener.evaluate(el=>typeof el.onclick)!=='function')throw new Error('account opener was not rebound');
+          await opener.click();
+          await page.waitForTimeout(300);
+          let tabs=await page.locator('[data-tab]').allTextContents();
+          for(const t of ['Stakeholders','Success Plan','Technical & Services','Meetings','Notes','Commercial']) if(!tabs.some(x=>x.includes(t)))throw new Error('missing account tab '+t);
+
+          // Edit account details.
+          await page.locator('[data-edit-account]').click();
+          await page.waitForSelector('#f-summary');
+          await page.fill('#f-summary','ABC final E2E enterprise Customer Success summary');
+          await page.click('#save-account');
+          model=await loadModel();
+          let acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          if(acct.summary!=='ABC final E2E enterprise Customer Success summary')throw new Error('account edit did not persist');
+
+          // Add a stakeholder/user, confirm persistence, then remove it.
+          const baseContacts=acct.contacts.length;
+          await page.locator('[data-tab="stakeholders"]').click();
+          await page.locator('[data-add-contact]').click();
+          await page.fill('#c-name','ABC E2E Stakeholder');
+          await page.fill('#c-title','VP, Information Security');
+          await page.fill('#c-email','abc-e2e@lone-mesa-energy.example');
+          if(await page.locator('#c-role').count())await page.fill('#c-role','Executive technical sponsor');
+          if(await page.locator('#c-level').count())await page.selectOption('#c-level',{label:'VP'}).catch(()=>page.fill('#c-level','VP'));
+          await page.click('#save-contact');
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          const addedContact=acct.contacts.find(c=>c.name==='ABC E2E Stakeholder');
+          if(!addedContact||acct.contacts.length!==baseContacts+1)throw new Error('add stakeholder failed');
+          await page.locator(`[data-del-contact="${accountId}|${addedContact.id}"]`).click();
+          await page.waitForTimeout(120);
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          if(acct.contacts.some(c=>c.name==='ABC E2E Stakeholder')||acct.contacts.length!==baseContacts)throw new Error('remove stakeholder failed');
+
+          // Add/remove success plan objective using actual inherited controls.
+          const baseSuccess=acct.successPlans.length;
+          await page.locator('[data-tab="success"]').click();
+          await page.locator('[data-add-success]').click();
+          await page.fill('#s-out','ABC E2E measurable security outcome');
+          await page.fill('#s-owner','Customer + CSM');
+          await page.fill('#s-date','2026-10-15');
+          await page.fill('#s-progress','81');
+          await page.click('#save-success');
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          const addedSuccess=acct.successPlans.find(s=>s.outcome==='ABC E2E measurable security outcome');
+          if(!addedSuccess||acct.successPlans.length!==baseSuccess+1||Number(addedSuccess.progress)!==81)throw new Error('add success objective failed');
+          await page.locator(`[data-del-success="${accountId}|${addedSuccess.id}"]`).click();await page.waitForTimeout(120);
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          if(acct.successPlans.some(s=>s.outcome==='ABC E2E measurable security outcome')||acct.successPlans.length!==baseSuccess)throw new Error('remove success objective failed');
+
+          // Add a meeting. Keep it through brief generation, then remove it.
+          const baseMeetings=acct.meetings.length;
+          await page.locator('[data-tab="meetings"]').click();
+          await page.locator('[data-add-meeting]').click();
+          await page.fill('#m-date','2026-08-13');
+          if(await page.locator('#m-type').count())await page.selectOption('#m-type',{label:'EBR'}).catch(()=>page.fill('#m-type','EBR'));
+          await page.fill('#m-title','ABC E2E Executive Value Review');
+          await page.fill('#m-notes','ABC E2E meeting validates value, adoption, risk, and next customer action.');
+          await page.click('#save-meeting');
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          const addedMeeting=acct.meetings.find(m=>m.title==='ABC E2E Executive Value Review');
+          if(!addedMeeting||acct.meetings.length!==baseMeetings+1)throw new Error('log meeting failed');
+
+          // Add a customer note. Keep it through brief generation, then remove it.
+          const baseNotes=acct.notes.length;
+          await page.locator('[data-tab="notes"]').click();
+          await page.locator('[data-add-note]').click();
+          await page.fill('#n-text','ABC E2E customer voice note for meeting readiness.');
+          await page.click('#save-note');
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          const addedNote=acct.notes.find(n=>n.text==='ABC E2E customer voice note for meeting readiness.');
+          if(!addedNote||acct.notes.length!==baseNotes+1)throw new Error('add note failed');
+
+          // Read-only technical, commercial, and risk context must remain intact, matching ZS functionality.
+          await page.locator('[data-tab="technical"]').click();
+          const technicalText=await page.locator('#app').innerText();
+          if(!technicalText.includes('Customer Success + Technical Success')||!technicalText.includes('Technical coverage'))throw new Error('technical context missing');
+          await page.locator('[data-tab="commercial"]').click();
+          const commercialText=await page.locator('#app').innerText();
+          if(!commercialText.includes('Renewal & growth readiness')||!commercialText.includes('Value evidence')||!commercialText.includes('Commercial readiness'))throw new Error('commercial context missing');
+          await page.locator('[data-tab="summary"]').click();
+          const summaryText=await page.locator('#app').innerText();
+          if(!summaryText.includes('Open risks')||!summaryText.includes('Maintain measurable value evidence'))throw new Error('risk context missing');
+
+          // Deterministic meeting brief and copy-to-clipboard are the actual copied ZS brief functionality.
+          await page.locator('[data-brief]').first().click();
+          await page.waitForSelector('.modal');
+          const briefText=await page.locator('.modal').innerText();
+          for(const marker of ['WHY WE STARTED','WHAT CHANGED','WHAT IMPROVED','WHAT IS OPEN','WHAT WE DECIDE NEXT','EXECUTIVE REVIEW / MEETING READINESS','ABC E2E customer voice note for meeting readiness.']) if(!briefText.includes(marker))throw new Error('meeting brief missing '+marker);
+          if(!(await page.locator('#copy-brief').count()))throw new Error('Copy brief control missing');
+          await page.click('#copy-brief');
+          await page.waitForTimeout(150);
+          const clip=await page.evaluate(()=>navigator.clipboard.readText()).catch(()=>null);
+          if(clip!==null&&!clip.includes('EXECUTIVE REVIEW / MEETING READINESS'))throw new Error('copied brief content invalid');
+          await page.locator('[data-close]').click();
+
+          // Remove temporary meeting/note and confirm the delete paths.
+          await page.locator('[data-tab="meetings"]').click();
+          await page.locator(`[data-del-meeting="${accountId}|${addedMeeting.id}"]`).click();await page.waitForTimeout(120);
+          await page.locator('[data-tab="notes"]').click();
+          await page.locator(`[data-del-note="${accountId}|${addedNote.id}"]`).click();await page.waitForTimeout(120);
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          if(acct.meetings.some(m=>m.title==='ABC E2E Executive Value Review')||acct.meetings.length!==baseMeetings)throw new Error('remove meeting failed');
+          if(acct.notes.some(n=>n.text==='ABC E2E customer voice note for meeting readiness.')||acct.notes.length!==baseNotes)throw new Error('remove note failed');
+
+          // Same-tab reload must keep gate unlocked and account edit persisted.
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForTimeout(600);
+          model=await loadModel();acct=model.accounts.find(a=>String(a.id)===String(accountId));
+          if(acct.summary!=='ABC final E2E enterprise Customer Success summary')throw new Error('account edit lost after reload');
+
+          // Clear -> zero accounts and empty Accounts view; reseed -> 20 retuned Abnormal accounts.
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(200);
+          await page.click('#clear-top');await page.waitForTimeout(250);
+          model=await loadModel();
+          if(model.accounts.length!==0)throw new Error('Clear failed; accounts remain');
+          const emptyText=await page.locator('#app').innerText();
+          if(!emptyText.includes('Add your first account'))throw new Error('clear did not show empty account prompt');
+          await page.click('#seed-top');
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.abcAbnormalModelVersion===4}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          model=await loadModel();
+          if(model.accounts.length!==20||model.accounts[19].name!=='Metroplex Media Group')throw new Error('Abnormal reseed failed');
+
+          if(pageErrors.length)throw new Error('browser page errors: '+pageErrors.join(' | '));
+          console.log('PASS: exact login + account edit + add/remove stakeholder + success + meeting + note + technical/commercial/risk context + brief copy + reload persistence + clear/reseed');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node e2e.mjs
