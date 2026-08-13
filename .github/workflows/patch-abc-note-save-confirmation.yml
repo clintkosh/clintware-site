@@ -24,7 +24,7 @@ jobs:
           from pathlib import Path
           p=Path('abc/src/index.js')
           s=p.read_text()
-          css='''\n#abc-save-toast{display:none;position:fixed;right:16px;bottom:16px;z-index:2147483001;padding:10px 14px;border:1px solid rgba(73,229,179,.45);border-radius:10px;background:rgba(12,24,20,.96);color:#dffcf2;font:800 12px/1.2 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.30)}#abc-save-toast.show{display:block}html[data-theme="light"] #abc-save-toast{background:#f3fff9;color:#12664e;border-color:#7fd9bb}\n'''
+          css='\n#abc-save-toast{display:none;position:fixed;right:16px;bottom:16px;z-index:2147483001;padding:10px 14px;border:1px solid rgba(73,229,179,.45);border-radius:10px;background:rgba(12,24,20,.96);color:#dffcf2;font:800 12px/1.2 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.30)}#abc-save-toast.show{display:block}html[data-theme="light"] #abc-save-toast{background:#f3fff9;color:#12664e;border-color:#7fd9bb}\n'
           if '#abc-save-toast{' not in s:
               needle='@media(max-width:700px){#abc-global-logout{top:8px;right:8px;padding:8px 10px;font-size:10px}}\n'
               assert needle in s
@@ -33,11 +33,7 @@ jobs:
               needle='</main><button id="abc-global-logout"'
               assert needle in s
               s=s.replace(needle,'</main><div id="abc-save-toast" role="status" aria-live="polite"></div><button id="abc-global-logout"',1)
-          js="""
-function noteSnapshot(){try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return JSON.stringify((d?.accounts||[]).map(a=>[String(a.id),a.notes||[]]))}catch(e){return ''}}
-function showSavedNotice(msg){const el=document.getElementById('abc-save-toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(showSavedNotice.t);showSavedNotice.t=setTimeout(()=>el.classList.remove('show'),1800)}
-document.addEventListener('click',e=>{const btn=e.target.closest?.('#save-note');if(!btn)return;const before=noteSnapshot();setTimeout(()=>{const after=noteSnapshot();if(after&&after!==before){showSavedNotice('Note saved');sendEvent('crm_note_saved')}},90)},true);
-"""
+          js="function noteSnapshot(){try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return JSON.stringify((d?.accounts||[]).map(a=>[String(a.id),a.notes||[]]))}catch(e){return ''}}\nfunction showSavedNotice(msg){const el=document.getElementById('abc-save-toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(showSavedNotice.t);showSavedNotice.t=setTimeout(()=>el.classList.remove('show'),1800)}\ndocument.addEventListener('click',e=>{const btn=e.target.closest?.('#save-note');if(!btn)return;const before=noteSnapshot();setTimeout(()=>{const after=noteSnapshot();if(after&&after!==before){showSavedNotice('Note saved');sendEvent('crm_note_saved')}},90)},true);\n"
           if 'function noteSnapshot()' not in s:
               needle="document.addEventListener('DOMContentLoaded',bindGate);\n"
               assert needle in s
@@ -52,9 +48,10 @@ document.addEventListener('click',e=>{const btn=e.target.closest?.('#save-note')
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add abc/src/index.js
-          git diff --cached --quiet && exit 0
-          git commit -m "Show confirmation only after note data persists"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Show confirmation only after note data persists"
+            git push
+          fi
       - name: Deploy updated Worker
         uses: cloudflare/wrangler-action@v3
         with:
