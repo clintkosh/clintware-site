@@ -1,0 +1,280 @@
+HTML_LENGTH=54450 SCRIPTS=1 MATCHES=1
+
+===== SCRIPT 0 LENGTH 43135 =====
+
+
+--- REGION 0 4695:30410 ---
+n trend, and next-quarter priorities.'}
+    ],
+    notes:[
+      {id:uid('note'),date:'2026-08-'+String(((i*3)%9)+1).padStart(2,'0'),text:i%4===0?'Executive sponsor wants a concise investment/value narrative before the next review.':i%4===1?'Team requested tighter visibility into ownership and outstanding cross-functional actions.':i%4===2?'Adoption is progressing; technical team wants clearer milestone evidence.':'Renewal timing is understood; procurement path and success evidence need to stay current.'}
+    ],
+    risks:health<70?[{id:uid('risk'),title:'Operational follow-through',severity:'High',owner:'CS Ops',status:'Open'}]:[],
+    successPlans:[
+      {id:uid('sp'),objective:'Increase measurable adoption across target workflows',progress:Math.max(45,health-8),owner:'CSM + Technical Success',proof:'Monthly usage, stakeholder validation, documented customer outcome'},
+      {id:uid('sp'),objective:'Establish executive value evidence before renewal',progress:Math.max(35,health-15),owner:'CSM + Executive Sponsor',proof:'EBR outcome summary and agreed next-quarter priorities'}
+    ],
+    integrations:['Identity Provider','SIEM','ITSM'].slice(0,2+(i%2)),
+    activeModules:['Core Platform','Analytics','Automation'].slice(0,2+(i%2)),
+    supportSeverity:i%6===0?'Sev 2':i%4===0?'Sev 3':'None',
+    serviceOwner:['Technical Success','Professional Services','Support'][i%3],
+    accountExec:['K. Brooks','M. Shah','L. Turner'][i%3],
+    summary:'Synthetic enterprise account used to demonstrate post-sales operating rigor, customer context, and executive review readiness.'
+   }
+ })
+}
+function seedState(){return{
+ accounts:seedAccounts(),
+ cadence:[
+  {id:uid('cad'),type:'Monthly Business Review',date:'2026-08-21',owner:'CS Business Operations',status:'Ready',focus:'Portfolio health, capacity, budget variance, major risks'},
+  {id:uid('cad'),type:'Executive Performance Review',date:'2026-08-28',owner:'Strategy & Operations',status:'In Prep',focus:'Impact, resource trade-offs, decisions needed'},
+  {id:uid('cad'),type:'Quarterly Business Review',date:'2026-09-18',owner:'CS Leadership',status:'Planning',focus:'Customer outcomes, operating performance, investment priorities'},
+  {id:uid('cad'),type:'Annual Operating Plan',date:'2026-10-16',owner:'CS + Finance',status:'Planning',focus:'Headcount, budget, capacity, operating priorities'}
+ ],
+ headcount:{approved:128,actual:119,open:9,critical:4},
+ budget:{plan:18400000,actual:11160000,forecast:18120000},
+ capacity:{support:86,technical:91,services:78,ops:83},
+ intake:[
+  {id:uid('req'),request:'Standardize executive review pack',function:'CS Leadership',impact:5,urgency:5,effort:2,status:'In Progress',owner:'Business Ops'},
+  {id:uid('req'),request:'Rebalance Technical Success capacity',function:'Technical Success',impact:5,urgency:4,effort:4,status:'Review',owner:'Resource Planning'},
+  {id:uid('req'),request:'Services utilization dashboard',function:'Professional Services',impact:4,urgency:3,effort:3,status:'Queued',owner:'Analytics'},
+  {id:uid('req'),request:'Support backlog operating review',function:'Support',impact:4,urgency:5,effort:2,status:'In Progress',owner:'Support Ops'}
+ ],
+ settings:{customerImpact:40,businessValue:25,urgency:20,strategicAlignment:15}
+}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE));if(x&&Array.isArray(x.accounts))return x}catch(e){}const x=seedState();save(x);return x}
+function save(x){localStorage.setItem(STORE,JSON.stringify(x))}
+let data=load(),route='command',selected=null,accountTab='summary',search='';
+function setTheme(v){document.documentElement.dataset.theme=v;localStorage.setItem(THEME,v);renderTopOnly()}
+(function(){const t=localStorage.getItem(THEME)||'light';document.documentElement.dataset.theme=t})();
+function themeIcon(){return document.documentElement.dataset.theme==='dark'?'☀':'◐'}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function navItems(){return[
+ ['command','Command Center'],['accounts','Accounts'],['renewal','Renewal & Readiness'],['playbooks','Playbooks'],['cadence','Business Rhythm'],['capacity','Capacity'],['finance','Finance'],['intake','Intake'],['kpis','KPIs'],['settings','Settings']
+]}
+function setRoute(r){route=r;selected=null;render()}
+function renderTopBar(){
+ return `<div class="topbar">
+ <div class="brand"><div class="brandmark"></div><div class="brandcopy"><strong>Post-Sales Business Operations</strong><span>Private role-mapped prototype</span></div></div>
+ <div class="topnav">${navItems().map(([r,l])=>`<button class="navbtn ${route===r?'active':''}" data-route="${r}">${l}</button>`).join('')}</div>
+ <div class="actions">
+  <button class="btn" id="seed-top">Seed Demo</button><button class="btn danger" id="clear-top">Clear</button>
+  <button class="iconbtn" id="theme-toggle" title="Toggle light/dark mode">${themeIcon()}</button>
+ </div></div>`
+}
+function renderTopOnly(){render()}
+function hero(title,sub,sideTitle='Impact over activity',sideCopy='Make operating signals easy to inspect, update, and carry into the next leadership decision.'){
+ return `<section class="hero"><div class="hero-main"><div class="eyebrow">Customer Success Business Operations</div><h1>${title}</h1><p>${sub}</p></div>
+ <div class="hero-side"><strong>${sideTitle}</strong><p>${sideCopy}</p><div class="hero-actions"><span class="pill"><span class="dot good"></span>Customer obsession</span><span class="pill">Ownership</span><span class="pill">Accountability</span></div></div></section>`
+}
+function portfolioStats(){
+ const a=data.accounts, arr=a.reduce((s,x)=>s+Number(x.arr||0),0), avg=a.length?Math.round(a.reduce((s,x)=>s+x.health,0)/a.length):0;
+ const due=a.filter(x=>daysTo(x.renewalDate)<=120).length, risk=a.filter(x=>x.health<70).length, exec=a.reduce((s,x)=>s+x.contacts.filter(c=>c.level==='C-Level').length,0);
+ return {arr,avg,due,risk,exec}
+}
+function command(){
+ if(!data.accounts.length)return accountsView();
+ const s=portfolioStats();
+ const risks=[...data.accounts].sort((a,b)=>a.health-b.health).slice(0,5);
+ const due=[...data.accounts].sort((a,b)=>daysTo(a.renewalDate)-daysTo(b.renewalDate)).slice(0,6);
+ return `${hero('Run the post-sales business with one operating picture.','Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.')}
+ <div class="grid kpis">
+ ${kpi('Managed ARR',fmtMoney(s.arr),'Synthetic portfolio context',82)}
+ ${kpi('Portfolio health',s.avg+'/100',healthLabel(s.avg),s.avg)}
+ ${kpi('≤120d renewals',s.due,'Commercial readiness window',Math.min(100,s.due*8))}
+ ${kpi('At-risk accounts',s.risk,'Health below 70',Math.min(100,s.risk*14),'pink')}
+ ${kpi('Executive sponsors',s.exec,'C-level coverage',Math.min(100,s.exec*5))}
+ ${kpi('Open critical roles',data.headcount.critical,'Headcount planning signal',44,'pink')}
+ </div>
+ <div class="section-head"><div><h2>Portfolio operating view</h2><p>DTex-style portfolio table with the business-operations signals this role needs.</p></div><button class="btn blue" data-route="accounts">Open all accounts</button></div>
+ ${accountTable(data.accounts.slice(0,10))}
+ <div class="grid two" style="margin-top:12px">
+   <div class="card"><div class="section-head" style="margin:0 0 8px"><div><h2>Renewal & commercial readiness</h2><p>Timing together with evidence, coverage, and health.</p></div></div>
+   ${due.map(a=>`<div class="timeline-item"><div><strong>${Math.max(0,daysTo(a.renewalDate))}d</strong><div class="small-muted">${fmtDate(a.renewalDate)}</div></div><div><button class="link" data-open="${a.id}">${esc(a.name)}</button><div class="small-muted">${fmtMoney(a.arr)} · ${a.commercialReadiness}% readiness</div></div><span class="health ${healthClass(a.health)}">${a.health}</span></div>`).join('')}</div>
+   <div class="card"><div class="section-head" style="margin:0 0 8px"><div><h2>Leadership attention</h2><p>Lowest-health accounts and operating dependencies.</p></div></div>
+   ${risks.map(a=>`<div class="timeline-item"><div><span class="health ${healthClass(a.health)}">${a.health}/100</span></div><div><button class="link" data-open="${a.id}">${esc(a.name)}</button><div class="small-muted">${a.risks[0]?.title||'Monitor adoption and evidence'}</div></div><span class="pill">${a.status}</span></div>`).join('')}</div>
+ </div>
+ <div class="section-head"><div><h2>Role operating model</h2><p>Structure across the core responsibilities in the listing.</p></div></div>
+ <div class="role-note">
+ ${miniRole('Business rhythm','MBR, QBR, AOP and executive reviews','cadence')}
+ ${miniRole('Resource rigor','Capacity, workload and headcount visibility','capacity')}
+ ${miniRole('Finance partnership','Budget, forecast and investment visibility','finance')}
+ ${miniRole('Prioritization','Structured intake and decision transparency','intake')}
+ ${miniRole('Customer outcomes','Account context, evidence and readiness','accounts')}
+ </div>`
+}
+function kpi(label,value,sub,pct,cls=''){return `<div class="card"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-sub">${sub}</div><div class="bar ${cls}"><span style="width:${Math.max(3,Math.min(100,pct))}%"></span></div></div>`}
+function miniRole(t,c,r){return `<div class="card"><div class="kpi-label">${t}</div><div style="font-weight:800;margin:7px 0">${c}</div><button class="link" data-route="${r}">Open workspace →</button></div>`}
+function accountTable(items){
+ return `<div class="tablewrap"><table><thead><tr><th>Account</th><th>ARR</th><th>Health</th><th>Renewal</th><th>Adoption</th><th>Exec coverage</th><th>Commercial</th><th>Owner</th></tr></thead><tbody>
+ ${items.map(a=>`<tr class="clickable"><td><button class="link" data-open="${a.id}">${esc(a.name)}</button><div class="small-muted">${a.industry} · ${a.region}</div></td><td>${fmtMoney(a.arr)}</td><td><span class="health ${healthClass(a.health)}">${a.health} · ${healthLabel(a.health)}</span></td><td>${fmtDate(a.renewalDate)}<div class="small-muted">${daysTo(a.renewalDate)} days</div></td><td>${a.adoption}%</td><td>${a.contacts.filter(c=>c.level==='C-Level').length?'Covered':'Gap'}</td><td>${a.commercialReadiness}%</td><td>${esc(a.owner)}</td></tr>`).join('')}
+ </tbody></table></div>`
+}
+function accountsView(){
+ if(!data.accounts.length)return `${hero('Accounts','The account workspace is the core operating record. Seed the demo set or add the first account to begin.','Build from ambiguity','The empty state intentionally lands here after Clear Accounts.')}
+ <div class="empty"><h2>Add your first account</h2><p>No account records are currently stored. Add a live working record or restore the 20-account synthetic demo set.</p><div class="hero-actions" style="justify-content:center"><button class="btn primary" id="add-account-empty">Add your first account</button><button class="btn blue" id="seed-accounts">Seed Demo Accounts</button></div></div>`;
+ const filtered=data.accounts.filter(a=>`${a.name} ${a.industry} ${a.owner} ${a.region}`.toLowerCase().includes(search.toLowerCase()));
+ return `${hero('Account portfolio','Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.')}
+ <div class="toolbar"><input id="acct-search" class="input search" placeholder="Search accounts, owner, industry or region" value="${esc(search)}"><button class="btn primary" id="add-account">Add account</button><button class="btn" id="seed-accounts">Seed Demo Accounts</button><button class="btn danger" id="clear-accounts">Clear Accounts</button></div>
+ ${accountTable(filtered)}`
+}
+function accountView(a){
+ const tabs=[['summary','Overview'],['stakeholders','Stakeholders'],['success','Success Plan'],['technical','Technical & Services'],['meetings','Meetings'],['notes','Notes'],['commercial','Commercial']];
+ return `<button class="btn ghost" data-route="accounts">← Back to accounts</button>
+ <section class="account-header" style="margin-top:10px"><div class="account-title"><div><div class="eyebrow">${esc(a.status)} account</div><h1>${esc(a.name)}</h1><div class="meta">${a.industry} · ${a.region} · Owner ${esc(a.owner)}</div></div>
+ <div class="hero-actions"><button class="btn blue" data-brief="${a.id}">Generate meeting brief</button><button class="btn" data-edit-account="${a.id}">Edit account</button></div></div>
+ <div class="metrics-row">
+ ${metric('ARR',fmtMoney(a.arr))}${metric('Health',a.health+'/100')}${metric('Renewal',fmtDate(a.renewalDate))}${metric('Adoption',a.adoption+'%')}${metric('Exec coverage',a.contacts.filter(c=>c.level==='C-Level').length?'Covered':'Gap')}${metric('Commercial',a.commercialReadiness+'%')}
+ </div></section>
+ <div class="tabs">${tabs.map(([t,l])=>`<button class="tabbtn ${accountTab===t?'active':''}" data-tab="${t}">${l}</button>`).join('')}</div>
+ ${accountTabContent(a)}`
+}
+function metric(l,v){return `<div class="metricbox"><span>${l}</span><strong>${v}</strong></div>`}
+function accountTabContent(a){
+ if(accountTab==='summary')return `<div class="split"><div class="stack">
+  <div class="card"><div class="section-head" style="margin:0 0 10px"><div><h2>Account context</h2><p>The customer story in one place.</p></div></div><p>${esc(a.summary)}</p><div class="callout"><strong>Primary outcome:</strong> ${esc(a.primaryOutcome)}</div></div>
+  <div class="card"><div class="section-head" style="margin:0 0 10px"><div><h2>Health dimensions</h2><p>Stored structured inputs, not inferred recommendations.</p></div></div>
+  ${healthRow('Adoption',a.adoption)}${healthRow('Technical coverage',a.technicalCoverage)}${healthRow('Value evidence',a.valueEvidence)}${healthRow('Stakeholder strength',a.stakeholderStrength)}${healthRow('Support confidence',a.supportSla)}${healthRow('Commercial readiness',a.commercialReadiness)}</div>
+ </div><div class="stack">
+  <div class="card"><h2 style="margin-top:0">Contract & dates</h2>${detail('Start date',fmtDate(a.startDate))}${detail('End date',fmtDate(a.endDate))}${detail('Renewal date',fmtDate(a.renewalDate))}${detail('Lifecycle',a.lifecycle)}${detail('Account Executive',a.accountExec)}</div>
+  <div class="card"><h2 style="margin-top:0">Open risks</h2>${a.risks.length?a.risks.map(r=>record(r.title,`${r.severity} · ${r.status} · Owner ${r.owner}`)).join(''):'<div class="small-muted">No stored open risks.</div>'}</div>
+ </div></div>`;
+ if(accountTab==='stakeholders')return listSection('Stakeholders','Executive sponsor, champion, technical owner and user-added contacts.',`<button class="btn primary" data-add-contact="${a.id}">Add stakeholder</button>`,a.contacts.map(c=>`<div class="record"><div class="recordtop"><div><h4>${esc(c.name)}</h4><p>${esc(c.title)} · ${esc(c.level)}</p><div class="small">${esc(c.role)} · ${esc(c.email)}</div></div><button class="mini" data-del-contact="${a.id}|${c.id}">Remove</button></div></div>`).join(''));
+ if(accountTab==='success')return listSection('Success plan','Objectives, progress, owners, and proof definitions.',`<button class="btn primary" data-add-success="${a.id}">Add objective</button>`,a.successPlans.map(s=>`<div class="record"><div class="recordtop"><div><h4>${esc(s.objective)}</h4><p>${esc(s.owner)} · ${s.progress}% complete</p><div class="bar"><span style="width:${s.progress}%"></span></div><div class="small" style="margin-top:7px">Proof: ${esc(s.proof)}</div></div><button class="mini" data-del-success="${a.id}|${s.id}">Remove</button></div></div>`).join(''));
+ if(accountTab==='technical')return `<div class="grid two"><div class="card"><h2 style="margin-top:0">Technical lifecycle</h2>${detail('Service owner',a.serviceOwner)}${detail('Technical coverage',a.technicalCoverage+'%')}${detail('Support SLA',a.supportSla+'%')}${detail('Current severity',a.supportSeverity)}${detail('Integrations',a.integrations.join(', '))}${detail('Active modules',a.activeModules.join(', '))}</div>
+ <div class="card"><h2 style="margin-top:0">Post-sales operating picture</h2><p class="small-muted">Keeps Support, Technical Success, and Professional Services context attached to the account outcome and renewal timeline.</p>${healthRow('Services utilization',a.servicesUtilization)}${healthRow('Technical coverage',a.technicalCoverage)}${healthRow('Support confidence',a.supportSla)}</div></div>`;
+ if(accountTab==='meetings')return listSection('Meetings & EBRs','Meeting history plus a deterministic readiness brief assembled from current records.',`<button class="btn blue" data-brief="${a.id}">Generate meeting brief</button><button class="btn primary" data-add-meeting="${a.id}">Log meeting</button>`,a.meetings.map(m=>`<div class="record"><div class="recordtop"><div><h4>${esc(m.type)} · ${fmtDate(m.date)}</h4><p>${esc(m.title)}</p><div class="small">Attendees: ${esc(m.attendees)}</div><div class="small">${esc(m.notes)}</div></div><button class="mini" data-del-meeting="${a.id}|${m.id}">Remove</button></div></div>`).join(''));
+ if(accountTab==='notes')return listSection('Account notes','Timestamped decisions, commitments, observations, and follow-up context.',`<button class="btn primary" data-add-note="${a.id}">Add note</button>`,a.notes.map(n=>`<div class="record"><div class="recordtop"><div><h4>${fmtDate(n.date)}</h4><p>${esc(n.text)}</p></div><button class="mini" data-del-note="${a.id}|${n.id}">Remove</button></div></div>`).join(''));
+ return `<div class="grid two"><div class="card"><h2 style="margin-top:0">Renewal & commercial readiness</h2>${detail('Days remaining',daysTo(a.renewalDate))}${detail('ARR',fmtMoney(a.arr))}${detail('Health',a.health+'/100')}${detail('Value evidence',a.valueEvidence+'%')}${detail('Stakeholder strength',a.stakeholderStrength+'%')}${detail('Commercial readiness',a.commercialReadiness+'%')}</div>
+ <div class="card"><h2 style="margin-top:0">Readiness thresholds</h2>${healthRow('Value evidence',a.valueEvidence)}${healthRow('Stakeholder strength',a.stakeholderStrength)}${healthRow('Commercial readiness',a.commercialReadiness)}<div class="callout" style="margin-top:12px">Make renewal evidence visible before the commercial conversation.</div></div></div>`;
+}
+function detail(l,v){return `<div style="display:flex;justify-content:space-between;gap:15px;padding:8px 0;border-bottom:1px solid var(--line)"><span class="small-muted">${l}</span><strong style="text-align:right">${esc(v)}</strong></div>`}
+function healthRow(l,v){return `<div style="display:grid;grid-template-columns:150px 1fr 42px;gap:10px;align-items:center;margin:9px 0"><span class="small-muted">${l}</span><div class="bar" style="margin:0"><span style="width:${v}%"></span></div><strong>${v}</strong></div>`}
+function record(t,p){return `<div class="record"><h4>${esc(t)}</h4><p>${esc(p)}</p></div>`}
+function listSection(title,sub,actions,body){return `<div class="card"><div class="section-head" style="margin:0 0 12px"><div><h2>${title}</h2><p>${sub}</p></div><div class="hero-actions">${actions}</div></div><div class="stack">${body||'<div class="small-muted">No records yet.</div>'}</div></div>`}
+function renewalView(){
+ const rows=[...data.accounts].sort((a,b)=>daysTo(a.renewalDate)-daysTo(b.renewalDate));
+ return `${hero('Renewal & readiness','DTex-style renewal board: exact timing together with health, value evidence, stakeholder strength, and commercial readiness.')}
+ <div class="tablewrap"><table><thead><tr><th>Account</th><th>Days</th><th>ARR</th><th>Health</th><th>Value evidence</th><th>Stakeholders</th><th>Commercial</th><th>Action</th></tr></thead><tbody>
+ ${rows.map(a=>`<tr><td><button class="link" data-open="${a.id}">${esc(a.name)}</button></td><td>${daysTo(a.renewalDate)}</td><td>${fmtMoney(a.arr)}</td><td><span class="health ${healthClass(a.health)}">${a.health}</span></td><td>${a.valueEvidence}%</td><td>${a.stakeholderStrength}%</td><td>${a.commercialReadiness}%</td><td><button class="mini" data-brief="${a.id}">Meeting brief</button></td></tr>`).join('')}</tbody></table></div>`
+}
+function playbooksView(){
+ const p=[
+ ['Executive sponsor alignment','Confirm outcome, sponsor access, decision path, and next executive checkpoint.'],
+ ['Coverage recovery','Identify missing executive, program, technical, or procurement relationships and assign ownership.'],
+ ['Adoption review','Connect usage/adoption evidence to customer outcomes and current blockers.'],
+ ['Renewal readiness','Verify timing, evidence, stakeholders, procurement path, risks, and decisions required.'],
+ ['Critical escalation','Document impact, owner, communication cadence, workaround, dependency, and next checkpoint.'],
+ ['EBR evidence','WHY WE STARTED → WHAT CHANGED → WHAT IMPROVED → WHAT IS OPEN → WHAT WE DECIDE NEXT.'],
+ ['Resource trade-off','State customer/business impact, capacity required, alternative choices, and explicit owner.'],
+ ['Constructive debate','Capture decision, competing options, evidence, dissent, final owner, and follow-through date.']
+ ];
+ return `${hero('Playbook library','Repeatable operating checklists keep execution consistent without pretending the prototype has an AI recommendation engine.')}
+ <div class="grid two">${p.map((x,i)=>`<div class="card"><div class="eyebrow">Playbook ${String(i+1).padStart(2,'0')}</div><h2>${x[0]}</h2><p class="small-muted">${x[1]}</p></div>`).join('')}</div>`
+}
+function cadenceView(){
+ return `${hero('Business rhythm','Operate MBRs, QBRs, AOP, and executive reviews from a visible cadence with owners, readiness, and focus.')}
+ <div class="grid two">${data.cadence.map(c=>`<div class="card"><div class="recordtop"><div><span class="pill">${c.status}</span><h2>${esc(c.type)}</h2><p class="small-muted">${fmtDate(c.date)} · Owner ${esc(c.owner)}</p></div></div><div class="callout">${esc(c.focus)}</div></div>`).join('')}</div>`
+}
+function capacityView(){
+ const vals=data.capacity;
+ return `${hero('Capacity & resource planning','A concise resource picture across Support, Technical Success, Professional Services, and Business Operations.')}
+ <div class="grid four">${Object.entries(vals).map(([k,v])=>kpi(k.replace(/^\w/,m=>m.toUpperCase())+' utilization',v+'%','Current modeled load',v,v>=90?'pink':'' )).join('')}</div>
+ <div class="grid two" style="margin-top:12px"><div class="card"><h2 style="margin-top:0">Headcount plan</h2>${detail('Approved',data.headcount.approved)}${detail('Actual',data.headcount.actual)}${detail('Open',data.headcount.open)}${detail('Critical',data.headcount.critical)}</div>
+ <div class="card"><h2 style="margin-top:0">Operating interpretation</h2><div class="callout">Capacity planning should expose trade-offs, not hide them. Current highest modeled load: <strong>${Object.entries(vals).sort((a,b)=>b[1]-a[1])[0][0]}</strong>.</div></div></div>`
+}
+function financeView(){
+ const b=data.budget, variance=b.forecast-b.plan;
+ return `${hero('Finance & investment visibility','Budget plan, actuals, forecast, and variance in the same operating system used for post-sales execution.')}
+ <div class="grid four">${kpi('Annual plan',fmtMoney(b.plan),'Approved operating plan',100)}${kpi('Actual YTD',fmtMoney(b.actual),'Current modeled spend',Math.round(b.actual/b.plan*100))}${kpi('Forecast',fmtMoney(b.forecast),'Full-year outlook',Math.round(b.forecast/b.plan*100))}${kpi('Forecast variance',fmtMoney(variance),variance<=0?'Below plan':'Above plan',Math.min(100,Math.abs(variance)/b.plan*400),'pink')}</div>
+ <div class="card" style="margin-top:12px"><h2 style="margin-top:0">Decision framing</h2><div class="story"><span>INVESTMENT</span><span>CAPACITY</span><span>CUSTOMER IMPACT</span><span>OPERATING RISK</span><span>OWNER / DECISION</span></div></div>`
+}
+function intakeScore(r){const s=data.settings;return Math.round((r.impact/5)*s.customerImpact+(r.urgency/5)*s.urgency+(r.impact/5)*s.businessValue+((6-r.effort)/5)*s.strategicAlignment)}
+function intakeView(){
+ return `${hero('Intake & prioritization','Make requests, impact, effort, owner, and prioritization logic visible so leaders can debate trade-offs with the same facts.')}
+ <div class="section-head"><div><h2>Prioritized intake</h2><p>Configured weighting lives in Settings.</p></div></div>
+ <div class="tablewrap"><table><thead><tr><th>Request</th><th>Function</th><th>Impact</th><th>Urgency</th><th>Effort</th><th>Score</th><th>Status</th><th>Owner</th></tr></thead><tbody>${[...data.intake].sort((a,b)=>intakeScore(b)-intakeScore(a)).map(r=>`<tr><td><strong>${esc(r.request)}</strong></td><td>${r.function}</td><td>${r.impact}/5</td><td>${r.urgency}/5</td><td>${r.effort}/5</td><td><strong>${intakeScore(r)}</strong></td><td><span class="pill">${r.status}</span></td><td>${r.owner}</td></tr>`).join('')}</tbody></table></div>`
+}
+function kpisView(){
+ const s=portfolioStats(), metrics=[
+  ['Portfolio health',s.avg,80],['Adoption',Math.round(avg('adoption')),80],['Technical coverage',Math.round(avg('technicalCoverage')),85],['Value evidence',Math.round(avg('valueEvidence')),80],
+  ['Stakeholder strength',Math.round(avg('stakeholderStrength')),80],['Commercial readiness',Math.round(avg('commercialReadiness')),75],['Support confidence',Math.round(avg('supportSla')),95],['Services utilization',Math.round(avg('servicesUtilization')),75]
+ ];
+ return `${hero('KPI library','Structured metric → target → status → human decision. No hidden recommendation engine.')}
+ <div class="grid four">${metrics.map(([n,v,t])=>`<div class="card"><div class="kpi-label">${n}</div><div class="kpi-value">${v}%</div><div class="kpi-sub">Target ${t}% · ${v>=t?'On/above target':'Below target'}</div><div class="bar"><span style="width:${v}%"></span></div></di
+
+
+--- REGION 1 30530:43135 ---
+a.accounts.length:0}
+function settingsView(){
+ return `${hero('Settings & demo data','Control the demo dataset and the visible prioritization model. Theme preference persists separately.')}
+ <div class="grid two"><div class="card"><h2 style="margin-top:0">Demo accounts</h2><p class="small-muted">Seed restores the full 20-account synthetic portfolio. Clear removes account records only and routes directly to the Accounts empty state.</p><div class="hero-actions"><button class="btn blue" id="seed-accounts">Seed Demo Accounts</button><button class="btn danger" id="clear-accounts">Clear Accounts</button></div></div>
+ <div class="card"><h2 style="margin-top:0">Priority weighting</h2>
+ ${settingField('Customer impact','customerImpact',data.settings.customerImpact)}${settingField('Business value','businessValue',data.settings.businessValue)}${settingField('Urgency','urgency',data.settings.urgency)}${settingField('Strategic alignment','strategicAlignment',data.settings.strategicAlignment)}
+ </div></div>`
+}
+function settingField(l,k,v){return `<div class="field" style="margin:9px 0"><label>${l} weight</label><input class="input setting-weight" data-key="${k}" type="number" min="0" max="100" value="${v}"></div>`}
+function brief(a){
+ const lastM=[...a.meetings].sort((x,y)=>y.date.localeCompare(x.date))[0], lastN=[...a.notes].sort((x,y)=>y.date.localeCompare(x.date))[0];
+ const breached=[['Health',a.health,70],['Adoption',a.adoption,70],['Value evidence',a.valueEvidence,70],['Stakeholder strength',a.stakeholderStrength,70],['Commercial readiness',a.commercialReadiness,65]].filter(x=>x[1]<x[2]);
+ const story=`WHY WE STARTED → WHAT CHANGED → WHAT IMPROVED → WHAT IS OPEN → WHAT WE DECIDE NEXT`;
+ const text=`EXECUTIVE REVIEW / MEETING READINESS\n\nACCOUNT\n${a.name} · ${a.industry} · ${a.region}\nARR: ${fmtMoney(a.arr)}\nHealth: ${a.health}/100 (${healthLabel(a.health)})\nRenewal: ${fmtDate(a.renewalDate)} · ${daysTo(a.renewalDate)} days\nOwner: ${a.owner}\n\nCURRENT OPERATING SIGNALS\nAdoption: ${a.adoption}%\nTechnical coverage: ${a.technicalCoverage}%\nValue evidence: ${a.valueEvidence}%\nStakeholder strength: ${a.stakeholderStrength}%\nSupport confidence: ${a.supportSla}%\nCommercial readiness: ${a.commercialReadiness}%\n\nTHRESHOLDS / ATTENTION\n${breached.length?breached.map(x=>`- ${x[0]}: ${x[1]} (threshold ${x[2]})`).join('\n'):'- No configured threshold breaches'}\n\nSTAKEHOLDERS\n${a.contacts.map(c=>`- ${c.name} · ${c.title} · ${c.role}`).join('\n')}\n\nSUCCESS PLAN\n${a.successPlans.map(s=>`- ${s.objective} · ${s.progress}% · Owner ${s.owner}\n  Proof: ${s.proof}`).join('\n')}\n\nRECENT MEETING\n${lastM?`${fmtDate(lastM.date)} · ${lastM.type}\n${lastM.notes}`:'No meeting logged'}\n\nRECENT NOTE\n${lastN?`${fmtDate(lastN.date)} · ${lastN.text}`:'No note logged'}\n\nEBR STORYLINE\n${story}\n\nDECISIONS TO DRIVE\n- Confirm the next customer outcome and named owner.\n- Validate open dependencies and timing.\n- Agree what evidence must exist before the next executive or commercial checkpoint.`;
+ modal(`<h3>${esc(a.name)} · Meeting readiness</h3><div class="story"><span>WHY WE STARTED</span><span>WHAT CHANGED</span><span>WHAT IMPROVED</span><span>WHAT IS OPEN</span><span>WHAT WE DECIDE NEXT</span></div><div class="reviewpack" style="margin-top:12px">${esc(text)}</div><div class="modal-actions"><button class="btn" data-close>Close</button><button class="btn blue" id="copy-brief">Copy brief</button></div>`,()=>{document.querySelector('#copy-brief')?.addEventListener('click',()=>navigator.clipboard?.writeText(text))})
+}
+function modal(body,after){
+ const b=document.createElement('div');b.className='modalback';b.innerHTML=`<div class="modal">${body}</div>`;document.body.appendChild(b);
+ b.addEventListener('click',e=>{if(e.target===b||e.target.closest('[data-close]'))b.remove()}); if(after)after(b)
+}
+function accountForm(a){
+ const x=a||{name:'',industry:'',region:'AMER East',owner:'',status:'Growth',arr:0,health:80,startDate:'2026-01-01',endDate:'2027-01-01',renewalDate:'2027-01-01',lifecycle:'Adoption',primaryOutcome:'',summary:''};
+ modal(`<h3>${a?'Edit account':'Add account'}</h3><div class="formgrid">
+ ${f('Account name','f-name',x.name)}${f('Industry','f-industry',x.industry)}${f('Region','f-region',x.region)}${f('Owner','f-owner',x.owner)}${f('ARR','f-arr',x.arr,'number')}${f('Health','f-health',x.health,'number')}${f('Start date','f-start',x.startDate,'date')}${f('End date','f-end',x.endDate,'date')}${f('Renewal date','f-renewal',x.renewalDate,'date')}${f('Lifecycle','f-life',x.lifecycle)}${f('Status','f-status',x.status)}${f('Primary outcome','f-outcome',x.primaryOutcome)}
+ </div><div class="field" style="margin-top:10px"><label>Summary</label><textarea class="textarea" id="f-summary">${esc(x.summary)}</textarea></div><div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="save-account">${a?'Save changes':'Add account'}</button></div>`,()=>{
+  document.querySelector('#save-account').onclick=()=>{
+   const g=id=>document.getElementById(id).value;
+   const base=a?{...a}:{id:uid('acct'),contacts:[],meetings:[],notes:[],risks:[],successPlans:[],integrations:[],activeModules:[],supportSla:95,adoption:75,valueEvidence:70,stakeholderStrength:65,commercialReadiness:65,servicesUtilization:70,technicalCoverage:80,supportSeverity:'None',serviceOwner:'Technical Success',accountExec:''};
+   Object.assign(base,{name:g('f-name'),industry:g('f-industry'),region:g('f-region'),owner:g('f-owner'),status:g('f-status'),arr:Number(g('f-arr')),health:Number(g('f-health')),startDate:g('f-start'),endDate:g('f-end'),renewalDate:g('f-renewal'),lifecycle:g('f-life'),primaryOutcome:g('f-outcome'),summary:g('f-summary')});
+   if(a){const i=data.accounts.findIndex(z=>z.id===a.id);data.accounts[i]=base}else data.accounts.unshift(base);save(data);document.querySelector('.modalback')?.remove();selected=base.id;route='account';render()
+  }
+ })
+}
+function f(l,id,v,type='text'){return `<div class="field"><label>${l}</label><input class="input" id="${id}" type="${type}" value="${esc(v)}"></div>`}
+function addContact(a){modal(`<h3>Add stakeholder</h3><div class="formgrid">${f('Name','c-name','')}${f('Title','c-title','')}${f('Email','c-email','')}${f('Role','c-role','Program Champion')}${f('Level','c-level','VP')}</div><div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="save-contact">Add stakeholder</button></div>`,()=>{document.querySelector('#save-contact').onclick=()=>{a.contacts.push({id:uid('ct'),name:v('c-name'),title:v('c-title'),email:v('c-email'),role:v('c-role'),level:v('c-level')});save(data);closeModal();render()}})}
+function addMeeting(a){modal(`<h3>Log meeting</h3><div class="formgrid">${f('Date','m-date',new Date().toISOString().slice(0,10),'date')}${f('Meeting type','m-type','Executive Business Review')}${f('Title','m-title','Customer operating review')}${f('Attendees','m-attendees','')}</div><div class="field" style="margin-top:10px"><label>Notes</label><textarea class="textarea" id="m-notes"></textarea></div><div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="save-meeting">Log meeting</button></div>`,()=>{document.querySelector('#save-meeting').onclick=()=>{a.meetings.push({id:uid('mtg'),date:v('m-date'),type:v('m-type'),title:v('m-title'),attendees:v('m-attendees'),notes:v('m-notes')});save(data);closeModal();render()}})}
+function addNote(a){modal(`<h3>Add account note</h3>${f('Date','n-date',new Date().toISOString().slice(0,10),'date')}<div class="field" style="margin-top:10px"><label>Note</label><textarea class="textarea" id="n-text"></textarea></div><div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="save-note">Add note</button></div>`,()=>{document.querySelector('#save-note').onclick=()=>{a.notes.push({id:uid('note'),date:v('n-date'),text:v('n-text')});save(data);closeModal();render()}})}
+function addSuccess(a){modal(`<h3>Add success-plan objective</h3>${f('Objective','s-objective','')}${f('Progress %','s-progress',50,'number')}${f('Owner','s-owner','CSM + Customer')}${f('Proof definition','s-proof','')}<div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="save-success">Add objective</button></div>`,()=>{document.querySelector('#save-success').onclick=()=>{a.successPlans.push({id:uid('sp'),objective:v('s-objective'),progress:Number(v('s-progress')),owner:v('s-owner'),proof:v('s-proof')});save(data);closeModal();render()}})}
+function v(id){return document.getElementById(id).value}function closeModal(){document.querySelector('.modalback')?.remove()}
+function confirmClear(){
+ modal(`<h3>Clear account data?</h3><p>This removes account records from this browser only. Business-rhythm, capacity, finance, and intake demo data remain.</p><div class="modal-actions"><button class="btn" data-close>Cancel</button><button class="btn danger" id="confirm-clear">Clear Accounts</button></div>`,()=>{
+  document.querySelector('#confirm-clear').onclick=()=>{data.accounts=[];save(data);closeModal();route='accounts';selected=null;search='';render()}
+ })
+}
+function bind(){
+ document.querySelectorAll('[data-route]').forEach(x=>x.onclick=()=>setRoute(x.dataset.route));
+ document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>{selected=x.dataset.open;route='account';accountTab='summary';render()});
+ document.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{accountTab=x.dataset.tab;render()});
+ document.querySelectorAll('[data-brief]').forEach(x=>x.onclick=()=>{const a=data.accounts.find(z=>z.id===x.dataset.brief);if(a)brief(a)});
+ document.querySelector('#theme-toggle')?.addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+ ['#seed-top','#seed-accounts'].forEach(sel=>document.querySelectorAll(sel).forEach(x=>x.onclick=()=>{data.accounts=seedAccounts();save(data);route='accounts';selected=null;search='';render()}));
+ ['#clear-top','#clear-accounts'].forEach(sel=>document.querySelectorAll(sel).forEach(x=>x.onclick=confirmClear));
+ document.querySelector('#add-account')?.addEventListener('click',()=>accountForm());document.querySelector('#add-account-empty')?.addEventListener('click',()=>accountForm());
+ document.querySelector('#acct-search')?.addEventListener('input',e=>{search=e.target.value;render()});
+ document.querySelectorAll('[data-edit-account]').forEach(x=>x.onclick=()=>accountForm(data.accounts.find(a=>a.id===x.dataset.editAccount)));
+ document.querySelectorAll('[data-add-contact]').forEach(x=>x.onclick=()=>addContact(data.accounts.find(a=>a.id===x.dataset.addContact)));
+ document.querySelectorAll('[data-add-meeting]').forEach(x=>x.onclick=()=>addMeeting(data.accounts.find(a=>a.id===x.dataset.addMeeting)));
+ document.querySelectorAll('[data-add-note]').forEach(x=>x.onclick=()=>addNote(data.accounts.find(a=>a.id===x.dataset.addNote)));
+ document.querySelectorAll('[data-add-success]').forEach(x=>x.onclick=()=>addSuccess(data.accounts.find(a=>a.id===x.dataset.addSuccess)));
+ document.querySelectorAll('[data-del-contact]').forEach(x=>x.onclick=()=>delRec(x.dataset.delContact,'contacts'));
+ document.querySelectorAll('[data-del-meeting]').forEach(x=>x.onclick=()=>delRec(x.dataset.delMeeting,'meetings'));
+ document.querySelectorAll('[data-del-note]').forEach(x=>x.onclick=()=>delRec(x.dataset.delNote,'notes'));
+ document.querySelectorAll('[data-del-success]').forEach(x=>x.onclick=()=>delRec(x.dataset.delSuccess,'successPlans'));
+ document.querySelectorAll('.setting-weight').forEach(x=>x.onchange=()=>{data.settings[x.dataset.key]=Number(x.value);save(data);});
+}
+function delRec(key,prop){const [aid,rid]=key.split('|'),a=data.accounts.find(x=>x.id===aid);if(!a)return;a[prop]=a[prop].filter(x=>x.id!==rid);save(data);render()}
+function page(){
+ if(route==='account'){const a=data.accounts.find(x=>x.id===selected);return a?accountView(a):accountsView()}
+ if(route==='command')return command();if(route==='accounts')return accountsView();if(route==='renewal')return renewalView();if(route==='playbooks')return playbooksView();if(route==='cadence')return cadenceView();if(route==='capacity')return capacityView();if(route==='finance')return financeView();if(route==='intake')return intakeView();if(route==='kpis')return kpisView();return settingsView()
+}
+function render(){document.getElementById('app').innerHTML=`<div class="app">${renderTopBar()}<main class="shell">${page()}</main></div>`;bind()}
+render();
+
