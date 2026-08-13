@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 
 abc_path = Path('abc/src/index.js')
 zsc_path = Path('zscaler/src/index.js')
@@ -28,8 +29,16 @@ script = script.replace("demo_name:'abnormal_enterprise_customer_success'", "dem
 script = script.replace("page_title:'Abnormal CS '+view", "page_title:'Zscaler CS '+view")
 script = script.replace("const root=location.hostname.toLowerCase().startsWith('an.')?'/an/':'/abc/';", "const root='/zsc/';")
 
+# The older ZS bundle calls trackPageView() during its initial render but does
+# not define it.  Define a harmless prelude before the inherited app executes;
+# the health/P1 layer replaces it with the real /zsc/ SPA tracker on DOM ready.
+script = '<script id="zsc-track-page-prelude">function trackPageView(){}</script>' + script
+
 const_line = 'const ZSCALER_HEALTH_P1_SCRIPT = ' + json.dumps(script) + ';\n\n'
-if 'const ZSCALER_HEALTH_P1_SCRIPT =' not in zsc:
+constant_re = re.compile(r'^const ZSCALER_HEALTH_P1_SCRIPT = .*?;\n\n', re.M)
+if constant_re.search(zsc):
+    zsc = constant_re.sub(lambda m: const_line, zsc, count=1)
+else:
     marker = 'function responseHeaders(type = "text/html; charset=utf-8") {'
     if marker not in zsc:
         raise SystemExit('Zscaler responseHeaders marker not found')
@@ -49,6 +58,14 @@ old_body = 'out = out.replace(/<\\/body>/i, `${DTEX_GATE_JS}</body>`);'
 if old_body in zsc:
     zsc = zsc.replace(old_body, 'const bodyClose = out.toLowerCase().lastIndexOf("</body>");\n  out = bodyClose >= 0 ? `${out.slice(0, bodyClose)}${DTEX_GATE_JS}${out.slice(bodyClose)}` : `${out}${DTEX_GATE_JS}`;', 1)
 
+# Cloudflare Web Analytics may inject its own beacon on the custom domain.
+# Permit that first-party platform script/collector so a valid page does not
+# generate a CSP console violation during production verification.
+zsc = zsc.replace(
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com"
+)
+
 # Health endpoint should prove the model layer is actually in the response.
 zsc = zsc.replace(
     'const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.length > 10000;',
@@ -62,4 +79,4 @@ auth = auth_path.read_text()
 auth = auth.replace("vm.runInContext('bind()', context);", "vm.runInContext('bindGate()', context);")
 auth_path.write_text(auth)
 
-print('patched Zscaler Gainsight/company-priority health model and P1 workflows')
+print('patched Zscaler Gainsight/company-priority health model, initialization, CSP, and P1 workflows')
