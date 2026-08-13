@@ -22,13 +22,11 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import json
 
           p=Path('abc/src/index.js')
           s=p.read_text()
 
-          start=s.index('const STATIC_REPLACEMENTS = [')
-          end=s.index('];', start)
-          block=s[start:end]
           additions=[
             ('CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'),
             ('Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'),
@@ -56,27 +54,37 @@ jobs:
             ('Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'),
             ('Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.'),
           ]
-          lines=[]
-          for a,b in additions:
-              if b not in block:
-                  import json
-                  lines.append('  ['+json.dumps(a)+','+json.dumps(b)+'],')
-          if lines:
-              s=s[:end]+'\n'+'\n'.join(lines)+s[end:]
+
+          if 'const ABNORMAL_ROLE_REPLACEMENTS = [' not in s:
+              rows='\n'.join('  ['+json.dumps(a)+','+json.dumps(b)+'],' for a,b in additions)
+              block='const ABNORMAL_ROLE_REPLACEMENTS = [\n'+rows+'\n];\n\n'
+              marker='function responseHeaders('
+              s=s.replace(marker,block+marker,1)
+
+          old='for (const [from,to] of STATIC_REPLACEMENTS) out = out.split(from).join(to);'
+          new=old+'\n  for (const [from,to] of ABNORMAL_ROLE_REPLACEMENTS) out = out.split(from).join(to);'
+          if 'for (const [from,to] of ABNORMAL_ROLE_REPLACEMENTS)' not in s:
+              assert old in s
+              s=s.replace(old,new,1)
 
           css="\n#app [data-open]{color:#ff6ea7!important;font-weight:800}\n#app [data-open]:hover{color:#ff97bd!important}\n#app .abc-primary-action{background:linear-gradient(90deg,#f23b7e,#e65468)!important;border-color:transparent!important;color:#fff!important}\n#app .abc-brand-mark{filter:hue-rotate(115deg) saturate(1.45) brightness(1.05)}\n#app .abc-accent-link{color:#ff6ea7!important}\n#app progress::-webkit-progress-value{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}\n#app [class*=\"progress\"]>span,#app [class*=\"meter\"]>span{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}\n"
           if '.abc-primary-action' not in s:
               marker='#abc-role-context .abc-values{font-weight:600;opacity:.72;margin-left:8px}'
+              assert marker in s
               i=s.index(marker)+len(marker)
               s=s[:i]+css+s[i:]
 
           js="\nfunction applyAbnormalVisualClasses(){document.querySelectorAll('#app button,#app a').forEach(el=>{const t=(el.textContent||'').trim();if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link')});const brand=document.querySelector('#app header svg,#app nav svg,#app [class*=\"brand\"] svg,#app [class*=\"logo\"] svg');if(brand)brand.classList.add('abc-brand-mark')}\n"
           if 'function applyAbnormalVisualClasses()' not in s:
               target='function addContext(){'
+              assert target in s
               i=s.index(target)
               s=s[:i]+js+s[i:]
+              assert 'addContext();if(changed' in s
               s=s.replace('addContext();if(changed', 'addContext();applyAbnormalVisualClasses();if(changed', 1)
-              s=s.replace("document.addEventListener('click',e=>{", "document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);", 1)
+              click_marker="document.addEventListener('click',e=>{"
+              assert click_marker in s
+              s=s.replace(click_marker, "document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);", 1)
 
           p.write_text(s)
           PY
