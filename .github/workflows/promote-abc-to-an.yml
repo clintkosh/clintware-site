@@ -1,0 +1,120 @@
+name: Promote ABC to an.clintware.com
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/promote-abc-to-an.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate promoted ABC source
+        run: |
+          set -euo pipefail
+          node --check abc/src/index.js
+          node --check abc/src/app.js
+          (cd abc && node tests/smoke.mjs && node tests/auth-roundtrip.mjs && python3 tests/regression.py)
+          python3 tests/validate_crm_analytics.py
+
+      - name: Deploy verified ABC Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd abc
+
+      - name: Point an.clintware.com to verified ABC service
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "$current" > /tmp/an-before.json
+          correct=$(python3 -c 'import json; d=json.load(open("/tmp/an-before.json")); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="an.clintware.com" and r[0].get("service")=="abnormal-enterprise-customer-success" else "no")')
+          if [ "$correct" != "yes" ]; then
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"an.clintware.com","service":"abnormal-enterprise-customer-success"}' > /tmp/an-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/an-put.json")); assert d.get("success") is True,d'
+          fi
+          verify=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="an.clintware.com" and x.get("service")=="abnormal-enterprise-customer-success",x; print("PROMOTED",x["hostname"],"->",x["service"])' <<< "$verify"
+
+      - name: Verify promoted runtime
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 30); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 "https://an.clintware.com/?promotion=${GITHUB_SHA}-${i}" || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 20 "https://an.clintware.com/health" || true)
+            if grep -Fq "ABNORMAL // CUSTOMER SUCCESS" <<< "$body" \
+              && grep -Fq "Print / Save PDF" <<< "$body" \
+              && grep -Fq "Open customer risks" <<< "$body" \
+              && grep -Fq "G-DCY144YM9P" <<< "$body" \
+              && grep -Fq '"ok":true' <<< "$health"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for an.clintware.com cutover ($i/30)"
+            sleep 5
+          done
+          test "$ready" = "1"
+
+      - name: Verify exact login and promoted UI in Chrome
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/an-promote && cd /tmp/an-promote
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(20000);
+          await page.goto('https://an.clintware.com/?verify='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+          await page.fill('#pw','wrong-password');
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.querySelector('#gate-error')?.textContent==='Incorrect password.');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+          const text=await page.locator('body').innerText();
+          for(const marker of ['ABNORMAL // CUSTOMER SUCCESS','Customer Cadence','Voice of Customer','Open customer risks']) if(!text.includes(marker)) throw new Error('missing promoted marker '+marker);
+          await page.locator('.topnav [data-route="command"]').click();
+          if(await page.locator('.kpi-card').count()!==6) throw new Error('overview cards missing');
+          await page.locator('.topnav [data-route="accounts"]').click();
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          await page.locator(`[data-open="${model.accounts[0].id}"]`).first().click();
+          await page.waitForSelector('[data-tab="notes"]');
+          await page.locator('[data-tab="notes"]').click();
+          if(!(await page.locator('[data-add-note]').count())) throw new Error('note workflow missing');
+          const rows=await page.evaluate(()=>{const x=(window.dataLayer||[]).map(v=>{try{return Array.from(v)}catch(e){return v}});return x});
+          if(!rows.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P')) throw new Error('GA config missing');
+          console.log('PASS: an.clintware.com is serving the verified ABC build');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
