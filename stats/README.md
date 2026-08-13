@@ -27,8 +27,8 @@ are sent to the browser.
 
 ## Security model
 
-The requested password is represented only by a salted PBKDF2-SHA256 verifier
-with 240,000 iterations. A successful native HTTPS form login creates a random,
+The requested password is represented only by a salted SHA-256 verifier and is
+compared in constant time. A successful native HTTPS form login creates a random,
 12-hour edge session identified by an HttpOnly, Secure, SameSite=Strict cookie.
 The plaintext password is never embedded in page source, browser storage, or a
 URL. Dashboard responses are never cached, the page is marked noindex, and

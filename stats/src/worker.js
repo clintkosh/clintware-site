@@ -5,8 +5,7 @@ import { STYLES } from "./styles.js";
 import { dashboardHtml } from "./ui.js";
 
 const PASSWORD_SALT = "zJ9CNd8qXn3f4czKN33dUg==";
-const PASSWORD_HASH = "8c8/sUQkhy5uaNXA3QXGL5bmbMy4yYUDCzHTOLzy68U=";
-const PASSWORD_ITERATIONS = 240000;
+const PASSWORD_HASH = "9Ci7job6x5CEgp3nl744wAcOUDTh1fgxDtrKUfA+e/o=";
 const SESSION_COOKIE = "cw_stats_session";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const textEncoder = new TextEncoder();
@@ -18,25 +17,13 @@ function bytesFromBase64(value) {
   return bytes;
 }
 
-export async function derivePassword(password, salt = PASSWORD_SALT, iterations = PASSWORD_ITERATIONS) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      hash: "SHA-256",
-      salt: bytesFromBase64(salt),
-      iterations,
-    },
-    key,
-    256,
-  );
-  return new Uint8Array(bits);
+export async function derivePassword(password, salt = PASSWORD_SALT) {
+  const saltBytes = bytesFromBase64(salt);
+  const passwordBytes = textEncoder.encode(password);
+  const input = new Uint8Array(saltBytes.length + passwordBytes.length);
+  input.set(saltBytes, 0);
+  input.set(passwordBytes, saltBytes.length);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", input));
 }
 
 export function constantTimeEqual(left, right) {

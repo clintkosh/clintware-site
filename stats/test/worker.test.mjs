@@ -25,9 +25,9 @@ test("page paths and hostnames resolve to the correct CRM", () => {
 
 test("password derivation and comparison helpers are deterministic", async () => {
   const salt = "MDEyMzQ1Njc4OWFiY2RlZg==";
-  const left = await derivePassword("fixture-only", salt, 1000);
-  const right = await derivePassword("fixture-only", salt, 1000);
-  const wrong = await derivePassword("different", salt, 1000);
+  const left = await derivePassword("fixture-only", salt);
+  const right = await derivePassword("fixture-only", salt);
+  const wrong = await derivePassword("different", salt);
   assert.equal(constantTimeEqual(left, right), true);
   assert.equal(constantTimeEqual(left, wrong), false);
   assert.equal(constantTimeEqual(new Uint8Array([1]), new Uint8Array([1, 0])), false);
