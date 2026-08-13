@@ -1,0 +1,74 @@
+name: Diagnose Final ABC DOM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-final-dom.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect role-card DOM and exact account controls
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcdom && cd /tmp/abcdom
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          let ready=false;
+          for(let i=1;i<=30;i++){
+            await page.goto('https://abc.clintware.com/?final-dom='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(1200);
+            const s=page.locator('#abnormal-model-script');
+            const t=(await s.count())?((await s.textContent().catch(()=>''))||''):'';
+            if(await page.locator('#gate').count() && t.includes('function observeAbnormalPresentation()')){ready=true;break}
+            await page.waitForTimeout(5000);
+          }
+          if(!ready)throw new Error('observer build not served');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20}catch(e){return false}},{timeout:30000});
+          await page.waitForTimeout(2500);
+          for(const label of ['BUSINESS RHYTHM','RESOURCE RIGOR','VALUE & GROWTH PARTNERSHIP','CUSTOMER OUTCOMES']){
+            const hits=page.getByText(label,{exact:true});
+            console.log('ROLE_LABEL',label,'COUNT',await hits.count());
+            for(let i=0;i<Math.min(await hits.count(),3);i++){
+              const el=hits.nth(i);
+              console.log('ROLE_LABEL_HTML',label,i,await el.evaluate(e=>e.outerHTML));
+              console.log('ROLE_LABEL_PARENT',label,i,await el.evaluate(e=>e.parentElement?.outerHTML?.slice(0,3000)||''));
+            }
+          }
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const accountId=model.accounts[0].id;
+          const route=page.locator('[data-route="accounts"]');
+          if(await route.count())await route.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
+          await page.waitForTimeout(700);
+          const exact=page.locator(`[data-open="${accountId}"]`).first();
+          console.log('ACCOUNT_ID',accountId,'COUNT',await page.locator(`[data-open="${accountId}"]`).count());
+          console.log('ACCOUNT_OPENER',await exact.evaluate(e=>e.outerHTML));
+          await exact.click();
+          await page.waitForTimeout(1000);
+          console.log('ACCOUNT_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-12000)));
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map((e,i)=>({i,tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',type:e.getAttribute('type')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,200),value:('value'in e?String(e.value).slice(0,200):''),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).reduce((o,a)=>(o[a.name]=a.value,o),{})})).filter(x=>x.id||x.name||x.text||Object.keys(x.data).length));
+          console.log('ACCOUNT_CONTROLS_JSON',JSON.stringify(controls));
+          console.log('ACCOUNT_TABS',JSON.stringify(await page.locator('[data-tab]').allTextContents()));
+          console.log('PASS: final DOM diagnosed');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
