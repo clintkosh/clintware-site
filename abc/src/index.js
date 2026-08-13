@@ -76,16 +76,21 @@ function retune(force=false){
     a.serviceOwner='Customer Success + Technical Success';a.technicalCoverage=tech;a.activeModules=p[10];a.valueEvidence=value;a.stakeholderStrength=stakeholder;a.commercialReadiness=Math.round((value+stakeholder+health)/3);a.accountExec='Enterprise AE — '+p[1];
     a.contacts=[
       contact('abc-ciso-'+i,'Jordan '+['Lee','Patel','Brooks','Nguyen'][i%4],'Chief Information Security Officer','C-Level','Executive sponsor','ciso@'+slug+'.example','Engaged'),
-      contact('abc-vpit-'+i,'Morgan '+['Reed','Chen','Martinez','Taylor'][i%4],'VP, Information Technology','VP','Business / IT sponsor','vp-it@'+slug+'.example',stakeholder<70?'Needs attention':'Active'),
-      contact('abc-secops-'+i,'Casey '+['Morgan','Davis','Hall','Rivera'][i%4],'Director, Security Operations','Director','Technical owner','security-ops@'+slug+'.example','Active')
+      contact('abc-vpit-'+i,'Morgan '+['Reed','Chen','Martinez','Howard'][i%4],'VP, IT Operations','VP','Business / IT sponsor','vp-it@'+slug+'.example','Active'),
+      contact('abc-sec-'+i,'Taylor '+['Morgan','Davis','Ramirez','Collins'][i%4],'Director, Security Operations','Technical','Technical owner','security-ops@'+slug+'.example',health<68?'At Risk':'Active')
     ];
-    a.successPlans=[{id:'abc-success-'+i,objective:p[11],owner:'Customer + CSM',progress:adoption,target:dateIn(Math.min(p[9],90)),status:adoption<70?'Needs attention':'On track'}];
-    a.risks=health<70?[{id:'abc-risk-'+i,title:'Adoption and stakeholder recovery',owner:'CSM + customer security owner',status:'Mitigating',severity:'High',detail:'Close adoption gaps, re-establish executive alignment, and document measurable security outcomes.'}]:[{id:'abc-risk-'+i,title:'Maintain measurable value evidence',owner:'CSM',status:'Monitoring',severity:'Low',detail:'Keep success criteria, feature adoption, and executive value evidence current.'}];
-    a.meetings=[{id:'abc-mtg-'+i+'-1',date:dateIn(-12),title:'Security Outcomes & Adoption Review',type:'Success Review',notes:'Reviewed platform adoption, open risks, customer success criteria, and next measurable security outcome.'},{id:'abc-mtg-'+i+'-2',date:dateIn(18),title:'Executive Value Review',type:'EBR',notes:'Planned EBR focused on value realized, stakeholder alignment, renewal readiness, and product feedback.'}];
-    a.notes=[{id:'abc-note-'+i,date:dateIn(-4),text:'Customer voice: validate current success criteria, roadmap priorities, and any product feedback before the next executive review.'}];
-    a.modified=false;return a;
+    a.successPlans=[
+      {id:'abc-sp-'+i+'-1',objective:p[11],progress:Math.max(35,Math.min(94,adoption)),owner:'Customer Success + Customer Champion',proof:'Adoption trend, documented customer outcome, stakeholder validation, and next success milestone.'},
+      {id:'abc-sp-'+i+'-2',objective:'Deliver an outcome-oriented executive review tied to security value.',progress:Math.max(30,Math.min(92,value)),owner:'CSM + Executive Sponsor',proof:'EBR/QBR connects platform usage and prevented threats to customer priorities and agreed next actions.'}
+    ];
+    a.risks=health<78?[{id:'abc-risk-'+i,title:health<68?'Adoption and renewal confidence below target':'Success-plan dependency requires follow-through',severity:health<68?'High':'Medium',owner:'CSM + Cross-functional team',status:'Open',mitigation:'Confirm owner and due date, coordinate required Product/Support/Engineering action, and communicate progress until customer confidence is restored.'}]:[];
+    a.notes=[{id:'abc-note-'+i,date:new Date().toISOString().slice(0,10),text:'VOICE review: validate customer outcome, adoption signal, risk, stakeholder coverage, and next commitment before the next customer touchpoint.'}];
+    a.meetings=[{id:'abc-mtg-'+i,date:new Date().toISOString().slice(0,10),type:'Executive Business Review',title:'Customer value and success review',attendees:'CSM, CISO, IT/Security leaders',notes:'Review measurable security outcomes, adoption, open risks, roadmap context, and next agreed customer actions.'}];
+    return a;
   });
   data.abcAbnormalModelVersion=VERSION;
+  data.abcRole='Sr. Customer Success Manager, Enterprise (TOLA)';
+  data.abcValues=['Velocity','Ownership','Intellectual Honesty','Customer Obsession','Excellence'];
   data.healthModel={adoption:30,valueRealization:25,stakeholderAlignment:20,riskAndEscalation:15,renewalAndGrowth:10};
   if(data.settings&&data.settings.weights){Object.keys(data.settings.weights).forEach(k=>{const x=k.toLowerCase();if(x.includes('adoption'))data.settings.weights[k]=30;else if(x.includes('value'))data.settings.weights[k]=25;else if(x.includes('stakeholder')||x.includes('executive'))data.settings.weights[k]=20;else if(x.includes('risk')||x.includes('technical')||x.includes('support'))data.settings.weights[k]=15;else if(x.includes('renewal')||x.includes('commercial'))data.settings.weights[k]=10})}
   localStorage.setItem(KEY,JSON.stringify(data));return true;
@@ -98,43 +103,26 @@ function applyAbnormalRuntimeCopy(){
   const replacements=[
     ['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],
     ['Customer Success Business Operations','Enterprise Customer Success'],
-    ['Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'],
-    ['Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'],
-    ['Impact over activity','Customer outcomes over activity'],
-    ['Make operating signals easy to inspect, update, and carry into the next leadership decision.','Make customer signals easy to inspect, update, and carry into the next measurable customer action.'],
-    ['Customer obsession','Customer Obsession'],
-    ['Accountability','Intellectual Honesty'],
-    ['Headcount planning signal','Accounts requiring coordinated mitigation'],
-    ['Commercial readiness window','Renewal and expansion readiness'],
-    ['DTex-style portfolio table with the business-operations signals this role needs.','Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence.'],
-    ['Renewal & commercial readiness','Renewal & growth readiness'],
-    ['Timing together with evidence, coverage, and health.','Value evidence, stakeholder confidence, adoption, and timing together.'],
-    ['Lowest-health accounts and operating dependencies.','Accounts requiring coordinated risk mitigation and customer follow-through.'],
-    ['Role operating model','Enterprise Customer Success motion'],
-    ['Structure across the core responsibilities in the listing.','Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role.'],
-    ['BUSINESS RHYTHM','VALUE REALIZATION'],
+    ['Post-Sales Business Operations','Enterprise Customer Success'],
     ['Business Rhythm','Value Realization'],
-    ['MBR, QBR, AOP and executive reviews','Success criteria, ROI, QBRs/EBRs and measurable customer outcomes'],
-    ['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],
     ['Resource Rigor','Adoption & Enablement'],
-    ['Engagement Coverage, workload and headcount visibility','Feature engagement, best practices, roadmap education and technical coverage'],
-    ['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],
-    ['Value & Growth Partnership','Renewal & Expansion'],
-    ['Budget, forecast and investment visibility','Value evidence, executive confidence and commercial readiness'],
-    ['PRIORITIZATION','RISK & ESCALATION'],
+    ['Finance Partnership','Renewal & Expansion'],
     ['Prioritization','Risk & Escalation'],
-    ['Structured intake and decision transparency','Proactive health signals, coordinated mitigation and commitment follow-through'],
-    ['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],
     ['Customer Outcomes','Voice of Customer'],
-    ['Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'],
-    ['Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.']
+    ['Capacity & resource planning','Customer engagement coverage'],
+    ['Resource planning should expose trade-offs, not hide them.','Customer coverage planning should expose risks and trade-offs, not hide them.'],
+    ['A concise resource picture across Support, Technical Success, Professional Services, and Business Operations.','A concise coverage picture across enterprise CSM ownership, technical engagement, executive sponsorship, and customer-facing dependencies.'],
+    ['Headcount plan','Customer coverage plan'],
+    ['Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'],
+    ['DTex-style portfolio table with the business-operations signals this role needs.','Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence.'],
+    ['Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.'],
   ];
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-  let node;
-  while((node=walker.nextNode())){
-    let next=node.nodeValue;
-    for(const [from,to] of replacements)if(next.includes(from))next=next.split(from).join(to);
-    if(next!==node.nodeValue)node.nodeValue=next;
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  for(const node of nodes){
+    let text=node.nodeValue||'',next=text;
+    for(const [from,to] of replacements){if(next.includes(from))next=next.split(from).join(to)}
+    if(next!==text)node.nodeValue=next;
   }
 }
 
@@ -178,7 +166,7 @@ const STATIC_REPLACEMENTS = [
 const ABNORMAL_ROLE_REPLACEMENTS = [
   ["CUSTOMER SUCCESS BUSINESS OPERATIONS","ENTERPRISE CUSTOMER SUCCESS"],
   ["Run the post-sales business with one operating picture.","Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture."],
-  ["Modeled on the DTex Command Center flow: portfolio health \u2192 account drill-down \u2192 working records \u2192 meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.","Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action."],
+  ["Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.","Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action."],
   ["Impact over activity","Customer outcomes over activity"],
   ["Make operating signals easy to inspect, update, and carry into the next leadership decision.","Make customer signals easy to inspect, update, and carry into the next measurable customer action."],
   ["Accountability","Intellectual Honesty"],
@@ -232,7 +220,8 @@ function applyAbnormalExperience(html) {
   out = out.replace("</title>", `</title>${GA_HEAD}`);
   out = out.replace("</head>", `${ABNORMAL_GATE_CSS}${ABNORMAL_APP_CSS}${ABNORMAL_MODEL_SCRIPT}</head>`);
   out = out.replace(/<body([^>]*)>/i, `<body$1>${ABNORMAL_GATE_HTML}`);
-  out = out.replace(/<\/body>/i, `${ABNORMAL_GATE_JS}</body>`);
+  const bodyClose = out.toLowerCase().lastIndexOf("</body>");
+  out = bodyClose >= 0 ? `${out.slice(0, bodyClose)}${ABNORMAL_GATE_JS}${out.slice(bodyClose)}` : `${out}${ABNORMAL_GATE_JS}`;
   return out;
 }
 
