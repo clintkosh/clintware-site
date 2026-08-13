@@ -1,0 +1,23 @@
+name: Verify Current DTEX Custom Domain
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/verify-dtex-custom-domain-current.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify corrected DTEX markers on historical custom domain
+        run: |
+          set -euo pipefail
+          host="https://summertime-crmdemo.clintware.com/"
+          body=$(curl -fsS --connect-timeout 8 --max-time 30 "$host")
+          grep -q 'dtex-gainsight-p1-script' <<< "$body"
+          grep -q 'dtex-p1-edit-parity' <<< "$body"
+          grep -q 'Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities' <<< "$body"
+          grep -q 'G-DCY144YM9P' <<< "$body"
+          echo "PASS: historical DTEX custom domain serves corrected Gainsight/P1/Analytics build"
