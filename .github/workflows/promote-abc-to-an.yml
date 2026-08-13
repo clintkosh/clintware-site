@@ -35,7 +35,7 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd abc
 
-      - name: Point an.clintware.com to verified ABC service
+      - name: Replace an.clintware.com binding with verified ABC service
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -47,6 +47,24 @@ jobs:
           echo "$current" > /tmp/an-before.json
           correct=$(python3 -c 'import json; d=json.load(open("/tmp/an-before.json")); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="an.clintware.com" and r[0].get("service")=="abnormal-enterprise-customer-success" else "no")')
           if [ "$correct" != "yes" ]; then
+            domain_id=$(python3 -c 'import json; d=json.load(open("/tmp/an-before.json")); r=d.get("result",[]); print(r[0].get("id","") if r else "")')
+            if [ -n "$domain_id" ]; then
+              echo "Removing old an.clintware.com Worker binding id=$domain_id"
+              curl --fail-with-body -sS -X DELETE \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${domain_id}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" > /tmp/an-delete.json
+              python3 -c 'import json; d=json.load(open("/tmp/an-delete.json")); assert d.get("success") is True,d'
+            fi
+            ready=0
+            for i in $(seq 1 12); do
+              after_delete=$(curl --fail-with-body -sS \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=an.clintware.com" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+              count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$after_delete")
+              if [ "$count" = "0" ]; then ready=1; break; fi
+              sleep 2
+            done
+            test "$ready" = "1"
             curl --fail-with-body -sS -X PUT \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
@@ -92,7 +110,14 @@ jobs:
           const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
           const page=await browser.newPage();
           page.setDefaultTimeout(20000);
-          await page.goto('https://an.clintware.com/?verify='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          let reached=false;
+          for(let i=1;i<=24;i++){
+            await page.goto(`https://an.clintware.com/?verify=${Date.now()}-${i}`,{waitUntil:'domcontentloaded',timeout:30000});
+            const html=await page.content();
+            if(html.includes('ABNORMAL // CUSTOMER SUCCESS')&&html.includes('Print / Save PDF')&&html.includes('dtex-gate-js')){reached=true;break}
+            await page.waitForTimeout(3000);
+          }
+          if(!reached) throw new Error('Chrome never reached promoted ABC build on an.clintware.com');
           await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
