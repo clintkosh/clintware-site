@@ -25,14 +25,8 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --silent --no-save playwright-core >/dev/null 2>&1
           chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
-          export ABC_PASS=$(python3 - <<'PY'
-          import re
-          s=open("$GITHUB_WORKSPACE/abc/src/index.js").read()
-          m=re.search(r"const PASS='([^']+)'",s)
-          assert m
-          print(m.group(1))
-          PY
-          )
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          test -n "$ABC_PASS"
           cat > verify.mjs <<'NODE'
           import { chromium } from 'playwright-core';
           const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -80,6 +74,7 @@ jobs:
           NODE
           CHROME="$chrome" node verify.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: abc-stable-production-screens
           path: |
@@ -88,4 +83,4 @@ jobs:
             /tmp/abc-accounts.png
             /tmp/abc-account-open.png
           retention-days: 1
-          if-no-files-found: error
+          if-no-files-found: warn
