@@ -92,10 +92,49 @@ function retune(force=false){
 }
 
 function applyAbnormalVisualClasses(){document.querySelectorAll('#app button,#app a').forEach(el=>{const t=(el.textContent||'').trim();if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link')});const brand=document.querySelector('#app header svg,#app nav svg,#app [class*="brand"] svg,#app [class*="logo"] svg');if(brand)brand.classList.add('abc-brand-mark')}
+function applyAbnormalRuntimeCopy(){
+  const root=document.getElementById('app');
+  if(!root)return;
+  const replacements=[
+    ['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],
+    ['Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'],
+    ['Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'],
+    ['Impact over activity','Customer outcomes over activity'],
+    ['Make operating signals easy to inspect, update, and carry into the next leadership decision.','Make customer signals easy to inspect, update, and carry into the next measurable customer action.'],
+    ['Customer obsession','Customer Obsession'],
+    ['Accountability','Intellectual Honesty'],
+    ['Headcount planning signal','Accounts requiring coordinated mitigation'],
+    ['Commercial readiness window','Renewal and expansion readiness'],
+    ['DTex-style portfolio table with the business-operations signals this role needs.','Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence.'],
+    ['Renewal & commercial readiness','Renewal & growth readiness'],
+    ['Timing together with evidence, coverage, and health.','Value evidence, stakeholder confidence, adoption, and timing together.'],
+    ['Lowest-health accounts and operating dependencies.','Accounts requiring coordinated risk mitigation and customer follow-through.'],
+    ['Role operating model','Enterprise Customer Success motion'],
+    ['Structure across the core responsibilities in the listing.','Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role.'],
+    ['BUSINESS RHYTHM','VALUE REALIZATION'],
+    ['MBR, QBR, AOP and executive reviews','Success criteria, ROI, QBRs/EBRs and measurable customer outcomes'],
+    ['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],
+    ['Engagement Coverage, workload and headcount visibility','Feature engagement, best practices, roadmap education and technical coverage'],
+    ['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],
+    ['Budget, forecast and investment visibility','Value evidence, executive confidence and commercial readiness'],
+    ['PRIORITIZATION','RISK & ESCALATION'],
+    ['Structured intake and decision transparency','Proactive health signals, coordinated mitigation and commitment follow-through'],
+    ['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],
+    ['Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'],
+    ['Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.']
+  ];
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  let node;
+  while((node=walker.nextNode())){
+    let next=node.nodeValue;
+    for(const [from,to] of replacements)if(next.includes(from))next=next.split(from).join(to);
+    if(next!==node.nodeValue)node.nodeValue=next;
+  }
+}
 function addContext(){const app=document.getElementById('app');if(!app||document.getElementById('abc-role-context'))return;const bar=document.createElement('div');bar.id='abc-role-context';bar.innerHTML='<b>Enterprise CS health model:</b> Adoption 30% · Value realization 25% · Stakeholder alignment 20% · Risk & escalation 15% · Renewal/growth 10% <span class="abc-values">VOICE: Velocity · Ownership · Intellectual Honesty · Customer Obsession · Excellence</span>';app.prepend(bar)}
 if(!localStorage.getItem(THEME))localStorage.setItem(THEME,'dark');
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();applyAbnormalVisualClasses();if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
-document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);const t=e.target&&e.target.closest&&e.target.closest('#seed-accounts,[data-action="seed-accounts"],.seed-accounts');if(t)setTimeout(()=>{if(retune(true)){sessionStorage.setItem(RELOAD,'1');location.reload()}},180)},true);
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
+document.addEventListener('click',e=>{setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},40);const t=e.target&&e.target.closest&&e.target.closest('#seed-accounts,[data-action="seed-accounts"],.seed-accounts');if(t)setTimeout(()=>{if(retune(true)){sessionStorage.setItem(RELOAD,'1');location.reload()}},180)},true);
 })();
 </script>`;
 
