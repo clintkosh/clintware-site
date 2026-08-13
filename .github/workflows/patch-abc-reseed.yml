@@ -1,0 +1,46 @@
+name: Patch ABC Reseed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-reseed.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Include top Seed Demo button in Abnormal retune hook
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          old="e.target.closest('#seed-accounts,[data-action=\"seed-accounts\"],.seed-accounts')"
+          new="e.target.closest('#seed-top,#seed-accounts,[data-action=\"seed-accounts\"],.seed-accounts')"
+          if old not in s:
+              raise SystemExit('expected reseed selector not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          print('patched', old, '->', new)
+          PY
+          grep -F "#seed-top,#seed-accounts" abc/src/index.js >/dev/null
+          node --check abc/src/index.js
+          if [ -f abc/tests/smoke.mjs ]; then node abc/tests/smoke.mjs; fi
+          if [ -f abc/tests/regression.py ]; then python3 abc/tests/regression.py; fi
+      - name: Commit reseed fix
+        run: |
+          set -euo pipefail
+          git config user.name "Clinton Kosh"
+          git config user.email "72623901+clintkosh@users.noreply.github.com"
+          git add abc/src/index.js
+          git commit -m "Keep Abnormal model on top-level reseed"
+          git push origin HEAD:main
