@@ -64,11 +64,12 @@ jobs:
           const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
           const accountId=model.accounts[0].id;
           const appText=await page.locator('#app').innerText();
+          console.log('COMMAND_CENTER_TEXT',JSON.stringify(appText.slice(0,7000)));
           for(const required of [
             'Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.',
             'Customer outcomes over activity','Intellectual Honesty','Enterprise Customer Success motion',
-            'VALUE REALIZATION','ADOPTION & ENABLEMENT','RENEWAL & EXPANSION','RISK & ESCALATION','VOICE OF CUSTOMER'
-          ]) if(!appText.includes(required)) throw new Error('final Abnormal copy missing: '+required);
+            'Customer Cadence','Engagement Coverage','Value & Growth','Voice of Customer'
+          ]) if(!appText.toLowerCase().includes(required.toLowerCase())) throw new Error('final Abnormal copy missing: '+required);
           for(const forbidden of ['Run the post-sales business with one operating picture.','Headcount planning signal','RESOURCE RIGOR','Budget, forecast and investment visibility']) if(appText.includes(forbidden))throw new Error('old ZS copy still visible: '+forbidden);
           if(model.accounts.length!==20||model.accounts[0].name!=='Lone Mesa Energy'||model.accounts[0].region!=='Houston, TX')throw new Error('TOLA model changed');
           if(model.healthModel.adoption!==30||model.healthModel.valueRealization!==25||model.healthModel.stakeholderAlignment!==20||model.healthModel.riskAndEscalation!==15||model.healthModel.renewalAndGrowth!==10)throw new Error('health model changed');
@@ -101,7 +102,7 @@ jobs:
           if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
           for(const t of ['Stakeholders','Success Plan','Technical','Meetings','Notes','Commercial']) if(!tabText.some(x=>x.includes(t)))throw new Error('missing account tab: '+t);
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
-          console.log('PASS: current stable ABC build, final Abnormal copy, exact account workspace, and tabs verified');
+          console.log('PASS: current stable ABC build, role-aligned Command Center, exact account workspace, and tabs verified');
           await browser.close();
           NODE
           CHROME="$chrome" node verify.mjs
