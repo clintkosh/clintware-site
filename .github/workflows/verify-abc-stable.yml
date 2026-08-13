@@ -33,13 +33,16 @@ jobs:
           const page=await browser.newPage({viewport:{width:1440,height:1000}});
           const errors=[];page.on('pageerror',e=>errors.push(String(e)));
           let ready=false;
-          for(let i=1;i<=24;i++){
-            await page.goto('https://abc.clintware.com/?stable='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
-            if(await page.locator('#gate').count()){ready=true;console.log('GATE_READY_ATTEMPT',i);break}
-            console.log('WAIT_GATE',i,await page.title(),page.url());
+          for(let i=1;i<=30;i++){
+            await page.goto('https://abc.clintware.com/?stable-current='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            const html=await page.content();
+            const hasGate=await page.locator('#gate').count();
+            const hasCurrentMarker=html.includes('applyAbnormalRuntimeCopy');
+            if(hasGate && hasCurrentMarker){ready=true;console.log('CURRENT_BUILD_READY_ATTEMPT',i);break}
+            console.log('WAIT_CURRENT_BUILD',i,'gate='+hasGate,'runtimeCopy='+hasCurrentMarker,'title='+(await page.title()));
             await page.waitForTimeout(5000);
           }
-          if(!ready)throw new Error('stable ABC gate never appeared');
+          if(!ready)throw new Error('current runtime-copy ABC build never appeared in Chrome');
 
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
@@ -91,7 +94,7 @@ jobs:
           if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
           for(const t of ['Stakeholders','Success Plan','Technical','Meetings','Notes','Commercial']) if(!tabText.some(x=>x.includes(t)))throw new Error('missing account tab: '+t);
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
-          console.log('PASS: stable final ABC gate, retuned Command Center, exact account workspace, and tabs verified');
+          console.log('PASS: current stable ABC build, final Abnormal copy, exact account workspace, and tabs verified');
           await browser.close();
           NODE
           CHROME="$chrome" node verify.mjs
