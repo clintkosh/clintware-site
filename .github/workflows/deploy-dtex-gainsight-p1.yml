@@ -1,0 +1,133 @@
+name: Deploy DTEX Gainsight Health and P1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/patch_dtex_gainsight_p1.py"
+      - ".github/workflows/deploy-dtex-gainsight-p1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dtex-gainsight-health-p1
+  cancel-in-progress: true
+
+jobs:
+  patch-deploy-verify:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Apply and validate DTEX health/P1 source patch
+        run: |
+          set -euo pipefail
+          python3 tools/patch_dtex_gainsight_p1.py
+          f=public/summertime-crmdemo/index.html
+          grep -q 'id="dtex-gainsight-p1-script"' "$f"
+          grep -q 'data-view="healthsettings"' "$f"
+          grep -q 'adoption:20,value:20,relationship:15,technical:25,supportRisk:10,successPlan:10' "$f"
+          grep -q 'Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities' "$f"
+          grep -q "page_path:'/dtex/'" "$f"
+          grep -q 'data-save-dtex-technical' "$f"
+          grep -q 'data-save-dtex-commercial' "$f"
+          grep -q 'data-save-dtex-goal' "$f"
+          grep -q 'Commercial readiness and renewal timing remain separate' "$f"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('public/summertime-crmdemo/index.html').read_text()
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',text)
+          for i,script in enumerate(scripts):
+              if script.strip(): Path(f'/tmp/dtex-script-{i}.js').write_text(script)
+          print('scripts',len(scripts))
+          PY
+          for f in /tmp/dtex-script-*.js; do node --check "$f"; done
+
+      - name: Commit corrected DTEX source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/summertime-crmdemo/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Use Gainsight-default DTEX-tuned health scoring and complete P1 gaps"
+            git push
+          fi
+
+      - name: Build production bundle
+        run: |
+          python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+          python build_site.py
+          grep -q 'id="dtex-gainsight-p1-script"' public/summertime-crmdemo/index.html
+          grep -q 'Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities' public/summertime-crmdemo/index.html
+          python3 tests/validate_crm_analytics.py
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - name: Upload production bundle
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Deploy DTEX production bundle
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify live DTEX scoring, persistence, workflows and Analytics
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dtex-health-p1 && cd /tmp/dtex-health-p1
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const base=process.env.PAGE_URL.endsWith('/')?process.env.PAGE_URL:process.env.PAGE_URL+'/';
+          const url=base+'summertime-crmdemo/';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+          let ready=false;
+          for(let i=0;i<24;i++){try{await page.goto(url+'?gainsight-p1='+Date.now()+'-'+i,{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(250);if(await page.locator('#dtex-gainsight-p1-script').count()){ready=true;break}}catch(e){}await page.waitForTimeout(1500)}
+          if(!ready)throw new Error('final DTEX build not reached at '+url);
+          await page.fill('#pw','wrong-password');await page.click('#access-form button[type="submit"]');if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong password behavior failed');
+          await page.fill('#pw','DT3XK0$H2026');await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.click('.nav [data-view="healthsettings"]');
+          const text=await page.locator('#dtex-health-settings-body').innerText();if(!text.includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by DTEX priorities'))throw new Error('Gainsight/company priority note missing');
+          if((await page.locator('.dtex-health-weight').count())!==6)throw new Error('six DTEX health weights not visible');if((await page.locator('#dtex-health-total').innerText()).trim()!=='100')throw new Error('DTEX weights do not total 100');
+          const defaults=await page.evaluate(()=>dtexHealthSettings.weights);if(JSON.stringify(defaults)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:10,successPlan:10}))throw new Error('DTEX defaults wrong '+JSON.stringify(defaults));
+          const logic=await page.evaluate(()=>{const a=accounts[0],w=dtexHealthSettings.weights,s=dtexSignals(a),total=Object.values(w).reduce((x,y)=>x+Number(y||0),0);return{stored:a.health,expected:dtexClamp(Object.keys(w).reduce((sum,k)=>sum+s[k]*w[k],0)/total),commercial:a.commercial,signals:s}});if(logic.stored!==logic.expected)throw new Error('DTEX health formula mismatch '+JSON.stringify(logic));
+          await page.locator('[data-health-key="adoption"]').fill('25');await page.locator('[data-health-key="value"]').fill('15');await page.click('#dtex-save-health');await page.waitForTimeout(80);let saved=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_health_settings_v2')));if(saved.weights.adoption!==25||saved.weights.value!==15)throw new Error('DTEX settings save failed');await page.click('#dtex-reset-health');await page.waitForTimeout(80);saved=JSON.parse(await page.evaluate(()=>localStorage.getItem('dtex_health_settings_v2')));if(saved.weights.technical!==25||saved.weights.successPlan!==10)throw new Error('DTEX reset failed');
+          await page.click('.nav [data-view="accounts"]');const id=await page.locator('tr.account-row').first().getAttribute('data-id');await page.locator('tr.account-row').first().click();await page.waitForSelector('#account-drawer.open');
+          const summary=n=>page.locator('#drawer-body details.section summary').filter({hasText:n}).first();
+          await summary('Technical lifecycle').click();await page.fill('#dtex-t-coverage','73');await page.fill('#dtex-t-support','89');await page.fill('#dtex-t-sev','Sev 3');await page.click('[data-save-dtex-technical]');let state=await page.evaluate(id=>{const a=accounts.find(x=>x.id===id);return{coverage:a.coverage,support:a.support,sev:a.supportSev,health:a.health}},id);if(state.coverage!==73||state.support!==89||state.sev!=='Sev 3')throw new Error('DTEX technical edit failed '+JSON.stringify(state));
+          await summary('Commercial record').click();await page.fill('#dtex-c-adoption','82');await page.fill('#dtex-c-value','79');await page.fill('#dtex-c-stakeholder','77');await page.fill('#dtex-c-commercial','66');await page.click('[data-save-dtex-commercial]');state=await page.evaluate(id=>{const a=accounts.find(x=>x.id===id);return{adoption:a.adoption,value:a.value,stakeholder:a.stakeholder,commercial:a.commercial,health:a.health}},id);if(state.adoption!==82||state.value!==79||state.stakeholder!==77||state.commercial!==66)throw new Error('DTEX commercial/value edit failed '+JSON.stringify(state));
+          await summary('Success plan').click();await page.fill('#dtex-goal-name','DTEX E2E Objective');await page.fill('#dtex-goal-progress','30');await page.fill('#dtex-goal-owner','CSM + Customer');await page.fill('#dtex-goal-proof','Measured program outcome');await page.click('[data-save-dtex-goal]');let goals=await page.evaluate(id=>accounts.find(x=>x.id===id).goals,id);let idx=goals.findIndex(g=>g.name==='DTEX E2E Objective');if(idx<0)throw new Error('DTEX success objective add failed');await page.locator(`[data-edit-dtex-goal="${id}:${idx}"]`).click();await page.fill('#dtex-goal-progress','75');await page.click('[data-save-dtex-goal]');goals=await page.evaluate(id=>accounts.find(x=>x.id===id).goals,id);idx=goals.findIndex(g=>g.name==='DTEX E2E Objective');if(goals[idx].progress!==75)throw new Error('DTEX success objective edit failed');await page.locator(`[data-del-dtex-goal="${id}:${idx}"]`).click();goals=await page.evaluate(id=>accounts.find(x=>x.id===id).goals,id);if(goals.some(g=>g.name==='DTEX E2E Objective'))throw new Error('DTEX success objective remove failed');
+          await summary('Account notes').click();await page.fill('#account-note-text','DTEX E2E note');let before=await page.evaluate(id=>(notes[id]||[]).length,id);await page.click(`[data-add-note="${id}"]`);let after=await page.evaluate(id=>(notes[id]||[]).length,id);if(after!==before+1)throw new Error('DTEX note add failed');await page.locator(`[data-del-note^="${id}:"]`).last().click();
+          await summary('Meeting log').click();await page.fill('#meeting-type','DTEX E2E Review');await page.fill('#meeting-attendees','CISO, CSM');await page.fill('#meeting-notes','Measured outcome review');before=await page.evaluate(id=>(meetingAdds[id]||[]).length,id);await page.click(`[data-add-meeting="${id}"]`);after=await page.evaluate(id=>(meetingAdds[id]||[]).length,id);if(after!==before+1)throw new Error('DTEX meeting add failed');await page.locator(`[data-del-meeting^="${id}:"]`).last().click();
+          await summary('Employees & stakeholder map').click();await page.fill('#person-name','DTEX E2E Stakeholder');await page.fill('#person-role','Executive Sponsor');await page.fill('#person-lane','Executive sponsorship');before=await page.evaluate(id=>(peopleAdds[id]||[]).length,id);await page.click(`[data-add-person="${id}"]`);after=await page.evaluate(id=>(peopleAdds[id]||[]).length,id);if(after!==before+1)throw new Error('DTEX stakeholder add failed');await page.locator(`[data-del-person^="${id}:"]`).last().click();
+          await page.click('#drawer-close');const views=await page.locator('.nav [data-view]').evaluateAll(ns=>ns.map(n=>n.dataset.view));for(const v of views){await page.click(`.nav [data-view="${v}"]`);await page.waitForTimeout(25)}const paths=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean));const joined=JSON.stringify(paths);for(const v of views)if(!joined.includes('/dtex/'+v))throw new Error('missing DTEX GA page view '+v);
+          await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.body.classList.contains('unlocked'));const persisted=await page.evaluate(id=>{const a=accounts.find(x=>x.id===id);return{coverage:a.coverage,support:a.support,adoption:a.adoption,value:a.value,commercial:a.commercial}},id);if(persisted.coverage!==73||persisted.support!==89||persisted.adoption!==82||persisted.value!==79||persisted.commercial!==66)throw new Error('DTEX account override persistence failed '+JSON.stringify(persisted));
+          if(errors.length)throw new Error('DTEX browser errors '+errors.join(' | '));console.log('PASS: DTEX Gainsight-default company override + scoring Settings + P1 editing + persistence + Analytics at '+url);await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
+
+      - name: Best-effort Clintware path check
+        continue-on-error: true
+        run: |
+          curl -fsS --max-time 20 https://clintware.com/summertime-crmdemo/ | grep -q 'dtex-gainsight-p1-script'
