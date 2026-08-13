@@ -40,7 +40,6 @@ jobs:
             await page.waitForTimeout(5000);
           }
           if(!ready)throw new Error('stable ABC gate never appeared');
-          await page.screenshot({path:'/tmp/abc-gate.png',fullPage:true});
 
           await page.fill('#pw','wrong-password');
           await page.click('#access-form button[type="submit"]');
@@ -61,18 +60,18 @@ jobs:
             'VALUE REALIZATION','ADOPTION & ENABLEMENT','RENEWAL & EXPANSION','RISK & ESCALATION','VOICE OF CUSTOMER'
           ]) if(!appText.includes(required)) throw new Error('final Abnormal copy missing: '+required);
           for(const forbidden of ['Run the post-sales business with one operating picture.','Headcount planning signal','RESOURCE RIGOR','Budget, forecast and investment visibility']) if(appText.includes(forbidden))throw new Error('old ZS copy still visible: '+forbidden);
+          if(model.accounts.length!==20||model.accounts[0].name!=='Lone Mesa Energy'||model.accounts[0].region!=='Houston, TX')throw new Error('TOLA model changed');
           if(model.healthModel.adoption!==30||model.healthModel.valueRealization!==25||model.healthModel.stakeholderAlignment!==20||model.healthModel.riskAndEscalation!==15||model.healthModel.renewalAndGrowth!==10)throw new Error('health model changed');
-          await page.screenshot({path:'/tmp/abc-command-center.png',fullPage:true});
+          if(model.accounts[0].contacts.length<3)throw new Error('multi-threaded stakeholder model missing');
 
           const accountLinks=page.locator('[data-open]');
           if(!(await accountLinks.count()))throw new Error('no account links on Command Center');
-          const pink=await accountLinks.first().evaluate(el=>getComputedStyle(el).color);
-          console.log('ACCOUNT_LINK_COLOR',pink);
+          console.log('ACCOUNT_LINK_COLOR',await accountLinks.first().evaluate(el=>getComputedStyle(el).color));
+          console.log('PRIMARY_ACTIONS',JSON.stringify(await page.locator('.abc-primary-action').allTextContents()));
 
           const accountsRoute=page.locator('[data-route="accounts"]');
           if(await accountsRoute.count())await accountsRoute.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
           await page.waitForTimeout(500);
-          await page.screenshot({path:'/tmp/abc-accounts.png',fullPage:true});
 
           const exact=page.locator(`[data-open="${accountId}"]`).first();
           console.log('ACCOUNT_ID',accountId,'EXACT_COUNT',await page.locator(`[data-open="${accountId}"]`).count());
@@ -80,30 +79,19 @@ jobs:
           console.log('EXACT_OUTER_HTML',await exact.evaluate(el=>el.outerHTML));
           await exact.click();
           await page.waitForTimeout(700);
-          console.log('AFTER_CLICK_APP_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-6500)));
+
           const tabs=page.locator('[data-tab]');
           console.log('TAB_COUNT',await tabs.count());
-          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map(e=>({tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,120),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value)})).filter(x=>x.id||x.text||x.name||x.data.length));
-          console.log('AFTER_CLICK_CONTROLS',JSON.stringify(controls.slice(0,420)));
-          await page.screenshot({path:'/tmp/abc-account-open.png',fullPage:true});
-
-          if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
           const tabText=await tabs.allTextContents();
           console.log('ACCOUNT_TABS',JSON.stringify(tabText));
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map(e=>({tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,120),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value)})).filter(x=>x.id||x.text||x.name||x.data.length));
+          console.log('ACCOUNT_CONTROLS',JSON.stringify(controls.slice(0,500)));
+          console.log('ACCOUNT_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-8000)));
+
+          if(!(await tabs.count()))throw new Error('exact account click did not open account workspace');
           for(const t of ['Stakeholders','Success Plan','Technical','Meetings','Notes','Commercial']) if(!tabText.some(x=>x.includes(t)))throw new Error('missing account tab: '+t);
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
           console.log('PASS: stable final ABC gate, retuned Command Center, exact account workspace, and tabs verified');
           await browser.close();
           NODE
           CHROME="$chrome" node verify.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: abc-final-stable-screens
-          path: |
-            /tmp/abc-gate.png
-            /tmp/abc-command-center.png
-            /tmp/abc-accounts.png
-            /tmp/abc-account-open.png
-          retention-days: 1
-          if-no-files-found: warn
