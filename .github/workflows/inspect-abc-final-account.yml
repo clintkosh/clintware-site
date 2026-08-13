@@ -1,0 +1,77 @@
+name: Inspect Final ABC Account Workspace
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-abc-final-account.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect final stable account controls
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcfinal && cd /tmp/abcfinal
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > inspect.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          let ready=false;
+          for(let i=1;i<=36;i++){
+            await page.goto('https://abc.clintware.com/?final-inspect='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(1500);
+            const script=page.locator('#abnormal-model-script');
+            const text=(await script.count())?((await script.textContent().catch(()=>''))||''):'';
+            const gate=await page.locator('#gate').count();
+            const finalMarker=text.includes("['Resource Rigor','Adoption & Enablement']") && text.includes("['Customer Success Business Operations','Enterprise Customer Success']");
+            if(gate && finalMarker){ready=true;console.log('FINAL_BUILD_READY_ATTEMPT',i);break}
+            console.log('WAIT_FINAL',i,'gate='+gate,'finalMarker='+finalMarker,'title='+(await page.title().catch(()=>'')));
+            await page.waitForTimeout(5000);
+          }
+          if(!ready)throw new Error('final role-label build not served');
+          await page.fill('#pw',process.env.ABC_PASS);
+          await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')||'null');return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForTimeout(1900);
+          const appText=await page.locator('#app').innerText();
+          console.log('FINAL_COMMAND_TEXT',JSON.stringify(appText.slice(0,7600)));
+          for(const required of ['ENTERPRISE CUSTOMER SUCCESS','VALUE REALIZATION','ADOPTION & ENABLEMENT','RENEWAL & EXPANSION','RISK & ESCALATION','VOICE OF CUSTOMER']) if(!appText.includes(required))throw new Error('missing final role label '+required);
+          for(const old of ['CUSTOMER SUCCESS BUSINESS OPERATIONS','RESOURCE RIGOR','VALUE & GROWTH PARTNERSHIP','PRIORITIZATION','CUSTOMER OUTCOMES']) if(appText.includes(old))throw new Error('old role label still visible '+old);
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const accountId=model.accounts[0].id;
+          const accountsRoute=page.locator('[data-route="accounts"]');
+          if(await accountsRoute.count())await accountsRoute.first().click();else await page.getByText('Accounts',{exact:true}).first().click();
+          await page.waitForTimeout(700);
+          const exact=page.locator(`[data-open="${accountId}"]`).first();
+          console.log('EXACT_ACCOUNT_COUNT',await page.locator(`[data-open="${accountId}"]`).count());
+          if(!(await exact.count()))throw new Error('exact account control missing');
+          console.log('EXACT_ACCOUNT_HTML',await exact.evaluate(el=>el.outerHTML));
+          await exact.click();
+          await page.waitForTimeout(900);
+          console.log('ACCOUNT_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-10000)));
+          const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map((e,i)=>({i,tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',type:e.getAttribute('type')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,160),value:('value'in e?String(e.value).slice(0,160):''),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>a.name+'='+a.value)})).filter(x=>x.id||x.name||x.text||x.data.length));
+          console.log('FINAL_ACCOUNT_CONTROLS',JSON.stringify(controls));
+          const tabs=await page.locator('[data-tab]').allTextContents();
+          console.log('FINAL_TABS',JSON.stringify(tabs));
+          if(errors.length)throw new Error('page errors: '+errors.join(' | '));
+          console.log('PASS: final role labels and exact account workspace inspected');
+          await browser.close();
+          NODE
+          CHROME="$chrome" node inspect.mjs
