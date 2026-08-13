@@ -20,41 +20,7 @@ jobs:
       - name: Observe inherited renderer and reapply Abnormal presentation
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('abc/src/index.js')
-          s=p.read_text()
-          fn="""
-function observeAbnormalPresentation(){
-  const root=document.getElementById('app');
-  if(!root||root.dataset.abcObserver==='1')return;
-  root.dataset.abcObserver='1';
-  let applying=false,timer=null;
-  const apply=()=>{
-    if(applying)return;
-    applying=true;
-    try{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()}finally{applying=false}
-  };
-  const observer=new MutationObserver(()=>{
-    if(applying)return;
-    clearTimeout(timer);
-    timer=setTimeout(apply,20);
-  });
-  observer.observe(root,{childList:true,subtree:true,characterData:true});
-  apply();
-}
-"""
-          if 'function observeAbnormalPresentation()' not in s:
-              marker='function addContext(){'
-              assert marker in s
-              s=s.replace(marker,fn+'\n'+marker,1)
-          old='addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed'
-          new='addContext();observeAbnormalPresentation();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed'
-          if new not in s:
-              assert old in s
-              s=s.replace(old,new,1)
-          p.write_text(s)
-          PY
+          python3 -c "import base64;exec(base64.b64decode('ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgnYWJjL3NyYy9pbmRleC5qcycpCnM9cC5yZWFkX3RleHQoKQpmbj0iIiIKZnVuY3Rpb24gb2JzZXJ2ZUFibm9ybWFsUHJlc2VudGF0aW9uKCl7CiAgY29uc3Qgcm9vdD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXBwJyk7CiAgaWYoIXJvb3R8fHJvb3QuZGF0YXNldC5hYmNPYnNlcnZlcj09PScxJylyZXR1cm47CiAgcm9vdC5kYXRhc2V0LmFiY09ic2VydmVyPScxJzsKICBsZXQgYXBwbHlpbmc9ZmFsc2UsdGltZXI9bnVsbDsKICBjb25zdCBhcHBseT0oKT0+ewogICAgaWYoYXBwbHlpbmcpcmV0dXJuOwogICAgYXBwbHlpbmc9dHJ1ZTsKICAgIHRyeXthcHBseUFibm9ybWFsVmlzdWFsQ2xhc3NlcygpO2FwcGx5QWJub3JtYWxSdW50aW1lQ29weSgpfWZpbmFsbHl7YXBwbHlpbmc9ZmFsc2V9CiAgfTsKICBjb25zdCBvYnNlcnZlcj1uZXcgTXV0YXRpb25PYnNlcnZlcigoKT0+ewogICAgaWYoYXBwbHlpbmcpcmV0dXJuOwogICAgY2xlYXJUaW1lb3V0KHRpbWVyKTsKICAgIHRpbWVyPXNldFRpbWVvdXQoYXBwbHksMjApOwogIH0pOwogIG9ic2VydmVyLm9ic2VydmUocm9vdCx7Y2hpbGRMaXN0OnRydWUsc3VidHJlZTp0cnVlLGNoYXJhY3RlckRhdGE6dHJ1ZX0pOwogIGFwcGx5KCk7Cn0KIiIiCmlmICdmdW5jdGlvbiBvYnNlcnZlQWJub3JtYWxQcmVzZW50YXRpb24oKScgbm90IGluIHM6CiAgICBtYXJrZXI9J2Z1bmN0aW9uIGFkZENvbnRleHQoKXsnCiAgICBhc3NlcnQgbWFya2VyIGluIHMKICAgIHM9cy5yZXBsYWNlKG1hcmtlcixmbisnXG4nK21hcmtlciwxKQpvbGQ9J2FkZENvbnRleHQoKTthcHBseUFibm9ybWFsVmlzdWFsQ2xhc3NlcygpO2FwcGx5QWJub3JtYWxSdW50aW1lQ29weSgpO1sxMjAsMzUwLDkwMCwxNjAwXS5mb3JFYWNoKG1zPT5zZXRUaW1lb3V0KCgpPT57YXBwbHlBYm5vcm1hbFZpc3VhbENsYXNzZXMoKTthcHBseUFibm9ybWFsUnVudGltZUNvcHkoKX0sbXMpKTtpZihjaGFuZ2VkJwpuZXc9J2FkZENvbnRleHQoKTtvYnNlcnZlQWJub3JtYWxQcmVzZW50YXRpb24oKTthcHBseUFibm9ybWFsVmlzdWFsQ2xhc3NlcygpO2FwcGx5QWJub3JtYWxSdW50aW1lQ29weSgpO1sxMjAsMzUwLDkwMCwxNjAwXS5mb3JFYWNoKG1zPT5zZXRUaW1lb3V0KCgpPT57YXBwbHlBYm5vcm1hbFZpc3VhbENsYXNzZXMoKTthcHBseUFibm9ybWFsUnVudGltZUNvcHkoKX0sbXMpKTtpZihjaGFuZ2VkJwppZiBuZXcgbm90IGluIHM6CiAgICBhc3NlcnQgb2xkIGluIHMKICAgIHM9cy5yZXBsYWNlKG9sZCxuZXcsMSkKcC53cml0ZV90ZXh0KHMp'))"
           node --check abc/src/index.js
           node abc/tests/smoke.mjs
           node abc/tests/auth-roundtrip.mjs
