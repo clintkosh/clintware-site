@@ -1,0 +1,60 @@
+name: Patch ABC Role Labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-role-labels.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Map title-case copied renderer labels to Abnormal Enterprise CS
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          pairs=[
+            ("['BUSINESS RHYTHM','VALUE REALIZATION'],", "['BUSINESS RHYTHM','VALUE REALIZATION'],\n    ['Business Rhythm','Value Realization'],"),
+            ("['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],", "['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],\n    ['Resource Rigor','Adoption & Enablement'],"),
+            ("['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],", "['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],\n    ['Value & Growth Partnership','Renewal & Expansion'],"),
+            ("['PRIORITIZATION','RISK & ESCALATION'],", "['PRIORITIZATION','RISK & ESCALATION'],\n    ['Prioritization','Risk & Escalation'],"),
+            ("['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],", "['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],\n    ['Customer Outcomes','Voice of Customer'],"),
+            ("['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],", "['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],\n    ['Customer Success Business Operations','Enterprise Customer Success'],"),
+          ]
+          for old,new in pairs:
+              title_line=new.split('\n')[-1]
+              if title_line not in s:
+                  assert old in s, old
+                  s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          node --check abc/src/index.js
+          node abc/tests/smoke.mjs
+          node abc/tests/auth-roundtrip.mjs
+          python3 abc/tests/regression.py
+          python3 tests/validate_crm_analytics.py
+          grep -Fq "['Resource Rigor','Adoption & Enablement']" abc/src/index.js
+          grep -Fq "['Customer Success Business Operations','Enterprise Customer Success']" abc/src/index.js
+      - name: Commit final role label mapping
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js; then
+            echo "Role labels already mapped"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          git commit -m "Map ABC role cards to Enterprise CS labels"
+          git push origin HEAD:main
