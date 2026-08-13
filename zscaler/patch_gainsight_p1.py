@@ -30,6 +30,20 @@ script = script.replace("demo_name:'abnormal_enterprise_customer_success'", "dem
 script = script.replace("page_title:'Abnormal CS '+view", "page_title:'Zscaler CS '+view")
 script = script.replace("const root=location.hostname.toLowerCase().startsWith('an.')?'/an/':'/abc/';", "const root='/zsc/';")
 
+# Use a Zscaler-owned de-duplication key and always queue the page_view into
+# dataLayer, even if gtag.js has not finished loading yet.  The inherited ZS
+# render function can call this tracker too, so it must be idempotent per view.
+old_tracker = "trackPageView=function(){const view=route==='account'?('account/'+accountTab):route;if(view===lastAnalyticsView)return;lastAnalyticsView=view;const root='/zsc/';if(typeof gtag==='function')gtag('event','page_view',{page_title:'Zscaler CS '+view,page_location:location.href,page_path:root+view,demo_name:'zscaler_cs_business_operations'})};"
+new_tracker = "trackPageView=function(){const view=route==='account'?('account/'+accountTab):route;if(window.__zscLastAnalyticsView===view)return;window.__zscLastAnalyticsView=view;const payload={page_title:'Zscaler CS '+view,page_location:location.href,page_path:'/zsc/'+view,demo_name:'zscaler_cs_business_operations'};window.dataLayer=window.dataLayer||[];if(typeof gtag==='function')gtag('event','page_view',payload);else window.dataLayer.push(['event','page_view',payload])};"
+if old_tracker not in script:
+    raise SystemExit('Zscaler tracker adaptation marker not found')
+script = script.replace(old_tracker, new_tracker, 1)
+old_render = 'render=function(){abcEnsureHealthSettings(data);abcRecalcAll();save(data);originalRender()};'
+new_render = 'render=function(){abcEnsureHealthSettings(data);abcRecalcAll();save(data);originalRender();trackPageView()};'
+if old_render not in script:
+    raise SystemExit('Zscaler render wrapper marker not found')
+script = script.replace(old_render, new_render, 1)
+
 # The older ZS bundle calls trackPageView() during its initial render but does
 # not define it. Define a harmless prelude before the inherited app executes;
 # the health/P1 layer replaces it with the real /zsc/ SPA tracker on DOM ready.
@@ -80,4 +94,4 @@ auth = auth_path.read_text()
 auth = auth.replace("vm.runInContext('bind()', context);", "vm.runInContext('bindGate()', context);")
 auth_path.write_text(auth)
 
-print('patched Zscaler Gainsight/company-priority health model, initialization, CSP, and P1 workflows')
+print('patched Zscaler Gainsight/company-priority health model, deterministic SPA Analytics, initialization, CSP, and P1 workflows')
