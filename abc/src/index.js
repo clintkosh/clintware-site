@@ -137,9 +137,29 @@ function applyAbnormalRuntimeCopy(){
     if(next!==node.nodeValue)node.nodeValue=next;
   }
 }
+
+function observeAbnormalPresentation(){
+  const root=document.getElementById('app');
+  if(!root||root.dataset.abcObserver==='1')return;
+  root.dataset.abcObserver='1';
+  let applying=false,timer=null;
+  const apply=()=>{
+    if(applying)return;
+    applying=true;
+    try{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()}finally{applying=false}
+  };
+  const observer=new MutationObserver(()=>{
+    if(applying)return;
+    clearTimeout(timer);
+    timer=setTimeout(apply,20);
+  });
+  observer.observe(root,{childList:true,subtree:true,characterData:true});
+  apply();
+}
+
 function addContext(){const app=document.getElementById('app');if(!app||document.getElementById('abc-role-context'))return;const bar=document.createElement('div');bar.id='abc-role-context';bar.innerHTML='<b>Enterprise CS health model:</b> Adoption 30% · Value realization 25% · Stakeholder alignment 20% · Risk & escalation 15% · Renewal/growth 10% <span class="abc-values">VOICE: Velocity · Ownership · Intellectual Honesty · Customer Obsession · Excellence</span>';app.prepend(bar)}
 if(!localStorage.getItem(THEME))localStorage.setItem(THEME,'dark');
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const changed=retune(false);addContext();observeAbnormalPresentation();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed&&sessionStorage.getItem(RELOAD)!=='1'){sessionStorage.setItem(RELOAD,'1');location.reload()}else if(!changed){sessionStorage.removeItem(RELOAD)}},40)});
 document.addEventListener('click',e=>{[40,180,500].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));const t=e.target&&e.target.closest&&e.target.closest('#seed-accounts,[data-action="seed-accounts"],.seed-accounts');if(t)setTimeout(()=>{if(retune(true)){sessionStorage.setItem(RELOAD,'1');location.reload()}},180)},true);
 })();
 </script>`;
