@@ -1,0 +1,43 @@
+name: Verify Stable Zscaler Analytics v3
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/verify-zscaler-analytics-stable-v3.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify live Zscaler Analytics, scoring and current P1 surface
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-analytics-v3 && cd /tmp/zsc-analytics-v3
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ZSC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"zscaler/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          for(const host of ['zsc.clintware.com','zc.clintware.com']){
+            const page=await browser.newPage();page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.goto(`https://${host}/?ga-v3=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForSelector('#abc-health-p1-script',{state:'attached'});await page.waitForSelector('#zsc-track-page-prelude',{state:'attached'});await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+            await page.fill('#pw',process.env.ZSC_PASS);await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.accounts?.length===20&&d?.settings?.healthWeights}catch(e){return false}},{timeout:30000});
+            const d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));if(JSON.stringify(d.settings.healthWeights)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:15,successPlan:5}))throw new Error(host+': Zscaler health weights wrong');
+            await page.locator('.topnav [data-route="settings"]').click();if(!(await page.locator('#app').innerText()).includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by Zscaler priorities'))throw new Error(host+': scoring provenance note missing');
+            const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>n.dataset.route));for(const r of routes){await page.locator(`.topnav [data-route="${r}"]`).click();await page.waitForTimeout(30)}
+            await page.locator('.topnav [data-route="accounts"]').click();const id=d.accounts[0].id;await page.locator(`[data-open="${id}"]`).first().click();const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Set(ns.map(n=>n.dataset.tab))]);for(const t of tabs){await page.locator(`[data-tab="${t}"]`).first().click();await page.waitForTimeout(30)}
+            const events=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]||{}));const paths=events.map(x=>x.page_path).filter(Boolean),joined=JSON.stringify(paths);for(const r of routes)if(!joined.includes('/zsc/'+r))throw new Error(host+': missing GA route '+r+' paths='+joined);for(const t of tabs)if(!joined.includes('/zsc/account/'+t))throw new Error(host+': missing GA tab '+t+' paths='+joined);
+            for(const tab of ['summary','stakeholders','success','meetings','notes','technical','commercial'])await page.locator(`[data-tab="${tab}"]`).first().click();for(const sel of ['[data-add-risk]','[data-add-contact]','[data-add-success]','[data-add-meeting]','[data-add-note]','[data-edit-technical]','[data-edit-commercial]']){let found=false;for(const tab of tabs){await page.locator(`[data-tab="${tab}"]`).first().click();if(await page.locator(sel).count()){found=true;break}}if(!found)throw new Error(host+': missing P1 control '+sel)}
+            if(errors.length)throw new Error(host+': browser errors '+errors.join(' | '));console.log(host+': PASS all '+routes.length+' routes + '+tabs.length+' account tabs emit /zsc/ GA page views; health model and P1 surface intact');await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
