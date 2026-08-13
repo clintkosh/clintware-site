@@ -20,60 +20,7 @@ jobs:
       - name: Apply post-render Abnormal copy mapping
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('abc/src/index.js')
-          s=p.read_text()
-          if 'function applyAbnormalRuntimeCopy()' not in s:
-              fn=r'''
-function applyAbnormalRuntimeCopy(){
-  const root=document.getElementById('app');
-  if(!root)return;
-  const replacements=[
-    ['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],
-    ['Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'],
-    ['Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'],
-    ['Impact over activity','Customer outcomes over activity'],
-    ['Make operating signals easy to inspect, update, and carry into the next leadership decision.','Make customer signals easy to inspect, update, and carry into the next measurable customer action.'],
-    ['Customer obsession','Customer Obsession'],
-    ['Accountability','Intellectual Honesty'],
-    ['Headcount planning signal','Accounts requiring coordinated mitigation'],
-    ['Commercial readiness window','Renewal and expansion readiness'],
-    ['DTex-style portfolio table with the business-operations signals this role needs.','Enterprise portfolio view of health, adoption, executive coverage, renewal timing, and value evidence.'],
-    ['Renewal & commercial readiness','Renewal & growth readiness'],
-    ['Timing together with evidence, coverage, and health.','Value evidence, stakeholder confidence, adoption, and timing together.'],
-    ['Lowest-health accounts and operating dependencies.','Accounts requiring coordinated risk mitigation and customer follow-through.'],
-    ['Role operating model','Enterprise Customer Success motion'],
-    ['Structure across the core responsibilities in the listing.','Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role.'],
-    ['BUSINESS RHYTHM','VALUE REALIZATION'],
-    ['MBR, QBR, AOP and executive reviews','Success criteria, ROI, QBRs/EBRs and measurable customer outcomes'],
-    ['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],
-    ['Engagement Coverage, workload and headcount visibility','Feature engagement, best practices, roadmap education and technical coverage'],
-    ['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],
-    ['Budget, forecast and investment visibility','Value evidence, executive confidence and commercial readiness'],
-    ['PRIORITIZATION','RISK & ESCALATION'],
-    ['Structured intake and decision transparency','Proactive health signals, coordinated mitigation and commitment follow-through'],
-    ['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],
-    ['Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'],
-    ['Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.']
-  ];
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-  let node;
-  while((node=walker.nextNode())){
-    let value=node.nodeValue;
-    let next=value;
-    for(const [from,to] of replacements)if(next.includes(from))next=next.split(from).join(to);
-    if(next!==value)node.nodeValue=next;
-  }
-}
-'''
-              marker='function addContext(){'
-              assert marker in s
-              s=s.replace(marker,fn+'\n'+marker,1)
-          s=s.replace('addContext();applyAbnormalVisualClasses();if(changed','addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();if(changed')
-          s=s.replace("document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);","document.addEventListener('click',e=>{setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},40);")
-          p.write_text(s)
-          PY
+          python3 -c "import base64;exec(base64.b64decode('ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgnYWJjL3NyYy9pbmRleC5qcycpCnM9cC5yZWFkX3RleHQoKQpmbj0iZnVuY3Rpb24gYXBwbHlBYm5vcm1hbFJ1bnRpbWVDb3B5KCl7XG4gIGNvbnN0IHJvb3Q9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FwcCcpO1xuICBpZighcm9vdClyZXR1cm47XG4gIGNvbnN0IHJlcGxhY2VtZW50cz1bXG4gICAgWydDVVNUT01FUiBTVUNDRVNTIEJVU0lORVNTIE9QRVJBVElPTlMnLCdFTlRFUlBSSVNFIENVU1RPTUVSIFNVQ0NFU1MnXSxcbiAgICBbJ1J1biB0aGUgcG9zdC1zYWxlcyBidXNpbmVzcyB3aXRoIG9uZSBvcGVyYXRpbmcgcGljdHVyZS4nLCdNYW5hZ2UgZW50ZXJwcmlzZSBjdXN0b21lciB2YWx1ZSwgYWRvcHRpb24sIHJpc2ssIGFuZCByZW5ld2FsIHJlYWRpbmVzcyBpbiBvbmUgb3BlcmF0aW5nIHBpY3R1cmUuJ10sXG4gICAgWydNb2RlbGVkIG9uIHRoZSBEVGV4IENvbW1hbmQgQ2VudGVyIGZsb3c6IHBvcnRmb2xpbyBoZWFsdGgg4oaSIGFjY291bnQgZHJpbGwtZG93biDihpIgd29ya2luZyByZWNvcmRzIOKGkiBtZWV0aW5nIHJlYWRpbmVzcywgd2l0aCB0aGUgcmVzb3VyY2UsIGZpbmFuY2UsIGNhZGVuY2UsIGFuZCBwcmlvcml0aXphdGlvbiBsYXllcnMgcmVxdWlyZWQgZm9yIGEgQnVzaW5lc3MgT3BlcmF0aW9ucyBsZWFkZXIuJywnVHVybiBhY2NvdW50IGhlYWx0aCwgc3VjY2VzcyBjcml0ZXJpYSwgc3Rha2Vob2xkZXIgY29udGV4dCwgcHJvZHVjdCBhZG9wdGlvbiwgcmlzaywgYW5kIGN1c3RvbWVyIGZlZWRiYWNrIGludG8gdGhlIG5leHQgbWVhc3VyYWJsZSBjdXN0b21lciBhY3Rpb24uJ10sXG4gICAgWydJbXBhY3Qgb3ZlciBhY3Rpdml0eScsJ0N1c3RvbWVyIG91dGNvbWVzIG92ZXIgYWN0aXZpdHknXSxcbiAgICBbJ01ha2Ugb3BlcmF0aW5nIHNpZ25hbHMgZWFzeSB0byBpbnNwZWN0LCB1cGRhdGUsIGFuZCBjYXJyeSBpbnRvIHRoZSBuZXh0IGxlYWRlcnNoaXAgZGVjaXNpb24uJywnTWFrZSBjdXN0b21lciBzaWduYWxzIGVhc3kgdG8gaW5zcGVjdCwgdXBkYXRlLCBhbmQgY2FycnkgaW50byB0aGUgbmV4dCBtZWFzdXJhYmxlIGN1c3RvbWVyIGFjdGlvbi4nXSxcbiAgICBbJ0N1c3RvbWVyIG9ic2Vzc2lvbicsJ0N1c3RvbWVyIE9ic2Vzc2lvbiddLFxuICAgIFsnQWNjb3VudGFiaWxpdHknLCdJbnRlbGxlY3R1YWwgSG9uZXN0eSddLFxuICAgIFsnSGVhZGNvdW50IHBsYW5uaW5nIHNpZ25hbCcsJ0FjY291bnRzIHJlcXVpcmluZyBjb29yZGluYXRlZCBtaXRpZ2F0aW9uJ10sXG4gICAgWydDb21tZXJjaWFsIHJlYWRpbmVzcyB3aW5kb3cnLCdSZW5ld2FsIGFuZCBleHBhbnNpb24gcmVhZGluZXNzJ10sXG4gICAgWydEVGV4LXN0eWxlIHBvcnRmb2xpbyB0YWJsZSB3aXRoIHRoZSBidXNpbmVzcy1vcGVyYXRpb25zIHNpZ25hbHMgdGhpcyByb2xlIG5lZWRzLicsJ0VudGVycHJpc2UgcG9ydGZvbGlvIHZpZXcgb2YgaGVhbHRoLCBhZG9wdGlvbiwgZXhlY3V0aXZlIGNvdmVyYWdlLCByZW5ld2FsIHRpbWluZywgYW5kIHZhbHVlIGV2aWRlbmNlLiddLFxuICAgIFsnUmVuZXdhbCAmIGNvbW1lcmNpYWwgcmVhZGluZXNzJywnUmVuZXdhbCAmIGdyb3d0aCByZWFkaW5lc3MnXSxcbiAgICBbJ1RpbWluZyB0b2dldGhlciB3aXRoIGV2aWRlbmNlLCBjb3ZlcmFnZSwgYW5kIGhlYWx0aC4nLCdWYWx1ZSBldmlkZW5jZSwgc3Rha2Vob2xkZXIgY29uZmlkZW5jZSwgYWRvcHRpb24sIGFuZCB0aW1pbmcgdG9nZXRoZXIuJ10sXG4gICAgWydMb3dlc3QtaGVhbHRoIGFjY291bnRzIGFuZCBvcGVyYXRpbmcgZGVwZW5kZW5jaWVzLicsJ0FjY291bnRzIHJlcXVpcmluZyBjb29yZGluYXRlZCByaXNrIG1pdGlnYXRpb24gYW5kIGN1c3RvbWVyIGZvbGxvdy10aHJvdWdoLiddLFxuICAgIFsnUm9sZSBvcGVyYXRpbmcgbW9kZWwnLCdFbnRlcnByaXNlIEN1c3RvbWVyIFN1Y2Nlc3MgbW90aW9uJ10sXG4gICAgWydTdHJ1Y3R1cmUgYWNyb3NzIHRoZSBjb3JlIHJlc3BvbnNpYmlsaXRpZXMgaW4gdGhlIGxpc3RpbmcuJywnTWFwcGVkIHRvIGN1c3RvbWVyIG91dGNvbWVzLCBhZG9wdGlvbiwgcmlzaywgcmV0ZW50aW9uLCBhbmQgZ3Jvd3RoIHJlc3BvbnNpYmlsaXRpZXMgaW4gdGhlIHJvbGUuJ10sXG4gICAgWydCVVNJTkVTUyBSSFlUSE0nLCdWQUxVRSBSRUFMSVpBVElPTiddLFxuICAgIFsnTUJSLCBRQlIsIEFPUCBhbmQgZXhlY3V0aXZlIHJldmlld3MnLCdTdWNjZXNzIGNyaXRlcmlhLCBST0ksIFFCUnMvRUJScyBhbmQgbWVhc3VyYWJsZSBjdXN0b21lciBvdXRjb21lcyddLFxuICAgIFsnUkVTT1VSQ0UgUklHT1InLCdBRE9QVElPTiAmIEVOQUJMRU1FTlQnXSxcbiAgICBbJ0VuZ2FnZW1lbnQgQ292ZXJhZ2UsIHdvcmtsb2FkIGFuZCBoZWFkY291bnQgdmlzaWJpbGl0eScsJ0ZlYXR1cmUgZW5nYWdlbWVudCwgYmVzdCBwcmFjdGljZXMsIHJvYWRtYXAgZWR1Y2F0aW9uIGFuZCB0ZWNobmljYWwgY292ZXJhZ2UnXSxcbiAgICBbJ1ZBTFVFICYgR1JPV1RIIFBBUlRORVJTSElQJywnUkVORVdBTCAmIEVYUEFOU0lPTiddLFxuICAgIFsnQnVkZ2V0LCBmb3JlY2FzdCBhbmQgaW52ZXN0bWVudCB2aXNpYmlsaXR5JywnVmFsdWUgZXZpZGVuY2UsIGV4ZWN1dGl2ZSBjb25maWRlbmNlIGFuZCBjb21tZXJjaWFsIHJlYWRpbmVzcyddLFxuICAgIFsnUFJJT1JJVElaQVRJT04nLCdSSVNLICYgRVNDQUxBVElPTiddLFxuICAgIFsnU3RydWN0dXJlZCBpbnRha2UgYW5kIGRlY2lzaW9uIHRyYW5zcGFyZW5jeScsJ1Byb2FjdGl2ZSBoZWFsdGggc2lnbmFscywgY29vcmRpbmF0ZWQgbWl0aWdhdGlvbiBhbmQgY29tbWl0bWVudCBmb2xsb3ctdGhyb3VnaCddLFxuICAgIFsnQ1VTVE9NRVIgT1VUQ09NRVMnLCdWT0lDRSBPRiBDVVNUT01FUiddLFxuICAgIFsnQWNjb3VudCBjb250ZXh0LCBldmlkZW5jZSBhbmQgcmVhZGluZXNzJywnU3Rha2Vob2xkZXIgZmVlZGJhY2ssIHByb2R1Y3QgcmVxdWVzdHMsIHN1Y2Nlc3MgY3JpdGVyaWEgYW5kIG5leHQgYWN0aW9ucyddLFxuICAgIFsnT3BlbiBhbnkgYWNjb3VudCBpbnRvIGEgRFRleC1zdHlsZSB3b3JraW5nIHdvcmtzcGFjZTogY29udHJhY3QgYW5kIG1ldHJpY3MsIHN0YWtlaG9sZGVycywgc3VjY2VzcyBwbGFuLCB0ZWNobmljYWwvc2VydmljZSBjb250ZXh0LCBtZWV0aW5ncywgbm90ZXMsIGFuZCBjb21tZXJjaWFsIHJlYWRpbmVzcy4nLCdPcGVuIGFueSBhY2NvdW50IGludG8gYW4gZW50ZXJwcmlzZSBDdXN0b21lciBTdWNjZXNzIHdvcmtzcGFjZTogY29udHJhY3QgYW5kIG1ldHJpY3MsIHN0YWtlaG9sZGVycywgc3VjY2VzcyBjcml0ZXJpYSwgdGVjaG5pY2FsIGNvbnRleHQsIG1lZXRpbmdzLCBub3RlcywgcmlzaywgYW5kIHJlbmV3YWwgcmVhZGluZXNzLiddXG4gIF07XG4gIGNvbnN0IHdhbGtlcj1kb2N1bWVudC5jcmVhdGVUcmVlV2Fsa2VyKHJvb3QsTm9kZUZpbHRlci5TSE9XX1RFWFQpO1xuICBsZXQgbm9kZTtcbiAgd2hpbGUoKG5vZGU9d2Fsa2VyLm5leHROb2RlKCkpKXtcbiAgICBsZXQgbmV4dD1ub2RlLm5vZGVWYWx1ZTtcbiAgICBmb3IoY29uc3QgW2Zyb20sdG9dIG9mIHJlcGxhY2VtZW50cylpZihuZXh0LmluY2x1ZGVzKGZyb20pKW5leHQ9bmV4dC5zcGxpdChmcm9tKS5qb2luKHRvKTtcbiAgICBpZihuZXh0IT09bm9kZS5ub2RlVmFsdWUpbm9kZS5ub2RlVmFsdWU9bmV4dDtcbiAgfVxufSIKaWYgJ2Z1bmN0aW9uIGFwcGx5QWJub3JtYWxSdW50aW1lQ29weSgpJyBub3QgaW4gczoKICAgIG1hcmtlcj0nZnVuY3Rpb24gYWRkQ29udGV4dCgpeycKICAgIGFzc2VydCBtYXJrZXIgaW4gcwogICAgcz1zLnJlcGxhY2UobWFya2VyLGZuKydcbicrbWFya2VyLDEpCnM9cy5yZXBsYWNlKCdhZGRDb250ZXh0KCk7YXBwbHlBYm5vcm1hbFZpc3VhbENsYXNzZXMoKTtpZihjaGFuZ2VkJywnYWRkQ29udGV4dCgpO2FwcGx5QWJub3JtYWxWaXN1YWxDbGFzc2VzKCk7YXBwbHlBYm5vcm1hbFJ1bnRpbWVDb3B5KCk7aWYoY2hhbmdlZCcpCnM9cy5yZXBsYWNlKCJkb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsZT0+e3NldFRpbWVvdXQoYXBwbHlBYm5vcm1hbFZpc3VhbENsYXNzZXMsNDApOyIsImRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJyxlPT57c2V0VGltZW91dCgoKT0+e2FwcGx5QWJub3JtYWxWaXN1YWxDbGFzc2VzKCk7YXBwbHlBYm5vcm1hbFJ1bnRpbWVDb3B5KCl9LDQwKTsiKQpwLndyaXRlX3RleHQocykK'))"
           node --check abc/src/index.js
           node abc/tests/smoke.mjs
           node abc/tests/auth-roundtrip.mjs
