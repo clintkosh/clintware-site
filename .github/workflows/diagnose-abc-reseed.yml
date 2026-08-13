@@ -1,0 +1,51 @@
+name: Diagnose ABC Reseed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-reseed.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect clear and reseed behavior in stable production
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcreseed && cd /tmp/abcreseed
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          page.setDefaultTimeout(8000);
+          await page.goto('https://abc.clintware.com/?reseeddiag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts?.length===20}catch(e){return false}},{timeout:20000});
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(250);
+          await page.click('#clear-top');await page.waitForSelector('#confirm-clear');await page.click('#confirm-clear');await page.waitForTimeout(250);
+          console.log('AFTER_CLEAR',await page.evaluate(()=>({count:JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.length,body:document.querySelector('#app')?.innerText.slice(-1200)})));
+          console.log('SEED_BEFORE',await page.locator('#seed-top').evaluate(el=>({onclick:typeof el.onclick,onclickText:String(el.onclick),outer:el.outerHTML})));
+          await page.click('#seed-top');await page.waitForTimeout(300);
+          console.log('AFTER_SEED_CLICK',await page.evaluate(()=>({count:JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.length,modals:[...document.querySelectorAll('.modal,.modalback,[role="dialog"],dialog')].map(e=>({text:(e.innerText||'').slice(0,1000),html:e.outerHTML.slice(0,2500),display:getComputedStyle(e).display})).filter(x=>x.display!=='none'),buttons:[...document.querySelectorAll('button')].map(b=>({id:b.id,text:(b.innerText||'').trim(),data:[...b.attributes].filter(a=>a.name.startsWith('data-')).reduce((o,a)=>(o[a.name]=a.value,o),{})})).filter(x=>x.id||x.text.includes('Seed')||x.text.includes('Confirm'))})));
+          const confirm=page.locator('#confirm-seed');
+          if(await confirm.count()){
+            console.log('FOUND_CONFIRM_SEED');await confirm.click();await page.waitForTimeout(500);
+          }
+          console.log('FINAL',await page.evaluate(()=>({count:JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.length,first:JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0]?.name,last:JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts.at(-1)?.name,body:document.querySelector('#app')?.innerText.slice(-1000)})));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
