@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Inspect live onclick binding and route state
+      - name: Verify current binder fix opens account workspace
         run: |
           set -euo pipefail
           mkdir -p /tmp/abcclick && cd /tmp/abcclick
@@ -31,36 +31,33 @@ jobs:
           const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
           const page=await browser.newPage();
           let ready=false;
-          for(let i=1;i<=30;i++){
-            await page.goto('https://abc.clintware.com/?clickdiag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          for(let i=1;i<=36;i++){
+            await page.goto('https://abc.clintware.com/?bindfix='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(1000);
             const src=(await page.locator('script').allTextContents()).join('\n');
-            if(await page.locator('#gate').count()&&src.includes('data.accounts.find(x=>String(x.id)===String(selected))')){ready=true;break}
+            const current=src.includes('data.accounts.find(x=>String(x.id)===String(selected))')&&src.includes('function bindGate()')&&!src.includes("DOMContentLoaded',bind);");
+            if(await page.locator('#gate').count()&&current){ready=true;console.log('CURRENT_BIND_FIX_ATTEMPT',i);break}
+            console.log('WAIT_BIND_FIX',i,current,await page.title().catch(()=>''));
             await page.waitForTimeout(4000);
           }
-          if(!ready)throw new Error('idfix build missing');
+          if(!ready)throw new Error('current binder-fix build missing');
           await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
           await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts?.[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
-          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForTimeout(1600);
-          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(300);
-          const id=(await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id));
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForTimeout(1500);
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(350);
+          const id=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id);
           const sel=`[data-open="${id}"]`;
-          console.log('BEFORE',await page.locator(sel).evaluate(el=>({onclick:typeof el.onclick,onclickText:String(el.onclick),outer:el.outerHTML})));
-          console.log('GLOBALS_BEFORE',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
-          await page.locator(sel).click();await page.waitForTimeout(100);
+          const before=await page.locator(sel).evaluate(el=>({onclick:typeof el.onclick,onclickText:String(el.onclick),outer:el.outerHTML}));
+          console.log('BEFORE',before);
+          if(before.onclick!=='function')throw new Error('account button still not rebound after Accounts render');
+          await page.locator(sel).click();await page.waitForTimeout(300);
           console.log('GLOBALS_AFTER_CLICK',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
-          console.log('AFTER_CLICK_TABS',await page.locator('[data-tab]').allTextContents());
-          console.log('AFTER_CLICK_HEADING',await page.locator('#app h1').allTextContents());
-          if(!(await page.locator('[data-tab]').count())){
-            // Re-enter accounts and directly invoke the assigned handler if it exists.
-            const ar=page.locator('[data-route="accounts"]');if(await ar.count())await ar.first().click();await page.waitForTimeout(200);
-            const direct=await page.locator(sel).evaluate(el=>{if(typeof el.onclick==='function'){el.onclick();return 'called'}return 'no-handler'});
-            console.log('DIRECT_ONCLICK',direct);await page.waitForTimeout(100);
-            console.log('GLOBALS_AFTER_DIRECT',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
-            console.log('DIRECT_TABS',await page.locator('[data-tab]').allTextContents());
-            console.log('DIRECT_H1',await page.locator('#app h1').allTextContents());
-          }
+          const tabs=await page.locator('[data-tab]').allTextContents();
+          console.log('ACCOUNT_TABS',JSON.stringify(tabs));
+          console.log('ACCOUNT_H1',await page.locator('#app h1').allTextContents());
+          if(!tabs.length||!tabs.some(t=>t.includes('Stakeholders'))||!tabs.some(t=>t.includes('Technical')))throw new Error('account workspace did not open');
+          console.log('PASS: binder collision fixed; account buttons rebind and account workspace opens');
           await browser.close();
           NODE
           CHROME="$chrome" node diag.mjs
