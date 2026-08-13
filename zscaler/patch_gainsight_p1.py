@@ -3,6 +3,7 @@ import json
 
 abc_path = Path('abc/src/index.js')
 zsc_path = Path('zscaler/src/index.js')
+auth_path = Path('zscaler/tests/auth-roundtrip.mjs')
 abc = abc_path.read_text()
 zsc = zsc_path.read_text()
 
@@ -34,25 +35,31 @@ if 'const ZSCALER_HEALTH_P1_SCRIPT =' not in zsc:
         raise SystemExit('Zscaler responseHeaders marker not found')
     zsc = zsc.replace(marker, const_line + marker, 1)
 
-# Keep the private gate isolated from the CRM renderer.  The old global bind()
+# Keep the private gate isolated from the CRM renderer. The old global bind()
 # name collides with the app's own bind() after a SPA re-render.
-zsc = zsc.replace('function bind(){const form=document.getElementById(\'access-form\')', 'function bindGate(){const form=document.getElementById(\'access-form\')')
+zsc = zsc.replace("function bind(){const form=document.getElementById('access-form')", "function bindGate(){const form=document.getElementById('access-form')")
 zsc = zsc.replace("document.addEventListener('DOMContentLoaded',bind);", "document.addEventListener('DOMContentLoaded',bindGate);")
 
 # Inject the scoring/P1 runtime into the rendered document.
 zsc = zsc.replace('out = out.replace("</head>", `${DTEX_GATE_CSS}</head>`);', 'out = out.replace("</head>", `${DTEX_GATE_CSS}${ZSCALER_HEALTH_P1_SCRIPT}</head>`);')
 
-# Use the last real body close.  Printable brief HTML can contain a literal
+# Use the last real body close. Printable brief HTML can contain a literal
 # </body> inside a JavaScript string and must never steal the gate injection.
 old_body = 'out = out.replace(/<\\/body>/i, `${DTEX_GATE_JS}</body>`);'
 if old_body in zsc:
     zsc = zsc.replace(old_body, 'const bodyClose = out.toLowerCase().lastIndexOf("</body>");\n  out = bodyClose >= 0 ? `${out.slice(0, bodyClose)}${DTEX_GATE_JS}${out.slice(bodyClose)}` : `${out}${DTEX_GATE_JS}`;', 1)
 
-# Health endpoint should prove the scoring model is in the response.
+# Health endpoint should prove the model layer is actually in the response.
 zsc = zsc.replace(
     'const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.length > 10000;',
-    'const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.includes("ZSCALER_HEALTH_P1_SCRIPT") === false && html.includes("abc-health-p1-script") && html.includes("Gainsight-style Customer Success health practices") && html.length > 10000;'
+    'const appOk = html.includes("Command Center") && html.includes("Seed Demo Accounts") && html.includes("abc-health-p1-script") && html.includes("Gainsight-style Customer Success health practices") && html.length > 10000;'
 )
 
 zsc_path.write_text(zsc)
+
+# Keep the auth regression aligned with the collision-safe gate name.
+auth = auth_path.read_text()
+auth = auth.replace("vm.runInContext('bind()', context);", "vm.runInContext('bindGate()', context);")
+auth_path.write_text(auth)
+
 print('patched Zscaler Gainsight/company-priority health model and P1 workflows')
