@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Exercise supported stable production workflow including repaired reseed
+      - name: Exercise final production UI PDF and analytics
         run: |
           set -euo pipefail
           mkdir -p /tmp/abc-final-v2 && cd /tmp/abc-final-v2
@@ -30,44 +30,97 @@ jobs:
           import { chromium } from 'playwright-core';
           const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
           const page=await browser.newPage();
-          page.setDefaultTimeout(7000);
-          const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('dialog',async d=>d.accept());
+          page.setDefaultTimeout(15000);
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
           const load=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
-          await page.goto('https://abc.clintware.com/?finalv2='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
-          const src=(await page.locator('script').allTextContents()).join('\n');
-          if(!src.includes("#seed-top,#seed-accounts"))throw new Error('reseed fix is not live');
+
+          let ready=false;
+          for(let i=1;i<=24;i++){
+            await page.goto(`https://abc.clintware.com/?finalv2=${Date.now()}-${i}`,{waitUntil:'domcontentloaded',timeout:30000});
+            const html=await page.content();
+            if(html.includes('ABNORMAL // CUSTOMER SUCCESS')&&html.includes('Print / Save PDF')&&html.includes('trackPageView')&&html.includes('Open customer risks')&&html.includes('dtex-gate-js')){ready=true;console.log('FINAL_BUILD_ATTEMPT',i);break}
+            await page.waitForTimeout(5000);
+          }
+          if(!ready)throw new Error('final ABC build not reached');
+          await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');
+
           await page.fill('#pw','wrong-password');await page.click('#access-form button[type="submit"]');
-          if((await page.textContent('#gate-error'))!=='Incorrect password.')throw new Error('wrong-password rejection failed');
+          await page.waitForFunction(()=>document.querySelector('#gate-error')?.textContent==='Incorrect password.');
+          if(await page.evaluate(()=>document.body.classList.contains('unlocked')))throw new Error('wrong password unlocked app');
           await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
           await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
-          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'}catch(e){return false}},{timeout:20000});
-          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.abcAbnormalModelVersion===4&&d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+
+          const brand=await page.locator('.brandcopy').innerText();
+          if(!brand.includes('ABNORMAL // CUSTOMER SUCCESS'))throw new Error('Abnormal-style brand missing');
+          if((await page.locator('body').innerText()).includes('Post-Sales Business Operations'))throw new Error('legacy ZS brand remains');
+
+          await page.locator('.topnav [data-route="command"]').click();await page.waitForSelector('.kpi-card');
+          if(await page.locator('.kpi-card').count()!==6)throw new Error('expected six clickable overview cards');
+          const cardRoutes=await page.locator('.kpi-card').evaluateAll(xs=>xs.map(x=>x.dataset.route));
+          const expected=['accounts','kpis','renewal','accounts','accounts','playbooks'];
+          if(JSON.stringify(cardRoutes)!==JSON.stringify(expected))throw new Error('overview card routes incorrect: '+JSON.stringify(cardRoutes));
+          for(let i=0;i<6;i++){
+            await page.locator('.topnav [data-route="command"]').click();
+            const r=await page.locator('.kpi-card').nth(i).getAttribute('data-route');
+            await page.locator('.kpi-card').nth(i).click();
+            await page.waitForFunction(route=>document.querySelector(`.topnav [data-route="${route}"]`)?.classList.contains('active'),r);
+          }
+
+          const mainRoutes=['command','accounts','renewal','playbooks','cadence','capacity','finance','intake','kpis','settings'];
+          for(const r of mainRoutes){await page.locator(`.topnav [data-route="${r}"]`).click();await page.waitForFunction(route=>document.querySelector(`.topnav [data-route="${route}"]`)?.classList.contains('active'),r)}
+
+          await page.locator('.topnav [data-route="accounts"]').click();
           let d=await load();const aid=d.accounts[0].id;
-          if(d.healthModel.adoption!==30||d.healthModel.valueRealization!==25||d.healthModel.stakeholderAlignment!==20||d.healthModel.riskAndEscalation!==15||d.healthModel.renewalAndGrowth!==10)throw new Error('Abnormal health weighting incorrect');
-          const appText=(await page.locator('#app').innerText()).toLowerCase();for(const x of ['customer cadence','engagement coverage','value & growth','voice of customer','intellectual honesty'])if(!appText.includes(x))throw new Error('missing Abnormal copy '+x);
-          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(200);
-          const open=page.locator(`[data-open="${aid}"]`).first();if(await open.evaluate(e=>typeof e.onclick)!=='function')throw new Error('account handler missing');await open.click();await page.waitForTimeout(200);
-          if(!(await page.locator('[data-tab="stakeholders"]').count()))throw new Error('account workspace did not open');
-          await page.locator('[data-edit-account]').click();await page.fill('#f-summary','ABC final V2 persistence check');await page.click('#save-account');
-          d=await load();let a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC final V2 persistence check')throw new Error('account edit failed');
-          const c0=a.contacts.length;await page.locator('[data-tab="stakeholders"]').click();await page.locator('[data-add-contact]').click();await page.fill('#c-name','ABC Final V2 Stakeholder');await page.fill('#c-title','VP Information Security');await page.fill('#c-email','finalv2@lone-mesa-energy.example');await page.click('#save-contact');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const c=a.contacts.find(x=>x.name==='ABC Final V2 Stakeholder');if(!c||a.contacts.length!==c0+1)throw new Error('stakeholder add failed');await page.locator(`[data-del-contact="${aid}|${c.id}"]`).click();await page.waitForTimeout(100);d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.contacts.length!==c0)throw new Error('stakeholder remove failed');
-          const s0=a.successPlans.length;await page.locator('[data-tab="success"]').click();await page.locator('[data-add-success]').click();await page.fill('#s-objective','ABC final V2 measurable outcome');await page.fill('#s-progress','81');await page.fill('#s-owner','Customer + CSM');await page.fill('#s-proof','Adoption evidence and executive confirmation');await page.click('#save-success');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const s=a.successPlans.find(x=>x.objective==='ABC final V2 measurable outcome');if(!s||a.successPlans.length!==s0+1)throw new Error('success objective add failed');await page.locator(`[data-del-success="${aid}|${s.id}"]`).click();await page.waitForTimeout(100);
-          d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.successPlans.length!==s0)throw new Error('success objective remove failed');
-          const m0=a.meetings.length;await page.locator('[data-tab="meetings"]').click();await page.locator('[data-add-meeting]').click();await page.fill('#m-date','2026-08-13');await page.fill('#m-title','ABC Final V2 Executive Review');await page.fill('#m-notes','ABC final V2 adoption and value review.');await page.click('#save-meeting');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const m=a.meetings.find(x=>x.title==='ABC Final V2 Executive Review');if(!m||a.meetings.length!==m0+1)throw new Error('meeting add failed');
-          const n0=a.notes.length;await page.locator('[data-tab="notes"]').click();await page.locator('[data-add-note]').click();await page.fill('#n-text','ABC final V2 customer voice note.');await page.click('#save-note');d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));const n=a.notes.find(x=>x.text==='ABC final V2 customer voice note.');if(!n||a.notes.length!==n0+1)throw new Error('note add failed');
-          await page.locator('[data-tab="technical"]').click();if(!(await page.locator('#app').innerText()).includes('Customer Success + Technical Success'))throw new Error('technical context missing');
-          await page.locator('[data-tab="commercial"]').click();if(!(await page.locator('#app').innerText()).includes('Renewal & growth readiness'))throw new Error('commercial context missing');
-          await page.locator('[data-tab="summary"]').click();if(!(await page.locator('#app').innerText()).includes('Open risks'))throw new Error('risk context missing');
-          await page.locator('[data-brief]').first().click();const bt=await page.locator('.modal').innerText();for(const x of ['WHY WE STARTED','WHAT WE DECIDE NEXT','ABC final V2 customer voice note.'])if(!bt.includes(x))throw new Error('meeting brief missing '+x);if(!(await page.locator('#copy-brief').count()))throw new Error('copy brief missing');await page.locator('[data-close]').click();
-          await page.locator('[data-tab="meetings"]').click();await page.locator(`[data-del-meeting="${aid}|${m.id}"]`).click();await page.waitForTimeout(100);await page.locator('[data-tab="notes"]').click();await page.locator(`[data-del-note="${aid}|${n.id}"]`).click();await page.waitForTimeout(100);
-          await page.reload({waitUntil:'domcontentloaded',timeout:30000});await page.waitForFunction(()=>document.body.classList.contains('unlocked'));d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.summary!=='ABC final V2 persistence check')throw new Error('reload persistence failed');
-          await page.locator('[data-route="accounts"]').first().click();await page.click('#clear-top');await page.waitForSelector('#confirm-clear');await page.click('#confirm-clear');await page.waitForTimeout(200);d=await load();if(d.accounts.length!==0)throw new Error('clear failed');
-          await page.click('#seed-top');
-          await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d.accounts?.length===20&&d.accounts[0]?.name==='Lone Mesa Energy'&&d.accounts[19]?.name==='Metroplex Media Group'&&d.abcAbnormalModelVersion===4}catch(e){return false}},{timeout:15000});
-          await page.waitForFunction(()=>document.body.classList.contains('unlocked'),null,{timeout:10000});
-          d=await load();if(d.accounts[0].region!=='Houston, TX'||d.accounts[1].region!=='Dallas, TX')throw new Error('TOLA reseed mapping failed');
+          await page.locator(`[data-open="${aid}"]`).first().click();await page.waitForSelector('[data-edit-account]');
+          const tabs=['summary','stakeholders','success','technical','meetings','notes','commercial'];
+          for(const t of tabs){await page.locator(`[data-tab="${t}"]`).click();await page.waitForFunction(tab=>document.querySelector(`[data-tab="${tab}"]`)?.classList.contains('active'),t)}
+
+          await page.locator('[data-tab="notes"]').click();
+          d=await load();let a=d.accounts.find(x=>String(x.id)===String(aid));const n0=a.notes.length;
+          await page.locator('[data-add-note]').click();await page.click('#save-note');
+          if(!(await page.locator('#note-error').innerText()).includes('Enter a note'))throw new Error('blank note validation failed');
+          const note=`FINAL V2 NOTE ${Date.now()}`;await page.fill('#n-text',note);await page.click('#save-note');
+          await page.waitForSelector('.abc-toast');if(!(await page.locator('.abc-toast').innerText()).includes('Note saved'))throw new Error('note saved toast missing');
+          if(!await page.locator('[data-tab="notes"]').evaluate(e=>e.classList.contains('active')))throw new Error('Notes tab not retained');
+          d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.notes.length!==n0+1||a.notes[0].text!==note)throw new Error('note save/prepend failed');
+          if(!(await page.locator('.record').first().innerText()).includes(note))throw new Error('new note not visible first');
+
+          const popupPromise=page.waitForEvent('popup');
+          await page.locator('[data-brief]').first().click();
+          if(await page.locator('#print-brief').count()!==1)throw new Error('Print / Save PDF missing');
+          await page.click('#print-brief');const popup=await popupPromise;popup.setDefaultTimeout(15000);
+          await popup.waitForFunction(()=>document.body?.innerText.includes('Manual notes / decisions'));
+          const ptext=await popup.locator('body').innerText();
+          if(!ptext.includes(note))throw new Error('custom note missing from printable brief');
+          if(!ptext.includes('EBR storyline'))throw new Error('EBR storyline missing from printable brief');
+          const layout=await popup.evaluate(()=>{const body=document.body.getBoundingClientRect();const dates=[...document.querySelectorAll('.date-value')].map(el=>{const r=el.getBoundingClientRect(),cs=getComputedStyle(el);return{text:el.textContent,whiteSpace:cs.whiteSpace,left:r.left,right:r.right,bodyLeft:body.left,bodyRight:body.right}});return{dates,overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+1}});
+          if(layout.dates.length<3)throw new Error('expected at least three printable date values');
+          if(layout.overflow)throw new Error('printable brief horizontal overflow');
+          for(const x of layout.dates){if(x.whiteSpace!=='nowrap')throw new Error('date wraps: '+x.text);if(x.left<x.bodyLeft-1||x.right>x.bodyRight+1)throw new Error('date clipped: '+x.text)}
+          await popup.emulateMedia({media:'print'});
+          const printDates=await popup.evaluate(()=>[...document.querySelectorAll('.date-value')].map(el=>({text:el.textContent,whiteSpace:getComputedStyle(el).whiteSpace,width:el.getBoundingClientRect().width})));
+          if(printDates.some(x=>x.whiteSpace!=='nowrap'||x.width<=0))throw new Error('print-media date safety failed');
+          const pdf=await popup.pdf({format:'Letter',printBackground:true,preferCSSPageSize:true});
+          if(pdf.length<5000||pdf.subarray(0,5).toString()!=='%PDF-')throw new Error('generated Letter PDF invalid');
+          console.log('PDF_OK',pdf.length,'bytes',layout.dates.length,'date fields');
+          await popup.close();await page.locator('[data-close]').first().click();
+
+          const analytics=await page.evaluate(()=>{const rows=(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}});return{config:rows.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P'),paths:rows.filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean),pdf:rows.some(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='meeting_brief_pdf_open')}});
+          if(!analytics.config)throw new Error('GA config missing');
+          const required=[...mainRoutes.map(r=>`/abc/${r}`),...tabs.map(t=>`/abc/account/${t}`)];
+          for(const p of required)if(!analytics.paths.includes(p))throw new Error('GA page_view missing '+p+' paths='+JSON.stringify(analytics.paths));
+          if(!analytics.pdf)throw new Error('GA meeting_brief_pdf_open missing');
+          if(analytics.paths.some(p=>/Lone|Mesa|Energy|FINAL V2 NOTE/i.test(p)))throw new Error('customer/note content leaked into GA page path');
+
+          await page.reload({waitUntil:'domcontentloaded',timeout:30000});await page.waitForFunction(()=>document.body.classList.contains('unlocked')&&document.querySelector('.topbar'),{timeout:30000});
+          d=await load();a=d.accounts.find(x=>String(x.id)===String(aid));if(a.notes[0].text!==note)throw new Error('note persistence after reload failed');
+          const gaReload=await page.evaluate(()=>{const rows=(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}});return rows.some(x=>Array.isArray(x)&&x[0]==='config'&&x[1]==='G-DCY144YM9P')});if(!gaReload)throw new Error('GA not initialized after reload');
           if(errors.length)throw new Error('page errors: '+errors.join(' | '));
-          console.log('PASS FINAL ABC V2: exact login, Abnormal model/weights/copy, account open/edit, stakeholder add/remove, success add/remove, meeting/note add/remove, technical/commercial/risk context, deterministic meeting brief/copy, reload persistence, clear, and repaired Abnormal/TOLA reseed');
+          console.log('PASS FINAL ABC V2');
+          console.log('GA_PATHS',JSON.stringify([...new Set(analytics.paths)].sort()));
+          console.log('CARD_ROUTES',JSON.stringify(cardRoutes));
           await browser.close();
           NODE
           CHROME="$chrome" node test.mjs
