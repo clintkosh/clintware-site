@@ -1,0 +1,83 @@
+name: Diagnose ABC Browser Routing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compare curl and browser routing
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsutils >/dev/null
+          echo '### DNS A'
+          dig +short @1.1.1.1 abc.clintware.com A || true
+          echo '### DNS AAAA'
+          dig +short @1.1.1.1 abc.clintware.com AAAA || true
+          echo '### curl normal'
+          curl -sS -D /tmp/curl-headers.txt 'https://abc.clintware.com/?diag=curl' -o /tmp/curl-body.html
+          sed -n '1,40p' /tmp/curl-headers.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          b=Path('/tmp/curl-body.html').read_text(errors='replace')
+          print('curl length',len(b),'gate', 'id="gate"' in b,'title snippet',b[:500].replace('\n',' '))
+          PY
+          echo '### curl Chrome UA'
+          curl -sS -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/151.0.0.0 Safari/537.36' -D /tmp/ua-headers.txt 'https://abc.clintware.com/?diag=ua' -o /tmp/ua-body.html
+          sed -n '1,40p' /tmp/ua-headers.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          b=Path('/tmp/ua-body.html').read_text(errors='replace')
+          print('ua length',len(b),'gate', 'id="gate"' in b,'snippet',b[:500].replace('\n',' '))
+          PY
+
+          mkdir -p /tmp/abcdiag && cd /tmp/abcdiag
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const context=await browser.newContext();
+          const page=await context.newPage();
+          const errors=[];const messages=[];const requests=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>messages.push(`${m.type()}: ${m.text()}`));
+          page.on('requestfailed',r=>requests.push(`${r.url()} :: ${r.failure()?.errorText}`));
+          const response=await page.goto('https://abc.clintware.com/?diag=browser-'+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForTimeout(1500);
+          const html=await page.content();
+          console.log('STATUS',response?.status());
+          console.log('FINAL_URL',page.url());
+          console.log('TITLE',await page.title());
+          console.log('HTML_LENGTH',html.length);
+          console.log('HAS_GATE',html.includes('id="gate"'));
+          console.log('HAS_ABNORMAL_TITLE',html.includes('Enterprise Customer Success Command Center'));
+          console.log('HAS_OLD_ABC',/zscaler|Post-Sales Business Operations|Private Customer Success Command Center/i.test(html));
+          console.log('BODY_TEXT',JSON.stringify((await page.locator('body').innerText().catch(()=>'' )).slice(0,1800)));
+          console.log('HTML_HEAD',JSON.stringify(html.slice(0,2200)));
+          console.log('RESPONSE_HEADERS',JSON.stringify(await response?.allHeaders()));
+          console.log('PAGE_ERRORS',JSON.stringify(errors));
+          console.log('CONSOLE',JSON.stringify(messages.slice(0,20)));
+          console.log('REQUEST_FAILED',JSON.stringify(requests));
+          await page.screenshot({path:'/tmp/abc-browser.png',fullPage:true});
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: abc-browser-diagnostic
+          path: /tmp/abc-browser.png
+          retention-days: 1
