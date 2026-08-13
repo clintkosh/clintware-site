@@ -97,6 +97,7 @@ function applyAbnormalRuntimeCopy(){
   if(!root)return;
   const replacements=[
     ['CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'],
+    ['Customer Success Business Operations','Enterprise Customer Success'],
     ['Run the post-sales business with one operating picture.','Manage enterprise customer value, adoption, risk, and renewal readiness in one operating picture.'],
     ['Modeled on the DTex Command Center flow: portfolio health → account drill-down → working records → meeting readiness, with the resource, finance, cadence, and prioritization layers required for a Business Operations leader.','Turn account health, success criteria, stakeholder context, product adoption, risk, and customer feedback into the next measurable customer action.'],
     ['Impact over activity','Customer outcomes over activity'],
@@ -112,14 +113,19 @@ function applyAbnormalRuntimeCopy(){
     ['Role operating model','Enterprise Customer Success motion'],
     ['Structure across the core responsibilities in the listing.','Mapped to customer outcomes, adoption, risk, retention, and growth responsibilities in the role.'],
     ['BUSINESS RHYTHM','VALUE REALIZATION'],
+    ['Business Rhythm','Value Realization'],
     ['MBR, QBR, AOP and executive reviews','Success criteria, ROI, QBRs/EBRs and measurable customer outcomes'],
     ['RESOURCE RIGOR','ADOPTION & ENABLEMENT'],
+    ['Resource Rigor','Adoption & Enablement'],
     ['Engagement Coverage, workload and headcount visibility','Feature engagement, best practices, roadmap education and technical coverage'],
     ['VALUE & GROWTH PARTNERSHIP','RENEWAL & EXPANSION'],
+    ['Value & Growth Partnership','Renewal & Expansion'],
     ['Budget, forecast and investment visibility','Value evidence, executive confidence and commercial readiness'],
     ['PRIORITIZATION','RISK & ESCALATION'],
+    ['Prioritization','Risk & Escalation'],
     ['Structured intake and decision transparency','Proactive health signals, coordinated mitigation and commitment follow-through'],
     ['CUSTOMER OUTCOMES','VOICE OF CUSTOMER'],
+    ['Customer Outcomes','Voice of Customer'],
     ['Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'],
     ['Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.']
   ];
