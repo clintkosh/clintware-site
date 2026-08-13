@@ -1,0 +1,45 @@
+name: Verify Stable Zscaler Gainsight P1 v2
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/verify-zscaler-gainsight-stable-v2.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify stable production behavior
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/zsc-v2 && cd /tmp/zsc-v2
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ZSC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"zscaler/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > verify.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          for(const host of ['zsc.clintware.com','zc.clintware.com']){
+            const page=await browser.newPage();page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.goto(`https://${host}/?v2=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});await page.waitForSelector('#abc-health-p1-script',{state:'attached'});await page.waitForFunction(()=>typeof document.querySelector('#access-form')?.onsubmit==='function');await page.fill('#pw',process.env.ZSC_PASS);await page.click('#access-form button[type="submit"]');await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForFunction(()=>{try{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2'));return d?.accounts?.length===20&&d?.settings?.healthWeights}catch(e){return false}},{timeout:30000});
+            let d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));if(JSON.stringify(d.settings.healthWeights)!==JSON.stringify({adoption:20,value:20,relationship:15,technical:25,supportRisk:15,successPlan:5}))throw new Error(host+': defaults wrong');
+            const expected=await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')),a=d.accounts[0],w=d.settings.healthWeights,cl=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0))),ms=(a.meetings||[]).filter(m=>m.date).sort((x,y)=>String(y.date).localeCompare(String(x.date)));let rec=35;if(ms.length){const days=Math.max(0,Math.ceil((Date.now()-new Date(ms[0].date+'T12:00:00').getTime())/86400000));rec=days<=30?100:days<=60?85:days<=90?70:days<=120?55:40}const rel=cl(cl(a.stakeholderStrength)*.6+rec*.25+((a.contacts||[]).some(c=>c.level==='C-Level')?100:40)*.15),sev=String(a.supportSeverity||'None').toLowerCase(),sp=sev.includes('sev 1')?25:sev.includes('sev 2')?15:sev.includes('sev 3')?7:0;let rp=0;for(const r of(a.risks||[]).filter(r=>String(r.status||'Open').toLowerCase()!=='closed')){const z=String(r.severity||'').toLowerCase();rp=Math.max(rp,z.includes('critical')?25:z.includes('high')?15:z.includes('medium')?8:z.includes('low')?3:5)}const sr=cl(cl(a.supportSla)-Math.max(sp,rp)),plans=a.successPlans||[],ps=plans.length?cl(plans.reduce((s,x)=>s+cl(x.progress),0)/plans.length):50,sig={adoption:cl(a.adoption),value:cl(a.valueEvidence),relationship:rel,technical:cl(a.technicalCoverage),supportRisk:sr,successPlan:ps};return cl(Object.keys(w).reduce((s,k)=>s+sig[k]*w[k],0)/100)});if(d.accounts[0].health!==expected)throw new Error(host+': formula mismatch');
+            await page.locator('.topnav [data-route="settings"]').click();const st=await page.locator('#app').innerText();if(!st.includes('Defaulted to Gainsight-style Customer Success health practices except where overridden by Zscaler priorities'))throw new Error(host+': model note missing');if((await page.locator('.abc-health-weight').count())!==6)throw new Error(host+': settings incomplete');
+            if(host==='zsc.clintware.com'){
+              await page.locator('[data-health-key="adoption"]').fill('25');await page.locator('[data-health-key="value"]').fill('15');await page.click('#abc-save-health-model');await page.waitForTimeout(80);d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));if(d.settings.healthWeights.adoption!==25||d.settings.healthWeights.value!==15)throw new Error('settings save failed');await page.locator('.topnav [data-route="settings"]').click();await page.click('#abc-reset-health-model');
+              await page.locator('.topnav [data-route="accounts"]').click();d=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));const id=d.accounts[0].id;await page.locator(`[data-open="${id}"]`).first().click();await page.locator('[data-edit-account]').click();if(await page.locator('#f-health').count())throw new Error('manual Health remains');if(!(await page.locator('#f-adoption').count()))throw new Error('Adoption missing');await page.click('[data-close]');
+              for(const tab of ['summary','stakeholders','success','meetings','notes','technical','commercial']){await page.locator(`[data-tab="${tab}"]`).first().click();}
+              for(const sel of ['[data-add-risk]','[data-add-contact]','[data-add-success]','[data-add-meeting]','[data-add-note]','[data-edit-technical]','[data-edit-commercial]'])if(!(await page.locator(sel).count()))throw new Error('missing P1 control '+sel);
+              const routes=await page.locator('.topnav [data-route]').evaluateAll(ns=>ns.map(n=>n.dataset.route));for(const r of routes){await page.locator(`.topnav [data-route="${r}"]`).click();await page.waitForTimeout(20)}await page.locator('.topnav [data-route="accounts"]').click();await page.locator(`[data-open="${id}"]`).first().click();const tabs=await page.locator('[data-tab]').evaluateAll(ns=>[...new Set(ns.map(n=>n.dataset.tab))]);for(const t of tabs){await page.locator(`[data-tab="${t}"]`).first().click();await page.waitForTimeout(20)}const paths=await page.evaluate(()=>(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch(e){return x}}).filter(x=>Array.isArray(x)&&x[0]==='event'&&x[1]==='page_view').map(x=>x[2]?.page_path).filter(Boolean)),joined=JSON.stringify(paths);for(const r of routes)if(!joined.includes('/zsc/'+r))throw new Error('missing GA '+r);for(const t of tabs)if(!joined.includes('/zsc/account/'+t))throw new Error('missing GA tab '+t);
+            }
+            if(errors.length)throw new Error(host+': browser errors '+errors.join(' | '));console.log(host+': PASS scoring, settings, P1 surface, analytics');await page.close();
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node verify.mjs
