@@ -1,0 +1,52 @@
+name: Diagnose ABC final model
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-final-model.yml"
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect final live model after login
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abc-model && cd /tmp/abc-model
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          const errs=[];page.on('pageerror',e=>errs.push(String(e)));
+          await page.goto('https://abc.clintware.com/?modeldiag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>document.querySelector('#access-form')&&typeof document.querySelector('#access-form').onsubmit==='function',{timeout:15000});
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'),{timeout:15000});
+          await page.waitForTimeout(2500);
+          console.log('URL',page.url());
+          console.log('UNLOCKED',await page.evaluate(()=>document.body.classList.contains('unlocked')));
+          console.log('TOPBAR',await page.locator('.topbar').count());
+          console.log('ERRORS',JSON.stringify(errs));
+          console.log('STORAGE_KEYS',JSON.stringify(await page.evaluate(()=>Object.keys(localStorage))));
+          const raw=await page.evaluate(()=>localStorage.getItem('zs_ops_dtex_model_v2'));
+          console.log('RAW_LEN',raw?.length||0);
+          if(raw){
+            const d=JSON.parse(raw);
+            console.log('MODEL_KEYS',JSON.stringify(Object.keys(d).sort()));
+            console.log('MODEL_VERSION_FIELDS',JSON.stringify(Object.fromEntries(Object.entries(d).filter(([k])=>/version|model/i.test(k)))));
+            console.log('ACCOUNT_COUNT',d.accounts?.length);
+            console.log('FIRST_ACCOUNT',JSON.stringify(d.accounts?.[0]&&{id:d.accounts[0].id,name:d.accounts[0].name,region:d.accounts[0].region}));
+          }
+          console.log('APP_TEXT',JSON.stringify(((await page.locator('#app').innerText())||'').slice(0,800)));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
