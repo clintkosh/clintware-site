@@ -6,11 +6,5 @@
   "workers_dev": false,
   "observability": {
     "enabled": true
-  },
-  "routes": [
-    {
-      "pattern": "stats.clintware.com",
-      "custom_domain": true
-    }
-  ]
+  }
 }
