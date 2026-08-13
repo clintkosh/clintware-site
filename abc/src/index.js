@@ -15,8 +15,8 @@ const PASS='@BN0Rm@LK0$H2026',SESSION_KEY='abnormal_enterprise_demo_access',DEMO
 function sendEvent(n,p={}){if(typeof gtag==='function')gtag('event',n,Object.assign({demo_id:DEMO_ID,host:location.hostname},p))}
 function unlock(){sessionStorage.setItem(SESSION_KEY,'1');document.body.classList.add('unlocked');document.title='Enterprise Customer Success Command Center'}
 function lock(){sessionStorage.removeItem(SESSION_KEY);document.body.classList.remove('unlocked');document.title='Private Enterprise Customer Success Demo';document.getElementById('pw').value=''}
-function bind(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>{e.preventDefault();if(pw.value===PASS){err.textContent='';unlock();sendEvent('crm_unlock_success')}else{err.textContent='Incorrect password.';pw.select();sendEvent('crm_unlock_failed')}};if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();sendEvent('crm_gate_view')}
-document.addEventListener('DOMContentLoaded',bind);
+function bindGate(){const form=document.getElementById('access-form'),pw=document.getElementById('pw'),err=document.getElementById('gate-error');form.onsubmit=e=>{e.preventDefault();if(pw.value===PASS){err.textContent='';unlock();sendEvent('crm_unlock_success')}else{err.textContent='Incorrect password.';pw.select();sendEvent('crm_unlock_failed')}};if(sessionStorage.getItem(SESSION_KEY)==='1')unlock();sendEvent('crm_gate_view')}
+document.addEventListener('DOMContentLoaded',bindGate);
 </script>`;
 
 const ABNORMAL_APP_CSS = `<style id="abnormal-app-theme">
