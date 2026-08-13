@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/retune-abc-abnormal.yml"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -22,13 +22,10 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           p=Path('abc/src/index.js')
           s=p.read_text()
 
-          # Extend the existing transform list. These changes affect presentation/copy only;
-          # the copied ZS application engine and persistence model remain untouched.
           start=s.index('const STATIC_REPLACEMENTS = [')
           end=s.index('];', start)
           block=s[start:end]
@@ -58,50 +55,26 @@ jobs:
             ('CUSTOMER OUTCOMES','VOICE OF CUSTOMER'),
             ('Account context, evidence and readiness','Stakeholder feedback, product requests, success criteria and next actions'),
             ('Open any account into a DTex-style working workspace: contract and metrics, stakeholders, success plan, technical/service context, meetings, notes, and commercial readiness.','Open any account into an enterprise Customer Success workspace: contract and metrics, stakeholders, success criteria, technical context, meetings, notes, risk, and renewal readiness.'),
-            ('CUSTOMER SUCCESS BUSINESS OPERATIONS','ENTERPRISE CUSTOMER SUCCESS'),
           ]
           lines=[]
           for a,b in additions:
-              token='  ['+repr(a).replace("'",'"')+','+repr(b).replace("'",'"')+'],'
-              if a not in block or b not in block:
-                  lines.append(token)
+              if b not in block:
+                  import json
+                  lines.append('  ['+json.dumps(a)+','+json.dumps(b)+'],')
           if lines:
               s=s[:end]+'\n'+'\n'.join(lines)+s[end:]
 
-          # Add a narrow Abnormal visual override after the existing app-theme rules.
-          # This removes the remaining blue ZS accents while preserving health/risk colors.
-          css='''
-#app [data-open]{color:#ff6ea7!important;font-weight:800}
-#app [data-open]:hover{color:#ff97bd!important}
-#app .abc-primary-action{background:linear-gradient(90deg,#f23b7e,#e65468)!important;border-color:transparent!important;color:#fff!important}
-#app .abc-brand-mark{filter:hue-rotate(115deg) saturate(1.45) brightness(1.05)}
-#app .abc-accent-link{color:#ff6ea7!important}
-#app progress::-webkit-progress-value{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
-#app [class*="progress"]>span,#app [class*="meter"]>span{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}
-'''
+          css="\n#app [data-open]{color:#ff6ea7!important;font-weight:800}\n#app [data-open]:hover{color:#ff97bd!important}\n#app .abc-primary-action{background:linear-gradient(90deg,#f23b7e,#e65468)!important;border-color:transparent!important;color:#fff!important}\n#app .abc-brand-mark{filter:hue-rotate(115deg) saturate(1.45) brightness(1.05)}\n#app .abc-accent-link{color:#ff6ea7!important}\n#app progress::-webkit-progress-value{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}\n#app [class*=\"progress\"]>span,#app [class*=\"meter\"]>span{background:linear-gradient(90deg,#ff3b88,#a565ff)!important}\n"
           if '.abc-primary-action' not in s:
               marker='#abc-role-context .abc-values{font-weight:600;opacity:.72;margin-left:8px}'
               i=s.index(marker)+len(marker)
               s=s[:i]+css+s[i:]
 
-          # Add role-safe visual class assignment. Text-based classing is deliberately
-          # presentation-only and leaves all existing event handlers/functionality intact.
-          js='''
-function applyAbnormalVisualClasses(){
-  document.querySelectorAll('#app button,#app a').forEach(el=>{
-    const t=(el.textContent||'').trim();
-    if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');
-    if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link');
-  });
-  const brand=document.querySelector('#app header svg,#app nav svg,#app [class*="brand"] svg,#app [class*="logo"] svg');
-  if(brand)brand.classList.add('abc-brand-mark');
-}
-'''
+          js="\nfunction applyAbnormalVisualClasses(){document.querySelectorAll('#app button,#app a').forEach(el=>{const t=(el.textContent||'').trim();if(['Open all accounts','Add account','Generate meeting brief','Download PDF'].some(x=>t.includes(x)))el.classList.add('abc-primary-action');if(el.hasAttribute('data-open'))el.classList.add('abc-accent-link')});const brand=document.querySelector('#app header svg,#app nav svg,#app [class*=\"brand\"] svg,#app [class*=\"logo\"] svg');if(brand)brand.classList.add('abc-brand-mark')}\n"
           if 'function applyAbnormalVisualClasses()' not in s:
               target='function addContext(){'
               i=s.index(target)
               s=s[:i]+js+s[i:]
-              # Call after DOM/model render and after route clicks/rerenders.
               s=s.replace('addContext();if(changed', 'addContext();applyAbnormalVisualClasses();if(changed', 1)
               s=s.replace("document.addEventListener('click',e=>{", "document.addEventListener('click',e=>{setTimeout(applyAbnormalVisualClasses,40);", 1)
 
