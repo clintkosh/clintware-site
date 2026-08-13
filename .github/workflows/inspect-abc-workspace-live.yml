@@ -1,0 +1,71 @@
+name: Inspect ABC Workspace Live
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-abc-workspace-live.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inventory exact stable workspace controls and brief modal
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcworkspace && cd /tmp/abcworkspace
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > inspect.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          let ready=false;
+          for(let i=1;i<=30;i++){
+            await page.goto('https://abc.clintware.com/?workspace-inspect='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(900);
+            const src=(await page.locator('script').allTextContents()).join('\n');
+            if(await page.locator('#gate').count()&&src.includes('function bindGate()')&&src.includes('data.accounts.find(x=>String(x.id)===String(selected))')){ready=true;break}
+            await page.waitForTimeout(4000);
+          }
+          if(!ready)throw new Error('current stable build missing');
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts?.[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForTimeout(1400);
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(300);
+          const model=await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')));
+          const id=model.accounts[0].id;
+          await page.locator(`[data-open="${id}"]`).first().click();await page.waitForTimeout(400);
+          const dump=async(label)=>{
+            const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,select,textarea')].map((e,i)=>({i,tag:e.tagName,id:e.id||'',name:e.getAttribute('name')||'',type:e.getAttribute('type')||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,180),value:('value'in e?String(e.value).slice(0,180):''),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).reduce((o,a)=>(o[a.name]=a.value,o),{})})).filter(x=>x.id||x.name||x.text||Object.keys(x.data).length));
+            console.log(label+'_CONTROLS',JSON.stringify(controls));
+            console.log(label+'_TEXT',JSON.stringify((await page.locator('#app').innerText()).slice(-14000)));
+          };
+          await dump('SUMMARY');
+          for(const tab of ['stakeholders','success','technical','meetings','notes','commercial']){
+            await page.locator(`[data-tab="${tab}"]`).click();await page.waitForTimeout(150);await dump(tab.toUpperCase());
+          }
+          await page.locator('[data-tab="summary"]').click();await page.waitForTimeout(100);
+          const brief=page.locator('[data-brief]').first();
+          console.log('BRIEF_COUNT',await page.locator('[data-brief]').count());
+          if(await brief.count()){
+            await brief.click();await page.waitForTimeout(200);
+            const modal=await page.evaluate(()=>[...document.querySelectorAll('.modal,[role="dialog"],dialog')].map(e=>({html:e.outerHTML.slice(0,12000),display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility})).filter(x=>x.display!=='none'&&x.visibility!=='hidden'));
+            console.log('BRIEF_VISIBLE_MODALS',JSON.stringify(modal));
+            const modalControls=await page.evaluate(()=>[...document.querySelectorAll('button,a,input,textarea,select')].map((e,i)=>({i,id:e.id||'',text:(e.innerText||e.textContent||'').trim().replace(/\s+/g,' ').slice(0,180),data:[...e.attributes].filter(a=>a.name.startsWith('data-')).reduce((o,a)=>(o[a.name]=a.value,o),{})})).filter(x=>x.id||x.text||Object.keys(x.data).length));
+            console.log('BRIEF_CONTROLS',JSON.stringify(modalControls));
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node inspect.mjs
