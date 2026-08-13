@@ -1,0 +1,66 @@
+name: Diagnose ABC Account Click
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-abc-account-click.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Inspect live onclick binding and route state
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/abcclick && cd /tmp/abcclick
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export ABC_PASS="$(python3 -c 'import os,re; s=open(os.path.join(os.environ["GITHUB_WORKSPACE"],"abc/src/index.js")).read(); m=re.search(r"const PASS=\x27([^\x27]+)\x27",s); assert m; print(m.group(1))')"
+          cat > diag.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-dev-shm-usage']});
+          const page=await browser.newPage();
+          let ready=false;
+          for(let i=1;i<=30;i++){
+            await page.goto('https://abc.clintware.com/?clickdiag='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(1000);
+            const src=(await page.locator('script').allTextContents()).join('\n');
+            if(await page.locator('#gate').count()&&src.includes('data.accounts.find(x=>String(x.id)===String(selected))')){ready=true;break}
+            await page.waitForTimeout(4000);
+          }
+          if(!ready)throw new Error('idfix build missing');
+          await page.fill('#pw',process.env.ABC_PASS);await page.click('#access-form button[type="submit"]');
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));
+          await page.waitForFunction(()=>{try{return JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts?.[0]?.name==='Lone Mesa Energy'}catch(e){return false}},{timeout:30000});
+          await page.waitForFunction(()=>document.body.classList.contains('unlocked'));await page.waitForTimeout(1600);
+          await page.locator('[data-route="accounts"]').first().click();await page.waitForTimeout(300);
+          const id=(await page.evaluate(()=>JSON.parse(localStorage.getItem('zs_ops_dtex_model_v2')).accounts[0].id));
+          const sel=`[data-open="${id}"]`;
+          console.log('BEFORE',await page.locator(sel).evaluate(el=>({onclick:typeof el.onclick,onclickText:String(el.onclick),outer:el.outerHTML})));
+          console.log('GLOBALS_BEFORE',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
+          await page.locator(sel).click();await page.waitForTimeout(100);
+          console.log('GLOBALS_AFTER_CLICK',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
+          console.log('AFTER_CLICK_TABS',await page.locator('[data-tab]').allTextContents());
+          console.log('AFTER_CLICK_HEADING',await page.locator('#app h1').allTextContents());
+          if(!(await page.locator('[data-tab]').count())){
+            // Re-enter accounts and directly invoke the assigned handler if it exists.
+            const ar=page.locator('[data-route="accounts"]');if(await ar.count())await ar.first().click();await page.waitForTimeout(200);
+            const direct=await page.locator(sel).evaluate(el=>{if(typeof el.onclick==='function'){el.onclick();return 'called'}return 'no-handler'});
+            console.log('DIRECT_ONCLICK',direct);await page.waitForTimeout(100);
+            console.log('GLOBALS_AFTER_DIRECT',await page.evaluate(()=>{let o={};for(const n of ['route','selected','accountTab']){try{o[n]=eval(n)}catch(e){o[n]='ERR:'+e}}return o}));
+            console.log('DIRECT_TABS',await page.locator('[data-tab]').allTextContents());
+            console.log('DIRECT_H1',await page.locator('#app h1').allTextContents());
+          }
+          await browser.close();
+          NODE
+          CHROME="$chrome" node diag.mjs
