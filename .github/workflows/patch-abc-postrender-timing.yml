@@ -1,0 +1,57 @@
+name: Patch ABC Post-Render Timing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-abc-postrender-timing.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reapply Abnormal copy after the copied ZS renderer completes
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('abc/src/index.js')
+          s=p.read_text()
+          old="addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();if(changed"
+          new="addContext();applyAbnormalVisualClasses();applyAbnormalRuntimeCopy();[120,350,900,1600].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));if(changed"
+          if new not in s:
+              assert old in s, 'initial render hook not found'
+              s=s.replace(old,new,1)
+          old_click="document.addEventListener('click',e=>{setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},40);"
+          new_click="document.addEventListener('click',e=>{[40,180,500].forEach(ms=>setTimeout(()=>{applyAbnormalVisualClasses();applyAbnormalRuntimeCopy()},ms));"
+          if new_click not in s:
+              assert old_click in s, 'click rerender hook not found'
+              s=s.replace(old_click,new_click,1)
+          p.write_text(s)
+          PY
+          node --check abc/src/index.js
+          node abc/tests/smoke.mjs
+          node abc/tests/auth-roundtrip.mjs
+          python3 abc/tests/regression.py
+          python3 tests/validate_crm_analytics.py
+          grep -Fq '[120,350,900,1600]' abc/src/index.js
+          grep -Fq '[40,180,500]' abc/src/index.js
+      - name: Commit post-render timing fix
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- abc/src/index.js; then
+            echo "Post-render timing already patched"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add abc/src/index.js
+          git commit -m "Retune ABC after ZS render completes"
+          git push origin HEAD:main
