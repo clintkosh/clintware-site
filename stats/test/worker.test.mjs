@@ -5,6 +5,10 @@ import { CRM_PORTFOLIO, crmForPage, GA_MEASUREMENT_ID } from "../src/config.js";
 import { reportingConfiguration, summarizeReports } from "../src/google-analytics.js";
 import worker, { constantTimeEqual, createSession, derivePassword } from "../src/worker.js";
 
+const TEST_ENV = {
+  STATS_SESSION_SECRET: "fixture-session-signing-secret-that-is-long-enough-for-tests",
+};
+
 test("portfolio uses one measurement ID and unique page namespaces", () => {
   assert.equal(GA_MEASUREMENT_ID, "G-DCY144YM9P");
   assert.equal(CRM_PORTFOLIO.length, 7);
@@ -73,6 +77,7 @@ test("public shell is noindex and protected API rejects anonymous requests", asy
   assert.match(shell.headers.get("content-security-policy"), /frame-ancestors 'none'/);
   assert.match(shell.headers.get("x-robots-tag"), /noindex/);
   assert.match(html, /G-DCY144YM9P/);
+  assert.match(html, /id="cursor-aura"/);
   assert.doesNotMatch(html, /\$&@\$&@/);
 
   const api = await worker.fetch(new Request("https://stats.clintware.com/api/dashboard"), {});
@@ -118,24 +123,15 @@ test("authenticated HTML safely serializes the dashboard payload", async () => {
   }
 });
 
-test("an active edge session renders the protected dashboard", async () => {
-  const stored = new Map();
-  const originalCaches = globalThis.caches;
+test("a signed session renders the protected dashboard without edge-local storage", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.caches = {
-    default: {
-      async put(request, response) { stored.set(request.url, response.clone()); },
-      async match(request) { return stored.get(request.url)?.clone(); },
-      async delete(request) { return stored.delete(request.url); },
-    },
-  };
   globalThis.fetch = async () => new Response("", { status: 200 });
   try {
-    const token = await createSession();
+    const token = await createSession(TEST_ENV);
     const cookie = `cw_stats_session=${token}`;
     const dashboard = await worker.fetch(
       new Request("https://stats.clintware.com/", { headers: { Cookie: cookie } }),
-      {},
+      TEST_ENV,
     );
     const html = await dashboard.text();
     assert.equal(dashboard.status, 200);
@@ -144,8 +140,38 @@ test("an active edge session renders the protected dashboard", async () => {
     assert.match(html, /renewnudge\.clintware\.com/);
   } finally {
     globalThis.fetch = originalFetch;
-    globalThis.caches = originalCaches;
   }
+});
+
+test("tampered and expired signed sessions are rejected", async () => {
+  const token = await createSession(TEST_ENV);
+  const tampered = `${token.slice(0, -1)}${token.endsWith("a") ? "b" : "a"}`;
+  const tamperedResponse = await worker.fetch(
+    new Request("https://stats.clintware.com/api/dashboard", {
+      headers: { Cookie: `cw_stats_session=${tampered}` },
+    }),
+    TEST_ENV,
+  );
+  assert.equal(tamperedResponse.status, 401);
+
+  const expired = await createSession(TEST_ENV, Date.now() - (13 * 60 * 60 * 1000));
+  const expiredResponse = await worker.fetch(
+    new Request("https://stats.clintware.com/api/dashboard", {
+      headers: { Cookie: `cw_stats_session=${expired}` },
+    }),
+    TEST_ENV,
+  );
+  assert.equal(expiredResponse.status, 401);
+});
+
+test("consulting cursor aura is wired for precise pointers and reduced-motion safe", async () => {
+  const script = await (await worker.fetch(new Request("https://stats.clintware.com/app.js"), {})).text();
+  const styles = await (await worker.fetch(new Request("https://stats.clintware.com/styles.css"), {})).text();
+  assert.match(script, /pointermove/);
+  assert.match(script, /requestAnimationFrame/);
+  assert.match(styles, /\.cursor-aura/);
+  assert.match(styles, /pointer: coarse/);
+  assert.match(styles, /prefers-reduced-motion/);
 });
 
 test("health endpoint is intentionally minimal", async () => {

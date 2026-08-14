@@ -28,11 +28,12 @@ are sent to the browser.
 ## Security model
 
 The requested password is represented only by a salted SHA-256 verifier and is
-compared in constant time. A successful native HTTPS form login creates a random,
-12-hour edge session identified by an HttpOnly, Secure, SameSite=Strict cookie.
-The plaintext password is never embedded in page source, browser storage, or a
-URL. Dashboard responses are never cached, the page is marked noindex, and
-framing is blocked.
+compared in constant time. A successful native HTTPS form login creates a signed,
+12-hour stateless session in an HttpOnly, Secure, SameSite=Strict cookie. The
+deployment workflow rotates `STATS_SESSION_SECRET`, so validation works across
+Cloudflare locations without relying on a location-local cache. The plaintext
+password is never embedded in page source, browser storage, or a URL. Dashboard
+responses are never cached, the page is marked noindex, and framing is blocked.
 
 ## Local checks
 

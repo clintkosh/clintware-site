@@ -29,6 +29,22 @@ body {
   font: 500 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+.cursor-aura {
+  position: fixed;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(53, 215, 255, 0.14) 0%, rgba(167, 139, 250, 0.075) 34%, transparent 70%);
+  opacity: 0;
+  transform: translate3d(-500px, -500px, 0);
+  transition: opacity 240ms ease;
+  will-change: transform;
+}
+.topbar, .login-wrap, .dashboard { position: relative; z-index: 1; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; }
@@ -213,5 +229,6 @@ label { display: block; margin-bottom: 8px; color: #c8d1de; font-size: 11px; tex
   .metric { min-height: 108px; }
   .dash-head h1 { font-size: 36px; }
 }
+@media (pointer: coarse) { .cursor-aura { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 `;

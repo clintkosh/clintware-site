@@ -42,6 +42,7 @@ export function dashboardHtml(nonce, options = {}) {
   <script src="/app.js" defer></script>
 </head>
 <body>
+  <div class="cursor-aura" id="cursor-aura" aria-hidden="true"></div>
   <header class="shell topbar">
     <div class="brand" aria-label="Clintware">
       <div class="brand-mark" aria-hidden="true">CW</div>
@@ -76,7 +77,7 @@ export function dashboardHtml(nonce, options = {}) {
           <button id="login-button" class="primary" type="submit">Open analytics dashboard</button>
           <div id="login-error" class="form-error" role="alert" aria-live="polite">${loginError}</div>
         </form>
-        <div class="fine-print">Password verification happens on the Cloudflare edge. The plaintext password is not embedded in this page or in the source repository.</div>
+        <div class="fine-print">Password verification happens on the Cloudflare edge. A signed session keeps access stable across Cloudflare locations without placing the plaintext password in the page or source repository.</div>
       </div>
     </section>
   </main>
