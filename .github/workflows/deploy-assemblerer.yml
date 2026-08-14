@@ -1,0 +1,109 @@
+name: Deploy Assemblerer MVP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/tools/assemblerer/**"
+      - "assemblerer/**"
+      - ".github/workflows/deploy-assemblerer.yml"
+  pull_request:
+    paths:
+      - "public/tools/assemblerer/**"
+      - "assemblerer/**"
+      - ".github/workflows/deploy-assemblerer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-assemblerer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Static product QA
+        run: python3 assemblerer/test_static.py
+      - name: JavaScript syntax QA
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text=Path("public/tools/assemblerer/index.html").read_text(encoding="utf-8")
+          scripts=re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>", text, re.I)
+          Path("/tmp/assemblerer-inline.js").write_text(scripts[-1], encoding="utf-8")
+          PY
+          node --check /tmp/assemblerer-inline.js
+      - name: Functional logic QA
+        run: node assemblerer/test_logic.cjs
+      - name: Clintware production guardrail
+        run: |
+          python3 -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+          python3 build_site.py
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse to replace a different Worker domain owner
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=assemblerer.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-assemblerer" for x in r),r; print("assemblerer.clintware.com is free or already owned by the Assemblerer Worker")' <<< "$response"
+      - name: Deploy static Assemblerer Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          workingDirectory: assemblerer
+          command: deploy
+      - name: Attach or verify assemblerer.clintware.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=assemblerer.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="assemblerer.clintware.com" and r[0].get("service")=="clintware-assemblerer" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+            test "$count" = 0
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"assemblerer.clintware.com","service":"clintware-assemblerer"}' > /tmp/assemblerer-domain-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/assemblerer-domain-put.json")); assert d.get("success") is True,d'
+          fi
+      - name: Verify live subdomain
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 30); do
+            body=$(curl -sS --connect-timeout 5 --max-time 20 https://assemblerer.clintware.com/ || true)
+            if grep -Fq 'id="workbench"' <<< "$body" \
+              && grep -Fq 'AssemblererMVP' <<< "$body" \
+              && grep -Fq 'G-DCY144YM9P' <<< "$body"; then
+              ready=1
+              break
+            fi
+            sleep 4
+          done
+          test "$ready" = 1
