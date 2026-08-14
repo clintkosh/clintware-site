@@ -17,6 +17,18 @@ function bytesFromBase64(value) {
   return bytes;
 }
 
+function bytesToBase64Url(value) {
+  let binary = "";
+  for (const byte of new Uint8Array(value)) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function bytesFromBase64Url(value) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error("Invalid base64url value");
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  return bytesFromBase64(base64);
+}
+
 export async function derivePassword(password, salt = PASSWORD_SALT) {
   const saltBytes = bytesFromBase64(salt);
   const passwordBytes = textEncoder.encode(password);
@@ -56,37 +68,51 @@ function passwordFromRequest(request) {
 
 function sessionTokenFromRequest(request) {
   const cookie = request.headers.get("Cookie") || "";
-  const match = cookie.match(/(?:^|;\s*)cw_stats_session=([A-Za-z0-9_-]{40,64})(?:;|$)/);
+  const match = cookie.match(/(?:^|;\s*)cw_stats_session=([^;]{1,384})(?:;|$)/);
   return match ? match[1] : "";
 }
 
-function sessionCacheRequest(token) {
-  return new Request(`https://stats.clintware.com/.session/${token}`);
+function sessionSecret(env) {
+  const secret = String(env?.STATS_SESSION_SECRET || "").trim();
+  if (secret.length < 32) throw new Error("STATS_SESSION_SECRET is not configured");
+  return secret;
 }
 
-export async function createSession() {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  const token = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  await caches.default.put(
-    sessionCacheRequest(token),
-    new Response("active", {
-      headers: { "Cache-Control": `public, max-age=${SESSION_TTL_SECONDS}` },
-    }),
+async function signingKey(env, usage) {
+  return crypto.subtle.importKey(
+    "raw",
+    textEncoder.encode(sessionSecret(env)),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    usage,
   );
-  return token;
 }
 
-async function sessionIsActive(request) {
-  const token = sessionTokenFromRequest(request);
-  if (!token || typeof caches === "undefined") return false;
-  return Boolean(await caches.default.match(sessionCacheRequest(token)));
+export async function createSession(env, now = Date.now()) {
+  const expiresAt = Math.floor(now / 1000) + SESSION_TTL_SECONDS;
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(18));
+  const payload = `v1.${expiresAt}.${bytesToBase64Url(nonceBytes)}`;
+  const key = await signingKey(env, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, textEncoder.encode(payload));
+  return `${payload}.${bytesToBase64Url(signature)}`;
 }
 
-async function destroySession(request) {
+async function sessionIsActive(request, env, now = Date.now()) {
   const token = sessionTokenFromRequest(request);
-  if (token && typeof caches !== "undefined") await caches.default.delete(sessionCacheRequest(token));
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 4 || parts[0] !== "v1") return false;
+  const expiresAt = Number(parts[1]);
+  const nowSeconds = Math.floor(now / 1000);
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= nowSeconds || expiresAt > nowSeconds + SESSION_TTL_SECONDS + 60) return false;
+  try {
+    const payload = parts.slice(0, 3).join(".");
+    const signature = bytesFromBase64Url(parts[3]);
+    const key = await signingKey(env, ["verify"]);
+    return crypto.subtle.verify("HMAC", key, signature, textEncoder.encode(payload));
+  } catch {
+    return false;
+  }
 }
 
 function nonce() {
@@ -103,6 +129,7 @@ function baseHeaders() {
     "Cross-Origin-Resource-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
     "Referrer-Policy": "no-referrer",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "X-Robots-Tag": "noindex, nofollow, noarchive",
@@ -231,14 +258,14 @@ export async function buildDashboardPayload(env) {
   };
 }
 
-async function isAuthenticated(request) {
+async function isAuthenticated(request, env) {
   const password = passwordFromRequest(request);
   if (password) return verifyStatsPassword(password);
-  return sessionIsActive(request);
+  return sessionIsActive(request, env);
 }
 
-async function protectedRoute(request, handler) {
-  if (!(await isAuthenticated(request))) return unauthorized();
+async function protectedRoute(request, env, handler) {
+  if (!(await isAuthenticated(request, env))) return unauthorized();
   return handler();
 }
 
@@ -250,7 +277,7 @@ export default {
       return jsonResponse({ ok: true, service: "clintware-stats-dashboard" });
     }
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/dashboard")) {
-      if (await sessionIsActive(request)) {
+      if (await sessionIsActive(request, env)) {
         return htmlResponse({ payload: await buildDashboardPayload(env) });
       }
       return htmlResponse();
@@ -267,27 +294,31 @@ export default {
       if (!(await verifyStatsPassword(password))) {
         return htmlResponse({ loginError: "That password did not match." }, 401);
       }
-      const token = await createSession();
+      let token;
+      try {
+        token = await createSession(env);
+      } catch {
+        return htmlResponse({ loginError: "Secure session setup is temporarily unavailable." }, 503);
+      }
       return redirectResponse(
         "/",
         `${SESSION_COOKIE}=${token}; Path=/; Max-Age=${SESSION_TTL_SECONDS}; HttpOnly; Secure; SameSite=Strict`,
       );
     }
     if (request.method === "POST" && url.pathname === "/logout") {
-      await destroySession(request);
       return redirectResponse(
         "/",
         `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
       );
     }
     if (request.method === "POST" && url.pathname === "/api/session") {
-      return protectedRoute(request, () => jsonResponse({ ok: true }));
+      return protectedRoute(request, env, () => jsonResponse({ ok: true }));
     }
     if (request.method === "GET" && url.pathname === "/api/dashboard") {
-      return protectedRoute(request, async () => jsonResponse(await buildDashboardPayload(env)));
+      return protectedRoute(request, env, async () => jsonResponse(await buildDashboardPayload(env)));
     }
     if (request.method === "GET" && url.pathname === "/export.csv") {
-      return protectedRoute(request, async () => {
+      return protectedRoute(request, env, async () => {
         const date = new Date().toISOString().slice(0, 10);
         return new Response(portfolioCsv(await buildDashboardPayload(env)), {
           headers: {
