@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -71,6 +71,18 @@ jobs:
 
       - name: Materialize Teams gallery assets
         run: python materialize_teamsgallery.py
+
+      - name: Persist Teams gallery image in source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f public/teamsgallery/austin-corner-office-01.jpg
+          if git diff --cached --quiet; then
+            echo "Teams gallery image is already committed."
+          else
+            git commit -m "Fix Teams gallery image asset"
+            git push origin HEAD:main
+          fi
 
       - name: Build instrumented production bundle
         run: python build_site.py
