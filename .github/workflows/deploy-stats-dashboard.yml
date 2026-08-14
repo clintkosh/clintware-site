@@ -97,18 +97,22 @@ jobs:
         run: |
           set -euo pipefail
           ready=0
+          headers=$(mktemp)
+          body=$(mktemp)
           for i in $(seq 1 30); do
             health=$(curl -sS --connect-timeout 5 --max-time 20 https://stats.clintware.com/health || true)
-            if grep -Fq '"ok":true' <<< "$health"; then ready=1; break; fi
+            curl -sS --connect-timeout 5 --max-time 20 -D "$headers" -o "$body" https://stats.clintware.com/ || true
+            status=$(curl -sS --connect-timeout 5 --max-time 20 -o /dev/null -w '%{http_code}' https://stats.clintware.com/api/dashboard || true)
+            if grep -Fq '"ok":true' <<< "$health" \
+              && grep -Eiq '^x-robots-tag:.*noindex' "$headers" \
+              && grep -Eiq '^x-frame-options:.*DENY' "$headers" \
+              && grep -Eiq '^strict-transport-security:.*max-age=31536000' "$headers" \
+              && grep -Fq 'G-DCY144YM9P' "$body" \
+              && grep -Fq 'id="cursor-aura"' "$body" \
+              && test "$status" = 401; then
+              ready=1
+              break
+            fi
             sleep 4
           done
           test "$ready" = 1
-          headers=$(mktemp)
-          body=$(mktemp)
-          curl --fail-with-body -sS -D "$headers" -o "$body" https://stats.clintware.com/
-          grep -Eiq '^x-robots-tag:.*noindex' "$headers"
-          grep -Eiq '^x-frame-options:.*DENY' "$headers"
-          grep -Eiq '^strict-transport-security:.*max-age=31536000' "$headers"
-          grep -Fq 'G-DCY144YM9P' "$body"
-          status=$(curl -sS -o /dev/null -w '%{http_code}' https://stats.clintware.com/api/dashboard)
-          test "$status" = 401
