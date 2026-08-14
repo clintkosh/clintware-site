@@ -7,13 +7,18 @@ on:
       - "public/tools/assemblerer/**"
       - "assemblerer/**"
       - ".github/workflows/deploy-assemblerer.yml"
+  pull_request:
+    paths:
+      - "public/tools/assemblerer/**"
+      - "assemblerer/**"
+      - ".github/workflows/deploy-assemblerer.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: clintware-assemblerer
+  group: clintware-assemblerer-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +49,7 @@ jobs:
           python3 build_site.py
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
     steps:
