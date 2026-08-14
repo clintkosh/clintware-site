@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - "public/**"
+      - "payloads/teamsgallery/**"
+      - "materialize_teamsgallery.py"
       - "build_site.py"
       - "generate_crm_pdfs.py"
       - ".github/workflows/deploy-pages.yml"
   pull_request:
     paths:
       - "public/**"
+      - "payloads/teamsgallery/**"
+      - "materialize_teamsgallery.py"
       - "build_site.py"
       - "generate_crm_pdfs.py"
       - ".github/workflows/deploy-pages.yml"
@@ -40,6 +44,9 @@ jobs:
       - name: Install PDF build dependency
         run: python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
 
+      - name: Materialize Teams gallery assets
+        run: python materialize_teamsgallery.py
+
       - name: Verify production bundle
         run: python build_site.py
 
@@ -61,6 +68,9 @@ jobs:
 
       - name: Install PDF build dependency
         run: python -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+
+      - name: Materialize Teams gallery assets
+        run: python materialize_teamsgallery.py
 
       - name: Build instrumented production bundle
         run: python build_site.py
