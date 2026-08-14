@@ -7,6 +7,34 @@ export const APP_JS = String.raw`
   var dashboardView = document.getElementById('dashboard-view');
   var passwordInput = document.getElementById('stats-password');
   var revealButton = document.getElementById('reveal-password');
+  var cursorAura = document.getElementById('cursor-aura');
+
+  function initCursorAura() {
+    if (!cursorAura || window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var targetX = window.innerWidth / 2;
+    var targetY = window.innerHeight / 2;
+    var currentX = targetX;
+    var currentY = targetY;
+    var frameId = null;
+
+    function animate() {
+      currentX += (targetX - currentX) * 0.12;
+      currentY += (targetY - currentY) * 0.12;
+      cursorAura.style.transform = 'translate3d(' + (currentX - 210) + 'px,' + (currentY - 210) + 'px,0)';
+      frameId = window.requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('pointermove', function (event) {
+      targetX = event.clientX;
+      targetY = event.clientY;
+      cursorAura.style.opacity = '1';
+      if (!frameId) frameId = window.requestAnimationFrame(animate);
+    }, { passive: true });
+
+    document.documentElement.addEventListener('mouseleave', function () {
+      cursorAura.style.opacity = '0';
+    });
+  }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)
@@ -116,6 +144,8 @@ export const APP_JS = String.raw`
     loginView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
   }
+
+  initCursorAura();
 
   if (revealButton && passwordInput) {
     revealButton.addEventListener('click', function () {
