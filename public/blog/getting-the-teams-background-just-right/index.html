@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-DCY144YM9P');
+</script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6169557480632773" crossorigin="anonymous"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Why getting a virtual meeting background exactly right became one of those small custom problems AI could finally solve, and how it turned into a Clintware gallery and reusable skill.">
+  <meta name="theme-color" content="#080a0e">
+  <link rel="canonical" href="https://www.clintware.com/blog/getting-the-teams-background-just-right/">
+  <title>Getting the Teams Background Just Right | Clintware</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Getting the Teams Background Just Right | Clintware">
+  <meta property="og:description" content="A small custom itch, a very specific camera composition, and the virtual-background gallery that grew from it.">
+  <meta property="og:url" content="https://www.clintware.com/blog/getting-the-teams-background-just-right/">
+  <meta property="og:image" content="https://www.clintware.com/teamsgallery/austin-corner-office-01.jpg">
+  <meta property="article:published_time" content="2026-08-14">
+  <style>
+    .article-figure{margin:30px 0}
+    .article-figure img{width:100%;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+    .article-figure figcaption{margin-top:10px;color:var(--subtle);font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:.78rem}
+  </style>
+</head>
+<body>
+  <header class="site-header"><div class="container nav-row">
+    <a class="brand" href="/" aria-label="Clintware home">CLINT<span class="brand-accent">WARE</span></a>
+    <nav class="site-nav" data-site-nav aria-label="Primary navigation"><a href="/">Home</a><a href="https://consulting.clintware.com/">Consulting</a><a href="/tools/">Tools</a><a href="/skills/">Skills</a><a href="/blog/" aria-current="page">Blog</a><a href="/contact/">Contact</a></nav>
+    <a class="button button-primary button-small nav-cta" href="/teamsgallery/">Background gallery</a>
+    <button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button>
+  </div></header>
+  <main>
+    <header class="article-header"><div class="article-shell">
+      <div class="crumbs"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/blog/">Blog</a><span aria-hidden="true">/</span><span>Getting the Teams Background Just Right</span></div>
+      <span class="section-kicker">Build note</span>
+      <h1>Getting the Teams Background Just Right</h1>
+      <p class="article-dek">A small custom itch, a very specific camera composition, and the virtual-background gallery that grew from it.</p>
+      <div class="article-meta"><time datetime="2026-08-14">August 14, 2026</time> · By Clint Kosh</div>
+      <div class="article-rule"></div>
+    </div></header>
+
+    <article class="article-shell article-body">
+      <p>I have always had a particular kind of technology itch: if something is almost right, I want to make it exactly right.</p>
+
+      <p>Virtual meeting backgrounds were one of those things long before generative AI was good enough to help.</p>
+
+      <p>I did not want a generic stock office. I wanted the view to feel like a place I could actually be sitting: a believable corner office, a city that made regional sense, enough skyline to establish the setting, and a camera angle that did not put half a desk across my chest.</p>
+
+      <p>That last part turned out to matter more than it sounds.</p>
+
+      <h2>A good office photo is not automatically a good meeting background</h2>
+
+      <p>Most office images are composed around the furniture. A virtual background has to be composed around the person who will be dropped into the middle of it.</p>
+
+      <p>A desk that looks great in a real-estate photo can become a strange horizontal bar across your body. A monitor can appear to grow out of your shoulder. A dramatic landmark can end up directly behind your face. Even a beautiful image can look obviously fake once a webcam subject is layered over it.</p>
+
+      <p>The version I wanted was much more specific:</p>
+      <ul>
+        <li>one empty chair in the natural subject position;</li>
+        <li>the desk behind the chair, not in front of it;</li>
+        <li>an open foreground;</li>
+        <li>a realistic 16:9 camera view;</li>
+        <li>a nearby U.S. city or regional setting that feels plausible;</li>
+        <li>recognizable scenery placed around the face instead of through it.</li>
+      </ul>
+
+      <p>Before modern image generation, getting all of those variables aligned meant searching, cropping, compositing, correcting perspective, and usually settling for something that was still only close.</p>
+
+      <p>AI finally made this particular itch scratchable.</p>
+
+      <figure class="article-figure">
+        <a href="/teamsgallery/"><img src="/teamsgallery/austin-corner-office-01.jpg" alt="Austin-inspired virtual meeting background with an empty chair and desk behind it" width="960" height="540"></a>
+        <figcaption>The first gallery image: an Austin-inspired corner office composed around the webcam subject zone.</figcaption>
+      </figure>
+
+      <h2>From one image to a repeatable system</h2>
+
+      <p>The useful part was not just generating one background. It was figuring out the rules that made the result consistently work.</p>
+
+      <p>Once I had those rules, the project stopped being a one-off image request and became a small reusable system.</p>
+
+      <p>I turned the pattern into the <strong>Regional Virtual Background Studio</strong>, an inspectable Clintware skill that defines the composition, location logic, subject-safe zone, correction loop, and export checks. If the user names a city, the background is built around that city. If they provide only a U.S. region, the workflow can use the nearest major city that provides a recognizable and believable setting.</p>
+
+      <p>The important constraint stays the same: the room is built around the caller rather than forcing the caller to fit a stock photograph.</p>
+
+      <h2>The gallery starts in Austin</h2>
+
+      <p>I am also publishing the results as a growing <a href="/teamsgallery/"><strong>Clintware Teams + Zoom Background Gallery</strong></a>.</p>
+
+      <p>The first entry is Austin: a downtown corner-office view with water and skyline cues in the background, an empty chair centered for the caller, and the desk kept behind it.</p>
+
+      <p>The gallery format is intentionally simple. Each background is a standard 16:9 image that can be downloaded and used directly in a video-call app. New cities can follow the same composition rules without every image looking like a copy of the last one.</p>
+
+      <h2>A small example of what changed with AI</h2>
+
+      <p>This is not a giant software problem. That is partly why I like it.</p>
+
+      <p>There are a lot of tiny, highly specific problems people used to tolerate because solving them required more time than they were worth. Generative AI changes the economics of those custom problems. A preference that once required hours of image editing can become a reusable workflow. A one-person annoyance can become a small public tool.</p>
+
+      <p>That is one of the patterns I keep finding with Clintware: start with the thing that is annoyingly specific, make the solution repeatable, then share the useful part.</p>
+
+      <div class="article-closing">Browse the first background in the <a href="/teamsgallery/">Teams + Zoom Background Gallery</a>, or inspect the <a href="https://github.com/clintkosh/GPTs/tree/main/skills/regional-virtual-background-studio">Regional Virtual Background Studio skill</a>.</div>
+    </article>
+  </main>
+  <footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware. Practical technology, built to work.</span><span class="footer-links"><a href="/tools/">Tools</a><a href="/skills/">Skills</a><a href="/blog/">Blog</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></span></div></footer>
+  <script src="/assets/clintware.js" defer></script>
+</body>
+</html>
