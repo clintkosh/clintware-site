@@ -12,6 +12,10 @@ if missing:
     raise SystemExit('Missing Teams gallery image payload part(s): ' + ', '.join(missing))
 
 encoded = ''.join(path.read_text(encoding='ascii').strip() for path in part_paths)
+# Base64 padding belongs only at the end. Normalize any padding that may have
+# landed on a chunk boundary before validating the reconstructed payload.
+encoded = encoded.replace('=', '')
+encoded += '=' * (-len(encoded) % 4)
 try:
     payload = base64.b64decode(encoded, validate=True)
 except Exception as exc:
