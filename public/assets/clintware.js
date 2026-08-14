@@ -23,18 +23,19 @@
   const main = document.querySelector("main");
   if (main && currentPath !== "/" && !document.querySelector(".cw-route-tools")) {
     const routeTools = document.createElement("div");
-    routeTools.className = "cw-route-tools container";
     routeTools.setAttribute("aria-label", "Page navigation");
     routeTools.innerHTML = '<button type="button" data-cw-back>← Back</button><span aria-hidden="true">/</span><a href="/">Home</a>';
     const firstSection = main.firstElementChild;
     if (firstSection?.classList.contains("page-hero")) {
+      routeTools.className = "cw-route-tools";
       const target = firstSection.querySelector(".container");
       if (target) target.prepend(routeTools);
+      else firstSection.prepend(routeTools);
     } else {
+      routeTools.className = "cw-route-tools container";
       main.prepend(routeTools);
     }
-    const back = routeTools.querySelector("[data-cw-back]");
-    back?.addEventListener("click", () => {
+    routeTools.querySelector("[data-cw-back]")?.addEventListener("click", () => {
       if (history.length > 1) history.back();
       else location.href = "/";
     });
