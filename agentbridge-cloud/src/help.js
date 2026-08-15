@@ -51,7 +51,7 @@ export const BASE_HELP={
   ],
   fixes:[
     {id:"alpha-1",date:"2026-08-15",version:"0.1.0-alpha.1",title:"Public alpha execution backbone",body:"Cross-platform Nodes, Cloud routing, Execution/Result Packs, local capability policy, rollback, schedules, Contextor, file associations, and mobile/PWA control."},
-    {id:"alpha-2-quality",date:"2026-08-15",version:"0.1.0-alpha.2",title:"Quality loop and synchronized Help Center",body:"Automatic operational metrics/error reporting, account reports, de-identified product-health aggregation, bug lifecycle tracking, and a local/cloud synchronized Help Center."}
+    {id:"alpha-2-telemetry",date:"2026-08-15",version:"0.1.0-alpha.2",title:"Quality loop and synchronized Help Center",body:"Automatic operational metrics/error reporting, account reports, de-identified product-health aggregation, bug lifecycle tracking, and a local/cloud synchronized Help Center."}
   ]
 };
 
