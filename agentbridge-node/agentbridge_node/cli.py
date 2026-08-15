@@ -57,7 +57,7 @@ def cmd_rollback(args): _print(rollback(args.run_id,args.workspace))
 
 def cmd_make_pack(args):
     from pathlib import Path
-    manifest=json.loads(Path(args.manifest).read_text(encoding="utf-8")); _print({"created":str(save_abpack(manifest,args.output)})
+    manifest=json.loads(Path(args.manifest).read_text(encoding="utf-8")); _print({"created":str(save_abpack(manifest,args.output))})
 
 def cmd_pair(args):
     cfg=Config.load(); result=cloud_pair(cfg,args.cloud); _print(result); print(f"Enter pairing code {result['pair_code']} at {cfg.data['cloud_url']}")
