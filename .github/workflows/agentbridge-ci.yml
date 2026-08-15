@@ -6,6 +6,8 @@ on:
       - "agentbridge-node/**"
       - "agentbridge-cloud/**"
       - "agentbridge-mobile/**"
+      - "agentbridge-help/**"
+      - "scripts/check_agentbridge_help_docs.py"
       - "public/tools/agentbridge/**"
       - ".github/workflows/agentbridge-*.yml"
   push:
@@ -14,6 +16,8 @@ on:
       - "agentbridge-node/**"
       - "agentbridge-cloud/**"
       - "agentbridge-mobile/**"
+      - "agentbridge-help/**"
+      - "scripts/check_agentbridge_help_docs.py"
       - "public/tools/agentbridge/**"
       - ".github/workflows/agentbridge-*.yml"
   workflow_dispatch:
@@ -67,6 +71,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -81,6 +87,8 @@ jobs:
           node --check agentbridge-cloud/public/sw.js
       - name: Validate Wrangler config
         run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("entrypoint mismatch"); for(const n of ["TELEMETRY_HUB","PRODUCT_METRICS_HUB","HELP_HUB"]) if(!d.durable_objects.bindings.some(x=>x.name===n)) throw new Error(`missing ${n}`); console.log("wrangler config ok")'
+      - name: Validate Help Center documentation invariant
+        run: python3 scripts/check_agentbridge_help_docs.py
       - name: Validate compact interface
         run: |
           grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html

@@ -1,6 +1,8 @@
 import json,os,tempfile,unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from agentbridge_node.cloud import sync_help_center
 from agentbridge_node.config import Config
 from agentbridge_node.helpdb import apply_updates, load, render
 from agentbridge_node.pack import save_abpack
@@ -36,6 +38,36 @@ class HelpTelemetryTests(unittest.TestCase):
             self.assertEqual(result["status"],"passed")
             self.assertTrue(result["help_updated"])
             self.assertTrue(any(x.get("id")=="faq-test-update" for x in load()["faq"]))
+
+    def test_help_sync_pushes_local_and_pulls_cloud_updates(self):
+        with tempfile.TemporaryDirectory() as td:
+            os.environ["AGENTBRIDGE_HOME"]=str(Path(td)/"home-sync")
+            cfg=Config.load()
+            apply_updates({
+                "faq":[{"id":"faq-local-sync","q":"Local only?","a":"This entry began on the Node."}]
+            },source="unit-test-local")
+            captured={}
+
+            def fake_request(method,url,body=None,token=None):
+                captured["method"]=method
+                captured["url"]=url
+                captured["body"]=body
+                captured["token"]=token
+                return {"ok":True,"help":{
+                    "faq":[{"id":"faq-cloud-sync","q":"Cloud only?","a":"This entry began in Cloud."}]
+                }}
+
+            with patch("agentbridge_node.cloud._request",side_effect=fake_request):
+                out=sync_help_center(cfg)
+
+            self.assertTrue(out["ok"])
+            self.assertEqual(captured["method"],"POST")
+            self.assertTrue(captured["url"].endswith("/api/device/help/sync"))
+            self.assertEqual(captured["token"],cfg.data["device_token"])
+            self.assertTrue(any(x.get("id")=="faq-local-sync" for x in captured["body"]["help"]["faq"]))
+            merged=load()
+            self.assertTrue(any(x.get("id")=="faq-local-sync" for x in merged["faq"]))
+            self.assertTrue(any(x.get("id")=="faq-cloud-sync" for x in merged["faq"]))
 
     def test_telemetry_event_is_metric_focused(self):
         result={
