@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clintware-agentbridge",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-15",
+  "compatibility_flags": ["nodejs_compat", "web_socket_auto_reply_to_close"],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/ws/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {"name":"ACCOUNT_HUB","class_name":"AccountHub"},
+      {"name":"DEVICE_HUB","class_name":"DeviceHub"},
+      {"name":"PAIRING_HUB","class_name":"PairingHub"},
+      {"name":"SCHEDULE_HUB","class_name":"ScheduleHub"}
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AccountHub","DeviceHub","PairingHub","ScheduleHub"]
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

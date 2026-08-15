@@ -1,0 +1,72 @@
+name: Build AgentBridge Nodes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agentbridge-node/**"
+      - ".github/workflows/agentbridge-build-node.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: AgentBridge-Windows-x64
+          - os: ubuntu-latest
+            artifact: AgentBridge-Linux-x64
+          - os: macos-14
+            artifact: AgentBridge-macOS-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build dependencies
+        run: python -m pip install ./agentbridge-node "pyinstaller>=6.11,<7"
+      - name: Build single-file Node
+        shell: bash
+        run: pyinstaller --noconfirm --clean --onefile --name "${{ matrix.artifact }}" agentbridge-node/launcher.py
+      - name: Smoke test binary
+        shell: bash
+        env:
+          AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
+        run: |
+          BIN="dist/${{ matrix.artifact }}"
+          if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
+          "$BIN" doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}*
+          if-no-files-found: error
+
+  release-alpha:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Publish alpha release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="agentbridge-v0.1.0-alpha.1"
+          notes=$'AgentBridge public alpha.\n\nUnsigned early-access Node builds for Windows, macOS, and Linux. Local execution is capability-gated. Cloud jobs cannot override a local `never` policy. Review Execution Packs before granting elevated permissions.'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-assets/* --clobber
+          else
+            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "AgentBridge v0.1.0 Alpha 1" --notes "$notes" --prerelease
+          fi

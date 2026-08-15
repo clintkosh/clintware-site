@@ -1,182 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-DCY144YM9P', {anonymize_ip:true});
-  </script>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="AgentBridge is a Clintware prototype that learns repetitive work from user-defined workflows, remembers corrections, and uses Contextor to reduce unnecessary AI context while measuring the result.">
-  <meta name="theme-color" content="#080a0e">
-  <link rel="canonical" href="https://www.clintware.com/tools/agentbridge/">
-  <title>AgentBridge | Clintware</title>
-  <link rel="stylesheet" href="/assets/clintware.css">
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="AgentBridge is a Clintware public alpha that lets an LLM produce a portable Execution Pack and routes it to your own Windows, macOS, or Linux machine for governed local execution.">
+  <meta name="theme-color" content="#080a0e"><link rel="canonical" href="https://www.clintware.com/tools/agentbridge/">
+  <title>AgentBridge | Clintware</title><link rel="stylesheet" href="/assets/clintware.css">
   <style>
-    .ab-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:18px;align-items:start}.ab-panel{background:#0d1118;border:1px solid #242b36;border-radius:18px;padding:20px}.ab-form{display:grid;gap:14px}.ab-form label{display:grid;gap:7px;font-weight:700}.ab-form label span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9fb0c4}.ab-form input,.ab-form textarea{width:100%;box-sizing:border-box;border:1px solid #303947;border-radius:12px;background:#080b10;color:#f5f8fc;padding:12px 13px;font:inherit}.ab-form textarea{min-height:104px;resize:vertical}.ab-form textarea.context{min-height:170px}.ab-note{font-size:13px;color:#a9b7c8}.ab-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.ab-metric{padding:13px;border:1px solid #26313d;border-radius:12px;background:#090d13}.ab-metric span{display:block;font-size:11px;color:#94a5b8;text-transform:uppercase;letter-spacing:.07em}.ab-metric strong{display:block;margin-top:4px;font-size:20px}.context-list{display:grid;gap:8px;margin-top:10px}.context-row{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:start;padding:10px;border:1px solid #252f3a;border-radius:11px;background:#090d13}.context-row small{color:#8fa0b4}.ab-output{white-space:pre-wrap;word-break:break-word;background:#06090d;border:1px solid #242d38;border-radius:12px;padding:13px;min-height:150px;max-height:360px;overflow:auto;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d9e7f5}.trend{display:flex;align-items:end;gap:6px;height:90px;padding-top:10px}.trend-bar{flex:1;min-width:12px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#4ee9ff,#7f68ff);position:relative}.trend-bar span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:9px;color:#8292a5}.ab-tag{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid #2c3642;border-radius:999px;font-size:11px;color:#b7c6d6;margin:3px 4px 3px 0}.ab-callout{border-left:3px solid #4ee9ff;padding:12px 14px;background:#09131a;border-radius:0 10px 10px 0}.ab-status{color:#7df3b8}.ab-warning{color:#ffd37d}@media(max-width:900px){.ab-grid{grid-template-columns:1fr}.ab-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.ab-metrics{grid-template-columns:1fr}.context-row{grid-template-columns:auto 1fr}.context-row small{grid-column:2}}
+    .ab-hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px;align-items:start}.ab-panel{background:#0d1118;border:1px solid #242b36;border-radius:18px;padding:20px}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:stretch}.flow div{padding:13px;border:1px solid #25313d;border-radius:13px;background:#090d13}.flow strong{display:block;color:#eef7ff;margin-bottom:5px}.flow span{color:#91a4b8;font-size:12px}.code{background:#06090d;border:1px solid #242d38;border-radius:12px;padding:14px;white-space:pre-wrap;overflow:auto;color:#d9e7f5;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.alpha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.alpha-card{border:1px solid #26313d;border-radius:14px;padding:15px;background:#090d13}.alpha-card strong{display:block;font-size:18px;margin-bottom:5px}.alpha-card span{color:#94a7ba}.statusline{display:flex;gap:8px;flex-wrap:wrap}.statusline span{border:1px solid #2d3946;border-radius:999px;padding:5px 9px;color:#b7c7d8;font-size:11px}.security{border-left:3px solid #6ef2b2;background:#091711;padding:14px;border-radius:0 12px 12px 0}.small{font-size:12px;color:#91a4b8}@media(max-width:900px){.ab-hero-grid{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr}.alpha-grid{grid-template-columns:1fr}}@media(max-width:540px){.flow{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-<header class="site-header">
-  <div class="container nav-row">
-    <a class="brand" href="/" aria-label="Clintware home">CLINT<span class="brand-accent">WARE</span> / AGENTBRIDGE</a>
-    <nav class="site-nav" data-site-nav aria-label="Primary navigation">
-      <a href="/">Home</a><a href="/tools/">Products</a><a href="#prototype">Prototype</a><a href="#roadmap">Roadmap</a><a href="/contact/">Contact</a>
-    </nav>
-    <button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button>
-  </div>
-</header>
+<header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span> / AGENTBRIDGE</a><nav class="site-nav" data-site-nav><a href="/">Home</a><a href="/tools/">Products</a><a href="#how">How it works</a><a href="#alpha">Alpha</a><a href="/contact/">Contact</a></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
 <main>
-  <section class="page-hero">
-    <div class="container">
-      <div class="crumbs"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/tools/">Products</a><span aria-hidden="true">/</span><span>AgentBridge</span></div>
-      <span class="section-kicker">Flagship prototype · Human-taught workflow intelligence</span>
-      <h1>Teach it the work once. Correct it when it is wrong.</h1>
-      <p class="lede">AgentBridge turns repetitive computer work into reusable AI workflows that improve from the user's corrections. Contextor learns how much context that user actually needs, reducing avoidable token spend without silently discarding what the user chose to keep.</p>
-      <div class="actions"><a class="button button-cyan" href="#prototype">Try the prototype</a><a class="button button-ghost" href="#difference">See the wedge</a></div>
-      <div class="chip-row"><span class="chip">Workflow learning</span><span class="chip">Definition of Done</span><span class="chip">Correction memory</span><span class="chip">Contextor</span><span class="chip">Local metrics</span></div>
-    </div>
-  </section>
-
-  <section class="section-compact" id="difference">
-    <div class="container">
-      <div class="section-heading"><div><span class="section-kicker">One narrow wedge</span><h2>Learn the user's operating method, not another generic automation recipe.</h2></div><p>The first version deliberately avoids becoming an integration marketplace or general agent platform. It tests whether a system can learn what the user does, what “done” means, which corrections recur, and which context consistently earns its token cost.</p></div>
-      <div class="tool-grid">
-        <article class="card tool-card accent-cyan"><div class="tool-meta"><span class="tool-category">1 · Learn</span><span class="status">Core</span></div><h3>Workflow Learner</h3><p>Capture a repeated task as explicit steps with a measurable Definition of Done. The longer-term product observes this work directly; this prototype starts with user-taught steps.</p></article>
-        <article class="card tool-card accent-green"><div class="tool-meta"><span class="tool-category">2 · Improve</span><span class="status">Core</span></div><h3>Correction Memory</h3><p>Corrections become part of the workflow manifest instead of disappearing into chat history. Repeated changes become reusable operating knowledge.</p></article>
-        <article class="card tool-card accent-violet"><div class="tool-meta"><span class="tool-category">3 · Compress</span><span class="status">Contextor</span></div><h3>Personal context weighting</h3><p>Contextor starts conservatively: every context line is visible and user-controlled. Local history learns what this user repeatedly keeps or removes and adjusts future defaults.</p></article>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="prototype">
-    <div class="container">
-      <div class="section-heading"><div><span class="section-kicker">Working browser prototype</span><h2>Teach a workflow and train Contextor.</h2></div><p>No prompt, workflow, or correction leaves the browser in this prototype. It performs no external writes and uses no paid model. Token counts are clearly labeled estimates.</p></div>
-      <div class="ab-grid">
-        <section class="ab-panel">
-          <div class="ab-form">
-            <label><span>Workflow name</span><input id="wfName" value="Customer account risk review" placeholder="What repeated job are you teaching?"></label>
-            <label><span>Steps · one per line</span><textarea id="wfSteps">Open the customer record
-Review open support issues
-Review recent customer communication
-Compare adoption and renewal risk
-Write the recommended next action
-Ask for approval before changing the CRM</textarea></label>
-            <label><span>Definition of Done</span><textarea id="wfDone">A reviewer can see the risk level, the evidence behind it, the recommended next action, and nothing external is changed without approval.</textarea></label>
-            <label><span>Context for the AI · one item per line</span><textarea id="wfContext" class="context">Customer name and renewal date
-Current product adoption
-Open support severity
-Recent customer communication
-Current product adoption
-My preferred concise writing style
-Unrelated personality rating I usually paste into every prompt</textarea></label>
-            <button class="button button-ghost" id="analyze" type="button">Analyze context locally</button>
-            <div id="contextList" class="context-list" aria-live="polite"></div>
-            <label><span>Correction to remember</span><input id="wfCorrection" placeholder="Example: Never call low adoption churn risk without checking support context."></label>
-            <div class="actions"><button class="button button-cyan" id="compile" type="button">Compile workflow</button><button class="button button-ghost" id="reset" type="button">Reset local learning</button></div>
-            <p class="ab-note">Prototype boundary: Contextor learns from explicit keep/remove decisions. Semantic generalization, live application observation, model routing, and autonomous execution are roadmap items, not claims of this build.</p>
-          </div>
-        </section>
-
-        <section class="ab-panel" aria-live="polite">
-          <span class="section-kicker">Measured result</span>
-          <div class="ab-metrics">
-            <div class="ab-metric"><span>Original context</span><strong id="mOriginal">0</strong><small>est. tokens</small></div>
-            <div class="ab-metric"><span>Sent context</span><strong id="mSent">0</strong><small>est. tokens</small></div>
-            <div class="ab-metric"><span>Avoided</span><strong id="mSaved">0</strong><small>est. tokens</small></div>
-            <div class="ab-metric"><span>Compression</span><strong id="mRate">0%</strong><small>user-approved</small></div>
-          </div>
-          <div class="ab-callout"><strong>Contextor status:</strong> <span id="contextStatus" class="ab-status">Waiting for a context analysis.</span></div>
-          <h3 style="margin-top:20px">Workflow manifest</h3>
-          <div id="manifest" class="ab-output">Compile the workflow to generate an inspectable manifest.</div>
-          <h3 style="margin-top:20px">Context efficiency trend</h3>
-          <p class="ab-note">Last eight local runs. Taller bars mean a larger percentage of context was intentionally withheld from the external-model payload.</p>
-          <div id="trend" class="trend"></div>
-          <div class="actions"><button class="button button-ghost" id="export" type="button">Export local report JSON</button></div>
-        </section>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-compact" id="roadmap">
-    <div class="container">
-      <div class="section-heading"><div><span class="section-kicker">Module architecture</span><h2>Big system, small first proof.</h2></div><p>AgentBridge Core stays the product. Modules can mature independently and share the same user/workflow knowledge layer.</p></div>
-      <div class="metric-grid">
-        <div class="metric"><strong>Now · AgentBridge Core</strong><span>Workflow manifest, Definition of Done, corrections, approval boundary.</span></div>
-        <div class="metric"><strong>Now · Contextor</strong><span>User-controlled context weighting, token estimates, local learning, exportable telemetry.</span></div>
-        <div class="metric"><strong>Next · Observation</strong><span>Learn repeated browser/desktop work from actual execution rather than manual step entry.</span></div>
-        <div class="metric"><strong>Later · Zord modules</strong><span>DLP Gate, model routing, policy, Autopilot, enterprise analytics, and the Agentic OS layer.</span></div>
-      </div>
-    </div>
-  </section>
+<section class="page-hero"><div class="container ab-hero-grid"><div><div class="crumbs"><a href="/">Home</a><span>/</span><a href="/tools/">Products</a><span>/</span><span>AgentBridge</span></div><span class="section-kicker">Flagship public alpha · Local execution bridge</span><h1>Let your AI think. Let your computer do the work.</h1><p class="lede">AgentBridge gives ChatGPT, Claude, Gemini, Grok, local models, or any other planner a common handoff format. The model creates an Execution Pack once. AgentBridge routes it to your own machine, enforces your local permissions, executes it, validates the result, and sends back a compact Result Pack.</p><div class="actions"><a class="button button-cyan" href="https://agentbridge.clintware.com/">Try AgentBridge Cloud</a><a class="button button-ghost" href="https://github.com/clintkosh/clintware-site/releases/tag/agentbridge-v0.1.0-alpha.1">Download Node alpha</a></div><div class="statusline"><span>Windows</span><span>macOS</span><span>Linux</span><span>iPhone/Android PWA</span><span>Contextor OUT</span><span>Scheduling</span></div></div><aside class="ab-panel"><span class="section-kicker">Core rule</span><h2>The cloud never becomes your admin shell.</h2><p>AgentBridge Cloud can request work. The local Node decides whether that work is always allowed, requires approval, or is forbidden. A remote approval can satisfy a local <strong>ask</strong>; it cannot override local <strong>never</strong>.</p><div class="security"><strong>Owner controls authority.</strong><br><span class="small">Execution stays on the user's computer. Cloud is the broker, scheduler, dashboard, and feedback route.</span></div></aside></div></section>
+<section class="section" id="how"><div class="container"><div class="section-heading"><div><span class="section-kicker">One loop</span><h2>Planner → Pack → Node → Result.</h2></div><p>The expensive model does not need to remain attached to a console. AgentBridge collects the execution evidence locally and sends only the useful result back.</p></div><div class="flow"><div><strong>1 · Planner</strong><span>Your LLM creates a portable task.</span></div><div><strong>2 · Execution Pack</strong><span>.abpack, AgentBridge JSON, or Markdown.</span></div><div><strong>3 · Local Node</strong><span>Python, PowerShell, shell, Node.js, Git, and governed files.</span></div><div><strong>4 · Contextor</strong><span>Deduplicates noisy logs before transmission.</span></div><div><strong>5 · Result Pack</strong><span>Tests, changes, errors, Definition of Done, and rollback evidence.</span></div></div></div></section>
+<section class="section" id="alpha"><div class="container"><div class="section-heading"><div><span class="section-kicker">Implemented alpha</span><h2>A real execution bridge, not a simulated agent.</h2></div><p>The alpha is intentionally narrow. It proves the handoff and feedback loop while keeping privileged decisions on the Node.</p></div><div class="alpha-grid"><div class="alpha-card"><strong>AgentBridge Node</strong><span>Cross-platform Python core, pack parser, workspace containment, capability policy, rollback snapshots, local schedules, clipboard detection, native .abpack association, cloud pairing, and Result Packs.</span></div><div class="alpha-card"><strong>AgentBridge Cloud</strong><span>Cloudflare Worker + Durable Objects for pairing, device routing, hibernating WebSockets, job history, cloud/device schedules, approvals, and a calm installable PWA dashboard.</span></div><div class="alpha-card"><strong>Contextor</strong><span>Pass-through for small results, deterministic compaction for large logs, optional local Ollama smart compaction, and net token-savings telemetry.</span></div></div></div></section>
+<section class="section"><div class="container ab-hero-grid"><div class="ab-panel"><span class="section-kicker">Example Execution Pack</span><pre class="code">{
+  "agentbridge": "1.0",
+  "title": "Update and verify project",
+  "workspace": "C:/Projects/my-app",
+  "permissions": ["file.write", "process.run"],
+  "steps": [
+    {"type":"patch","path":"README.md","find":"old","replace":"new"},
+    {"type":"run","runtime":"python","command":"print('validate')"}
+  ],
+  "definition_of_done": [
+    {"type":"file_contains","path":"README.md","text":"new"}
+  ]
+}</pre><div class="actions"><a class="button button-ghost" href="sample-task.json" download>Download JSON sample</a><a class="button button-ghost" href="sample-task.md" download>Download Markdown sample</a></div></div><div class="ab-panel"><span class="section-kicker">Cross-device scheduling</span><h2>Run where the work belongs.</h2><p>Schedules can be cloud-owned or device-owned. Cloud-owned schedules dispatch when due. Device-owned schedules sync down and continue locally when the Node is available. Move a schedule between paired machines from the dashboard.</p><p class="small">Device-owned schedules that cross a local <strong>ask</strong> boundary require local schedule approval. This prevents creating a cloud schedule from becoming permanent remote admin permission.</p></div></div></section>
+<section class="section"><div class="container cta-band"><div><h2>Try the control plane, then pair a Node.</h2><p>The public alpha uses an account key rather than production OAuth. Node builds are unsigned early-access binaries. Review packs and local permissions before elevated use.</p></div><div class="actions"><a class="button button-cyan" href="https://agentbridge.clintware.com/">Open AgentBridge Cloud</a><a class="button button-ghost" href="https://github.com/clintkosh/clintware-site/tree/main/agentbridge-node">Review Node source</a></div></div></section>
 </main>
-<footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware. AI software built to work.</span><span class="footer-links"><a href="/">Home</a><a href="/tools/">Products</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a></span></div></footer>
-<script>
-(function(){
-  const KEY='clintware-agentbridge-v0';
-  const $=id=>document.getElementById(id);
-  const defaultState={contextStats:{},runs:[],corrections:[]};
-  function load(){try{return Object.assign({},defaultState,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return JSON.parse(JSON.stringify(defaultState))}}
-  function save(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
-  function norm(s){return s.trim().toLowerCase().replace(/\s+/g,' ')}
-  function tokenEstimate(s){return Math.ceil((s||'').length/4)}
-  function lines(){return $('wfContext').value.split(/\n+/).map(s=>s.trim()).filter(Boolean)}
-  function analyze(){
-    const state=load(), seenNow=new Set(), host=$('contextList'); host.innerHTML='';
-    lines().forEach((text,i)=>{
-      const key=norm(text), hist=state.contextStats[key]||{kept:0,removed:0};
-      const duplicate=seenNow.has(key); seenNow.add(key);
-      const learnedRemove=(hist.removed>=2 && hist.removed>hist.kept);
-      const checked=!(duplicate||learnedRemove);
-      const row=document.createElement('label'); row.className='context-row';
-      const box=document.createElement('input'); box.type='checkbox'; box.checked=checked; box.dataset.key=key; box.dataset.text=text;
-      const body=document.createElement('div'); body.textContent=text;
-      const meta=document.createElement('small');
-      meta.textContent=duplicate?'duplicate in this prompt':learnedRemove?`Contextor learned: removed ${hist.removed}× / kept ${hist.kept}×`:`history: kept ${hist.kept}× / removed ${hist.removed}×`;
-      row.append(box,body,meta); host.append(row);
-    });
-    $('contextStatus').textContent='Every line is visible. Uncheck anything you do not want sent; repeated decisions train this browser profile.';
-    previewMetrics();
-  }
-  function selected(){return Array.from(document.querySelectorAll('#contextList input[type=checkbox]'))}
-  function previewMetrics(){
-    const original=lines().join('\n');
-    const chosen=selected().filter(b=>b.checked).map(b=>b.dataset.text).join('\n');
-    const a=tokenEstimate(original),b=tokenEstimate(chosen),saved=Math.max(0,a-b),rate=a?Math.round(saved/a*100):0;
-    $('mOriginal').textContent=a;$('mSent').textContent=b;$('mSaved').textContent=saved;$('mRate').textContent=rate+'%';
-    return {original:a,sent:b,saved,rate,chosen};
-  }
-  function compile(){
-    if(!selected().length) analyze();
-    const state=load(), metric=previewMetrics(), correction=$('wfCorrection').value.trim();
-    selected().forEach(b=>{const stat=state.contextStats[b.dataset.key]||{kept:0,removed:0};b.checked?stat.kept++:stat.removed++;state.contextStats[b.dataset.key]=stat});
-    if(correction && !state.corrections.includes(correction)) state.corrections.push(correction);
-    const steps=$('wfSteps').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-    const manifest={version:'0.1-prototype',workflow:$('wfName').value.trim()||'Untitled workflow',definition_of_done:$('wfDone').value.trim(),steps:steps.map((step,i)=>({order:i+1,step,approval_required:/approval|change|send|publish|delete|buy|write/i.test(step)})),context_payload:metric.chosen.split(/\n+/).filter(Boolean),remembered_corrections:state.corrections.slice(-8),execution:{mode:'prototype-only',external_writes:false},telemetry:{estimated_original_tokens:metric.original,estimated_sent_tokens:metric.sent,estimated_tokens_avoided:metric.saved,user_approved_compression_percent:metric.rate}};
-    state.runs.push({at:new Date().toISOString(),workflow:manifest.workflow,...manifest.telemetry}); state.runs=state.runs.slice(-50); save(state);
-    $('manifest').textContent=JSON.stringify(manifest,null,2); $('wfCorrection').value='';
-    $('contextStatus').textContent=`Local profile updated from ${selected().length} explicit context decisions. No external model was called.`;
-    renderTrend(); analyze();
-    if(typeof gtag==='function')gtag('event','agentbridge_compile',{compression_percent:metric.rate,steps:steps.length});
-  }
-  function renderTrend(){
-    const runs=load().runs.slice(-8),host=$('trend');host.innerHTML='';
-    if(!runs.length){host.innerHTML='<span class="ab-note">No local runs yet.</span>';return}
-    runs.forEach((r,i)=>{const bar=document.createElement('div');bar.className='trend-bar';bar.style.height=Math.max(8,r.user_approved_compression_percent)+'%';bar.title=`${r.user_approved_compression_percent}% compression · ${r.estimated_tokens_avoided} est. tokens avoided`;const label=document.createElement('span');label.textContent=i+1;bar.append(label);host.append(bar)});
-  }
-  function exportReport(){
-    const state=load(), payload={product:'AgentBridge / Contextor',generated_at:new Date().toISOString(),measurement_note:'Token counts are rough character-based estimates. Prototype uses no external LLM.',runs:state.runs,context_learning:state.contextStats,remembered_corrections:state.corrections};
-    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='agentbridge-contextor-report.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }
-  $('analyze').addEventListener('click',analyze);$('compile').addEventListener('click',compile);$('export').addEventListener('click',exportReport);$('contextList').addEventListener('change',previewMetrics);
-  $('reset').addEventListener('click',()=>{if(confirm('Reset this browser\'s AgentBridge learning history?')){localStorage.removeItem(KEY);$('manifest').textContent='Local learning reset. Compile the workflow to generate a new manifest.';analyze();renderTrend()}});
-  analyze();renderTrend();
-})();
-</script>
-<script src="/assets/clintware.js" defer></script>
-</body>
-</html>
+<footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware. AgentBridge public alpha.</span><span class="footer-links"><a href="/tools/">Products</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></span></div></footer><script src="/assets/clintware.js" defer></script>
+</body></html>
