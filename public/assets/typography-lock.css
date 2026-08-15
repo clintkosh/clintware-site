@@ -1,88 +1,114 @@
-/* Hard typography ceiling: compact product typography, never billboard/circus-scale marketing text. */
+/* Clintware terminal design lock.
+   Shared visual layer for all public pages that load /assets/clintware.js. */
+:root{
+  --cw-terminal-font:"Cascadia Code","Cascadia Mono","Segoe UI Mono","SFMono-Regular",Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;
+  --radius-sm:3px!important;
+  --radius:4px!important;
+  --radius-lg:5px!important;
+  --bg:#05080c!important;
+  --bg-2:#070b10!important;
+  --surface:#080d13!important;
+  --surface-2:#0b1119!important;
+  --surface-3:#0e1620!important;
+  --line:#1c2c38!important;
+  --line-strong:#315163!important;
+  --text:#edf5fa!important;
+  --muted:#93a5b2!important;
+  --subtle:#607482!important;
+  --cyan:#62e9f5!important;
+  --cyan-strong:#b8f7fb!important;
+}
+
 html{font-size:16px}
-body{font-size:14.5px!important;line-height:1.5}
+body{
+  font-family:var(--cw-terminal-font)!important;
+  font-size:14px!important;
+  line-height:1.55!important;
+  background-color:var(--bg)!important;
+}
+button,input,textarea,select,code,pre,kbd{font-family:var(--cw-terminal-font)!important}
 
-h1,
-.cw-home h1,
-.page-hero h1,
-.article-header h1,
-.utility-shell h1,
-.extension-hero h1{
-  font-size:32px!important;
-  line-height:1.1!important;
+h1,h2,h3,h4,h5,h6,
+.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{
+  font-family:var(--cw-terminal-font)!important;
+  letter-spacing:-.025em!important;
+  text-transform:none!important;
+  color:var(--text)!important;
+}
+
+h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{
+  font-size:25px!important;
+  line-height:1.22!important;
+  font-weight:600!important;
+  max-width:38ch!important;
+}
+h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{
+  font-size:19px!important;
+  line-height:1.3!important;
+  font-weight:600!important;
   letter-spacing:-.018em!important;
-  font-weight:640!important;
-  max-width:26ch!important;
+}
+h3,.cw-home h3,.card h3{font-size:15.5px!important;line-height:1.35!important;font-weight:600!important}
+.lede,.article-dek,.extension-hero .lede{font-size:14.5px!important;line-height:1.62!important}
+.post-card h2{font-size:18px!important}.utility-panel h2{font-size:17px!important}
+
+/* Remove marketing-style headline treatments. */
+h1 span,h2 span,.gradient-word,.brand-accent{
+  font-size:inherit!important;
+  font-weight:inherit!important;
+  letter-spacing:inherit!important;
+}
+.gradient-word{
+  color:inherit!important;
+  background:none!important;
+  -webkit-text-fill-color:currentColor!important;
+  animation:none!important;
 }
 
-h2,
-.cw-home h2,
-.section-heading h2,
-.cw-section-intro h2,
-.cw-centered-heading h2,
-.article-body h2,
-.cta-band h2{
-  font-size:23px!important;
-  line-height:1.2!important;
-  letter-spacing:-.014em!important;
-  font-weight:630!important;
+/* Terminal surface language: square, quiet, readable. */
+.site-header{background:rgba(4,7,10,.9)!important;border-bottom:1px solid #182a35!important;backdrop-filter:blur(14px)!important}
+.brand,.site-nav a,.button,.chip,.filter-button,.statusline span,.cw-route-tools,
+.eyebrow,.section-kicker,.card-label,.tool-category{font-family:var(--cw-terminal-font)!important}
+.brand{letter-spacing:.035em!important;font-weight:650!important}.brand-accent{color:var(--cyan)!important}
+.site-nav a{border-radius:2px!important}.nav-toggle{border-radius:3px!important}
+.button{border-radius:3px!important;box-shadow:none!important;font-weight:600!important}
+.button:hover{transform:none!important}.button-cyan{background:#63e8f3!important;color:#031014!important;box-shadow:none!important}
+.button-ghost{background:#080d13!important}
+
+.panel,.card,.metric,.process-step,.planned-item,.utility-panel,.article-closing,
+.ab-panel,.alpha-card,.flow div,.security,.extension-grid .card,.cta-band{
+  border-radius:4px!important;
+  background:rgba(7,12,18,.88)!important;
+  border-color:#1c303d!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
 }
+.card:hover,a.card:hover,a.card:focus-visible{transform:none!important;background:#0a1119!important;border-color:#345566!important}
+.chip,.filter-button,.statusline span{border-radius:3px!important;background:#080f16!important}
 
-h3,
-.cw-home h3,
-.card h3{
-  font-size:17px!important;
-  line-height:1.26!important;
-  letter-spacing:-.01em!important;
-  font-weight:630!important;
+/* Subtle terminal grid. Ambient pointer canvas remains above this background. */
+body::before{
+  opacity:.15!important;
+  background-image:linear-gradient(rgba(98,233,245,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(98,233,245,.035) 1px,transparent 1px)!important;
+  background-size:32px 32px!important;
+  mask-image:linear-gradient(to bottom,#000 0,#000 55rem,transparent 95rem)!important;
 }
+.cw-ambient-flow{opacity:.48!important}
 
-.lede,
-.article-dek,
-.extension-hero .lede{
-  font-size:15.5px!important;
-  line-height:1.58!important;
-}
-
-.post-card h2{font-size:21px!important}
-.utility-panel h2{font-size:19px!important}
-
+/* Keep hierarchy compact on mobile rather than turning headings into billboards. */
 @media (max-width:900px){
-  h1,
-  .cw-home h1,
-  .page-hero h1,
-  .article-header h1,
-  .utility-shell h1,
-  .extension-hero h1{font-size:30px!important}
-  h2,
-  .cw-home h2,
-  .section-heading h2,
-  .cw-section-intro h2,
-  .cw-centered-heading h2,
-  .article-body h2,
-  .cta-band h2{font-size:22px!important}
+  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:24px!important}
+  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:18px!important}
+}
+@media (max-width:640px){
+  body{font-size:13.5px!important}
+  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:22px!important;line-height:1.25!important}
+  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:17px!important}
+  h3,.cw-home h3,.card h3{font-size:15px!important}
+  .lede,.article-dek,.extension-hero .lede{font-size:14px!important}
+  .post-card h2{font-size:17px!important}
 }
 
-@media (max-width:640px){
-  body{font-size:14px!important}
-  h1,
-  .cw-home h1,
-  .page-hero h1,
-  .article-header h1,
-  .utility-shell h1,
-  .extension-hero h1{font-size:28px!important;line-height:1.12!important}
-  h2,
-  .cw-home h2,
-  .section-heading h2,
-  .cw-section-intro h2,
-  .cw-centered-heading h2,
-  .article-body h2,
-  .cta-band h2{font-size:20px!important}
-  h3,
-  .cw-home h3,
-  .card h3{font-size:16.5px!important}
-  .lede,
-  .article-dek,
-  .extension-hero .lede{font-size:15px!important}
-  .post-card h2{font-size:19px!important}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
