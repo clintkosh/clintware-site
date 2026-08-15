@@ -1,11 +1,13 @@
 {
   "name": "AgentBridge Cloud",
   "short_name": "AgentBridge",
-  "start_url": "/",
+  "start_url": "/#home",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#081018",
-  "theme_color": "#081018",
-  "description": "Route AI Execution Packs to your own computers and approve work from mobile.",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
+  "description": "Route governed AI Execution Packs to your own computers, approve work, review evidence, automate schedules, and inspect your account metrics.",
+  "categories": ["productivity", "developer", "utilities"],
   "icons": [
     {
       "src": "/icon.svg",

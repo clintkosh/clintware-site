@@ -7,19 +7,23 @@ import shutil
 import sys
 import threading
 
+from . import __version__
 from .association import install as install_associations
 from .clipboard import watch as clipboard_watch
-from .cloud import daemon as cloud_daemon, pair as cloud_pair, sync_device_schedules_to_local, report_device_schedule_state
+from .cloud import daemon as cloud_daemon, pair as cloud_pair, sync_device_schedules_to_local, report_device_schedule_state, sync_help_center
 from .config import Config, home_dir
-from .executor import execute_pack_path, rollback
+from .executor import rollback
+from .helpdb import load as load_help, page as page_help, render as render_help
 from .pack import load_pack, save_abpack, summary
 from .policy import evaluate
+from .runner import execute_pack_path
 from .scheduler import SchedulerEngine, add_schedule, load_schedules, remove_schedule, approve_schedule
+from .telemetry import flush as flush_telemetry
 
 def _print(obj): print(json.dumps(obj,indent=2,default=str))
 
 def cmd_init(args):
-    cfg=Config.load(); out={"home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"]}
+    cfg=Config.load(); load_help(); out={"home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"help_center":str(home_dir()/"help"/"help.json")}
     if not getattr(args,"no_associations",False):
         try: out["associations"]=install_associations(False)
         except Exception as exc: out["association_warning"]=str(exc)
@@ -71,13 +75,20 @@ def _schedule_after_run(row,result):
 
 def _schedule_sync_loop(cfg):
     import time
+    help_tick=0
     while True:
         try: sync_device_schedules_to_local(cfg)
         except Exception as exc: print(f"Schedule sync unavailable: {exc}")
+        if help_tick<=0:
+            try: sync_help_center(cfg)
+            except Exception as exc: print(f"Help Center sync unavailable: {exc}")
+            help_tick=2
+        else:
+            help_tick-=1
         time.sleep(30)
 
 def cmd_daemon(args):
-    cfg=Config.load(); engine=SchedulerEngine(_scheduled_run,after_run=_schedule_after_run)
+    cfg=Config.load(); load_help(); engine=SchedulerEngine(_scheduled_run,after_run=_schedule_after_run)
     thread=threading.Thread(target=engine.run_forever,daemon=True); thread.start()
     sync_thread=threading.Thread(target=_schedule_sync_loop,args=(cfg,),daemon=True); sync_thread.start()
     try: cloud_daemon(cfg)
@@ -105,9 +116,25 @@ def cmd_clipboard(args):
 
 def cmd_associations(args): _print(install_associations(args.include_md_json))
 
+def cmd_telemetry(args):
+    cfg=Config.load()
+    if args.telemetry_command=="status": _print({"settings":cfg.data.get("telemetry",{}),"queue":str(home_dir()/"telemetry-queue.jsonl")})
+    elif args.telemetry_command=="flush": _print(flush_telemetry(cfg,limit=args.limit))
+    elif args.telemetry_command=="on": cfg.data.setdefault("telemetry",{})["enabled"]=True; cfg.save(); _print({"enabled":True})
+    elif args.telemetry_command=="off": cfg.data.setdefault("telemetry",{})["enabled"]=False; cfg.save(); _print({"enabled":False})
+
+def cmd_help_center(args):
+    if args.json:
+        _print(load_help()); return
+    if args.search:
+        print(render_help("all",query=args.search,limit=args.limit)); return
+    if args.no_pager:
+        print(render_help(args.section,limit=args.limit)); return
+    page_help(args.section,limit=args.limit)
+
 def cmd_doctor(args):
     cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama"]}
-    _print({"version":"0.1.0a1","platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy")})
+    _print({"version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
     p=argparse.ArgumentParser(prog="agentbridge",description="AgentBridge local execution node"); sub=p.add_subparsers(dest="command",required=True)
@@ -122,6 +149,8 @@ def build_parser():
     x=sub.add_parser("clipboard-watch"); x.add_argument("--mode",choices=["off","detect","import","trusted"]); x.set_defaults(func=cmd_clipboard)
     x=sub.add_parser("install-associations"); x.add_argument("--include-md-json",action="store_true"); x.set_defaults(func=cmd_associations)
     x=sub.add_parser("doctor"); x.set_defaults(func=cmd_doctor)
+    x=sub.add_parser("telemetry"); ts=x.add_subparsers(dest="telemetry_command",required=True); ts.add_parser("status"); f=ts.add_parser("flush"); f.add_argument("--limit",type=int,default=100); ts.add_parser("on"); ts.add_parser("off"); x.set_defaults(func=cmd_telemetry)
+    x=sub.add_parser("help"); x.add_argument("section",nargs="?",default="all",choices=["all","start","setup","remove","faq","glossary","fixes"]); x.add_argument("--search"); x.add_argument("--limit",type=int,default=100); x.add_argument("--json",action="store_true"); x.add_argument("--no-pager",action="store_true"); x.set_defaults(func=cmd_help_center)
     x=sub.add_parser("schedule"); ss=x.add_subparsers(dest="schedule_command",required=True)
     a=ss.add_parser("add"); a.add_argument("pack"); a.add_argument("--at"); a.add_argument("--every",type=int); a.add_argument("--owner",choices=["device","cloud"],default="device")
     ss.add_parser("list"); r=ss.add_parser("remove"); r.add_argument("id"); ap=ss.add_parser("approve"); ap.add_argument("id"); rv=ss.add_parser("revoke"); rv.add_argument("id"); x.set_defaults(func=cmd_schedule)

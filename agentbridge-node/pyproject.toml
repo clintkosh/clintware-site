@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clintware-agentbridge"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Local execution node for AgentBridge Execution Packs"
 readme = "README.md"
 requires-python = ">=3.11"

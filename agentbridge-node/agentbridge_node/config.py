@@ -35,6 +35,12 @@ def _defaults() -> dict:
             "max_transmit_chars": 24000,
             "ollama_model": "",
             "smart_min_savings_tokens": 4000
+        },
+        "telemetry": {
+            "enabled": True,
+            "privacy": "metadata_only",
+            "send_redacted_errors": True,
+            "queue_when_offline": True
         }
     }
 
@@ -55,6 +61,7 @@ class Config:
             base.update(incoming)
             base["policy"] = {**_defaults()["policy"], **incoming.get("policy", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
+            base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
         cfg = cls(base)
         cfg.save()
         return cfg

@@ -1,22 +1,113 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#081018"><meta name="description" content="AgentBridge Cloud public alpha control plane for routing AI execution packs to your own computers.">
-<link rel="manifest" href="/manifest.webmanifest"><title>AgentBridge Cloud | Clintware</title>
-<style>
-:root{color-scheme:dark;--bg:#081018;--panel:#0e1822;--line:#223241;--text:#eef7ff;--muted:#93a8b9;--cyan:#4ee9ff;--green:#6ef2b2;--gold:#ffd37d;--red:#ff9ba3}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#102b35 0,transparent 28rem),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}.shell{width:min(1120px,calc(100% - 24px));margin:auto}.top{padding:22px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;align-items:center}.brand{font-weight:900;letter-spacing:.08em}.brand b{color:var(--cyan)}.status{color:var(--green);font-weight:700}.hero{padding:52px 0 24px}.hero h1{font-size:clamp(38px,7vw,74px);line-height:.94;letter-spacing:-.05em;margin:8px 0 16px}.lede{font-size:19px;color:#c8d5df;max-width:760px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}.panel{background:linear-gradient(180deg,#0f1b26,#0b141d);border:1px solid var(--line);border-radius:18px;padding:18px}.panel h2{margin:0 0 10px}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-weight:850}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,input,textarea,select{font:inherit}button{background:#132431;color:var(--text);border:1px solid #2c4354;border-radius:11px;padding:10px 13px;font-weight:750;cursor:pointer}button.primary{background:var(--cyan);color:#031216;border-color:transparent}button.warn{border-color:#6d5933;color:var(--gold)}input,textarea,select{width:100%;background:#071018;color:var(--text);border:1px solid #2a3a47;border-radius:10px;padding:10px}textarea{min-height:150px;resize:vertical}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.device,.job,.schedule{border:1px solid #263746;border-radius:12px;padding:11px;margin:8px 0;background:#09131b}.device strong,.job strong{display:block}.muted{color:var(--muted)}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.metric{border:1px solid #223442;border-radius:12px;padding:11px;background:#09131b}.metric span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}.metric b{font-size:20px}.hidden{display:none!important}.danger{color:var(--red)}pre{white-space:pre-wrap;word-break:break-word;font-size:11px}.footer{padding:36px 0;color:var(--muted);font-size:12px}@media(max-width:760px){.grid{grid-template-columns:1fr}.metric-grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start;flex-direction:column}.hero{padding-top:34px}}
-</style></head><body>
-<div class="shell"><header class="top"><div class="brand">CLINT<b>WARE</b> / AGENTBRIDGE</div><div id="health" class="status">Checking system…</div></header>
-<section class="hero"><div class="kicker">Public alpha · hosted control plane</div><h1>Your AI plans. Your machines execute.</h1><p class="lede">Pair Windows, macOS, or Linux nodes. Send an AgentBridge Execution Pack, schedule it locally or in the cloud, approve sensitive work from your phone, and receive compact Result Packs after every run.</p></section>
-<section id="bootstrap" class="panel hidden"><div class="kicker">First use</div><h2>Create an alpha control key</h2><p class="muted">The public alpha uses a private browser-held account key rather than email login. Keep it private. Clearing browser storage removes access unless you exported the key.</p><button id="createAccount" class="primary">Create my AgentBridge alpha account</button></section>
-<div id="app" class="hidden">
-<section class="panel"><div class="row" style="justify-content:space-between"><div><div class="kicker">System health</div><h2 id="calm">All systems relaxed.</h2></div><button id="refresh">Refresh</button></div><div class="metric-grid"><div class="metric"><span>Devices</span><b id="mDevices">0</b></div><div class="metric"><span>Runs</span><b id="mRuns">0</b></div><div class="metric"><span>Pass rate</span><b id="mPass">—</b></div><div class="metric"><span>Context avoided</span><b id="mTokens">0</b></div></div></section>
-<div class="grid">
-<section class="panel"><div class="kicker">Pair a machine</div><h2>AgentBridge Nodes</h2><div class="field"><label>Pairing code from AgentBridge Node</label><input id="pairCode" maxlength="8" placeholder="ABCD2345"></div><button id="claim" class="primary">Pair device</button><div id="devices"></div></section>
-<section class="panel"><div class="kicker">Send work</div><h2>Execution Pack</h2><div class="field"><label>Target device</label><select id="jobDevice"></select></div><div class="field"><label>Workspace override (optional)</label><input id="workspace" placeholder="/home/me/project or C:\Projects\app"></div><div class="field"><label>Upload .abpack / .json / .md</label><input id="packFile" type="file" accept=".abpack,.json,.md"></div><div class="field"><label>Or paste AgentBridge JSON/Markdown</label><textarea id="packText" placeholder='{"agentbridge":"1.0", ...}'></textarea></div><button id="sendJob" class="primary">Send to device</button></section>
-<section class="panel"><div class="kicker">Scheduling</div><h2>Local or Cloud</h2><div class="field"><label>Device</label><select id="scheduleDevice"></select></div><div class="field"><label>Execution owner</label><select id="scheduleOwner"><option value="cloud">Cloud dispatches</option><option value="device">Device owns schedule</option></select></div><div class="field"><label>Run at</label><input id="scheduleAt" type="datetime-local"></div><div class="field"><label>Repeat every seconds (blank = once)</label><input id="scheduleEvery" type="number" min="60" placeholder="3600"></div><div class="field"><label>Pack text for schedule</label><textarea id="schedulePack" placeholder='{"agentbridge":"1.0", ...}'></textarea></div><button id="createSchedule" class="primary">Create schedule</button><div id="schedules"></div></section>
-<section class="panel"><div class="kicker">Feedback loop</div><h2>Recent jobs & Result Packs</h2><p class="muted">Contextor runs on the Node before planner feedback is returned. Approval-required jobs can be released here; local <code>never</code> policy still wins.</p><div id="jobs"></div></section>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070b">
+<meta name="description" content="AgentBridge lets any AI hand governed work to your own Windows, macOS, or Linux machine, then returns verified evidence instead of terminal babysitting.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<title>AgentBridge Cloud | Clintware</title>
+</head>
+<body>
+<canvas id="fluidFx" aria-hidden="true"></canvas><div class="ambient" aria-hidden="true"></div>
+
+<section id="bootstrap" class="landing">
+  <header class="landing-top">
+    <div class="brand-lockup">
+      <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M8 8l-4 4 4 4M16 8l4 4-4 4"/><path d="M10 5h4v14h-4z" opacity=".5"/></svg></div>
+      <div>AGENTBRIDGE<small>BY CLINTWARE</small></div>
+    </div>
+    <div id="publicHealth" class="health-pill"><span class="status-dot"></span><span>Checking Cloud</span></div>
+  </header>
+  <div class="landing-hero">
+    <div class="landing-copy">
+      <div class="kicker">Public alpha · governed local execution</div>
+      <h1>Your AI plans.<br><span class="gradient-word">Your machines execute.</span></h1>
+      <p>AgentBridge gives any AI a secure handoff to your own computer. The model plans once. Your Node executes locally, proves the result, and Contextor sends back only the evidence the model needs.</p>
+      <div class="landing-actions">
+        <button id="createAccount" class="btn primary wide">Open AgentBridge Cloud</button>
+        <button id="restoreAccount" class="btn ghost wide">Use existing control key</button>
+      </div>
+      <div class="landing-proof"><span><i></i>Windows · macOS · Linux</span><span><i></i>Local policy stays authoritative</span><span><i></i>Context-efficient feedback</span></div>
+    </div>
+    <div class="bridge-stage" aria-label="AgentBridge execution flow preview">
+      <div class="bridge-core glass glow">
+        <div class="kicker">Live execution bridge</div>
+        <div class="signal-row"><div class="signal-node"><b>Planner</b><span>ChatGPT · Claude · Gemini · Grok</span></div><div class="signal-link"></div><div class="signal-node"><b>Execution Pack</b><span>Signed intent + permissions + DoD</span></div></div>
+        <div class="signal-row"><div class="signal-node"><b>AgentBridge Cloud</b><span>Route · schedule · audit</span></div><div class="signal-link"></div><div class="signal-node"><b>Your Node</b><span>Execute · test · rollback</span></div></div>
+        <div class="live-terminal"><span class="cyan">›</span> packet received / <span class="violet">home-linux</span><br><strong>✓</strong> 4 files changed&nbsp;&nbsp; <strong>✓</strong> 18 tests passed<br><strong>✓</strong> Definition of Done 6/6<br><span class="cyan">↳</span> Contextor: 94,200 → 7,600 tokens</div>
+        <div class="mini-metrics"><div class="mini-metric"><span>External execution</span><b>0 tokens</b></div><div class="mini-metric"><span>Local proof</span><b>6 / 6</b></div><div class="mini-metric"><span>Permission</span><b>Owner</b></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="app" class="app-shell hidden">
+  <aside class="rail" aria-label="Primary navigation">
+    <div class="brand-mark" title="AgentBridge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M8 8l-4 4 4 4M16 8l4 4-4 4"/><path d="M10 5h4v14h-4z" opacity=".5"/></svg></div>
+    <nav class="rail-nav">
+      <button class="nav-btn active" data-view="home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg><span>Home</span></button>
+      <button class="nav-btn" data-view="run" aria-label="Run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m8 5 11 7-11 7z"/></svg><span>Run</span></button>
+      <button class="nav-btn" data-view="automate" aria-label="Automate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span>Automate</span></button>
+      <button class="nav-btn" data-view="activity" aria-label="Activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 18V9m5 9V5m5 13v-7m5 7V3"/></svg><span>Activity</span></button>
+      <button class="nav-btn" data-view="help" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 1 1 3.8 1.8c-1 .7-1.6 1.1-1.6 2.2M12 17h.01"/></svg><span>Help</span></button>
+    </nav>
+    <div class="rail-spacer"></div>
+    <button id="railAccount" class="rail-health" aria-label="Account and control key"><span class="status-dot"></span></button>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div class="crumb"><span>AgentBridge</span><span class="muted">/</span><span id="crumbView" class="muted">Home</span></div>
+      <div class="top-actions"><div id="health" class="health-pill"><span class="status-dot"></span><span>Checking</span></div><button id="commandTrigger" class="btn ghost command-trigger"><span>Command palette</span><kbd>⌘ K</kbd></button><button id="accountButton" class="btn icon ghost" aria-label="Account"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button></div>
+    </header>
+
+    <section id="view-home" class="view active" data-title="Home">
+      <div class="page-head"><div><div class="kicker">System health</div><h1>Control room</h1><p>Quiet when healthy. Specific when something needs you.</p></div><div class="actions"><button class="btn ghost" data-view-jump="run">Run something</button><button id="refresh" class="btn primary">Refresh</button></div></div>
+      <section class="panel calm-card glow"><div><div class="calm-title"><span class="big-dot"></span><span class="kicker">Local authority intact</span></div><h2 id="calm">All systems relaxed.</h2><p id="calmDetail">No failures, blocked approvals, or disconnected work need your attention.</p></div><div class="calm-orbit"><div><b id="calmDevices">0/0</b><small>devices ready</small></div></div></section>
+      <div class="metric-grid"><div class="metric-card"><span>Runs</span><b id="mRuns">0</b><small>account total</small></div><div class="metric-card"><span>Pass rate</span><b id="mPass">—</b><small>verified work</small></div><div class="metric-card"><span>Net tokens saved</span><b id="mTokens">0</b><small>Contextor estimate</small></div><div class="metric-card"><span>Avg work session</span><b id="mAvg">—</b><small>per completed run</small></div><div class="metric-card"><span>Patches applied</span><b id="mPatches">0</b><small>successful patches</small></div><div class="metric-card"><span>Bugs resolved</span><b id="mResolved">0</b><small>quality loop</small></div></div>
+      <div class="grid asym">
+        <section class="panel"><div class="section-head"><div><h2>Your machines</h2><p>Windows, macOS, and Linux Nodes paired to this account.</p></div><span id="deviceCount" class="status-chip">0 nodes</span></div><div id="devices" class="stack"></div></section>
+        <section class="panel"><div class="section-head"><div><h2>Pair a Node</h2><p>Enter the code shown by your local AgentBridge Node.</p></div></div><div class="field"><label for="pairCode">Pairing code</label><input id="pairCode" maxlength="8" autocomplete="off" placeholder="ABCD2345"></div><button id="claim" class="btn primary">Pair device</button><div class="inline-note" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7z"/></svg><span>The Node connects outbound. Cloud can request operations; your local capability policy decides whether they execute.</span></div></section>
+      </div>
+      <div class="grid two" style="margin-top:14px"><section class="panel"><div class="section-head"><div><h2>Recent work</h2><p>The latest execution/result loop.</p></div><button class="btn ghost" data-view-jump="activity">All activity</button></div><div id="homeJobs" class="stack"></div></section><section class="panel"><div class="section-head"><div><h2>Next automations</h2><p>Cloud-owned and device-owned schedules.</p></div><button class="btn ghost" data-view-jump="automate">Manage</button></div><div id="homeSchedules" class="stack"></div></section></div>
+    </section>
+
+    <section id="view-run" class="view" data-title="Run">
+      <div class="page-head"><div><div class="kicker">Execution</div><h1>Send work</h1><p>Hand a portable plan to one of your own machines. AgentBridge keeps the execution evidence.</p></div></div>
+      <div class="grid asym"><section class="panel composer glow"><div class="composer-top"><div class="grid two"><div class="field"><label for="jobDevice">Target device</label><select id="jobDevice"></select></div><div class="field"><label for="workspace">Workspace override</label><input id="workspace" placeholder="C:\Projects\app or /home/me/app"></div></div><div class="dropzone"><label for="packFile">Drop or choose an <strong>.abpack</strong>, .json, or .md</label><input id="packFile" type="file" accept=".abpack,.json,.md" aria-label="Execution Pack file"></div></div><textarea id="packText" spellcheck="false" placeholder="Paste AgentBridge JSON or Markdown here…"></textarea><div class="composer-footer"><div class="left"><span class="pill">Local policy wins</span><span class="pill">Contextor OUT</span></div><button id="sendJob" class="btn primary wide">Send to device</button></div></section><aside class="panel result-preview"><div class="section-head"><div><h2>Latest Result Pack</h2><p>Compact evidence returned by your Node.</p></div></div><div id="latestResult" class="empty">Run a task to see verified evidence here.</div></aside></div>
+      <section class="panel" style="margin-top:14px"><div class="section-head"><div><h2>Recent jobs</h2><p>Approvals, passes, and failures.</p></div></div><div id="jobs" class="stack"></div></section>
+    </section>
+
+    <section id="view-automate" class="view" data-title="Automate">
+      <div class="page-head"><div><div class="kicker">Scheduling</div><h1>Automate</h1><p>Choose where the clock lives: Cloud for remote dispatch, or the Node for offline resilience.</p></div></div>
+      <div class="grid asym"><section class="panel"><div class="section-head"><div><h2>Create schedule</h2><p>One task, one device, one source of schedule truth.</p></div></div><div class="grid two"><div class="field"><label for="scheduleDevice">Device</label><select id="scheduleDevice"></select></div><div class="field"><label for="scheduleOwner">Schedule owner</label><select id="scheduleOwner"><option value="cloud">Cloud dispatches</option><option value="device">Device owns schedule</option></select></div><div class="field"><label for="scheduleAt">First run</label><input id="scheduleAt" type="datetime-local"></div><div class="field"><label for="scheduleEvery">Repeat every seconds</label><input id="scheduleEvery" type="number" min="60" placeholder="3600"></div></div><div class="field"><label for="schedulePack">Execution Pack text</label><textarea id="schedulePack" spellcheck="false" placeholder='{"agentbridge":"1.0", ...}'></textarea></div><button id="createSchedule" class="btn primary">Create schedule</button></section><aside class="panel"><div class="section-head"><div><h2>Execution ownership</h2><p>What changes when you move the schedule.</p></div></div><div class="stack"><div class="inline-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M7 4v6M17 4v6M5 11h14v9H5z"/></svg><span><strong>Cloud-owned:</strong> Cloud keeps the timer and dispatches the job to the selected Node.</span></div><div class="inline-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 5h14v14H5zM8 9h8M8 13h5"/></svg><span><strong>Device-owned:</strong> the Node keeps the timer and can execute while Cloud is unavailable.</span></div></div></aside></div>
+      <section class="panel" style="margin-top:14px"><div class="section-head"><div><h2>Schedules</h2><p>Move a schedule between paired machines without recreating it.</p></div></div><div id="schedules" class="stack"></div></section>
+    </section>
+
+    <section id="view-activity" class="view" data-title="Activity">
+      <div class="page-head"><div><div class="kicker">Evidence + quality</div><h1>Activity</h1><p>Your account-scoped execution history, Contextor savings, errors, and product-bug lifecycle.</p></div><div class="actions"><button id="exportCsv" class="btn ghost">Export CSV</button><button id="exportJson" class="btn primary">Export JSON</button></div></div>
+      <div class="metric-grid"><div class="metric-card"><span>Connections</span><b id="aConnections">0</b><small>Node sessions</small></div><div class="metric-card"><span>Cloud sends</span><b id="aSends">0</b><small>jobs dispatched</small></div><div class="metric-card"><span>Node receives</span><b id="aReceives">0</b><small>jobs accepted</small></div><div class="metric-card"><span>Returns</span><b id="aReturns">0</b><small>results sent back</small></div><div class="metric-card"><span>Gross avoided</span><b id="aGross">0</b><small>external tokens est.</small></div><div class="metric-card"><span>Local model</span><b id="aLocal">0</b><small>tokens consumed est.</small></div></div>
+      <div class="grid asym"><section class="panel"><div class="section-head"><div><h2>Execution ledger</h2><p>Filter and export only your own account data.</p></div></div><div class="activity-toolbar"><div class="field"><label for="reportDevice">Device</label><select id="reportDevice"><option value="">All devices</option></select></div><div class="field"><label for="reportStatus">Status</label><select id="reportStatus"><option value="">All statuses</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="approval_required">Approval required</option><option value="denied">Denied</option></select></div><div class="field"><label for="reportFrom">From</label><input id="reportFrom" type="date"></div><div class="field"><label for="reportTo">To</label><input id="reportTo" type="date"></div><button id="applyFilters" class="btn ghost">Apply</button></div><div id="activityList" class="activity-list" style="margin-top:12px"></div></section><aside class="panel"><div class="section-head"><div><h2>Product quality</h2><p>Only AgentBridge bugs, not ordinary task failures.</p></div></div><div class="bug-grid"><div class="bug-stat"><span>Reported</span><b id="bReported">0</b></div><div class="bug-stat"><span>Open</span><b id="bOpen">0</b></div><div class="bug-stat"><span>Resolved</span><b id="bResolved">0</b></div><div class="bug-stat"><span>Reopened</span><b id="bReopened">0</b></div></div><div id="bugs"></div></aside></div>
+    </section>
+
+    <section id="view-help" class="view" data-title="Help">
+      <div class="page-head"><div><div class="kicker">Local + Cloud synchronized</div><h1>Help Center</h1><p>Definitions, getting started, setup/removal, FAQ, and a scrolling history of relevant fixes.</p></div><div class="actions"><button id="syncHelp" class="btn primary">Refresh Help Center</button></div></div>
+      <div class="help-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="helpSearch" type="search" placeholder="Search AgentBridge help, terms, setup, or fixes…"></div>
+      <div id="helpTabs" class="help-tabs"><button class="help-tab active" data-help-section="all">All</button><button class="help-tab" data-help-section="getting_started">Getting started</button><button class="help-tab" data-help-section="setup_removal">Setup & removal</button><button class="help-tab" data-help-section="faq">FAQ</button><button class="help-tab" data-help-section="glossary">Glossary</button></div>
+      <div class="help-layout"><section><div id="helpResults" class="help-results"></div></section><aside class="panel"><div class="section-head"><div><h2>Recent fixes</h2><p>Functionality and documentation evolve together.</p></div></div><div id="fixFeed" class="fix-feed"></div></aside></div>
+    </section>
+  </main>
 </div>
-<section class="panel"><div class="kicker">Account recovery</div><h2>Alpha control key</h2><p class="muted">Export this key to your password manager. Anyone with it controls the cloud side of this alpha account.</p><div class="row"><button id="copyKey">Copy key</button><button id="resetKey" class="warn">Forget this browser account</button></div></section>
-</div><footer class="footer">AgentBridge public alpha. Cloud routes work; privileged execution remains on the user's device under local policy.</footer></div>
-<script src="/app.js" defer></script></body></html>
+
+<dialog id="accountDialog"><div class="dialog-head"><h2>AgentBridge account</h2><button class="btn icon ghost" data-close-dialog="accountDialog" aria-label="Close">×</button></div><div class="dialog-body"><div class="kicker">Alpha control key</div><p class="muted" style="font-size:11px">Keep this key in a password manager. Anyone with it can control the Cloud side of this alpha account. Local policy still controls execution.</p><div class="field"><label for="existingKey">Restore / replace control key</label><input id="existingKey" type="password" autocomplete="off" placeholder="Paste control key"></div><div class="actions"><button id="useKey" class="btn primary">Use key</button><button id="copyKey" class="btn ghost">Copy current key</button><button id="resetKey" class="btn danger-btn">Forget browser key</button></div></div></dialog>
+
+<dialog id="commandDialog"><input id="commandInput" class="command-input" autocomplete="off" placeholder="Type a command or jump to a view…"><div id="commandList" class="command-list"></div></dialog>
+<div id="toasts" class="toast-stack" aria-live="polite"></div>
+
+<script src="/fluid.js" defer></script>
+<script src="/app.js" defer></script>
+</body>
+</html>

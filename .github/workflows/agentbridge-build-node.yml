@@ -42,6 +42,7 @@ jobs:
           BIN="dist/${{ matrix.artifact }}"
           if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
           "$BIN" doctor
+          "$BIN" help start --no-pager
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -63,10 +64,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="agentbridge-v0.1.0-alpha.1"
-          notes=$'AgentBridge public alpha.\n\nUnsigned early-access Node builds for Windows, macOS, and Linux. Local execution is capability-gated. Cloud jobs cannot override a local `never` policy. Review Execution Packs before granting elevated permissions.'
+          tag="agentbridge-v0.1.0-alpha.2"
+          notes=$'AgentBridge public alpha 2.\n\nAdds the synchronized local/Cloud Help Center, automatic account-scoped operational telemetry, redacted error reporting, Contextor savings metrics, product-bug reported/resolved/reopened lifecycle, and quality-loop metadata.\n\nUnsigned early-access Node builds for Windows, macOS, and Linux. Local execution remains capability-gated. Cloud jobs cannot override a local `never` policy. Telemetry excludes prompt text and file contents by design and can be disabled locally.'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release-assets/* --clobber
           else
-            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "AgentBridge v0.1.0 Alpha 1" --notes "$notes" --prerelease
+            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "AgentBridge v0.1.0 Alpha 2" --notes "$notes" --prerelease
           fi
