@@ -1,11 +1,165 @@
-<!doctype html><html lang="en"><head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Clintware is building AgentBridge, a cross-platform local execution bridge that lets an LLM plan once and lets your own computer execute the work under local permissions."><meta name="theme-color" content="#080a0e"><link rel="canonical" href="https://www.clintware.com/"><title>Clintware | AgentBridge</title><link rel="stylesheet" href="/assets/clintware.css"><script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Clintware","url":"https://www.clintware.com/","email":"hello@clintware.com","description":"Independent AI software company building AgentBridge and local-first AI software."}</script></head><body>
-<header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span></a><nav class="site-nav" data-site-nav><a href="/" aria-current="page">Home</a><a href="/tools/">Products</a><a href="/skills/">Skills</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
+<!doctype html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Clintware builds AgentBridge, local execution infrastructure that lets AI systems request work while the user's own machine keeps final authority over what runs.">
+  <meta name="theme-color" content="#070809">
+  <link rel="canonical" href="https://www.clintware.com/">
+  <title>Clintware | AgentBridge Local Execution Infrastructure</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Clintware","url":"https://www.clintware.com/","email":"hello@clintware.com","description":"Independent software company building local-first AI execution infrastructure."},{"@type":"SoftwareApplication","name":"AgentBridge","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, macOS, Linux","url":"https://www.clintware.com/tools/agentbridge/","description":"A governed local execution bridge that lets AI planners request work from a user's own computer while local policy remains the final authority."}]}</script>
+</head>
+<body class="cw-home">
+<header class="site-header">
+  <div class="container nav-row">
+    <a class="brand" href="/">CLINT<span class="brand-accent">WARE</span></a>
+    <nav class="site-nav" data-site-nav aria-label="Primary navigation">
+      <a href="/" aria-current="page">Home</a><a href="/tools/">Products</a><a href="/skills/">Skills</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a>
+    </nav>
+    <button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button>
+  </div>
+</header>
+
 <main>
-<section class="hero"><div class="container hero-grid"><div class="hero-copy"><div class="eyebrow">Clintware flagship · AgentBridge public alpha</div><h1>Your AI plans. Your machine executes.</h1><p class="lede">AgentBridge lets ChatGPT, Claude, Gemini, Grok, local models, or another planner hand work to your own Windows, macOS, or Linux computer. The Node executes under your local policy, validates the result, and Contextor sends a compact Result Pack back instead of streaming an entire noisy console to the model.</p><div class="actions"><a class="button button-cyan" href="https://agentbridge.clintware.com/">Try AgentBridge Cloud</a><a class="button button-ghost" href="/tools/agentbridge/">See how it works</a></div><div class="chip-row"><span class="chip">Execution Packs</span><span class="chip">Windows · macOS · Linux</span><span class="chip">Contextor</span><span class="chip">Local policy</span><span class="chip">Scheduling</span></div></div><aside class="hero-aside panel"><div class="mini-row"><span class="cw-stage">Alpha</span><strong>AgentBridge Node</strong><p>Governed local execution for files, Python, PowerShell/shell, Node.js, Git, checks, rollback snapshots, schedules, and Result Packs.</p></div><div class="mini-row"><span class="cw-stage">Live alpha</span><strong>AgentBridge Cloud</strong><p>Pair machines, route jobs, schedule work, approve individual runs, and review compact results from an installable web dashboard.</p></div><div class="mini-row"><span class="cw-stage">Module</span><strong>Contextor</strong><p>Pass small results through and compact oversized logs locally before they consume paid model context.</p></div></aside></div></section>
-<section class="section"><div class="container"><div class="section-heading"><div><span class="section-kicker">Core product loop</span><h2>Plan once. Execute locally. Return only useful evidence.</h2></div><p>The cloud is a broker, not a remote administrator. The local Node remains the final authority over what can run.</p></div><div class="metric-grid"><div class="metric"><strong>Plan</strong><span>Any compatible LLM can create a .abpack, JSON, or Markdown Execution Pack.</span></div><div class="metric"><strong>Execute</strong><span>The paired Node performs authorized work on the user's own machine.</span></div><div class="metric"><strong>Prove</strong><span>Definition-of-Done checks, file hashes, status, and rollback state show what actually happened.</span></div><div class="metric"><strong>Compact</strong><span>Contextor removes repeated console noise before feedback returns upstream.</span></div></div></div></section>
-<section class="section"><div class="container"><div class="section-heading"><div><span class="section-kicker">Flagship &amp; supporting proofs</span><h2>AgentBridge is the product direction.</h2></div><p>Other Clintware projects remain working proofs for local AI, governed automation, security-aware tooling, and rapid product iteration.</p></div><div class="tool-grid"><a class="card tool-card accent-cyan" href="/tools/agentbridge/"><div class="tool-meta"><span class="tool-category">AI execution infrastructure</span><span class="status">Flagship alpha</span></div><h3>AgentBridge</h3><p>Connect an LLM planner to your own computers through portable Execution Packs, local permissions, cross-device scheduling, Contextor, and compact Result Packs.</p><span class="card-link">Open AgentBridge →</span></a><a class="card tool-card accent-violet" href="/tools/assemblerer/"><div class="tool-meta"><span class="tool-category">Operational AI</span><span class="status">MVP</span></div><h3>Assemblerer</h3><p>Build governed agent roles, authority boundaries, execution routes, evidence requirements, and a portable Company Manifest.</p><span class="card-link">View supporting MVP →</span></a><a class="card tool-card accent-green" href="/tools/plugin-forge/"><div class="tool-meta"><span class="tool-category">Local AI · Developer</span><span class="status">MVP</span></div><h3>Plugin Forge</h3><p>Generate GIMP 3 plug-ins locally and migrate older Python-Fu plug-ins through a conservative validation pipeline.</p><span class="card-link">View product →</span></a></div></div></section>
-<section class="section"><div class="container"><div class="section-heading"><div><span class="section-kicker">Modular expansion</span><h2>One execution backbone. Modules can snap onto it later.</h2></div><p>Workflow learning, DLP, local model interpretation, model routing, Autopilot, enterprise policy, and the longer-term Agentic OS direction are modules around the execution core rather than prerequisites for V0.</p></div><div class="path-grid"><div class="card path-card accent-cyan"><span class="card-label">Now</span><h3>Cloud + Node + Execution Pack + Result Pack</h3><p>Prove the handoff between the user's chosen AI and their own machines.</p></div><div class="card path-card accent-violet"><span class="card-label">Learning</span><h3>Contextor + correction memory</h3><p>Learn which context and corrections actually improve successful execution.</p></div><div class="card path-card accent-green"><span class="card-label">Later</span><h3>Governed autonomy</h3><p>Reusable workflow learning, DLP Gate, model routing, Autopilot, fleet policy, and Agentic OS components.</p></div></div></div></section>
-<section class="section"><div class="container cta-band"><div><h2>Try the AgentBridge public alpha.</h2><p>Pair a Node, send a safe Execution Pack, and inspect the Result Pack. Early binaries are unsigned and should be treated as developer alpha software.</p></div><div class="actions"><a class="button button-cyan" href="https://agentbridge.clintware.com/">Open AgentBridge Cloud</a><a class="button button-ghost" href="/tools/agentbridge/">Read alpha details</a></div></div></section>
-</main><footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware. AI software built to work.</span><span class="footer-links"><a href="/">Home</a><a href="/tools/">Products</a><a href="/skills/">Skills</a><a href="/blog/">Build Notes</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></span></div></footer><script src="/assets/clintware.js" defer></script></body></html>
+  <section class="cw-home-hero">
+    <div class="container">
+      <div class="cw-status-rail" aria-label="AgentBridge status">
+        <span>CLINTWARE / SYSTEMS LAB</span>
+        <span><i class="cw-live-dot"></i> AGENTBRIDGE PUBLIC ALPHA</span>
+        <span>WINDOWS · MACOS · LINUX</span>
+        <span>LOCAL AUTHORITY</span>
+      </div>
+
+      <div class="cw-hero-layout">
+        <div class="cw-hero-copy">
+          <div class="cw-command-label">LOCAL EXECUTION INFRASTRUCTURE / AI SYSTEMS</div>
+          <h1>AI can plan. <span>AgentBridge decides what runs.</span></h1>
+          <p class="lede">AgentBridge gives ChatGPT, Claude, Gemini, Grok, local models, or another planner a controlled route to your own computer. The cloud can request work. Your local Node enforces policy, executes what is allowed, validates the result, and returns compact evidence.</p>
+          <div class="actions">
+            <a class="button button-cyan" href="https://agentbridge.clintware.com/">Open AgentBridge Cloud</a>
+            <a class="button button-ghost" href="/tools/agentbridge/">Inspect the architecture</a>
+          </div>
+          <dl class="cw-proof-strip">
+            <div><dt>AUTHORITY</dt><dd>Local Node</dd></div>
+            <div><dt>HANDOFF</dt><dd>.abpack / JSON / MD</dd></div>
+            <div><dt>EVIDENCE</dt><dd>Result Pack</dd></div>
+            <div><dt>STATE</dt><dd>Public alpha</dd></div>
+          </dl>
+        </div>
+
+        <div class="cw-network" data-cw-network aria-label="AgentBridge execution topology">
+          <canvas data-cw-network-canvas aria-hidden="true"></canvas>
+          <div class="cw-network-head"><span>EXECUTION ROUTE</span><span>REQUEST ≠ AUTHORITY</span></div>
+          <div class="cw-local-boundary" aria-hidden="true"><span>LOCAL TRUST BOUNDARY</span></div>
+
+          <div class="cw-net-node cw-net-planner" data-cw-net-node="planner">
+            <span class="cw-node-index">01</span><strong>PLANNER</strong><small>ChatGPT / Claude / Gemini / local</small>
+          </div>
+          <div class="cw-net-node cw-net-broker" data-cw-net-node="broker">
+            <span class="cw-node-index">02</span><strong>CLOUD BROKER</strong><small>route · pair · schedule · request</small>
+          </div>
+          <div class="cw-net-node cw-net-local" data-cw-net-node="local">
+            <span class="cw-node-index">03</span><strong>LOCAL NODE</strong><small>allow · ask · never</small>
+          </div>
+          <div class="cw-net-node cw-net-result" data-cw-net-node="result">
+            <span class="cw-node-index">04</span><strong>RESULT PACK</strong><small>checks · hashes · status · rollback</small>
+          </div>
+
+          <div class="cw-network-rule"><span>CLOUD</span> can request <b>→</b> <span>NODE</span> can refuse</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-ledger-section">
+    <div class="container">
+      <div class="cw-section-intro">
+        <div><span class="cw-section-id">01 / EXECUTION MODEL</span><h2>One handoff format. One local authority. Verifiable output.</h2></div>
+        <p>The expensive model does not need to stay attached to a noisy console. AgentBridge separates planning, execution, and evidence.</p>
+      </div>
+
+      <div class="cw-ledger" role="list" aria-label="AgentBridge execution sequence">
+        <div class="cw-ledger-row" role="listitem"><span>01</span><strong>PLAN</strong><p>A compatible model describes the work once.</p><code>Execution Pack</code></div>
+        <div class="cw-ledger-row" role="listitem"><span>02</span><strong>ROUTE</strong><p>Cloud delivers the request to the paired machine.</p><code>Broker only</code></div>
+        <div class="cw-ledger-row" role="listitem"><span>03</span><strong>DECIDE + RUN</strong><p>The local Node applies capability policy before execution.</p><code>allow / ask / never</code></div>
+        <div class="cw-ledger-row" role="listitem"><span>04</span><strong>PROVE</strong><p>Checks, file hashes, status, rollback state, and compact logs return upstream.</p><code>Result Pack</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-boundary-section">
+    <div class="container">
+      <div class="cw-section-intro">
+        <div><span class="cw-section-id">02 / TRUST BOUNDARY</span><h2>The cloud is deliberately less powerful than the computer it talks to.</h2></div>
+        <p>AgentBridge is not designed as a remote administrator. The boundary is the product.</p>
+      </div>
+
+      <div class="cw-boundary-matrix">
+        <div class="cw-boundary-col">
+          <header><span>CLOUD PLANE</span><small>REQUEST LAYER</small></header>
+          <div><b>PAIR</b><span>Identify approved devices.</span></div>
+          <div><b>ROUTE</b><span>Deliver execution requests.</span></div>
+          <div><b>SCHEDULE</b><span>Dispatch work when due.</span></div>
+          <div><b>OBSERVE</b><span>Receive compact results and evidence.</span></div>
+        </div>
+        <div class="cw-boundary-divider" aria-hidden="true"><span>NO OVERRIDE</span></div>
+        <div class="cw-boundary-col cw-boundary-local">
+          <header><span>LOCAL NODE</span><small>AUTHORITY LAYER</small></header>
+          <div><b>ALLOW</b><span>Run capabilities the owner permits.</span></div>
+          <div><b>ASK</b><span>Require approval for sensitive actions.</span></div>
+          <div><b>NEVER</b><span>Refuse forbidden actions permanently.</span></div>
+          <div><b>VERIFY</b><span>Validate Definition of Done locally.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-product-section">
+    <div class="container">
+      <div class="cw-section-intro">
+        <div><span class="cw-section-id">03 / PRODUCT INDEX</span><h2>Flagship first. Supporting work stays evidence, not noise.</h2></div>
+        <p>Clintware uses smaller products to prove pieces of the same local-first, governed automation thesis.</p>
+      </div>
+
+      <div class="cw-product-index">
+        <a href="/tools/agentbridge/" class="cw-product-row">
+          <span class="cw-product-num">01</span><div><strong>AgentBridge</strong><small>AI execution infrastructure</small></div><p>Portable execution packs, local policy, cross-device routing, scheduling, Contextor, and compact Result Packs.</p><span class="cw-product-state"><i></i> FLAGSHIP ALPHA</span><b>↗</b>
+        </a>
+        <a href="/tools/assemblerer/" class="cw-product-row">
+          <span class="cw-product-num">02</span><div><strong>Assemblerer</strong><small>Operational AI</small></div><p>Governed agent roles, authority boundaries, execution routes, and portable Company Manifests.</p><span class="cw-product-state">MVP</span><b>↗</b>
+        </a>
+        <a href="/tools/plugin-forge/" class="cw-product-row">
+          <span class="cw-product-num">03</span><div><strong>Plugin Forge</strong><small>Local developer tooling</small></div><p>Generate and migrate GIMP plug-ins through a conservative local validation pipeline.</p><span class="cw-product-state">MVP</span><b>↗</b>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-roadmap-section">
+    <div class="container cw-roadmap-grid">
+      <div><span class="cw-section-id">04 / DIRECTION</span><h2>Execution core now. Governed autonomy later.</h2></div>
+      <div class="cw-roadmap-lines">
+        <p><span>NOW</span> Cloud + Node + Execution Pack + Result Pack</p>
+        <p><span>LEARNING</span> Contextor + correction memory + useful evidence extraction</p>
+        <p><span>LATER</span> DLP Gate + model routing + workflow learning + fleet policy</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-final-cta">
+    <div class="container cw-final-line">
+      <div><span class="cw-section-id">PUBLIC ALPHA</span><h2>Pair a machine. Send a safe pack. Inspect what actually happened.</h2></div>
+      <div class="actions"><a class="button button-cyan" href="https://agentbridge.clintware.com/">Open Cloud</a><a class="button button-ghost" href="/tools/agentbridge/">Alpha details</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-row"><span>© <span data-year></span> Clintware / local-first AI systems.</span><span class="footer-links"><a href="/tools/">Products</a><a href="/skills/">Skills</a><a href="/blog/">Build Notes</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></span></div>
+</footer>
+<script src="/assets/clintware.js" defer></script>
+</body>
+</html>
