@@ -8,11 +8,18 @@ const clampText=(value,max=8000)=>String(value??"").slice(0,max);
 const toInt=(value)=>Number.isFinite(Number(value))?Math.trunc(Number(value)):0;
 const boolInt=(value)=>value?1:0;
 
+async function hashText(value){
+  const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(value??"")));
+  return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
 function normalizedEvent(input={}){
   const metadata={...(input.metadata||{})};
   if(input.fixes_bug_ids)metadata.fixes_bug_ids=input.fixes_bug_ids;
   if(input.retry_of)metadata.retry_of=input.retry_of;
   if(input.affected_paths)metadata.affected_paths=input.affected_paths;
+  if(input.resolved_bug_ids)metadata.resolved_bug_ids=input.resolved_bug_ids;
+  if(input.opened_bug_id)metadata.opened_bug_id=input.opened_bug_id;
   return {
     event_id:clampText(input.event_id||crypto.randomUUID(),160),
     ts:toInt(input.ts)||now(),
@@ -75,6 +82,7 @@ function createSchema(sql){
     CREATE INDEX IF NOT EXISTS telemetry_ts_idx ON telemetry_events(ts DESC);
     CREATE INDEX IF NOT EXISTS telemetry_device_idx ON telemetry_events(device_id,ts DESC);
     CREATE INDEX IF NOT EXISTS telemetry_status_idx ON telemetry_events(status,ts DESC);
+    CREATE INDEX IF NOT EXISTS telemetry_type_idx ON telemetry_events(type,ts DESC);
     CREATE TABLE IF NOT EXISTS bugs(
       bug_id TEXT PRIMARY KEY,
       fingerprint TEXT UNIQUE NOT NULL,
@@ -97,18 +105,22 @@ function summarize(sql){
   const row=sql.exec(`SELECT
     COUNT(*) AS events_total,
     SUM(CASE WHEN type='connection_open' THEN 1 ELSE 0 END) AS connections,
+    SUM(CASE WHEN type='connection_close' THEN 1 ELSE 0 END) AS connection_closes,
+    SUM(CASE WHEN type='cloud_send' THEN 1 ELSE 0 END) AS cloud_sends,
+    SUM(CASE WHEN type='cloud_receive' THEN 1 ELSE 0 END) AS node_receives,
+    SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS device_returns,
     SUM(CASE WHEN type='cloud_send' THEN 1 ELSE 0 END) AS sends,
-    SUM(CASE WHEN type IN ('run_complete','error') THEN 1 ELSE 0 END) AS receives,
+    SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS receives,
     SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN 1 ELSE 0 END) AS runs,
     SUM(CASE WHEN type='run_complete' AND status='passed' THEN 1 ELSE 0 END) AS passed,
     SUM(CASE WHEN type='run_complete' AND status='failed' THEN 1 ELSE 0 END) AS failed,
     SUM(CASE WHEN type='run_complete' AND status IN ('denied','approval_required') THEN 1 ELSE 0 END) AS gated_runs,
     SUM(CASE WHEN status='failed' OR type='error' THEN 1 ELSE 0 END) AS errors,
-    COALESCE(SUM(tokens_avoided_est),0) AS tokens_avoided_est,
-    COALESCE(SUM(net_tokens_saved_est),0) AS net_tokens_saved_est,
-    COALESCE(SUM(local_tokens_est),0) AS local_tokens_est,
-    COALESCE(SUM(patch_count),0) AS patches_applied,
-    COALESCE(SUM(changes_count),0) AS files_changed,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN patch_count ELSE 0 END),0) AS patches_applied,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN changes_count ELSE 0 END),0) AS files_changed,
     COALESCE(AVG(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN duration_ms END),0) AS avg_work_session_ms,
     COALESCE(AVG(CASE WHEN type='connection_close' THEN duration_ms END),0) AS avg_connection_session_ms
     FROM telemetry_events`).toArray()[0]||{};
@@ -153,9 +165,22 @@ function upsertBug(sql,event){
 
 export class TelemetryHub extends DurableObject{
   constructor(ctx,env){super(ctx,env);this.env=env;this.sql=ctx.storage.sql;createSchema(this.sql);}
-  async _productEvent(event){
+  async _productEvent(event,openedBugId=null,resolved=[]){
     const product=this.env.PRODUCT_METRICS_HUB.getByName("agentbridge-global");
-    const aggregate={...event,error_message:event.product_bug?event.error_message.slice(0,1000):"",metadata_json:"{}",device_id:"",job_id:event.job_id?"present":"",run_id:""};
+    const aggregate={
+      ...event,
+      event_id:`global:${crypto.randomUUID()}`,
+      device_id:"",
+      run_id:"",
+      job_id:event.job_id?"present":"",
+      error_message:event.product_bug?clampText(event.error_message,1000):"",
+      metadata:{opened_bug_id:openedBugId,resolved_bug_ids:resolved},
+      fixes_bug_ids:undefined,
+      retry_of:undefined,
+      affected_paths:undefined,
+      resolved_bug_ids:resolved,
+      opened_bug_id:openedBugId,
+    };
     await product.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(aggregate)}));
   }
   async _record(input){
@@ -173,7 +198,7 @@ export class TelemetryHub extends DurableObject{
         for(const row of rows){if(resolveBug(this.sql,row.bug_id,event.job_id,event.ts))resolved.push(row.bug_id);}
       }
     }
-    await this._productEvent({...event,opened_bug_id:openedBugId,resolved_bug_ids:resolved});
+    await this._productEvent(event,openedBugId,resolved);
     return {ok:true,bug_id:openedBugId,resolved_bug_ids:resolved};
   }
   async fetch(request){
@@ -187,10 +212,11 @@ export class TelemetryHub extends DurableObject{
       else if(d.job_id)rows=this.sql.exec(`SELECT * FROM telemetry_events WHERE job_id=? ORDER BY ts DESC LIMIT 1`,String(d.job_id)).toArray();
       if(!rows.length)return json({error:'event_not_found'},404);
       const e={...rows[0],product_bug:1,error_kind:rows[0].error_kind||'user_reported'};
-      if(!e.error_fingerprint)e.error_fingerprint=(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(e.error_message||e.event_id))).byteLength?e.event_id.replace(/[^A-Za-z0-9]/g,'').slice(-24):e.event_id;
-      this.sql.exec(`UPDATE telemetry_events SET product_bug=1,error_kind=? WHERE event_id=?`,e.error_kind,e.event_id);
-      const id=upsertBug(this.sql,normalizedEvent(e));
-      await this._productEvent({...normalizedEvent(e),opened_bug_id:id,resolved_bug_ids:[]});
+      if(!e.error_fingerprint)e.error_fingerprint=(await hashText(`${e.error_kind}|${e.error_message||e.event_id}`)).slice(0,24);
+      this.sql.exec(`UPDATE telemetry_events SET product_bug=1,error_kind=?,error_fingerprint=? WHERE event_id=?`,e.error_kind,e.error_fingerprint,e.event_id);
+      const normalized=normalizedEvent({...e,event_id:`bugreport:${e.event_id}:${now()}`});
+      const id=upsertBug(this.sql,normalized);
+      await this._productEvent(normalized,id,[]);
       return json({ok:true,bug_id:id});
     }
     if(request.method==='GET'&&url.pathname==='/report'){
