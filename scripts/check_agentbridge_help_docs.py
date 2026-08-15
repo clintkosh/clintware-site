@@ -47,13 +47,18 @@ def user_facing_changes(changed: set[str]) -> set[str]:
     }
 
 
+def _extract_key_values(text: str, key: str) -> set[str]:
+    # Python uses "id": "x" while compact JS commonly uses id:"x".
+    pattern = rf'(?:["\']{re.escape(key)}["\']|\b{re.escape(key)}\b)\s*:\s*["\']([^"\']+)["\']'
+    return set(re.findall(pattern, text))
+
+
 def extract_ids(text: str) -> set[str]:
-    # Help entries deliberately use stable IDs so Node and Cloud can merge safely.
-    return set(re.findall(r'["\']id["\']\s*:\s*["\']([^"\']+)["\']', text))
+    return _extract_key_values(text, "id")
 
 
 def extract_terms(text: str) -> set[str]:
-    return set(re.findall(r'["\']term["\']\s*:\s*["\']([^"\']+)["\']', text))
+    return _extract_key_values(text, "term")
 
 
 def check_help_topic_parity() -> list[str]:
