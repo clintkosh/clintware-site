@@ -68,10 +68,20 @@ function reportCsv(report){
   return [columns.join(","),...(report.events||[]).map(row=>columns.map(c=>q(row[c])).join(","))].join("\n");
 }
 
+async function canonicalBugBody(telemetry,body){
+  if(body.event_id||!body.job_id)return body;
+  const r=await telemetry.fetch("https://internal/report?status=failed&limit=500");
+  if(!r.ok)return body;
+  const data=await r.json();
+  const event=(data.events||[]).find(e=>e.job_id===body.job_id&&(e.type==="run_complete"||e.type==="error"));
+  return event?{...body,event_id:event.event_id}:body;
+}
+
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"AgentBridge Cloud",version:"0.1.0-alpha.2",time:new Date().toISOString()});
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);
         if(!auth)return json({error:"unauthorized"},401);
@@ -112,7 +122,7 @@ export default{
       }
       if(request.method==="POST"&&url.pathname==="/api/telemetry/report-bug"){
         const auth=await accountContext(request,env);if(!auth)return json({error:"unauthorized"},401);
-        const body=await request.json();
+        const requested=await request.json();const body=await canonicalBugBody(auth.telemetry,requested);
         const r=await auth.telemetry.fetch(new Request("https://internal/report-bug",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}));
         return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
