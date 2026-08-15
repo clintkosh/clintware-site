@@ -35,14 +35,18 @@ jobs:
         run: python -m compileall -q agentbridge-node
       - name: Unit tests
         run: PYTHONPATH=agentbridge-node python -m unittest discover -s agentbridge-node/tests -v
-      - name: CLI doctor
+      - name: CLI doctor and Help Center
         env:
           AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
-        run: agentbridge doctor
+        run: |
+          agentbridge doctor
+          agentbridge help start --no-pager
+          agentbridge help glossary --search Contextor --no-pager
       - name: Local execution smoke test
         env:
           AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
         run: |
+          agentbridge telemetry off
           mkdir -p "${{ runner.temp }}/ab-work"
           python - <<'PY'
           import json, os
@@ -69,12 +73,28 @@ jobs:
       - name: JavaScript syntax
         run: |
           node --check agentbridge-cloud/src/index.js
+          node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/src/telemetry.js
+          node --check agentbridge-cloud/src/help.js
           node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/fluid.js
+          node --check agentbridge-cloud/public/sw.js
       - name: Validate Wrangler config
-        run: node -e 'JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); console.log("wrangler config ok")'
+        run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("entrypoint mismatch"); for(const n of ["TELEMETRY_HUB","PRODUCT_METRICS_HUB","HELP_HUB"]) if(!d.durable_objects.bindings.some(x=>x.name===n)) throw new Error(`missing ${n}`); console.log("wrangler config ok")'
+      - name: Validate compact interface
+        run: |
+          grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html
+          grep -Fq 'Your machines execute.' agentbridge-cloud/public/index.html
+          grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
+          for view in home run automate activity help; do grep -Fq "data-view=\"$view\"" agentbridge-cloud/public/index.html; done
+          grep -Fq 'net_tokens_saved_est' agentbridge-cloud/src/telemetry.js
+          grep -Fq 'bugs_resolved' agentbridge-cloud/src/telemetry.js
+          grep -Fq 'HelpHub' agentbridge-cloud/src/help.js
+          grep -Fq 'styles.css' agentbridge-cloud/public/sw.js
+          grep -Fq 'fluid.js' agentbridge-cloud/public/sw.js
+          grep -Fq "prefers-reduced-motion" agentbridge-cloud/public/styles.css
       - name: Validate public alpha markers
         run: |
-          grep -Fq "All systems relaxed." agentbridge-cloud/public/app.js
           grep -Fq "AgentBridge" public/tools/agentbridge/index.html
           grep -Fq "agentbridge.clintware.com" public/tools/agentbridge/index.html
       - name: Clintware production guardrail
