@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, sys, urllib.parse, urllib.request, urllib.error
+          import json, os, urllib.parse, urllib.request, urllib.error
 
           token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
           domain = os.environ["DOMAIN"]
@@ -37,7 +37,7 @@ jobs:
           headers = {
               "Authorization": f"Bearer {token}",
               "Content-Type": "application/json",
-              "User-Agent": "clintware-email-route/1.0",
+              "User-Agent": "clintware-email-route/1.1",
           }
 
           def call(method, path, payload=None):
@@ -56,22 +56,10 @@ jobs:
           zones = call("GET", "/zones?" + urllib.parse.urlencode({"name": domain, "status": "active"}))["result"]
           if len(zones) != 1:
               raise SystemExit(f"Expected one active Cloudflare zone for {domain}; found {len(zones)}")
-          zone = zones[0]
-          zone_id = zone["id"]
-          account_id = zone["account"]["id"]
+          zone_id = zones[0]["id"]
 
-          addresses = call("GET", f"/accounts/{account_id}/email/routing/addresses?per_page=100")["result"]
-          matching_dest = [a for a in addresses if (a.get("email") or "").lower() == destination.lower()]
-          if not matching_dest:
-              created = call("POST", f"/accounts/{account_id}/email/routing/addresses", {"email": destination})["result"]
-              raise SystemExit(
-                  f"Destination {destination} was added to Cloudflare but is not verified yet. "
-                  "Complete the verification email, then rerun this workflow. "
-                  f"Destination id: {created.get('id','unknown')}"
-              )
-          if not matching_dest[0].get("verified"):
-              raise SystemExit(f"Destination {destination} exists in Cloudflare but is not verified yet")
-
+          # Work only at zone scope. Cloudflare will itself reject an unverified
+          # destination, so account-level address-list access is unnecessary.
           rules = call("GET", f"/zones/{zone_id}/email/routing/rules?per_page=100")["result"]
           existing = None
           for rule in rules:
@@ -106,7 +94,13 @@ jobs:
                   result = call("PUT", f"/zones/{zone_id}/email/routing/rules/{existing['id']}", payload)["result"]
                   print(f"Updated rule {result.get('id')}: {alias} -> {destination}")
           else:
-              result = call("POST", f"/zones/{zone_id}/email/routing/rules", payload)["result"]
+              try:
+                  result = call("POST", f"/zones/{zone_id}/email/routing/rules", payload)["result"]
+              except RuntimeError as exc:
+                  text = str(exc)
+                  if "verified" in text.lower() or "destination" in text.lower():
+                      raise SystemExit(f"Cloudflare rejected the forwarding destination: {text}") from exc
+                  raise
               print(f"Created rule {result.get('id')}: {alias} -> {destination}")
 
           # Verify exact resulting state.
