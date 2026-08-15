@@ -1,3 +1,9 @@
-const CACHE="agentbridge-alpha-v1";
-self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(["/","/app.js","/manifest.webmanifest","/icon.svg"]))));
-self.addEventListener("fetch",e=>{const u=new URL(e.request.url);if(u.pathname.startsWith("/api/")||u.pathname.startsWith("/ws/"))return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});
+const CACHE="agentbridge-alpha-v3";
+const ASSETS=["/","/app.js","/styles.css","/fluid.js","/manifest.webmanifest","/icon.svg"];
+self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()))});
+self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("agentbridge-alpha-")&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
+self.addEventListener("fetch",event=>{
+  const url=new URL(event.request.url);
+  if(event.request.method!=="GET"||url.pathname.startsWith("/api/")||url.pathname.startsWith("/ws/"))return;
+  event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();event.waitUntil(caches.open(CACHE).then(cache=>cache.put(event.request,copy)));return response}).catch(()=>caches.match(event.request).then(hit=>hit||caches.match("/"))));
+});
