@@ -10,7 +10,7 @@ import threading
 from . import __version__
 from .association import install as install_associations
 from .clipboard import watch as clipboard_watch
-from .cloud import daemon as cloud_daemon, pair as cloud_pair, sync_device_schedules_to_local, report_device_schedule_state
+from .cloud import daemon as cloud_daemon, pair as cloud_pair, sync_device_schedules_to_local, report_device_schedule_state, sync_help_center
 from .config import Config, home_dir
 from .executor import rollback
 from .helpdb import load as load_help, page as page_help, render as render_help
@@ -57,7 +57,7 @@ def cmd_rollback(args): _print(rollback(args.run_id,args.workspace))
 
 def cmd_make_pack(args):
     from pathlib import Path
-    manifest=json.loads(Path(args.manifest).read_text(encoding="utf-8")); _print({"created":str(save_abpack(manifest,args.output))})
+    manifest=json.loads(Path(args.manifest).read_text(encoding="utf-8")); _print({"created":str(save_abpack(manifest,args.output)})
 
 def cmd_pair(args):
     cfg=Config.load(); result=cloud_pair(cfg,args.cloud); _print(result); print(f"Enter pairing code {result['pair_code']} at {cfg.data['cloud_url']}")
@@ -75,9 +75,16 @@ def _schedule_after_run(row,result):
 
 def _schedule_sync_loop(cfg):
     import time
+    help_tick=0
     while True:
         try: sync_device_schedules_to_local(cfg)
         except Exception as exc: print(f"Schedule sync unavailable: {exc}")
+        if help_tick<=0:
+            try: sync_help_center(cfg)
+            except Exception as exc: print(f"Help Center sync unavailable: {exc}")
+            help_tick=2
+        else:
+            help_tick-=1
         time.sleep(30)
 
 def cmd_daemon(args):
@@ -120,8 +127,7 @@ def cmd_help_center(args):
     if args.json:
         _print(load_help()); return
     if args.search:
-        text=render_help("all",query=args.search,limit=args.limit)
-        print(text); return
+        print(render_help("all",query=args.search,limit=args.limit)); return
     if args.no_pager:
         print(render_help(args.section,limit=args.limit)); return
     page_help(args.section,limit=args.limit)
