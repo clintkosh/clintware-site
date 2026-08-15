@@ -5,91 +5,156 @@
   document.head.appendChild(ventureStylesheet);
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reducedMotion) {
-    const canvas = document.createElement("canvas");
-    canvas.className = "cw-flow-field";
-    canvas.setAttribute("aria-hidden", "true");
-    document.body.prepend(canvas);
 
-    const ctx = canvas.getContext("2d", { alpha: true });
-    const pointer = {
-      x: innerWidth * 0.68,
-      y: innerHeight * 0.34,
-      tx: innerWidth * 0.68,
-      ty: innerHeight * 0.34,
-    };
+  const network = document.querySelector("[data-cw-network]");
+  const networkCanvas = network?.querySelector("[data-cw-network-canvas]");
+  if (network && networkCanvas) {
+    const ctx = networkCanvas.getContext("2d", { alpha: true });
+    const nodeEls = new Map(
+      [...network.querySelectorAll("[data-cw-net-node]")].map((el) => [el.dataset.cwNetNode, el])
+    );
+    const links = [
+      ["planner", "broker"],
+      ["broker", "local"],
+      ["local", "result"],
+    ];
+    let width = 0;
+    let height = 0;
     let dpr = Math.min(devicePixelRatio || 1, 1.5);
-    let width = innerWidth;
-    let height = innerHeight;
+    let raf = 0;
     let time = 0;
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
 
-    const reset = () => {
-      width = innerWidth;
-      height = innerHeight;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    const resize = () => {
+      const rect = network.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
       dpr = Math.min(devicePixelRatio || 1, 1.5);
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      networkCanvas.width = Math.floor(width * dpr);
+      networkCanvas.height = Math.floor(height * dpr);
+      networkCanvas.style.width = `${width}px`;
+      networkCanvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!pointer.tx && !pointer.ty) {
+        pointer.x = pointer.tx = width * 0.72;
+        pointer.y = pointer.ty = height * 0.28;
+      }
     };
 
-    window.addEventListener("pointermove", (event) => {
-      pointer.tx = event.clientX;
-      pointer.ty = event.clientY;
-    }, { passive: true });
+    const centerOf = (el) => {
+      const panelRect = network.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      return {
+        x: rect.left - panelRect.left + rect.width / 2,
+        y: rect.top - panelRect.top + rect.height / 2,
+      };
+    };
 
-    window.addEventListener("pointerleave", () => {
-      pointer.tx = width * 0.68;
-      pointer.ty = height * 0.34;
-    }, { passive: true });
+    const cubicPoint = (p0, p1, p2, p3, t) => {
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const t2 = t * t;
+      return {
+        x: mt2 * mt * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t2 * t * p3.x,
+        y: mt2 * mt * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t2 * t * p3.y,
+      };
+    };
 
-    window.addEventListener("resize", reset, { passive: true });
-    reset();
+    const controlPoints = (a, b) => {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const mid = { x: a.x + dx * 0.5, y: a.y + dy * 0.5 };
+      const distance = Math.hypot(pointer.x - mid.x, pointer.y - mid.y);
+      const influence = Math.exp(-(distance * distance) / (2 * 220 * 220));
+      let c1;
+      let c2;
 
-    const draw = () => {
-      time += 0.006;
-      pointer.x += (pointer.tx - pointer.x) * 0.055;
-      pointer.y += (pointer.ty - pointer.y) * 0.055;
-      ctx.clearRect(0, 0, width, height);
-
-      const lineCount = width < 700 ? 10 : 18;
-      const top = height * 0.08;
-      const fieldHeight = height * 0.72;
-      const step = width < 700 ? 32 : 26;
-
-      for (let i = 0; i < lineCount; i += 1) {
-        const ratio = lineCount === 1 ? 0 : i / (lineCount - 1);
-        const baseY = top + fieldHeight * ratio;
-        ctx.beginPath();
-
-        for (let x = -step; x <= width + step; x += step) {
-          const wave =
-            Math.sin(x * 0.006 + time * 1.15 + i * 0.41) * 7 +
-            Math.sin(x * 0.0022 - time * 0.7 + i * 0.78) * 4;
-
-          const dx = x - pointer.x;
-          const dy = baseY - pointer.y;
-          const radial = Math.exp(-((dx * dx) / (2 * 250 * 250) + (dy * dy) / (2 * 205 * 205)));
-          const pull = (pointer.y - baseY) * 0.115 * radial;
-          const curl = Math.sin(dx * 0.014 + i * 0.22) * 10 * radial;
-          const y = baseY + wave + pull + curl;
-
-          if (x === -step) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-
-        const emphasis = i % 5 === 0;
-        ctx.strokeStyle = emphasis
-          ? "rgba(168,148,255,0.075)"
-          : "rgba(104,228,246,0.065)";
-        ctx.lineWidth = emphasis ? 0.8 : 0.65;
-        ctx.stroke();
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        c1 = { x: a.x + dx * 0.42, y: a.y };
+        c2 = { x: b.x - dx * 0.42, y: b.y };
+      } else {
+        c1 = { x: a.x, y: a.y + dy * 0.42 };
+        c2 = { x: b.x, y: b.y - dy * 0.42 };
       }
 
-      requestAnimationFrame(draw);
+      const bend = reducedMotion ? 0 : influence * 0.095;
+      c1.x += (pointer.x - c1.x) * bend;
+      c1.y += (pointer.y - c1.y) * bend;
+      c2.x += (pointer.x - c2.x) * bend;
+      c2.y += (pointer.y - c2.y) * bend;
+      return { c1, c2 };
     };
-    requestAnimationFrame(draw);
+
+    const strokeCurve = (a, c1, c2, b) => {
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, b.x, b.y);
+      ctx.stroke();
+    };
+
+    const draw = () => {
+      if (!width || !height) resize();
+      time += reducedMotion ? 0 : 0.014;
+      pointer.x += (pointer.tx - pointer.x) * 0.075;
+      pointer.y += (pointer.ty - pointer.y) * 0.075;
+      ctx.clearRect(0, 0, width, height);
+
+      links.forEach(([from, to], index) => {
+        const fromEl = nodeEls.get(from);
+        const toEl = nodeEls.get(to);
+        if (!fromEl || !toEl) return;
+        const a = centerOf(fromEl);
+        const b = centerOf(toEl);
+        const { c1, c2 } = controlPoints(a, b);
+
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(205,199,184,0.17)";
+        strokeCurve(a, c1, c2, b);
+
+        ctx.setLineDash([4, 8]);
+        ctx.lineDashOffset = -(time * 24 + index * 7);
+        ctx.lineWidth = 1.1;
+        ctx.strokeStyle = index === 1 ? "rgba(241,184,75,0.55)" : "rgba(241,184,75,0.34)";
+        strokeCurve(a, c1, c2, b);
+        ctx.setLineDash([]);
+
+        const t = reducedMotion ? 0.64 : (time * 0.12 + index * 0.29) % 1;
+        const dot = cubicPoint(a, c1, c2, b, t);
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, index === 1 ? 2.2 : 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = index === 1 ? "rgba(255,217,143,0.95)" : "rgba(241,184,75,0.78)";
+        ctx.fill();
+      });
+
+      if (!reducedMotion) raf = requestAnimationFrame(draw);
+    };
+
+    network.addEventListener("pointermove", (event) => {
+      const rect = network.getBoundingClientRect();
+      pointer.tx = clamp(event.clientX - rect.left, 0, rect.width);
+      pointer.ty = clamp(event.clientY - rect.top, 0, rect.height);
+      network.style.setProperty("--px", `${(pointer.tx / rect.width) * 100}%`);
+      network.style.setProperty("--py", `${(pointer.ty / rect.height) * 100}%`);
+    }, { passive: true });
+
+    network.addEventListener("pointerleave", () => {
+      pointer.tx = width * 0.72;
+      pointer.ty = height * 0.28;
+      network.style.setProperty("--px", "72%");
+      network.style.setProperty("--py", "28%");
+    }, { passive: true });
+
+    window.addEventListener("resize", resize, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(resize).observe(network);
+    resize();
+    draw();
+
+    window.addEventListener("pagehide", () => {
+      if (raf) cancelAnimationFrame(raf);
+    }, { once: true });
   }
 
   const year = document.querySelector("[data-year]");
