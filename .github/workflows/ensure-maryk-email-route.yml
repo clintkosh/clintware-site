@@ -1,0 +1,131 @@
+name: Ensure maryk Clintware email route
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ensure-maryk-email-route.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DOMAIN: clintware.com
+      ALIAS: maryk@clintware.com
+      DESTINATION: clint.kosh@gmail.com
+    steps:
+      - name: Ensure Cloudflare Email Routing alias
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, sys, urllib.parse, urllib.request, urllib.error
+
+          token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+          domain = os.environ["DOMAIN"]
+          alias = os.environ["ALIAS"]
+          destination = os.environ["DESTINATION"]
+          if not token:
+              raise SystemExit("CLOUDFLARE_API_TOKEN is not configured")
+
+          base = "https://api.cloudflare.com/client/v4"
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Content-Type": "application/json",
+              "User-Agent": "clintware-email-route/1.0",
+          }
+
+          def call(method, path, payload=None):
+              data = None if payload is None else json.dumps(payload).encode()
+              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      body = json.load(resp)
+              except urllib.error.HTTPError as exc:
+                  raw = exc.read().decode("utf-8", "replace")
+                  raise RuntimeError(f"Cloudflare API {method} {path} returned HTTP {exc.code}: {raw[:1200]}") from exc
+              if not body.get("success"):
+                  raise RuntimeError(f"Cloudflare API {method} {path} failed: {body.get('errors')}")
+              return body
+
+          zones = call("GET", "/zones?" + urllib.parse.urlencode({"name": domain, "status": "active"}))["result"]
+          if len(zones) != 1:
+              raise SystemExit(f"Expected one active Cloudflare zone for {domain}; found {len(zones)}")
+          zone = zones[0]
+          zone_id = zone["id"]
+          account_id = zone["account"]["id"]
+
+          addresses = call("GET", f"/accounts/{account_id}/email/routing/addresses?per_page=100")["result"]
+          matching_dest = [a for a in addresses if (a.get("email") or "").lower() == destination.lower()]
+          if not matching_dest:
+              created = call("POST", f"/accounts/{account_id}/email/routing/addresses", {"email": destination})["result"]
+              raise SystemExit(
+                  f"Destination {destination} was added to Cloudflare but is not verified yet. "
+                  "Complete the verification email, then rerun this workflow. "
+                  f"Destination id: {created.get('id','unknown')}"
+              )
+          if not matching_dest[0].get("verified"):
+              raise SystemExit(f"Destination {destination} exists in Cloudflare but is not verified yet")
+
+          rules = call("GET", f"/zones/{zone_id}/email/routing/rules?per_page=100")["result"]
+          existing = None
+          for rule in rules:
+              for matcher in rule.get("matchers") or []:
+                  if (matcher.get("type") == "literal" and matcher.get("field") == "to" and
+                      (matcher.get("value") or "").lower() == alias.lower()):
+                      existing = rule
+                      break
+              if existing:
+                  break
+
+          desired_actions = [{"type": "forward", "value": [destination]}]
+          desired_matchers = [{"type": "literal", "field": "to", "value": alias}]
+          payload = {
+              "name": f"Forward {alias} to {destination}",
+              "enabled": True,
+              "priority": 0,
+              "actions": desired_actions,
+              "matchers": desired_matchers,
+              "source": "api",
+          }
+
+          if existing:
+              current_targets = []
+              for action in existing.get("actions") or []:
+                  if action.get("type") == "forward":
+                      current_targets.extend(action.get("value") or [])
+              exact = existing.get("enabled") is True and [x.lower() for x in current_targets] == [destination.lower()]
+              if exact:
+                  print(f"Already configured: {alias} -> {destination}")
+              else:
+                  result = call("PUT", f"/zones/{zone_id}/email/routing/rules/{existing['id']}", payload)["result"]
+                  print(f"Updated rule {result.get('id')}: {alias} -> {destination}")
+          else:
+              result = call("POST", f"/zones/{zone_id}/email/routing/rules", payload)["result"]
+              print(f"Created rule {result.get('id')}: {alias} -> {destination}")
+
+          # Verify exact resulting state.
+          rules = call("GET", f"/zones/{zone_id}/email/routing/rules?per_page=100")["result"]
+          verified = False
+          for rule in rules:
+              is_alias = any(
+                  m.get("type") == "literal" and m.get("field") == "to" and (m.get("value") or "").lower() == alias.lower()
+                  for m in (rule.get("matchers") or [])
+              )
+              targets = [
+                  v.lower()
+                  for a in (rule.get("actions") or []) if a.get("type") == "forward"
+                  for v in (a.get("value") or [])
+              ]
+              if is_alias and rule.get("enabled") is True and targets == [destination.lower()]:
+                  verified = True
+                  break
+          if not verified:
+              raise SystemExit("Post-write verification failed: exact maryk forwarding rule not found")
+          print(f"VERIFIED: {alias} -> {destination}")
+          PY
