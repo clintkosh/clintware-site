@@ -1,0 +1,26 @@
+name: Inspect Clintware mail DNS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-clintware-mail-dns.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve live mail DNS
+        run: |
+          set -euo pipefail
+          echo '=== NS ==='
+          dig +short NS clintware.com
+          echo '=== MX ==='
+          dig clintware.com MX +noall +answer
+          echo '=== TXT ==='
+          dig clintware.com TXT +noall +answer
+          echo '=== DMARC ==='
+          dig _dmarc.clintware.com TXT +noall +answer
