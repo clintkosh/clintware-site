@@ -12,22 +12,16 @@
     document.body.prepend(canvas);
 
     const ctx = canvas.getContext("2d", { alpha: true });
-    const pointer = { x: innerWidth * 0.68, y: innerHeight * 0.34, tx: innerWidth * 0.68, ty: innerHeight * 0.34 };
+    const pointer = {
+      x: innerWidth * 0.68,
+      y: innerHeight * 0.34,
+      tx: innerWidth * 0.68,
+      ty: innerHeight * 0.34,
+    };
     let dpr = Math.min(devicePixelRatio || 1, 1.5);
     let width = innerWidth;
     let height = innerHeight;
-    let particles = [];
-    let frame = 0;
-
-    const makeParticle = (index) => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      px: 0,
-      py: 0,
-      speed: 0.28 + Math.random() * 0.42,
-      phase: Math.random() * Math.PI * 2,
-      seed: index * 0.37 + Math.random() * 4,
-    });
+    let time = 0;
 
     const reset = () => {
       width = innerWidth;
@@ -38,52 +32,60 @@
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.max(32, Math.min(78, Math.floor(width / 18)));
-      particles = Array.from({ length: count }, (_, index) => makeParticle(index));
     };
 
-    const movePointer = (event) => {
+    window.addEventListener("pointermove", (event) => {
       pointer.tx = event.clientX;
       pointer.ty = event.clientY;
-    };
-    window.addEventListener("pointermove", movePointer, { passive: true });
+    }, { passive: true });
+
+    window.addEventListener("pointerleave", () => {
+      pointer.tx = width * 0.68;
+      pointer.ty = height * 0.34;
+    }, { passive: true });
+
     window.addEventListener("resize", reset, { passive: true });
     reset();
 
     const draw = () => {
-      frame += 0.006;
-      pointer.x += (pointer.tx - pointer.x) * 0.045;
-      pointer.y += (pointer.ty - pointer.y) * 0.045;
+      time += 0.006;
+      pointer.x += (pointer.tx - pointer.x) * 0.055;
+      pointer.y += (pointer.ty - pointer.y) * 0.055;
       ctx.clearRect(0, 0, width, height);
-      ctx.lineWidth = 0.72;
 
-      particles.forEach((p, index) => {
-        p.px = p.x;
-        p.py = p.y;
+      const lineCount = width < 700 ? 10 : 18;
+      const top = height * 0.08;
+      const fieldHeight = height * 0.72;
+      const step = width < 700 ? 32 : 26;
 
-        const dx = pointer.x - p.x;
-        const dy = pointer.y - p.y;
-        const dist = Math.max(80, Math.hypot(dx, dy));
-        const influence = Math.min(1, 250 / dist);
-        const base = Math.sin((p.y / Math.max(height, 1)) * 4.8 + frame * 2 + p.seed) * 0.62;
-        const curl = Math.cos((p.x / Math.max(width, 1)) * 3.7 - frame * 1.3 + p.phase) * 0.42;
-        const angle = base + curl + Math.atan2(dy, dx) * influence * 0.17;
-
-        p.x += Math.cos(angle) * p.speed * (1 + influence * 0.35);
-        p.y += Math.sin(angle) * p.speed * (1 + influence * 0.35);
-
-        if (p.x < -20) p.x = width + 20;
-        if (p.x > width + 20) p.x = -20;
-        if (p.y < -20) p.y = height + 20;
-        if (p.y > height + 20) p.y = -20;
-
-        const alpha = 0.07 + influence * 0.13 + (index % 5 === 0 ? 0.035 : 0);
-        ctx.strokeStyle = `rgba(104,228,246,${alpha.toFixed(3)})`;
+      for (let i = 0; i < lineCount; i += 1) {
+        const ratio = lineCount === 1 ? 0 : i / (lineCount - 1);
+        const baseY = top + fieldHeight * ratio;
         ctx.beginPath();
-        ctx.moveTo(p.px, p.py);
-        ctx.lineTo(p.x, p.y);
+
+        for (let x = -step; x <= width + step; x += step) {
+          const wave =
+            Math.sin(x * 0.006 + time * 1.15 + i * 0.41) * 7 +
+            Math.sin(x * 0.0022 - time * 0.7 + i * 0.78) * 4;
+
+          const dx = x - pointer.x;
+          const dy = baseY - pointer.y;
+          const radial = Math.exp(-((dx * dx) / (2 * 250 * 250) + (dy * dy) / (2 * 205 * 205)));
+          const pull = (pointer.y - baseY) * 0.115 * radial;
+          const curl = Math.sin(dx * 0.014 + i * 0.22) * 10 * radial;
+          const y = baseY + wave + pull + curl;
+
+          if (x === -step) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+
+        const emphasis = i % 5 === 0;
+        ctx.strokeStyle = emphasis
+          ? "rgba(168,148,255,0.075)"
+          : "rgba(104,228,246,0.065)";
+        ctx.lineWidth = emphasis ? 0.8 : 0.65;
         ctx.stroke();
-      });
+      }
 
       requestAnimationFrame(draw);
     };
