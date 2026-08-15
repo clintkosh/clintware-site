@@ -1,19 +1,33 @@
 import core, { AccountHub, DeviceHub, PairingHub, ScheduleHub } from "./index.js";
 import { TelemetryHub, ProductMetricsHub } from "./telemetry.js";
+import { HelpHub } from "./help.js";
 
-export { AccountHub, DeviceHub, PairingHub, ScheduleHub, TelemetryHub, ProductMetricsHub };
+export { AccountHub, DeviceHub, PairingHub, ScheduleHub, TelemetryHub, ProductMetricsHub, HelpHub };
 
 const JSON_HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json=(value,status=200,extra={})=>new Response(JSON.stringify(value),{status,headers:{...JSON_HEADERS,...extra}});
 const bearer=(request)=>{const h=request.headers.get("authorization")||"";return h.toLowerCase().startsWith("bearer ")?h.slice(7).trim():"";};
 const sha256=async(s)=>{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");};
-const accountContext=async(request,env)=>{const token=bearer(request);if(!token)return null;const accountId=await sha256(token);return{token,accountId,telemetry:env.TELEMETRY_HUB.getByName(accountId)};};
+const accountContext=async(request,env)=>{
+  const token=bearer(request);if(!token)return null;
+  const accountId=await sha256(token);
+  return{
+    token,accountId,
+    telemetry:env.TELEMETRY_HUB.getByName(accountId),
+    help:env.HELP_HUB.getByName(accountId),
+    account:env.ACCOUNT_HUB.getByName(accountId)
+  };
+};
 
 async function deviceContext(request,env,body){
   const deviceId=String(body?.device_id||"");const token=bearer(request);if(!deviceId||!token)return null;
   const device=env.DEVICE_HUB.getByName(deviceId);const info=await(await device.fetch("https://internal/info")).json();
   if(!info.token_hash||!info.account_id||await sha256(token)!==info.token_hash)return null;
-  return{deviceId,accountId:info.account_id,telemetry:env.TELEMETRY_HUB.getByName(info.account_id)};
+  return{
+    deviceId,accountId:info.account_id,
+    telemetry:env.TELEMETRY_HUB.getByName(info.account_id),
+    help:env.HELP_HUB.getByName(info.account_id)
+  };
 }
 
 async function reportJson(stub,path){
@@ -35,6 +49,22 @@ export default{
         if(!auth)return json({error:"unauthorized"},401);
         const event={...(body.event||{}),device_id:auth.deviceId};
         const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));
+        return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
+      }
+      if(request.method==="POST"&&url.pathname==="/api/device/help/sync"){
+        const body=await request.json();const auth=await deviceContext(request,env,body);
+        if(!auth)return json({error:"unauthorized"},401);
+        const r=await auth.help.fetch(new Request("https://internal/sync",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({help:body.help||{}})}));
+        return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
+      }
+      if(request.method==="GET"&&url.pathname==="/api/help"){
+        const auth=await accountContext(request,env);if(!auth)return json({error:"unauthorized"},401);
+        return reportJson(auth.help,"/state");
+      }
+      if(request.method==="POST"&&url.pathname==="/api/help/sync"){
+        const auth=await accountContext(request,env);if(!auth)return json({error:"unauthorized"},401);
+        const body=await request.json();
+        const r=await auth.help.fetch(new Request("https://internal/sync",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({help:body.help||body||{}})}));
         return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
       if(request.method==="GET"&&url.pathname==="/api/telemetry/summary"){
@@ -78,7 +108,7 @@ export default{
       }
       return response;
     }catch(error){
-      console.error(JSON.stringify({event:"telemetry_wrapper_error",path:url.pathname,error:String(error),stack:error?.stack}));
+      console.error(JSON.stringify({event:"control_plane_error",path:url.pathname,error:String(error),stack:error?.stack}));
       return json({error:"internal_error",message:String(error)},500);
     }
   }
