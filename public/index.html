@@ -5,7 +5,7 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="AgentBridge reduces paid LLM token load by moving execution and log handling to your own computer, then returning only compact, useful results to the model.">
+  <meta name="description" content="AgentBridge reduces paid LLM token load by moving execution and log handling to your own computer, then returning compact results to the model.">
   <meta name="theme-color" content="#07090d">
   <link rel="canonical" href="https://www.clintware.com/">
   <title>Clintware | AgentBridge</title>
@@ -24,94 +24,88 @@
 </header>
 
 <main>
-  <section class="cw-simple-hero">
-    <div class="container">
-      <div class="cw-hero-rule" aria-hidden="true"></div>
+  <section class="cw-editorial-hero">
+    <div class="container cw-editorial-grid">
       <div class="cw-simple-hero-copy">
-        <div class="cw-alpha-pill"><span class="cw-live-dot"></span> AgentBridge public alpha · Windows · macOS · Linux</div>
-        <h1>Give AI the task. <span>Keep the token-heavy work local.</span></h1>
-        <p class="lede">AgentBridge lets the LLM plan once, then moves execution, retries, testing, and noisy logs onto your computer. Contextor reduces the output before it goes back, so the model receives the result it needs instead of a running transcript of the work.</p>
+        <div class="cw-editorial-kicker">Local execution infrastructure for AI</div>
+        <h1>Use the model for judgment. <span>Keep the heavy work on your machine.</span></h1>
+        <p class="lede">AgentBridge takes execution, retries, testing, and raw logs out of the paid LLM loop. Your computer does the repeatable work locally. Contextor compacts the output. The model receives only the result and evidence it needs for the next decision.</p>
         <div class="actions cw-hero-actions">
           <a class="button button-cyan" href="https://agentbridge.clintware.com/">Open AgentBridge</a>
-          <a class="button button-ghost" href="/tools/agentbridge/">See how token offload works</a>
+          <a class="button button-ghost" href="/tools/agentbridge/">See the execution model</a>
         </div>
-        <div class="cw-hero-proof" aria-label="AgentBridge core value">
-          <span><b>Plan once</b> with the LLM</span>
-          <span><b>Execute locally</b> on your machine</span>
-          <span><b>Return less</b> through Contextor</span>
-        </div>
+        <div class="cw-alpha-line"><i></i> Public alpha · Windows · macOS · Linux</div>
       </div>
 
-      <div class="cw-demo-wrap" aria-label="AgentBridge low-context execution example">
+      <div class="cw-demo-wrap" aria-label="AgentBridge execution example">
         <div class="cw-demo-shell">
           <div class="cw-demo-top">
             <div class="cw-window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-            <span>agentbridge / execution-042</span>
-            <span class="cw-demo-status"><i></i> local node connected</span>
+            <span>agentbridge / local-session-042</span>
+            <span class="cw-demo-status"><i></i> node connected</span>
           </div>
           <div class="cw-demo-body">
-            <div class="cw-demo-route" aria-label="AgentBridge execution route">
-              <article><small>01</small><strong>LLM</strong><span>Plan + definition of done</span></article>
-              <b aria-hidden="true">→</b>
-              <article><small>02</small><strong>AgentBridge</strong><span>Execution Pack</span></article>
-              <b aria-hidden="true">→</b>
-              <article class="is-local"><small>03</small><strong>Local Node</strong><span>Run · retry · test</span></article>
-              <b aria-hidden="true">→</b>
-              <article class="is-result"><small>04</small><strong>Result Pack</strong><span>Useful evidence only</span></article>
+            <div class="cw-editorial-demo-title">
+              <div><small>Execution path</small><strong>One planning request. Local work. Compact return.</strong></div>
+              <span class="cw-demo-status"><i></i> Contextor active</span>
             </div>
 
-            <div class="cw-demo-console">
-              <div class="cw-console-head"><span>LOCAL EXECUTION</span><span>CONTEXTOR ACTIVE</span></div>
-              <div class="cw-console-lines" aria-hidden="true">
-                <span style="--w:86%"></span><span style="--w:67%"></span><span style="--w:92%"></span><span style="--w:54%"></span><span style="--w:78%"></span><span style="--w:43%"></span>
+            <div class="cw-editorial-route">
+              <article><small>01 / PLAN</small><strong>LLM</strong><span>Task, constraints, definition of done.</span></article>
+              <article><small>02 / ROUTE</small><strong>AgentBridge</strong><span>Packages the work for the local Node.</span></article>
+              <article><small>03 / EXECUTE</small><strong>Local Node</strong><span>Commands, files, retries, tests, verification.</span></article>
+              <article><small>04 / RETURN</small><strong>Result Pack</strong><span>Outcome, evidence, useful errors, next decision.</span></article>
+            </div>
+
+            <div class="cw-editorial-telemetry">
+              <div class="cw-telemetry-log">
+                <div class="cw-telemetry-label"><span>LOCAL OUTPUT</span><span>NOT SENT RAW</span></div>
+                <div class="cw-console-lines" aria-hidden="true">
+                  <span style="--w:88%"></span><span style="--w:62%"></span><span style="--w:94%"></span><span style="--w:51%"></span><span style="--w:79%"></span><span style="--w:44%"></span><span style="--w:71%"></span>
+                </div>
               </div>
-              <div class="cw-token-meter">
-                <div><span>raw local output</span><strong>12.4k</strong><i class="cw-meter-long"></i></div>
-                <div><span>returned to model</span><strong>2.1k</strong><i class="cw-meter-short"></i></div>
+              <div class="cw-editorial-meter">
+                <small>Context reduction</small>
+                <strong>Measured</strong>
+                <span>AgentBridge reports actual token savings rather than promising a fixed percentage.</span>
               </div>
-              <p>Illustrative flow. AgentBridge measures actual token savings rather than promising a fixed percentage.</p>
             </div>
           </div>
         </div>
       </div>
-      <div class="cw-hero-rule cw-hero-rule-bottom" aria-hidden="true"></div>
-    </div>
-  </section>
 
-  <section class="cw-simple-section">
-    <div class="container">
-      <div class="cw-centered-heading">
-        <span class="section-kicker">Why AgentBridge</span>
-        <h2>Use expensive model context for reasoning, not terminal noise.</h2>
-        <p>The core loop is intentionally simple. The model decides what should happen. Your machine performs the repeatable work. The model gets a compact result when another decision is needed.</p>
-      </div>
-
-      <div class="cw-three-up">
-        <article class="cw-simple-card accent-cyan">
-          <span class="cw-card-num">01</span>
-          <h3>Plan once</h3>
-          <p>The LLM sends the task, constraints, and definition of done instead of staying attached to every command.</p>
-        </article>
-        <article class="cw-simple-card accent-violet">
-          <span class="cw-card-num">02</span>
-          <h3>Run locally</h3>
-          <p>AgentBridge handles allowed commands, file operations, checks, retries, and verification on your own machine.</p>
-        </article>
-        <article class="cw-simple-card accent-green">
-          <span class="cw-card-num">03</span>
-          <h3>Return what matters</h3>
-          <p>Contextor compacts repetitive output into a Result Pack focused on evidence, exceptions, and the next decision.</p>
-        </article>
+      <div class="cw-hero-facts" aria-label="AgentBridge summary">
+        <div><small>MODEL ROLE</small><strong>Reasoning and judgment</strong></div>
+        <div><small>MACHINE ROLE</small><strong>Execution and verification</strong></div>
+        <div><small>RETURN PATH</small><strong>Compacted Result Pack</strong></div>
+        <div><small>ECONOMIC GOAL</small><strong>Lower paid context load</strong></div>
       </div>
     </div>
   </section>
 
-  <section class="cw-orbit-section">
+  <section class="cw-editorial-section">
+    <div class="container cw-story-grid">
+      <div class="cw-story-index">01 / THE PROBLEM</div>
+      <div class="cw-story-copy">
+        <h2>LLMs are expensive places to stream routine machine work.</h2>
+        <p>When an AI service stays attached to every command, log line, retry, and test result, context grows even when no new reasoning is required.</p>
+        <p>AgentBridge separates the part that needs intelligence from the part that simply needs execution.</p>
+      </div>
+      <div class="cw-story-detail">
+        <div class="cw-story-row"><b>01</b><div><strong>Plan once</strong><span>The model sends the task, constraints, and completion criteria.</span></div></div>
+        <div class="cw-story-row"><b>02</b><div><strong>Work locally</strong><span>The Node performs allowed commands, file operations, retries, tests, and checks without sending every intermediate step back upstream.</span></div></div>
+        <div class="cw-story-row"><b>03</b><div><strong>Compress the noise</strong><span>Contextor removes repetitive or low-value output before the return trip.</span></div></div>
+        <div class="cw-story-row"><b>04</b><div><strong>Reason again only when needed</strong><span>The LLM receives a concise Result Pack focused on the next decision.</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-feature-stage">
     <div class="container">
       <div class="cw-centered-heading cw-light-heading">
         <span class="section-kicker">One execution layer</span>
-        <h2>Keep the model smart. Keep the machine busy.</h2>
-        <p>AgentBridge sits between AI planning and local execution so the two can work together without turning every local action into paid conversational context.</p>
+        <h2>Built between AI planning and the computer doing the work.</h2>
+        <p>The model stays focused on reasoning. AgentBridge coordinates local execution, compaction, policy, and evidence without turning the cloud model into an unrestricted remote administrator.</p>
       </div>
 
       <div class="cw-orbit-wrap" aria-label="AgentBridge execution ecosystem">
@@ -126,27 +120,42 @@
       </div>
 
       <div class="cw-feature-grid">
-        <article><span>01</span><h3>Token offload</h3><p>Move repetitive execution and raw logs out of the paid model loop.</p></article>
-        <article><span>02</span><h3>Local authority</h3><p>The local Node remains the final authority over what actually runs.</p></article>
-        <article><span>03</span><h3>Contextor</h3><p>Deterministic and optional local-model compaction reduces low-value output.</p></article>
-        <article><span>04</span><h3>Result Packs</h3><p>Return outcomes, hashes, useful errors, evidence, and completion state.</p></article>
-        <article><span>05</span><h3>Cross-platform</h3><p>Designed for Windows, macOS, and Linux rather than one hosted sandbox.</p></article>
-        <article><span>06</span><h3>Measured savings</h3><p>Telemetry shows actual context reduction instead of a marketing estimate.</p></article>
+        <article><span>01</span><h3>Token offload</h3><p>Keep repetitive execution and raw logs outside the paid model context.</p></article>
+        <article><span>02</span><h3>Local authority</h3><p>The Node remains the final authority over what is allowed to run.</p></article>
+        <article><span>03</span><h3>Contextor</h3><p>Compact deterministic output locally, with optional local-model assistance.</p></article>
+        <article><span>04</span><h3>Result Packs</h3><p>Return completion state, hashes, evidence, useful errors, and next actions.</p></article>
+        <article><span>05</span><h3>Cross-platform</h3><p>Designed around Windows, macOS, and Linux rather than a single hosted sandbox.</p></article>
+        <article><span>06</span><h3>Measured savings</h3><p>Track real context reduction and token savings rather than using a marketing estimate.</p></article>
       </div>
     </div>
   </section>
 
-  <section class="cw-simple-section">
+  <section class="cw-editorial-section is-dark">
+    <div class="container cw-story-grid">
+      <div class="cw-story-index">02 / TRUST</div>
+      <div class="cw-story-copy">
+        <h2>Local execution does not mean surrendering local control.</h2>
+        <p>AgentBridge can route work from a cloud planner, but the local Node remains the authority that decides what actually runs.</p>
+      </div>
+      <div class="cw-story-detail">
+        <div class="cw-story-row"><b>CLOUD</b><div><strong>Requests work</strong><span>Plans, routes, schedules, and submits execution requests.</span></div></div>
+        <div class="cw-story-row"><b>LOCAL</b><div><strong>Applies policy</strong><span>Always / ask / never policy stays with the device.</span></div></div>
+        <div class="cw-story-row"><b>NODE</b><div><strong>Executes or refuses</strong><span>A remote approval cannot override a local “never” decision.</span></div></div>
+        <div class="cw-story-row"><b>RESULT</b><div><strong>Returns evidence</strong><span>The planner receives compact proof of what happened rather than unrestricted control.</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cw-direction">
     <div class="container">
-      <div class="cw-centered-heading">
-        <span class="section-kicker">Product direction</span>
-        <h2>Start with token-efficient execution. Improve every future handoff.</h2>
-        <p>The alpha already executes and compacts locally. The next layer learns which corrections, evidence, and context are useful for each kind of task so future exchanges can become smaller and more relevant.</p>
+      <div class="cw-direction-head">
+        <div><span class="section-kicker">Product direction</span><h2>Start with efficient execution. Improve the handoff over time.</h2></div>
+        <p>The current alpha already executes and compacts locally. The next layer learns which corrections, evidence, and context are actually useful for each type of task so future exchanges can become smaller and more relevant.</p>
       </div>
       <div class="cw-progress-strip">
-        <div><small>NOW</small><strong>Local execution</strong><span>Execution Packs, local policy, testing, rollback evidence</span></div>
-        <div><small>NOW</small><strong>Context reduction</strong><span>Compaction plus token-savings telemetry</span></div>
-        <div><small>NEXT</small><strong>Adaptive handoffs</strong><span>Learn useful context, corrections, and repeatable workflows</span></div>
+        <div><small>NOW</small><strong>Local execution</strong><span>Execution Packs, policy, testing, scheduling, rollback evidence.</span></div>
+        <div><small>NOW</small><strong>Context reduction</strong><span>Compaction plus token-savings telemetry.</span></div>
+        <div><small>NEXT</small><strong>Adaptive handoffs</strong><span>Learn useful context, corrections, and repeatable workflows.</span></div>
       </div>
     </div>
   </section>
@@ -155,7 +164,7 @@
     <div class="container">
       <div class="cw-centered-heading">
         <span class="section-kicker">Built by Clintware</span>
-        <h2>AgentBridge is the flagship. The rest are proof that the execution model works.</h2>
+        <h2>AgentBridge is the flagship. Supporting products prove the operating model.</h2>
       </div>
       <div class="cw-product-cards">
         <a class="cw-product-card is-flagship" href="/tools/agentbridge/"><span>PUBLIC ALPHA</span><h3>AgentBridge</h3><p>Local execution, token offload, policy, Contextor, Result Packs, and scheduling.</p><b>Explore AgentBridge →</b></a>
