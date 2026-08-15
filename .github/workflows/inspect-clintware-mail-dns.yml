@@ -24,3 +24,27 @@ jobs:
           dig clintware.com TXT +noall +answer
           echo '=== DMARC ==='
           dig _dmarc.clintware.com TXT +noall +answer
+
+      - name: Probe maryk recipient without sending a message
+        shell: python
+        run: |
+          import smtplib
+          host = "route1.mx.cloudflare.net"
+          recipient = "maryk@clintware.com"
+          try:
+              with smtplib.SMTP(host, 25, timeout=12) as smtp:
+                  smtp.ehlo("probe.clintware.com")
+                  code, msg = smtp.mail("probe@example.com")
+                  print("MAIL FROM", code, msg.decode(errors="replace"))
+                  code, msg = smtp.rcpt(recipient)
+                  text = msg.decode(errors="replace")
+                  print("RCPT TO", code, text)
+                  smtp.rset()
+                  if 200 <= code < 300:
+                      print(f"RECIPIENT_ACCEPTED: {recipient}")
+                  elif 500 <= code < 600:
+                      print(f"RECIPIENT_REJECTED: {recipient}")
+                  else:
+                      raise SystemExit(f"Inconclusive SMTP recipient result: {code} {text}")
+          except OSError as exc:
+              raise SystemExit(f"SMTP_CONNECT_FAILED: {exc}")
