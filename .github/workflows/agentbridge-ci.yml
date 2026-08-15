@@ -1,0 +1,96 @@
+name: AgentBridge Alpha CI
+
+on:
+  pull_request:
+    paths:
+      - "agentbridge-node/**"
+      - "agentbridge-cloud/**"
+      - "agentbridge-mobile/**"
+      - "public/tools/agentbridge/**"
+      - ".github/workflows/agentbridge-*.yml"
+  push:
+    branches: [main]
+    paths:
+      - "agentbridge-node/**"
+      - "agentbridge-cloud/**"
+      - "agentbridge-mobile/**"
+      - "public/tools/agentbridge/**"
+      - ".github/workflows/agentbridge-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install AgentBridge Node
+        run: python -m pip install ./agentbridge-node
+      - name: Compile Python
+        run: python -m compileall -q agentbridge-node
+      - name: Unit tests
+        run: PYTHONPATH=agentbridge-node python -m unittest discover -s agentbridge-node/tests -v
+      - name: CLI doctor
+        env:
+          AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
+        run: agentbridge doctor
+      - name: Local execution smoke test
+        env:
+          AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
+        run: |
+          mkdir -p "${{ runner.temp }}/ab-work"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'hello.json'
+          w=Path(os.environ['RUNNER_TEMP'])/'ab-work'
+          p.write_text(json.dumps({
+            'agentbridge':'1.0','title':'CI smoke','workspace':str(w),
+            'permissions':['file.write'],
+            'steps':[{'type':'write_file','path':'hello.txt','content':'AgentBridge alpha'}],
+            'definition_of_done':[{'type':'file_contains','path':'hello.txt','text':'AgentBridge'}]
+          }))
+          PY
+          agentbridge run "${{ runner.temp }}/hello.json" --approve-all
+          grep -Fq "AgentBridge alpha" "${{ runner.temp }}/ab-work/hello.txt"
+
+  cloud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JavaScript syntax
+        run: |
+          node --check agentbridge-cloud/src/index.js
+          node --check agentbridge-cloud/public/app.js
+      - name: Validate Wrangler config
+        run: node -e 'JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); console.log("wrangler config ok")'
+      - name: Validate public alpha markers
+        run: |
+          grep -Fq "All systems relaxed." agentbridge-cloud/public/app.js
+          grep -Fq "AgentBridge" public/tools/agentbridge/index.html
+          grep -Fq "agentbridge.clintware.com" public/tools/agentbridge/index.html
+      - name: Clintware production guardrail
+        run: |
+          python3 -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
+          python3 build_site.py
+
+  mobile-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Expo metadata
+        run: |
+          node -e 'JSON.parse(require("fs").readFileSync("agentbridge-mobile/app.json","utf8")); JSON.parse(require("fs").readFileSync("agentbridge-mobile/package.json","utf8")); console.log("mobile metadata ok")'
+          grep -Fq "expo-document-picker" agentbridge-mobile/package.json
+          grep -Fq "All systems relaxed." agentbridge-mobile/App.js

@@ -1,0 +1,84 @@
+name: Deploy AgentBridge Cloud
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agentbridge-cloud/**"
+      - ".github/workflows/agentbridge-deploy-cloud.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-agentbridge-cloud-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check agentbridge-cloud/src/index.js
+      - run: node --check agentbridge-cloud/public/app.js
+      - name: Wrangler config parses
+        run: node -e 'JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8"))'
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse to replace a different Worker domain owner
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=agentbridge.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-agentbridge" for x in r),r' <<< "$response"
+      - name: Deploy Cloudflare Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          workingDirectory: agentbridge-cloud
+          command: deploy
+      - name: Attach or verify agentbridge.clintware.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=agentbridge.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="agentbridge.clintware.com" and r[0].get("service")=="clintware-agentbridge" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+            test "$count" = 0
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"agentbridge.clintware.com","service":"clintware-agentbridge"}' >/tmp/agentbridge-domain.json
+            python3 -c 'import json; d=json.load(open("/tmp/agentbridge-domain.json")); assert d.get("success") is True,d'
+          fi
+      - name: Verify live alpha
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 35); do
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/api/health || true)
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/ || true)
+            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'Your AI plans. Your machines execute.' <<< "$page"; then ready=1; break; fi
+            sleep 4
+          done
+          test "$ready" = 1

@@ -1,0 +1,28 @@
+{
+  "agentbridge": "1.0",
+  "title": "AgentBridge local hello",
+  "workspace": ".",
+  "permissions": [
+    "file.write",
+    "process.run"
+  ],
+  "steps": [
+    {
+      "type": "write_file",
+      "path": "agentbridge-hello.txt",
+      "content": "AgentBridge executed this locally.\n"
+    },
+    {
+      "type": "run",
+      "runtime": "python",
+      "command": "from pathlib import Path; print(Path('agentbridge-hello.txt').read_text())"
+    }
+  ],
+  "definition_of_done": [
+    {
+      "type": "file_contains",
+      "path": "agentbridge-hello.txt",
+      "text": "executed this locally"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "AgentBridge",
+    "slug": "agentbridge",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "agentbridge",
+    "userInterfaceStyle": "dark",
+    "ios": {"supportsTablet": true, "bundleIdentifier": "com.clintware.agentbridge"},
+    "android": {"package": "com.clintware.agentbridge"},
+    "web": {"bundler": "metro"}
+  }
+}
