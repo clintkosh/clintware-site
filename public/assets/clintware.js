@@ -4,6 +4,11 @@
   ventureStylesheet.href = "/assets/venture.css";
   document.head.appendChild(ventureStylesheet);
 
+  const typographyStylesheet = document.createElement("link");
+  typographyStylesheet.rel = "stylesheet";
+  typographyStylesheet.href = "/assets/typography-lock.css";
+  document.head.appendChild(typographyStylesheet);
+
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const network = document.querySelector("[data-cw-network]");
