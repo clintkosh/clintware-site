@@ -8,9 +8,11 @@ import time
 import urllib.parse
 import urllib.request
 
+from . import __version__
 from .config import Config, home_dir
-from .executor import execute_pack_path
+from .runner import execute_pack_path
 from .pack import save_abpack
+from .telemetry import emit_error, flush as flush_telemetry
 
 def _request(method: str, url: str, body: dict | None = None, token: str | None = None) -> dict:
     data = None if body is None else json.dumps(body).encode("utf-8")
@@ -27,7 +29,7 @@ def pair(config: Config, cloud_url: str | None = None) -> dict:
     code = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
     payload = {
         "pair_code":code,"device_id":config.data["device_id"],"device_token":config.data["device_token"],
-        "device_name":config.data.get("device_name"),"platform":platform.system().lower(),"node_version":"0.1.0a1"
+        "device_name":config.data.get("device_name"),"platform":platform.system().lower(),"node_version":__version__
     }
     out = _request("POST", config.data["cloud_url"] + "/api/pair/request", payload)
     config.data["pair_code"]=code; config.save()
@@ -48,26 +50,33 @@ def materialize_job(job: dict) -> Path:
 def daemon(config: Config) -> None:
     try: from websockets.sync.client import connect
     except Exception as exc: raise RuntimeError("websockets package is required for cloud daemon") from exc
+    last_connection_error_at = 0.0
     while True:
         base=config.data["cloud_url"]; scheme="wss://" if base.startswith("https://") else "ws://"; host=base.split("://",1)[-1].rstrip("/")
         ws_url=f"{scheme}{host}/ws/device/{config.data['device_id']}?token={urllib.parse.quote(config.data['device_token'])}"
         try:
             with connect(ws_url,open_timeout=20,close_timeout=5,max_size=4*1024*1024) as ws:
-                ws.send(json.dumps({"type":"hello","platform":platform.system().lower(),"ts":time.time()}))
+                flush_telemetry(config, limit=100)
+                ws.send(json.dumps({"type":"hello","platform":platform.system().lower(),"node_version":__version__,"ts":time.time()}))
                 for raw in ws:
                     msg=json.loads(raw)
                     if msg.get("type")!="job": continue
                     job=msg["job"]
                     try:
                         path=materialize_job(job)
-                        result=execute_pack_path(path,config=config,workspace_override=job.get("workspace"),approved=bool(job.get("approved")))
+                        result=execute_pack_path(path,config=config,workspace_override=job.get("workspace"),approved=bool(job.get("approved")),report_telemetry=False)
                         result["pack_id"]=result.get("job_id")
                         result["job_id"]=job.get("id")
                         result["source"]=job.get("source","cloud")
                     except Exception as exc:
-                        result={"agentbridge_result":"1.0","job_id":job.get("id"),"status":"failed","error":str(exc),"planner_feedback":str(exc)}
+                        kind = "cloud_job_input" if isinstance(exc, (ValueError, KeyError, json.JSONDecodeError)) else "agentbridge_internal"
+                        result={"agentbridge_result":"1.1","job_id":job.get("id"),"status":"failed","error":str(exc),"error_kind":kind,"product_bug":kind=="agentbridge_internal","planner_feedback":str(exc),"node_version":__version__}
                     ws.send(json.dumps({"type":"result","result":result},default=str))
         except Exception as exc:
+            now=time.time()
+            if now-last_connection_error_at >= 60:
+                emit_error(config,"cloud_connection",str(exc),product_bug=False)
+                last_connection_error_at=now
             print(f"AgentBridge Cloud disconnected: {exc}. Reconnecting.")
             time.sleep(5)
 
@@ -132,7 +141,6 @@ def sync_device_schedules_to_local(config: Config) -> list[dict]:
             "title":r.get("title") or r.get("pack_name") or "Cloud schedule",
         }
         by_id[sid]=merged
-    # Remove cloud-sourced schedules that were deleted in cloud; preserve local schedules.
     final=[]
     for sid,row in by_id.items():
         if row.get("source")=="cloud" and sid not in remote_ids:
