@@ -1,0 +1,55 @@
+name: Smoke Test Clintware Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - ".github/workflows/smoke-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Pages origin and public domain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_url() {
+            local label="$1"
+            local url="$2"
+            local marker="$3"
+            local body headers code
+            body=$(mktemp)
+            headers=$(mktemp)
+            trap 'rm -f "$body" "$headers"' RETURN
+
+            echo "Checking $label: $url"
+            for attempt in 1 2 3 4 5 6; do
+              code=$(curl --silent --show-error --location --max-time 20 \
+                --output "$body" --dump-header "$headers" \
+                --write-out '%{http_code}' "$url" || true)
+              if [ "$code" = "200" ] && grep -Fq "$marker" "$body"; then
+                echo "$label OK (HTTP 200, marker found)."
+                return 0
+              fi
+              echo "Attempt $attempt: HTTP ${code:-curl-error}; marker present: $(grep -Fq "$marker" "$body" && echo yes || echo no)"
+              sleep 3
+            done
+
+            echo "::error::$label did not return the expected production page."
+            echo "Final headers:"
+            cat "$headers" || true
+            echo "Body preview:"
+            head -c 800 "$body" || true
+            echo
+            return 1
+          }
+
+          check_url "Cloudflare Pages origin" "https://clintware-site.pages.dev/tools/stockyard-signal/" "Stockyard Signal"
+          check_url "Clintware public domain" "https://www.clintware.com/tools/stockyard-signal/" "Stockyard Signal"
