@@ -1,8 +1,8 @@
-import core, { AccountHub, DeviceHub, PairingHub, ScheduleHub } from "./index.js";
+import core, { AccountHub, DeviceHub, PairingHub, ScheduleHub as CoreScheduleHub } from "./index.js";
 import { TelemetryHub, ProductMetricsHub } from "./telemetry.js";
 import { HelpHub } from "./help.js";
 
-export { AccountHub, DeviceHub, PairingHub, ScheduleHub, TelemetryHub, ProductMetricsHub, HelpHub };
+export { AccountHub, DeviceHub, PairingHub, TelemetryHub, ProductMetricsHub, HelpHub };
 
 const JSON_HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json=(value,status=200,extra={})=>new Response(JSON.stringify(value),{status,headers:{...JSON_HEADERS,...extra}});
@@ -28,6 +28,34 @@ async function deviceContext(request,env,body){
     telemetry:env.TELEMETRY_HUB.getByName(info.account_id),
     help:env.HELP_HUB.getByName(info.account_id)
   };
+}
+
+async function recordCloudSend(telemetry,job,status="sent",source="cloud"){
+  if(!telemetry||!job?.id)return;
+  await telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+    event_id:`send:${source}:${job.id}:${crypto.randomUUID()}`,
+    type:"cloud_send",ts:Date.now(),device_id:job.device_id,job_id:job.id,status,
+    metadata:{source}
+  })}));
+}
+
+export class ScheduleHub extends CoreScheduleHub{
+  async alarm(){
+    const s=await this.ctx.storage.get("schedule");if(!s||!s.enabled||s.owner!=="cloud")return;
+    const account=this.env.ACCOUNT_HUB.getByName(s.account_id);
+    const createResp=await account.fetch(new Request("https://internal/create-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      device_id:s.device_id,pack_name:s.pack_name,pack_text:s.pack_text,pack_b64:s.pack_b64,manifest:s.manifest,workspace:s.workspace,
+      source:"cloud_schedule",schedule_id:s.id,approved:Boolean(s.approved)
+    })}));
+    const job=await createResp.json();
+    const device=this.env.DEVICE_HUB.getByName(s.device_id);
+    const dispatched=await(await device.fetch(new Request("https://internal/dispatch",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job})}))).json();
+    const telemetry=this.env.TELEMETRY_HUB.getByName(s.account_id);
+    await recordCloudSend(telemetry,job,dispatched.online===false?"queued_offline":"sent","cloud_schedule");
+    if(s.every_seconds){
+      const next=Date.now()+Number(s.every_seconds)*1000;s.next_run_at=next;await this.ctx.storage.put("schedule",s);await this.ctx.storage.setAlarm(next);
+    }else{s.enabled=false;await this.ctx.storage.put("schedule",s);}
+  }
 }
 
 async function reportJson(stub,path){
@@ -95,15 +123,17 @@ export default{
       }
 
       const response=await core.fetch(request,env,ctx);
-      if(request.method==="POST"&&url.pathname==="/api/jobs"&&response.ok){
+      if(response.ok&&request.method==="POST"&&url.pathname==="/api/jobs"){
         const auth=await accountContext(request,env);
         if(auth){
-          try{
-            const job=await response.clone().json();
-            ctx.waitUntil(auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-              event_id:`send:${job.id}`,type:"cloud_send",ts:Date.now(),device_id:job.device_id,job_id:job.id,status:job.online===false?"queued_offline":"sent"
-            })})));
-          }catch{}
+          try{const job=await response.clone().json();ctx.waitUntil(recordCloudSend(auth.telemetry,job,job.online===false?"queued_offline":"sent","manual"));}catch{}
+        }
+      }
+      const approveMatch=url.pathname.match(/^\/api\/jobs\/([^/]+)\/approve$/);
+      if(response.ok&&request.method==="POST"&&approveMatch){
+        const auth=await accountContext(request,env);
+        if(auth){
+          try{const data=await response.clone().json();ctx.waitUntil(recordCloudSend(auth.telemetry,data.job,"sent","approval_retry"));}catch{}
         }
       }
       return response;
