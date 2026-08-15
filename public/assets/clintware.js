@@ -116,13 +116,17 @@
 
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(205,199,184,0.17)";
+        ctx.strokeStyle = "rgba(184,202,222,0.18)";
         strokeCurve(a, c1, c2, b);
 
         ctx.setLineDash([4, 8]);
         ctx.lineDashOffset = -(time * 24 + index * 7);
         ctx.lineWidth = 1.1;
-        ctx.strokeStyle = index === 1 ? "rgba(241,184,75,0.55)" : "rgba(241,184,75,0.34)";
+        ctx.strokeStyle = index === 1
+          ? "rgba(101,231,255,0.60)"
+          : index === 2
+            ? "rgba(156,130,255,0.42)"
+            : "rgba(101,231,255,0.34)";
         strokeCurve(a, c1, c2, b);
         ctx.setLineDash([]);
 
@@ -130,7 +134,11 @@
         const dot = cubicPoint(a, c1, c2, b, t);
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, index === 1 ? 2.2 : 1.8, 0, Math.PI * 2);
-        ctx.fillStyle = index === 1 ? "rgba(255,217,143,0.95)" : "rgba(241,184,75,0.78)";
+        ctx.fillStyle = index === 1
+          ? "rgba(181,245,255,0.96)"
+          : index === 2
+            ? "rgba(156,130,255,0.86)"
+            : "rgba(101,231,255,0.80)";
         ctx.fill();
       });
 
