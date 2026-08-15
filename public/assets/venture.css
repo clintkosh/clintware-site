@@ -2,7 +2,8 @@
 :root{--max:1120px;--radius:10px;--radius-lg:14px;--surface:#0b0f14;--surface-2:#10151c;--line:#202833;--line-strong:#303b49;--muted:#a7b0bc;--subtle:#717b88}
 body{position:relative;background:radial-gradient(circle at 70% -10%,rgb(104 228 246 / .045),transparent 28rem),#080a0e;font-size:14.5px;line-height:1.52;overflow-x:hidden}
 body::before{opacity:.055;background-size:72px 72px}
-.cw-flow-field{position:fixed;inset:0;z-index:-1;width:100%;height:100%;pointer-events:none;opacity:.52;mask-image:linear-gradient(to bottom,#000 0%,#000 58%,transparent 96%)}
+.cw-flow-field{position:fixed;inset:0;z-index:0;width:100%;height:100%;pointer-events:none;opacity:.52;mask-image:linear-gradient(to bottom,#000 0%,#000 58%,transparent 96%)}
+.site-header,main,.site-footer{position:relative;z-index:1}
 h1,h2,h3{letter-spacing:-.025em;font-weight:670}
 h1{font-size:clamp(2rem,4vw,3.35rem);line-height:1.02;max-width:17ch}
 h2{font-size:clamp(1.35rem,2.3vw,1.95rem);line-height:1.12}
