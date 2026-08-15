@@ -23,10 +23,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --check agentbridge-cloud/src/index.js
-      - run: node --check agentbridge-cloud/public/app.js
+      - name: JavaScript syntax
+        run: |
+          node --check agentbridge-cloud/src/index.js
+          node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/src/telemetry.js
+          node --check agentbridge-cloud/src/help.js
+          node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/fluid.js
+          node --check agentbridge-cloud/public/sw.js
       - name: Wrangler config parses
-        run: node -e 'JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8"))'
+        run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("wrong Worker entrypoint")'
+      - name: Production interface markers
+        run: |
+          grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html
+          grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
+          grep -Fq 'Help Center' agentbridge-cloud/public/index.html
+          grep -Fq 'TelemetryHub' agentbridge-cloud/src/entry.js
 
   deploy:
     needs: validate
@@ -78,7 +91,8 @@ jobs:
           for i in $(seq 1 35); do
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/api/health || true)
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/ || true)
-            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'Your AI plans. Your machines execute.' <<< "$page"; then ready=1; break; fi
+            css=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/styles.css || true)
+            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'Your AI plans.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
             sleep 4
           done
           test "$ready" = 1
