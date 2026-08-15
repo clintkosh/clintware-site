@@ -5,6 +5,7 @@ import json
 
 from .config import Config, home_dir
 from .executor import execute
+from .helpdb import apply_updates
 from .pack import load_pack
 from .telemetry import emit_error, emit_run_result
 
@@ -42,6 +43,13 @@ def execute_pack_path(
     result["product_area"] = manifest.get("product_area")
     result["error_kind"] = result.get("error_kind") or ("task" if result.get("status") == "failed" else None)
     result["patch_count"] = sum(1 for step in result.get("steps", []) if step.get("type") == "patch" and step.get("ok"))
+
+    if result.get("status") == "passed" and manifest.get("help_updates"):
+        apply_updates(manifest.get("help_updates"), source=result.get("run_id") or pack.id)
+        result["help_updated"] = True
+    else:
+        result["help_updated"] = False
+
     _persist_augmented_result(result)
     if report_telemetry:
         emit_run_result(config, result)
