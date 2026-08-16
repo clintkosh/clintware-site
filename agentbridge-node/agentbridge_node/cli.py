@@ -12,6 +12,7 @@ from .association import install as install_associations
 from .clipboard import watch as clipboard_watch
 from .cloud import daemon as cloud_daemon, pair as cloud_pair, sync_device_schedules_to_local, report_device_schedule_state, sync_help_center
 from .config import Config, home_dir
+from .dlp import evaluate as evaluate_dlp
 from .executor import rollback
 from .helpdb import load as load_help, page as page_help, render as render_help
 from .pack import load_pack, save_abpack, summary
@@ -23,7 +24,7 @@ from .telemetry import flush as flush_telemetry
 def _print(obj): print(json.dumps(obj,indent=2,default=str))
 
 def cmd_init(args):
-    cfg=Config.load(); load_help(); out={"home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"help_center":str(home_dir()/"help"/"help.json")}
+    cfg=Config.load(); load_help(); out={"home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"dlp":cfg.data.get("dlp",{}),"dlp_note":"Quillgeist sensitive-data protection is enabled by default and scans locally before execution. Use `agentbridge dlp status` to review it.","help_center":str(home_dir()/"help"/"help.json")}
     if not getattr(args,"no_associations",False):
         try: out["associations"]=install_associations(False)
         except Exception as exc: out["association_warning"]=str(exc)
@@ -32,6 +33,17 @@ def cmd_init(args):
 def cmd_inspect(args): _print(summary(load_pack(args.pack)))
 
 def _approve(pack,cfg,explicit=False):
+    dlp=evaluate_dlp(pack.manifest,cfg.data.get("dlp",{}),approved=explicit)
+    if dlp.get("action")=="deny":
+        print("Quillgeist blocked this run: Strict sensitive-data protection detected:",", ".join(sorted(dlp.get("counts",{}))))
+        return False
+    if dlp.get("action")=="approval_required" and not explicit:
+        if not sys.stdin.isatty(): return False
+        print("Quillgeist sensitive-data warning:",", ".join(sorted(dlp.get("counts",{}))))
+        print("The matching values stay local and are not printed here.")
+        if input("Approve this run without redacting the detected data? [y/N] ").strip().lower() not in {"y","yes"}:
+            return False
+        explicit=True
     d=evaluate(pack.manifest,cfg.data.get("policy",{}),approved=False)
     if d.denied: return False
     if not d.needs_approval: return True
@@ -123,6 +135,17 @@ def cmd_telemetry(args):
     elif args.telemetry_command=="on": cfg.data.setdefault("telemetry",{})["enabled"]=True; cfg.save(); _print({"enabled":True})
     elif args.telemetry_command=="off": cfg.data.setdefault("telemetry",{})["enabled"]=False; cfg.save(); _print({"enabled":False})
 
+def cmd_dlp(args):
+    cfg=Config.load(); settings=cfg.data.setdefault("dlp",{})
+    command=args.dlp_command
+    if command=="status":
+        _print({"settings":settings,"default":"standard","note":"Detection occurs locally. Finding reports omit the matching secret."}); return
+    if command=="off":
+        settings["enabled"]=False; settings["mode"]="off"
+    else:
+        settings["enabled"]=True; settings["mode"]="standard" if command=="on" else command
+    cfg.save(); _print({"settings":settings})
+
 def cmd_help_center(args):
     if args.json:
         _print(load_help()); return
@@ -134,7 +157,7 @@ def cmd_help_center(args):
 
 def cmd_doctor(args):
     cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama"]}
-    _print({"version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
+    _print({"version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
     p=argparse.ArgumentParser(prog="agentbridge",description="AgentBridge local execution node"); sub=p.add_subparsers(dest="command",required=True)
@@ -150,6 +173,7 @@ def build_parser():
     x=sub.add_parser("install-associations"); x.add_argument("--include-md-json",action="store_true"); x.set_defaults(func=cmd_associations)
     x=sub.add_parser("doctor"); x.set_defaults(func=cmd_doctor)
     x=sub.add_parser("telemetry"); ts=x.add_subparsers(dest="telemetry_command",required=True); ts.add_parser("status"); f=ts.add_parser("flush"); f.add_argument("--limit",type=int,default=100); ts.add_parser("on"); ts.add_parser("off"); x.set_defaults(func=cmd_telemetry)
+    x=sub.add_parser("dlp",help="Quillgeist local sensitive-data protection"); ds=x.add_subparsers(dest="dlp_command",required=True); [ds.add_parser(name) for name in ["status","on","standard","strict","monitor","off"]]; x.set_defaults(func=cmd_dlp)
     x=sub.add_parser("help"); x.add_argument("section",nargs="?",default="all",choices=["all","start","setup","remove","faq","glossary","fixes"]); x.add_argument("--search"); x.add_argument("--limit",type=int,default=100); x.add_argument("--json",action="store_true"); x.add_argument("--no-pager",action="store_true"); x.set_defaults(func=cmd_help_center)
     x=sub.add_parser("schedule"); ss=x.add_subparsers(dest="schedule_command",required=True)
     a=ss.add_parser("add"); a.add_argument("pack"); a.add_argument("--at"); a.add_argument("--every",type=int); a.add_argument("--owner",choices=["device","cloud"],default="device")
