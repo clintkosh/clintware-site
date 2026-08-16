@@ -1,4 +1,4 @@
-name: AgentBridge Alpha CI
+name: Quillgeist Alpha CI (AgentBridge runtime)
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ on:
       - "agentbridge-help/**"
       - "scripts/check_agentbridge_help_docs.py"
       - "public/tools/agentbridge/**"
+      - "public/tools/quillgeist/**"
       - ".github/workflows/agentbridge-*.yml"
   push:
     branches: [main]
@@ -19,6 +20,7 @@ on:
       - "agentbridge-help/**"
       - "scripts/check_agentbridge_help_docs.py"
       - "public/tools/agentbridge/**"
+      - "public/tools/quillgeist/**"
       - ".github/workflows/agentbridge-*.yml"
   workflow_dispatch:
 
@@ -46,6 +48,7 @@ jobs:
           agentbridge doctor
           agentbridge help start --no-pager
           agentbridge help glossary --search Contextor --no-pager
+          agentbridge dlp status
       - name: Local execution smoke test
         env:
           AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
@@ -101,10 +104,11 @@ jobs:
           grep -Fq 'styles.css' agentbridge-cloud/public/sw.js
           grep -Fq 'fluid.js' agentbridge-cloud/public/sw.js
           grep -Fq "prefers-reduced-motion" agentbridge-cloud/public/styles.css
-      - name: Validate public alpha markers
+      - name: Validate Quillgeist public alpha markers
         run: |
-          grep -Fq "AgentBridge" public/tools/agentbridge/index.html
-          grep -Fq "agentbridge.clintware.com" public/tools/agentbridge/index.html
+          grep -Fq "Quillgeist" public/tools/quillgeist/index.html
+          grep -Fq "quillgeist.clintware.com" public/tools/quillgeist/index.html
+          grep -Fq "AgentBridge is now presented as Quillgeist." public/tools/agentbridge/index.html
       - name: Clintware production guardrail
         run: |
           python3 -m pip install --disable-pip-version-check "reportlab>=4.2,<5"
