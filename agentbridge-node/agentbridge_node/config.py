@@ -26,6 +26,13 @@ def _defaults() -> dict:
             "admin": "never",
             "network.write": "ask"
         },
+        "dlp": {
+            "enabled": True,
+            "mode": "standard",
+            "scan_before_execution": True,
+            "scan_before_external_model": True,
+            "scan_before_memory": True
+        },
         "owner_mode": False,
         "trusted_auto_run": False,
         "clipboard_mode": "detect",
@@ -60,6 +67,7 @@ class Config:
             incoming = json.loads(path.read_text(encoding="utf-8"))
             base.update(incoming)
             base["policy"] = {**_defaults()["policy"], **incoming.get("policy", {})}
+            base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
         cfg = cls(base)
