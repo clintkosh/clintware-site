@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 
 _MODES = {"off", "monitor", "standard", "strict"}
+_LEVEL = {"medium": 1, "high": 2, "critical": 3}
 
 
 @dataclass(frozen=True)
@@ -118,22 +119,24 @@ def scan_object(value: Any) -> list[Finding]:
     return _walk(value)
 
 
-def redact_text(text: str, findings: list[Finding] | None = None) -> str:
+def redact_text(text: str, findings: list[Finding] | None = None, *, min_severity: str = "medium") -> str:
     findings = findings if findings is not None else scan_text(text)
+    minimum = _LEVEL.get(min_severity, 1)
+    selected = [f for f in findings if _LEVEL.get(f.severity, 0) >= minimum]
     out = text
-    spans = sorted({(f.start, f.end, f.replacement) for f in findings}, reverse=True)
+    spans = sorted({(f.start, f.end, f.replacement) for f in selected}, reverse=True)
     for start, end, replacement in spans:
         out = out[:start] + replacement + out[end:]
     return out
 
 
-def redact_object(value: Any) -> Any:
+def redact_object(value: Any, *, min_severity: str = "medium") -> Any:
     if isinstance(value, str):
-        return redact_text(value)
+        return redact_text(value, min_severity=min_severity)
     if isinstance(value, dict):
-        return {key: redact_object(child) for key, child in value.items()}
+        return {key: redact_object(child, min_severity=min_severity) for key, child in value.items()}
     if isinstance(value, list):
-        return [redact_object(child) for child in value]
+        return [redact_object(child, min_severity=min_severity) for child in value]
     return copy.deepcopy(value)
 
 
@@ -170,3 +173,19 @@ def evaluate(value: Any, settings: dict | None, *, approved: bool = False) -> di
         "counts": counts,
         "redaction_available": bool(findings),
     }
+
+
+def sanitize(value: Any, settings: dict | None, *, purpose: str = "external") -> tuple[Any, dict]:
+    """Return a copy safe for persistence/external transport plus a sanitized DLP report.
+
+    Off and Monitor intentionally do not modify content. Standard redacts high/critical
+    matches. Strict redacts medium/high/critical matches. Matching values are never
+    included in the returned report.
+    """
+    settings = settings or {}
+    report = evaluate(value, settings, approved=True)
+    mode = report.get("mode", "off")
+    if not report.get("enabled") or mode in {"off", "monitor"} or not report.get("findings"):
+        return copy.deepcopy(value), report
+    minimum = "medium" if mode == "strict" else "high"
+    return redact_object(value, min_severity=minimum), report
