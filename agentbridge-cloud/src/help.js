@@ -12,6 +12,7 @@ export const BASE_HELP={
     {id:"execution-pack",title:"Execution Packs",body:"Quillgeist accepts `.abpack`, runtime JSON, and runtime Markdown. Inspect a pack before execution to review its workspace, permissions, steps, and Definition of Done."},
     {id:"cloud-pairing",title:"Pair a device",body:"Run `agentbridge pair --cloud https://quillgeist.clintware.com`, then enter the eight-character pairing code in Quillgeist. The Node connects outbound; no inbound admin port is exposed."},
     {id:"permissions",title:"Permissions",body:"Local policy is authoritative. `always` permits a capability, `ask` requires approval, and `never` cannot be overridden remotely."},
+    {id:"dlp",title:"Sensitive-data protection",body:"Quillgeist scans Execution Pack content locally before execution. Standard protection is on by default: high-risk findings such as payment cards, private keys, credentials, API tokens, JWTs, and U.S. SSNs require explicit approval before execution; Strict blocks findings; Monitor records only sanitized finding metadata; Off disables the gate. Email addresses and phone numbers are treated as medium-risk contact data. Use `agentbridge dlp status|standard|strict|monitor|off|on` to control it."},
     {id:"contextor",title:"Contextor",body:"Contextor reduces execution output before it returns to an upstream planner. Small results pass through, large results use deterministic compaction, and Smart mode can optionally use a local model when the savings justify it."},
     {id:"scheduling",title:"Scheduling",body:"Schedules may be device-owned or cloud-owned. Device-owned schedules can continue while Quillgeist Cloud is unavailable. Cloud-owned schedules are dispatched to the selected paired Node."},
     {id:"telemetry",title:"Metrics and error reporting",body:"Quillgeist records operational metadata such as connections, sends/receives, run status and duration, Contextor token estimates, patch/file counts, and redacted errors. Prompt text and file contents are not part of the telemetry event."}
@@ -29,6 +30,7 @@ export const BASE_HELP={
     {id:"faq-admin",q:"Does Clintware get unrestricted administrator access?",a:"No. Cloud requests work; the local Node enforces device policy. A local `never` capability cannot be overridden remotely."},
     {id:"faq-offline",q:"Can Quillgeist work without Cloud?",a:"Yes. Local Execution Packs and device-owned schedules can operate independently. Cloud adds routing, synchronization, remote control, history, and reporting."},
     {id:"faq-data",q:"What metrics go to Cloud?",a:"Operational metadata such as connection/send/receive counts, run status and duration, estimated token savings, patch/file counts, Node version, and redacted errors. Prompt text and file contents are not sent as telemetry."},
+    {id:"faq-dlp",q:"What happens if Quillgeist detects sensitive data?",a:"Detection happens locally before an Execution Pack runs. Standard mode asks before high-risk data can proceed, Strict blocks findings until the data is removed or redacted, Monitor allows the run while recording only sanitized finding metadata, and Off disables the check. Matching secret values are not included in DLP finding reports."},
     {id:"faq-error",q:"What happens when a run fails?",a:"Quillgeist stores the Result Pack locally, sends a redacted error/metrics event when telemetry is enabled, and returns compact planner feedback for a repair iteration."},
     {id:"faq-bugs",q:"How are product bugs tracked?",a:"Quillgeist-internal or user-reported failures receive a stable bug fingerprint. Successful repair packs can identify bugs they fix, allowing Cloud to move them from open to resolved and reopen them if they recur."},
     {id:"faq-reports",q:"Can I export my data?",a:"Yes. Cloud provides account-scoped metrics and report exports. Users see only their own account data; Clintware product-health metrics are maintained separately as de-identified aggregates."},
@@ -39,6 +41,7 @@ export const BASE_HELP={
     {term:"Quillgeist Node",definition:"Local Windows, macOS, or Linux executor that enforces local permissions and performs authorized work."},
     {term:"Execution Pack (.abpack)",definition:"Portable structured work instructions sent to Quillgeist for local validation and execution."},
     {term:"Result Pack (.abresult)",definition:"Structured evidence from a run, including status, Definition-of-Done results, changes, errors, Contextor metrics, and planner feedback."},
+    {term:"Local Sensitive Data Gate",definition:"Quillgeist's deterministic local DLP layer that scans content before execution and, when external model routing is active, is the required pre-send guard for compiled prompts, attached context, and retrieved text."},
     {term:"Contextor",definition:"Local context-efficiency layer that reduces what must be sent to an external model while preserving evidence required for the next decision."},
     {term:"Definition of Done",definition:"Machine-checkable success criteria Quillgeist evaluates after execution."},
     {term:"Capability policy",definition:"Local allow/ask/deny rules for actions such as file writes, process execution, Git push, admin operations, and network writes."},
@@ -51,7 +54,8 @@ export const BASE_HELP={
   ],
   fixes:[
     {id:"alpha-1",date:"2026-08-15",version:"0.1.0-alpha.1",title:"Public alpha execution backbone",body:"Cross-platform Nodes, Cloud routing, Execution/Result Packs, local capability policy, rollback, schedules, Contextor, file associations, and mobile/PWA control."},
-    {id:"alpha-2-telemetry",date:"2026-08-15",version:"0.1.0-alpha.2",title:"Quality loop and synchronized Help Center",body:"Automatic operational metrics/error reporting, account reports, de-identified product-health aggregation, bug lifecycle tracking, and a local/cloud synchronized Help Center."}
+    {id:"alpha-2-telemetry",date:"2026-08-15",version:"0.1.0-alpha.2",title:"Quality loop and synchronized Help Center",body:"Automatic operational metrics/error reporting, account reports, de-identified product-health aggregation, bug lifecycle tracking, and a local/cloud synchronized Help Center."},
+    {id:"alpha-3-dlp",date:"2026-08-16",version:"0.1.0-alpha.3",title:"Local sensitive-data gate",body:"Added deterministic local scanning for payment cards, private keys, common API/credential tokens, JWTs, U.S. SSNs, email addresses, and phone numbers; Standard protection is enabled by default with Strict, Monitor, and Off modes."}
   ]
 };
 
