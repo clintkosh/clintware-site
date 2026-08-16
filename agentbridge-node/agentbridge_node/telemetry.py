@@ -11,6 +11,7 @@ import urllib.request
 import uuid
 
 from .config import Config, home_dir
+from .dlp import redact_text
 from . import __version__
 
 _SECRET_RE = re.compile(r"(?i)\b(authorization|api[_-]?key|token|password|secret)\b(\s*[:=]\s*)([^\s,;]+)")
@@ -34,6 +35,9 @@ def sanitize_error(text: str | None) -> str:
     except Exception:
         pass
     out = _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}[REDACTED]", out)
+    # DLP redaction covers payment cards, private keys, tokens, SSNs and contact PII
+    # before an error can enter telemetry or its offline queue.
+    out = redact_text(out, min_severity="medium")
     return out[:8000]
 
 
