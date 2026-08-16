@@ -34,9 +34,9 @@ def sanitize_error(text: str | None) -> str:
             out = out.replace(home, "~")
     except Exception:
         pass
-    out = _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}[REDACTED]", out)
-    # DLP redaction covers payment cards, private keys, tokens, SSNs and contact PII
-    # before an error can enter telemetry or its offline queue.
+    # Preserve the established telemetry contract for generic credential pairs,
+    # then apply the broader DLP scanner to every other sensitive-data class.
+    out = _SECRET_RE.sub("[REDACTED]", out)
     out = redact_text(out, min_severity="medium")
     return out[:8000]
 
