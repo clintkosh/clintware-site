@@ -1,12 +1,12 @@
 {
-  "name": "AgentBridge Cloud",
-  "short_name": "AgentBridge",
+  "name": "Quillgeist",
+  "short_name": "Quillgeist",
   "start_url": "/#home",
   "scope": "/",
   "display": "standalone",
   "background_color": "#05070b",
   "theme_color": "#05070b",
-  "description": "Route governed AI Execution Packs to your own computers, approve work, review evidence, automate schedules, and inspect your account metrics.",
+  "description": "Adaptive intent compilation and governed local AI execution, with selective model routing, compact evidence, schedules, and local authority.",
   "categories": ["productivity", "developer", "utilities"],
   "icons": [
     {

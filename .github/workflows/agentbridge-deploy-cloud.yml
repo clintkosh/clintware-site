@@ -1,4 +1,4 @@
-name: Deploy AgentBridge Cloud
+name: Deploy Quillgeist Cloud (AgentBridge runtime)
 
 on:
   push:
@@ -34,12 +34,13 @@ jobs:
           node --check agentbridge-cloud/public/sw.js
       - name: Wrangler config parses
         run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("wrong Worker entrypoint")'
-      - name: Production interface markers
+      - name: Runtime template markers
         run: |
           grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html
           grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
           grep -Fq 'Help Center' agentbridge-cloud/public/index.html
           grep -Fq 'TelemetryHub' agentbridge-cloud/src/entry.js
+          grep -Fq 'rebrandPublicHtml' agentbridge-cloud/src/entry.js
 
   deploy:
     needs: validate
@@ -52,10 +53,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=agentbridge.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-agentbridge" for x in r),r' <<< "$response"
+          for hostname in agentbridge.clintware.com quillgeist.clintware.com; do
+            response=$(curl --fail-with-body -sS \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${hostname}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            HOSTNAME="$hostname" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); h=os.environ["HOSTNAME"]; assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-agentbridge" and x.get("hostname")==h for x in r),r' <<< "$response"
+          done
       - name: Deploy Cloudflare Worker
         uses: cloudflare/wrangler-action@v4
         with:
@@ -64,35 +67,37 @@ jobs:
           wranglerVersion: "4"
           workingDirectory: agentbridge-cloud
           command: deploy
-      - name: Attach or verify agentbridge.clintware.com
+      - name: Attach or verify Quillgeist and legacy domains
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          current=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=agentbridge.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="agentbridge.clintware.com" and r[0].get("service")=="clintware-agentbridge" else "no")' <<< "$current")
-          if [ "$correct" != "yes" ]; then
-            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
-            test "$count" = 0
-            curl --fail-with-body -sS -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              --data '{"hostname":"agentbridge.clintware.com","service":"clintware-agentbridge"}' >/tmp/agentbridge-domain.json
-            python3 -c 'import json; d=json.load(open("/tmp/agentbridge-domain.json")); assert d.get("success") is True,d'
-          fi
-      - name: Verify live alpha
+          for hostname in quillgeist.clintware.com agentbridge.clintware.com; do
+            current=$(curl --fail-with-body -sS \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${hostname}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            correct=$(HOSTNAME="$hostname" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); h=os.environ["HOSTNAME"]; print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")==h and r[0].get("service")=="clintware-agentbridge" else "no")' <<< "$current")
+            if [ "$correct" != "yes" ]; then
+              count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+              test "$count" = 0
+              curl --fail-with-body -sS -X PUT \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                --data "{\"hostname\":\"${hostname}\",\"service\":\"clintware-agentbridge\"}" >/tmp/quillgeist-domain.json
+              python3 -c 'import json; d=json.load(open("/tmp/quillgeist-domain.json")); assert d.get("success") is True,d'
+            fi
+          done
+      - name: Verify live Quillgeist alpha
         run: |
           set -euo pipefail
           ready=0
           for i in $(seq 1 35); do
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/api/health || true)
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/ || true)
-            css=$(curl -sS --connect-timeout 5 --max-time 15 https://agentbridge.clintware.com/styles.css || true)
-            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'Your AI plans.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
+            css=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/styles.css || true)
+            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'QUILLGEIST' <<< "$page" && grep -Fq 'Type naturally. Quillgeist handles the translation.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
             sleep 4
           done
           test "$ready" = 1

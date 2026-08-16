@@ -68,6 +68,25 @@ function reportCsv(report){
   return [columns.join(","),...(report.events||[]).map(row=>columns.map(c=>q(row[c])).join(","))].join("\n");
 }
 
+async function rebrandPublicHtml(request,response){
+  if(request.method!=="GET"||!response.ok)return response;
+  const contentType=response.headers.get("content-type")||"";
+  if(!contentType.includes("text/html"))return response;
+  let html=await response.text();
+  html=html
+    .replaceAll("AgentBridge Cloud","Quillgeist")
+    .replaceAll("AGENTBRIDGE","QUILLGEIST")
+    .replaceAll("AgentBridge","Quillgeist")
+    .replace("Public alpha · governed local execution","Adaptive intent compiler for AI · public alpha")
+    .replace("Your AI plans. Your machines execute.","Type naturally. Quillgeist handles the translation.")
+    .replace("Quillgeist receives an Execution Pack from the planner and routes it to your paired Node. The Node performs approved filesystem, shell, code, Git, validation, scheduling, and rollback work locally. Local policy decides what can run. Contextor returns a compact Result Pack with status, Definition-of-Done checks, changed-file evidence, and only the output the planner needs.","Quillgeist sits between you and AI models. It turns intent into a clearer instruction, routes eligible deterministic work to your paired local Node, and uses model reasoning only where it adds value. Local policy remains authoritative, while Contextor and Result Packs return compact verified evidence instead of a full mechanical transcript.")
+    .replace("Live execution bridge","Adaptive execution path")
+    .replace("Route · schedule · account state","Compile intent · route · account state")
+    .replace("Intent + capabilities + DoD","Intent · constraints · DoD");
+  const headers=new Headers(response.headers);headers.delete("content-length");
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
 async function canonicalBugBody(telemetry,body){
   if(body.event_id||!body.job_id)return body;
   const r=await telemetry.fetch("https://internal/report?status=failed&limit=500");
@@ -146,7 +165,7 @@ export default{
           try{const data=await response.clone().json();ctx.waitUntil(recordCloudSend(auth.telemetry,data.job,"sent","approval_retry"));}catch{}
         }
       }
-      return response;
+      return rebrandPublicHtml(request,response);
     }catch(error){
       console.error(JSON.stringify({event:"control_plane_error",path:url.pathname,error:String(error),stack:error?.stack}));
       return json({error:"internal_error",message:String(error)},500);
