@@ -1,12 +1,14 @@
+import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
 
 from agentbridge_node.config import Config
-from agentbridge_node.dlp import evaluate, redact_text, scan_text
+from agentbridge_node.dlp import evaluate, redact_text, sanitize, scan_text
 from agentbridge_node.pack import save_abpack
 from agentbridge_node.runner import execute_pack_path
+from agentbridge_node.telemetry import sanitize_error
 
 
 class DlpTests(unittest.TestCase):
@@ -31,6 +33,29 @@ class DlpTests(unittest.TestCase):
         self.assertEqual(evaluate(value, {"enabled": True, "mode": "monitor"})["action"], "allow")
         self.assertEqual(evaluate(value, {"enabled": False, "mode": "off"})["action"], "allow")
 
+    def test_sanitize_respects_mode_and_severity(self):
+        value = {"prompt": "Card 4111111111111111 email person@example.com"}
+        standard, standard_report = sanitize(value, {"enabled": True, "mode": "standard"})
+        self.assertIn("[PAYMENT_CARD]", standard["prompt"])
+        self.assertIn("person@example.com", standard["prompt"])
+        self.assertEqual(standard_report["counts"].get("payment_card"), 1)
+
+        strict, _ = sanitize(value, {"enabled": True, "mode": "strict"})
+        self.assertIn("[PAYMENT_CARD]", strict["prompt"])
+        self.assertIn("[EMAIL]", strict["prompt"])
+
+        monitor, _ = sanitize(value, {"enabled": True, "mode": "monitor"})
+        self.assertIn("4111111111111111", monitor["prompt"])
+
+    def test_telemetry_errors_redact_sensitive_data(self):
+        clean = sanitize_error("Card 4111111111111111 SSN 123-45-6789 email person@example.com")
+        self.assertNotIn("4111111111111111", clean)
+        self.assertNotIn("123-45-6789", clean)
+        self.assertNotIn("person@example.com", clean)
+        self.assertIn("[PAYMENT_CARD]", clean)
+        self.assertIn("[SSN]", clean)
+        self.assertIn("[EMAIL]", clean)
+
     def test_executor_blocks_before_mutation(self):
         with tempfile.TemporaryDirectory() as td:
             os.environ["AGENTBRIDGE_HOME"] = str(Path(td) / "home")
@@ -53,6 +78,31 @@ class DlpTests(unittest.TestCase):
             self.assertEqual(result["status"], "approval_required")
             self.assertEqual(result["reason"], "sensitive_data_detected")
             self.assertFalse(target.exists())
+
+    def test_approved_sensitive_run_is_redacted_before_result_storage(self):
+        with tempfile.TemporaryDirectory() as td:
+            os.environ["AGENTBRIDGE_HOME"] = str(Path(td) / "home-approved")
+            workspace = Path(td) / "work"
+            workspace.mkdir()
+            manifest = {
+                "agentbridge": "1.0",
+                "workspace": str(workspace),
+                "permissions": ["process.run"],
+                "steps": [{"type": "run", "runtime": "python", "command": "print('4111111111111111')"}],
+            }
+            pack = Path(td) / "approved.abpack"
+            save_abpack(manifest, pack)
+            cfg = Config.load()
+            cfg.data["policy"]["process.run"] = "always"
+            cfg.data["telemetry"]["enabled"] = False
+            cfg.save()
+            result = execute_pack_path(pack, cfg, approved=True, report_telemetry=False)
+            self.assertEqual(result["status"], "passed")
+            serialized = json.dumps(result)
+            self.assertNotIn("4111111111111111", serialized)
+            self.assertIn("[PAYMENT_CARD]", serialized)
+            stored = Path(cfg.path).parent / "runs" / result["run_id"] / "result.abresult"
+            self.assertNotIn("4111111111111111", stored.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
