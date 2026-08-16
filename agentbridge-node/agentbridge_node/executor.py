@@ -14,6 +14,7 @@ import time
 
 from .config import Config, home_dir
 from .contextor import compact
+from .dlp import evaluate as evaluate_dlp
 from .ledger import append as ledger_append
 from .pack import ExecutionPack, load_pack
 from .policy import evaluate, required_capabilities
@@ -199,15 +200,36 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
     if not config.workspace_allowed(workspace):
         return {"job_id": pack.id, "status": "denied", "reason": "workspace_not_allowed", "workspace": str(workspace)}
 
+    dlp_settings = config.data.get("dlp", {})
+    dlp = evaluate_dlp(manifest, dlp_settings, approved=approved) if dlp_settings.get("scan_before_execution", True) else {"enabled": False, "mode": "off", "action": "allow", "findings": [], "counts": {}}
+    if dlp["action"] == "deny":
+        return {
+            "job_id": pack.id,
+            "status": "denied",
+            "reason": "sensitive_data_detected",
+            "dlp": dlp,
+            "planner_feedback": "Quillgeist blocked this run locally because Strict sensitive-data protection found protected content. Redact or remove the finding before retrying."
+        }
+    if dlp["action"] == "approval_required":
+        return {
+            "job_id": pack.id,
+            "status": "approval_required",
+            "reason": "sensitive_data_detected",
+            "needs_approval": ["dlp.sensitive_data"],
+            "dlp": dlp,
+            "planner_feedback": "Quillgeist found high-risk sensitive data before execution. Review or redact it before sending it onward; Standard mode permits an explicit override."
+        }
+
     decision = evaluate(manifest, config.data.get("policy", {}), approved=approved)
     if decision.denied:
-        return {"job_id": pack.id, "status": "denied", "denied": decision.denied, "needs_approval": decision.needs_approval}
+        return {"job_id": pack.id, "status": "denied", "denied": decision.denied, "needs_approval": decision.needs_approval, "dlp": dlp}
     if decision.needs_approval:
         return {
             "job_id": pack.id,
             "status": "approval_required",
             "needs_approval": decision.needs_approval,
-            "capabilities": sorted(required_capabilities(manifest))
+            "capabilities": sorted(required_capabilities(manifest)),
+            "dlp": dlp
         }
 
     run_id = f"{pack.id}-{int(time.time())}"
@@ -264,6 +286,7 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
         "changes": changes,
         "error": error,
         "contextor": metrics.to_dict(),
+        "dlp": dlp,
         "planner_feedback": compacted,
         "rollback_available": True,
         "created_at": datetime.now(timezone.utc).isoformat()
