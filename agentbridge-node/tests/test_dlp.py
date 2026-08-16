@@ -55,6 +55,7 @@ class DlpTests(unittest.TestCase):
         self.assertIn("[PAYMENT_CARD]", clean)
         self.assertIn("[SSN]", clean)
         self.assertIn("[EMAIL]", clean)
+        self.assertEqual(sanitize_error("password=hunter2"), "[REDACTED]")
 
     def test_executor_blocks_before_mutation(self):
         with tempfile.TemporaryDirectory() as td:
