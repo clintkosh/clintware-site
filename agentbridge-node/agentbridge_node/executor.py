@@ -14,7 +14,7 @@ import time
 
 from .config import Config, home_dir
 from .contextor import compact
-from .dlp import evaluate as evaluate_dlp
+from .dlp import evaluate as evaluate_dlp, sanitize as sanitize_dlp
 from .ledger import append as ledger_append
 from .pack import ExecutionPack, load_pack
 from .policy import evaluate, required_capabilities
@@ -291,6 +291,16 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
         "rollback_available": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    if dlp_settings.get("scan_before_memory", True):
+        safe_result, output_dlp = sanitize_dlp(result, dlp_settings, purpose="storage")
+        if output_dlp.get("findings"):
+            safe_result["dlp_output"] = {
+                "mode": output_dlp.get("mode"),
+                "counts": output_dlp.get("counts", {}),
+                "redacted": output_dlp.get("mode") in {"standard", "strict"},
+                "boundary": "local_result_storage",
+            }
+        result = safe_result
     run_dir = home_dir() / "runs" / run_id; run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "result.abresult").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     ledger_append({"type":"run","result":result})
