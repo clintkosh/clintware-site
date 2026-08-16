@@ -10,6 +10,7 @@ import urllib.request
 
 from . import __version__
 from .config import Config, home_dir
+from .dlp import sanitize as sanitize_dlp
 from .runner import execute_pack_path
 from .pack import save_abpack
 from .telemetry import emit_error, emit_event, emit_run_result, flush as flush_telemetry
@@ -81,6 +82,21 @@ def _connection_event(config: Config, event_type: str, connection_id: str, *, st
     emit_event(config, event)
 
 
+def _sanitize_outbound_result(config: Config, result: dict) -> dict:
+    """Apply the local DLP gate immediately before a Result Pack leaves the device."""
+    if not config.data.get("dlp", {}).get("scan_before_external_model", True):
+        return result
+    safe, report = sanitize_dlp(result, config.data.get("dlp", {}), purpose="external")
+    if report.get("findings"):
+        safe["dlp_output"] = {
+            "mode": report.get("mode"),
+            "counts": report.get("counts", {}),
+            "redacted": report.get("mode") in {"standard", "strict"},
+            "boundary": "device_to_cloud",
+        }
+    return safe
+
+
 def daemon(config: Config) -> None:
     try:
         from websockets.sync.client import connect
@@ -143,16 +159,17 @@ def daemon(config: Config) -> None:
                             "planner_feedback": str(exc),
                             "node_version": __version__,
                         }
-                    emit_run_result(config, result)
-                    ws.send(json.dumps({"type": "result", "result": result}, default=str))
+                    outbound_result = _sanitize_outbound_result(config, result)
+                    emit_run_result(config, outbound_result)
+                    ws.send(json.dumps({"type": "result", "result": outbound_result}, default=str))
                     emit_event(config, {
-                        "event_id": f"device-send:{job.get('id') or secrets.token_hex(8)}:{result.get('run_id') or 'result'}",
+                        "event_id": f"device-send:{job.get('id') or secrets.token_hex(8)}:{outbound_result.get('run_id') or 'result'}",
                         "type": "device_send",
                         "ts": int(time.time() * 1000),
                         "device_id": config.data["device_id"],
                         "job_id": job.get("id"),
-                        "run_id": result.get("run_id"),
-                        "status": result.get("status"),
+                        "run_id": outbound_result.get("run_id"),
+                        "status": outbound_result.get("status"),
                         "node_version": __version__,
                     })
         except Exception as exc:
