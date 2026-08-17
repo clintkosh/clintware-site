@@ -30,6 +30,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  activate_contact_form:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[activate-contact-form]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send one-time FormSubmit activation request
+        run: |
+          curl --fail-with-body --silent --show-error --location \
+            --request POST 'https://formsubmit.co/clint@clintware.com' \
+            --data-urlencode 'name=Clint Kosh' \
+            --data-urlencode 'email=clint@clintware.com' \
+            --data-urlencode 'phone=' \
+            --data-urlencode 'message=Clintware contact form activation test. Please confirm this address so website submissions can be delivered.' \
+            --data-urlencode '_subject=CLINTWARE CONTACT - Activation test' \
+            --data-urlencode '_template=table' \
+            --data-urlencode '_next=https://www.clintware.com/contact/thanks/' \
+            --data-urlencode '_url=https://www.clintware.com/contact/' \
+            --output /tmp/formsubmit-response.html
+          grep -Eiq 'activate|activation|confirm|thank|success' /tmp/formsubmit-response.html || {
+            echo 'FormSubmit returned a response, but no expected activation marker was found.'
+            sed -n '1,120p' /tmp/formsubmit-response.html
+          }
+
   validate:
     runs-on: ubuntu-latest
     steps:
