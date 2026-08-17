@@ -1,10 +1,12 @@
-name: Deploy Clintware Product Sites
+name: Deploy Dedicated Clintware Product Workers
 
 on:
   push:
     branches: [main]
     paths:
       - "product-sites/**"
+      - "shouldersoldier-worker/**"
+      - "buyerorigin-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
   workflow_dispatch:
 
@@ -12,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: clintware-product-sites
+  group: clintware-product-workers
   cancel-in-progress: true
 
 jobs:
@@ -24,19 +26,69 @@ jobs:
         with:
           node-version: "22"
       - name: Check Worker syntax
-        run: node --check product-sites/src/index.js
-      - name: Validate Worker configuration
-        run: XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config product-sites/wrangler.jsonc
+        run: |
+          node --check product-sites/src/index.js
+          node --check shouldersoldier-worker/src/index.js
+          node --check buyerorigin-worker/src/index.js
+      - name: Validate Worker configurations
+        run: |
+          XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config product-sites/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config shouldersoldier-worker/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config buyerorigin-worker/wrangler.jsonc
 
-  deploy:
+  release-shared-domains:
     needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy product sites Worker
+      - name: Redeploy legacy shared Worker without custom domains
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd product-sites
+
+  deploy-shouldersoldier:
+    needs: release-shared-domains
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy ShoulderSoldier Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd shouldersoldier-worker
+      - name: Verify ShoulderSoldier
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/ || true)
+            if grep -Fq 'SHOULDERSOLDIER' <<< "$page" && grep -Fq 'Protect sensitive email before it reaches the provider.' <<< "$page"; then exit 0; fi
+            sleep 3
+          done
+          exit 1
+
+  deploy-buyerorigin:
+    needs: release-shared-domains
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy BuyerOrigin Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd buyerorigin-worker
+      - name: Verify BuyerOrigin
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/ || true)
+            if grep -Fq 'BUYERORIGIN' <<< "$page" && grep -Fq 'Determine whether a buyer is actually eligible for a promotion.' <<< "$page"; then exit 0; fi
+            sleep 3
+          done
+          exit 1
