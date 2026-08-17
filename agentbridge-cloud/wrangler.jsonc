@@ -4,6 +4,7 @@
   "main": "src/entry.js",
   "compatibility_date": "2026-08-15",
   "compatibility_flags": ["nodejs_compat"],
+  // quillgeist.clintware.com is owned by this runtime via the deployment workflow; product-sites must not claim it.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
