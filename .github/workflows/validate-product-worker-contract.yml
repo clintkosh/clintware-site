@@ -1,0 +1,35 @@
+name: Validate Product Worker Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*-worker/**"
+      - "worker-template/**"
+      - "scripts/validate-product-worker-contract.mjs"
+      - ".github/workflows/validate-product-worker-contract.yml"
+  pull_request:
+    paths:
+      - "*-worker/**"
+      - "worker-template/**"
+      - "scripts/validate-product-worker-contract.mjs"
+      - ".github/workflows/validate-product-worker-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Clintware product Worker contract
+        run: node scripts/validate-product-worker-contract.mjs
+      - name: Validate default Worker template syntax
+        run: node --check worker-template/src/index.js
+      - name: Validate default Worker template configuration
+        run: XDG_CONFIG_HOME=/tmp/clintware-template-xdg npx --yes --cache /tmp/clintware-template-npm-cache wrangler@4 deploy --dry-run --config worker-template/wrangler.jsonc
