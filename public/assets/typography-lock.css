@@ -87,6 +87,10 @@ h1 span,h1 strong,h1 em,h1 b,h2 span,h2 strong,h2 em,h2 b,.gradient-word,.brand-
 .button:hover{transform:none!important}.button-cyan{background:#63e8f3!important;color:#031014!important;box-shadow:none!important}
 .button-ghost{background:#080d13!important}
 
+/* Keep the public company presentation product-first. Historical consulting pages may remain addressable, but they are not primary navigation or calls to action. */
+.site-nav a[href="https://consulting.clintware.com/"],
+.nav-cta[href*="Clintware%20project%20inquiry"]{display:none!important}
+
 .panel,.card,.metric,.process-step,.planned-item,.utility-panel,.article-closing,
 .ab-panel,.alpha-card,.flow div,.security,.extension-grid .card,.cta-band{
   border-radius:4px!important;
