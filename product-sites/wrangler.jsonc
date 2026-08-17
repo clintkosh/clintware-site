@@ -1,14 +1,11 @@
 {
   "name": "clintware-product-sites",
   "main": "src/with-analytics.js",
-  "compatibility_date": "2026-08-16",
+  "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
-  "routes": [
-    { "pattern": "shouldersoldier.clintware.com", "custom_domain": true },
-    { "pattern": "buyerorigin.clintware.com", "custom_domain": true }
-  ],
+  "routes": [],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
