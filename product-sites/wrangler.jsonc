@@ -6,7 +6,6 @@
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    { "pattern": "quillgeist.clintware.com", "custom_domain": true },
     { "pattern": "shouldersoldier.clintware.com", "custom_domain": true },
     { "pattern": "buyerorigin.clintware.com", "custom_domain": true }
   ],
