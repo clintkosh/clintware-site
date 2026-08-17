@@ -30,22 +30,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  activate_contact_form:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[activate-contact-form]')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send one-time FormSubmit activation request
-        run: |
-          response=$(curl --fail-with-body --silent --show-error --location \
-            --request POST 'https://formsubmit.co/ajax/clint@clintware.com' \
-            --header 'Content-Type: application/json' \
-            --header 'Accept: application/json' \
-            --header 'Origin: https://www.clintware.com' \
-            --header 'Referer: https://www.clintware.com/contact/' \
-            --data '{"name":"Clint Kosh","email":"clint@clintware.com","phone":"","message":"Clintware contact form activation test. Please confirm this address so website submissions can be delivered.","_subject":"CLINTWARE CONTACT - Activation test","_template":"table","_url":"https://www.clintware.com/contact/"}')
-          printf '%s\n' "$response"
-          printf '%s' "$response" | grep -Eiq 'success|activate|activation|confirm|thank'
-
   validate:
     runs-on: ubuntu-latest
     steps:
