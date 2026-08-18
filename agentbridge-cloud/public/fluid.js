@@ -66,3 +66,20 @@
   document.addEventListener("visibilitychange",()=>document.hidden?stop():start());
   resize();seed();start();
 })();
+
+// Public-alpha brand guard. Internal protocol/storage identifiers remain backward compatible,
+// but no legacy product name should leak into visible Quillgeist UI generated at runtime.
+(()=>{
+  const rewrite=s=>typeof s==="string"?s.replace(/AgentBridge/g,"Quillgeist").replace(/agentbridge/g,"quillgeist"):s;
+  function patch(root=document){
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    for(const n of nodes){const v=rewrite(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
+    root.querySelectorAll?.("input[placeholder],textarea[placeholder],[title],[aria-label]").forEach(el=>{
+      for(const a of ["placeholder","title","aria-label"]){if(el.hasAttribute(a)){const v=rewrite(el.getAttribute(a));if(v!==el.getAttribute(a))el.setAttribute(a,v)}}
+    });
+  }
+  const run=()=>patch(document);
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run,{once:true});else run();
+  new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)patch(n);else if(n.nodeType===3){const v=rewrite(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}}).observe(document.documentElement,{subtree:true,childList:true});
+})();
