@@ -24,7 +24,7 @@ from .telemetry import flush as flush_telemetry
 def _print(obj): print(json.dumps(obj,indent=2,default=str))
 
 def cmd_init(args):
-    cfg=Config.load(); load_help(); out={"home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"dlp":cfg.data.get("dlp",{}),"dlp_note":"Quillgeist sensitive-data protection is enabled by default and scans locally before execution. Use `agentbridge dlp status` to review it.","help_center":str(home_dir()/"help"/"help.json")}
+    cfg=Config.load(); load_help(); out={"product":"Quillgeist","home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"dlp":cfg.data.get("dlp",{}),"dlp_note":"Quillgeist sensitive-data protection is enabled by default and scans locally before execution. Use `quillgeist dlp status` to review it.","help_center":str(home_dir()/"help"/"help.json")}
     if not getattr(args,"no_associations",False):
         try: out["associations"]=install_associations(False)
         except Exception as exc: out["association_warning"]=str(exc)
@@ -49,7 +49,7 @@ def _approve(pack,cfg,explicit=False):
     if not d.needs_approval: return True
     if explicit: return True
     if not sys.stdin.isatty(): return False
-    print("AgentBridge requests:",", ".join(d.needs_approval))
+    print("Quillgeist requests:",", ".join(d.needs_approval))
     return input("Approve this run? [y/N] ").strip().lower() in {"y","yes"}
 
 def cmd_run(args):
@@ -157,10 +157,10 @@ def cmd_help_center(args):
 
 def cmd_doctor(args):
     cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama"]}
-    _print({"version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
+    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
-    p=argparse.ArgumentParser(prog="agentbridge",description="AgentBridge local execution node"); sub=p.add_subparsers(dest="command",required=True)
+    p=argparse.ArgumentParser(prog="quillgeist",description="Quillgeist local-first adaptive AI execution node"); sub=p.add_subparsers(dest="command",required=True)
     x=sub.add_parser("init"); x.add_argument("--no-associations",action="store_true"); x.set_defaults(func=cmd_init)
     x=sub.add_parser("inspect"); x.add_argument("pack"); x.set_defaults(func=cmd_inspect)
     x=sub.add_parser("open"); x.add_argument("pack"); x.set_defaults(func=cmd_open)
