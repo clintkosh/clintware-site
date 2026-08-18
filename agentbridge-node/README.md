@@ -1,22 +1,27 @@
-# AgentBridge Node alpha 2
+# Quillgeist local node alpha
 
-AgentBridge Node is the local executor in the AgentBridge architecture:
+Quillgeist is a local-first adaptive AI execution layer.  The local node performs approved filesystem, shell, Python, PowerShell, Node.js, Git, validation, scheduling, rollback, logging, evidence collection, and account-scoped operational telemetry on the user's own machine.
 
-`LLM → Execution Pack → AgentBridge Cloud/Node → local execution → Contextor → Result Pack`
+`AI planner → Quillgeist execution pack → Quillgeist Cloud → local Quillgeist node → verified result → compact evidence`
 
-The hosted model plans.  The Node does filesystem, shell, Python, PowerShell, Node.js, Git, validation, scheduling, rollback, logging, evidence collection, and account-scoped operational telemetry locally.
+## Windows alpha
 
-## Safety model
+Download `Quillgeist-Windows-x64.exe` from the current Quillgeist GitHub prerelease.
 
-AgentBridge does **not** expose a raw administrator shell to the internet.
+First run:
 
-- A Node opens an outbound authenticated connection to AgentBridge Cloud.
-- Every pack declares capabilities.
-- Local policy decides `always`, `ask`, or `never`.
-- Workspaces can be allow-listed.
-- Mutated files are snapshotted before writes.
-- Cloud approval can satisfy `ask`; it can never override a local `never`.
-- `.md` and `.json` clipboard detection never silently executes by default.
+```powershell
+.\Quillgeist-Windows-x64.exe init
+.\Quillgeist-Windows-x64.exe doctor
+.\Quillgeist-Windows-x64.exe pair --cloud https://quillgeist.clintware.com
+.\Quillgeist-Windows-x64.exe daemon
+```
+
+The pair command prints a short code.  Open Quillgeist Cloud, enter the code, and the computer appears in the Quillgeist control room.
+
+## macOS and Linux alpha
+
+Use the matching single-file build from the Quillgeist prerelease, then run the same commands with that executable name.
 
 ## Install from source
 
@@ -28,79 +33,73 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -e .
-agentbridge init
-agentbridge doctor
+quillgeist init
+quillgeist doctor
+quillgeist pair --cloud https://quillgeist.clintware.com
+quillgeist daemon
 ```
+
+The legacy `agentbridge` command remains only as a temporary compatibility alias for existing alpha installs.
+
+## Local authority
+
+Quillgeist does not expose an unrestricted administrator shell to the internet.
+
+- The local node opens an outbound authenticated connection to Quillgeist Cloud.
+- Every execution pack declares requested capabilities.
+- Local policy decides `always`, `ask`, or `never`.
+- Workspaces can be allow-listed.
+- Mutated files are snapshotted before writes.
+- Cloud approval can satisfy `ask`; it cannot override a local `never`.
+- Markdown and JSON clipboard detection never silently executes by default.
+- Sensitive-data detection runs locally before execution and before eligible external-model routing.
 
 ## First local run
 
 ```bash
-agentbridge make-pack examples/hello-manifest.json hello.abpack
-agentbridge inspect hello.abpack
-agentbridge run hello.abpack --workspace ./sandbox
+quillgeist make-pack examples/hello-manifest.json hello.abpack
+quillgeist inspect hello.abpack
+quillgeist run hello.abpack --workspace ./sandbox
 ```
 
-## Pair with AgentBridge Cloud
+## Help Center
 
 ```bash
-agentbridge pair --cloud https://agentbridge.clintware.com
-agentbridge daemon
+quillgeist help start
+quillgeist help faq
+quillgeist help glossary --search Contextor
+quillgeist help fixes
 ```
 
-The `pair` command prints a short code.  Enter it in AgentBridge Cloud.  While the daemon is connected, Cloud routing, schedules, Help Center synchronization, and queued operational telemetry can synchronize with the account.
-
-## Local + Cloud Help Center
-
-```bash
-agentbridge help start
-agentbridge help faq
-agentbridge help glossary --search Contextor
-agentbridge help fixes
-```
-
-The Help Center is stored locally under `~/.agentbridge/help/help.json`.  It starts with Getting Started, setup/removal, FAQ, glossary, and Recent Fixes sections.  Passed Execution Packs may include `help_updates`, allowing relevant documentation and the fix feed to evolve with functionality changes.
+The Help Center is stored under the Quillgeist home directory (`~/.quillgeist` by default for new installs).
 
 ## Operational telemetry
 
-Alpha 2 records account-scoped operational metadata by default so the user's Cloud dashboard can report real usage and product quality.  Events include connection/send/receive counts, run status and duration, Contextor token estimates, patch/file counts, Node version, and redacted errors.
+Quillgeist records account-scoped operational metadata so the Cloud dashboard can report real usage and product quality.  Events can include connection/send/receive counts, run status and duration, Contextor token estimates, patch/file counts, node version, and redacted errors.
 
 Prompt text and file contents are not included in telemetry events.  Telemetry can be inspected or disabled locally:
 
 ```bash
-agentbridge telemetry status
-agentbridge telemetry off
-agentbridge telemetry on
-agentbridge telemetry flush
+quillgeist telemetry status
+quillgeist telemetry off
+quillgeist telemetry on
+quillgeist telemetry flush
 ```
-
-When Cloud is unreachable, eligible telemetry is queued locally and retried later.  Authentication/revocation failures are not queued indefinitely.
-
-## Product bug lifecycle
-
-Ordinary user-task failures do not automatically count as AgentBridge product bugs.  AgentBridge-internal failures, or failures explicitly reported by the user, receive a normalized bug fingerprint.  Cloud tracks their lifecycle as open, resolved, or reopened.  A successful repair pack can declare `fixes_bug_ids` or `retry_of` so a known bug is marked resolved when the repair actually passes.
 
 ## File associations
 
 ```bash
-agentbridge install-associations
+quillgeist install-associations
 ```
 
-This registers `.abpack` with AgentBridge.  It intentionally does **not** take over all `.md` or `.json` files unless `--include-md-json` is provided.
-
-## Clipboard
-
-```bash
-agentbridge clipboard-watch --mode detect
-```
-
-Modes: `off`, `detect`, `import`, and `trusted`.  Trusted auto-run requires explicit Owner Mode plus trusted-auto-run.
+This registers `.abpack` and `.abresult` as Quillgeist documents.  The extensions are retained for alpha compatibility; the OS-visible application and descriptions are Quillgeist.
 
 ## Scheduling
 
 ```bash
-agentbridge schedule add hello.abpack --at 2026-08-16T09:00:00-05:00
-agentbridge schedule add hello.abpack --every 3600
-agentbridge schedule list
+quillgeist schedule add hello.abpack --at 2026-08-18T09:00:00-05:00
+quillgeist schedule add hello.abpack --every 3600
+quillgeist schedule list
 ```
 
 Cloud-owned and device-owned schedules use the same schedule shape.  Device-owned schedules can continue locally if Cloud is unavailable.
