@@ -7,15 +7,15 @@ import secrets
 import uuid
 
 def home_dir() -> Path:
-    return Path(os.environ.get("AGENTBRIDGE_HOME", Path.home() / ".agentbridge")).expanduser()
+    return Path(os.environ.get("QUILLGEIST_HOME", os.environ.get("AGENTBRIDGE_HOME", Path.home() / ".quillgeist"))).expanduser()
 
 def _defaults() -> dict:
     return {
-        "version": 1,
+        "version": 2,
         "device_id": str(uuid.uuid4()),
         "device_token": secrets.token_urlsafe(32),
-        "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "AgentBridge Node",
-        "cloud_url": "https://agentbridge.clintware.com",
+        "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "Quillgeist Node",
+        "cloud_url": "https://quillgeist.clintware.com",
         "allowed_workspaces": [],
         "policy": {
             "file.read": "always",
@@ -70,6 +70,9 @@ class Config:
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
+            # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
+            if incoming.get("cloud_url") == "https://agentbridge.clintware.com":
+                base["cloud_url"] = "https://quillgeist.clintware.com"
         cfg = cls(base)
         cfg.save()
         return cfg
