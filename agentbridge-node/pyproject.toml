@@ -3,9 +3,9 @@ requires = ["setuptools>=75", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "clintware-agentbridge"
-version = "0.1.0a2"
-description = "Local execution node for AgentBridge Execution Packs"
+name = "clintware-quillgeist"
+version = "0.2.0a1"
+description = "Quillgeist local-first adaptive AI execution node"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Business Source License 1.1; see LICENSE.md"}
@@ -13,6 +13,8 @@ authors = [{name = "Clintware"}]
 dependencies = ["websockets>=14,<16"]
 
 [project.scripts]
+quillgeist = "agentbridge_node.cli:main"
+# Temporary compatibility alias for pre-Quillgeist alpha users.
 agentbridge = "agentbridge_node.cli:main"
 
 [tool.setuptools]
