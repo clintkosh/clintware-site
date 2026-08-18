@@ -1,4 +1,4 @@
-name: Build AgentBridge Nodes
+name: Build Quillgeist Desktop
 
 on:
   push:
@@ -18,35 +18,55 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: AgentBridge-Windows-x64
+            artifact: Quillgeist-Windows-x64
           - os: ubuntu-latest
-            artifact: AgentBridge-Linux-x64
+            artifact: Quillgeist-Linux-x64
           - os: macos-14
-            artifact: AgentBridge-macOS-arm64
+            artifact: Quillgeist-macOS-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install build dependencies
+      - name: Install Quillgeist build dependencies
         run: python -m pip install ./agentbridge-node "pyinstaller>=6.11,<7"
-      - name: Build single-file Node
+      - name: Build single-file Quillgeist executable
         shell: bash
         run: pyinstaller --noconfirm --clean --onefile --name "${{ matrix.artifact }}" agentbridge-node/launcher.py
-      - name: Smoke test binary
+      - name: Verify executable identity and core commands
         shell: bash
         env:
-          AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
+          QUILLGEIST_HOME: ${{ runner.temp }}/quillgeist-home
+          AGENTBRIDGE_HOME: ${{ runner.temp }}/quillgeist-home
+        run: |
+          set -euo pipefail
+          BIN="dist/${{ matrix.artifact }}"
+          if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
+          test -f "$BIN"
+          "$BIN" doctor
+          "$BIN" help start --no-pager
+          "$BIN" --help | tee quillgeist-help.txt
+          if grep -qi "AgentBridge" quillgeist-help.txt; then
+            echo "ERROR: legacy AgentBridge branding is exposed by the Quillgeist executable"
+            exit 1
+          fi
+      - name: Generate SHA256 checksum
+        shell: bash
         run: |
           BIN="dist/${{ matrix.artifact }}"
           if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
-          "$BIN" doctor
-          "$BIN" help start --no-pager
+          python - "$BIN" <<'PY'
+          import hashlib, pathlib, sys
+          p=pathlib.Path(sys.argv[1])
+          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          pathlib.Path(str(p)+'.sha256').write_text(f"{h}  {p.name}\n")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: dist/${{ matrix.artifact }}*
+          path: |
+            dist/${{ matrix.artifact }}*
           if-no-files-found: error
 
   release-alpha:
@@ -59,15 +79,23 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
-      - name: Publish alpha release
+      - name: Validate release assets
+        run: |
+          set -euo pipefail
+          test -f release-assets/Quillgeist-Windows-x64.exe
+          test -f release-assets/Quillgeist-Linux-x64
+          test -f release-assets/Quillgeist-macOS-arm64
+          ls -lah release-assets
+      - name: Publish Quillgeist alpha release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="agentbridge-v0.1.0-alpha.2"
-          notes=$'AgentBridge public alpha 2.\n\nAdds the synchronized local/Cloud Help Center, automatic account-scoped operational telemetry, redacted error reporting, Contextor savings metrics, product-bug reported/resolved/reopened lifecycle, and quality-loop metadata.\n\nUnsigned early-access Node builds for Windows, macOS, and Linux. Local execution remains capability-gated. Cloud jobs cannot override a local `never` policy. Telemetry excludes prompt text and file contents by design and can be disabled locally.'
+          tag="quillgeist-v0.2.0-alpha"
+          notes=$'Quillgeist public alpha.\n\nQuillgeist is the adaptive local-first AI execution layer formerly developed under the AgentBridge internal codename. This release provides single-file Windows, macOS, and Linux executables, governed local execution, pairing with Quillgeist Cloud, scheduling, rollback, evidence/result packs, local policy controls, Contextor compaction, and account-scoped operational telemetry.\n\nWindows: download Quillgeist-Windows-x64.exe, run `Quillgeist-Windows-x64.exe init`, then `Quillgeist-Windows-x64.exe pair --cloud https://quillgeist.clintware.com` and `Quillgeist-Windows-x64.exe daemon`.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release-assets/* --clobber
+            gh release edit "$tag" --title "Quillgeist v0.2.0 Alpha" --notes "$notes" --prerelease
           else
-            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "AgentBridge v0.1.0 Alpha 2" --notes "$notes" --prerelease
+            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.2.0 Alpha" --notes "$notes" --prerelease
           fi
