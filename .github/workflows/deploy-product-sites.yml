@@ -9,13 +9,20 @@ on:
       - "buyerorigin-worker/**"
       - "landtheplane-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
+  pull_request:
+    paths:
+      - "product-sites/**"
+      - "shouldersoldier-worker/**"
+      - "buyerorigin-worker/**"
+      - "landtheplane-worker/**"
+      - ".github/workflows/deploy-product-sites.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: clintware-product-workers
+  group: clintware-product-workers-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,6 +47,7 @@ jobs:
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
 
   release-shared-domains:
+    if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
     steps:
