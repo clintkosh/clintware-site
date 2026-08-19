@@ -3,9 +3,6 @@ name: Deploy Quillgeist Cloud
 on:
   push:
     branches: [main]
-    paths:
-      - "agentbridge-cloud/**"
-      - ".github/workflows/agentbridge-deploy-cloud.yml"
   pull_request:
     paths:
       - "agentbridge-cloud/**"
