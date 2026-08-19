@@ -53,13 +53,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy Quillgeist Worker and custom domain
+      - name: Deploy Quillgeist Worker runtime
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd agentbridge-cloud
+      - name: Explicitly attach Quillgeist custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --compressed -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result") or {}; assert r.get("hostname")=="quillgeist.clintware.com",r; assert r.get("service")=="clintware-agentbridge",r' <<< "$response"
       - name: Verify Quillgeist domain ownership
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -68,10 +81,11 @@ jobs:
           set -euo pipefail
           ready=0
           for i in $(seq 1 30); do
-            current=$(curl -sS --connect-timeout 5 --max-time 15 \
+            current=$(curl --compressed -sS --connect-timeout 5 --max-time 15 \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
-            if python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in (d.get("result") or []) if x.get("hostname")=="quillgeist.clintware.com"]; raise SystemExit(0 if d.get("success") is True and len(r)==1 and r[0].get("service")=="clintware-agentbridge" else 1)' <<< "$current"; then
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Accept: application/json" || true)
+            if python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in (d.get("result") or []) if x.get("hostname")=="quillgeist.clintware.com"]; raise SystemExit(0 if d.get("success") is True and len(r)==1 and r[0].get("service")=="clintware-agentbridge" else 1)' <<< "$current" 2>/dev/null; then
               ready=1
               break
             fi
