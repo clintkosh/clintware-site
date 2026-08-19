@@ -1,0 +1,122 @@
+name: Quillgeist Recovery Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/quillgeist-recovery-status.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quillgeist-recovery-status
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy runtime and repair custom domain
+        id: repair
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          npm install --no-save wrangler@4 >/tmp/qg-npm.log 2>&1
+          npx wrangler deploy --cwd agentbridge-cloud >/tmp/qg-deploy.log 2>&1
+          deploy_rc=$?
+
+          put_http=$(curl --compressed -sS -o /tmp/qg-put.json -w '%{http_code}' -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge","zone_name":"clintware.com"}')
+          put_rc=$?
+
+          domain_http=$(curl --compressed -sS -o /tmp/qg-domain.json -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Accept: application/json")
+          domain_rc=$?
+
+          workers_http=$(curl -L -sS -o /tmp/qg-workers-body -w '%{http_code}' --connect-timeout 5 --max-time 20 \
+            https://clintware-agentbridge.clint-kosh.workers.dev/api/health || true)
+          custom_http=$(curl -L -sS -o /tmp/qg-custom-body -w '%{http_code}' --connect-timeout 5 --max-time 20 \
+            https://quillgeist.clintware.com/api/health || true)
+
+          python3 - <<'PY'
+          import json, os, re
+          from datetime import datetime, timezone
+
+          def read_json(path):
+              try:
+                  with open(path, 'r', encoding='utf-8') as f:
+                      return json.load(f)
+              except Exception:
+                  return None
+
+          put = read_json('/tmp/qg-put.json')
+          domains = read_json('/tmp/qg-domain.json')
+          result = (put or {}).get('result') or {}
+          matches = [x for x in ((domains or {}).get('result') or []) if x.get('hostname') == 'quillgeist.clintware.com']
+          errors = []
+          for source in (put, domains):
+              for err in ((source or {}).get('errors') or []):
+                  errors.append({'code': err.get('code'), 'message': str(err.get('message') or '')[:240]})
+
+          def marker(path, text):
+              try:
+                  return text in open(path, 'r', encoding='utf-8', errors='ignore').read()
+              except Exception:
+                  return False
+
+          status = {
+              'checked_at': datetime.now(timezone.utc).isoformat(),
+              'source_commit': os.environ.get('GITHUB_SHA'),
+              'runtime_worker': 'clintware-agentbridge',
+              'hostname': 'quillgeist.clintware.com',
+              'deploy_exit_code': int(os.environ.get('DEPLOY_RC','999')),
+              'domain_put_http': os.environ.get('PUT_HTTP','000'),
+              'domain_put_curl_exit_code': int(os.environ.get('PUT_RC','999')),
+              'domain_put_success': bool((put or {}).get('success')),
+              'domain_put_service': result.get('service'),
+              'domain_list_http': os.environ.get('DOMAIN_HTTP','000'),
+              'domain_list_curl_exit_code': int(os.environ.get('DOMAIN_RC','999')),
+              'domain_list_success': bool((domains or {}).get('success')),
+              'domain_match_count': len(matches),
+              'domain_service': matches[0].get('service') if len(matches) == 1 else None,
+              'workers_dev_http': os.environ.get('WORKERS_HTTP','000'),
+              'workers_dev_health_marker': marker('/tmp/qg-workers-body', 'Quillgeist Cloud'),
+              'custom_domain_http': os.environ.get('CUSTOM_HTTP','000'),
+              'custom_domain_health_marker': marker('/tmp/qg-custom-body', 'Quillgeist Cloud'),
+              'cloudflare_errors': errors[:8]
+          }
+          os.makedirs('ops', exist_ok=True)
+          with open('ops/quillgeist-recovery-status.json','w',encoding='utf-8') as f:
+              json.dump(status, f, indent=2)
+              f.write('\n')
+          PY
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Publish sanitized recovery status
+        if: always()
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- ops/quillgeist-recovery-status.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record Quillgeist recovery status"
+          git push
