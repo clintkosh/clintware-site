@@ -1,18 +1,13 @@
-name: Deploy Quillgeist Cloud (AgentBridge runtime)
+name: Recover Quillgeist Cloud (manual)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "agentbridge-cloud/**"
-      - ".github/workflows/agentbridge-deploy-cloud.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: clintware-agentbridge-cloud-${{ github.ref }}
+  group: clintware-agentbridge-cloud-recovery-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +41,7 @@ jobs:
           grep -Fq 'Control key could not be restored.' agentbridge-cloud/public/app.js
           grep -Fq 'invalid_repeat_interval' agentbridge-cloud/src/index.js
 
-  deploy:
+  recover:
     needs: validate
     runs-on: ubuntu-latest
     steps:
@@ -58,7 +53,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd agentbridge-cloud
-      - name: Detach stale Quillgeist Worker domain
+      - name: Reset Quillgeist Worker domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -67,49 +62,22 @@ jobs:
           current=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$current"
-          mapfile -t ids < <(python3 -c 'import json,sys; d=json.load(sys.stdin); [print(x["id"]) for x in d.get("result",[]) if x.get("hostname")=="quillgeist.clintware.com"]' <<< "$current")
+          mapfile -t ids < <(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; [print(x["id"]) for x in d.get("result",[]) if x.get("hostname")=="quillgeist.clintware.com"]' <<< "$current")
           for id in "${ids[@]}"; do
             detached=$(curl --fail-with-body -sS -X DELETE \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${id}" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
             python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$detached"
           done
-      - name: Attach Quillgeist to runtime Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          attached=0
-          for i in $(seq 1 12); do
-            response=$(curl -sS -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge","zone_name":"clintware.com"}' || true)
-            if python3 -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get("success") is True else 1)' <<< "$response"; then
-              attached=1
-              break
-            fi
-            echo "Custom-domain attach attempt ${i} did not succeed yet."
-            sleep 5
-          done
-          test "$attached" = 1
-      - name: Verify Quillgeist domain ownership
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          current=$(curl --fail-with-body -sS \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in d.get("result",[]) if x.get("hostname")=="quillgeist.clintware.com"]; assert d.get("success") is True,d; assert len(r)==1,r; assert r[0].get("service")=="clintware-agentbridge",r; print("Quillgeist domain bound to",r[0].get("service"))' <<< "$current"
+          attached=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; assert d.get("result",{}).get("service")=="clintware-agentbridge",d' <<< "$attached"
       - name: Verify live Quillgeist alpha
         run: |
           set -euo pipefail
-          ready=0
           for i in $(seq 1 45); do
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
@@ -119,10 +87,7 @@ jobs:
               && grep -Fq 'QUILLGEIST' <<< "$page" \
               && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" \
               && grep -Fq 'app-shell' <<< "$css" \
-              && grep -Fq 'Quillgeist Cloud ready.' <<< "$app"; then
-              ready=1
-              break
-            fi
+              && grep -Fq 'Quillgeist Cloud ready.' <<< "$app"; then exit 0; fi
             sleep 4
           done
-          test "$ready" = 1
+          exit 1
