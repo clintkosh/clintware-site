@@ -5,10 +5,10 @@ Canonical professional brand treatment, effective 2026-08-19.
 ## Required wording
 
 - Company: **Clintware™**
-- Official slogan: **GO FURTHEST.™**
-- Lockup: **Clintware™ — GO FURTHEST.™**
+- Official slogan: **Go Furthest.™**
+- Lockup: **Clintware™ — Go Furthest.™**
 
-The slogan is always displayed in all capitals with the period before the trademark symbol. Do not substitute `Go Furthest.™`, `Go Further`, or any other casing/wording in public brand display copy.
+The slogan is always displayed in sentence case with the period before the trademark symbol. Do not substitute `GO FURTHEST.™`, `Go Further`, or any other casing/wording in public brand display copy.
 
 Use the trademark symbol on professional/public brand references where it is visually reasonable. Do not use the registered-trademark symbol (®) unless and until a relevant federal registration exists.
 
@@ -29,7 +29,7 @@ These are hard design constraints for future site changes. Do not replace them w
 
 ## Usage
 
-Use **GO FURTHEST.™** as Clintware’s canonical slogan on the website, LinkedIn copy, professional templates, product pages, branded follow-ups, presentations, social profiles, and future brand assets.
+Use **Go Furthest.™** as Clintware’s canonical slogan on the website, LinkedIn copy, professional templates, product pages, branded follow-ups, presentations, social profiles, and future brand assets.
 
 The slogan is not a substitute for a product description. Product copy must remain specific about what the product actually does and clearly distinguish working functionality from prototypes, experiments, roadmap items, and future concepts.
 
