@@ -48,7 +48,7 @@ jobs:
                   return {"success": False, "errors": [{"code": "decode", "message": str(exc)}]}
 
           def errors(data):
-              return [{"code": e.get("code"), "message": e.get("message")} for e in data.get("errors", [])]
+              return [{"code": e.get("code"), "message": e.get("message")} for e in (data.get("errors") or [])]
 
           scripts = load("/tmp/scripts.json")
           rows = scripts.get("result") or []
