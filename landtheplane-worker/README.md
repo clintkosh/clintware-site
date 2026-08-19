@@ -5,11 +5,11 @@
 **Public app:** `https://landtheplane.clintware.com/`  
 **Product detail:** `https://www.clintware.com/tools/landtheplane/`
 
-LandThePlane is a continuous career operating system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. After the user gets hired, the same system transitions into a ramp, workflow, and performance layer that learns the actual job from user-approved work signals and helps turn that context into repeatable personal workflows and verified evidence of impact.
+LandThePlane is a continuous career operating system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. After the user gets hired, the same system transitions into a ramp, workflow, and performance layer that learns the actual job from user-approved work signals and helps turn that context into repeatable personal workflows and verified evidence of impact. Over time, the same graph can identify credible adjacent or unconventional career pivots, explain why they fit, and build the shortest realistic ramp into them.
 
 ## Product arc
 
-`LAND → RAMP → OPERATE → IMPROVE → PROVE`
+`LAND → RAMP → OPERATE → IMPROVE → PROVE → PIVOT`
 
 ### Land
 
@@ -85,6 +85,38 @@ The same system continuously accumulates verified evidence for:
 
 The loop closes because work done after hiring becomes verified evidence for the user's next internal or external opportunity.
 
+### Pivot
+
+LandThePlane can compare the user's accumulated evidence/work graph against plausible role families instead of relying on prior job titles alone.
+
+The pivot engine should look for **capability adjacency**:
+
+- demonstrated work patterns;
+- transferable accomplishments;
+- repeated responsibilities;
+- learning velocity;
+- positive feedback themes;
+- preferred types of work;
+- tools and domains already understood;
+- constraints such as compensation, location, travel, and work arrangement.
+
+It should be able to surface roles a user might not logically search for on their own when the underlying evidence says the transition is credible.
+
+Every pivot recommendation should include:
+
+- **why the fit exists**;
+- **specific evidence that transfers**;
+- **what makes the fit non-obvious**;
+- **what is proven versus inferred**;
+- **skill/credibility distance**;
+- **gaps to close**;
+- **proof-building projects or learning steps**;
+- **30/60/90-day pivot ramp**;
+- **truthful bridge language for resume/interview use**;
+- **confidence based on evidence quality**.
+
+The same ramp engine used after a new hire becomes useful before a career transition: compare the target-role graph with the user's existing graph, then create the shortest credible path to readiness.
+
 ## Working public alpha
 
 The dedicated Cloudflare Worker currently serves a browser-local interview evidence mapper:
@@ -135,6 +167,19 @@ Preferred compression:
 - promotion/performance-review evidence pack;
 - automatic evidence reuse in future interview prep.
 
+## Career-pivot surfaces
+
+- adjacent-role shortlist;
+- unconventional-role shortlist;
+- internal-mobility suggestions;
+- evidence-backed fit explanation;
+- skill-distance matrix;
+- gaps and credibility risks;
+- learning/proof-building roadmap;
+- 30/60/90 pivot ramp plan;
+- bridge narrative for resume and interviews;
+- role-specific prep once the user chooses a target.
+
 ## Email integration
 
 Email is the primary post-hire information-growth channel, but ingestion must be permissioned and scoped.
@@ -170,7 +215,7 @@ Prefer summaries, action items, and topics by default. Full transcripts should b
 
 ## Longitudinal coaching
 
-The compounding asset is a user-owned career graph that spans job search and employment. Suggested entities include:
+The compounding asset is a user-owned career graph that spans job search, employment, advancement, and transition. Suggested entities include:
 
 - `CandidateProfile`
 - `EvidenceItem`
@@ -185,9 +230,11 @@ The compounding asset is a user-owned career graph that spans job search and emp
 - `Workflow`
 - `FeedbackItem`
 - `SuccessSignal`
+- `CareerPathCandidate`
+- `SkillDistance`
 - `CoachingMetric`
 
-Useful trends include answer length, evidence specificity, quantified results, role coverage, recurring work, workflow effectiveness, unresolved commitments, feedback themes, and evidence growth over time.
+Useful trends include answer length, evidence specificity, quantified results, role coverage, recurring work, workflow effectiveness, unresolved commitments, feedback themes, evidence growth over time, and transferable capability clusters.
 
 ## Storage
 
@@ -212,8 +259,9 @@ Connected data should be opt-in by source and revocable. The product should extr
 
 - Public demos use synthetic, licensed, or explicitly approved resumes/listings/work data.
 - Do not expose real candidate resumes, interview transcripts, recruiter emails, compensation details, employer-confidential material, or private work correspondence in public demos.
-- Keep the product user-side: preparation, ramp, personal productivity, reflection, workflow building, and user-owned analytics.
+- Keep the product user-side: preparation, ramp, personal productivity, reflection, workflow building, career discovery, and user-owned analytics.
 - Do not position it as an employer hiring-decision or employee-ranking system.
+- Career recommendations must distinguish verified evidence from inference and remain user-reviewable.
 - Add deletion, export, retention, subprocessors, and data-processing terms before paid SaaS cloud storage launches.
 
 ## Name feasibility
@@ -224,20 +272,20 @@ Connected data should be opt-in by source and revocable. The product should extr
 
 **Recommendation: #2 product track, now a materially stronger challenger to Quillgeist. Do not replace the flagship solely on thesis; let repeated external use decide.**
 
-The post-hire extension materially improves the economics because the product no longer has to lose the user when it succeeds. It turns an episodic interview-prep product into a persistent career/workflow product.
+The post-hire and career-pivot extensions materially improve the economics because the product no longer has to lose the user when it succeeds and can remain relevant through employment, advancement, and role transitions.
 
 | Dimension | Score | Reason |
 | --- | ---: | --- |
-| Problem clarity | 9/10 | Land the job, then ramp and perform faster. |
-| Founder-use loop | 10/10 | Interviewing and future ramping create real dogfood. |
-| MVP speed | 9/10 | Interview evidence mapper already ships; post-hire graph can layer on incrementally. |
-| Competition | 5/10 | Interview coaching is crowded, but the interview-to-work continuity is less commoditized. |
-| Differentiation potential | 9/10 | Persistent evidence/work graph + workflow learning creates a broader wedge. |
-| Retention potential | 9/10 | Success no longer causes immediate churn; the product gains a reason to stay installed. |
-| Monetization | 8/10 | Active-search, onboarding/ramp, ongoing career OS, and premium coaching surfaces. |
-| Defensibility | 8/10 | Longitudinal user-owned work/evidence graph compounds over years. |
-| Privacy posture | 7/10 | Local-first architecture helps, but email/meeting integrations raise the bar materially. |
-| YC readiness now | 8/10 | Stronger lifecycle and retention thesis; still needs external repeat-use proof. |
+| Problem clarity | 9/10 | Land the job, ramp faster, perform better, and identify credible next moves. |
+| Founder-use loop | 10/10 | Interviewing, ramping, workflow building, and pivots create repeated real-world dogfood. |
+| MVP speed | 9/10 | Interview evidence mapper already ships; later modes can layer on the same graph. |
+| Competition | 5/10 | Interview coaching is crowded, but continuous interview-to-work-to-pivot continuity is less commoditized. |
+| Differentiation potential | 9/10 | Persistent evidence/work graph + workflow learning + capability-adjacent career discovery. |
+| Retention potential | 9/10 | Success no longer causes churn; career transitions create another high-intent reactivation loop. |
+| Monetization | 8/10 | Active-search, onboarding/ramp, ongoing career OS, pivot planning, and premium coaching surfaces. |
+| Defensibility | 9/10 | Longitudinal user-owned work/evidence graph can reveal patterns that a one-time resume analysis cannot. |
+| Privacy posture | 7/10 | Local-first architecture helps, but connected work data raises the bar materially. |
+| YC readiness now | 8/10 | Stronger lifecycle, retention, and expansion thesis; still needs external repeat-use proof. |
 
 ## Flagship promotion gate
 
@@ -245,12 +293,13 @@ Promote above Quillgeist when behavior proves the continuous lifecycle:
 
 - external candidates complete role-specific prep;
 - users return for additional rounds;
-- at least some users transition from interview mode into post-hire ramp mode;
-- connected work context measurably improves their personal workflows;
+- users transition from interview mode into post-hire ramp mode;
+- connected work context measurably improves personal workflows;
 - users continue using LandThePlane after the first 30/60/90 days;
 - evidence gathered on the job is reused in reviews, promotions, or future searches;
+- users act on at least some evidence-backed adjacent-role recommendations;
 - users pay or create strong unsolicited referral pull.
 
 ## Core product thesis
 
-**The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through interviews, becomes a living work graph after hire, and continuously turns work into better workflows and verified evidence.**
+**The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through interviews, becomes a living work graph after hire, improves personal workflows, proves impact, and reveals credible next roles that ordinary title-based career planning may miss.**
