@@ -1,0 +1,90 @@
+name: Deploy OppQualifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "oppqualifier-worker/**"
+      - "landtheplane-worker/OPPQUALIFIER.md"
+      - ".github/workflows/deploy-oppqualifier-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-oppqualifier
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate OppQualifier client syntax
+        run: node --check oppqualifier-worker/public/app.js
+      - name: Validate static configuration
+        run: |
+          python3 - <<'PY'
+          import json
+          json.load(open('oppqualifier-worker/wrangler.jsonc'))
+          json.load(open('oppqualifier-worker/public/healthz.json'))
+          print('OppQualifier JSON configuration valid')
+          PY
+      - name: Guard existing LandThePlane prep and resume flow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('landtheplane-worker/src/index.js').read_text()
+          anchors=[
+            'id="resume"',
+            'id="job"',
+            'id="generate"',
+            'function renderPrep()',
+            "byId('generate').addEventListener('click',renderPrep)",
+            'id="briefs"',
+            'id="profileSummary"',
+            'id="generateBrief"'
+          ]
+          missing=[x for x in anchors if x not in text]
+          assert not missing, f'LandThePlane regression guard failed; missing anchors: {missing}'
+          print('Existing LandThePlane resume, job, prep-map and Brief Builder anchors preserved')
+          PY
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy OppQualifier static assets
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd oppqualifier-worker
+      - name: Smoke test OppQualifier and LandThePlane
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error https://oppqualifier.clintware.com/healthz.json -o /tmp/opp-health.json; then break; fi
+            sleep 5
+          done
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/opp-health.json'))
+          assert d.get('ok') is True and d.get('product')=='OppQualifier',d
+          print('OppQualifier live health passed')
+          PY
+          curl --fail --silent --show-error https://landtheplane.clintware.com/healthz -o /tmp/ltp-health.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/ltp-health.json'))
+          assert d.get('ok') is True,d
+          features=set(d.get('features',[]))
+          assert 'evidence-mapper' in features and 'brief-builder' in features,d
+          print('Existing LandThePlane live health passed')
+          PY
