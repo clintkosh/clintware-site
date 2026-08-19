@@ -16,21 +16,30 @@ for (const dir of workerDirs) {
     failures.push(`${dir}: missing wrangler.jsonc`);
     continue;
   }
+
+  const configText = fs.readFileSync(configPath, "utf8");
+  const config = JSON.parse(configText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""));
+
+  if (!String(config.name || "").startsWith("clintware-")) failures.push(`${dir}: Worker name must start with clintware-`);
+  if (!Array.isArray(config.routes) || config.routes.length !== 1) failures.push(`${dir}: each product Worker must own exactly one custom domain route`);
+  if (Array.isArray(config.routes) && config.routes.some((route) => route?.custom_domain !== true)) failures.push(`${dir}: product route must use custom_domain:true`);
+
+  const isStaticAssetsOnly = Boolean(config.assets?.directory) && !config.main;
+  if (isStaticAssetsOnly) {
+    const assetsPath = path.resolve(root, dir, config.assets.directory);
+    if (!fs.existsSync(assetsPath) || !fs.statSync(assetsPath).isDirectory()) failures.push(`${dir}: configured static assets directory does not exist`);
+    continue;
+  }
+
   if (!fs.existsSync(sourcePath)) {
     failures.push(`${dir}: missing src/index.js`);
     continue;
   }
 
-  const configText = fs.readFileSync(configPath, "utf8");
   const source = fs.readFileSync(sourcePath, "utf8");
-  const config = JSON.parse(configText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""));
-
-  if (!String(config.name || "").startsWith("clintware-")) failures.push(`${dir}: Worker name must start with clintware-`);
   if (!Array.isArray(config.compatibility_flags) || !config.compatibility_flags.includes("nodejs_compat")) failures.push(`${dir}: nodejs_compat must be enabled`);
   if (!config.observability?.enabled) failures.push(`${dir}: observability must be enabled`);
   if (config.observability?.head_sampling_rate !== 1) failures.push(`${dir}: observability head_sampling_rate must be 1`);
-  if (!Array.isArray(config.routes) || config.routes.length !== 1) failures.push(`${dir}: each product Worker must own exactly one custom domain route`);
-  if (Array.isArray(config.routes) && config.routes.some((route) => route?.custom_domain !== true)) failures.push(`${dir}: product route must use custom_domain:true`);
 
   const requiredSourceMarkers = [
     '"Cascadia Code"',
