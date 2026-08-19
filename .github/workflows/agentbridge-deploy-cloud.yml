@@ -35,6 +35,7 @@ jobs:
       - name: Wrangler config validates
         run: |
           grep -Fq '"main": "src/entry.js"' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --yes --cache /tmp/quillgeist-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Runtime template markers
         run: |
@@ -49,18 +50,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Refuse to replace a different Worker domain owner
+      - name: Refuse to replace a different Quillgeist domain owner
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          for hostname in agentbridge.clintware.com quillgeist.clintware.com; do
-            response=$(curl --fail-with-body -sS \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${hostname}" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-            HOSTNAME="$hostname" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); h=os.environ["HOSTNAME"]; assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-agentbridge" and x.get("hostname")==h for x in r),r' <<< "$response"
-          done
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True,d; assert not r or all(x.get("service")=="clintware-agentbridge" and x.get("hostname")=="quillgeist.clintware.com" for x in r),r' <<< "$response"
       - name: Deploy Cloudflare Worker
         uses: cloudflare/wrangler-action@v4
         with:
@@ -69,28 +68,26 @@ jobs:
           wranglerVersion: "4"
           workingDirectory: agentbridge-cloud
           command: deploy
-      - name: Attach or verify Quillgeist and legacy domains
+      - name: Attach or verify Quillgeist domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          for hostname in quillgeist.clintware.com agentbridge.clintware.com; do
-            current=$(curl --fail-with-body -sS \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${hostname}" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-            correct=$(HOSTNAME="$hostname" python3 -c 'import json,os,sys; d=json.load(sys.stdin); r=d.get("result",[]); h=os.environ["HOSTNAME"]; print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")==h and r[0].get("service")=="clintware-agentbridge" else "no")' <<< "$current")
-            if [ "$correct" != "yes" ]; then
-              count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
-              test "$count" = 0
-              curl --fail-with-body -sS -X PUT \
-                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-                -H "Content-Type: application/json" \
-                --data "{\"hostname\":\"${hostname}\",\"service\":\"clintware-agentbridge\"}" >/tmp/quillgeist-domain.json
-              python3 -c 'import json; d=json.load(open("/tmp/quillgeist-domain.json")); assert d.get("success") is True,d'
-            fi
-          done
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="quillgeist.clintware.com" and r[0].get("service")=="clintware-agentbridge" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+            test "$count" = 0
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge"}' >/tmp/quillgeist-domain.json
+            python3 -c 'import json; d=json.load(open("/tmp/quillgeist-domain.json")); assert d.get("success") is True,d'
+          fi
       - name: Verify live Quillgeist alpha
         run: |
           set -euo pipefail
