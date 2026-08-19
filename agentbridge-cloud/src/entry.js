@@ -10,12 +10,13 @@ const bearer=(request)=>{const h=request.headers.get("authorization")||"";return
 const sha256=async(s)=>{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");};
 const accountContext=async(request,env)=>{
   const token=bearer(request);if(!token)return null;
-  const accountId=await sha256(token);
+  const accountId=await sha256(token);const account=env.ACCOUNT_HUB.getByName(accountId);
+  const exists=await(await account.fetch("https://internal/exists")).json();if(!exists.exists)return null;
   return{
     token,accountId,
     telemetry:env.TELEMETRY_HUB.getByName(accountId),
     help:env.HELP_HUB.getByName(accountId),
-    account:env.ACCOUNT_HUB.getByName(accountId)
+    account
   };
 };
 
@@ -55,6 +56,7 @@ export class ScheduleHub extends CoreScheduleHub{
     if(s.every_seconds){
       const next=Date.now()+Number(s.every_seconds)*1000;s.next_run_at=next;await this.ctx.storage.put("schedule",s);await this.ctx.storage.setAlarm(next);
     }else{s.enabled=false;await this.ctx.storage.put("schedule",s);}
+    await account.fetch(new Request("https://internal/schedule",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(s)}));
   }
 }
 
@@ -100,7 +102,7 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
-      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"AgentBridge Cloud",version:"0.1.0-alpha.2",time:new Date().toISOString()});
+      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Cloud",runtime:"AgentBridge Cloud",version:"0.1.0-alpha.2",time:new Date().toISOString()});
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);
         if(!auth)return json({error:"unauthorized"},401);
@@ -135,7 +137,7 @@ export default{
         if(!r.ok)return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
         if(url.searchParams.get("format")==="csv"){
           const report=await r.json();
-          return new Response(reportCsv(report),{headers:{"content-type":"text/csv; charset=utf-8","content-disposition":"attachment; filename=agentbridge-report.csv","cache-control":"no-store"}});
+          return new Response(reportCsv(report),{headers:{"content-type":"text/csv; charset=utf-8","content-disposition":"attachment; filename=quillgeist-report.csv","cache-control":"no-store"}});
         }
         return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
