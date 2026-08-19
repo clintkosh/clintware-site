@@ -27,6 +27,24 @@ export class AccountHub extends DurableObject {
   constructor(ctx, env) { super(ctx, env); }
   async fetch(request) {
     const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/init-account") {
+      const existing = await this.ctx.storage.get("account_meta");
+      if (!existing) await this.ctx.storage.put("account_meta", {created_at:nowIso(),version:1});
+      return json({ok:true});
+    }
+    if (request.method === "GET" && url.pathname === "/exists") {
+      const meta = await this.ctx.storage.get("account_meta");
+      if (meta) return json({exists:true});
+      const [devices,jobs,schedules,metrics] = await Promise.all([
+        this.ctx.storage.get("devices"),
+        this.ctx.storage.get("jobs"),
+        this.ctx.storage.get("schedules"),
+        this.ctx.storage.get("metrics")
+      ]);
+      const legacy = Boolean(devices?.length || jobs?.length || schedules?.length || Number(metrics?.runs || 0) > 0);
+      if (legacy) await this.ctx.storage.put("account_meta", {created_at:"legacy-alpha",migrated_at:nowIso(),version:1});
+      return json({exists:legacy});
+    }
     if (request.method === "GET" && url.pathname === "/state") {
       return json({
         devices: await this.ctx.storage.get("devices") || [],
@@ -202,12 +220,16 @@ export class ScheduleHub extends DurableObject {
     if (s.every_seconds) {
       const next=Date.now()+Number(s.every_seconds)*1000; s.next_run_at=next; await this.ctx.storage.put("schedule",s); await this.ctx.storage.setAlarm(next);
     } else { s.enabled=false; await this.ctx.storage.put("schedule",s); }
+    await account.fetch(new Request("https://internal/schedule",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(s)}));
   }
 }
 
 async function accountContext(request, env) {
   const token=bearer(request); if (!token) return null;
-  const accountId=await sha256(token); return {token,accountId,account:env.ACCOUNT_HUB.getByName(accountId)};
+  const accountId=await sha256(token); const account=env.ACCOUNT_HUB.getByName(accountId);
+  const exists=await (await account.fetch("https://internal/exists")).json();
+  if (!exists.exists) return null;
+  return {token,accountId,account};
 }
 async function deviceBelongs(account, deviceId) {
   const state=await (await account.fetch("https://internal/state")).json();
@@ -223,7 +245,10 @@ export default {
       }});
       if (request.method==="GET"&&url.pathname==="/api/health") return json({ok:true,service:"AgentBridge Cloud",version:"0.1.0-alpha.1",time:nowIso()});
       if (request.method==="POST"&&url.pathname==="/api/account/bootstrap") {
-        const account_token=randomToken(32); return json({account_token,account_id:await sha256(account_token),plan:"alpha"});
+        const account_token=randomToken(32); const account_id=await sha256(account_token);
+        const account=env.ACCOUNT_HUB.getByName(account_id);
+        await account.fetch(new Request("https://internal/init-account",{method:"POST",headers:{"content-type":"application/json"},body:"{}"}));
+        return json({account_token,account_id,plan:"alpha"});
       }
       if (request.method==="POST"&&url.pathname==="/api/pair/request") {
         const d=await bodyJson(request);
@@ -278,6 +303,9 @@ export default {
         const auth=await accountContext(request,env); if (!auth) return json({error:"unauthorized"},401);
         const d=await bodyJson(request); if (payloadTooLarge(d)) return json({error:"schedule_payload_too_large","limit_bytes":1000000},413); if (!d.device_id||!await deviceBelongs(auth.account,d.device_id)) return json({error:"device_not_owned"},403);
         const next=Number(d.next_run_at); if (!Number.isFinite(next)||next<Date.now()-1000) return json({error:"invalid_next_run_at"},400);
+        const every=d.every_seconds==null?null:Number(d.every_seconds);
+        if(every!==null&&(!Number.isFinite(every)||every<60)) return json({error:"invalid_repeat_interval","minimum_seconds":60},400);
+        d.every_seconds=every;
         const rowResp=await auth.account.fetch(new Request("https://internal/schedule",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({...d,account_id:auth.accountId,next_run_at:next})}));
         const row=await rowResp.json(); const sh=env.SCHEDULE_HUB.getByName(`${auth.accountId}:${row.id}`);
         await sh.fetch(new Request("https://internal/set",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({...row,account_id:auth.accountId})}));
