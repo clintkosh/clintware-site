@@ -78,13 +78,7 @@ async function rebrandPublicHtml(request,response){
   html=html
     .replaceAll("AgentBridge Cloud","Quillgeist")
     .replaceAll("AGENTBRIDGE","QUILLGEIST")
-    .replaceAll("AgentBridge","Quillgeist")
-    .replace("Public alpha · governed local execution","Adaptive intent compiler for AI · public alpha")
-    .replace("Your AI plans. Your machines execute.","Type naturally. Quillgeist handles the translation.")
-    .replace("Quillgeist receives an Execution Pack from the planner and routes it to your paired Node. The Node performs approved filesystem, shell, code, Git, validation, scheduling, and rollback work locally. Local policy decides what can run. Contextor returns a compact Result Pack with status, Definition-of-Done checks, changed-file evidence, and only the output the planner needs.","Quillgeist sits between you and AI models. It turns intent into a clearer instruction, routes eligible deterministic work to your paired local Node, and uses model reasoning only where it adds value. Local policy remains authoritative, while Contextor and Result Packs return compact verified evidence instead of a full mechanical transcript.")
-    .replace("Live execution bridge","Adaptive execution path")
-    .replace("Route · schedule · account state","Compile intent · route · account state")
-    .replace("Intent + capabilities + DoD","Intent · constraints · DoD");
+    .replaceAll("AgentBridge","Quillgeist");
   const headers=new Headers(response.headers);headers.delete("content-length");
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
