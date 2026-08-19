@@ -73,14 +73,23 @@ function reportCsv(report){
 async function rebrandPublicHtml(request,response){
   if(request.method!=="GET"||!response.ok)return response;
   const contentType=response.headers.get("content-type")||"";
-  if(!contentType.includes("text/html"))return response;
-  let html=await response.text();
-  html=html
-    .replaceAll("AgentBridge Cloud","Quillgeist")
-    .replaceAll("AGENTBRIDGE","QUILLGEIST")
-    .replaceAll("AgentBridge","Quillgeist");
+  const pathname=new URL(request.url).pathname;
+  const isHtml=contentType.includes("text/html");
+  const isJs=contentType.includes("javascript")||pathname==="/app.js";
+  if(!isHtml&&!isJs)return response;
+  let body=await response.text();
+  if(isHtml){
+    body=body
+      .replaceAll("AgentBridge Cloud","Quillgeist")
+      .replaceAll("AGENTBRIDGE","QUILLGEIST")
+      .replaceAll("AgentBridge","Quillgeist");
+  }
+  body=body.replaceAll(
+    "Run <code>quillgeist pair</code>",
+    "Run the downloaded Quillgeist executable with <code>pair</code>"
+  );
   const headers=new Headers(response.headers);headers.delete("content-length");
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+  return new Response(body,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function canonicalBugBody(telemetry,body){
