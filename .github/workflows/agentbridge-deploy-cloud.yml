@@ -96,7 +96,7 @@ jobs:
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
             css=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/styles.css || true)
-            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'QUILLGEIST' <<< "$page" && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
+            if grep -Fq '"service":"Quillgeist Cloud"' <<< "$health" && grep -Fq 'QUILLGEIST' <<< "$page" && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
             sleep 4
           done
           test "$ready" = 1
