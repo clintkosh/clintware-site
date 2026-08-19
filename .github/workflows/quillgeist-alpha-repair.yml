@@ -1,0 +1,45 @@
+name: Quillgeist Alpha Functional Repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/quillgeist-alpha-repair.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Apply targeted Quillgeist repairs
+        run: python3 scripts/quillgeist_repair.py
+      - name: Validate repaired JavaScript
+        run: |
+          node --check agentbridge-cloud/src/index.js
+          node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/sw.js
+      - name: Validate repaired public markers
+        run: |
+          grep -Fq 'service:"Quillgeist Cloud"' agentbridge-cloud/src/entry.js
+          grep -Fq 'quillgeist-report-' agentbridge-cloud/public/app.js
+          grep -Fq 'Run <code>quillgeist pair</code>' agentbridge-cloud/public/app.js
+          grep -Fq 'invalid_repeat_interval' agentbridge-cloud/src/index.js
+          grep -Fq '/init-account' agentbridge-cloud/src/index.js
+          grep -Fq '/exists' agentbridge-cloud/src/index.js
+      - name: Commit repair
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agentbridge-cloud/src/index.js agentbridge-cloud/src/entry.js agentbridge-cloud/public/app.js .github/workflows/agentbridge-deploy-cloud.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Repair Quillgeist alpha account, schedule, and UI flows"
+          git push
