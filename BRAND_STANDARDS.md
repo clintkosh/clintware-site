@@ -5,14 +5,31 @@ Canonical professional brand treatment, effective 2026-08-19.
 ## Required wording
 
 - Company: **Clintware™**
-- Official slogan: **Go Furthest.™**
-- Lockup: **Clintware™ — Go Furthest.™**
+- Official slogan: **GO FURTHEST.™**
+- Lockup: **Clintware™ — GO FURTHEST.™**
+
+The slogan is always displayed in all capitals with the period before the trademark symbol. Do not substitute `Go Furthest.™`, `Go Further`, or any other casing/wording in public brand display copy.
 
 Use the trademark symbol on professional/public brand references where it is visually reasonable. Do not use the registered-trademark symbol (®) unless and until a relevant federal registration exists.
 
+## Permanent visual system
+
+Clintware is a restrained technical brand, not a generic SaaS/AI marketing template.
+
+- Use compact, uniform page titles rather than oversized hero typography.
+- Use Windows/Linux terminal-inspired digital/monospace typography for titles, labels, navigation accents, metadata, and brand treatments.
+- Keep headings legible, restrained, and consistent. No loopy, bubbly, comic, handwritten, decorative, or giant display headings.
+- Avoid generic startup-template hero layouts whose main visual device is an enormous headline.
+- Preserve the established dark technical palette: near-black backgrounds, restrained graphite surfaces/borders, white text, muted blue-gray secondary text, and controlled cyan/green/violet accents.
+- Prefer square or lightly rounded technical panels over exaggerated pill/bubble styling.
+- Supporting copy must be direct, logical, technical, and specific. Avoid hype-heavy generated marketing language and stacked promotional descriptors.
+- Product pages must inherit this visual system unless a product has an explicitly approved independent identity.
+
+These are hard design constraints for future site changes. Do not replace them with framework/theme defaults during redesigns, migrations, or template generation.
+
 ## Usage
 
-Use **Go Furthest.™** as Clintware’s canonical slogan on the website, LinkedIn copy, professional templates, product pages, branded follow-ups, presentations, social profiles, and future brand assets.
+Use **GO FURTHEST.™** as Clintware’s canonical slogan on the website, LinkedIn copy, professional templates, product pages, branded follow-ups, presentations, social profiles, and future brand assets.
 
 The slogan is not a substitute for a product description. Product copy must remain specific about what the product actually does and clearly distinguish working functionality from prototypes, experiments, roadmap items, and future concepts.
 
