@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/quillgeist-final-live-check.yml"
+      - "agentbridge-cloud/**"
 
 permissions:
   contents: read
@@ -22,17 +23,22 @@ jobs:
           current=$(curl --fail-with-body -sS \
             "${base}/workers/domains?hostname=quillgeist.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          scripts=$(curl --fail-with-body -sS "${base}/workers/scripts" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in (d.get("result") or []) if x.get("hostname")=="quillgeist.clintware.com"]; print("domain_count=",len(r)); print("domain_services=",[x.get("service") for x in r]); assert d.get("success") is True and len(r)==1 and r[0].get("service")=="clintware-agentbridge"' <<< "$current"
+          python3 -c 'import json,sys; d=json.load(sys.stdin); w=next((x for x in (d.get("result") or []) if x.get("id")=="clintware-agentbridge"),{}); print("runtime_modified_on=",w.get("modified_on")); print("runtime_last_deployed_from=",w.get("last_deployed_from")); assert w' <<< "$scripts"
 
           page_code=$(curl -L -sS -o /tmp/page -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/)
           health_code=$(curl -L -sS -o /tmp/health -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health)
           app_code=$(curl -L -sS -o /tmp/app -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/app.js)
           echo "page_http=${page_code} health_http=${health_code} app_http=${app_code}"
+          echo "page_brand_marker=$(grep -Fq 'QUILLGEIST' /tmp/page && echo yes || echo no)"
+          echo "health_service_marker=$(grep -Fq '\"service\":\"Quillgeist Cloud\"' /tmp/health && echo yes || echo no)"
+          echo "app_ready_marker=$(grep -Fq 'Quillgeist Cloud ready.' /tmp/app && echo yes || echo no)"
+          echo "page_pair_guidance=$(grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/page && echo new || (grep -Fq 'quillgeist pair' /tmp/page && echo stale || echo other))"
+          echo "app_pair_guidance=$(grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/app && echo new || (grep -Fq 'quillgeist pair' /tmp/app && echo stale || echo other))"
           test "$page_code" = "200"
           test "$health_code" = "200"
           test "$app_code" = "200"
           grep -Fq 'QUILLGEIST' /tmp/page
           grep -Fq '"service":"Quillgeist Cloud"' /tmp/health
           grep -Fq 'Quillgeist Cloud ready.' /tmp/app
-          grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/page
-          grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/app
