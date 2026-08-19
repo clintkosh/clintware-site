@@ -23,8 +23,8 @@ jobs:
           replacements = {
               Path('agentbridge-cloud/public/index.html'): [
                   (
-                      'Run <code>quillgeist pair</code> locally to generate a pairing code.',
-                      'Run the downloaded Quillgeist executable with <code>pair</code> to generate a pairing code.'
+                      'Run <code>quillgeist pair</code> locally, then enter the short code shown by the Node.',
+                      'Run the downloaded Quillgeist executable with <code>pair</code>, then enter the short code shown by the Node.'
                   )
               ],
               Path('agentbridge-cloud/public/app.js'): [
@@ -47,7 +47,7 @@ jobs:
       - name: Validate static assets
         run: |
           node --check agentbridge-cloud/public/app.js
-          grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code> to generate a pairing code.' agentbridge-cloud/public/index.html
+          grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>, then enter the short code shown by the Node.' agentbridge-cloud/public/index.html
           grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>, then enter its code here.' agentbridge-cloud/public/app.js
           if grep -Fq 'quillgeist pair' agentbridge-cloud/public/index.html agentbridge-cloud/public/app.js; then
             echo 'Stale generic pairing command remains.' >&2
