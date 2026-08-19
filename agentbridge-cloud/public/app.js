@@ -48,7 +48,7 @@ function deviceIcon(platform=""){
 function renderDevices(){
   $("#deviceCount").textContent=`${state.devices.length} node${state.devices.length===1?"":"s"}`;$("#calmDevices").textContent=state.devices.length;
   const html=state.devices.map(d=>`<div class="device-card"><div class="device-icon">${deviceIcon(d.platform)}</div><div class="grow"><div class="item-title">${esc(d.device_name||d.device_id)}</div><div class="item-meta">${esc(d.platform||"device")} · ${esc(d.node_version||"alpha")} · ${esc(d.device_id)}</div></div>${statusChip("paired")}</div>`).join("");
-  $("#devices").innerHTML=html||'<div class="empty">No Node paired yet. Run <code>agentbridge pair</code> on a machine, then enter its code here.</div>';
+  $("#devices").innerHTML=html||'<div class="empty">No Node paired yet. Run <code>quillgeist pair</code> on a machine, then enter its code here.</div>';
   for(const id of ["jobDevice","scheduleDevice"]){const sel=$("#"+id);sel.innerHTML=state.devices.map(d=>`<option value="${esc(d.device_id)}">${esc(d.device_name||d.device_id)} · ${esc(d.platform)}</option>`).join("")}
   const reportSel=$("#reportDevice");const selected=reportSel.value;reportSel.innerHTML='<option value="">All devices</option>'+state.devices.map(d=>`<option value="${esc(d.device_id)}">${esc(d.device_name||d.device_id)}</option>`).join("");reportSel.value=selected;
 }
@@ -83,7 +83,7 @@ function renderMetrics(){
   $("#bReported").textContent=fmtNum(m.bugs_reported);$("#bOpen").textContent=fmtNum(m.bugs_open);$("#bResolved").textContent=fmtNum(m.bugs_resolved);$("#bReopened").textContent=fmtNum(m.bugs_reopened);
 }
 function renderBugs(){
-  const rows=telemetry.bugs||report.bugs||[];$("#bugs").innerHTML=rows.slice(0,30).map(b=>`<div class="bug-row"><span class="bug-status status-chip ${esc(b.status)}">${esc(b.status)}</span><code>${esc(b.bug_id)}</code><div class="item-meta">${esc(b.sample_error||"No sample retained")} · ${num(b.occurrences)} occurrence${num(b.occurrences)===1?"":"s"}</div></div>`).join("")||'<div class="empty">No AgentBridge product bugs reported.</div>';
+  const rows=telemetry.bugs||report.bugs||[];$("#bugs").innerHTML=rows.slice(0,30).map(b=>`<div class="bug-row"><span class="bug-status status-chip ${esc(b.status)}">${esc(b.status)}</span><code>${esc(b.bug_id)}</code><div class="item-meta">${esc(b.sample_error||"No sample retained")} · ${num(b.occurrences)} occurrence${num(b.occurrences)===1?"":"s"}</div></div>`).join("")||'<div class="empty">No Quillgeist product bugs reported.</div>';
 }
 function eventLabel(e){return({connection_open:"Node connected",connection_close:"Node disconnected",cloud_send:"Cloud dispatched job",cloud_receive:"Node received job",device_send:"Node returned result",run_complete:"Execution completed",error:"Error reported"})[e.type]||String(e.type||"Event").replaceAll("_"," ")}
 function renderActivity(){
@@ -116,7 +116,7 @@ async function refresh(){
 async function filePayload(input){const f=input.files[0];if(!f)return{};if(f.name.toLowerCase().endsWith(".abpack")){const bytes=new Uint8Array(await f.arrayBuffer());let bin="";for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return{pack_name:f.name,pack_b64:btoa(bin)}}return{pack_name:f.name,pack_text:await f.text()}}
 async function exportReport(format){
   const q=reportQuery(format==="csv"?"csv":null);const headers={authorization:`Bearer ${token()}`};const r=await fetch(`/api/telemetry/report?${q}`,{headers});if(!r.ok)throw new Error(`Export failed (${r.status})`);
-  const blob=format==="csv"?await r.blob():new Blob([JSON.stringify(await r.json(),null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`agentbridge-report-${new Date().toISOString().slice(0,10)}.${format}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const blob=format==="csv"?await r.blob():new Blob([JSON.stringify(await r.json(),null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`quillgeist-report-${new Date().toISOString().slice(0,10)}.${format}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 const commands=[
@@ -139,15 +139,15 @@ document.addEventListener("click",async e=>{
   const del=e.target.closest("[data-delete-schedule]");if(del){try{await api(`/api/schedules/${del.dataset.deleteSchedule}`,{method:"DELETE"});toast("Schedule removed.");await refresh()}catch(err){toast(err.message,"error")}return}
 });
 
-$("#createAccount").onclick=async()=>{try{const a=await api("/api/account/bootstrap",{method:"POST",body:{}});localStorage.setItem(TOKEN_KEY,a.account_token);show();await refresh();toast("AgentBridge Cloud ready.")}catch(e){toast(e.message,"error")}};
+$("#createAccount").onclick=async()=>{try{const a=await api("/api/account/bootstrap",{method:"POST",body:{}});localStorage.setItem(TOKEN_KEY,a.account_token);show();await refresh();toast("Quillgeist Cloud ready.")}catch(e){toast(e.message,"error")}};
 $("#restoreAccount").onclick=openAccount;$("#accountButton").onclick=openAccount;$("#railAccount").onclick=openAccount;
-$("#useKey").onclick=async()=>{const k=$("#existingKey").value.trim();if(!k)return toast("Paste a control key first.","error");localStorage.setItem(TOKEN_KEY,k);$("#accountDialog").close();show();try{await refresh();toast("Control key restored.")}catch(e){localStorage.removeItem(TOKEN_KEY);show();toast("That key could not open an AgentBridge account.","error")}};
+$("#useKey").onclick=async()=>{const k=$("#existingKey").value.trim();if(!k)return toast("Paste a control key first.","error");localStorage.setItem(TOKEN_KEY,k);$("#accountDialog").close();show();try{await refresh();toast("Control key restored.")}catch(e){localStorage.removeItem(TOKEN_KEY);show();toast("That key could not open a Quillgeist account.","error")}};
 $("#copyKey").onclick=async()=>{try{await navigator.clipboard.writeText(token());toast("Control key copied.")}catch{toast("Clipboard permission was denied.","error")}};
-$("#resetKey").onclick=()=>{if(confirm("Forget this browser's AgentBridge control key?")){localStorage.removeItem(TOKEN_KEY);location.hash="";location.reload()}};
+$("#resetKey").onclick=()=>{if(confirm("Forget this browser's Quillgeist control key?")){localStorage.removeItem(TOKEN_KEY);location.hash="";location.reload()}};
 $("#refresh").onclick=()=>refresh().then(()=>toast("Dashboard refreshed.")).catch(e=>toast(e.message,"error"));
 $("#claim").onclick=async()=>{const code=$("#pairCode").value.trim().toUpperCase();if(!code)return toast("Enter the pairing code shown by the Node.","error");try{await api("/api/pair/claim",{method:"POST",body:{pair_code:code}});$("#pairCode").value="";toast("Device paired.");await refresh()}catch(e){toast(e.message,"error")}};
-$("#sendJob").onclick=async()=>{try{if(!$("#jobDevice").value)throw new Error("Pair a device first.");const fp=await filePayload($("#packFile"));const text=$("#packText").value.trim();const body={device_id:$("#jobDevice").value,workspace:$("#workspace").value.trim()||undefined,title:"AgentBridge task",...fp};if(!fp.pack_name&&text){body.pack_name="task.md";body.pack_text=text}if(!body.pack_name)throw new Error("Choose a pack file or paste pack text.");await api("/api/jobs",{method:"POST",body});toast("Execution Pack sent.");await refresh()}catch(e){toast(e.message,"error")}};
-$("#createSchedule").onclick=async()=>{try{const at=$("#scheduleAt").value;if(!at)throw new Error("Choose the first run time.");if(!$("#scheduleDevice").value)throw new Error("Pair a device first.");const pack=$("#schedulePack").value.trim();if(!pack)throw new Error("Add Execution Pack text.");const body={device_id:$("#scheduleDevice").value,owner:$("#scheduleOwner").value,next_run_at:new Date(at).getTime(),every_seconds:num($("#scheduleEvery").value)||null,pack_name:"scheduled-task.md",pack_text:pack,approved:false,enabled:true};await api("/api/schedules",{method:"POST",body});toast("Schedule created.");await refresh()}catch(e){toast(e.message,"error")}};
+$("#sendJob").onclick=async()=>{try{if(!$("#jobDevice").value)throw new Error("Pair a device first.");const fp=await filePayload($("#packFile"));const text=$("#packText").value.trim();const body={device_id:$("#jobDevice").value,workspace:$("#workspace").value.trim()||undefined,title:"Quillgeist task",...fp};if(!fp.pack_name&&text){body.pack_name="task.md";body.pack_text=text}if(!body.pack_name)throw new Error("Choose a pack file or paste pack text.");await api("/api/jobs",{method:"POST",body});toast("Execution Pack sent.");await refresh()}catch(e){toast(e.message,"error")}};
+$("#createSchedule").onclick=async()=>{try{const at=$("#scheduleAt").value;if(!at)throw new Error("Choose the first run time.");if(!$("#scheduleDevice").value)throw new Error("Pair a device first.");const pack=$("#schedulePack").value.trim();if(!pack)throw new Error("Add Execution Pack text.");const repeat=num($("#scheduleEvery").value)||null;if(repeat!==null&&repeat<60)throw new Error("Repeat interval must be at least 60 seconds.");const body={device_id:$("#scheduleDevice").value,owner:$("#scheduleOwner").value,next_run_at:new Date(at).getTime(),every_seconds:repeat,pack_name:"scheduled-task.md",pack_text:pack,approved:false,enabled:true};await api("/api/schedules",{method:"POST",body});toast("Schedule created.");await refresh()}catch(e){toast(e.message,"error")}};
 $("#applyFilters").onclick=()=>loadReport().catch(e=>toast(e.message,"error"));$("#exportCsv").onclick=()=>exportReport("csv").catch(e=>toast(e.message,"error"));$("#exportJson").onclick=()=>exportReport("json").catch(e=>toast(e.message,"error"));
 $("#syncHelp").onclick=()=>loadHelp().then(()=>toast("Help Center synchronized.")).catch(e=>toast(e.message,"error"));$("#helpSearch").addEventListener("input",renderHelp);
 $("#commandTrigger").onclick=openCommand;$("#commandInput").addEventListener("input",e=>renderCommands(e.target.value));
@@ -158,7 +158,7 @@ addEventListener("unhandledrejection",e=>toast(e.reason?.message||String(e.reaso
   show();
   try{const h=await api("/api/health");for(const id of ["#health","#publicHealth"]){const el=$(id);if(el)el.innerHTML=`<span class="status-dot"></span><span>${h.ok?"Cloud healthy":"Cloud issue"}</span>`}}catch{for(const id of ["#health","#publicHealth"]){const el=$(id);if(el){el.innerHTML='<span class="status-dot" style="background:var(--red)"></span><span>Cloud unavailable</span>';el.classList.add("danger")}}}
   const hash=location.hash.slice(1);if(["home","run","automate","activity","help"].includes(hash))setView(hash);
-  if(token())try{await refresh()}catch(e){toast(e.message,"error")}
+  if(token())try{await refresh()}catch(e){localStorage.removeItem(TOKEN_KEY);show();toast("Control key could not be restored. Create a new account or paste a valid key.","error")}
   if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
   setInterval(()=>{if(token()&&!document.hidden)refresh().catch(()=>{})},20000);
 })();
