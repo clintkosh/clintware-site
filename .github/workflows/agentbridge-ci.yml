@@ -63,12 +63,12 @@ jobs:
           p.write_text(json.dumps({
             'agentbridge':'1.0','title':'CI smoke','workspace':str(w),
             'permissions':['file.write'],
-            'steps':[{'type':'write_file','path':'hello.txt','content':'AgentBridge alpha'}],
-            'definition_of_done':[{'type':'file_contains','path':'hello.txt','text':'AgentBridge'}]
+            'steps':[{'type':'write_file','path':'hello.txt','content':'Quillgeist alpha'}],
+            'definition_of_done':[{'type':'file_contains','path':'hello.txt','text':'Quillgeist'}]
           }))
           PY
           agentbridge run "${{ runner.temp }}/hello.json" --approve-all
-          grep -Fq "AgentBridge alpha" "${{ runner.temp }}/ab-work/hello.txt"
+          grep -Fq "Quillgeist alpha" "${{ runner.temp }}/ab-work/hello.txt"
 
   cloud:
     runs-on: ubuntu-latest
@@ -89,13 +89,19 @@ jobs:
           node --check agentbridge-cloud/public/fluid.js
           node --check agentbridge-cloud/public/sw.js
       - name: Validate Wrangler config
-        run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("entrypoint mismatch"); for(const n of ["TELEMETRY_HUB","PRODUCT_METRICS_HUB","HELP_HUB"]) if(!d.durable_objects.bindings.some(x=>x.name===n)) throw new Error(`missing ${n}`); console.log("wrangler config ok")'
+        run: |
+          grep -Fq '"main": "src/entry.js"' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"name":"TELEMETRY_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"name":"PRODUCT_METRICS_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"name":"HELP_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/quillgeist-ci-xdg npx --yes --cache /tmp/quillgeist-ci-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Validate Help Center documentation invariant
         run: python3 scripts/check_agentbridge_help_docs.py
       - name: Validate compact interface
         run: |
-          grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html
-          grep -Fq 'Your machines execute.' agentbridge-cloud/public/index.html
+          grep -Fq 'Your intent. Your machines. Verified execution.' agentbridge-cloud/public/index.html
+          grep -Fq 'Local policy stays authoritative' agentbridge-cloud/public/index.html
           grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
           for view in home run automate activity help; do grep -Fq "data-view=\"$view\"" agentbridge-cloud/public/index.html; done
           grep -Fq 'net_tokens_saved_est' agentbridge-cloud/src/telemetry.js
