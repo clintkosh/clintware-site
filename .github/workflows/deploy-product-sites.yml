@@ -8,6 +8,7 @@ on:
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
       - "landtheplane-worker/**"
+      - "agentbridge-cloud/**"
       - ".github/workflows/deploy-product-sites.yml"
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
       - "landtheplane-worker/**"
+      - "agentbridge-cloud/**"
       - ".github/workflows/deploy-product-sites.yml"
   workflow_dispatch:
 
@@ -39,12 +41,27 @@ jobs:
           node --check shouldersoldier-worker/src/index.js
           node --check buyerorigin-worker/src/index.js
           node --check landtheplane-worker/src/index.js
+          node --check agentbridge-cloud/src/index.js
+          node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/src/telemetry.js
+          node --check agentbridge-cloud/src/help.js
+          node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/fluid.js
+          node --check agentbridge-cloud/public/sw.js
       - name: Validate Worker configurations
         run: |
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config product-sites/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config shouldersoldier-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config buyerorigin-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
+      - name: Validate Quillgeist runtime markers
+        run: |
+          grep -Fq '"routes": []' agentbridge-cloud/wrangler.jsonc
+          grep -Fq 'Your intent. Your machines. Verified execution.' agentbridge-cloud/public/index.html
+          grep -Fq 'service:"Quillgeist Cloud"' agentbridge-cloud/src/entry.js
+          grep -Fq 'Control key could not be restored.' agentbridge-cloud/public/app.js
+          grep -Fq 'invalid_repeat_interval' agentbridge-cloud/src/index.js
 
   release-shared-domains:
     if: github.event_name != 'pull_request'
@@ -124,5 +141,65 @@ jobs:
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/healthz || true)
             if grep -Fq 'Turn your actual experience into answers you can retrieve under pressure.' <<< "$page" && grep -Fq 'local-first-alpha' <<< "$health"; then exit 0; fi
             sleep 3
+          done
+          exit 1
+
+  deploy-quillgeist:
+    needs: release-shared-domains
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Quillgeist Worker runtime
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd agentbridge-cloud
+      - name: Reset Quillgeist Worker custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          mapfile -t ids < <(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; [print(x["id"]) for x in d.get("result",[]) if x.get("hostname")=="quillgeist.clintware.com"]' <<< "$current")
+          for id in "${ids[@]}"; do
+            detached=$(curl --fail-with-body -sS -X DELETE \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${id}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$detached"
+          done
+          attached=0
+          for i in $(seq 1 12); do
+            response=$(curl -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"quillgeist.clintware.com","service":"clintware-agentbridge","zone_name":"clintware.com"}' || true)
+            if python3 -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get("success") is True else 1)' <<< "$response"; then attached=1; break; fi
+            sleep 5
+          done
+          test "$attached" = 1
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in d.get("result",[]) if x.get("hostname")=="quillgeist.clintware.com"]; assert d.get("success") is True,d; assert len(r)==1,r; assert r[0].get("service")=="clintware-agentbridge",r' <<< "$current"
+      - name: Verify Quillgeist
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 45); do
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
+            css=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/styles.css || true)
+            app=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/app.js || true)
+            if grep -Fq '"service":"Quillgeist Cloud"' <<< "$health" \
+              && grep -Fq 'QUILLGEIST' <<< "$page" \
+              && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" \
+              && grep -Fq 'app-shell' <<< "$css" \
+              && grep -Fq 'Quillgeist Cloud ready.' <<< "$app"; then exit 0; fi
+            sleep 4
           done
           exit 1
