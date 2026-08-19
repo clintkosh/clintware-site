@@ -53,8 +53,12 @@ jobs:
           custom_http=$(curl -L -sS -o /tmp/qg-custom-body -w '%{http_code}' --connect-timeout 5 --max-time 20 \
             https://quillgeist.clintware.com/api/health || true)
 
+          export DEPLOY_RC="$deploy_rc" PUT_HTTP="$put_http" PUT_RC="$put_rc" \
+            DOMAIN_HTTP="$domain_http" DOMAIN_RC="$domain_rc" \
+            WORKERS_HTTP="$workers_http" CUSTOM_HTTP="$custom_http"
+
           python3 - <<'PY'
-          import json, os, re
+          import json, os
           from datetime import datetime, timezone
 
           def read_json(path):
@@ -105,9 +109,6 @@ jobs:
               json.dump(status, f, indent=2)
               f.write('\n')
           PY
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Publish sanitized recovery status
         if: always()
