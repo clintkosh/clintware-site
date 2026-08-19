@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: clintware-agentbridge-cloud-${{ github.ref }}
@@ -103,3 +103,59 @@ jobs:
             sleep 4
           done
           test "$ready" = 1
+
+  publish-status:
+    if: always()
+    needs: [validate, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture sanitized deployment state
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        run: |
+          set +e
+          mkdir -p ops
+          qg_domains=$(curl -sS --connect-timeout 5 --max-time 15 \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" 2>/dev/null)
+          qg_service=$(python3 -c 'import json,sys; 
+try:
+ d=json.load(sys.stdin); r=d.get("result",[]); print(r[0].get("service","") if r else "")
+except Exception: print("")' <<< "$qg_domains")
+          domain_ok=false
+          if [ "$qg_service" = "clintware-agentbridge" ]; then domain_ok=true; fi
+          page_code=$(curl -L -sS -o /tmp/qg-page -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || echo 000)
+          health_code=$(curl -L -sS -o /tmp/qg-health -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || echo 000)
+          page_marker=false
+          health_marker=false
+          grep -Fq 'QUILLGEIST' /tmp/qg-page 2>/dev/null && page_marker=true
+          grep -Fq '"ok":true' /tmp/qg-health 2>/dev/null && health_marker=true
+          python3 - <<PY
+          import json, os
+          status={
+            "checked_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            "source_commit": "${GITHUB_SHA}",
+            "validate": os.environ.get("VALIDATE_RESULT", "unknown"),
+            "deploy": os.environ.get("DEPLOY_RESULT", "unknown"),
+            "quillgeist_domain_service": "${qg_service}",
+            "quillgeist_domain_owned_by_runtime": ${domain_ok},
+            "page_http": "${page_code}",
+            "health_http": "${health_code}",
+            "page_marker_ok": ${page_marker},
+            "health_marker_ok": ${health_marker}
+          }
+          open("ops/quillgeist-deploy-status.json","w").write(json.dumps(status,indent=2)+"\n")
+          PY
+      - name: Publish sanitized status checkpoint
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ops/quillgeist-deploy-status.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record Quillgeist deployment status"
+          git push
