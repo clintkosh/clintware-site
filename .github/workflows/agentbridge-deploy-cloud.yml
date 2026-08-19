@@ -32,11 +32,13 @@ jobs:
           node --check agentbridge-cloud/public/app.js
           node --check agentbridge-cloud/public/fluid.js
           node --check agentbridge-cloud/public/sw.js
-      - name: Wrangler config parses
-        run: node -e 'const d=JSON.parse(require("fs").readFileSync("agentbridge-cloud/wrangler.jsonc","utf8")); if(d.main!=="src/entry.js") throw new Error("wrong Worker entrypoint")'
+      - name: Wrangler config validates
+        run: |
+          grep -Fq '"main": "src/entry.js"' agentbridge-cloud/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --yes --cache /tmp/quillgeist-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Runtime template markers
         run: |
-          grep -Fq 'Your AI plans.' agentbridge-cloud/public/index.html
+          grep -Fq 'Your intent. Your machines. Verified execution.' agentbridge-cloud/public/index.html
           grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
           grep -Fq 'Help Center' agentbridge-cloud/public/index.html
           grep -Fq 'TelemetryHub' agentbridge-cloud/src/entry.js
@@ -97,7 +99,7 @@ jobs:
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
             css=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/styles.css || true)
-            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'QUILLGEIST' <<< "$page" && grep -Fq 'Type naturally. Quillgeist handles the translation.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
+            if grep -Fq '"service":"AgentBridge Cloud"' <<< "$health" && grep -Fq 'QUILLGEIST' <<< "$page" && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" && grep -Fq 'app-shell' <<< "$css"; then ready=1; break; fi
             sleep 4
           done
           test "$ready" = 1
