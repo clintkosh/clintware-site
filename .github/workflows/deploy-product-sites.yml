@@ -50,22 +50,9 @@ jobs:
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-review-worker/wrangler.jsonc
 
-  release-shared-domains:
+  deploy-shouldersoldier:
     if: github.event_name != 'pull_request'
     needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Redeploy legacy shared Worker without custom domains
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4"
-          command: deploy --cwd product-sites
-
-  deploy-shouldersoldier:
-    needs: release-shared-domains
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,7 +74,8 @@ jobs:
           exit 1
 
   deploy-buyerorigin:
-    needs: release-shared-domains
+    if: github.event_name != 'pull_request'
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,7 +97,8 @@ jobs:
           exit 1
 
   deploy-landtheplane:
-    needs: release-shared-domains
+    if: github.event_name != 'pull_request'
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +121,8 @@ jobs:
           exit 1
 
   deploy-landtheplane-review:
-    needs: release-shared-domains
+    if: github.event_name != 'pull_request'
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
