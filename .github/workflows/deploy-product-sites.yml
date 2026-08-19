@@ -8,6 +8,7 @@ on:
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
       - "landtheplane-worker/**"
+      - "landtheplane-review-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
       - "landtheplane-worker/**"
+      - "landtheplane-review-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
   workflow_dispatch:
 
@@ -39,12 +41,14 @@ jobs:
           node --check shouldersoldier-worker/src/index.js
           node --check buyerorigin-worker/src/index.js
           node --check landtheplane-worker/src/index.js
+          node --check landtheplane-review-worker/src/index.js
       - name: Validate Worker configurations
         run: |
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config product-sites/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config shouldersoldier-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config buyerorigin-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-review-worker/wrangler.jsonc
 
   release-shared-domains:
     if: github.event_name != 'pull_request'
@@ -123,6 +127,29 @@ jobs:
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/healthz || true)
             if grep -Fq 'Turn your actual experience into answers you can retrieve under pressure.' <<< "$page" && grep -Fq 'local-first-alpha' <<< "$health"; then exit 0; fi
+            sleep 3
+          done
+          exit 1
+
+  deploy-landtheplane-review:
+    needs: release-shared-domains
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy LandThePlane Interview Review Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd landtheplane-review-worker
+      - name: Verify LandThePlane Interview Review
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/ || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/healthz || true)
+            if grep -Fq 'Review the interview you actually had.' <<< "$page" && grep -Fq 'audio-review-alpha' <<< "$health"; then exit 0; fi
             sleep 3
           done
           exit 1
