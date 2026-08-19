@@ -40,6 +40,10 @@ Use this order unless a shorter note is more appropriate:
 - Offer tailored tooling without implying that technology should lead the process.
 - Do not expose private pipeline information, credentials, or unrelated personal details.
 
+## Clintware brand rule
+
+When the follow-up is a Clintware-owned professional communication or template, use **Clintware™** as the company treatment and **Go Furthest.™** as the canonical slogan where a slogan/brand line is appropriate. Never substitute “Go Further.” or use the ® symbol. Keep the slogan separate from factual product descriptions, and follow the current product hierarchy and accuracy rules in `/BRAND_STANDARDS.md`.
+
 ## Presentation rules
 
 - Use an email-safe table layout with inline styles.
