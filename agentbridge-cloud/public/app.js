@@ -48,7 +48,7 @@ function deviceIcon(platform=""){
 function renderDevices(){
   $("#deviceCount").textContent=`${state.devices.length} node${state.devices.length===1?"":"s"}`;$("#calmDevices").textContent=state.devices.length;
   const html=state.devices.map(d=>`<div class="device-card"><div class="device-icon">${deviceIcon(d.platform)}</div><div class="grow"><div class="item-title">${esc(d.device_name||d.device_id)}</div><div class="item-meta">${esc(d.platform||"device")} · ${esc(d.node_version||"alpha")} · ${esc(d.device_id)}</div></div>${statusChip("paired")}</div>`).join("");
-  $("#devices").innerHTML=html||'<div class="empty">No Node paired yet. Run <code>quillgeist pair</code> on a machine, then enter its code here.</div>';
+  $("#devices").innerHTML=html||'<div class="empty">No Node paired yet. Run the downloaded Quillgeist executable with <code>pair</code>, then enter its code here.</div>';
   for(const id of ["jobDevice","scheduleDevice"]){const sel=$("#"+id);sel.innerHTML=state.devices.map(d=>`<option value="${esc(d.device_id)}">${esc(d.device_name||d.device_id)} · ${esc(d.platform)}</option>`).join("")}
   const reportSel=$("#reportDevice");const selected=reportSel.value;reportSel.innerHTML='<option value="">All devices</option>'+state.devices.map(d=>`<option value="${esc(d.device_id)}">${esc(d.device_name||d.device_id)}</option>`).join("");reportSel.value=selected;
 }
