@@ -1,4 +1,4 @@
-const CACHE="quillgeist-alpha-v4";
+const CACHE="quillgeist-alpha-v5";
 const LEGACY_PREFIXES=["agentbridge-alpha-","quillgeist-alpha-"];
 const ASSETS=["/","/app.js","/styles.css","/terminal.css","/fluid.js","/manifest.webmanifest","/icon.svg"];
 
