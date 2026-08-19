@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-08-19T23:05:08.881366+00:00",
+  "source_commit": "c3b80ac6b2bc56800f2623d92800aa50707d4fe7",
+  "runtime_worker": "clintware-agentbridge",
+  "hostname": "quillgeist.clintware.com",
+  "deploy_exit_code": 0,
+  "domain_put_http": "200",
+  "domain_put_curl_exit_code": 0,
+  "domain_put_success": true,
+  "domain_put_service": "clintware-agentbridge",
+  "domain_list_http": "200",
+  "domain_list_curl_exit_code": 0,
+  "domain_list_success": true,
+  "domain_match_count": 1,
+  "domain_service": "clintware-agentbridge",
+  "workers_dev_http": "200",
+  "workers_dev_health_marker": true,
+  "custom_domain_http": "200",
+  "custom_domain_health_marker": true,
+  "cloudflare_errors": []
+}
