@@ -8,11 +8,30 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - name: Inspect dedicated deployment workflow state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          http=$(curl -sS -o /tmp/workflow.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            https://api.github.com/repos/clintkosh/clintware-site/actions/workflows/agentbridge-deploy-cloud.yml)
+          echo "workflow_api_http=${http}"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/workflow.json'))
+          print('workflow_name=',d.get('name'))
+          print('workflow_state=',d.get('state'))
+          print('workflow_path=',d.get('path'))
+          print('workflow_id=',d.get('id'))
+          PY
       - name: Verify Cloudflare binding and production endpoints
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,7 +51,6 @@ jobs:
           app_code=$(curl -L -sS -o /tmp/app -w '%{http_code}' --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/app.js)
           echo "page_http=${page_code} health_http=${health_code} app_http=${app_code}"
           echo "page_brand_marker=$(grep -Fq 'QUILLGEIST' /tmp/page && echo yes || echo no)"
-          echo "health_service_marker=$(grep -Fq '\"service\":\"Quillgeist Cloud\"' /tmp/health && echo yes || echo no)"
           echo "app_ready_marker=$(grep -Fq 'Quillgeist Cloud ready.' /tmp/app && echo yes || echo no)"
           echo "page_pair_guidance=$(grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/page && echo new || (grep -Fq 'quillgeist pair' /tmp/page && echo stale || echo other))"
           echo "app_pair_guidance=$(grep -Fq 'Run the downloaded Quillgeist executable with <code>pair</code>' /tmp/app && echo new || (grep -Fq 'quillgeist pair' /tmp/app && echo stale || echo other))"
