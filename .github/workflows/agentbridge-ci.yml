@@ -94,7 +94,9 @@ jobs:
           grep -Fq '"name":"TELEMETRY_HUB"' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"name":"PRODUCT_METRICS_HUB"' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"name":"HELP_HUB"' agentbridge-cloud/wrangler.jsonc
-          grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"routes": []' agentbridge-cloud/wrangler.jsonc
+          grep -Fq 'workers/domains?hostname=quillgeist.clintware.com' .github/workflows/agentbridge-deploy-cloud.yml
+          grep -Fq '"service":"clintware-agentbridge"' .github/workflows/agentbridge-deploy-cloud.yml
           XDG_CONFIG_HOME=/tmp/quillgeist-ci-xdg npx --yes --cache /tmp/quillgeist-ci-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Validate Help Center documentation invariant
         run: python3 scripts/check_agentbridge_help_docs.py
