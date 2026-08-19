@@ -2,13 +2,11 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "clintware-agentbridge",
   "main": "src/entry.js",
-  "compatibility_date": "2026-08-15",
+  "compatibility_date": "2026-08-19",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
-  "routes": [
-    {"pattern":"quillgeist.clintware.com/*","zone_name":"clintware.com"}
-  ],
+  "routes": [],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
