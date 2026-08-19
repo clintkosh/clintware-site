@@ -6,7 +6,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
-  "routes": [],
+  "routes": [
+    {"pattern":"quillgeist.clintware.com","custom_domain":true}
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
