@@ -123,8 +123,16 @@ jobs:
             git push
           fi
 
-      - name: Signal recovery probe completion
+      - name: Require healthy Quillgeist endpoint
         if: always()
         run: |
-          echo "Recovery probe completed; inspect ops/quillgeist-recovery-status.json"
-          exit 1
+          python3 - <<'PY'
+          import json
+          d=json.load(open('ops/quillgeist-recovery-status.json'))
+          assert d['deploy_exit_code'] == 0, d
+          assert d['domain_put_success'] is True, d
+          assert d['domain_match_count'] == 1, d
+          assert d['domain_service'] == 'clintware-agentbridge', d
+          assert d['workers_dev_http'] == '200' and d['workers_dev_health_marker'] is True, d
+          assert d['custom_domain_http'] == '200' and d['custom_domain_health_marker'] is True, d
+          PY
