@@ -74,10 +74,7 @@ jobs:
             current=$(curl -sS --connect-timeout 5 --max-time 15 \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=quillgeist.clintware.com" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
-            if python3 -c 'import json,sys
-try:
- d=json.load(sys.stdin); r=[x for x in (d.get("result") or []) if x.get("hostname")=="quillgeist.clintware.com"]; raise SystemExit(0 if d.get("success") is True and len(r)==1 and r[0].get("service")=="clintware-agentbridge" else 1)
-except Exception: raise SystemExit(1)' <<< "$current"; then
+            if python3 -c 'import json,sys; d=json.load(sys.stdin); r=[x for x in (d.get("result") or []) if x.get("hostname")=="quillgeist.clintware.com"]; raise SystemExit(0 if d.get("success") is True and len(r)==1 and r[0].get("service")=="clintware-agentbridge" else 1)' <<< "$current"; then
               ready=1
               break
             fi
