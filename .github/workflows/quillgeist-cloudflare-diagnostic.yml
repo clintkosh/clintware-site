@@ -1,0 +1,88 @@
+name: Quillgeist Cloudflare Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/quillgeist-cloudflare-diagnostic.yml"
+      - "agentbridge-cloud/**"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect Quillgeist Cloudflare state safely
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          python3 - <<'PY'
+          import os
+          print("token_present=", bool(os.environ.get("CLOUDFLARE_API_TOKEN")))
+          print("account_id_present=", bool(os.environ.get("CLOUDFLARE_ACCOUNT_ID")))
+          PY
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "diagnostic=missing_cloudflare_secret"
+            exit 2
+          fi
+
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          base="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}"
+
+          curl -sS --connect-timeout 10 --max-time 30 "${base}/workers/scripts" "${auth[@]}" -o /tmp/scripts.json -w 'scripts_http=%{http_code}\n'
+          curl -sS --connect-timeout 10 --max-time 30 "${base}/workers/domains?hostname=quillgeist.clintware.com" "${auth[@]}" -o /tmp/domains.json -w 'domains_http=%{http_code}\n'
+          curl -sS --connect-timeout 10 --max-time 30 "${base}/workers/scripts/clintware-agentbridge/deployments" "${auth[@]}" -o /tmp/deployments.json -w 'deployments_http=%{http_code}\n'
+          curl -sS --connect-timeout 10 --max-time 30 "${base}/workers/scripts/clintware-agentbridge/subdomain" "${auth[@]}" -o /tmp/subdomain.json -w 'subdomain_http=%{http_code}\n'
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(path):
+              try:
+                  return json.loads(Path(path).read_text())
+              except Exception as exc:
+                  return {"success": False, "errors": [{"code": "decode", "message": str(exc)}]}
+
+          def errors(data):
+              return [{"code": e.get("code"), "message": e.get("message")} for e in data.get("errors", [])]
+
+          scripts = load("/tmp/scripts.json")
+          rows = scripts.get("result") or []
+          worker = next((x for x in rows if x.get("id") == "clintware-agentbridge"), None)
+          print("scripts_api_success=", scripts.get("success"))
+          print("scripts_errors=", errors(scripts))
+          print("runtime_worker_exists=", bool(worker))
+          if worker:
+              print("runtime_modified_on=", worker.get("modified_on"))
+              print("runtime_last_deployed_from=", worker.get("last_deployed_from"))
+              print("runtime_migration_tag=", worker.get("migration_tag"))
+
+          domains = load("/tmp/domains.json")
+          drows = [x for x in (domains.get("result") or []) if x.get("hostname") == "quillgeist.clintware.com"]
+          print("domains_api_success=", domains.get("success"))
+          print("domains_errors=", errors(domains))
+          print("quillgeist_domain_count=", len(drows))
+          print("quillgeist_domain_services=", [x.get("service") for x in drows])
+          print("quillgeist_domain_zones=", [x.get("zone_name") for x in drows])
+
+          deployments = load("/tmp/deployments.json")
+          prows = deployments.get("result") or []
+          print("deployments_api_success=", deployments.get("success"))
+          print("deployments_errors=", errors(deployments))
+          print("deployment_count=", len(prows))
+          if prows:
+              latest = prows[0]
+              print("latest_deployment_created_on=", latest.get("created_on"))
+              print("latest_deployment_source=", latest.get("source"))
+
+          subdomain = load("/tmp/subdomain.json")
+          sr = subdomain.get("result") or {}
+          print("subdomain_api_success=", subdomain.get("success"))
+          print("subdomain_errors=", errors(subdomain))
+          print("workers_dev_enabled=", sr.get("enabled"))
+          print("preview_urls_enabled=", sr.get("previews_enabled"))
+          PY
