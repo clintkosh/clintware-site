@@ -14,16 +14,21 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect dedicated deployment workflow state
+      - name: Inspect dedicated deployment workflow state and runs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          http=$(curl -sS -o /tmp/workflow.json -w '%{http_code}' \
+          curl --fail-with-body -sS \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H 'Accept: application/vnd.github+json' \
-            https://api.github.com/repos/clintkosh/clintware-site/actions/workflows/agentbridge-deploy-cloud.yml)
-          echo "workflow_api_http=${http}"
+            https://api.github.com/repos/clintkosh/clintware-site/actions/workflows/agentbridge-deploy-cloud.yml \
+            -o /tmp/workflow.json
+          curl --fail-with-body -sS \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/clintkosh/clintware-site/actions/workflows/agentbridge-deploy-cloud.yml/runs?per_page=8' \
+            -o /tmp/runs.json
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/workflow.json'))
@@ -31,6 +36,9 @@ jobs:
           print('workflow_state=',d.get('state'))
           print('workflow_path=',d.get('path'))
           print('workflow_id=',d.get('id'))
+          runs=json.load(open('/tmp/runs.json')).get('workflow_runs') or []
+          for r in runs:
+              print('run=',{'id':r.get('id'),'event':r.get('event'),'status':r.get('status'),'conclusion':r.get('conclusion'),'head_sha':r.get('head_sha'),'created_at':r.get('created_at')})
           PY
       - name: Verify Cloudflare binding and production endpoints
         env:
