@@ -7,8 +7,7 @@
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    {"pattern":"quillgeist.clintware.com","custom_domain":true},
-    {"pattern":"agentbridge.clintware.com","custom_domain":true}
+    {"pattern":"quillgeist.clintware.com","custom_domain":true}
   ],
   "assets": {
     "directory": "./public",
