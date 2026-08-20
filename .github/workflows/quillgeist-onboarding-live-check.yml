@@ -1,0 +1,63 @@
+name: Quillgeist Onboarding Live Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/quillgeist-onboarding-live-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify deployed onboarding and downloads
+        run: |
+          set -euo pipefail
+          page_http=$(curl -L -sS -o /tmp/qg-page -w '%{http_code}' --connect-timeout 5 --max-time 20 https://quillgeist.clintware.com/)
+          health_http=$(curl -L -sS -o /tmp/qg-health -w '%{http_code}' --connect-timeout 5 --max-time 20 https://quillgeist.clintware.com/api/health)
+          sw_http=$(curl -L -sS -o /tmp/qg-sw -w '%{http_code}' --connect-timeout 5 --max-time 20 https://quillgeist.clintware.com/sw.js)
+          win_http=$(curl -L -I -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 20 https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Windows-x64.exe)
+          mac_http=$(curl -L -I -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 20 https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-macOS-arm64)
+          linux_http=$(curl -L -I -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 20 https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Linux-x64)
+          test "$page_http" = "200"
+          test "$health_http" = "200"
+          test "$sw_http" = "200"
+          test "$win_http" = "200"
+          test "$mac_http" = "200"
+          test "$linux_http" = "200"
+          grep -Fq 'Download Quillgeist for Windows' /tmp/qg-page
+          grep -Fq 'Download for macOS Apple Silicon' /tmp/qg-page
+          grep -Fq 'Download for Linux x64' /tmp/qg-page
+          grep -Fq 'I installed Quillgeist · Continue to Cloud' /tmp/qg-page
+          grep -Fq 'Existing user · use control key' /tmp/qg-page
+          grep -Fq 'quillgeist-alpha-v7' /tmp/qg-sw
+          grep -Fq '"service":"Quillgeist Cloud"' /tmp/qg-health
+          mkdir -p ops
+          python3 - <<PY
+          import json, datetime
+          status={
+            "checked_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "page_http": int("$page_http"),
+            "health_http": int("$health_http"),
+            "service_worker_http": int("$sw_http"),
+            "windows_download_http": int("$win_http"),
+            "macos_download_http": int("$mac_http"),
+            "linux_download_http": int("$linux_http"),
+            "download_first_onboarding_live": True,
+            "control_key_is_returning_user_path": True,
+            "cache": "quillgeist-alpha-v7"
+          }
+          open('ops/quillgeist-onboarding-live-status.json','w',encoding='utf-8').write(json.dumps(status,indent=2)+"\n")
+          PY
+      - name: Commit sanitized verification status
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ops/quillgeist-onboarding-live-status.json
+          git commit -m "Record Quillgeist onboarding live verification"
+          git push
