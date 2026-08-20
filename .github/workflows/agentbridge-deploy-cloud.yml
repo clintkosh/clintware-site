@@ -38,6 +38,30 @@ jobs:
           grep -Fq '"name": "clintware-agentbridge"' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --yes --cache /tmp/quillgeist-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
+      - name: Download-first onboarding invariant
+        run: |
+          set -euo pipefail
+          test -f agentbridge-cloud/ONBOARDING_INVARIANTS.md
+          grep -Fq 'Download Quillgeist for Windows' agentbridge-cloud/public/index.html
+          grep -Fq 'Download for macOS Apple Silicon' agentbridge-cloud/public/index.html
+          grep -Fq 'Download for Linux x64' agentbridge-cloud/public/index.html
+          grep -Fq 'Quillgeist-Windows-x64.exe' agentbridge-cloud/public/index.html
+          grep -Fq 'Quillgeist-macOS-arm64' agentbridge-cloud/public/index.html
+          grep -Fq 'Quillgeist-Linux-x64' agentbridge-cloud/public/index.html
+          grep -Fq 'I installed Quillgeist · Continue to Cloud' agentbridge-cloud/public/index.html
+          grep -Fq 'Existing user · use control key' agentbridge-cloud/public/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('agentbridge-cloud/public/index.html').read_text(encoding='utf-8')
+          download=text.index('Download Quillgeist for Windows')
+          continue_cloud=text.index('I installed Quillgeist · Continue to Cloud')
+          existing=text.index('Existing user · use control key')
+          if not download < continue_cloud < existing:
+              raise SystemExit('Quillgeist onboarding regressed: download must precede Cloud account and returning-user control-key paths')
+          old='<button id="createAccount" class="btn primary wide">Open Quillgeist Cloud</button>\n        <button id="restoreAccount" class="btn ghost wide">Use existing control key</button>'
+          if old in text:
+              raise SystemExit('Quillgeist onboarding regressed to key-first landing')
+          PY
       - name: Runtime markers
         run: |
           grep -Fq 'Your intent. Your machines. Verified execution.' agentbridge-cloud/public/index.html
@@ -104,6 +128,8 @@ jobs:
             if grep -Fq '"service":"Quillgeist Cloud"' <<< "$health" \
               && grep -Fq 'QUILLGEIST' <<< "$page" \
               && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" \
+              && grep -Fq 'Download Quillgeist for Windows' <<< "$page" \
+              && grep -Fq 'Existing user · use control key' <<< "$page" \
               && grep -Fq 'app-shell' <<< "$css" \
               && grep -Fq 'Quillgeist Cloud ready.' <<< "$app"; then
               ready=1
