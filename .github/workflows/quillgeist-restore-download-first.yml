@@ -1,0 +1,72 @@
+name: Restore Quillgeist Download-First Onboarding
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/quillgeist-restore-download-first.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore public first-run experience
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          html_path=Path('agentbridge-cloud/public/index.html')
+          html=html_path.read_text(encoding='utf-8')
+          old='''      <div class="landing-actions">\n        <button id="createAccount" class="btn primary wide">Open Quillgeist Cloud</button>\n        <button id="restoreAccount" class="btn ghost wide">Use existing control key</button>\n      </div>\n      <div class="landing-proof"><span><i></i>Windows · macOS · Linux</span><span><i></i>Local policy stays authoritative</span><span><i></i>Compact verified results</span></div>'''
+          new='''      <div class="landing-actions" aria-label="Download Quillgeist">\n        <a class="btn primary wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Windows-x64.exe">Download Quillgeist for Windows</a>\n        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-macOS-arm64">Download for macOS Apple Silicon</a>\n        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Linux-x64">Download for Linux x64</a>\n      </div>\n      <div class="landing-proof"><span><i></i>1 · Download and run <code>init</code></span><span><i></i>2 · Continue to Cloud</span><span><i></i>3 · Pair your Node</span></div>\n      <div class="landing-actions">\n        <button id="createAccount" class="btn ghost wide">I installed Quillgeist · Continue to Cloud</button>\n        <button id="restoreAccount" class="btn ghost wide">Existing user · use control key</button>\n      </div>\n      <div class="landing-proof"><span><i></i>Windows · macOS · Linux</span><span><i></i>Local policy stays authoritative</span><span><i></i>Compact verified results</span></div>'''
+          if old not in html:
+              raise SystemExit('Expected reverted key-first landing block was not found; refusing broad replacement')
+          html=html.replace(old,new,1)
+          html_path.write_text(html,encoding='utf-8')
+
+          css_path=Path('agentbridge-cloud/public/styles.css')
+          css=css_path.read_text(encoding='utf-8')
+          rule='\n.landing-actions a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}\n'
+          if '.landing-actions a.btn{' not in css:
+              css += rule
+          css_path.write_text(css,encoding='utf-8')
+
+          sw_path=Path('agentbridge-cloud/public/sw.js')
+          sw=sw_path.read_text(encoding='utf-8')
+          if 'quillgeist-alpha-v6' in sw:
+              sw=sw.replace('quillgeist-alpha-v6','quillgeist-alpha-v7',1)
+          sw_path.write_text(sw,encoding='utf-8')
+          PY
+      - name: Validate restored onboarding
+        run: |
+          set -euo pipefail
+          node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/sw.js
+          grep -Fq 'Download Quillgeist for Windows' agentbridge-cloud/public/index.html
+          grep -Fq 'Download for macOS Apple Silicon' agentbridge-cloud/public/index.html
+          grep -Fq 'Download for Linux x64' agentbridge-cloud/public/index.html
+          grep -Fq 'I installed Quillgeist · Continue to Cloud' agentbridge-cloud/public/index.html
+          grep -Fq 'Existing user · use control key' agentbridge-cloud/public/index.html
+          grep -Fq 'quillgeist-alpha-v7' agentbridge-cloud/public/sw.js
+          if grep -Fq '>Open Quillgeist Cloud</button>' agentbridge-cloud/public/index.html; then
+            echo 'Old key-first CTA still present' >&2
+            exit 1
+          fi
+      - name: Commit restored onboarding
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agentbridge-cloud/public/index.html agentbridge-cloud/public/styles.css agentbridge-cloud/public/sw.js
+          git commit -m "Restore Quillgeist download-first onboarding"
+          git push
+      - name: Trigger permanent Quillgeist deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run agentbridge-deploy-cloud.yml --ref main
