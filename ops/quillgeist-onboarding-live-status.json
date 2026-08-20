@@ -1,0 +1,12 @@
+{
+  "checked_at_utc": "2026-08-20T11:48:48.014994+00:00",
+  "page_http": 200,
+  "health_http": 200,
+  "service_worker_http": 200,
+  "windows_download_http": 200,
+  "macos_download_http": 200,
+  "linux_download_http": 200,
+  "download_first_onboarding_live": true,
+  "control_key_is_returning_user_path": true,
+  "cache": "quillgeist-alpha-v7"
+}
