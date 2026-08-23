@@ -1,6 +1,6 @@
-const CACHE="quillgeist-alpha-v7";
+const CACHE="quillgeist-alpha-v8";
 const LEGACY_PREFIXES=["agentbridge-alpha-","quillgeist-alpha-"];
-const ASSETS=["/","/app.js","/styles.css","/terminal.css","/fluid.js","/manifest.webmanifest","/icon.svg"];
+const ASSETS=["/","/app.js","/styles.css","/terminal.css","/fluid.js","/usage.js","/public-stats.js","/manifest.webmanifest","/icon.svg"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(
