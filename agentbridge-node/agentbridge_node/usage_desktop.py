@@ -4,7 +4,7 @@ import threading
 import webbrowser
 
 from .config import Config
-from .desktop import QuillgeistDesktop, main as desktop_main
+from .desktop import QuillgeistDesktop
 from .usage import delete_plan, emit_plan_snapshot, save_plan, snapshot
 
 
@@ -12,7 +12,7 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
     def _build_ui(self) -> None:
         super()._build_ui()
         tk = self.tk
-        bg = "#05070b"; panel = "#0b111a"; fg = "#f4f7fb"; muted = "#8fa1b5"; accent = "#7dd3fc"; border = "#1b2a3a"
+        panel = "#0b111a"; fg = "#f4f7fb"; muted = "#8fa1b5"; accent = "#7dd3fc"; border = "#1b2a3a"
         actions = next((w for w in self.root.winfo_children() if isinstance(w, tk.Frame) and any(isinstance(c, tk.Button) for c in w.winfo_children())), None)
         self.usage_panel = tk.Frame(self.root, bg=panel, highlightbackground=border, highlightthickness=1, padx=18, pady=14)
         if actions is not None:
@@ -43,8 +43,7 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
             cfg = Config.load()
             data = snapshot(cfg)
             try:
-                emit_plan_snapshot(cfg)
-                sync = "SYNCED"
+                sync = "SYNCED" if emit_plan_snapshot(cfg) else "LOCAL"
             except Exception:
                 sync = "LOCAL"
             self.root.after(0, lambda: self._render_usage(data, sync))
@@ -114,5 +113,5 @@ def main(argv=None) -> int:
     parser.add_argument("--smoke",action="store_true"); parser.add_argument("--minimized",action="store_true"); parser.add_argument("--no-tray",action="store_true")
     args=parser.parse_args(argv)
     if args.smoke:
-        data=snapshot(Config.load()); print(data); return 0
+        print(snapshot(Config.load())); return 0
     app=QuillgeistDesktopWithUsage(minimized=args.minimized,no_tray=args.no_tray); app.run(); return 0
