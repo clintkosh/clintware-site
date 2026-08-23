@@ -1,14 +1,42 @@
 from __future__ import annotations
 
 import threading
+import time
+import uuid
 import webbrowser
 
 from .config import Config
 from .desktop import ActivityLedger, QuillgeistDesktop
+from .telemetry import emit_event
 from .usage import delete_plan, emit_plan_snapshot, save_plan, snapshot
+
+_CONTROL_COMMANDS = {
+    "pair", "pair device", "connect", "doctor", "diagnose", "status",
+    "open cloud", "cloud", "control room", "start", "start runtime", "daemon",
+    "stop", "stop runtime", "stop daemon", "local only", "offline", "privacy local",
+    "local first", "online",
+}
 
 
 class QuillgeistDesktopWithUsage(QuillgeistDesktop):
+    def execute_palette(self, text: str) -> None:
+        lowered = text.lower().strip()
+        is_prompt = lowered not in _CONTROL_COMMANDS
+        super().execute_palette(text)
+        if is_prompt:
+            cfg = Config.load()
+            event = {
+                "event_id": f"prompt:{uuid.uuid4()}",
+                "type": "prompt_compiled",
+                "ts": int(time.time() * 1000),
+                "device_id": cfg.data.get("device_id"),
+                "status": "compiled",
+                "raw_tokens_est": max(1, (len(text) + 3) // 4),
+                "node_version": self.root.title().split()[-1] if self.root.title() else "",
+                "metadata": {"source": "windows_command_palette", "content_collected": False},
+            }
+            threading.Thread(target=lambda: emit_event(cfg, event), daemon=True).start()
+
     def _build_ui(self) -> None:
         super()._build_ui()
         tk = self.tk
