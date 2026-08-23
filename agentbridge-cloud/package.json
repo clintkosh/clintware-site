@@ -1,14 +1,14 @@
 {
   "name": "clintware-agentbridge-cloud",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "private": true,
   "scripts": {
-    "check": "node --check src/index.js && node --check src/entry.js && node --check src/public-api.js",
+    "check": "node --check src/index.js && node --check src/entry.js && node --check src/public-api.js && node --check src/telemetry.js && node --check public/public-stats.js",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
-    "agents": "^0.20.0",
+    "agents": "0.20.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
