@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
 const JSON_HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
+const PRODUCT_RETENTION_MS=730*86400000;
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:JSON_HEADERS});
 const now=()=>Date.now();
 const bugId=(fingerprint)=>`AB-${String(fingerprint||"").slice(0,12).toUpperCase()}`;
@@ -99,6 +100,12 @@ function createSchema(sql){
     );
     CREATE INDEX IF NOT EXISTS bugs_status_idx ON bugs(status,last_seen DESC);
   `);
+}
+
+function pruneProductMetrics(sql){
+  const cutoff=now()-PRODUCT_RETENTION_MS;
+  sql.exec(`DELETE FROM telemetry_events WHERE ts<?`,cutoff);
+  sql.exec(`DELETE FROM bugs WHERE last_seen<?`,cutoff);
 }
 
 function summarize(sql){
@@ -256,9 +263,10 @@ export class TelemetryHub extends DurableObject{
 }
 
 export class ProductMetricsHub extends DurableObject{
-  constructor(ctx,env){super(ctx,env);this.sql=ctx.storage.sql;createSchema(this.sql);}
+  constructor(ctx,env){super(ctx,env);this.sql=ctx.storage.sql;createSchema(this.sql);pruneProductMetrics(this.sql);}
   async fetch(request){
     const url=new URL(request.url);
+    pruneProductMetrics(this.sql);
     if(request.method==='POST'&&url.pathname==='/event'){
       const event=normalizedEvent(await request.json());
       const exists=this.sql.exec(`SELECT event_id FROM telemetry_events WHERE event_id=? LIMIT 1`,event.event_id).toArray().length>0;
@@ -267,7 +275,7 @@ export class ProductMetricsHub extends DurableObject{
     }
     if(request.method==='POST'&&url.pathname==='/resolve'){const d=await request.json();return json({ok:true,resolved:resolveBug(this.sql,String(d.bug_id||''),d.job_id)});}
     if(request.method==='GET'&&url.pathname==='/summary')return json({metrics:summarize(this.sql),bugs:recentBugs(this.sql,100)});
-    if(request.method==='GET'&&url.pathname==='/impact')return json({metrics:summarize(this.sql),trends:trends(this.sql,Number(url.searchParams.get('days'))||30)});
+    if(request.method==='GET'&&url.pathname==='/impact')return json({metrics:summarize(this.sql),trends:trends(this.sql,Number(url.searchParams.get('days'))||30),retention_days:730});
     return json({error:'not_found'},404);
   }
 }
