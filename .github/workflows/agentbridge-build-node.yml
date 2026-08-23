@@ -35,7 +35,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Quillgeist build dependencies
-        run: python -m pip install ./agentbridge-node "pyinstaller>=6.11,<7"
+        run: python -m pip install ./agentbridge-node "pyinstaller>=6.11,<7" "pytest>=8,<9"
 
       - name: Install Windows desktop dependencies
         if: matrix.os == 'windows-latest'
