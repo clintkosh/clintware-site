@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#05070b">
+<meta name="description" content="Quillgeist public API and ChatGPT MCP integration documentation.">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<title>Quillgeist API + ChatGPT | Clintware</title>
+<style>
+:root{color-scheme:dark;--bg:#05070b;--panel:#0b111a;--line:#1b2a3a;--text:#f4f7fb;--muted:#8fa1b5;--cyan:#7dd3fc;--violet:#a78bfa}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 72% 10%,rgba(125,211,252,.09),transparent 30%),var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:980px;margin:auto;padding:42px 22px 80px}a{color:var(--cyan)}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:48px}.brand{font:800 15px/1 Consolas,monospace;letter-spacing:.12em}.brand small{display:block;color:var(--muted);font-size:8px;margin-top:6px}.back{border:1px solid var(--line);border-radius:9px;padding:8px 11px;text-decoration:none;color:var(--text)}.kicker{font:700 10px Consolas,monospace;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase}h1{font:800 clamp(28px,5vw,46px)/1.05 Consolas,monospace;max-width:760px;margin:12px 0}h2{font:750 19px Consolas,monospace;margin:0 0 10px}p{color:#c8d2df}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:26px 0}.panel{background:rgba(11,17,26,.78);border:1px solid var(--line);border-radius:14px;padding:18px}.endpoint{display:flex;gap:10px;align-items:center;margin:10px 0}.method{font:700 10px Consolas,monospace;color:var(--cyan);border:1px solid var(--line);border-radius:6px;padding:3px 6px}code,pre{font-family:Consolas,monospace}code{color:#dcecff}pre{overflow:auto;background:#03070c;border:1px solid var(--line);border-radius:10px;padding:14px;color:#dcecff;white-space:pre-wrap}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:5px 8px;color:var(--muted);font:10px Consolas,monospace;margin:3px 4px 3px 0}.note{border-left:2px solid var(--violet);padding-left:14px;color:var(--muted)}footer{border-top:1px solid var(--line);margin-top:34px;padding-top:18px;color:var(--muted);font-size:11px}@media(max-width:720px){.grid{grid-template-columns:1fr}header{align-items:flex-start}.endpoint{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main>
+<header><div class="brand">QUILLGEIST<small>BY CLINTWARE</small></div><a class="back" href="/">Back to Quillgeist</a></header>
+<div class="kicker">Public developer surface · v2026-08-23</div>
+<h1>Quillgeist API + ChatGPT</h1>
+<p>Use Quillgeist to compact repetitive or low-signal AI context while preserving important evidence, then measure the estimated token reduction. The same public service exposes privacy-safe aggregate product impact statistics.</p>
+<div><span class="pill">REST API</span><span class="pill">OpenAPI 3.1</span><span class="pill">Remote MCP</span><span class="pill">Stateless</span><span class="pill">Read-only ChatGPT tools</span></div>
+
+<div class="grid">
+<section class="panel"><div class="kicker">REST</div><h2>Public API</h2>
+<div class="endpoint"><span class="method">POST</span><code>/api/v1/compact</code></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/v1/impact?days=30</code></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/v1/openapi.json</code></div>
+<p>No API key is required for the initial public alpha surface. Body and text-size limits are enforced.</p></section>
+<section class="panel"><div class="kicker">ChatGPT / MCP</div><h2>Remote MCP endpoint</h2>
+<p><code>https://quillgeist.clintware.com/mcp</code></p>
+<p>Connect this endpoint as a custom MCP app in ChatGPT Developer Mode for testing. The catalog candidate exposes only read-only Quillgeist tools.</p></section>
+</div>
+
+<section class="panel"><div class="kicker">Tool 01</div><h2>quillgeist_compact_context</h2><p>Compacts prompt, transcript, log, or execution context. It preserves error-adjacent lines, beginning/end context, and removes consecutive repetition before bounded truncation.</p>
+<pre>curl -X POST https://quillgeist.clintware.com/api/v1/compact \
+  -H "content-type: application/json" \
+  -d '{"text":"your long context here","max_chars":24000}'</pre>
+<p>The response includes <code>output</code>, estimated raw/output tokens, estimated gross tokens removed, and reduction percentage.</p></section>
+
+<section class="panel" style="margin-top:14px"><div class="kicker">Tool 02</div><h2>quillgeist_product_impact</h2><p>Returns aggregate usage, execution, compaction, and estimated token-savings metrics for participating Quillgeist installs plus public API/MCP calls.</p>
+<pre>curl "https://quillgeist.clintware.com/api/v1/impact?days=30"</pre></section>
+
+<section class="panel" style="margin-top:14px"><div class="kicker">Privacy boundary</div><h2>What the public API records</h2><p>Submitted compaction text is processed to produce the response. Quillgeist application telemetry does not store that submitted text. Aggregate telemetry may record the time, request source, compaction method, pass/compact status, and estimated token counts. Public API/MCP aggregate events do not contain a Quillgeist user, account, or device identifier.</p><p class="note">Normal infrastructure providers may process standard network/request metadata needed to deliver the service. Do not send credentials or secrets unless they are necessary for your requested transformation.</p></section>
+
+<section class="panel" style="margin-top:14px"><div class="kicker">Catalog scope</div><h2>Initial ChatGPT plugin candidate</h2><p>The first public ChatGPT version is intentionally read-only. It can compact context and retrieve aggregate Quillgeist impact. It does not remotely execute actions on a user's Windows machine. Authenticated node/account delegation, if added later, will use a separate scoped authorization model and explicit permissions.</p></section>
+
+<footer><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="https://clintware.com">Clintware</a><br>Quillgeist is an alpha product. Token values labeled estimated are approximations and are not provider billing records.</footer>
+</main></body></html>
