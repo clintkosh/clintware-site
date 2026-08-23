@@ -1,6 +1,7 @@
 import core, { AccountHub, DeviceHub, PairingHub, ScheduleHub as CoreScheduleHub } from "./index.js";
 import { TelemetryHub, ProductMetricsHub } from "./telemetry.js";
 import { HelpHub } from "./help.js";
+import { handleMcp, handlePublicApi } from "./public-api.js";
 
 export { AccountHub, DeviceHub, PairingHub, TelemetryHub, ProductMetricsHub, HelpHub };
 
@@ -66,20 +67,24 @@ async function publicProductStats(env,days=30){
   if(!r.ok)return json({error:"stats_unavailable"},503);
   const data=await r.json();const m=data.metrics||{};
   const metrics={
-    prompts_compiled:Number(m.prompts_compiled||0),runs:Number(m.runs||0),compactions:Number(m.compactions||0),pass_through_runs:Number(m.pass_through_runs||0),
+    prompts_compiled:Number(m.prompts_compiled||0),runs:Number(m.runs||0),compactions:Number(m.compactions||0),api_compactions:Number(m.api_compactions||0),pass_through_runs:Number(m.pass_through_runs||0),
     raw_tokens_est:Number(m.raw_tokens_est||0),sent_tokens_est:Number(m.sent_tokens_est||0),gross_tokens_removed_est:Number(m.tokens_avoided_est||0),net_tokens_saved_est:Number(m.net_tokens_saved_est||0),local_tokens_est:Number(m.local_tokens_est||0),
     compaction_rate_pct:Number(m.compaction_rate_pct||0),gross_reduction_pct:Number(m.gross_reduction_pct||0),net_savings_pct:Number(m.net_savings_pct||0),local_overhead_pct:Number(m.local_overhead_pct||0),
     passed:Number(m.passed||0),failed:Number(m.failed||0),patches_applied:Number(m.patches_applied||0),files_changed:Number(m.files_changed||0)
   };
-  const trends=(data.trends||[]).map(row=>({date:String(row.date||""),prompts_compiled:Number(row.prompts_compiled||0),runs:Number(row.runs||0),compactions:Number(row.compactions||0),raw_tokens_est:Number(row.raw_tokens_est||0),sent_tokens_est:Number(row.sent_tokens_est||0),gross_tokens_removed_est:Number(row.tokens_avoided_est||0),net_tokens_saved_est:Number(row.net_tokens_saved_est||0),local_tokens_est:Number(row.local_tokens_est||0),compaction_rate_pct:Number(row.compaction_rate_pct||0),net_savings_pct:Number(row.net_savings_pct||0)}));
-  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=120, s-maxage=300"});
+  const trends=(data.trends||[]).map(row=>({date:String(row.date||""),prompts_compiled:Number(row.prompts_compiled||0),runs:Number(row.runs||0),compactions:Number(row.compactions||0),api_compactions:Number(row.api_compactions||0),raw_tokens_est:Number(row.raw_tokens_est||0),sent_tokens_est:Number(row.sent_tokens_est||0),gross_tokens_removed_est:Number(row.tokens_avoided_est||0),net_tokens_saved_est:Number(row.net_tokens_saved_est||0),local_tokens_est:Number(row.local_tokens_est||0),compaction_rate_pct:Number(row.compaction_rate_pct||0),net_savings_pct:Number(row.net_savings_pct||0)}));
+  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs and API/MCP calls with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=120, s-maxage=300"});
 }
 
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
-      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Cloud",runtime:"AgentBridge Cloud",version:"0.1.0-alpha.2",time:new Date().toISOString()});
+      if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
+      if(url.pathname==="/api/v1"||url.pathname.startsWith("/api/v1/")){
+        const apiResponse=await handlePublicApi(request,env,ctx);if(apiResponse)return apiResponse;
+      }
+      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Cloud",runtime:"AgentBridge Cloud",version:"0.1.0-alpha.3",api_version:"2026-08-23",mcp:"/mcp",time:new Date().toISOString()});
       if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
