@@ -92,3 +92,33 @@
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
+
+// Keep the primary Windows installer visible for both first-time and returning Cloud users.
+(()=>{
+  const WINDOWS_INSTALLER='https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.1-alpha/Quillgeist-Setup-Windows-x64.exe';
+  const makeLink=(id,label,classes='btn primary')=>{
+    const a=document.createElement('a');
+    a.id=id;a.className=classes;a.href=WINDOWS_INSTALLER;a.textContent=label;
+    a.setAttribute('aria-label','Install Quillgeist for Windows');
+    a.setAttribute('data-windows-installer','true');
+    return a;
+  };
+  const install=()=>{
+    const top=document.querySelector('#app .top-actions');
+    if(top&&!document.getElementById('installWindowsTop')){
+      top.insertBefore(makeLink('installWindowsTop','Install for Windows','btn primary'),top.firstChild);
+    }
+    const homeActions=document.querySelector('#view-home .page-head .actions');
+    if(homeActions&&!document.getElementById('installWindowsHome')){
+      homeActions.insertBefore(makeLink('installWindowsHome','Install Windows','btn primary'),homeActions.firstChild);
+    }
+    const pairPanel=document.querySelector('#view-home #pairCode')?.closest('.panel');
+    if(pairPanel&&!document.getElementById('installWindowsPair')){
+      const note=document.createElement('div');note.id='installWindowsPair';note.style.marginBottom='12px';
+      const link=makeLink('installWindowsPairLink','Download Windows installer','btn primary wide');
+      note.append(link);pairPanel.insertBefore(note,pairPanel.querySelector('.field'));
+    }
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+  new MutationObserver(install).observe(document.documentElement,{subtree:true,childList:true});
+})();
