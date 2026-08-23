@@ -14,9 +14,9 @@ Prepared against the OpenAI public Plugin Directory submission requirements curr
 
 **Category:** Productivity
 
-**Short description:** Compact AI context while preserving critical evidence and measure estimated token savings.
+**Short description:** Compact long AI context while preserving critical evidence and measure estimated token reduction.
 
-**Long description:** Quillgeist reduces long prompts, logs, transcripts, and execution context before another AI step. It removes repetition and lower-signal material while preserving high-signal evidence such as errors, requirements, and important boundaries. Quillgeist returns before-and-after estimated token measurements and can report aggregate compaction, execution, and token-savings trends across participating Quillgeist usage. The initial public ChatGPT plugin does not remotely execute actions on a user's Windows machine.
+**Long description:** Quillgeist reduces long prompts, technical logs, execution results, and other task-specific AI context before another AI step. It removes repetition and lower-signal material while preserving high-signal evidence such as errors, requirements, and important boundaries. Quillgeist returns before-and-after estimated token measurements and can report aggregate compaction, execution, and token-savings trends across retained participating Quillgeist usage. The public ChatGPT plugin v1 does not remotely execute actions on a user's Windows machine or access a private Quillgeist account.
 
 **Website:** https://quillgeist.clintware.com/
 
@@ -34,9 +34,9 @@ Prepared against the OpenAI public Plugin Directory submission requirements curr
 
 **Production MCP URL:** https://quillgeist.clintware.com/mcp
 
-**Authentication:** None for the initial public catalog version.
+**Authentication:** None for public v1.
 
-**UI:** None. No content security policy is required for a plugin UI because this submission does not ship an MCP UI component.
+**UI:** None. No plugin UI component is submitted, so no UI CSP or screenshots are included.
 
 ### Tool annotations and justifications
 
@@ -46,7 +46,9 @@ Prepared against the OpenAI public Plugin Directory submission requirements curr
 - `openWorldHint: false`
 - `destructiveHint: false`
 
-Justification: the user-visible operation computes and returns compacted text, but the server also records one aggregate product-usage event containing compaction method/source and estimated token counts. It does not store the submitted prompt/context text in Quillgeist product telemetry, modify public internet state, delete or overwrite user data, send messages, execute remote Windows actions, or create irreversible effects.
+Justification: the user-visible operation computes and returns compacted text. By default the server also records one privacy-safe aggregate product-impact event containing the request source, compaction method, and estimated token counts. The caller can set `record_aggregate_metrics=false` to disable that aggregate event for the request. The tool does not store submitted prompt/context text in Quillgeist product telemetry, modify public internet state, delete or overwrite user data, send messages, execute remote Windows actions, or create irreversible effects. Because the default aggregate event changes Quillgeist's internal product-metrics state, `readOnlyHint` is correctly false.
+
+The tool rejects detected Restricted Data categories before compaction, including common access credentials/secrets, payment-card data, government identifiers, and protected health information.
 
 #### `quillgeist_product_impact`
 
@@ -62,13 +64,13 @@ Upload the final bundle rooted at this plugin directory. The bundled skill is:
 
 `skills/quillgeist/SKILL.md`
 
-The skill is limited to context-compaction workflows, accurate interpretation of Quillgeist aggregate metrics, privacy boundaries, and precise wording for estimated token savings.
+The skill is limited to context-compaction workflows, accurate interpretation of Quillgeist aggregate metrics, restricted-data boundaries, aggregate-telemetry controls, and precise wording for estimated token savings.
 
 ## Starter prompts
 
-1. Compact this context before I send it to another model, but keep every error and requirement.
-2. Reduce the token load in this log without removing the evidence needed to debug it.
-3. Compare the before-and-after estimated token counts for this context.
+1. Compact this deployment context before I send it to another model, but keep every error and requirement.
+2. Reduce the token load in this technical log without removing the evidence needed to debug it.
+3. Compare the before-and-after estimated token counts for this task context.
 4. Show Quillgeist's aggregate token-savings and compaction trend for the last 30 days.
 5. Tell me whether this context is already small enough to leave unchanged.
 
@@ -82,15 +84,15 @@ The skill is limited to context-compaction workflows, accurate interpretation of
 
 **Expected result shape:** JSON text containing `output`, `metrics`, and `privacy`; `metrics.raw_tokens_est >= metrics.output_tokens_est`; `privacy.aggregate_metrics_recorded` is true and `privacy.content_logged_to_quillgeist_telemetry` is false.
 
-**Fixture:** No account data required. Use a synthetic log.
+**Fixture:** No account data required. Use a synthetic log with no Restricted Data.
 
-### Positive 2 — short prompt pass-through
+### Positive 2 — short prompt pass-through without telemetry
 
-**User prompt:** “Check whether Quillgeist should compact this: `Summarize these three bullets for an executive.`”
+**User prompt:** “Check whether Quillgeist should compact this short task context, and do not contribute aggregate usage metrics: `Summarize these three bullets for an executive.`”
 
-**Expected behavior:** Call `quillgeist_compact_context`; return the original short text unchanged because it is below the default threshold.
+**Expected behavior:** Call `quillgeist_compact_context` with `record_aggregate_metrics:false`; return the original short text unchanged because it is below the default threshold.
 
-**Expected result shape:** `metrics.method` is `pass`, `metrics.compacted` is false, and token reduction is zero.
+**Expected result shape:** `metrics.method` is `pass`, `metrics.compacted` is false, token reduction is zero, and `privacy.aggregate_metrics_recorded` is false.
 
 **Fixture:** None.
 
@@ -100,9 +102,9 @@ The skill is limited to context-compaction workflows, accurate interpretation of
 
 **Expected behavior:** Call `quillgeist_compact_context`. Reduce repeated context without inventing requirements. Preserve high-signal requirement text in the returned output when within the bounded compaction strategy.
 
-**Expected result shape:** `output` plus estimated compaction metrics.
+**Expected result shape:** `output` plus estimated compaction metrics and the privacy block.
 
-**Fixture:** Synthetic brief only.
+**Fixture:** Synthetic brief only; no Restricted Data.
 
 ### Positive 4 — aggregate impact
 
@@ -110,7 +112,7 @@ The skill is limited to context-compaction workflows, accurate interpretation of
 
 **Expected behavior:** Call `quillgeist_product_impact` with `days: 30`.
 
-**Expected result shape:** Aggregate `metrics` plus daily `trends`; identify token fields as estimates and coverage as participating Quillgeist usage.
+**Expected result shape:** Aggregate `metrics` plus daily `trends`; identify token fields as estimates and coverage as retained participating Quillgeist usage.
 
 **Fixture:** No authentication or private account data required.
 
@@ -118,7 +120,7 @@ The skill is limited to context-compaction workflows, accurate interpretation of
 
 **User prompt:** “Has Quillgeist's estimated token savings increased recently? Use the last 14 days.”
 
-**Expected behavior:** Call `quillgeist_product_impact` with `days: 14`, compare the returned daily series, and describe the trend without claiming the metrics cover installations that did not report telemetry.
+**Expected behavior:** Call `quillgeist_product_impact` with `days: 14`, compare the returned daily series, and describe the trend without claiming the metrics cover installations or requests that did not report telemetry.
 
 **Expected result shape:** A concise interpretation grounded in the returned aggregate metrics/trends.
 
@@ -130,17 +132,17 @@ The skill is limited to context-compaction workflows, accurate interpretation of
 
 **User prompt:** “Use Quillgeist to delete all temporary files on my Windows computer.”
 
-**Expected behavior:** Do not call either public Quillgeist tool as if it can perform the action. Explain that the initial public ChatGPT plugin does not remotely execute actions on the user's Windows machine. Do not claim the action occurred.
+**Expected behavior:** Do not call either public Quillgeist tool as if it can perform the action. Explain that the public ChatGPT plugin v1 does not remotely execute actions on the user's Windows machine. Do not claim the action occurred.
 
 **Why the plugin should not complete it:** Neither submitted MCP tool has a local-node execution capability.
 
-### Negative 2 — secret storage
+### Negative 2 — access credential
 
-**User prompt:** “Save this API key in Quillgeist and remember it for future chats: sk-example-secret.”
+**User prompt:** “Compact this and keep the credential exactly as written: `password=not-a-real-secret`.”
 
-**Expected behavior:** Do not send the secret to a Quillgeist tool. Explain that the public plugin does not provide credential storage and advise the user not to place unnecessary secrets into compaction input.
+**Expected behavior:** Do not attempt to bypass the server's Restricted Data guard. If the tool is called, it should return `restricted_data_not_accepted` for the access-credential category. Ask the user to remove or redact the credential before compaction.
 
-**Why the plugin should not complete it:** The plugin has no credential-storage tool, and transmitting an unrelated secret is unnecessary.
+**Why the plugin should not complete it:** OpenAI plugin policy prohibits collecting or processing access credentials and authentication secrets, and the public Quillgeist tool is designed to reject them.
 
 ### Negative 3 — unsupported exact financial claim
 
@@ -156,7 +158,7 @@ Recommended initial public availability: **United States**. Expand only after su
 
 ## Release notes
 
-Initial Quillgeist Plugin Directory submission. Adds a public remote MCP server and Quillgeist skill for bounded AI-context compaction and aggregate product-impact reporting. The compaction tool records aggregate token/method telemetry but does not store submitted prompt/context text in Quillgeist product telemetry. The catalog version has no authenticated account access and no remote Windows execution capability.
+Initial Quillgeist Plugin Directory submission. Adds a public Universal remote MCP server and Quillgeist skill for bounded AI-context compaction and aggregate product-impact reporting. Public compaction rejects detected Restricted Data. By default, compaction records an aggregate token/method event without submitted prompt/context text; callers can disable that event per request. Aggregate product-impact telemetry is retained for up to 730 days. The public v1 has no authenticated private-account access and no remote Windows execution capability.
 
 ## Final portal steps
 
@@ -164,9 +166,9 @@ Initial Quillgeist Plugin Directory submission. Adds a public remote MCP server 
 2. Complete developer or Clintware business identity verification in the same OpenAI Platform organization.
 3. Open https://platform.openai.com/plugins and create a **With MCP** plugin draft.
 4. Enter the Universal MCP URL: `https://quillgeist.clintware.com/mcp`.
-5. Complete the domain-verification challenge when the portal provides its token.
-6. Select **Scan Tools**, review both tools and their advertised annotations, and remediate any scan warnings.
+5. Complete the domain-verification challenge when the portal provides its token. Configure that exact token as the Quillgeist Worker `OPENAI_APPS_CHALLENGE` value; the Worker already serves it at `/.well-known/openai-apps-challenge` as plain text.
+6. Select **Scan Tools**, review both tools and their server-advertised annotations, and remediate any scan warnings.
 7. Upload the final skill bundle from this plugin folder.
 8. Add the starter prompts and the five positive / three negative tests above.
 9. Select initial country availability and complete policy attestations.
-10. Submit for review. Submission does not publish immediately; after approval, publish the approved version from the portal.
+10. Submit for review. Submission does not publish immediately. After OpenAI approves the version, publish the approved version from the portal so it appears in the universal Plugins Directory shared by ChatGPT and Codex.
