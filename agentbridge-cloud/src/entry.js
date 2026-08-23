@@ -80,6 +80,11 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      if(request.method==="GET"&&url.pathname==="/.well-known/openai-apps-challenge"){
+        const token=String(env.OPENAI_APPS_CHALLENGE||"").trim();
+        if(!token)return new Response("Not configured",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
+        return new Response(token,{status:200,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
+      }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
       if(url.pathname==="/api/v1"||url.pathname.startsWith("/api/v1/")){
         const apiResponse=await handlePublicApi(request,env,ctx);if(apiResponse)return apiResponse;
