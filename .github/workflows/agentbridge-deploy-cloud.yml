@@ -39,10 +39,12 @@ jobs:
           node --check agentbridge-cloud/public/sw.js
       - name: Wrangler config validates
         run: |
+          set -euo pipefail
           grep -Fq '"name": "clintware-agentbridge"' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"/mcp*"' agentbridge-cloud/wrangler.jsonc
-          XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --prefix agentbridge-cloud wrangler deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
+          cd agentbridge-cloud
+          XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: API and ChatGPT plugin invariants
         run: |
           set -euo pipefail
@@ -50,8 +52,9 @@ jobs:
           grep -Fq 'quillgeist_product_impact' agentbridge-cloud/src/public-api.js
           grep -Fq '/api/v1/compact' agentbridge-cloud/src/public-api.js
           grep -Fq '/api/v1/openapi.json' agentbridge-cloud/src/public-api.js
-          grep -Fq 'route: "/mcp"' agentbridge-cloud/src/public-api.js
+          grep -Fq 'route:"/mcp"' agentbridge-cloud/src/public-api.js
           grep -Fq 'content_stored_by_quillgeist:false' agentbridge-cloud/src/public-api.js
+          grep -Fq 'allowedHostnames:["quillgeist.clintware.com"]' agentbridge-cloud/src/public-api.js
           test -f agentbridge-cloud/public/developers.html
           test -f agentbridge-cloud/public/privacy.html
           test -f agentbridge-cloud/public/terms.html
