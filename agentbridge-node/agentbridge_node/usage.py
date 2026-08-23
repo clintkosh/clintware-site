@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -10,6 +11,7 @@ from .config import Config, home_dir
 from .telemetry import emit_event
 
 UNITS = {"tokens", "requests", "messages", "usd", "credits", "minutes", "custom"}
+PLAN_SYNC_TTL_SECONDS = 6 * 60 * 60
 
 
 def _number(value) -> float:
@@ -38,6 +40,10 @@ def normalize_plan(plan: dict) -> dict:
     allowance = _number(plan.get("allowance"))
     used = _number(plan.get("used"))
     remaining = max(0.0, allowance - used) if allowance > 0 else None
+    try:
+        updated_at = int(plan.get("updated_at") or int(time.time() * 1000))
+    except (TypeError, ValueError):
+        updated_at = int(time.time() * 1000)
     return {
         "plan_id": str(plan.get("plan_id") or uuid.uuid4()),
         "provider": provider,
@@ -50,7 +56,7 @@ def normalize_plan(plan: dict) -> dict:
         "reset_at": str(plan.get("reset_at") or ""),
         "source": str(plan.get("source") or "manual"),
         "note": str(plan.get("note") or "")[:500],
-        "updated_at": int(time.time() * 1000),
+        "updated_at": updated_at,
     }
 
 
@@ -65,12 +71,12 @@ def plans(config: Config) -> list[dict]:
 
 
 def save_plan(config: Config, plan: dict) -> dict:
-    row = normalize_plan({**plan, "source": "manual"})
+    row = normalize_plan({**plan, "source": "manual", "updated_at": int(time.time() * 1000)})
     rows = [p for p in plans(config) if p["plan_id"] != row["plan_id"]]
     rows.append(row)
     config.data["usage_plans"] = rows
     config.save()
-    emit_plan_snapshot(config)
+    emit_plan_snapshot(config, force=True)
     return row
 
 
@@ -81,13 +87,27 @@ def delete_plan(config: Config, plan_id: str) -> bool:
     config.data["usage_plans"] = kept
     config.save()
     if changed:
-        emit_plan_snapshot(config)
+        emit_plan_snapshot(config, force=True)
     return changed
 
 
-def emit_plan_snapshot(config: Config) -> bool:
+def _plan_sync_path() -> Path:
+    return home_dir() / "usage-plan-sync.json"
+
+
+def emit_plan_snapshot(config: Config, *, force: bool = False) -> bool:
     rows = plans(config)
-    return emit_event(config, {
+    canonical = json.dumps(rows, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    state_path = _plan_sync_path()
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+    except Exception:
+        state = {}
+    fresh = time.time() - float(state.get("ts") or 0) < PLAN_SYNC_TTL_SECONDS
+    if not force and state.get("digest") == digest and fresh:
+        return True
+    sent = emit_event(config, {
         "event_id": f"usage-plans:{config.data['device_id']}:{int(time.time() * 1000)}",
         "type": "usage_plan_snapshot",
         "ts": int(time.time() * 1000),
@@ -95,6 +115,10 @@ def emit_plan_snapshot(config: Config) -> bool:
         "status": "synced",
         "metadata": {"plans": rows},
     }, queue_on_failure=False)
+    if sent:
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(json.dumps({"digest": digest, "ts": time.time()}), encoding="utf-8")
+    return sent
 
 
 def _run_metrics(path: Path) -> tuple[float, float, float, float]:
