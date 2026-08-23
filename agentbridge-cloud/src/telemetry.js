@@ -111,11 +111,16 @@ function summarize(sql){
     SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS device_returns,
     SUM(CASE WHEN type='cloud_send' THEN 1 ELSE 0 END) AS sends,
     SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS receives,
+    SUM(CASE WHEN type='prompt_compiled' THEN 1 ELSE 0 END) AS prompts_compiled,
     SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN 1 ELSE 0 END) AS runs,
     SUM(CASE WHEN type='run_complete' AND status='passed' THEN 1 ELSE 0 END) AS passed,
     SUM(CASE WHEN type='run_complete' AND status='failed' THEN 1 ELSE 0 END) AS failed,
     SUM(CASE WHEN type='run_complete' AND status IN ('denied','approval_required') THEN 1 ELSE 0 END) AS gated_runs,
+    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
+    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est<=sent_tokens_est THEN 1 ELSE 0 END) AS pass_through_runs,
     SUM(CASE WHEN status='failed' OR type='error' THEN 1 ELSE 0 END) AS errors,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
     COALESCE(SUM(CASE WHEN type='run_complete' THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
     COALESCE(SUM(CASE WHEN type='run_complete' THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
     COALESCE(SUM(CASE WHEN type='run_complete' THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est,
@@ -132,14 +137,39 @@ function summarize(sql){
     FROM bugs`).toArray()[0]||{};
   const out={...row,...bugs};
   for(const [key,value] of Object.entries(out))out[key]=Number(value||0);
+  out.compaction_rate_pct=out.runs?out.compactions/out.runs*100:0;
+  out.gross_reduction_pct=out.raw_tokens_est?out.tokens_avoided_est/out.raw_tokens_est*100:0;
+  out.net_savings_pct=out.raw_tokens_est?out.net_tokens_saved_est/out.raw_tokens_est*100:0;
+  out.local_overhead_pct=out.tokens_avoided_est?out.local_tokens_est/out.tokens_avoided_est*100:0;
   return out;
 }
 
+function trends(sql,days=30){
+  days=Math.max(7,Math.min(90,toInt(days)||30));
+  const cutoff=now()-days*86400000;
+  const rows=sql.exec(`SELECT
+    CAST(ts/86400000 AS INTEGER) AS day_bucket,
+    SUM(CASE WHEN type='prompt_compiled' THEN 1 ELSE 0 END) AS prompts_compiled,
+    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN 1 ELSE 0 END) AS runs,
+    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
+    COALESCE(SUM(CASE WHEN type='run_complete' THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est
+    FROM telemetry_events WHERE ts>=? GROUP BY day_bucket ORDER BY day_bucket ASC`,cutoff).toArray();
+  return rows.map(row=>{
+    const out={...row,date:new Date(Number(row.day_bucket)*86400000).toISOString().slice(0,10)};
+    delete out.day_bucket;
+    for(const key of Object.keys(out))if(key!=="date")out[key]=Number(out[key]||0);
+    out.compaction_rate_pct=out.runs?out.compactions/out.runs*100:0;
+    out.net_savings_pct=out.raw_tokens_est?out.net_tokens_saved_est/out.raw_tokens_est*100:0;
+    return out;
+  });
+}
+
 function recentBugs(sql,limit=50){
-  return sql.exec(`SELECT bug_id,fingerprint,first_seen,last_seen,status,occurrences,resolved_at,resolved_by_job_id,last_job_id,last_version,sample_error,affected_paths_json FROM bugs ORDER BY last_seen DESC LIMIT ?`,Math.max(1,Math.min(200,toInt(limit)||50))).toArray().map(row=>({
-    ...row,
-    affected_paths:JSON.parse(row.affected_paths_json||"[]")
-  }));
+  return sql.exec(`SELECT bug_id,fingerprint,first_seen,last_seen,status,occurrences,resolved_at,resolved_by_job_id,last_job_id,last_version,sample_error,affected_paths_json FROM bugs ORDER BY last_seen DESC LIMIT ?`,Math.max(1,Math.min(200,toInt(limit)||50))).toArray().map(row=>({...row,affected_paths:JSON.parse(row.affected_paths_json||"[]")}));
 }
 
 function resolveBug(sql,id,jobId,ts=now()){
@@ -154,11 +184,9 @@ function upsertBug(sql,event){
   const paths=JSON.parse(event.metadata_json||"{}").affected_paths||[];
   if(existing){
     const nextStatus=existing.status==='resolved'?'reopened':existing.status;
-    sql.exec(`UPDATE bugs SET last_seen=?,status=?,occurrences=occurrences+1,last_job_id=?,last_version=?,sample_error=?,affected_paths_json=? WHERE bug_id=?`,
-      event.ts,nextStatus,event.job_id,event.node_version,event.error_message,JSON.stringify(paths).slice(0,8000),id);
+    sql.exec(`UPDATE bugs SET last_seen=?,status=?,occurrences=occurrences+1,last_job_id=?,last_version=?,sample_error=?,affected_paths_json=? WHERE bug_id=?`,event.ts,nextStatus,event.job_id,event.node_version,event.error_message,JSON.stringify(paths).slice(0,8000),id);
   }else{
-    sql.exec(`INSERT INTO bugs(bug_id,fingerprint,first_seen,last_seen,status,occurrences,last_job_id,last_version,sample_error,affected_paths_json) VALUES(?,?,?,?,?,?,?,?,?,?)`,
-      id,event.error_fingerprint,event.ts,event.ts,'open',1,event.job_id,event.node_version,event.error_message,JSON.stringify(paths).slice(0,8000));
+    sql.exec(`INSERT INTO bugs(bug_id,fingerprint,first_seen,last_seen,status,occurrences,last_job_id,last_version,sample_error,affected_paths_json) VALUES(?,?,?,?,?,?,?,?,?,?)`,id,event.error_fingerprint,event.ts,event.ts,'open',1,event.job_id,event.node_version,event.error_message,JSON.stringify(paths).slice(0,8000));
   }
   return id;
 }
@@ -167,6 +195,7 @@ export class TelemetryHub extends DurableObject{
   constructor(ctx,env){super(ctx,env);this.env=env;this.sql=ctx.storage.sql;createSchema(this.sql);}
   async _productEvent(event,openedBugId=null,resolved=[]){
     const product=this.env.PRODUCT_METRICS_HUB.getByName("agentbridge-global");
+    const sourceMeta=JSON.parse(event.metadata_json||"{}");
     const aggregate={
       ...event,
       event_id:`global:${crypto.randomUUID()}`,
@@ -174,12 +203,8 @@ export class TelemetryHub extends DurableObject{
       run_id:"",
       job_id:event.job_id?"present":"",
       error_message:event.product_bug?clampText(event.error_message,1000):"",
-      metadata:{opened_bug_id:openedBugId,resolved_bug_ids:resolved},
-      fixes_bug_ids:undefined,
-      retry_of:undefined,
-      affected_paths:undefined,
-      resolved_bug_ids:resolved,
-      opened_bug_id:openedBugId,
+      metadata:{opened_bug_id:openedBugId,resolved_bug_ids:resolved,contextor_mode:clampText(sourceMeta.contextor_mode,20),source:clampText(sourceMeta.source,40)},
+      fixes_bug_ids:undefined,retry_of:undefined,affected_paths:undefined,resolved_bug_ids:resolved,opened_bug_id:openedBugId,
     };
     await product.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(aggregate)}));
   }
@@ -193,10 +218,7 @@ export class TelemetryHub extends DurableObject{
     const resolved=[];
     if(event.type==='run_complete'&&event.status==='passed'){
       for(const id of Array.isArray(meta.fixes_bug_ids)?meta.fixes_bug_ids:[]){if(resolveBug(this.sql,String(id),event.job_id,event.ts))resolved.push(String(id));}
-      if(meta.retry_of){
-        const rows=this.sql.exec(`SELECT bug_id FROM bugs WHERE last_job_id=? AND status!='resolved'`,String(meta.retry_of)).toArray();
-        for(const row of rows){if(resolveBug(this.sql,row.bug_id,event.job_id,event.ts))resolved.push(row.bug_id);}
-      }
+      if(meta.retry_of){const rows=this.sql.exec(`SELECT bug_id FROM bugs WHERE last_job_id=? AND status!='resolved'`,String(meta.retry_of)).toArray();for(const row of rows){if(resolveBug(this.sql,row.bug_id,event.job_id,event.ts))resolved.push(row.bug_id);}}
     }
     await this._productEvent(event,openedBugId,resolved);
     return {ok:true,bug_id:openedBugId,resolved_bug_ids:resolved};
@@ -205,25 +227,20 @@ export class TelemetryHub extends DurableObject{
     const url=new URL(request.url);
     if(request.method==='POST'&&url.pathname==='/event')return json(await this._record(await request.json()));
     if(request.method==='GET'&&url.pathname==='/summary')return json({metrics:summarize(this.sql),bugs:recentBugs(this.sql,20)});
+    if(request.method==='GET'&&url.pathname==='/impact')return json({metrics:summarize(this.sql),trends:trends(this.sql,Number(url.searchParams.get('days'))||30)});
     if(request.method==='POST'&&url.pathname==='/report-bug'){
-      const d=await request.json();
-      let rows=[];
+      const d=await request.json();let rows=[];
       if(d.event_id)rows=this.sql.exec(`SELECT * FROM telemetry_events WHERE event_id=? LIMIT 1`,String(d.event_id)).toArray();
       else if(d.job_id)rows=this.sql.exec(`SELECT * FROM telemetry_events WHERE job_id=? ORDER BY ts DESC LIMIT 1`,String(d.job_id)).toArray();
       if(!rows.length)return json({error:'event_not_found'},404);
       const e={...rows[0],product_bug:1,error_kind:rows[0].error_kind||'user_reported'};
       if(!e.error_fingerprint)e.error_fingerprint=(await hashText(`${e.error_kind}|${e.error_message||e.event_id}`)).slice(0,24);
       this.sql.exec(`UPDATE telemetry_events SET product_bug=1,error_kind=?,error_fingerprint=? WHERE event_id=?`,e.error_kind,e.error_fingerprint,e.event_id);
-      const normalized=normalizedEvent({...e,event_id:`bugreport:${e.event_id}:${now()}`});
-      const id=upsertBug(this.sql,normalized);
-      await this._productEvent(normalized,id,[]);
-      return json({ok:true,bug_id:id});
+      const normalized=normalizedEvent({...e,event_id:`bugreport:${e.event_id}:${now()}`});const id=upsertBug(this.sql,normalized);await this._productEvent(normalized,id,[]);return json({ok:true,bug_id:id});
     }
     if(request.method==='GET'&&url.pathname==='/report'){
-      const where=[];const args=[];
-      const from=Number(url.searchParams.get('from'));const to=Number(url.searchParams.get('to'));
-      if(Number.isFinite(from)&&from>0){where.push('ts>=?');args.push(from);}
-      if(Number.isFinite(to)&&to>0){where.push('ts<=?');args.push(to);}
+      const where=[];const args=[];const from=Number(url.searchParams.get('from'));const to=Number(url.searchParams.get('to'));
+      if(Number.isFinite(from)&&from>0){where.push('ts>=?');args.push(from);}if(Number.isFinite(to)&&to>0){where.push('ts<=?');args.push(to);}
       for(const [param,column] of [['device_id','device_id'],['type','type'],['status','status']]){const value=url.searchParams.get(param);if(value){where.push(`${column}=?`);args.push(value);}}
       const limit=Math.max(1,Math.min(2000,Number(url.searchParams.get('limit'))||500));
       const sqlText=`SELECT event_id,ts,type,device_id,job_id,run_id,status,duration_ms,tokens_avoided_est,net_tokens_saved_est,local_tokens_est,raw_tokens_est,sent_tokens_est,error_kind,error_fingerprint,error_message,product_bug,changes_count,patch_count,node_version,metadata_json FROM telemetry_events ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY ts DESC LIMIT ?`;
@@ -241,18 +258,12 @@ export class ProductMetricsHub extends DurableObject{
     if(request.method==='POST'&&url.pathname==='/event'){
       const event=normalizedEvent(await request.json());
       const exists=this.sql.exec(`SELECT event_id FROM telemetry_events WHERE event_id=? LIMIT 1`,event.event_id).toArray().length>0;
-      if(!exists){
-        eventInsert(this.sql,event);
-        upsertBug(this.sql,event);
-        const meta=JSON.parse(event.metadata_json||'{}');
-        for(const id of Array.isArray(meta.resolved_bug_ids)?meta.resolved_bug_ids:[])resolveBug(this.sql,String(id),event.job_id,event.ts);
-      }
+      if(!exists){eventInsert(this.sql,event);upsertBug(this.sql,event);const meta=JSON.parse(event.metadata_json||'{}');for(const id of Array.isArray(meta.resolved_bug_ids)?meta.resolved_bug_ids:[])resolveBug(this.sql,String(id),event.job_id,event.ts);}
       return json({ok:true,duplicate:exists});
     }
-    if(request.method==='POST'&&url.pathname==='/resolve'){
-      const d=await request.json();return json({ok:true,resolved:resolveBug(this.sql,String(d.bug_id||''),d.job_id)});
-    }
+    if(request.method==='POST'&&url.pathname==='/resolve'){const d=await request.json();return json({ok:true,resolved:resolveBug(this.sql,String(d.bug_id||''),d.job_id)});}
     if(request.method==='GET'&&url.pathname==='/summary')return json({metrics:summarize(this.sql),bugs:recentBugs(this.sql,100)});
+    if(request.method==='GET'&&url.pathname==='/impact')return json({metrics:summarize(this.sql),trends:trends(this.sql,Number(url.searchParams.get('days'))||30)});
     return json({error:'not_found'},404);
   }
 }
