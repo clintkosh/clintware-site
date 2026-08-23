@@ -7,7 +7,7 @@ description: Use Quillgeist to compact long or repetitive AI prompt/context payl
 
 Use this skill when the user wants to reduce prompt/context size, remove repetitive AI context, compact logs or transcripts before another model call, preserve critical execution evidence while reducing tokens, compare before/after token estimates, or inspect Quillgeist product impact.
 
-Quillgeist is a local-first AI execution product. The public ChatGPT plugin version intentionally exposes only read-only tools. Do not imply that the catalog version can remotely execute actions on the user's Windows computer.
+Quillgeist is a local-first AI execution product. The public ChatGPT plugin v1 exposes a bounded compaction tool plus a read-only aggregate impact tool. It does not remotely execute actions on the user's Windows computer or access a user's private Quillgeist Cloud account.
 
 ## Available app tools
 
@@ -18,7 +18,7 @@ Use for actual prompt/context compaction.
 Suitable inputs include:
 
 - long prompts;
-- repetitive conversation context;
+- repetitive conversation context explicitly supplied for the task;
 - terminal or application logs;
 - transcripts;
 - execution results;
@@ -27,11 +27,15 @@ Suitable inputs include:
 
 The tool returns compacted text plus estimated raw tokens, estimated output tokens, estimated gross tokens removed, and reduction percentage.
 
+By default the service also records one aggregate product-impact event containing the compaction source/method and estimated token counts. It does not place the submitted prompt/context text into Quillgeist product telemetry. When the user asks not to contribute aggregate usage metrics, call the tool with `record_aggregate_metrics=false`.
+
+Because the default tool call can create that aggregate metrics event, do not describe this tool as strictly read-only even though it does not modify the user's prompt, files, account, or device.
+
 ### `quillgeist_product_impact`
 
 Use when the user asks about Quillgeist-wide measured usage, compaction counts, prompt counts, estimated token savings, execution activity, or recent trends.
 
-The returned metrics cover participating installations and API/MCP calls represented in Quillgeist aggregate telemetry. Treat fields marked estimated as estimates.
+This tool is read-only. The returned metrics cover participating installations and API/MCP calls represented in retained Quillgeist aggregate telemetry. Treat fields marked estimated as estimates and do not imply coverage of installations or requests that did not report telemetry.
 
 ## Compaction rules
 
@@ -42,12 +46,24 @@ The returned metrics cover participating installations and API/MCP calls represe
 5. If the source is already short enough or compaction produces no meaningful reduction, accept a pass-through result rather than forcing a rewrite.
 6. When presenting savings, distinguish raw estimated tokens, estimated sent/output tokens, gross tokens removed, local overhead when applicable, and estimated net savings.
 7. Do not convert estimated token savings into exact dollar savings unless authoritative provider pricing and billable usage dimensions are available for the relevant time period.
+8. Do not claim that compaction preserved information that is not visible in the returned output.
 
-## Privacy and secrets
+## Privacy and restricted data
 
-The public Quillgeist API/MCP service processes submitted text to produce the requested result. Quillgeist application telemetry is designed not to store the submitted prompt/context text for public compaction calls; aggregate measurements may be recorded.
+The public Quillgeist API/MCP service processes only the task-specific text explicitly supplied to the tool. Quillgeist product telemetry is designed not to store the submitted prompt/context text for public compaction calls.
 
-Do not encourage users to send passwords, private keys, authentication tokens, or unrelated secrets. If a secret is clearly irrelevant to the requested transformation, omit or redact it before using the app when possible.
+Do not send or ask the user to send restricted data to the public Quillgeist plugin, including:
+
+- passwords;
+- API keys, access tokens, authentication secrets, private keys, or MFA/OTP codes;
+- payment-card data;
+- protected health information;
+- government identifiers such as Social Security numbers;
+- unrelated personal data or secrets not needed for the compaction task.
+
+If restricted data is present, do not attempt to work around the server-side rejection. Ask the user to remove or redact it first. If the user explicitly requests no aggregate telemetry for a compaction, set `record_aggregate_metrics=false`.
+
+Quillgeist's own aggregate product-impact telemetry is retained for up to 730 days. Infrastructure providers may separately process ordinary request/security metadata as described in the public privacy policy.
 
 ## When to use Quillgeist automatically
 
@@ -70,13 +86,28 @@ Use precise wording:
 - "aggregate participating usage" for product-wide statistics;
 - "execution runs" only for actual Quillgeist node execution;
 - "API/MCP compactions" for public compaction calls;
-- "compactions" when combining eligible compaction activity across surfaces.
+- "compactions" when combining eligible compaction activity across surfaces;
+- "retained aggregate telemetry" when discussing totals that are subject to the 730-day product-metrics retention window.
 
-Never claim public metrics represent every Quillgeist installation if telemetry can be disabled or an installation has not reported.
+Never claim public metrics represent every Quillgeist installation or every request if telemetry can be disabled, opted out, or an installation has not reported.
+
+## Unsupported public-plugin actions
+
+Do not claim the public catalog plugin can:
+
+- run PowerShell or local commands on the user's computer;
+- modify, delete, or organize local files;
+- pair or control a user's Quillgeist Node;
+- save provider credentials;
+- retrieve private account telemetry;
+- send messages or perform purchases.
+
+Those capabilities are outside the public plugin v1 tool surface.
 
 ## Public references
 
 - Developer documentation: https://quillgeist.clintware.com/developers.html
 - Privacy: https://quillgeist.clintware.com/privacy.html
 - Terms: https://quillgeist.clintware.com/terms.html
+- Support: https://quillgeist.clintware.com/support.html
 - Product: https://quillgeist.clintware.com/
