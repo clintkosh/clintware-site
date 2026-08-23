@@ -34,8 +34,6 @@ def sanitize_error(text: str | None) -> str:
             out = out.replace(home, "~")
     except Exception:
         pass
-    # Preserve the established telemetry contract for generic credential pairs,
-    # then apply the broader DLP scanner to every other sensitive-data class.
     out = _SECRET_RE.sub("[REDACTED]", out)
     out = redact_text(out, min_severity="medium")
     return out[:8000]
@@ -59,6 +57,8 @@ def build_run_event(result: dict, device_id: str) -> dict:
     err = sanitize_error(result.get("error"))
     changes = result.get("changes") or []
     steps = result.get("steps") or []
+    raw_tokens = int(context.get("raw_tokens_est") or 0)
+    sent_tokens = int(context.get("sent_tokens_est") or 0)
     return {
         "event_id": f"run:{result.get('run_id') or result.get('job_id') or uuid.uuid4()}",
         "type": "run_complete",
@@ -71,8 +71,8 @@ def build_run_event(result: dict, device_id: str) -> dict:
         "tokens_avoided_est": int(context.get("external_tokens_avoided_est") or 0),
         "net_tokens_saved_est": int(context.get("net_tokens_avoided_est") or 0),
         "local_tokens_est": int(context.get("local_llm_input_tokens_est") or 0) + int(context.get("local_llm_output_tokens_est") or 0),
-        "raw_tokens_est": int(context.get("raw_tokens_est") or 0),
-        "sent_tokens_est": int(context.get("sent_tokens_est") or 0),
+        "raw_tokens_est": raw_tokens,
+        "sent_tokens_est": sent_tokens,
         "error_kind": error_kind,
         "error_fingerprint": error_fingerprint(err, error_kind),
         "error_message": err,
@@ -83,6 +83,10 @@ def build_run_event(result: dict, device_id: str) -> dict:
         "fixes_bug_ids": list(result.get("fixes_bug_ids") or []),
         "retry_of": result.get("retry_of"),
         "node_version": __version__,
+        "metadata": {
+            "contextor_mode": str(context.get("mode") or "pass")[:20],
+            "compacted": raw_tokens > sent_tokens,
+        },
     }
 
 
@@ -118,7 +122,6 @@ def emit_event(config: Config, event: dict, *, queue_on_failure: bool = True) ->
         _post(config, event)
         return True
     except urllib.error.HTTPError as exc:
-        # An unclaimed/revoked node should not accumulate an infinite local queue.
         if exc.code in {401, 403, 404, 409}:
             return False
         if queue_on_failure:
