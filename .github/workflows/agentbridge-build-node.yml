@@ -70,13 +70,10 @@ jobs:
         shell: pwsh
         run: |
           $env:QUILLGEIST_HOME = "${{ runner.temp }}\quillgeist-desktop-home"
-          & ".\dist\Quillgeist.exe" --smoke | Tee-Object -FilePath quillgeist-desktop-smoke.txt
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (Select-String -Path quillgeist-desktop-smoke.txt -Pattern '"product": "Quillgeist"' -Quiet) {
-            Write-Host "Desktop smoke test passed."
-          } else {
-            throw "Desktop smoke output did not identify Quillgeist."
-          }
+          $p = Start-Process -FilePath ".\dist\Quillgeist.exe" -ArgumentList "--smoke" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "Desktop smoke test failed with exit code $($p.ExitCode)." }
+          if (-not (Test-Path "$env:QUILLGEIST_HOME\activity.sqlite3")) { throw "Desktop smoke test did not initialize the local activity ledger." }
+          Write-Host "Desktop smoke test passed."
 
       - name: Install Inno Setup
         if: matrix.os == 'windows-latest'
