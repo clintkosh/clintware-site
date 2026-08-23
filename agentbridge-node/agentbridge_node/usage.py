@@ -113,7 +113,7 @@ def emit_plan_snapshot(config: Config, *, force: bool = False) -> bool:
         "ts": int(time.time() * 1000),
         "device_id": config.data["device_id"],
         "status": "synced",
-        "metadata": {"plans": rows},
+        "metadata": {"plans": rows, "consumption": snapshot(config)["consumption"]},
     }, queue_on_failure=False)
     if sent:
         state_path.parent.mkdir(parents=True, exist_ok=True)
