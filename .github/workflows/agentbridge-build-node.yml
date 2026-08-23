@@ -29,12 +29,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Install Quillgeist build dependencies
         run: python -m pip install ./agentbridge-node "pyinstaller>=6.11,<7"
-      - name: Build single-file Quillgeist executable
+
+      - name: Install Windows desktop dependencies
+        if: matrix.os == 'windows-latest'
+        run: python -m pip install "pystray>=0.19.5,<1" "Pillow>=10,<12"
+
+      - name: Build portable Quillgeist CLI
         shell: bash
         run: pyinstaller --noconfirm --clean --onefile --name "${{ matrix.artifact }}" agentbridge-node/launcher.py
-      - name: Verify executable identity and core commands
+
+      - name: Verify portable executable identity and core commands
         shell: bash
         env:
           QUILLGEIST_HOME: ${{ runner.temp }}/quillgeist-home
@@ -51,22 +58,72 @@ jobs:
             echo "ERROR: legacy AgentBridge branding is exposed by the Quillgeist executable"
             exit 1
           fi
-      - name: Generate SHA256 checksum
+
+      - name: Build Windows desktop executable
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name "Quillgeist" agentbridge-node/desktop_launcher.py
+
+      - name: Smoke-test Windows desktop executable
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $env:QUILLGEIST_HOME = "${{ runner.temp }}\quillgeist-desktop-home"
+          & ".\dist\Quillgeist.exe" --smoke | Tee-Object -FilePath quillgeist-desktop-smoke.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Select-String -Path quillgeist-desktop-smoke.txt -Pattern '"product": "Quillgeist"' -Quiet) {
+            Write-Host "Desktop smoke test passed."
+          } else {
+            throw "Desktop smoke output did not identify Quillgeist."
+          }
+
+      - name: Install Inno Setup
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build Windows installer
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found at $iscc" }
+          & $iscc "/DSourceDir=$env:GITHUB_WORKSPACE\dist" "/DOutputDir=$env:GITHUB_WORKSPACE\dist" "/DAppVersion=0.3.0-alpha" "agentbridge-node\installer\quillgeist.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path ".\dist\Quillgeist-Setup-Windows-x64.exe")) { throw "Installer was not produced." }
+
+      - name: Generate SHA256 checksums
         shell: bash
         run: |
-          BIN="dist/${{ matrix.artifact }}"
-          if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
-          python - "$BIN" <<'PY'
-          import hashlib, pathlib, sys
-          p=pathlib.Path(sys.argv[1])
-          h=hashlib.sha256(p.read_bytes()).hexdigest()
-          pathlib.Path(str(p)+'.sha256').write_text(f"{h}  {p.name}\n")
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, pathlib
+          files = list(pathlib.Path("dist").glob("*"))
+          for p in files:
+              if not p.is_file() or p.suffix == ".sha256":
+                  continue
+              h = hashlib.sha256(p.read_bytes()).hexdigest()
+              pathlib.Path(str(p)+".sha256").write_text(f"{h}  {p.name}\n")
           PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
             dist/${{ matrix.artifact }}*
+          if-no-files-found: error
+
+      - name: Upload Windows desktop and installer
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Quillgeist-Windows-Desktop
+          path: |
+            dist/Quillgeist.exe
+            dist/Quillgeist.exe.sha256
+            dist/Quillgeist-Setup-Windows-x64.exe
+            dist/Quillgeist-Setup-Windows-x64.exe.sha256
           if-no-files-found: error
 
   release-alpha:
@@ -79,23 +136,57 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+
       - name: Validate release assets
         run: |
           set -euo pipefail
+          test -f release-assets/Quillgeist-Setup-Windows-x64.exe
+          test -f release-assets/Quillgeist.exe
           test -f release-assets/Quillgeist-Windows-x64.exe
           test -f release-assets/Quillgeist-Linux-x64
           test -f release-assets/Quillgeist-macOS-arm64
           ls -lah release-assets
+
       - name: Publish Quillgeist alpha release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="quillgeist-v0.2.0-alpha"
-          notes=$'Quillgeist public alpha.\n\nQuillgeist is the adaptive local-first AI execution layer formerly developed under the AgentBridge internal codename. This release provides single-file Windows, macOS, and Linux executables, governed local execution, pairing with Quillgeist Cloud, scheduling, rollback, evidence/result packs, local policy controls, Contextor compaction, and account-scoped operational telemetry.\n\nWindows: download Quillgeist-Windows-x64.exe, run `Quillgeist-Windows-x64.exe init`, then `Quillgeist-Windows-x64.exe pair --cloud https://quillgeist.clintware.com` and `Quillgeist-Windows-x64.exe daemon`.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
+          tag="quillgeist-v0.3.0-alpha"
+          notes=$'Quillgeist v0.3 Windows desktop alpha.\n\nThis release adds the first real Windows installer and desktop control surface. The earlier v0.2 Windows asset was a portable single-file CLI executable, not an installer.\n\nWindows recommended: download Quillgeist-Setup-Windows-x64.exe. It installs the desktop app and CLI per-user, adds Start Menu integration, optional desktop/startup shortcuts, .abpack/.abresult associations, system-tray operation, Ctrl+Alt+Space invocation, local activity storage, pairing, runtime start/stop, local-only mode, and a first-pass local intent compiler.\n\nPortable Windows CLI remains available as Quillgeist-Windows-x64.exe. macOS and Linux remain portable CLI alpha builds.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release-assets/* --clobber
-            gh release edit "$tag" --title "Quillgeist v0.2.0 Alpha" --notes "$notes" --prerelease
+            gh release edit "$tag" --title "Quillgeist v0.3.0 Alpha" --notes "$notes" --prerelease
           else
-            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.2.0 Alpha" --notes "$notes" --prerelease
+            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.3.0 Alpha" --notes "$notes" --prerelease
           fi
+
+      - name: Promote installer on Quillgeist Cloud
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('agentbridge-cloud/public/index.html')
+          text = p.read_text(encoding='utf-8')
+          old = '''        <a class="btn primary wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Windows-x64.exe">Download Quillgeist for Windows</a>
+        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-macOS-arm64">Download for macOS Apple Silicon</a>
+        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.2.0-alpha/Quillgeist-Linux-x64">Download for Linux x64</a>'''
+          new = '''        <a class="btn primary wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.0-alpha/Quillgeist-Setup-Windows-x64.exe">Download Quillgeist for Windows</a>
+        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.0-alpha/Quillgeist-Windows-x64.exe">Portable Windows CLI</a>
+        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.0-alpha/Quillgeist-macOS-arm64">Download for macOS Apple Silicon</a>
+        <a class="btn ghost wide" href="https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.0-alpha/Quillgeist-Linux-x64">Download for Linux x64</a>'''
+          if old not in text:
+              raise SystemExit('Expected Quillgeist v0.2 download block was not found; refusing blind replacement.')
+          text = text.replace(old, new, 1)
+          text = text.replace('1 · Download and run <code>init</code>', '1 · Install and launch Quillgeist', 1)
+          p.write_text(text, encoding='utf-8')
+          PY
+          if git diff --quiet -- agentbridge-cloud/public/index.html; then
+            echo "Cloud download page already promoted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agentbridge-cloud/public/index.html
+          git commit -m "Promote Quillgeist Windows installer"
+          git push origin HEAD:main

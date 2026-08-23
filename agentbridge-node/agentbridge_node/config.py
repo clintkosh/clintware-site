@@ -11,7 +11,7 @@ def home_dir() -> Path:
 
 def _defaults() -> dict:
     return {
-        "version": 2,
+        "version": 3,
         "device_id": str(uuid.uuid4()),
         "device_token": secrets.token_urlsafe(32),
         "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "Quillgeist Node",
@@ -48,6 +48,11 @@ def _defaults() -> dict:
             "privacy": "metadata_only",
             "send_redacted_errors": True,
             "queue_when_offline": True
+        },
+        "desktop": {
+            "local_only": False,
+            "launch_minimized": False,
+            "global_hotkey": "Ctrl+Alt+Space"
         }
     }
 
@@ -70,6 +75,7 @@ class Config:
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
+            base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
             if incoming.get("cloud_url") == "https://agentbridge.clintware.com":
                 base["cloud_url"] = "https://quillgeist.clintware.com"
