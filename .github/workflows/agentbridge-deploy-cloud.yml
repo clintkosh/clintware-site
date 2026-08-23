@@ -24,20 +24,38 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install Cloud dependencies
+        run: npm install --prefix agentbridge-cloud
       - name: JavaScript syntax
         run: |
           node --check agentbridge-cloud/src/index.js
           node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/src/public-api.js
           node --check agentbridge-cloud/src/telemetry.js
           node --check agentbridge-cloud/src/help.js
           node --check agentbridge-cloud/public/app.js
           node --check agentbridge-cloud/public/fluid.js
+          node --check agentbridge-cloud/public/public-stats.js
           node --check agentbridge-cloud/public/sw.js
       - name: Wrangler config validates
         run: |
           grep -Fq '"name": "clintware-agentbridge"' agentbridge-cloud/wrangler.jsonc
           grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
-          XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --yes --cache /tmp/quillgeist-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
+          grep -Fq '"/mcp*"' agentbridge-cloud/wrangler.jsonc
+          XDG_CONFIG_HOME=/tmp/quillgeist-xdg npx --prefix agentbridge-cloud wrangler deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
+      - name: API and ChatGPT plugin invariants
+        run: |
+          set -euo pipefail
+          grep -Fq 'quillgeist_compact_context' agentbridge-cloud/src/public-api.js
+          grep -Fq 'quillgeist_product_impact' agentbridge-cloud/src/public-api.js
+          grep -Fq '/api/v1/compact' agentbridge-cloud/src/public-api.js
+          grep -Fq '/api/v1/openapi.json' agentbridge-cloud/src/public-api.js
+          grep -Fq 'route: "/mcp"' agentbridge-cloud/src/public-api.js
+          grep -Fq 'content_stored_by_quillgeist:false' agentbridge-cloud/src/public-api.js
+          test -f agentbridge-cloud/public/developers.html
+          test -f agentbridge-cloud/public/privacy.html
+          test -f agentbridge-cloud/public/terms.html
+          test -f agentbridge-cloud/chatgpt-plugin/skills/quillgeist/SKILL.md
       - name: Download-first onboarding invariant
         run: |
           set -euo pipefail
@@ -77,6 +95,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Cloud dependencies
+        run: npm install --prefix agentbridge-cloud
       - name: Deploy Quillgeist Worker runtime
         uses: cloudflare/wrangler-action@v3
         with:
@@ -122,14 +145,24 @@ jobs:
           ready=0
           for i in $(seq 1 30); do
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
+            api=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/v1 || true)
+            openapi=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/v1/openapi.json || true)
+            compact=$(curl -sS --connect-timeout 5 --max-time 15 -X POST https://quillgeist.clintware.com/api/v1/compact -H 'content-type: application/json' --data '{"text":"alpha\nalpha\nalpha\nerror: preserve this\nomega","threshold_chars":500}' || true)
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
+            developers=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/developers.html || true)
+            privacy=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/privacy.html || true)
             css=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/styles.css || true)
             app=$(curl -sS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/app.js || true)
             if grep -Fq '"service":"Quillgeist Cloud"' <<< "$health" \
+              && grep -Fq '"name":"Quillgeist Public API"' <<< "$api" \
+              && grep -Fq '"openapi":"3.1.0"' <<< "$openapi" \
+              && grep -Fq '"content_stored_by_quillgeist":false' <<< "$compact" \
               && grep -Fq 'QUILLGEIST' <<< "$page" \
               && grep -Fq 'Your intent. Your machines. Verified execution.' <<< "$page" \
               && grep -Fq 'Download Quillgeist for Windows' <<< "$page" \
               && grep -Fq 'Existing user · use control key' <<< "$page" \
+              && grep -Fq 'ChatGPT' <<< "$developers" \
+              && grep -Fq 'Quillgeist Privacy' <<< "$privacy" \
               && grep -Fq 'app-shell' <<< "$css" \
               && grep -Fq 'Quillgeist Cloud ready.' <<< "$app"; then
               ready=1
