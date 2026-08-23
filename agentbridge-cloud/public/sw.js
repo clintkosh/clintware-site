@@ -1,6 +1,6 @@
-const CACHE="quillgeist-alpha-v8";
+const CACHE="quillgeist-alpha-v9";
 const LEGACY_PREFIXES=["agentbridge-alpha-","quillgeist-alpha-"];
-const ASSETS=["/","/app.js","/styles.css","/terminal.css","/fluid.js","/usage.js","/public-stats.js","/manifest.webmanifest","/icon.svg"];
+const ASSETS=["/","/app.js","/styles.css","/terminal.css","/fluid.js","/usage.js","/public-stats.js","/developers.html","/privacy.html","/terms.html","/manifest.webmanifest","/icon.svg"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(
@@ -20,7 +20,7 @@ self.addEventListener("activate",event=>{
 
 self.addEventListener("fetch",event=>{
   const url=new URL(event.request.url);
-  if(event.request.method!=="GET"||url.pathname.startsWith("/api/")||url.pathname.startsWith("/ws/"))return;
+  if(event.request.method!=="GET"||url.pathname.startsWith("/api/")||url.pathname.startsWith("/ws/")||url.pathname.startsWith("/mcp"))return;
   event.respondWith(
     fetch(event.request)
       .then(response=>{
