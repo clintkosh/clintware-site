@@ -84,12 +84,13 @@
   new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)patch(n);else if(n.nodeType===3){const v=rewrite(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}}).observe(document.documentElement,{subtree:true,childList:true});
 })();
 
-// Load the synchronized Usage & Savings surface after the core deferred app has initialized.
+// Load synchronized usage and public aggregate impact surfaces after the core app initializes.
 (()=>{
-  const load=()=>{
-    if(document.querySelector('script[data-quillgeist-usage]'))return;
-    const script=document.createElement('script');script.src='/usage.js';script.defer=true;script.dataset.quillgeistUsage='1';document.body.append(script);
+  const loadScript=(src,key)=>{
+    if(document.querySelector(`script[data-${key}]`))return;
+    const script=document.createElement('script');script.src=src;script.defer=true;script.setAttribute(`data-${key}`,'true');document.body.append(script);
   };
+  const load=()=>{loadScript('/usage.js','quillgeist-usage');loadScript('/public-stats.js','quillgeist-public-stats');};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
 
