@@ -111,19 +111,20 @@ function summarize(sql){
     SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS device_returns,
     SUM(CASE WHEN type='cloud_send' THEN 1 ELSE 0 END) AS sends,
     SUM(CASE WHEN type='device_send' THEN 1 ELSE 0 END) AS receives,
-    SUM(CASE WHEN type='prompt_compiled' THEN 1 ELSE 0 END) AS prompts_compiled,
+    SUM(CASE WHEN type IN ('prompt_compiled','api_compaction') THEN 1 ELSE 0 END) AS prompts_compiled,
+    SUM(CASE WHEN type='api_compaction' THEN 1 ELSE 0 END) AS api_compactions,
     SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN 1 ELSE 0 END) AS runs,
     SUM(CASE WHEN type='run_complete' AND status='passed' THEN 1 ELSE 0 END) AS passed,
     SUM(CASE WHEN type='run_complete' AND status='failed' THEN 1 ELSE 0 END) AS failed,
     SUM(CASE WHEN type='run_complete' AND status IN ('denied','approval_required') THEN 1 ELSE 0 END) AS gated_runs,
-    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
+    SUM(CASE WHEN ((type='run_complete' AND status NOT IN ('approval_required','denied')) OR type='api_compaction') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
     SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est<=sent_tokens_est THEN 1 ELSE 0 END) AS pass_through_runs,
     SUM(CASE WHEN status='failed' OR type='error' THEN 1 ELSE 0 END) AS errors,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est,
     COALESCE(SUM(CASE WHEN type='run_complete' THEN patch_count ELSE 0 END),0) AS patches_applied,
     COALESCE(SUM(CASE WHEN type='run_complete' THEN changes_count ELSE 0 END),0) AS files_changed,
     COALESCE(AVG(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN duration_ms END),0) AS avg_work_session_ms,
@@ -137,7 +138,8 @@ function summarize(sql){
     FROM bugs`).toArray()[0]||{};
   const out={...row,...bugs};
   for(const [key,value] of Object.entries(out))out[key]=Number(value||0);
-  out.compaction_rate_pct=out.runs?out.compactions/out.runs*100:0;
+  const eligible=out.runs+out.api_compactions;
+  out.compaction_rate_pct=eligible?out.compactions/eligible*100:0;
   out.gross_reduction_pct=out.raw_tokens_est?out.tokens_avoided_est/out.raw_tokens_est*100:0;
   out.net_savings_pct=out.raw_tokens_est?out.net_tokens_saved_est/out.raw_tokens_est*100:0;
   out.local_overhead_pct=out.tokens_avoided_est?out.local_tokens_est/out.tokens_avoided_est*100:0;
@@ -149,20 +151,22 @@ function trends(sql,days=30){
   const cutoff=now()-days*86400000;
   const rows=sql.exec(`SELECT
     CAST(ts/86400000 AS INTEGER) AS day_bucket,
-    SUM(CASE WHEN type='prompt_compiled' THEN 1 ELSE 0 END) AS prompts_compiled,
+    SUM(CASE WHEN type IN ('prompt_compiled','api_compaction') THEN 1 ELSE 0 END) AS prompts_compiled,
+    SUM(CASE WHEN type='api_compaction' THEN 1 ELSE 0 END) AS api_compactions,
     SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') THEN 1 ELSE 0 END) AS runs,
-    SUM(CASE WHEN type='run_complete' AND status NOT IN ('approval_required','denied') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
-    COALESCE(SUM(CASE WHEN type='run_complete' THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est
+    SUM(CASE WHEN ((type='run_complete' AND status NOT IN ('approval_required','denied')) OR type='api_compaction') AND raw_tokens_est>sent_tokens_est THEN 1 ELSE 0 END) AS compactions,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN raw_tokens_est ELSE 0 END),0) AS raw_tokens_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN sent_tokens_est ELSE 0 END),0) AS sent_tokens_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN tokens_avoided_est ELSE 0 END),0) AS tokens_avoided_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN net_tokens_saved_est ELSE 0 END),0) AS net_tokens_saved_est,
+    COALESCE(SUM(CASE WHEN type IN ('run_complete','api_compaction') THEN local_tokens_est ELSE 0 END),0) AS local_tokens_est
     FROM telemetry_events WHERE ts>=? GROUP BY day_bucket ORDER BY day_bucket ASC`,cutoff).toArray();
   return rows.map(row=>{
     const out={...row,date:new Date(Number(row.day_bucket)*86400000).toISOString().slice(0,10)};
     delete out.day_bucket;
     for(const key of Object.keys(out))if(key!=="date")out[key]=Number(out[key]||0);
-    out.compaction_rate_pct=out.runs?out.compactions/out.runs*100:0;
+    const eligible=out.runs+out.api_compactions;
+    out.compaction_rate_pct=eligible?out.compactions/eligible*100:0;
     out.net_savings_pct=out.raw_tokens_est?out.net_tokens_saved_est/out.raw_tokens_est*100:0;
     return out;
   });
