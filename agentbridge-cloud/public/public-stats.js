@@ -28,14 +28,14 @@
   function cardMarkup(idPrefix){return `
     <div class="impact-grid">
       <div class="impact-stat"><span>Prompts compiled</span><b id="${idPrefix}Prompts">0</b><small id="${idPrefix}PromptTrend">reported</small></div>
-      <div class="impact-stat"><span>Execution runs</span><b id="${idPrefix}Runs">0</b><small id="${idPrefix}Success">0% success</small></div>
-      <div class="impact-stat"><span>Compactions</span><b id="${idPrefix}Compactions">0</b><small id="${idPrefix}CompactionRate">0% of runs</small></div>
+      <div class="impact-stat"><span>Execution runs</span><b id="${idPrefix}Runs">0</b><small id="${idPrefix}RunTrend">reported</small></div>
+      <div class="impact-stat"><span>Compactions</span><b id="${idPrefix}Compactions">0</b><small id="${idPrefix}CompactionTrend">reported</small></div>
       <div class="impact-stat"><span>Est. net tokens saved</span><b id="${idPrefix}Saved">0</b><small id="${idPrefix}SavingsTrend">reported</small></div>
     </div>
     <div class="impact-flow">
       <div><span>Before compaction</span><b id="${idPrefix}Raw">0</b></div><i>→</i><div><span>Sent externally</span><b id="${idPrefix}Sent">0</b></div><i>+</i><div><span>Local overhead</span><b id="${idPrefix}Local">0</b></div><i>=</i><div><span>Net saved</span><b id="${idPrefix}Net">0</b></div>
     </div>
-    <div class="impact-foot"><span id="${idPrefix}Reduction">0% gross reduction</span><span id="${idPrefix}NetRate">0% net savings</span><span id="${idPrefix}AvgSaved">0 avg saved / compaction</span><span id="${idPrefix}Files">0 files changed</span><span id="${idPrefix}Patches">0 patches applied</span><span>Aggregate only · participating installs · no prompt content</span></div>`}
+    <div class="impact-foot"><span id="${idPrefix}CompactionRate">0% compacted</span><span id="${idPrefix}PassThrough">0 pass-through</span><span id="${idPrefix}Success">0% success</span><span id="${idPrefix}Reduction">0% gross reduction</span><span id="${idPrefix}NetRate">0% net savings</span><span id="${idPrefix}AvgSaved">0 avg saved / compaction</span><span id="${idPrefix}Files">0 files changed</span><span id="${idPrefix}Patches">0 patches applied</span><span>Aggregate only · participating installs · no prompt content</span></div>`}
 
   function inject(){
     ensureWindowsInstall();
@@ -48,22 +48,20 @@
   function setText(id,value){const el=$("#"+id);if(el)el.textContent=value}
   function render(data){
     const m=data?.metrics||{},t=data?.trends||[];
-    const promptTrend=sevenDayTrend(t,"prompts_compiled"),savingTrend=sevenDayTrend(t,"net_tokens_saved_est");
+    const promptTrend=sevenDayTrend(t,"prompts_compiled"),runTrend=sevenDayTrend(t,"runs"),compactionTrend=sevenDayTrend(t,"compactions"),savingTrend=sevenDayTrend(t,"net_tokens_saved_est");
     const successDen=Number(m.passed||0)+Number(m.failed||0);const success=successDen?Number(m.passed||0)/successDen*100:0;
     const avgSaved=Number(m.compactions||0)?Number(m.net_tokens_saved_est||0)/Number(m.compactions):0;
     for(const p of ["pub","homeGlobal"]){
       setText(p+"Prompts",fmt(m.prompts_compiled));setText(p+"Runs",fmt(m.runs));setText(p+"Compactions",fmt(m.compactions));setText(p+"Saved",fmt(m.net_tokens_saved_est));
       setText(p+"Raw",fmt(m.raw_tokens_est));setText(p+"Sent",fmt(m.sent_tokens_est));setText(p+"Local",fmt(m.local_tokens_est));setText(p+"Net",fmt(m.net_tokens_saved_est));
-      setText(p+"CompactionRate",`${pct(m.compaction_rate_pct)} of runs · ${fmt(m.pass_through_runs)} pass-through`);setText(p+"Success",`${pct(success)} success`);
+      setText(p+"CompactionRate",`${pct(m.compaction_rate_pct)} compacted`);setText(p+"PassThrough",`${fmt(m.pass_through_runs)} pass-through`);setText(p+"Success",`${pct(success)} success`);
       setText(p+"Reduction",`${pct(m.gross_reduction_pct)} gross reduction`);setText(p+"NetRate",`${pct(m.net_savings_pct)} net savings`);setText(p+"AvgSaved",`${fmt(avgSaved)} avg saved / compaction`);
       setText(p+"Files",`${fmt(m.files_changed)} files changed`);setText(p+"Patches",`${fmt(m.patches_applied)} patches applied`);
-      setText(p+"PromptTrend",trendLabel(promptTrend));setText(p+"SavingsTrend",trendLabel(savingTrend));
+      setText(p+"PromptTrend",trendLabel(promptTrend));setText(p+"RunTrend",trendLabel(runTrend));setText(p+"CompactionTrend",trendLabel(compactionTrend));setText(p+"SavingsTrend",trendLabel(savingTrend));
     }
   }
 
-  async function refresh(){
-    try{const r=await fetch("/api/public/product-stats?days=30",{headers:{accept:"application/json"}});if(!r.ok)throw new Error(`stats ${r.status}`);render(await r.json())}catch(e){console.debug("Quillgeist public impact unavailable",e)}
-  }
+  async function refresh(){try{const r=await fetch("/api/public/product-stats?days=30",{headers:{accept:"application/json"}});if(!r.ok)throw new Error(`stats ${r.status}`);render(await r.json())}catch(e){console.debug("Quillgeist public impact unavailable",e)}}
 
   const style=document.createElement("style");style.textContent=`
     .public-impact{margin-top:30px;padding:18px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(160deg,rgba(18,27,38,.66),rgba(7,11,17,.62));box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}.public-impact h2{font-size:18px!important;line-height:1.2!important;letter-spacing:-.02em!important;margin:7px 0 14px!important}.impact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.impact-stat{padding:11px;border:1px solid var(--line);border-radius:12px;background:rgba(3,7,12,.52)}.impact-stat span,.impact-flow span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.impact-stat b{display:block;font:800 19px Consolas,monospace;margin:4px 0}.impact-stat small{color:var(--muted);font-size:9px}.impact-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;margin-top:9px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(3,7,12,.35)}.impact-flow>div b{display:block;font:750 14px Consolas,monospace;margin-top:3px}.impact-flow>i{color:var(--cyan);font-style:normal}.impact-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.impact-foot span{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 7px}.global-impact .impact-grid{margin-top:12px}@media(max-width:900px){.impact-grid{grid-template-columns:repeat(2,1fr)}.impact-flow{grid-template-columns:1fr 1fr}.impact-flow>i{display:none}}@media(max-width:520px){.impact-grid{grid-template-columns:1fr}.impact-flow{grid-template-columns:1fr}}
