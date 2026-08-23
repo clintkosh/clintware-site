@@ -1,0 +1,30 @@
+{
+  "name": "quillgeist",
+  "version": "0.1.0",
+  "description": "Compact long AI context while preserving critical evidence, estimate token reduction, and inspect aggregate Quillgeist savings trends.",
+  "author": {
+    "name": "Clintware",
+    "url": "https://clintware.com"
+  },
+  "homepage": "https://quillgeist.clintware.com/",
+  "repository": "https://github.com/clintkosh/clintware-site",
+  "keywords": ["ai", "prompt", "context", "compaction", "tokens", "productivity", "developer-tools"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Quillgeist",
+    "shortDescription": "Compact AI context and measure estimated token savings.",
+    "longDescription": "Quillgeist compacts long prompts, logs, transcripts, and execution context while preserving high-signal evidence such as errors, requirements, and relevant boundaries. It returns before-and-after estimated token measurements and can report aggregate Quillgeist compaction and savings trends. The initial public ChatGPT plugin does not remotely execute actions on a user's Windows machine.",
+    "developerName": "Clintware",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://quillgeist.clintware.com/",
+    "privacyPolicyURL": "https://quillgeist.clintware.com/privacy.html",
+    "termsOfServiceURL": "https://quillgeist.clintware.com/terms.html",
+    "defaultPrompt": [
+      "Compact this context before I send it to another model, but keep every error and requirement.",
+      "Reduce the token load in this log without removing the evidence needed to debug it.",
+      "Show Quillgeist's aggregate token-savings and compaction trend for the last 30 days."
+    ],
+    "brandColor": "#4EE9FF"
+  }
+}
