@@ -1,83 +1,90 @@
-# Quillgeist — ChatGPT Plugin submission kit
+# Quillgeist — ChatGPT Plugin Directory package
 
-Quillgeist is packaged for the current ChatGPT Plugin Directory model: a remote MCP app plus a reusable Quillgeist skill.
+This directory contains the Quillgeist public ChatGPT Plugin Directory candidate: a remote MCP server plus an Agent Skills-format Quillgeist skill.
 
-## Proposed listing
+## Public endpoints
 
-**Name:** Quillgeist
+- Product: https://quillgeist.clintware.com/
+- REST API: https://quillgeist.clintware.com/api/v1
+- OpenAPI: https://quillgeist.clintware.com/api/v1/openapi.json
+- Remote MCP: https://quillgeist.clintware.com/mcp
+- Developer docs: https://quillgeist.clintware.com/developers.html
+- Support: https://quillgeist.clintware.com/support.html
+- Privacy: https://quillgeist.clintware.com/privacy.html
+- Terms: https://quillgeist.clintware.com/terms.html
 
-**Publisher:** Clintware
+## Package structure
 
-**Short description:** Compact long AI context while preserving critical evidence, estimate token reduction, and inspect Quillgeist-wide compaction and savings trends.
+- `.codex-plugin/plugin.json` — required plugin manifest and listing metadata.
+- `skills/quillgeist/SKILL.md` — instructions describing when and how ChatGPT should use Quillgeist.
+- `SUBMISSION.md` — listing text, tool-annotation justifications, starter prompts, required reviewer tests, release notes, and final OpenAI portal steps.
 
-**Primary category:** Productivity / Developer Tools
+The MCP implementation itself lives in `../src/public-api.js` and is deployed by the existing Quillgeist Cloud Worker.
 
-**Product URL:** https://quillgeist.clintware.com/
+## Public v1 tools
 
-**MCP URL:** https://quillgeist.clintware.com/mcp
+### `quillgeist_compact_context`
 
-**Developer docs:** https://quillgeist.clintware.com/developers.html
+Compacts long prompts, logs, transcripts, or execution context while preserving high-signal evidence. It returns before/after estimated token measurements.
 
-**Privacy:** https://quillgeist.clintware.com/privacy.html
+By default this tool records one aggregate product-impact event containing source/method and estimated token counts. It does **not** write the submitted prompt/context text into Quillgeist product telemetry. The caller can set `record_aggregate_metrics=false` to opt out of that aggregate event.
 
-**Terms:** https://quillgeist.clintware.com/terms.html
+Because the default call can create an aggregate metrics event, this tool is correctly advertised with `readOnlyHint:false`, `destructiveHint:false`, `idempotentHint:false`, and `openWorldHint:false`.
 
-## Included app tools
+The server rejects common Restricted Data patterns such as access credentials, payment-card data, government identifiers, and protected health information.
 
-### quillgeist_compact_context
-Read-only. Compacts prompt/context/log/transcript text and returns the transformed text plus estimated token-reduction metrics. Submitted content is not written into Quillgeist product telemetry; aggregate compaction metrics are recorded.
+### `quillgeist_product_impact`
 
-### quillgeist_product_impact
-Read-only. Returns aggregate usage, compaction, execution, estimated token savings, and trend metrics across participating Quillgeist telemetry plus public API/MCP calls.
+Read-only aggregate Quillgeist impact retrieval. Returns retained participating compaction, execution, estimated token-savings, and trend metrics. It is advertised with `readOnlyHint:true`, `destructiveHint:false`, `idempotentHint:true`, and `openWorldHint:false`.
 
-## Included skill
+## Scope boundary
 
-`skills/quillgeist/SKILL.md`
+The public catalog v1 intentionally does **not** expose:
 
-The skill tells ChatGPT when to use Quillgeist, how to preserve high-signal evidence, how to describe estimates accurately, and what not to claim about the initial public catalog version.
+- remote Windows execution;
+- private Quillgeist Cloud account access;
+- device pairing or control;
+- credential storage;
+- file modification/deletion;
+- purchases or external messaging.
 
-## Starter prompts
+The Windows application remains the primary Quillgeist product. ChatGPT/API distribution is an additional bounded surface.
 
-1. Compact this context before I send it to another model, but keep every error and requirement.
-2. Reduce the token load in this log without removing the evidence needed to debug it.
-3. Compare the before/after estimated token counts for this context.
-4. Show Quillgeist's aggregate token savings and compaction trend over the last 30 days.
-5. Tell me whether this prompt is already small enough to leave unchanged.
+## Privacy posture
 
-## Review posture
+- Public compaction request bodies are processed to produce the requested result but are not intentionally stored in Quillgeist product telemetry.
+- Aggregate telemetry can be opted out per public compaction call.
+- Public API/MCP aggregate events do not include a Quillgeist account, device, or user identifier.
+- Quillgeist's global product-impact telemetry is retained for up to 730 days.
+- Cloudflare may separately process ordinary infrastructure/request security metadata under its applicable service terms.
+- Public product statistics must be described as retained participating telemetry and token fields as estimates where labeled.
 
-The first catalog release is intentionally low-risk:
+## Submission readiness
 
-- no authentication required;
-- no write actions;
-- no remote Windows execution;
-- no access to a user's Quillgeist Cloud account;
-- no prompt text stored in Quillgeist application telemetry for public API/MCP compaction;
-- aggregate metrics only for public product telemetry;
-- bounded request/text sizes;
-- explicit Privacy and Terms pages;
-- token and savings metrics identified as estimates.
+Prepared in the repository:
 
-Future authenticated tools for a user's account or Windows node should be submitted as a materially expanded app capability with scoped OAuth/authorization, explicit action permissions, and a fresh privacy/security review.
+- public HTTPS product domain;
+- REST API and OpenAPI 3.1 document;
+- Streamable HTTP remote MCP endpoint;
+- current MCP tool annotations;
+- explicit host/origin protection;
+- privacy, terms, support, and developer documentation;
+- Restricted Data guard;
+- per-call aggregate telemetry opt-out;
+- required `.codex-plugin/plugin.json` manifest;
+- Agent Skills-format `SKILL.md`;
+- five positive and three negative reviewer test cases;
+- OpenAI domain-challenge route, awaiting the token generated by the submission portal;
+- CI checks and live route verification.
 
-## Submission checklist
+## Account-level steps that cannot be encoded in the repository
 
-- [x] Public HTTPS product domain
-- [x] Public REST API
-- [x] OpenAPI description
-- [x] Remote MCP endpoint
-- [x] Read-only MCP tool annotations
-- [x] Privacy policy
-- [x] Terms
-- [x] Developer documentation
-- [x] Agent Skills-format `SKILL.md`
-- [x] CI checks for API/MCP files and live API routes
-- [ ] Confirm production deployment is green
-- [ ] Test `/mcp` in ChatGPT Developer Mode
-- [ ] Complete OpenAI publisher/domain verification if requested
-- [ ] Submit the app/plugin through the current OpenAI submission flow
-- [ ] Complete OpenAI review and wait for directory approval
+1. Confirm the publishing OpenAI Platform organization and submitter have the required plugin/app-management permission.
+2. Complete required developer/business identity verification.
+3. Create the plugin draft in the OpenAI Plugin Directory submission portal and register `https://quillgeist.clintware.com/mcp` as the Universal MCP URL.
+4. Copy the OpenAI domain-challenge token into the Quillgeist Worker `OPENAI_APPS_CHALLENGE` environment variable, verify the domain, and then remove/rotate it when no longer needed.
+5. Run **Scan Tools** and confirm the two advertised tools and annotations.
+6. Upload the skill/plugin bundle and reviewer tests from this directory.
+7. Submit for OpenAI review and publish the approved version when review completes.
 
-## Important
-
-Repository publication does not itself publish a Plugin Directory listing. The final submission/review step occurs through OpenAI's current app/plugin submission experience and requires the publisher account to complete it.
+See `SUBMISSION.md` for the copy-ready submission fields and reviewer fixtures.
