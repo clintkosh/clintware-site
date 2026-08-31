@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clintware-quillgeist"
-version = "0.3.1a1"
+version = "0.3.2a1"
 description = "Quillgeist local-first adaptive AI execution node"
 readme = "README.md"
 requires-python = ">=3.11"
