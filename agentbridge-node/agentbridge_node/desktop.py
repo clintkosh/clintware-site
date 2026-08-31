@@ -98,8 +98,8 @@ class QuillgeistDesktop:
         self.ledger = ActivityLedger()
         self.root = tk.Tk()
         self.root.title(f"{APP_NAME} {__version__}")
-        self.root.geometry("980x680")
-        self.root.minsize(760, 560)
+        self.root.geometry("1000x760")
+        self.root.minsize(800, 620)
         self.root.configure(bg="#05070b")
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         self._daemon_proc: subprocess.Popen | None = None
@@ -125,64 +125,178 @@ class QuillgeistDesktop:
         accent = "#7dd3fc"
         border = "#1b2a3a"
 
-        top = tk.Frame(self.root, bg=bg, padx=24, pady=20)
+        top = tk.Frame(self.root, bg=bg, padx=24, pady=16)
         top.pack(fill="x")
-        tk.Label(top, text="QUILLGEIST", bg=bg, fg=fg, font=("Consolas", 22, "bold")).pack(side="left")
+        tk.Label(top, text="QUILLGEIST", bg=bg, fg=fg, font=("Consolas", 20, "bold")).pack(side="left")
         self.mode_label = tk.Label(top, text="", bg=bg, fg=accent, font=("Consolas", 10, "bold"))
         self.mode_label.pack(side="right")
 
-        intro = tk.Frame(self.root, bg=panel, highlightbackground=border, highlightthickness=1, padx=20, pady=18)
-        intro.pack(fill="x", padx=24, pady=(0, 14))
-        tk.Label(intro, text="Local-first Windows AI execution layer", bg=panel, fg=fg, font=("Segoe UI", 18, "bold")).pack(anchor="w")
-        self.status_label = tk.Label(intro, text="", bg=panel, fg=muted, justify="left", font=("Consolas", 10))
-        self.status_label.pack(anchor="w", pady=(8, 0))
-
-        actions = tk.Frame(self.root, bg=bg)
-        actions.pack(fill="x", padx=24, pady=(0, 14))
-        for label, command in [
-            ("Ask / Compile", self.show_palette),
-            ("Pair device", self.pair_device),
-            ("Open Cloud", self.open_cloud),
-            ("Start runtime", self.start_runtime),
-            ("Stop runtime", self.stop_runtime),
-            ("Doctor", self.run_doctor),
-            ("File associations", self.install_associations),
-            ("Toggle local-only", self.toggle_local_only),
-        ]:
-            btn = tk.Button(
-                actions, text=label, command=command, bg="#111a25", fg=fg,
-                activebackground="#172536", activeforeground=fg,
-                relief="flat", padx=12, pady=8, font=("Segoe UI", 9, "bold"),
-            )
-            btn.pack(side="left", padx=(0, 8), pady=4)
-
-        body = tk.PanedWindow(self.root, orient="horizontal", bg=bg, sashwidth=6, bd=0)
-        body.pack(fill="both", expand=True, padx=24, pady=(0, 20))
-
-        left = tk.Frame(body, bg=panel, highlightbackground=border, highlightthickness=1, padx=14, pady=14)
-        right = tk.Frame(body, bg=panel, highlightbackground=border, highlightthickness=1, padx=14, pady=14)
-        body.add(left, minsize=430)
-        body.add(right, minsize=260)
-
-        tk.Label(left, text="COMMAND OUTPUT", bg=panel, fg=muted, font=("Consolas", 9, "bold")).pack(anchor="w")
-        self.output = tk.Text(
-            left, bg="#070b11", fg=fg, insertbackground=fg, relief="flat",
-            font=("Consolas", 10), wrap="word", padx=12, pady=12,
+        intro = tk.Frame(
+            self.root, bg=panel, highlightbackground=border, highlightthickness=1,
+            padx=18, pady=13,
         )
-        self.output.pack(fill="both", expand=True, pady=(10, 0))
+        intro.pack(fill="x", padx=24, pady=(0, 10))
+        tk.Label(
+            intro,
+            text="Local-first Windows AI execution layer",
+            bg=panel, fg=fg, font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w")
+        self.status_label = tk.Label(
+            intro, text="", bg=panel, fg=muted, justify="left", font=("Consolas", 9),
+        )
+        self.status_label.pack(anchor="w", pady=(5, 0))
 
-        tk.Label(right, text="RECENT LOCAL ACTIVITY", bg=panel, fg=muted, font=("Consolas", 9, "bold")).pack(anchor="w")
+        self.body = tk.PanedWindow(self.root, orient="horizontal", bg=bg, sashwidth=6, bd=0)
+        self.body.pack(fill="both", expand=True, padx=24, pady=(0, 10))
+
+        left = tk.Frame(
+            self.body, bg=panel, highlightbackground=border, highlightthickness=1,
+            padx=16, pady=14,
+        )
+        right = tk.Frame(
+            self.body, bg=panel, highlightbackground=border, highlightthickness=1,
+            padx=14, pady=14,
+        )
+        self.body.add(left, minsize=500)
+        self.body.add(right, minsize=240)
+
+        tk.Label(
+            left,
+            text="START HERE · ENTER COMMAND",
+            bg=panel, fg=accent, font=("Consolas", 10, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            left,
+            text="Describe what you want Quillgeist to do. Ctrl+Enter prepares the command.",
+            bg=panel, fg=muted, font=("Segoe UI", 9),
+        ).pack(anchor="w", pady=(3, 8))
+
+        command_shell = tk.Frame(
+            left, bg="#070b11", highlightbackground="#28435c", highlightthickness=1,
+            padx=1, pady=1,
+        )
+        command_shell.pack(fill="x")
+        self.command_input = tk.Text(
+            command_shell,
+            height=4,
+            bg="#070b11",
+            fg=fg,
+            insertbackground=fg,
+            selectbackground="#172536",
+            relief="flat",
+            font=("Segoe UI", 12),
+            wrap="word",
+            padx=10,
+            pady=9,
+            undo=True,
+        )
+        self.command_input.pack(fill="x")
+        self.command_input.bind("<Control-Return>", self._submit_command_event)
+
+        command_buttons = tk.Frame(left, bg=panel)
+        command_buttons.pack(fill="x", pady=(8, 12))
+        tk.Button(
+            command_buttons,
+            text="Prepare command",
+            command=self.submit_command,
+            bg="#1d4968",
+            fg=fg,
+            activebackground="#255b80",
+            activeforeground=fg,
+            relief="flat",
+            padx=16,
+            pady=8,
+            font=("Segoe UI", 10, "bold"),
+        ).pack(side="left")
+        tk.Button(
+            command_buttons,
+            text="Clear",
+            command=self.clear_command,
+            bg="#111a25",
+            fg=muted,
+            activebackground="#172536",
+            activeforeground=fg,
+            relief="flat",
+            padx=12,
+            pady=8,
+            font=("Segoe UI", 9),
+        ).pack(side="left", padx=(8, 0))
+
+        tk.Label(
+            left, text="RESULT / STATUS", bg=panel, fg=muted, font=("Consolas", 9, "bold"),
+        ).pack(anchor="w")
+        self.output = tk.Text(
+            left,
+            height=8,
+            bg="#070b11",
+            fg=fg,
+            insertbackground=fg,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+            padx=12,
+            pady=12,
+        )
+        self.output.pack(fill="both", expand=True, pady=(8, 0))
+        self._write_output("Ready. Enter your task above, then click Prepare command or press Ctrl+Enter.")
+
+        tk.Label(
+            right, text="RECENT LOCAL ACTIVITY", bg=panel, fg=muted,
+            font=("Consolas", 9, "bold"),
+        ).pack(anchor="w")
         self.activity = tk.Listbox(
-            right, bg="#070b11", fg=fg, selectbackground="#172536",
-            relief="flat", font=("Consolas", 9), activestyle="none",
+            right,
+            bg="#070b11",
+            fg=fg,
+            selectbackground="#172536",
+            relief="flat",
+            font=("Consolas", 9),
+            activestyle="none",
         )
         self.activity.pack(fill="both", expand=True, pady=(10, 0))
 
-        foot = tk.Frame(self.root, bg=bg, padx=24)
-        foot.pack(fill="x", pady=(0, 16))
+        self.actions_frame = tk.Frame(self.root, bg=bg)
+        self.actions_frame.pack(fill="x", padx=24, pady=(0, 10))
+        for label, command in [
+            ("Pair device", self.pair_device),
+            ("Open Cloud", self.open_cloud),
+            ("Doctor", self.run_doctor),
+            ("Toggle local-only", self.toggle_local_only),
+        ]:
+            tk.Button(
+                self.actions_frame,
+                text=label,
+                command=command,
+                bg="#111a25",
+                fg=fg,
+                activebackground="#172536",
+                activeforeground=fg,
+                relief="flat",
+                padx=11,
+                pady=7,
+                font=("Segoe UI", 9, "bold"),
+            ).pack(side="left", padx=(0, 8), pady=2)
+
+        self.runtime_button = tk.Button(
+            self.actions_frame,
+            text="Start runtime",
+            command=self.toggle_runtime,
+            bg="#172536",
+            fg=fg,
+            activebackground="#1c3045",
+            activeforeground=fg,
+            relief="flat",
+            padx=11,
+            pady=7,
+            font=("Segoe UI", 9, "bold"),
+        )
+        self.runtime_button.pack(side="right", pady=2)
+
+        self.footer_frame = tk.Frame(self.root, bg=bg, padx=24)
+        self.footer_frame.pack(fill="x", pady=(0, 14))
         tk.Label(
-            foot,
-            text="Ctrl+Alt+Space opens Quillgeist from anywhere on Windows. Closing the window keeps it in the tray.",
+            self.footer_frame,
+            text="Ctrl+Alt+Space opens Quillgeist and focuses the command box. Closing the window keeps it in the tray.",
             bg=bg, fg=muted, font=("Segoe UI", 9),
         ).pack(anchor="w")
 
@@ -203,8 +317,6 @@ class QuillgeistDesktop:
         self.output.insert("1.0", value)
 
     def _status_text(self) -> str:
-        desktop = self.cfg.data.setdefault("desktop", {})
-        local_only = bool(desktop.get("local_only", False))
         runtime = "RUNNING" if self._daemon_proc and self._daemon_proc.poll() is None else "STOPPED"
         return (
             f"Device: {self.cfg.data.get('device_name')}  ·  ID: {self.cfg.data.get('device_id')}\n"
@@ -214,8 +326,10 @@ class QuillgeistDesktop:
     def refresh(self) -> None:
         self.cfg = Config.load()
         local_only = bool(self.cfg.data.get("desktop", {}).get("local_only", False))
+        running = bool(self._daemon_proc and self._daemon_proc.poll() is None)
         self.mode_label.config(text="LOCAL ONLY" if local_only else "LOCAL FIRST")
         self.status_label.config(text=self._status_text())
+        self.runtime_button.config(text="Stop runtime" if running else "Start runtime")
         self.activity.delete(0, "end")
         for ts, kind, summary in self.ledger.recent():
             stamp = ts[11:19] if "T" in ts else ts[:8]
@@ -260,6 +374,12 @@ class QuillgeistDesktop:
         self._daemon_proc = None
         self._write_output("Quillgeist local runtime stopped.")
         self.refresh()
+
+    def toggle_runtime(self) -> None:
+        if self._daemon_proc and self._daemon_proc.poll() is None:
+            self.stop_runtime()
+        else:
+            self.start_runtime()
 
     def run_doctor(self) -> None:
         def worker():
@@ -326,7 +446,7 @@ class QuillgeistDesktop:
         self.cfg.save()
         if desktop["local_only"]:
             self.stop_runtime()
-            self._write_output("Local-only mode enabled. Desktop Cloud runtime is stopped; local tools and local data remain available.")
+            self._write_output("Local-only mode enabled. Cloud runtime is stopped; local tools and data remain available.")
             self.ledger.add("privacy", "local-only enabled")
         else:
             self.ledger.add("privacy", "local-first enabled")
@@ -334,33 +454,33 @@ class QuillgeistDesktop:
             self._write_output("Local-first mode enabled. Quillgeist may connect to configured Cloud services under local policy.")
         self.refresh()
 
-    def show_palette(self) -> None:
-        tk = self.tk
+    def _submit_command_event(self, _event=None):
+        self.submit_command()
+        return "break"
+
+    def submit_command(self) -> None:
+        text = self.command_input.get("1.0", "end").strip()
+        if not text:
+            self._write_output("Enter a task in the command box first.")
+            self.focus_command()
+            return
+        self.execute_palette(text)
+
+    def clear_command(self) -> None:
+        self.command_input.delete("1.0", "end")
+        self._write_output("Ready. Enter your next task above.")
+        self.focus_command()
+
+    def focus_command(self) -> None:
         self.show_window()
-        win = tk.Toplevel(self.root)
-        win.title("Ask Quillgeist")
-        win.geometry("700x240")
-        win.configure(bg="#070b11")
-        win.transient(self.root)
-        win.grab_set()
-        tk.Label(win, text="ASK QUILLGEIST", bg="#070b11", fg="#8fa1b5", font=("Consolas", 9, "bold")).pack(anchor="w", padx=18, pady=(18, 8))
-        entry = tk.Entry(win, bg="#0d1520", fg="#f4f7fb", insertbackground="#f4f7fb", relief="flat", font=("Segoe UI", 14))
-        entry.pack(fill="x", padx=18, ipady=10)
-        hint = tk.Label(
-            win,
-            text="Try: pair · doctor · open cloud · start runtime · stop runtime · local only · summarize this report",
-            bg="#070b11", fg="#8fa1b5", font=("Segoe UI", 9),
-        )
-        hint.pack(anchor="w", padx=18, pady=(8, 0))
-        def submit(_event=None):
-            text = entry.get().strip()
-            if not text:
-                return
-            win.destroy()
-            self.execute_palette(text)
-        entry.bind("<Return>", submit)
-        tk.Button(win, text="Run", command=submit, bg="#172536", fg="#f4f7fb", relief="flat", padx=18, pady=8).pack(anchor="e", padx=18, pady=18)
-        entry.focus_force()
+        try:
+            self.command_input.focus_force()
+            self.command_input.see("1.0")
+        except Exception:
+            pass
+
+    def show_palette(self) -> None:
+        self.focus_command()
 
     def execute_palette(self, text: str) -> None:
         lowered = text.lower().strip()
@@ -391,7 +511,13 @@ class QuillgeistDesktop:
         payload = json.dumps(compiled, indent=2)
         self.root.clipboard_clear()
         self.root.clipboard_append(payload)
-        self._write_output(payload + "\n\nCompiled instruction copied to clipboard.")
+        self._write_output(
+            "Command prepared.\n\n"
+            f"Action: {compiled.get('action', 'general')}\n"
+            f"Routing: {compiled.get('routing', 'local-first')}\n\n"
+            "The compiled instruction is copied to the clipboard for the connected AI/planner. "
+            "Quillgeist will enforce local policy when an execution pack is run."
+        )
         self.ledger.add("intent", compiled.get("action", "general"), text)
         self.refresh()
 
@@ -421,8 +547,8 @@ class QuillgeistDesktop:
             draw.line((20, 32, 44, 32), fill="#f4f7fb", width=4)
             draw.line((32, 20, 32, 44), fill="#7dd3fc", width=4)
             menu = pystray.Menu(
-                pystray.MenuItem("Open Quillgeist", lambda: self.root.after(0, self.show_window), default=True),
-                pystray.MenuItem("Ask / Compile", lambda: self.root.after(0, self.show_palette)),
+                pystray.MenuItem("Open Quillgeist", lambda: self.root.after(0, self.focus_command), default=True),
+                pystray.MenuItem("Focus command box", lambda: self.root.after(0, self.focus_command)),
                 pystray.MenuItem("Open Cloud", lambda: self.root.after(0, self.open_cloud)),
                 pystray.MenuItem("Pair device", lambda: self.root.after(0, self.pair_device)),
                 pystray.MenuItem("Toggle local-only", lambda: self.root.after(0, self.toggle_local_only)),
@@ -451,7 +577,7 @@ class QuillgeistDesktop:
             msg = wintypes.MSG()
             while self._running and user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
                 if msg.message == WM_HOTKEY and msg.wParam == hotkey_id:
-                    self.root.after(0, self.show_palette)
+                    self.root.after(0, self.focus_command)
             user32.UnregisterHotKey(None, hotkey_id)
         except Exception as exc:
             self.ledger.add("error", "hotkey unavailable", str(exc))
