@@ -178,8 +178,8 @@ class QuillgeistDesktop:
         )
         self.activity.pack(fill="both", expand=True, pady=(10, 0))
 
-        foot = tk.Frame(self.root, bg=bg, padx=24, pady=(0, 16))
-        foot.pack(fill="x")
+        foot = tk.Frame(self.root, bg=bg, padx=24)
+        foot.pack(fill="x", pady=(0, 16))
         tk.Label(
             foot,
             text="Ctrl+Alt+Space opens Quillgeist from anywhere on Windows. Closing the window keeps it in the tray.",
