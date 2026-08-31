@@ -7,6 +7,7 @@ import webbrowser
 
 from .config import Config
 from .desktop import ActivityLedger, QuillgeistDesktop
+from .provider_discovery import provider_snapshot
 from .telemetry import emit_event
 from .usage import delete_plan, emit_plan_snapshot, save_plan, snapshot
 
@@ -46,9 +47,15 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
         if actions is not None:self.usage_panel.pack(fill="x", padx=24, pady=(0, 14), before=actions)
         else:self.usage_panel.pack(fill="x", padx=24, pady=(0, 14))
         head = tk.Frame(self.usage_panel, bg=panel); head.pack(fill="x")
-        tk.Label(head, text="USAGE & SAVINGS", bg=panel, fg=muted, font=("Consolas", 9, "bold")).pack(side="left")
-        self.usage_sync = tk.Label(head, text="LOCAL", bg=panel, fg=accent, font=("Consolas", 9, "bold")); self.usage_sync.pack(side="right")
-        self.usage_pressure = tk.Label(self.usage_panel, text="External pressure 0%", bg=panel, fg=fg, font=("Segoe UI", 12, "bold")); self.usage_pressure.pack(anchor="w", pady=(8, 4))
+        tk.Label(head, text="USAGE & LLM STATUS", bg=panel, fg=muted, font=("Consolas", 9, "bold")).pack(side="left")
+        self.usage_sync = tk.Label(head, text="CHECKING", bg=panel, fg=accent, font=("Consolas", 9, "bold")); self.usage_sync.pack(side="right")
+
+        self.llm_status = tk.Label(self.usage_panel, text="Runtime: checking  ·  LLM: detecting supported local login…", bg=panel, fg=fg, font=("Segoe UI", 11, "bold"), anchor="w", justify="left")
+        self.llm_status.pack(fill="x", pady=(8, 1))
+        self.llm_detail = tk.Label(self.usage_panel, text="Quillgeist checks supported provider CLI/OAuth/API configuration locally. Secret values are never imported.", bg=panel, fg=muted, font=("Segoe UI", 8), anchor="w", justify="left", wraplength=780)
+        self.llm_detail.pack(fill="x", pady=(0, 7))
+
+        self.usage_pressure = tk.Label(self.usage_panel, text="External pressure 0%", bg=panel, fg=fg, font=("Segoe UI", 12, "bold")); self.usage_pressure.pack(anchor="w", pady=(3, 4))
         self.usage_bar = tk.Canvas(self.usage_panel, height=12, bg="#070b11", highlightthickness=0); self.usage_bar.pack(fill="x")
         stats = tk.Frame(self.usage_panel, bg=panel); stats.pack(fill="x", pady=(10, 0)); self.usage_values = {}
         for label in ["Saved", "Local", "External", "Delta", "Plans", "Headroom"]:
@@ -56,21 +63,48 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
             tk.Label(box, text=label.upper(), bg=panel, fg=muted, font=("Consolas", 8, "bold")).pack(anchor="w")
             value = tk.Label(box, text="—", bg=panel, fg=fg, font=("Consolas", 12, "bold")); value.pack(anchor="w"); self.usage_values[label] = value
         buttons = tk.Frame(self.usage_panel, bg=panel); buttons.pack(fill="x", pady=(10, 0))
-        tk.Button(buttons, text="Manage plans", command=self.manage_plans, bg="#111a25", fg=fg, relief="flat", padx=10, pady=6).pack(side="left")
+        tk.Button(buttons, text="Refresh LLM login", command=lambda: self._refresh_usage_async(force_providers=True), bg="#172536", fg=fg, relief="flat", padx=10, pady=6).pack(side="left")
+        tk.Button(buttons, text="Manage quota plans", command=self.manage_plans, bg="#111a25", fg=fg, relief="flat", padx=10, pady=6).pack(side="left", padx=(8, 0))
         tk.Button(buttons, text="Open overall portal", command=lambda: webbrowser.open((self.cfg.data.get("cloud_url") or "https://quillgeist.clintware.com") + "/#usage"), bg="#111a25", fg=fg, relief="flat", padx=10, pady=6).pack(side="left", padx=(8, 0))
-        self.root.after(750, self._refresh_usage_async)
+        self.root.after(500, self._refresh_usage_async)
 
-    def _refresh_usage_async(self) -> None:
+    def _refresh_usage_async(self, force_providers: bool = False) -> None:
         if not getattr(self, "_running", True):return
         def work():
             cfg = Config.load(); data = snapshot(cfg)
+            providers = provider_snapshot(cfg, force=force_providers)
+            try:runtime_running = bool(self._runtime_running())
+            except Exception:runtime_running = False
             try:sync = "SYNCED" if emit_plan_snapshot(cfg) else "LOCAL"
             except Exception:sync = "LOCAL"
-            self.root.after(0, lambda: self._render_usage(data, sync))
-        threading.Thread(target=work, daemon=True).start(); self.root.after(20000, self._refresh_usage_async)
+            self.root.after(0, lambda: self._render_usage(data, sync, providers, runtime_running))
+        threading.Thread(target=work, daemon=True).start()
+        if not force_providers:self.root.after(20000, self._refresh_usage_async)
 
-    def _render_usage(self, data: dict, sync: str) -> None:
+    def _render_usage(self, data: dict, sync: str, providers: dict, runtime_running: bool) -> None:
         c = data.get("consumption", {}); p = data.get("plans_summary", {}); pressure = max(0.0, min(100.0, float(c.get("external_consumption_pressure_pct") or 0)))
+        ready = [r for r in providers.get("providers", []) if r.get("ready")]
+        primary = providers.get("primary") or {}
+        runtime_text = "RUNNING" if runtime_running else "STOPPED"
+        if ready:
+            who = primary.get("identity") or primary.get("auth_source") or "authenticated"
+            self.llm_status.config(text=f"Runtime: {runtime_text}  ·  LLM READY: {primary.get('provider', 'Provider')} · {who}")
+            bits = []
+            for row in ready[:4]:
+                label = row.get("provider", "Provider")
+                identity = row.get("identity") or row.get("auth_source") or "ready"
+                models = row.get("models") or []
+                if models: identity += " · " + ", ".join(models[:3])
+                bits.append(f"{label}: {identity}")
+            self.llm_detail.config(text="  |  ".join(bits) + "  ·  Login metadata stays local; secret/token values are not copied.")
+        elif providers.get("detected"):
+            self.llm_status.config(text=f"Runtime: {runtime_text}  ·  LLM LOGIN NOT VERIFIED")
+            row = primary
+            self.llm_detail.config(text=(row.get("detail") or "A provider client was detected but its authenticated state could not be verified.") + "  Browser-only sessions are intentionally not scraped.")
+        else:
+            self.llm_status.config(text=f"Runtime: {runtime_text}  ·  NO SUPPORTED LLM LOGIN FOUND")
+            self.llm_detail.config(text="Quillgeist could not see a supported local provider login. ChatGPT/Claude browser-only sessions are isolated by design. Sign in with Codex/Claude/Gemini CLI, set a provider API key, or run Ollama, then click Refresh LLM login.")
+
         self.usage_sync.config(text=sync); self.usage_pressure.config(text=f"External pressure {pressure:.0f}%  ·  {float(c.get('avoided_external_pct') or 0):.0f}% avoided")
         self.usage_bar.delete("all"); width = max(1, self.usage_bar.winfo_width()); self.usage_bar.create_rectangle(0, 0, width, 12, fill="#070b11", outline=""); self.usage_bar.create_rectangle(0, 0, width * pressure / 100, 12, fill="#7dd3fc", outline="")
         def compact(v):
@@ -81,10 +115,21 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
         self.usage_values["Saved"].config(text=compact(c.get("net_tokens_saved_est"))); self.usage_values["Local"].config(text=compact(c.get("local_tokens_used_est"))); self.usage_values["External"].config(text=compact(c.get("external_tokens_used_est"))); self.usage_values["Delta"].config(text=compact(c.get("local_vs_external_delta_est"))); self.usage_values["Plans"].config(text=str(p.get("connected", 0))); headroom = p.get("normalized_remaining_pct"); self.usage_values["Headroom"].config(text="—" if headroom is None else f"{float(headroom):.0f}%")
 
     def manage_plans(self) -> None:
-        tk = self.tk; win = tk.Toplevel(self.root); win.title("Quillgeist plans"); win.geometry("720x520"); win.configure(bg="#070b11"); win.transient(self.root)
-        form = tk.Frame(win, bg="#070b11", padx=16, pady=14); form.pack(fill="x"); fields = {}; specs = [("provider","Provider"),("plan_name","Plan / account"),("unit","Unit"),("allowance","Allowance"),("used","Used"),("reset_at","Reset date")]
+        tk = self.tk; win = tk.Toplevel(self.root); win.title("Quillgeist plans"); win.geometry("720x540"); win.configure(bg="#070b11"); win.transient(self.root)
+        detected = provider_snapshot(Config.load())
+        primary = detected.get("primary") or {}
+        tk.Label(win, text="LLM LOGIN DETECTION IS AUTOMATIC", bg="#070b11", fg="#7dd3fc", font=("Consolas",9,"bold"), anchor="w").pack(fill="x", padx=16, pady=(14,2))
+        auto_text = "No supported local login detected. Browser-only sessions are not scraped."
+        if primary:
+            state = "READY" if primary.get("ready") else "DETECTED"
+            who = primary.get("identity") or primary.get("auth_source") or ""
+            auto_text = f"{state} · {primary.get('provider','Provider')} · {who} · {primary.get('detail','')}"
+        tk.Label(win, text=auto_text, bg="#070b11", fg="#8fa1b5", font=("Segoe UI",8), anchor="w", justify="left", wraplength=680).pack(fill="x", padx=16, pady=(0,4))
+        form = tk.Frame(win, bg="#070b11", padx=16, pady=8); form.pack(fill="x"); fields = {}; specs = [("provider","Provider"),("plan_name","Plan / account"),("unit","Unit"),("allowance","Allowance"),("used","Used"),("reset_at","Reset date")]
         for i,(key,label) in enumerate(specs):
             cell=tk.Frame(form,bg="#070b11"); cell.grid(row=i//3,column=i%3,sticky="ew",padx=5,pady=5); form.grid_columnconfigure(i%3,weight=1); tk.Label(cell,text=label.upper(),bg="#070b11",fg="#8fa1b5",font=("Consolas",8,"bold")).pack(anchor="w"); e=tk.Entry(cell,bg="#0d1520",fg="#f4f7fb",insertbackground="#f4f7fb",relief="flat"); e.pack(fill="x",ipady=7); fields[key]=e
+        if primary.get("provider"):fields["provider"].insert(0, primary["provider"])
+        if primary.get("identity"):fields["plan_name"].insert(0, primary["identity"])
         fields["unit"].insert(0,"tokens"); listing=tk.Listbox(win,bg="#0d1520",fg="#f4f7fb",selectbackground="#172536",relief="flat",font=("Consolas",10)); listing.pack(fill="both",expand=True,padx=16,pady=10); rows=[]
         def reload():
             nonlocal rows; rows=snapshot(Config.load()).get("plans",[]); listing.delete(0,"end")
@@ -94,17 +139,19 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
             try:
                 save_plan(Config.load(), {k:e.get().strip() for k,e in fields.items()})
                 for e in fields.values():e.delete(0,"end")
+                if primary.get("provider"):fields["provider"].insert(0, primary["provider"])
+                if primary.get("identity"):fields["plan_name"].insert(0, primary["identity"])
                 fields["unit"].insert(0,"tokens"); reload(); self._refresh_usage_async()
             except Exception as exc:self.messagebox.showerror("Quillgeist", str(exc), parent=win)
         def remove():
             sel=listing.curselection()
             if sel:delete_plan(Config.load(), rows[sel[0]]["plan_id"]); reload(); self._refresh_usage_async()
-        bar=tk.Frame(win,bg="#070b11",padx=16,pady=10); bar.pack(fill="x"); tk.Button(bar,text="Add manual plan",command=add,bg="#172536",fg="#f4f7fb",relief="flat",padx=12,pady=7).pack(side="left"); tk.Button(bar,text="Remove selected",command=remove,bg="#24161b",fg="#ff9eaa",relief="flat",padx=12,pady=7).pack(side="left",padx=(8,0)); tk.Label(bar,text="Provider API sync appears only when a provider exposes a supported authenticated usage source.",bg="#070b11",fg="#8fa1b5",font=("Segoe UI",8)).pack(side="right"); reload()
+        bar=tk.Frame(win,bg="#070b11",padx=16,pady=10); bar.pack(fill="x"); tk.Button(bar,text="Add quota plan",command=add,bg="#172536",fg="#f4f7fb",relief="flat",padx=12,pady=7).pack(side="left"); tk.Button(bar,text="Remove selected",command=remove,bg="#24161b",fg="#ff9eaa",relief="flat",padx=12,pady=7).pack(side="left",padx=(8,0)); tk.Label(bar,text="Quota/headroom is separate from login detection and remains unknown unless supplied or exposed by a supported provider API.",bg="#070b11",fg="#8fa1b5",font=("Segoe UI",8),wraplength=390,justify="right").pack(side="right"); reload()
 
 
 def main(argv=None) -> int:
     import argparse
     parser=argparse.ArgumentParser(prog="Quillgeist",description="Quillgeist Windows desktop control surface"); parser.add_argument("--smoke",action="store_true"); parser.add_argument("--minimized",action="store_true"); parser.add_argument("--no-tray",action="store_true"); args=parser.parse_args(argv)
     if args.smoke:
-        ActivityLedger(); print(snapshot(Config.load())); return 0
+        cfg = Config.load(); ActivityLedger(); print({"usage": snapshot(cfg), "providers": provider_snapshot(cfg, force=True)}); return 0
     app=QuillgeistDesktopWithUsage(minimized=args.minimized,no_tray=args.no_tray); app.run(); return 0
