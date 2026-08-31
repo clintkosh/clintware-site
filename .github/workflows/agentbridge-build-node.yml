@@ -101,7 +101,7 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found at $iscc" }
-          & $iscc "/DSourceDir=$env:GITHUB_WORKSPACE\dist" "/DOutputDir=$env:GITHUB_WORKSPACE\dist" "/DAppVersion=0.3.1-alpha" "agentbridge-node\installer\quillgeist.iss"
+          & $iscc "/DSourceDir=$env:GITHUB_WORKSPACE\dist" "/DOutputDir=$env:GITHUB_WORKSPACE\dist" "/DAppVersion=0.3.2-alpha" "agentbridge-node\installer\quillgeist.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path ".\dist\Quillgeist-Setup-Windows-x64.exe")) { throw "Installer was not produced." }
 
@@ -159,18 +159,18 @@ jobs:
           test -f release-assets/Quillgeist-macOS-arm64
           ls -lah release-assets
 
-      - name: Publish Quillgeist usage alpha release
+      - name: Publish Quillgeist v0.3.2 alpha release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="quillgeist-v0.3.1-alpha"
-          notes=$'Quillgeist v0.3.1 Windows desktop alpha.\n\nAdds synchronized Usage & Savings gauges to the Windows desktop and Quillgeist Cloud. The desktop records external tokens used, local-model tokens used, net external tokens saved, baseline external consumption, local/external delta, avoided-external percentage, and external-consumption pressure. Connected plan snapshots support tokens, requests, messages, USD, credits, minutes, and custom units with explicit manual/provider/estimated provenance; unknown balances remain Unknown. Cumulative Node checkpoints keep the Cloud overall view accurate beyond the recent-event window.\n\nWindows recommended: download Quillgeist-Setup-Windows-x64.exe. Portable Windows CLI remains available as Quillgeist-Windows-x64.exe. macOS and Linux remain portable CLI alpha builds.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
+          tag="quillgeist-v0.3.2-alpha"
+          notes=$'Quillgeist v0.3.2 Windows desktop alpha.\n\nStreamlines the desktop around one obvious primary workflow: START HERE → enter the command in the main window → Prepare command → read result/status without opening a second command dialog. Ctrl+Alt+Space now opens Quillgeist and focuses the inline command field. The duplicate Ask / Compile button is removed, Start/Stop is consolidated into one runtime toggle, and secondary device/usage controls are kept out of the main command path.\n\nAlso retains automatic supported LLM login detection for OpenAI/Codex, Claude, Gemini, Ollama, OpenRouter, and Azure OpenAI without copying browser cookies or secret token values. Windows UI startup, inline-command behavior, provider/usage tests, packaged EXE smoke testing, and installer validation run before release.\n\nWindows recommended: download Quillgeist-Setup-Windows-x64.exe. Portable Windows CLI remains available as Quillgeist-Windows-x64.exe. macOS and Linux remain portable CLI alpha builds.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release-assets/* --clobber
-            gh release edit "$tag" --title "Quillgeist v0.3.1 Alpha" --notes "$notes" --prerelease
+            gh release edit "$tag" --title "Quillgeist v0.3.2 Alpha" --notes "$notes" --prerelease
           else
-            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.3.1 Alpha" --notes "$notes" --prerelease
+            gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.3.2 Alpha" --notes "$notes" --prerelease
           fi
 
       - name: Promote installer on latest Quillgeist Cloud
@@ -183,19 +183,19 @@ jobs:
           import re
           p = Path('agentbridge-cloud/public/index.html')
           text = p.read_text(encoding='utf-8')
-          installer = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.1-alpha/Quillgeist-Setup-Windows-x64.exe'
-          portable = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.1-alpha/Quillgeist-Windows-x64.exe'
-          mac = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.1-alpha/Quillgeist-macOS-arm64'
-          linux = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.1-alpha/Quillgeist-Linux-x64'
-          text, n = re.subn(r'(<a class="btn primary wide" href=")[^"]+(">Download Quillgeist for Windows</a>)', r'\1'+installer+r'\2', text, count=1)
+          installer = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-Setup-Windows-x64.exe'
+          portable = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-Windows-x64.exe'
+          mac = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-macOS-arm64'
+          linux = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-Linux-x64'
+          text, n = re.subn(r'(<a class="btn primary wide" href=")[^"]+(\">Download Quillgeist for Windows</a>)', r'\1'+installer+r'\2', text, count=1)
           if n != 1: raise SystemExit('Windows primary download button not found')
           if 'Portable Windows CLI</a>' in text:
-              text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(">Portable Windows CLI</a>)', r'\1'+portable+r'\2', text, count=1)
+              text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(\">Portable Windows CLI</a>)', r'\1'+portable+r'\2', text, count=1)
           else:
               marker = f'<a class="btn primary wide" href="{installer}">Download Quillgeist for Windows</a>'
               text = text.replace(marker, marker+'\n        <a class="btn ghost wide" href="'+portable+'">Portable Windows CLI</a>', 1)
-          text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(">Download for macOS Apple Silicon</a>)', r'\1'+mac+r'\2', text, count=1)
-          text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(">Download for Linux x64</a>)', r'\1'+linux+r'\2', text, count=1)
+          text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(\">Download for macOS Apple Silicon</a>)', r'\1'+mac+r'\2', text, count=1)
+          text = re.sub(r'(<a class="btn ghost wide" href=")[^"]+(\">Download for Linux x64</a>)', r'\1'+linux+r'\2', text, count=1)
           text = text.replace('1 · Download and run <code>init</code>', '1 · Install and launch Quillgeist', 1)
           p.write_text(text, encoding='utf-8')
           PY
@@ -206,5 +206,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add agentbridge-cloud/public/index.html
-          git commit -m "Promote Quillgeist v0.3.1 Windows installer"
+          git commit -m "Promote Quillgeist v0.3.2 Windows installer"
           git push origin HEAD:main
