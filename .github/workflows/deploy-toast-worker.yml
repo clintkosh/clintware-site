@@ -1,0 +1,31 @@
+name: Deploy Toast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "toast-worker/**"
+      - ".github/workflows/deploy-toast-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-toast
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Toast Worker
+        run: npx --yes wrangler@4 deploy --dry-run --config toast-worker/wrangler.jsonc
+      - name: Deploy Toast Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd toast-worker
