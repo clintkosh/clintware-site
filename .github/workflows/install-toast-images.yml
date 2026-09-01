@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "toast-image-payloads-v2/READY"
+      - "toast-image-payloads-v3/READY"
   workflow_dispatch:
 
 permissions:
@@ -21,10 +21,10 @@ jobs:
           set -euo pipefail
           mkdir -p toast-worker/assets
           for image in IMG_8659 IMG_8621 IMG_8384; do
-            cat toast-image-payloads-v2/${image}.part* | base64 --decode > toast-worker/assets/${image}.jpg
+            cat toast-image-payloads-v3/${image}.part* | base64 --decode > toast-worker/assets/${image}.jpg
             test -s toast-worker/assets/${image}.jpg
           done
-          rm -rf toast-image-payloads-v2 toast-image-payloads
+          rm -rf toast-image-payloads-v3 toast-image-payloads-v2 toast-image-payloads
       - name: Commit installed images
         shell: bash
         run: |
