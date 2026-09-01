@@ -1,0 +1,35 @@
+name: Install Toast Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "toast-image-payloads/READY"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode high-quality Toast images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p toast-worker/assets
+          for image in IMG_8659 IMG_8621 IMG_8384; do
+            cat toast-image-payloads/${image}.part* | base64 --decode > toast-worker/assets/${image}.jpg
+            test -s toast-worker/assets/${image}.jpg
+          done
+          rm -rf toast-image-payloads
+      - name: Commit installed images
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace Toast thumbnails with high-quality photos"
+          git push
