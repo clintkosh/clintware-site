@@ -17,8 +17,9 @@ Create a concise professional message and a refined, accessible HTML presentatio
 6. Build the HTML version using [references/design-spec.md](references/design-spec.md).
 7. Create or edit a wide banner only when requested. Preserve a supplied person's identity, use legible text, and use authentic logos only from authoritative assets.
 8. Include a plain-text alternative and verify every link.
-9. Save as a draft for review. Send only when the user explicitly requests sending.
-10. Re-open the draft and verify recipients, subject, facts, links, inline images, and mobile readability.
+9. Before calling the content final, run the [Interview Followup Polisher](/skills/interview-followup-polisher/SKILL.md) gate: challenge the message from the recipient's point of view, revise every material weakness, obtain two consecutive clean adversarial passes, and estimate the best send time from the available context.
+10. Save as a draft for review. Send only when the user explicitly requests sending.
+11. Re-open the draft and verify recipients, subject, facts, links, inline images, mobile readability, and the final gate result.
 
 ## Content architecture
 
@@ -58,4 +59,5 @@ Use `scripts/render_followup.py` to generate a stable HTML and plain-text pair f
 - Confirm the recipient and thread.
 - Confirm every factual claim.
 - Confirm names, titles, and organization spelling.
+- Confirm the Interview Followup Polisher adversarial gate passed and the send-time recommendation was considered.
 - Confirm the saved object is accurately described as a draft or sent message.
