@@ -52,13 +52,13 @@ jobs:
           grep -Fq 'quillgeist_product_impact' agentbridge-cloud/src/public-api.js
           grep -Fq '/api/v1/compact' agentbridge-cloud/src/public-api.js
           grep -Fq '/api/v1/openapi.json' agentbridge-cloud/src/public-api.js
-          grep -Fq 'route:"/mcp"' agentbridge-cloud/src/public-api.js
-          grep -Fq 'allowedHostnames:["quillgeist.clintware.com"]' agentbridge-cloud/src/public-api.js
-          grep -Fq 'readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false' agentbridge-cloud/src/public-api.js
-          grep -Fq 'readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false' agentbridge-cloud/src/public-api.js
+          grep -Eq 'route:[[:space:]]*"/mcp"' agentbridge-cloud/src/public-api.js
+          grep -Eq 'allowedHostnames:[[:space:]]*\["quillgeist\.clintware\.com"\]' agentbridge-cloud/src/public-api.js
+          grep -Eq 'readOnlyHint:[[:space:]]*false.*destructiveHint:[[:space:]]*false.*idempotentHint:[[:space:]]*false.*openWorldHint:[[:space:]]*false' agentbridge-cloud/src/public-api.js
+          grep -Eq 'readOnlyHint:[[:space:]]*true.*destructiveHint:[[:space:]]*false.*idempotentHint:[[:space:]]*true.*openWorldHint:[[:space:]]*false' agentbridge-cloud/src/public-api.js
           grep -Fq 'record_aggregate_metrics' agentbridge-cloud/src/public-api.js
           grep -Fq 'restricted_data_not_accepted' agentbridge-cloud/src/public-api.js
-          grep -Fq 'content_stored_by_quillgeist:false' agentbridge-cloud/src/public-api.js
+          grep -Eq 'content_stored_by_quillgeist:[[:space:]]*false' agentbridge-cloud/src/public-api.js
           grep -Fq 'OPENAI_APPS_CHALLENGE' agentbridge-cloud/src/entry.js
           grep -Fq 'PRODUCT_RETENTION_MS=730*86400000' agentbridge-cloud/src/telemetry.js
           test -f agentbridge-cloud/public/developers.html
