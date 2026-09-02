@@ -43,6 +43,14 @@ def _defaults() -> dict:
             "ollama_model": "",
             "smart_min_savings_tokens": 4000
         },
+        "prompt_planner": {
+            "enabled": True,
+            "threshold_chars": 3500,
+            "step_target_chars": 2400,
+            "complexity_threshold": 6,
+            "max_steps": 24,
+            "auto_continue": True
+        },
         "telemetry": {
             "enabled": True,
             "privacy": "metadata_only",
@@ -74,6 +82,7 @@ class Config:
             base["policy"] = {**_defaults()["policy"], **incoming.get("policy", {})}
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
+            base["prompt_planner"] = {**_defaults()["prompt_planner"], **incoming.get("prompt_planner", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
