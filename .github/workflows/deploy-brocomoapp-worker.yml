@@ -23,9 +23,26 @@ jobs:
       - name: Validate Brocomo Worker
         run: npx --yes wrangler@4 deploy --dry-run --config brocomoapp-worker/wrangler.jsonc
       - name: Deploy Brocomo Worker
+        id: deploy
+        continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd brocomoapp-worker
+      - name: Verify Brocomo live hostname
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            headers=$(curl -sS -D - --connect-timeout 5 --max-time 15 https://brocomoapp.clintware.com/ -o /tmp/brocomo.html || true)
+            if grep -Fqi 'x-robots-tag: noindex, nofollow, noarchive, nosnippet, noimageindex' <<< "$headers" \
+              && grep -Fq 'Brocomo application' /tmp/brocomo.html \
+              && grep -Fq 'Protected Application | Clinton Kosh' /tmp/brocomo.html; then
+              echo 'Brocomo hostname is live and serving the protected application.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Brocomo hostname is not yet serving the protected application.' >&2
+          exit 1
