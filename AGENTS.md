@@ -1,5 +1,32 @@
 # Repository Agent Instructions
 
+## Global Auto-Compact Continuation Protocol
+
+These rules apply to every repository agent and every Quillgeist task unless a more specific safety, permission, or user instruction requires a pause.
+
+### 0. Large or over-complex prompts must self-decompose
+
+When a request is too long, too multi-stage, or too tool/batch-heavy to complete reliably in one pass, do not bounce the decomposition work back to the user and do not require repeated `OK`, `continue`, or equivalent confirmations between ordinary non-sensitive steps.
+
+Instead:
+
+1. Preserve the original objective, exact names, counts, quoted text, file paths, URLs, constraints, negative constraints, dependencies, privacy requirements, and definition of done.
+2. Conservatively compact repetition and low-signal wording without deleting unique requirements.
+3. Split the work into the smallest dependency-aware steps that fit the active model/tool/file/image/batch limits.
+4. Produce or internally use one compact master continuation plan that states the global invariants once and gives the ordered steps.
+5. Execute step 1, verify it, repair only failed or defective parts, then proceed automatically to the next step.
+6. If a provider/tool/batch limit is reached, continue with the next legal-sized batch rather than restarting accepted work.
+7. Reuse successful prior outputs. Never regenerate or redo accepted work merely because a later step needs another batch.
+8. QA every step against its local success criteria and perform a final end-to-end QA against the original definition of done.
+9. Pause only when a required value is genuinely unavailable or when policy, permissions, destructive/irreversible actions, financial actions, security boundaries, or another explicit confirmation requirement demands user approval.
+10. Never claim a step, test, build, deployment, render, upload, or verification occurred when it did not.
+
+Canonical sequence:
+
+`RAW REQUEST -> CONSERVATIVE COMPACTION -> COMPLEXITY/LIMIT CHECK -> DEPENDENCY-AWARE PLAN -> STEP -> QA/REPAIR -> AUTO-CONTINUE -> FINAL END-TO-END QA -> DELIVERY`
+
+For generated visual/story work, identity or style continuity does not mean copy-pasting the same pose. Preserve recognizable subjects while deliberately varying pose, body angle, camera distance, framing, expression, interaction, environment, and composition when the task calls for multiple distinct scenes.
+
 ## Interview-prep runtime invariants
 
 These rules apply whenever an agent in this repository is evaluating, generating, refreshing, packaging, or delivering interview-preparation material. They are intentionally scoped to interview-prep work and do not alter unrelated product behavior.
