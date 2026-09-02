@@ -1,11 +1,11 @@
 ---
 name: quillgeist
-description: Use Quillgeist to compact long or repetitive AI prompt/context payloads while preserving high-signal evidence, estimate token reduction, and report aggregate Quillgeist compaction and token-savings impact.
+description: Use Quillgeist to compact long or repetitive AI prompt/context payloads while preserving high-signal evidence, estimate token reduction, automatically decompose over-complex prompts into executable continuation plans, and report aggregate Quillgeist compaction and token-savings impact.
 ---
 
 # Quillgeist
 
-Use this skill when the user wants to reduce prompt/context size, remove repetitive AI context, compact logs or transcripts before another model call, preserve critical execution evidence while reducing tokens, compare before/after token estimates, or inspect Quillgeist product impact.
+Use this skill when the user wants to reduce prompt/context size, remove repetitive AI context, compact logs or transcripts before another model call, preserve critical execution evidence while reducing tokens, automatically break an over-large or multi-stage request into smaller dependency-aware steps, compare before/after token estimates, or inspect Quillgeist product impact.
 
 Quillgeist is a local-first AI execution product. The public ChatGPT plugin v1 exposes a bounded compaction tool plus a read-only aggregate impact tool. It does not remotely execute actions on the user's Windows computer or access a user's private Quillgeist Cloud account.
 
@@ -48,6 +48,31 @@ This tool is read-only. The returned metrics cover participating installations a
 7. Do not convert estimated token savings into exact dollar savings unless authoritative provider pricing and billable usage dimensions are available for the relevant time period.
 8. Do not claim that compaction preserved information that is not visible in the returned output.
 
+## Automatic decomposition and continuation
+
+When a user's request is too long, too multi-stage, or too constrained by a provider/tool/file/image/batch limit to complete reliably in one pass, Quillgeist should treat compaction and decomposition as one workflow rather than asking the user to manually split the task.
+
+Use this protocol:
+
+1. Preserve exact objectives, names, counts, quoted text, file paths, URLs, dependencies, negative constraints, privacy requirements, and definition of done.
+2. Compact repetition and low-signal wording conservatively. Never drop unique requirements merely to shorten the prompt.
+3. Split the compacted request into the smallest dependency-aware steps that fit the active limit.
+4. State the global invariants once in a compact continuation protocol rather than repeating them verbatim in every step.
+5. Begin the first step immediately and proceed through ordinary non-sensitive steps without repeatedly asking the user for `OK`, `continue`, or equivalent confirmation.
+6. After each step, verify the requested result. Repair only failed or defective pieces before proceeding.
+7. If a provider or tool reaches a batch/size limit, continue with the next legal-sized batch while preserving prior accepted outputs and state.
+8. Do not restart completed work unless QA finds a defect.
+9. Pause only when a required value is genuinely missing or when policy, permissions, destructive/irreversible actions, financial actions, security boundaries, or another explicit confirmation requirement requires approval.
+10. Perform a final end-to-end QA against the original definition of done before declaring the workflow complete.
+
+Preferred master-plan wording is concise and operational:
+
+`QUILLGEIST AUTOCOMPACT EXECUTION PLAN -> preserve global invariants -> STEP 1 -> QA/repair -> auto-continue -> STEP N -> final QA -> delivery`
+
+For repeated visual/story outputs, recognizable subject/style continuity must not become repeated composition. Deliberately vary poses, body angles, camera distance, framing, expressions, interactions, environments, and scene composition while preserving recognizable identity and requested style.
+
+The public compaction tool does not itself execute later steps. In ChatGPT, the assistant should use the returned compacted context to construct the dependency-aware continuation plan and continue through the plan with the tools actually available in the conversation. Never imply that the plugin independently performed later steps that the assistant did not execute.
+
 ## Privacy and restricted data
 
 The public Quillgeist API/MCP service processes only the task-specific text explicitly supplied to the tool. Quillgeist product telemetry is designed not to store the submitted prompt/context text for public compaction calls.
@@ -67,16 +92,18 @@ Quillgeist's own aggregate product-impact telemetry is retained for up to 730 da
 
 ## When to use Quillgeist automatically
 
-Use Quillgeist when the user's goal would materially benefit from reducing a large context payload before another AI/model step. Examples:
+Use Quillgeist when the user's goal would materially benefit from reducing a large context payload before another AI/model step, or when the request needs automatic decomposition to fit practical execution limits. Examples:
 
 - "Compact this before I send it to Claude."
 - "Cut the token load without losing the errors."
 - "Clean this huge log for another model."
 - "Make this context cheaper but preserve everything needed to solve the bug."
+- "Break this large job into batches and keep going without making me approve each batch."
+- "This is too much for one image/file/model call; compact it and finish it in stages."
 - "How much did Quillgeist save?"
 - "Show Quillgeist's 30-day token-savings trend."
 
-Do not invoke compaction merely because a message is verbose when the user is asking for a normal answer and no downstream context optimization is useful.
+Do not invoke compaction merely because a message is verbose when the user is asking for a normal answer and no downstream context optimization or execution-limit handling is useful.
 
 ## Claims and reporting
 
