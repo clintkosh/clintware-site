@@ -10,7 +10,7 @@
     "run_worker_first": true
   },
   "routes": [
-    { "pattern": "Brocomoapp.clintware.com", "custom_domain": true }
+    { "pattern": "brocomoapp.clintware.com", "custom_domain": true }
   ],
   "observability": { "enabled": true }
 }
