@@ -24,6 +24,7 @@ class PromptPlannerTests(unittest.TestCase):
         self.assertEqual(plan.mode, "auto_continue")
         self.assertGreater(len(plan.steps), 1)
         self.assertIn("without asking for repeated OK/continue confirmations", plan.master_prompt)
+        self.assertIn("re-compact the unresolved requirements", plan.master_prompt)
         self.assertIn("Begin with STEP 1", plan.master_prompt)
         self.assertIn("assemble the PDF", plan.master_prompt)
         self.assertIn("three gallery images", plan.master_prompt)
@@ -54,6 +55,20 @@ class PromptPlannerTests(unittest.TestCase):
         )
         self.assertIn("complexity", plan.triggered_by)
         self.assertEqual(plan.mode, "auto_continue")
+
+    def test_visual_multi_output_adds_composition_variation_rule(self):
+        raw = (
+            "Generate 20 coloring book pages. Then review every image. Then fix bad pages. "
+            "Then assemble a PDF. Then generate gallery images. Finally deliver all files."
+        )
+        plan = plan_prompt(
+            raw,
+            {"enabled": True, "complexity_threshold": 2, "step_target_chars": 100},
+            force=True,
+        )
+        self.assertEqual(plan.mode, "auto_continue")
+        self.assertIn("deliberately vary pose, body angle, camera distance", plan.master_prompt)
+        self.assertIn("do not clone the same portrait stance", plan.master_prompt)
 
 
 if __name__ == "__main__":
