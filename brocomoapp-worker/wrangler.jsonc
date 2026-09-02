@@ -9,8 +9,5 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
-  "routes": [
-    { "pattern": "brocomoapp.clintware.com", "custom_domain": true }
-  ],
   "observability": { "enabled": true }
 }
