@@ -17,6 +17,7 @@ desktop = ["pystray>=0.19.5,<1", "Pillow>=10,<12"]
 
 [project.scripts]
 quillgeist = "agentbridge_node.cli:main"
+quillgeist-plan = "agentbridge_node.prompt_planner_cli:main"
 # Temporary compatibility alias for pre-Quillgeist alpha users.
 agentbridge = "agentbridge_node.cli:main"
 
