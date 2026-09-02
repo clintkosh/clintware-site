@@ -20,29 +20,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Validate Brocomo Worker
         run: npx --yes wrangler@4 deploy --dry-run --config brocomoapp-worker/wrangler.jsonc
+
       - name: Deploy Brocomo Worker
-        id: deploy
-        continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd brocomoapp-worker
+
+      - name: Attach or verify brocomoapp.clintware.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=brocomoapp.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="brocomoapp.clintware.com" and r[0].get("service")=="clintware-brocomoapp" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"brocomoapp.clintware.com","service":"clintware-brocomoapp"}' >/tmp/brocomo-domain-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/brocomo-domain-put.json")); assert d.get("success") is True,d'
+          fi
+          verify=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=brocomoapp.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="brocomoapp.clintware.com" and x.get("service")=="clintware-brocomoapp",x; print("Brocomo domain verified:",x["hostname"],"->",x["service"])' <<< "$verify"
+
       - name: Verify Brocomo live hostname
         run: |
           set -euo pipefail
-          for i in $(seq 1 12); do
-            headers=$(curl -sS -D - --connect-timeout 5 --max-time 15 https://brocomoapp.clintware.com/ -o /tmp/brocomo.html || true)
+          ready=0
+          for i in $(seq 1 24); do
+            headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 "https://brocomoapp.clintware.com/?release=${GITHUB_SHA}" -o /tmp/brocomo.html || true)
             if grep -Fqi 'x-robots-tag: noindex, nofollow, noarchive, nosnippet, noimageindex' <<< "$headers" \
               && grep -Fq 'Brocomo application' /tmp/brocomo.html \
               && grep -Fq 'Protected Application | Clinton Kosh' /tmp/brocomo.html; then
               echo 'Brocomo hostname is live and serving the protected application.'
-              exit 0
+              ready=1
+              break
             fi
+            echo "Waiting for Brocomo propagation ($i/24)"
             sleep 5
           done
-          echo 'Brocomo hostname is not yet serving the protected application.' >&2
-          exit 1
+          test "$ready" = "1"
