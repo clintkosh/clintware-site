@@ -20,9 +20,18 @@ LOGICAL_BOUNDARY_RE = re.compile(
     r"\s*;\s*|(?<=[.!?])\s+(?=(?:Then|Next|After(?:ward)?|Once|Finally|Before|Proceed|Continue)\b)",
     re.I,
 )
+VISUAL_MULTI_RE = re.compile(
+    r"\b(?:pages?|images?|illustrations?|scenes?|frames?|shots?|storyboards?|coloring\s+book|gallery|wallpapers?)\b",
+    re.I,
+)
+VISUAL_VARIATION_RULE = (
+    "For repeated visual/story outputs, preserve recognizable identity/style but deliberately vary pose, body angle, camera distance, "
+    "framing, expression, interaction, environment, and composition; do not clone the same portrait stance across scenes."
+)
 
 AUTO_CONTINUE_RULES = (
     "Work through the steps in order without asking for repeated OK/continue confirmations. "
+    "Before each next step, re-compact the unresolved requirements plus only the prior outputs needed by that step; do not resend irrelevant completed context. "
     "After each step, verify its requested outcome and repair only failed or defective parts before moving on. "
     "If a provider, tool, image, file, or batch limit is reached, resume with the next legal-sized batch and keep prior accepted work. "
     "Do not restart completed work unless QA finds a defect. Preserve exact names, counts, files, quoted text, constraints, and definition-of-done requirements. "
@@ -202,6 +211,9 @@ def _master_prompt(compacted: str, steps: list[str], auto_continue: bool) -> str
     protocol = AUTO_CONTINUE_RULES if auto_continue else (
         "Complete the steps in order. Verify each step before moving to the next."
     )
+    if VISUAL_MULTI_RE.search(compacted):
+        protocol = f"{protocol} {VISUAL_VARIATION_RULE}"
+
     rendered = [
         "QUILLGEIST AUTOCOMPACT EXECUTION PLAN",
         f"Protocol: {protocol}",
@@ -210,7 +222,9 @@ def _master_prompt(compacted: str, steps: list[str], auto_continue: bool) -> str
     total = len(steps)
     for idx, step in enumerate(steps, 1):
         rendered.append(f"\n[STEP {idx}/{total}]\n{step}")
-    rendered.append("\nBegin with STEP 1 now and continue automatically under the protocol above.")
+    rendered.append(
+        "\nBegin with STEP 1 now. After QA, re-compact only the unresolved requirements and required prior outputs for STEP 2, then continue automatically; repeat until final end-to-end QA and delivery."
+    )
     return "\n".join(rendered)
 
 
