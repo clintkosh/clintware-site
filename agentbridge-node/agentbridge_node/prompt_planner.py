@@ -16,6 +16,10 @@ ACTION_RE = re.compile(
 SEQUENCE_RE = re.compile(r"\b(?:then|after(?:ward)?|once|next|finally|before|only after|proceed|continue)\b", re.I)
 NUMBERED_RE = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s+", re.M)
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])")
+LOGICAL_BOUNDARY_RE = re.compile(
+    r"\s*;\s*|(?<=[.!?])\s+(?=(?:Then|Next|After(?:ward)?|Once|Finally|Before|Proceed|Continue)\b)",
+    re.I,
+)
 
 AUTO_CONTINUE_RULES = (
     "Work through the steps in order without asking for repeated OK/continue confirmations. "
@@ -77,7 +81,6 @@ def _normalize_preserving_blocks(text: str) -> str:
             blank = True
             continue
         blank = False
-        # Exact repeated prose/list lines are low-risk to dedupe; code fences are never deduped.
         key = stripped.casefold()
         if key in seen_lines and len(stripped) >= 24:
             continue
@@ -150,15 +153,32 @@ def _split_large_unit(unit: str, target: int) -> list[str]:
     return chunks
 
 
-def _chunk(text: str, target: int, max_steps: int) -> list[str]:
-    # Paragraph/list boundaries are preferred because they usually preserve task dependencies better than arbitrary token cuts.
-    units = [u.strip() for u in re.split(r"\n{2,}|(?=^\s*(?:\d+[.)]|[-*•])\s+)", text, flags=re.M) if u.strip()]
-    if not units:
-        units = [text.strip()]
+def _coalesce_to_limit(steps: list[str], max_steps: int) -> list[str]:
+    if len(steps) <= max_steps:
+        return steps
+    group_size = (len(steps) + max_steps - 1) // max_steps
+    return ["\n".join(steps[i:i + group_size]) for i in range(0, len(steps), group_size)]
+
+
+def _chunk(text: str, target: int, max_steps: int, *, prefer_logical_boundaries: bool = False) -> list[str]:
+    base_units = [u.strip() for u in re.split(r"\n{2,}|(?=^\s*(?:\d+[.)]|[-*•])\s+)", text, flags=re.M) if u.strip()]
+    if not base_units:
+        base_units = [text.strip()]
+
+    units: list[str] = []
+    for unit in base_units:
+        if prefer_logical_boundaries:
+            logical = [x.strip() for x in LOGICAL_BOUNDARY_RE.split(unit) if x.strip()]
+            units.extend(logical or [unit])
+        else:
+            units.append(unit)
 
     expanded: list[str] = []
     for unit in units:
         expanded.extend(_split_large_unit(unit, target))
+
+    if prefer_logical_boundaries and len(expanded) > 1:
+        return _coalesce_to_limit(expanded, max_steps)
 
     steps: list[str] = []
     current = ""
@@ -172,12 +192,7 @@ def _chunk(text: str, target: int, max_steps: int) -> list[str]:
             current = unit
     if current:
         steps.append(current)
-
-    if len(steps) > max_steps:
-        # Keep every byte of unique content, but coalesce adjacent chunks to respect the configured step-count ceiling.
-        group_size = (len(steps) + max_steps - 1) // max_steps
-        steps = ["\n".join(steps[i:i + group_size]) for i in range(0, len(steps), group_size)]
-    return steps
+    return _coalesce_to_limit(steps, max_steps)
 
 
 def _master_prompt(compacted: str, steps: list[str], auto_continue: bool) -> str:
@@ -220,7 +235,8 @@ def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -
         triggered.append("forced")
 
     should_plan = enabled and bool(compacted) and bool(triggered)
-    steps_text = _chunk(compacted, target, max_steps) if should_plan else [compacted]
+    prefer_logical = "complexity" in triggered or "forced" in triggered
+    steps_text = _chunk(compacted, target, max_steps, prefer_logical_boundaries=prefer_logical) if should_plan else [compacted]
     steps = [PromptStep(index=i, prompt=value) for i, value in enumerate(steps_text, 1)]
     master = _master_prompt(compacted, steps_text, auto_continue) if should_plan else compacted
 
