@@ -15,6 +15,7 @@ import webbrowser
 from . import __version__
 from .cloud import pair as cloud_pair
 from .config import Config, home_dir
+from .prompt_planner import plan_prompt
 
 
 APP_NAME = "Quillgeist"
@@ -58,8 +59,9 @@ class ActivityLedger:
 
 
 def compile_intent(text: str, cfg: Config) -> dict:
-    clean = " ".join(text.split())
-    lowered = clean.lower()
+    source = str(text or "").strip()
+    normalized = " ".join(source.split())
+    lowered = normalized.lower()
     local_only = bool(cfg.data.get("desktop", {}).get("local_only", False))
     privacy = "local-only" if local_only else "local-first"
     action = "general"
@@ -72,16 +74,31 @@ def compile_intent(text: str, cfg: Config) -> dict:
         output = "Return valid JSON matching the user's requested shape."
     elif "table" in lowered:
         output = "Return a compact table with the requested fields."
+
+    plan = plan_prompt(source, cfg.data.get("prompt_planner", {}))
     return {
         "product": "Quillgeist",
         "version": __version__,
-        "intent": clean,
+        "intent": plan.master_prompt,
         "action": action,
         "routing": privacy,
+        "execution_mode": plan.mode,
+        "prompt_plan": {
+            "step_count": len(plan.steps),
+            "triggered_by": plan.triggered_by,
+            "complexity_score": plan.complexity_score,
+            "raw_chars": plan.raw_chars,
+            "planned_chars": len(plan.master_prompt),
+            "raw_tokens_est": plan.raw_tokens_est,
+            "planned_tokens_est": plan.compacted_tokens_est,
+        },
         "constraints": {
             "preserve_user_intent": True,
             "minimize_unnecessary_context": True,
             "local_policy_authoritative": True,
+            "auto_continue_non_sensitive_steps": plan.mode == "auto_continue",
+            "qa_each_step_before_continuing": plan.mode == "auto_continue",
+            "preserve_accepted_work_across_batches": plan.mode == "auto_continue",
         },
         "definition_of_done": output,
     }
@@ -511,10 +528,20 @@ class QuillgeistDesktop:
         payload = json.dumps(compiled, indent=2)
         self.root.clipboard_clear()
         self.root.clipboard_append(payload)
+        plan = compiled.get("prompt_plan", {})
+        plan_note = ""
+        if compiled.get("execution_mode") == "auto_continue":
+            plan_note = (
+                f"\nAuto-compact: ON · {plan.get('step_count', 1)} dependency-aware steps "
+                f"· trigger: {', '.join(plan.get('triggered_by') or ['complexity'])}\n"
+                "The copied master prompt tells the connected AI to QA each step and continue automatically across ordinary batch/tool limits.\n"
+            )
         self._write_output(
             "Command prepared.\n\n"
             f"Action: {compiled.get('action', 'general')}\n"
-            f"Routing: {compiled.get('routing', 'local-first')}\n\n"
+            f"Routing: {compiled.get('routing', 'local-first')}\n"
+            f"Execution: {compiled.get('execution_mode', 'single')}\n"
+            f"{plan_note}\n"
             "The compiled instruction is copied to the clipboard for the connected AI/planner. "
             "Quillgeist will enforce local policy when an execution pack is run."
         )
