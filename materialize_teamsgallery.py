@@ -71,3 +71,39 @@ if tools.is_file():
         text = text.replace('gtag("config","G-DCY144YM9P")', "gtag('config','G-DCY144YM9P')", 1)
         tools.write_text(text, encoding='utf-8')
         print('Normalized analytics syntax on tools page.')
+
+# ASTRO is the public-site design/positioning guardrail.  Inject its final CSS layer
+# after page-local styles so old template primitives cannot silently reassert the
+# generic SaaS look.  Functional/private applications are intentionally excluded.
+ASTRO_LINK = '<link rel="stylesheet" href="/assets/astro.css" data-astro-guardrail>'
+ASTRO_TOP_LEVEL = {
+    'public/index.html',
+    'public/404.html',
+}
+ASTRO_PREFIXES = (
+    'public/work/',
+    'public/cs-systems/',
+    'public/ai-workflows/',
+    'public/startup/',
+    'public/tools/',
+    'public/skills/',
+    'public/gpts/',
+    'public/blog/',
+    'public/contact/',
+    'public/privacy/',
+)
+
+astro_count = 0
+for html_path in Path('public').rglob('*.html'):
+    key = html_path.as_posix()
+    if key not in ASTRO_TOP_LEVEL and not key.startswith(ASTRO_PREFIXES):
+        continue
+    text = html_path.read_text(encoding='utf-8', errors='ignore')
+    if 'data-astro-guardrail' in text:
+        continue
+    if '</head>' not in text:
+        continue
+    text = text.replace('</head>', ASTRO_LINK + '</head>', 1)
+    html_path.write_text(text, encoding='utf-8')
+    astro_count += 1
+print(f'Applied ASTRO visual guardrail to {astro_count} public page(s).')
