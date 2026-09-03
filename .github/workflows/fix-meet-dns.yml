@@ -14,78 +14,82 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - name: Repair authoritative DNS record
+      - name: Install DNS tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsutils >/dev/null
+
+      - name: Diagnose authoritative delegation before repair
+        run: |
+          set -euo pipefail
+          echo '=== Parent .com delegation ==='
+          dig @a.gtld-servers.net clintware.com NS +noall +answer || true
+          echo '=== Cloudflare recursive NS ==='
+          dig @1.1.1.1 clintware.com NS +noall +answer || true
+          echo '=== Google recursive NS ==='
+          dig @8.8.8.8 clintware.com NS +noall +answer || true
+          echo '=== meet before repair via Cloudflare ==='
+          dig @1.1.1.1 meet.clintware.com A +noall +answer +authority || true
+          dig @1.1.1.1 meet.clintware.com CNAME +noall +answer +authority || true
+          echo '=== meet before repair via Google ==='
+          dig @8.8.8.8 meet.clintware.com A +noall +answer +authority || true
+          dig @8.8.8.8 meet.clintware.com CNAME +noall +answer +authority || true
+
+      - name: Recreate exact Worker custom-domain binding
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           api='https://api.cloudflare.com/client/v4'
           auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json')
 
           zones=$(curl --fail-with-body -sS "${api}/zones?name=clintware.com&status=active" "${auth[@]}")
-          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; print(r[0]["id"])' <<< "$zones")
-          echo 'Active Cloudflare DNS zone found for clintware.com.'
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; print("Cloudflare active zone:",r[0]["name"],"status="+r[0]["status"],"nameservers="+",".join(r[0].get("name_servers",[])))' <<< "$zones"
 
-          # Use an existing working Clintware Worker custom-domain record as the canonical DNS pattern.
-          template=$(curl --fail-with-body -sS "${api}/zones/${zone_id}/dns_records?name=brocomoapp.clintware.com" "${auth[@]}")
-          pattern=$(python3 - <<'PY' <<< "$template"
-          import json,sys
-          d=json.load(sys.stdin); r=d.get('result',[])
-          assert d.get('success') is True and r, d
-          x=r[0]
-          print(json.dumps({'type':x['type'],'content':x['content'],'proxied':x.get('proxied',True),'ttl':1}))
-          PY
-          )
-          echo "Canonical Worker DNS pattern: $(python3 -c 'import json,sys; x=json.load(sys.stdin); print(x["type"],"proxied="+str(x["proxied"]).lower())' <<< "$pattern")"
+          current=$(curl --fail-with-body -sS \
+            "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(" ".join(str(x["id"]) for x in d.get("result",[]) if x.get("hostname")=="meet.clintware.com"))' <<< "$current")
+          for id in $ids; do
+            echo "Deleting stale meet custom-domain object $id"
+            curl --fail-with-body -sS -X DELETE \
+              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${id}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" >/tmp/delete.json
+            python3 -c 'import json; d=json.load(open("/tmp/delete.json")); assert d.get("success") is True,d'
+          done
 
-          current=$(curl --fail-with-body -sS "${api}/zones/${zone_id}/dns_records?name=meet.clintware.com" "${auth[@]}")
-          count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
-
-          payload=$(python3 - <<'PY' "$pattern"
-          import json,sys
-          p=json.loads(sys.argv[1]); p['name']='meet.clintware.com'; print(json.dumps(p))
-          PY
-          )
-
-          if [ "$count" = "0" ]; then
-            echo 'meet.clintware.com DNS record is missing. Creating it now.'
-            out=$(curl --fail-with-body -sS -X POST "${api}/zones/${zone_id}/dns_records" "${auth[@]}" --data "$payload")
-          else
-            record_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"][0]["id"])' <<< "$current")
-            echo 'meet.clintware.com DNS record exists. Replacing it with the canonical Worker pattern.'
-            out=$(curl --fail-with-body -sS -X PUT "${api}/zones/${zone_id}/dns_records/${record_id}" "${auth[@]}" --data "$payload")
-          fi
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d["result"]; print("DNS write succeeded:",r["name"],r["type"],"proxied="+str(r.get("proxied",False)).lower())' <<< "$out"
-
-      - name: Reassert Worker custom-domain binding
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
+          echo 'Creating fresh meet.clintware.com -> clintware-meet custom domain.'
           curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             --data '{"hostname":"meet.clintware.com","service":"clintware-meet"}' >/tmp/bind.json
-          python3 -c 'import json; d=json.load(open("/tmp/bind.json")); assert d.get("success") is True,d; print("Worker binding reasserted.")'
+          python3 -c 'import json; d=json.load(open("/tmp/bind.json")); assert d.get("success") is True,d; print("Fresh Worker binding created.")'
 
-      - name: Verify public DNS and HTTPS redirect
+      - name: Verify authoritative DNS and public HTTPS
         run: |
           set -euo pipefail
-          for i in $(seq 1 30); do
-            cf=$(dig +short @1.1.1.1 meet.clintware.com A; dig +short @1.1.1.1 meet.clintware.com AAAA)
-            gg=$(dig +short @8.8.8.8 meet.clintware.com A; dig +short @8.8.8.8 meet.clintware.com AAAA)
+          parent=$(dig @a.gtld-servers.net clintware.com NS +short | sort)
+          echo 'Parent delegation after repair:'
+          echo "$parent"
+          for i in $(seq 1 36); do
+            cf=$(dig +short @1.1.1.1 meet.clintware.com A | head -n1)
+            gg=$(dig +short @8.8.8.8 meet.clintware.com A | head -n1)
+            echo "attempt=$i cloudflare=${cf:-NONE} google=${gg:-NONE}"
             if [ -n "$cf" ] && [ -n "$gg" ]; then
-              echo 'Cloudflare and Google public DNS both resolve meet.clintware.com.'
               headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 https://meet.clintware.com/ -o /dev/null || true)
               if grep -Eq '^HTTP/[^ ]+ 302' <<< "$headers" && grep -Fqi 'location: https://koalendar.com/e/meet-with-clinton' <<< "$headers"; then
-                echo 'HTTPS redirect verified publicly.'
+                echo 'PUBLIC_OK: DNS resolves on 1.1.1.1 and 8.8.8.8; HTTPS 302 points to Koalendar.'
                 exit 0
               fi
             fi
-            echo "Waiting for public DNS/HTTPS ($i/30)"
             sleep 5
           done
-          echo 'Public verification did not converge.' >&2
+          echo '=== Final diagnostic ==='
+          dig @a.gtld-servers.net clintware.com NS +noall +answer || true
+          dig @1.1.1.1 clintware.com NS +noall +answer || true
+          dig @8.8.8.8 clintware.com NS +noall +answer || true
+          dig @1.1.1.1 meet.clintware.com A +noall +answer +authority || true
+          dig @8.8.8.8 meet.clintware.com A +noall +answer +authority || true
           exit 1
