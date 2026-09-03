@@ -30,25 +30,19 @@ for index, (path, expected_sha256) in enumerate(zip(part_paths, EXPECTED_PART_SH
         raise SystemExit(f'Invalid Teams gallery image payload part {index}: {exc}') from exc
     actual_part_sha256 = hashlib.sha256(chunk).hexdigest()
     if actual_part_sha256 != expected_sha256:
-        raise SystemExit(
-            f'Teams gallery payload part {index} checksum mismatch: {actual_part_sha256}'
-        )
+        raise SystemExit(f'Teams gallery payload part {index} checksum mismatch: {actual_part_sha256}')
     chunks.append(chunk)
 
 payload = b''.join(chunks)
 if not payload.startswith(b'\xff\xd8\xff') or not payload.endswith(b'\xff\xd9'):
     raise SystemExit('Decoded Teams gallery asset is not a complete JPEG')
-
 actual_sha256 = hashlib.sha256(payload).hexdigest()
 if actual_sha256 != EXPECTED_SHA256:
     raise SystemExit(f'Teams gallery JPEG checksum mismatch: {actual_sha256}')
-
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT.write_bytes(payload)
 print(f'Materialized {OUTPUT} ({len(payload)} bytes, sha256={actual_sha256}).')
 
-# Keep legacy static pages aligned with the analytics contract used by build_site.py.
-# This runs against the deployment workspace only and does not alter encrypted app payloads.
 ANALYTICS_ID = 'G-DCY144YM9P'
 ANALYTICS_TAG = (
     f'<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>'
@@ -74,25 +68,23 @@ if tools.is_file():
 
 # ASTRO is the public-site design/positioning guardrail. Inject its final CSS and
 # navigation layers after page-local assets so legacy template primitives cannot
-# silently reassert the generic SaaS look or outdated site routing. Functional/private
-# applications outside the public marketing/documentation paths are intentionally excluded.
+# silently reassert the generic SaaS look or outdated site routing.
 ASTRO_LINK = '<link rel="stylesheet" href="/assets/astro.css" data-astro-guardrail>'
 ASTRO_SCRIPT = '<script src="/assets/astro-nav.js" defer data-astro-nav></script>'
-ASTRO_TOP_LEVEL = {
-    'public/index.html',
-    'public/404.html',
-}
+ASTRO_TOP_LEVEL = {'public/index.html', 'public/404.html'}
 ASTRO_PREFIXES = (
-    'public/work/',
-    'public/cs-systems/',
-    'public/ai-workflows/',
-    'public/startup/',
-    'public/tools/',
-    'public/skills/',
-    'public/gpts/',
-    'public/blog/',
-    'public/contact/',
-    'public/privacy/',
+    'public/work/', 'public/cs-systems/', 'public/ai-workflows/', 'public/startup/',
+    'public/tools/', 'public/skills/', 'public/gpts/', 'public/blog/',
+    'public/contact/', 'public/privacy/',
+)
+BRAND_REPLACEMENTS = (
+    ('Go Furthest.™', 'GO FURTHEST.™'),
+    ('Clintware. Building Quillgeist.', 'Clintware™ · GO FURTHEST.™'),
+    ('Clintware. Practical technology, built to work.', 'Clintware™ · GO FURTHEST.™'),
+    ('Clintware. AI software built to work.', 'Clintware™ · GO FURTHEST.™'),
+    ('Clintware. GO FURTHEST.™', 'Clintware™ · GO FURTHEST.™'),
+    ('Clintware™. GO FURTHEST.™', 'Clintware™ · GO FURTHEST.™'),
+    ('CLINT<span class="brand-accent">WARE</span></a>', 'CLINT<span class="brand-accent">WARE</span>™</a>'),
 )
 
 astro_count = 0
@@ -102,6 +94,10 @@ for html_path in Path('public').rglob('*.html'):
         continue
     text = html_path.read_text(encoding='utf-8', errors='ignore')
     changed = False
+    for old, new in BRAND_REPLACEMENTS:
+        if old in text:
+            text = text.replace(old, new)
+            changed = True
     if 'data-astro-guardrail' not in text and '</head>' in text:
         text = text.replace('</head>', ASTRO_LINK + '</head>', 1)
         changed = True
@@ -111,4 +107,4 @@ for html_path in Path('public').rglob('*.html'):
     if changed:
         html_path.write_text(text, encoding='utf-8')
         astro_count += 1
-print(f'Applied ASTRO visual/navigation guardrails to {astro_count} public page(s).')
+print(f'Applied ASTRO brand/visual/navigation guardrails to {astro_count} public page(s).')
