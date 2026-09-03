@@ -68,8 +68,8 @@ const PAGE = `<!doctype html>
       <div class="proof-intro">Customer Success · Technical Ops · AI Workflows</div>
       <div class="proof-item"><strong>+20%</strong><span>Dedrone · renewals</span></div>
       <div class="proof-item"><strong>+25%</strong><span>Dedrone · engagement</span></div>
-      <div class="proof-item"><strong>~40→99%</strong><span>Check Point / Avanan · portfolio visibility</span></div>
-      <div class="proof-item"><strong>~$3M</strong><span>Check Point / Avanan · managed book</span></div>
+      <div class="proof-item"><strong>~40→99%</strong><span>CP / Avanan · portfolio visibility</span></div>
+      <div class="proof-item"><strong>~$3M</strong><span>CP / Avanan · managed book</span></div>
     </section>
 
     <section class="frame-wrap" aria-label="Booking calendar">
