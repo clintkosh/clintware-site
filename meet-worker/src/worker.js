@@ -11,34 +11,19 @@ const PAGE = `<!doctype html>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; background: #0b0d10; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #fff; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { min-height: 100dvh; overflow: hidden; }
-    .shell { width: 100%; height: 100dvh; display: grid; grid-template-rows: 54px minmax(0, 1fr); background: #0b0d10; }
-    .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.10); background: rgba(11,13,16,.97); color: #f5f7f9; }
-    .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-    .name { font-size: 14px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
-    .purpose { font-size: 13px; color: #aeb6c0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .slogan { font-size: 11px; font-weight: 650; letter-spacing: .09em; color: #8f99a5; white-space: nowrap; }
-    .frame-wrap { position: relative; min-height: 0; background: #fff; }
-    iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+    .shell { position: fixed; inset: 0; width: 100%; height: 100dvh; margin: 0; padding: 0; background: #fff; }
+    .frame-wrap { position: absolute; inset: 0; margin: 0; padding: 0; background: #fff; }
+    iframe { display: block; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: #fff; }
     .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: #0b0d10; color: #f5f7f9; text-align: center; z-index: -1; }
     .fallback a { color: #fff; }
-    @media (max-width: 640px) {
-      .shell { grid-template-rows: 48px minmax(0, 1fr); }
-      .bar { padding: 0 12px; }
-      .purpose, .slogan { display: none; }
-    }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
   <main class="shell">
-    <header class="bar" aria-label="Clintware scheduling">
-      <div class="brand">
-        <span class="name">CLINTWARE™</span>
-        <span class="purpose">Schedule with Clinton</span>
-      </div>
-      <span class="slogan">GO FURTHEST.™</span>
-    </header>
+    <h1 class="sr-only">CLINTWARE™ · GO FURTHEST.™ · Schedule with Clinton</h1>
     <section class="frame-wrap" aria-label="Booking calendar">
       <div class="fallback">If the calendar does not appear, <a href="https://koalendar.com/e/meet-with-clinton" target="_blank" rel="noopener noreferrer">open the booking page</a>.</div>
       <iframe
