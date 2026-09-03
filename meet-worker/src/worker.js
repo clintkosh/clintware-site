@@ -1,4 +1,4 @@
-// Proof strip: metric → result → company.
+// Proof strip grouped by company: Dedrone first, then Avanan / Check Point.
 const BOOKING_URL = "https://koalendar.com/e/meet-with-clinton?embed=true";
 
 const PAGE = `<!doctype html>
@@ -34,9 +34,11 @@ const PAGE = `<!doctype html>
     .proof { display: flex; align-items: center; gap: 0; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; border-bottom: 1px solid rgba(145,164,184,.13); background: var(--panel); }
     .proof::-webkit-scrollbar { display: none; }
     .proof-intro { flex: 0 0 auto; padding: 0 18px; color: var(--cyan); font: 700 10px/48px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .09em; text-transform: uppercase; white-space: nowrap; }
-    .proof-item { flex: 0 0 auto; height: 24px; display: flex; align-items: baseline; gap: 7px; padding: 0 16px; border-left: 1px solid var(--border); white-space: nowrap; }
-    .proof-item strong { color: var(--text); font: 800 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-    .proof-item span { color: var(--muted); font: 700 9px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .05em; text-transform: uppercase; }
+    .proof-company { flex: 0 0 auto; height: 30px; display: flex; align-items: center; gap: 13px; padding: 0 18px; border-left: 1px solid var(--border); white-space: nowrap; }
+    .company-name { color: var(--cyan); font: 800 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .company-metric { display: inline-flex; align-items: baseline; gap: 5px; color: var(--muted); font: 700 9px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .04em; text-transform: uppercase; }
+    .company-metric + .company-metric { padding-left: 13px; border-left: 1px solid var(--border); }
+    .company-metric strong { color: var(--text); font: 800 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
     .frame-wrap { position: relative; min-height: 0; overflow: hidden; background: #fff; }
     iframe { position: absolute; left: 0; top: calc(-1 * var(--koalendar-crop)); display: block; width: 100%; height: calc(100% + var(--koalendar-crop)); margin: 0; padding: 0; border: 0; background: #fff; }
     .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text); text-align: center; z-index: -1; }
@@ -49,9 +51,11 @@ const PAGE = `<!doctype html>
       .purpose { display: none; }
       .slogan { font-size: 9px; }
       .proof-intro { padding: 0 12px; font-size: 9px; line-height: 42px; }
-      .proof-item { padding: 0 12px; }
-      .proof-item strong { font-size: 11px; }
-      .proof-item span { font-size: 8px; }
+      .proof-company { padding: 0 12px; gap: 10px; }
+      .company-name { font-size: 9px; }
+      .company-metric { font-size: 8px; }
+      .company-metric strong { font-size: 11px; }
+      .company-metric + .company-metric { padding-left: 10px; }
     }
   </style>
 </head>
@@ -67,10 +71,16 @@ const PAGE = `<!doctype html>
 
     <section class="proof" aria-label="Why Clinton">
       <div class="proof-intro">Hiring · Consulting · Networking</div>
-      <div class="proof-item"><strong>+20%</strong><span>renewals · Dedrone</span></div>
-      <div class="proof-item"><strong>+25%</strong><span>engagement · Dedrone</span></div>
-      <div class="proof-item"><strong>~40→99%</strong><span>portfolio visibility · CP / Avanan</span></div>
-      <div class="proof-item"><strong>~$3M</strong><span>managed book · CP / Avanan</span></div>
+      <div class="proof-company">
+        <span class="company-name">Dedrone</span>
+        <span class="company-metric"><strong>+20%</strong> renewals</span>
+        <span class="company-metric"><strong>+25%</strong> engagement</span>
+      </div>
+      <div class="proof-company">
+        <span class="company-name">Avanan / Check Point</span>
+        <span class="company-metric"><strong>~40→99%</strong> portfolio visibility</span>
+        <span class="company-metric"><strong>~$3M</strong> managed book</span>
+      </div>
     </section>
 
     <section class="frame-wrap" aria-label="Booking calendar">
