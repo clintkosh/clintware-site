@@ -59,13 +59,13 @@ const PAGE = `<!doctype html>
     <header class="bar" aria-label="Clintware scheduling">
       <div class="brandline">
         <a class="brand" href="https://www.clintware.com/" target="_blank" rel="noopener noreferrer">CLINT<span class="ware">WARE</span>™</a>
-        <span class="purpose">Schedule with Clinton Kosh</span>
+        <span class="purpose">Schedule a conversation with Clinton</span>
       </div>
       <span class="slogan">GO FURTHEST.™</span>
     </header>
 
     <section class="proof" aria-label="Why Clinton">
-      <div class="proof-intro">Customer Success · Technical Ops · AI Workflows</div>
+      <div class="proof-intro">Hiring · Consulting · Networking</div>
       <div class="proof-item"><strong>+20%</strong><span>Dedrone · renewals</span></div>
       <div class="proof-item"><strong>+25%</strong><span>Dedrone · engagement</span></div>
       <div class="proof-item"><strong>~40→99%</strong><span>CP / Avanan · portfolio visibility</span></div>
@@ -73,11 +73,11 @@ const PAGE = `<!doctype html>
     </section>
 
     <section class="frame-wrap" aria-label="Booking calendar">
-      <h1 class="sr-only">Schedule with Clinton Kosh</h1>
+      <h1 class="sr-only">Schedule a conversation with Clinton Kosh</h1>
       <div class="fallback">If the calendar does not appear, <a href="https://koalendar.com/e/meet-with-clinton" target="_blank" rel="noopener noreferrer">open the booking page</a>.</div>
       <iframe
         src="${BOOKING_URL}"
-        title="Schedule with Clinton"
+        title="Schedule a conversation with Clinton"
         loading="eager"
         referrerpolicy="strict-origin-when-cross-origin"
         allow="clipboard-write"
