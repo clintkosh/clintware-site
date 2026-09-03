@@ -66,10 +66,10 @@ const PAGE = `<!doctype html>
 
     <section class="proof" aria-label="Why Clinton">
       <div class="proof-intro">Hiring · Consulting · Networking</div>
-      <div class="proof-item"><strong>+20%</strong><span>Dedrone · renewals</span></div>
-      <div class="proof-item"><strong>+25%</strong><span>Dedrone · engagement</span></div>
-      <div class="proof-item"><strong>~40→99%</strong><span>CP / Avanan · portfolio visibility</span></div>
-      <div class="proof-item"><strong>~$3M</strong><span>CP / Avanan · managed book</span></div>
+      <div class="proof-item"><strong>+20%</strong><span>renewals · Dedrone</span></div>
+      <div class="proof-item"><strong>+25%</strong><span>engagement · Dedrone</span></div>
+      <div class="proof-item"><strong>~40→99%</strong><span>portfolio visibility · CP / Avanan</span></div>
+      <div class="proof-item"><strong>~$3M</strong><span>managed book · CP / Avanan</span></div>
     </section>
 
     <section class="frame-wrap" aria-label="Booking calendar">
