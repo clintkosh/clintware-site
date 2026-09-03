@@ -1,5 +1,26 @@
 # Repository Agent Instructions
 
+## ASTRO is mandatory for Clintware public-page and product work
+
+Before changing any public Clintware website page, product page, homepage, professional profile, startup / YC page, navigation, public product positioning, or public visual/copy system, read and apply `ASTRO_WEBSITE_SKILL.md` first.
+
+This is a repository invariant, not an optional style preference.
+
+Required order:
+
+1. Read `ASTRO_WEBSITE_SKILL.md`.
+2. Read `BRAND_STANDARDS.md` when branding, typography, layout, navigation, slogan, or visual hierarchy is involved.
+3. Inspect the actual current repository/page state before editing.
+4. Preserve approved working functionality and accepted prior work.
+5. Reject generic AI/SaaS template structure and marketing boilerplate.
+6. Write from product truth and evidence, with current capability separated from roadmap.
+7. For Quillgeist, preserve the adaptive-intent-compiler thesis and `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` progression.
+8. For LandThePlane, preserve the candidate-owned evidence / career-system thesis rather than reducing it to generic interview-question generation.
+9. QA the finished page against ASTRO's rejection checklist before deployment.
+10. Never call the page complete until the deployment and public behavior are actually verified.
+
+A Clintware public-page change made without first applying ASTRO is an incomplete task and must be revisited before delivery.
+
 ## Global Auto-Compact Continuation Protocol
 
 These rules apply to every repository agent and every Quillgeist task unless a more specific safety, permission, or user instruction requires a pause.
