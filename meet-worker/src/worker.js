@@ -1,5 +1,5 @@
-// Proof strip grouped by company: Dedrone first, then Avanan / Check Point.
-const BOOKING_URL = "https://koalendar.com/e/meet-with-clinton?embed=true";
+// Clintware Meet uses Koalendar's official inline widget rather than a raw iframe.
+const BOOKING_URL = "https://koalendar.com/e/meet-with-clinton";
 
 const PAGE = `<!doctype html>
 <html lang="en">
@@ -19,12 +19,11 @@ const PAGE = `<!doctype html>
       --muted: #91a4b8;
       --cyan: #65d9ff;
       --green: #6ef2b2;
-      --koalendar-crop: 44px;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { min-height: 100dvh; overflow: hidden; color: var(--text); }
-    .shell { width: 100%; height: 100dvh; display: grid; grid-template-rows: 54px 48px minmax(0, 1fr); background: var(--bg); }
+    html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: var(--bg); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100dvh; color: var(--text); }
+    .shell { width: 100%; min-height: 100dvh; display: grid; grid-template-rows: 54px 48px minmax(calc(100dvh - 102px), auto); background: var(--bg); }
     .bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 18px; border-bottom: 1px solid rgba(145,164,184,.15); background: rgba(7,9,13,.98); }
     .brandline { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
     .brand { color: var(--text); text-decoration: none; font: 800 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .12em; white-space: nowrap; }
@@ -39,14 +38,14 @@ const PAGE = `<!doctype html>
     .company-metric { display: inline-flex; align-items: baseline; gap: 5px; color: var(--muted); font: 700 9px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing: .04em; text-transform: uppercase; }
     .company-metric + .company-metric { padding-left: 13px; border-left: 1px solid var(--border); }
     .company-metric strong { color: var(--text); font: 800 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-    .frame-wrap { position: relative; min-height: 0; overflow: hidden; background: #fff; }
-    iframe { position: absolute; left: 0; top: calc(-1 * var(--koalendar-crop)); display: block; width: 100%; height: calc(100% + var(--koalendar-crop)); margin: 0; padding: 0; border: 0; background: #fff; }
-    .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text); text-align: center; z-index: -1; }
+    .booking-shell { min-height: calc(100dvh - 102px); width: 100%; overflow: auto; background: var(--bg); }
+    #booking-page { width: 100%; min-height: calc(100dvh - 102px); margin: 0; padding: 0; background: var(--bg); }
+    #booking-page iframe { display: block; width: 100% !important; min-height: calc(100dvh - 102px) !important; margin: 0 !important; border: 0 !important; background: transparent !important; }
+    .fallback { padding: 24px; color: var(--text); text-align: center; }
     .fallback a { color: var(--cyan); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     @media (max-width: 720px) {
-      :root { --koalendar-crop: 32px; }
-      .shell { grid-template-rows: 48px 42px minmax(0, 1fr); }
+      .shell { grid-template-rows: 48px 42px minmax(calc(100dvh - 90px), auto); }
       .bar { padding: 0 12px; }
       .purpose { display: none; }
       .slogan { font-size: 9px; }
@@ -56,8 +55,11 @@ const PAGE = `<!doctype html>
       .company-metric { font-size: 8px; }
       .company-metric strong { font-size: 11px; }
       .company-metric + .company-metric { padding-left: 10px; }
+      .booking-shell, #booking-page, #booking-page iframe { min-height: calc(100dvh - 90px) !important; }
     }
   </style>
+  <script>window.Koalendar=window.Koalendar||function(){(Koalendar.props=Koalendar.props||[]).push(arguments)};</script>
+  <script async src="https://koalendar.com/assets/widget.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -83,18 +85,19 @@ const PAGE = `<!doctype html>
       </div>
     </section>
 
-    <section class="frame-wrap" aria-label="Booking calendar">
+    <section class="booking-shell" aria-label="Booking calendar">
       <h1 class="sr-only">Schedule a conversation with Clinton Kosh</h1>
-      <div class="fallback">If the calendar does not appear, <a href="https://koalendar.com/e/meet-with-clinton" target="_blank" rel="noopener noreferrer">open the booking page</a>.</div>
-      <iframe
-        src="${BOOKING_URL}"
-        title="Schedule a conversation with Clinton"
-        loading="eager"
-        referrerpolicy="strict-origin-when-cross-origin"
-        allow="clipboard-write"
-      ></iframe>
+      <div id="booking-page"></div>
+      <noscript><div class="fallback">JavaScript is required for the scheduler. <a href="${BOOKING_URL}" target="_blank" rel="noopener noreferrer">Open the booking page</a>.</div></noscript>
     </section>
   </main>
+  <script>
+    Koalendar('init');
+    Koalendar('inline', {
+      url: '${BOOKING_URL}',
+      selector: '#booking-page'
+    });
+  </script>
 </body>
 </html>`;
 
@@ -103,7 +106,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
-      return Response.json({ ok: true, app: "clintware-meet", mode: "embedded-koalendar", branded: true, crop: 44 }, {
+      return Response.json({ ok: true, app: "clintware-meet", mode: "koalendar-inline", branded: true }, {
         headers: { "Cache-Control": "no-store" },
       });
     }
@@ -113,7 +116,7 @@ export default {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "public, max-age=60, s-maxage=300",
-        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-src https://koalendar.com; base-uri 'none'; form-action 'none'; frame-ancestors 'self';",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://koalendar.com; style-src 'self' 'unsafe-inline' https://koalendar.com; frame-src https://koalendar.com; connect-src https://koalendar.com; img-src 'self' https: data: blob:; font-src https: data:; form-action https://koalendar.com; base-uri 'none'; frame-ancestors 'self';",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "X-Content-Type-Options": "nosniff",
       },
