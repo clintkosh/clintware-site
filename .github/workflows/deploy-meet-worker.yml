@@ -57,7 +57,7 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="meet.clintware.com" and x.get("service")=="clintware-meet",x; print("Meet domain verified:",x["hostname"],"->",x["service"])' <<< "$verify"
 
-      - name: Verify public embedded scheduler
+      - name: Verify public inline scheduler
         run: |
           set -euo pipefail
           ready=0
@@ -69,15 +69,17 @@ jobs:
             if [ "$code" = "200" ] \
               && grep -Fq 'CLINTWARE™' "$body" \
               && grep -Fq 'GO FURTHEST.™' "$body" \
-              && grep -Fq 'https://koalendar.com/e/meet-with-clinton?embed=true' "$body" \
+              && grep -Fq 'https://koalendar.com/assets/widget.js' "$body" \
+              && grep -Fq "Koalendar('inline'" "$body" \
+              && grep -Fq 'https://koalendar.com/e/meet-with-clinton' "$body" \
               && ! grep -Eqi '^location:' "$headers"; then
-              echo 'meet.clintware.com serves the embedded Koalendar scheduler without redirecting.'
+              echo 'meet.clintware.com serves the Koalendar inline widget without redirecting.'
               ready=1
               rm -f "$headers" "$body"
               break
             fi
             rm -f "$headers" "$body"
-            echo "Waiting for embedded scheduler deployment ($i/24)"
+            echo "Waiting for inline scheduler deployment ($i/24)"
             sleep 5
           done
           test "$ready" = "1"
@@ -85,4 +87,4 @@ jobs:
       - name: Verify health endpoint
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS https://meet.clintware.com/health | grep -Fq '"mode":"embedded-koalendar"'
+          curl --fail-with-body -sS https://meet.clintware.com/health | grep -Fq '"mode":"koalendar-inline"'
