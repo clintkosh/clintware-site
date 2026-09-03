@@ -1,3 +1,4 @@
+// Proof strip: metric → result → company.
 const BOOKING_URL = "https://koalendar.com/e/meet-with-clinton?embed=true";
 
 const PAGE = `<!doctype html>
