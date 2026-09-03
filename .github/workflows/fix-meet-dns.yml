@@ -1,4 +1,4 @@
-name: Repair Meet DNS
+name: Verify Meet DNS
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  repair:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Install DNS tools
@@ -19,77 +19,41 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq dnsutils >/dev/null
 
-      - name: Diagnose authoritative delegation before repair
+      - name: Verify authoritative delegation and public record
         run: |
           set -euo pipefail
-          echo '=== Parent .com delegation ==='
+          echo '=== Parent delegation ==='
           dig @a.gtld-servers.net clintware.com NS +noall +answer || true
-          echo '=== Cloudflare recursive NS ==='
-          dig @1.1.1.1 clintware.com NS +noall +answer || true
-          echo '=== Google recursive NS ==='
-          dig @8.8.8.8 clintware.com NS +noall +answer || true
-          echo '=== meet before repair via Cloudflare ==='
-          dig @1.1.1.1 meet.clintware.com A +noall +answer +authority || true
-          dig @1.1.1.1 meet.clintware.com CNAME +noall +answer +authority || true
-          echo '=== meet before repair via Google ==='
-          dig @8.8.8.8 meet.clintware.com A +noall +answer +authority || true
-          dig @8.8.8.8 meet.clintware.com CNAME +noall +answer +authority || true
+          echo '=== Cloudflare recursive ==='
+          dig @1.1.1.1 clintware.com NS +noall +answer
+          dig @1.1.1.1 meet.clintware.com A +noall +answer
+          echo '=== Google recursive ==='
+          dig @8.8.8.8 clintware.com NS +noall +answer
+          dig @8.8.8.8 meet.clintware.com A +noall +answer
+          test -n "$(dig +short @1.1.1.1 meet.clintware.com A | head -n1)"
+          test -n "$(dig +short @8.8.8.8 meet.clintware.com A | head -n1)"
 
-      - name: Recreate exact Worker custom-domain binding
+      - name: Verify Worker binding
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          api='https://api.cloudflare.com/client/v4'
-          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json')
-
-          zones=$(curl --fail-with-body -sS "${api}/zones?name=clintware.com&status=active" "${auth[@]}")
-          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; print("Cloudflare active zone:",r[0]["name"],"status="+r[0]["status"],"nameservers="+",".join(r[0].get("name_servers",[])))' <<< "$zones"
-
-          current=$(curl --fail-with-body -sS \
-            "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com" \
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(" ".join(str(x["id"]) for x in d.get("result",[]) if x.get("hostname")=="meet.clintware.com"))' <<< "$current")
-          for id in $ids; do
-            echo "Deleting stale meet custom-domain object $id"
-            curl --fail-with-body -sS -X DELETE \
-              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains/${id}" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" >/tmp/delete.json
-            python3 -c 'import json; d=json.load(open("/tmp/delete.json")); assert d.get("success") is True,d'
-          done
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="meet.clintware.com" and x.get("service")=="clintware-meet",x; print("Binding:",x["hostname"],"->",x["service"])' <<< "$response"
 
-          echo 'Creating fresh meet.clintware.com -> clintware-meet custom domain.'
-          curl --fail-with-body -sS -X PUT \
-            "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"meet.clintware.com","service":"clintware-meet"}' >/tmp/bind.json
-          python3 -c 'import json; d=json.load(open("/tmp/bind.json")); assert d.get("success") is True,d; print("Fresh Worker binding created.")'
-
-      - name: Verify authoritative DNS and public HTTPS
+      - name: Verify HTTPS redirect
         run: |
           set -euo pipefail
-          parent=$(dig @a.gtld-servers.net clintware.com NS +short | sort)
-          echo 'Parent delegation after repair:'
-          echo "$parent"
-          for i in $(seq 1 36); do
-            cf=$(dig +short @1.1.1.1 meet.clintware.com A | head -n1)
-            gg=$(dig +short @8.8.8.8 meet.clintware.com A | head -n1)
-            echo "attempt=$i cloudflare=${cf:-NONE} google=${gg:-NONE}"
-            if [ -n "$cf" ] && [ -n "$gg" ]; then
-              headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 https://meet.clintware.com/ -o /dev/null || true)
-              if grep -Eq '^HTTP/[^ ]+ 302' <<< "$headers" && grep -Fqi 'location: https://koalendar.com/e/meet-with-clinton' <<< "$headers"; then
-                echo 'PUBLIC_OK: DNS resolves on 1.1.1.1 and 8.8.8.8; HTTPS 302 points to Koalendar.'
-                exit 0
-              fi
+          for i in $(seq 1 12); do
+            headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 https://meet.clintware.com/ -o /dev/null || true)
+            echo "$headers"
+            if grep -Eq '^HTTP/[^ ]+ 302' <<< "$headers" && grep -Fqi 'location: https://koalendar.com/e/meet-with-clinton' <<< "$headers"; then
+              echo 'PUBLIC_OK: DNS, HTTPS, and Koalendar redirect verified.'
+              exit 0
             fi
             sleep 5
           done
-          echo '=== Final diagnostic ==='
-          dig @a.gtld-servers.net clintware.com NS +noall +answer || true
-          dig @1.1.1.1 clintware.com NS +noall +answer || true
-          dig @8.8.8.8 clintware.com NS +noall +answer || true
-          dig @1.1.1.1 meet.clintware.com A +noall +answer +authority || true
-          dig @8.8.8.8 meet.clintware.com A +noall +answer +authority || true
           exit 1
