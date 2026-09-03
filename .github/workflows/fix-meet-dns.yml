@@ -1,0 +1,91 @@
+name: Repair Meet DNS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-meet-dns.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repair authoritative DNS record
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          api='https://api.cloudflare.com/client/v4'
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json')
+
+          zones=$(curl --fail-with-body -sS "${api}/zones?name=clintware.com&status=active" "${auth[@]}")
+          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; print(r[0]["id"])' <<< "$zones")
+          echo 'Active Cloudflare DNS zone found for clintware.com.'
+
+          # Use an existing working Clintware Worker custom-domain record as the canonical DNS pattern.
+          template=$(curl --fail-with-body -sS "${api}/zones/${zone_id}/dns_records?name=brocomoapp.clintware.com" "${auth[@]}")
+          pattern=$(python3 - <<'PY' <<< "$template"
+          import json,sys
+          d=json.load(sys.stdin); r=d.get('result',[])
+          assert d.get('success') is True and r, d
+          x=r[0]
+          print(json.dumps({'type':x['type'],'content':x['content'],'proxied':x.get('proxied',True),'ttl':1}))
+          PY
+          )
+          echo "Canonical Worker DNS pattern: $(python3 -c 'import json,sys; x=json.load(sys.stdin); print(x["type"],"proxied="+str(x["proxied"]).lower())' <<< "$pattern")"
+
+          current=$(curl --fail-with-body -sS "${api}/zones/${zone_id}/dns_records?name=meet.clintware.com" "${auth[@]}")
+          count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$current")
+
+          payload=$(python3 - <<'PY' "$pattern"
+          import json,sys
+          p=json.loads(sys.argv[1]); p['name']='meet.clintware.com'; print(json.dumps(p))
+          PY
+          )
+
+          if [ "$count" = "0" ]; then
+            echo 'meet.clintware.com DNS record is missing. Creating it now.'
+            out=$(curl --fail-with-body -sS -X POST "${api}/zones/${zone_id}/dns_records" "${auth[@]}" --data "$payload")
+          else
+            record_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"][0]["id"])' <<< "$current")
+            echo 'meet.clintware.com DNS record exists. Replacing it with the canonical Worker pattern.'
+            out=$(curl --fail-with-body -sS -X PUT "${api}/zones/${zone_id}/dns_records/${record_id}" "${auth[@]}" --data "$payload")
+          fi
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d["result"]; print("DNS write succeeded:",r["name"],r["type"],"proxied="+str(r.get("proxied",False)).lower())' <<< "$out"
+
+      - name: Reassert Worker custom-domain binding
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"meet.clintware.com","service":"clintware-meet"}' >/tmp/bind.json
+          python3 -c 'import json; d=json.load(open("/tmp/bind.json")); assert d.get("success") is True,d; print("Worker binding reasserted.")'
+
+      - name: Verify public DNS and HTTPS redirect
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            cf=$(dig +short @1.1.1.1 meet.clintware.com A; dig +short @1.1.1.1 meet.clintware.com AAAA)
+            gg=$(dig +short @8.8.8.8 meet.clintware.com A; dig +short @8.8.8.8 meet.clintware.com AAAA)
+            if [ -n "$cf" ] && [ -n "$gg" ]; then
+              echo 'Cloudflare and Google public DNS both resolve meet.clintware.com.'
+              headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 https://meet.clintware.com/ -o /dev/null || true)
+              if grep -Eq '^HTTP/[^ ]+ 302' <<< "$headers" && grep -Fqi 'location: https://koalendar.com/e/meet-with-clinton' <<< "$headers"; then
+                echo 'HTTPS redirect verified publicly.'
+                exit 0
+              fi
+            fi
+            echo "Waiting for public DNS/HTTPS ($i/30)"
+            sleep 5
+          done
+          echo 'Public verification did not converge.' >&2
+          exit 1
