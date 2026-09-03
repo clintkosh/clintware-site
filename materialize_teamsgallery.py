@@ -46,3 +46,28 @@ if actual_sha256 != EXPECTED_SHA256:
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT.write_bytes(payload)
 print(f'Materialized {OUTPUT} ({len(payload)} bytes, sha256={actual_sha256}).')
+
+# Keep legacy static pages aligned with the analytics contract used by build_site.py.
+# This runs against the deployment workspace only and does not alter encrypted app payloads.
+ANALYTICS_ID = 'G-DCY144YM9P'
+ANALYTICS_TAG = (
+    f'<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>'
+    '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}'
+    "gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>"
+)
+
+brocomo = Path('public/brocomoapp/index.html')
+if brocomo.is_file():
+    text = brocomo.read_text(encoding='utf-8', errors='ignore')
+    if ANALYTICS_ID not in text:
+        text = text.replace('<head>', '<head>' + ANALYTICS_TAG, 1)
+        brocomo.write_text(text, encoding='utf-8')
+        print('Normalized analytics on protected Brocomo page.')
+
+tools = Path('public/tools/index.html')
+if tools.is_file():
+    text = tools.read_text(encoding='utf-8', errors='ignore')
+    if ANALYTICS_ID in text and "gtag('config'" not in text:
+        text = text.replace('gtag("config","G-DCY144YM9P")', "gtag('config','G-DCY144YM9P')", 1)
+        tools.write_text(text, encoding='utf-8')
+        print('Normalized analytics syntax on tools page.')
