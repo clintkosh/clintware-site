@@ -44,7 +44,7 @@ OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT.write_bytes(payload)
 print(f'Materialized {OUTPUT} ({len(payload)} bytes, sha256={actual_sha256}).')
 
-# Preserve the existing analytics contract on the two legacy pages that need normalization.
+# Preserve existing analytics on legacy pages.
 ANALYTICS_ID = 'G-DCY144YM9P'
 ANALYTICS_TAG = (
     f'<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>'
@@ -58,7 +58,6 @@ if brocomo.is_file():
     if ANALYTICS_ID not in text:
         text = text.replace('<head>', '<head>' + ANALYTICS_TAG, 1)
         brocomo.write_text(text, encoding='utf-8')
-        print('Normalized analytics on protected Brocomo page.')
 
 tools = Path('public/tools/index.html')
 if tools.is_file():
@@ -66,4 +65,23 @@ if tools.is_file():
     if ANALYTICS_ID in text and "gtag('config'" not in text:
         text = text.replace('gtag("config","G-DCY144YM9P")', "gtag('config','G-DCY144YM9P')", 1)
         tools.write_text(text, encoding='utf-8')
-        print('Normalized analytics syntax on tools page.')
+
+# Navigation normalization only.  No global CSS injection or page rewriting occurs here.
+NAV_SCRIPT = '<script src="/assets/astro-nav.js" defer data-current-nav></script>'
+PUBLIC_PREFIXES = (
+    'public/work/', 'public/cs-systems/', 'public/ai-workflows/', 'public/startup/',
+    'public/tools/', 'public/skills/', 'public/gpts/', 'public/blog/',
+    'public/contact/', 'public/privacy/',
+)
+nav_count = 0
+for html_path in Path('public').rglob('*.html'):
+    key = html_path.as_posix()
+    if key != 'public/index.html' and not key.startswith(PUBLIC_PREFIXES):
+        continue
+    text = html_path.read_text(encoding='utf-8', errors='ignore')
+    if 'data-site-nav' not in text or 'data-current-nav' in text or '</body>' not in text:
+        continue
+    text = text.replace('</body>', NAV_SCRIPT + '</body>', 1)
+    html_path.write_text(text, encoding='utf-8')
+    nav_count += 1
+print(f'Applied current navigation to {nav_count} page(s).')
