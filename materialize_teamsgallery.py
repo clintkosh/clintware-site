@@ -2,6 +2,27 @@ from pathlib import Path
 import base64
 import hashlib
 
+# Materialize the exact user-supplied official resume byte-for-byte.
+RESUME_PARTS = Path('payloads/resume/official')
+RESUME_OUTPUT = Path('public/work/Clinton_Kosh_Resume.pdf')
+RESUME_EXPECTED_SIZE = 17820
+RESUME_EXPECTED_SHA256 = 'e3e2bd48c62ac04babd28046a7c60eb1da785673078c1ac35c9266e1be98b9e1'
+resume_paths = [RESUME_PARTS / f'part{i}.b64' for i in range(1, 5)]
+resume_missing = [str(path) for path in resume_paths if not path.is_file()]
+if resume_missing:
+    raise SystemExit('Missing official resume payload part(s): ' + ', '.join(resume_missing))
+resume_encoded = ''.join(path.read_text(encoding='ascii').strip() for path in resume_paths)
+try:
+    resume_payload = base64.b64decode(resume_encoded, validate=True)
+except Exception as exc:
+    raise SystemExit(f'Invalid official resume payload: {exc}') from exc
+resume_sha256 = hashlib.sha256(resume_payload).hexdigest()
+if len(resume_payload) != RESUME_EXPECTED_SIZE or resume_sha256 != RESUME_EXPECTED_SHA256:
+    raise SystemExit(f'Official resume integrity mismatch: size={len(resume_payload)} sha256={resume_sha256}')
+RESUME_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+RESUME_OUTPUT.write_bytes(resume_payload)
+print(f'Materialized exact official resume ({len(resume_payload)} bytes, sha256={resume_sha256}).')
+
 PARTS = Path('payloads/teamsgallery/v2')
 OUTPUT = Path('public/teamsgallery/austin-corner-office-01.jpg')
 EXPECTED_SHA256 = '94b9e99c5dce6c791970fe864c50b9121984573420101d1b210cefd1b3db0efc'
