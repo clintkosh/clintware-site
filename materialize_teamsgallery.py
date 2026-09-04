@@ -2,27 +2,7 @@ from pathlib import Path
 import base64
 import hashlib
 
-# Materialize the exact user-supplied official resume byte-for-byte.
-RESUME_PARTS = Path('payloads/resume/official')
-RESUME_OUTPUT = Path('public/work/Clinton_Kosh_Resume.pdf')
-RESUME_EXPECTED_SIZE = 17820
-RESUME_EXPECTED_SHA256 = 'e3e2bd48c62ac04babd28046a7c60eb1da785673078c1ac35c9266e1be98b9e1'
-resume_paths = [RESUME_PARTS / f'part{i}.b64' for i in range(1, 5)]
-resume_missing = [str(path) for path in resume_paths if not path.is_file()]
-if resume_missing:
-    raise SystemExit('Missing official resume payload part(s): ' + ', '.join(resume_missing))
-resume_encoded = ''.join(path.read_text(encoding='ascii').strip() for path in resume_paths)
-try:
-    resume_payload = base64.b64decode(resume_encoded, validate=True)
-except Exception as exc:
-    raise SystemExit(f'Invalid official resume payload: {exc}') from exc
-resume_sha256 = hashlib.sha256(resume_payload).hexdigest()
-if len(resume_payload) != RESUME_EXPECTED_SIZE or resume_sha256 != RESUME_EXPECTED_SHA256:
-    raise SystemExit(f'Official resume integrity mismatch: size={len(resume_payload)} sha256={resume_sha256}')
-RESUME_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-RESUME_OUTPUT.write_bytes(resume_payload)
-print(f'Materialized exact official resume ({len(resume_payload)} bytes, sha256={resume_sha256}).')
-
+# Materialize only the large Teams gallery asset that is intentionally stored in chunks.
 PARTS = Path('payloads/teamsgallery/v2')
 OUTPUT = Path('public/teamsgallery/austin-corner-office-01.jpg')
 EXPECTED_SHA256 = '94b9e99c5dce6c791970fe864c50b9121984573420101d1b210cefd1b3db0efc'
@@ -64,6 +44,7 @@ OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT.write_bytes(payload)
 print(f'Materialized {OUTPUT} ({len(payload)} bytes, sha256={actual_sha256}).')
 
+# Preserve the existing analytics contract on the two legacy pages that need normalization.
 ANALYTICS_ID = 'G-DCY144YM9P'
 ANALYTICS_TAG = (
     f'<script async src="https://www.googletagmanager.com/gtag/js?id={ANALYTICS_ID}"></script>'
@@ -86,46 +67,3 @@ if tools.is_file():
         text = text.replace('gtag("config","G-DCY144YM9P")', "gtag('config','G-DCY144YM9P')", 1)
         tools.write_text(text, encoding='utf-8')
         print('Normalized analytics syntax on tools page.')
-
-# ASTRO is the public-site design/positioning guardrail. Inject its final CSS and
-# navigation layers after page-local assets so legacy template primitives cannot
-# silently reassert the generic SaaS look or outdated site routing.
-ASTRO_LINK = '<link rel="stylesheet" href="/assets/astro.css" data-astro-guardrail>'
-ASTRO_SCRIPT = '<script src="/assets/astro-nav.js" defer data-astro-nav></script>'
-ASTRO_TOP_LEVEL = {'public/index.html', 'public/404.html'}
-ASTRO_PREFIXES = (
-    'public/work/', 'public/cs-systems/', 'public/ai-workflows/', 'public/startup/',
-    'public/tools/', 'public/skills/', 'public/gpts/', 'public/blog/',
-    'public/contact/', 'public/privacy/',
-)
-BRAND_REPLACEMENTS = (
-    ('Go Furthest.™', 'GO FURTHEST.™'),
-    ('Clintware. Building Quillgeist.', 'Clintware™ · GO FURTHEST.™'),
-    ('Clintware. Practical technology, built to work.', 'Clintware™ · GO FURTHEST.™'),
-    ('Clintware. AI software built to work.', 'Clintware™ · GO FURTHEST.™'),
-    ('Clintware. GO FURTHEST.™', 'Clintware™ · GO FURTHEST.™'),
-    ('Clintware™. GO FURTHEST.™', 'Clintware™ · GO FURTHEST.™'),
-    ('CLINT<span class="brand-accent">WARE</span></a>', 'CLINT<span class="brand-accent">WARE</span>™</a>'),
-)
-
-astro_count = 0
-for html_path in Path('public').rglob('*.html'):
-    key = html_path.as_posix()
-    if key not in ASTRO_TOP_LEVEL and not key.startswith(ASTRO_PREFIXES):
-        continue
-    text = html_path.read_text(encoding='utf-8', errors='ignore')
-    changed = False
-    for old, new in BRAND_REPLACEMENTS:
-        if old in text:
-            text = text.replace(old, new)
-            changed = True
-    if 'data-astro-guardrail' not in text and '</head>' in text:
-        text = text.replace('</head>', ASTRO_LINK + '</head>', 1)
-        changed = True
-    if 'data-astro-nav' not in text and '</body>' in text:
-        text = text.replace('</body>', ASTRO_SCRIPT + '</body>', 1)
-        changed = True
-    if changed:
-        html_path.write_text(text, encoding='utf-8')
-        astro_count += 1
-print(f'Applied ASTRO brand/visual/navigation guardrails to {astro_count} public page(s).')
