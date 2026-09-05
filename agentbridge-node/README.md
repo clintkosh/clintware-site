@@ -1,8 +1,10 @@
 # Quillgeist local node alpha
 
-Quillgeist is a local-first adaptive AI execution layer.  The local node performs approved filesystem, shell, Python, PowerShell, Node.js, Git, validation, scheduling, rollback, logging, evidence collection, and account-scoped operational telemetry on the user's own machine.
+Quillgeist is a user-owned local runtime for AI agents.  The local node performs approved filesystem, shell, Python, PowerShell, Node.js, Git, validation, scheduling, rollback, logging, evidence collection, and account-scoped operational telemetry on the user's own machine.
 
-`AI planner → Quillgeist execution pack → Quillgeist Cloud → local Quillgeist node → verified result → compact evidence`
+`AI planner → Quillgeist intent + user preferences → local policy/runtime → verified result → compact evidence`
+
+The model can change.  The user's local execution policy, explicit preferences, and result evidence remain with Quillgeist.
 
 ## Windows alpha
 
@@ -40,6 +42,32 @@ quillgeist daemon
 ```
 
 The legacy `agentbridge` command remains only as a temporary compatibility alias for existing alpha installs.
+
+## User-owned persistent preferences
+
+Quillgeist can now retain explicit preferences locally and inject them into future compiled instructions independently of the AI provider.
+
+From Quillgeist Desktop, enter an explicit preference command:
+
+```text
+remember: Keep the original file and create a copy
+```
+
+A later command is compiled with that saved preference before it is handed to the connected AI/planner.  Task-specific instructions always override saved preferences.
+
+The same store can be managed from the CLI:
+
+```bash
+quillgeist preferences add "Keep the original file and create a copy"
+quillgeist preferences list
+quillgeist preferences remove p-1234abcd
+```
+
+Preferences are stored under the Quillgeist home directory rather than in a model provider's chat history.  Writes use the existing local DLP settings before persistence; high-risk values are sanitized under the default policy.  Preferences are only saved through explicit user actions such as `remember:` or the preference CLI.
+
+This provides the MVP cross-model loop:
+
+`user correction → local Quillgeist preference → new task → preference injected → any connected model`
 
 ## Local authority
 
