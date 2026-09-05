@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 import re
 
 from .contextor import estimate_tokens
+from .preferences import PreferenceStore, parse_preference_command, render_preference_context
 
 
 ACTION_RE = re.compile(
@@ -228,6 +229,46 @@ def _master_prompt(compacted: str, steps: list[str], auto_continue: bool) -> str
     return "\n".join(rendered)
 
 
+def _memory_update_plan(raw: str, action: str, value: str) -> PromptPlan:
+    store = PreferenceStore()
+    if action == "remember":
+        result = store.add(value)
+        pref = result.get("preference", {})
+        status = result.get("status", "saved")
+        message = (
+            f"Quillgeist preference {status} locally: [{pref.get('id', 'unknown')}] {pref.get('text', value)}\n"
+            "No external model call is required. This preference will be injected into future compiled instructions."
+        )
+        trigger = "preference_saved" if status == "saved" else "preference_exists"
+    else:
+        result = store.remove(value)
+        status = result.get("status", "not_found")
+        if status == "removed":
+            removed = result.get("removed", [])
+            rendered = ", ".join(f"[{item.get('id')}] {item.get('text')}" for item in removed)
+            message = f"Quillgeist removed local preference: {rendered}"
+            trigger = "preference_removed"
+        elif status == "ambiguous":
+            matches = result.get("matches", [])
+            rendered = "\n".join(f"- [{item.get('id')}] {item.get('text')}" for item in matches)
+            message = f"More than one saved preference matched. Remove one by id:\n{rendered}"
+            trigger = "preference_ambiguous"
+        else:
+            message = f"No saved preference matched: {value}"
+            trigger = "preference_not_found"
+    return PromptPlan(
+        mode="memory_update",
+        master_prompt=message,
+        steps=[PromptStep(index=1, prompt=message)],
+        raw_chars=len(raw),
+        compacted_chars=len(raw.strip()),
+        raw_tokens_est=estimate_tokens(raw),
+        compacted_tokens_est=estimate_tokens(message),
+        complexity_score=0,
+        triggered_by=[trigger],
+    )
+
+
 def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -> PromptPlan:
     settings = dict(config or {})
     enabled = bool(settings.get("enabled", True))
@@ -236,8 +277,13 @@ def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -
     complexity_threshold = int(settings.get("complexity_threshold", 6))
     max_steps = max(2, int(settings.get("max_steps", 24)))
     auto_continue = bool(settings.get("auto_continue", True))
+    preference_limit = max(0, int(settings.get("preference_limit", 12)))
 
     raw = str(text or "").strip()
+    memory_command = parse_preference_command(raw)
+    if memory_command:
+        return _memory_update_plan(raw, *memory_command)
+
     compacted = _normalize_preserving_blocks(raw)
     score, reasons = _complexity(compacted)
     triggered: list[str] = []
@@ -253,6 +299,12 @@ def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -
     steps_text = _chunk(compacted, target, max_steps, prefer_logical_boundaries=prefer_logical) if should_plan else [compacted]
     steps = [PromptStep(index=i, prompt=value) for i, value in enumerate(steps_text, 1)]
     master = _master_prompt(compacted, steps_text, auto_continue) if should_plan else compacted
+
+    preferences = PreferenceStore().list(limit=preference_limit) if preference_limit else []
+    preference_context = render_preference_context(preferences)
+    if preference_context and master:
+        master = f"{preference_context}\n\n{master}"
+        triggered.append("persistent_preferences")
 
     return PromptPlan(
         mode="auto_continue" if should_plan and len(steps) > 1 else "single",
