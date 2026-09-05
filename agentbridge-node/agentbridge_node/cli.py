@@ -17,6 +17,7 @@ from .executor import rollback
 from .helpdb import load as load_help, page as page_help, render as render_help
 from .pack import load_pack, save_abpack, summary
 from .policy import evaluate
+from .preferences import PreferenceStore
 from .runner import execute_pack_path
 from .scheduler import SchedulerEngine, add_schedule, load_schedules, remove_schedule, approve_schedule
 from .telemetry import flush as flush_telemetry
@@ -24,7 +25,7 @@ from .telemetry import flush as flush_telemetry
 def _print(obj): print(json.dumps(obj,indent=2,default=str))
 
 def cmd_init(args):
-    cfg=Config.load(); load_help(); out={"product":"Quillgeist","home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"dlp":cfg.data.get("dlp",{}),"dlp_note":"Quillgeist sensitive-data protection is enabled by default and scans locally before execution. Use `quillgeist dlp status` to review it.","help_center":str(home_dir()/"help"/"help.json")}
+    cfg=Config.load(); load_help(); out={"product":"Quillgeist","home":str(home_dir()),"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"telemetry":cfg.data.get("telemetry",{}),"dlp":cfg.data.get("dlp",{}),"dlp_note":"Quillgeist sensitive-data protection is enabled by default and scans locally before execution. Use `quillgeist dlp status` to review it.","preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")}
     if not getattr(args,"no_associations",False):
         try: out["associations"]=install_associations(False)
         except Exception as exc: out["association_warning"]=str(exc)
@@ -146,6 +147,19 @@ def cmd_dlp(args):
         settings["enabled"]=True; settings["mode"]="standard" if command=="on" else command
     cfg.save(); _print({"settings":settings})
 
+def cmd_preferences(args):
+    store=PreferenceStore(); command=args.preferences_command
+    if command=="list":
+        _print({"preferences":[item.to_dict() for item in store.list()],"count":len(store.list()),"path":str(store.path)}); return
+    if command=="add":
+        _print(store.add(args.text)); return
+    if command=="remove":
+        _print(store.remove(args.selector)); return
+    if command=="clear":
+        if not args.yes:
+            raise SystemExit("Refusing to clear preferences without --yes")
+        _print(store.clear()); return
+
 def cmd_help_center(args):
     if args.json:
         _print(load_help()); return
@@ -157,7 +171,7 @@ def cmd_help_center(args):
 
 def cmd_doctor(args):
     cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama"]}
-    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"help_center":str(home_dir()/"help"/"help.json")})
+    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
     p=argparse.ArgumentParser(prog="quillgeist",description="Quillgeist local-first adaptive AI execution node"); sub=p.add_subparsers(dest="command",required=True)
@@ -174,6 +188,7 @@ def build_parser():
     x=sub.add_parser("doctor"); x.set_defaults(func=cmd_doctor)
     x=sub.add_parser("telemetry"); ts=x.add_subparsers(dest="telemetry_command",required=True); ts.add_parser("status"); f=ts.add_parser("flush"); f.add_argument("--limit",type=int,default=100); ts.add_parser("on"); ts.add_parser("off"); x.set_defaults(func=cmd_telemetry)
     x=sub.add_parser("dlp",help="Quillgeist local sensitive-data protection"); ds=x.add_subparsers(dest="dlp_command",required=True); [ds.add_parser(name) for name in ["status","on","standard","strict","monitor","off"]]; x.set_defaults(func=cmd_dlp)
+    x=sub.add_parser("preferences",help="Manage user-owned persistent preferences"); ps=x.add_subparsers(dest="preferences_command",required=True); ps.add_parser("list"); a=ps.add_parser("add"); a.add_argument("text"); r=ps.add_parser("remove"); r.add_argument("selector"); c=ps.add_parser("clear"); c.add_argument("--yes",action="store_true"); x.set_defaults(func=cmd_preferences)
     x=sub.add_parser("help"); x.add_argument("section",nargs="?",default="all",choices=["all","start","setup","remove","faq","glossary","fixes"]); x.add_argument("--search"); x.add_argument("--limit",type=int,default=100); x.add_argument("--json",action="store_true"); x.add_argument("--no-pager",action="store_true"); x.set_defaults(func=cmd_help_center)
     x=sub.add_parser("schedule"); ss=x.add_subparsers(dest="schedule_command",required=True)
     a=ss.add_parser("add"); a.add_argument("pack"); a.add_argument("--at"); a.add_argument("--every",type=int); a.add_argument("--owner",choices=["device","cloud"],default="device")
