@@ -9,7 +9,7 @@ def test_explicit_preference_persists_and_is_injected(tmp_path, monkeypatch):
 
     saved = plan_prompt("remember: Keep the original file and create a copy")
     assert saved.mode == "memory_update"
-    assert "preference saved" in saved.triggered_by
+    assert "preference_saved" in saved.triggered_by
 
     plan = plan_prompt("Update this file with the corrected content")
     assert "persistent_preferences" in plan.triggered_by
