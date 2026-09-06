@@ -105,9 +105,9 @@ The durable asset is the **candidate-owned evidence graph / career evidence syst
 
 The initial wedge can be interview preparation and review because it provides urgency and feedback.  The product case depends on evidence reuse and repeat behavior across rounds and roles, not generic one-time resume analysis.
 
-## Fall 2026 YC language
+## Winter 2027 YC language
 
-Quillgeist and LandThePlane may be described as **Fall 2026 Y Combinator application candidates** or **being prepared for a Fall 2026 YC application** when that is the current plan.
+Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** when that is the current plan.  BuyerOrigin is the number two challenger and LandThePlane is the number three active track until verified evidence changes the order.
 
 Do not imply acceptance, endorsement, affiliation, interview selection, or YC participation unless it actually occurs.
 
