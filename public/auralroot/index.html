@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="description" content="AuralRoot is a rights-aware source audio network for recording, dissecting, licensing, forking, and tracing sound." />
+  <title>AuralRoot — Rights-aware sound network</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#/discover" aria-label="AuralRoot home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>AuralRoot</span>
+      </a>
+      <nav id="nav" class="nav-list">
+        <a href="#/discover" data-route="discover">Discover</a>
+        <a href="#/record" data-route="record">Record + Upload</a>
+        <a href="#/agents" data-route="agents">Agents</a>
+        <a href="#/profile" data-route="profile">Profile</a>
+        <a href="#/about" data-route="about">Principles</a>
+      </nav>
+      <div class="sidebar-note">
+        <strong>Source first.</strong>
+        <span>Rights stay attached to every derivative.</span>
+      </div>
+    </aside>
+
+    <main class="main-column">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">RIGHTS-AWARE AUDIO GRAPH</p>
+          <h1 id="page-title">Discover</h1>
+        </div>
+        <div class="top-actions">
+          <span class="status-dot"><i></i> Local-first MVP</span>
+          <a class="button primary small" href="#/record">New sound</a>
+        </div>
+      </header>
+      <section id="view" class="view" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <dialog id="modal" class="modal"><div id="modal-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
