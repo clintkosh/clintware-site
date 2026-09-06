@@ -4,6 +4,10 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   X-Frame-Options: SAMEORIGIN
 
+/auralroot/*
+  ! Permissions-Policy
+  Permissions-Policy: camera=(), microphone=(self), geolocation=()
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
