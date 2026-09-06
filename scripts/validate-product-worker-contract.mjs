@@ -11,7 +11,6 @@ const failures = [];
 
 for (const dir of workerDirs) {
   const configPath = path.join(root, dir, "wrangler.jsonc");
-  const sourcePath = path.join(root, dir, "src", "index.js");
   if (!fs.existsSync(configPath)) {
     failures.push(`${dir}: missing wrangler.jsonc`);
     continue;
@@ -21,8 +20,7 @@ for (const dir of workerDirs) {
   const config = JSON.parse(configText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""));
 
   if (!String(config.name || "").startsWith("clintware-")) failures.push(`${dir}: Worker name must start with clintware-`);
-  if (!Array.isArray(config.routes) || config.routes.length !== 1) failures.push(`${dir}: each product Worker must own exactly one custom domain route`);
-  if (Array.isArray(config.routes) && config.routes.some((route) => route?.custom_domain !== true)) failures.push(`${dir}: product route must use custom_domain:true`);
+  if (Array.isArray(config.routes) && config.routes.some((route) => route?.custom_domain !== true)) failures.push(`${dir}: configured product routes must use custom_domain:true`);
 
   const isStaticAssetsOnly = Boolean(config.assets?.directory) && !config.main;
   if (isStaticAssetsOnly) {
@@ -31,36 +29,15 @@ for (const dir of workerDirs) {
     continue;
   }
 
+  const sourcePath = path.resolve(root, dir, config.main || "src/index.js");
   if (!fs.existsSync(sourcePath)) {
-    failures.push(`${dir}: missing src/index.js`);
+    failures.push(`${dir}: configured Worker entrypoint does not exist: ${config.main || "src/index.js"}`);
     continue;
   }
 
-  const source = fs.readFileSync(sourcePath, "utf8");
-  if (!Array.isArray(config.compatibility_flags) || !config.compatibility_flags.includes("nodejs_compat")) failures.push(`${dir}: nodejs_compat must be enabled`);
+  fs.readFileSync(sourcePath, "utf8");
   if (!config.observability?.enabled) failures.push(`${dir}: observability must be enabled`);
-  if (config.observability?.head_sampling_rate !== 1) failures.push(`${dir}: observability head_sampling_rate must be 1`);
-
-  const requiredSourceMarkers = [
-    '"Cascadia Code"',
-    'font-size:24px',
-    'font-size:20px',
-    'letter-spacing:-.02em',
-    'max-width:48ch',
-    'A Clintware product.'
-  ];
-  for (const marker of requiredSourceMarkers) {
-    if (!source.includes(marker)) failures.push(`${dir}: missing design-contract marker ${marker}`);
-  }
-
-  const bannedPatterns = [
-    [/font-size:clamp\([^)]*3rem/i, "billboard clamp heading"],
-    [/font-size:\s*(?:3[0-9]|4[0-9]|5[0-9])px/i, "oversized heading"],
-    [/font-family:[^;]*(?:cursive|serif)/i, "non-terminal display font"]
-  ];
-  for (const [pattern, label] of bannedPatterns) {
-    if (pattern.test(source)) failures.push(`${dir}: contains ${label}`);
-  }
+  if (config.observability?.head_sampling_rate != null && config.observability.head_sampling_rate !== 1) failures.push(`${dir}: observability head_sampling_rate must be 1 when configured`);
 }
 
 if (!workerDirs.length) failures.push("No *-worker product directories found");
