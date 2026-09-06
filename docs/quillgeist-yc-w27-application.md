@@ -126,6 +126,8 @@ More recently I have used AI-assisted development to turn recurring problems int
 
 ## Other ideas you considered applying with
 
+**BuyerOrigin:** A promotion-eligibility system for Shopify merchants that detects when the same buyer repeatedly uses new-customer offers.  The working local audit now tests a conservative two-signal rule, explainable reason codes, merchant overrides, and leakage measurement.  It remains the number two YC challenger until real merchant audits and willingness to pay exceed Quillgeist's external evidence.
+
 **Career OS / LandThePlane:** An AI career system that maintains a person's verified professional history from opportunity discovery through interviews, hiring, and success in the job.
 
 **Personal Primer:** A user-controlled AI that learns both what a person knows and what they are trying to understand about themselves, combining longitudinal personal context with adaptive research, reflection, and learning.
@@ -160,5 +162,6 @@ I chose Quillgeist because I have already built substantially more of the underl
 - Replace every bracketed traction field with verified data only.
 - Record a one-minute founder video separately from the product demo.
 - Recruit repeat external alpha users and report only actual usage.
+- Run BuyerOrigin's three-merchant validation sprint in parallel, then lock the primary company story by October 19 using verified evidence.
 - Verify the live Windows installer contains the persistent preference feature.
 - Keep Quillgeist as the single primary YC company story.

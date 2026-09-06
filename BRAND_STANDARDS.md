@@ -39,15 +39,15 @@ The slogan is not a substitute for a product description. Product copy must rema
 
 ## Product hierarchy
 
-- **Quillgeist**: flagship product / Fall 2026 YC application priority.  Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot.  Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development.
-- **LandThePlane**: Fall 2026 YC application candidate / fast-track challenger.  Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge.  Do not reduce it to generic generated interview questions.
+- **Quillgeist**: number one product / Winter 2027 YC application priority.  Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot.  Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development.
+- **BuyerOrigin**: number two venture and number one immediate commercial-validation track.  Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge.  The working local audit is current product; Shopify enforcement is not yet shipped.  Promote it to the primary YC pitch only from verified merchant evidence.
+- **LandThePlane**: number three active venture track.  Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge.  Do not reduce it to generic generated interview questions.
 - **ShoulderSoldier**: provider-independent pre-exposure email protection concept/product track, focused on local or client-side protection before risky content reaches the user.
-- **BuyerOrigin**: commerce identity and promotion-eligibility infrastructure track, with repeated-new-customer/promotion-abuse prevention as the initial wedge.
 - **RenewNudge**: Customer Success renewal-risk and action workflow tool. Describe it as a practical CS utility for surfacing renewal timing/risk, organizing follow-up, and prompting deliberate account action. Do not describe it as autonomous AI, predictive churn modeling, or functionality it does not actually implement.
 
-## Fall 2026 YC language
+## Winter 2027 YC language
 
-Quillgeist and LandThePlane may be described as **Fall 2026 Y Combinator application candidates** or **being prepared for a Fall 2026 YC application** while that remains the actual plan.
+Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan.  BuyerOrigin is the number two challenger and LandThePlane is the number three active track until verified evidence changes the order.
 
 Do not imply acceptance, YC interview selection, endorsement, affiliation, funding, or participation unless it actually occurs.
 
