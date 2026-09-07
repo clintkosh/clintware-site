@@ -31,6 +31,17 @@ Before editing:
 - Attach metrics to the role, company, decision, product, or operating change they prove.
 - Keep one clear primary next action where possible.
 
+## Shared component consistency
+
+Shared navigation and control components must remain global rather than being restyled page by page.
+
+- `clintware.js` owns the injected non-home route control (`Back / Home`).
+- `typography-lock.css` owns its visual treatment.
+- Do not add page-local `.cw-route-tools` styling unless a verified page-specific accessibility defect cannot be solved globally.
+- Back/Home must remain clearly visible against the dark site background with readable text, explicit borders/backgrounds, keyboard focus states, and mobile-sized tap targets.
+- When changing a shared component, test representative page types: custom hero/registry page, `.page-hero` page, utility/contact page, product/tools page, article/blog page, and individual skill page.
+- Prefer one global fix over repeated local exceptions.  Remove obsolete page-local overrides after the global fix is verified.
+
 ## Page test
 
 A visitor should quickly understand:
@@ -92,4 +103,6 @@ Reject and rewrite if:
 - roadmap looks shipped;
 - caveats are hidden;
 - the visitor must infer what the product actually does;
-- the page looks like generic SaaS boilerplate instead of Clintware.
+- the page looks like generic SaaS boilerplate instead of Clintware;
+- a shared navigation/control component is restyled locally when the issue should be fixed globally;
+- Back/Home is low-contrast, browser-default-looking, or visually inconsistent with other secondary pages.
