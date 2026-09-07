@@ -2,19 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import worker from "../src/index.js";
 
-test("serves the working MVP and its truth boundary", async () => {
+test("serves the working offer eligibility MVP and truth boundary", async () => {
   const response = await worker.fetch(new Request("https://buyerorigin.clintware.com/"));
   const html = await response.text();
   assert.equal(response.status, 200);
-  assert.match(html, /Run local audit/);
-  assert.match(html, /Shopify enforcement, billing, merchant accounts/);
-  assert.match(html, /denying a discount, never the checkout/i);
+  assert.match(html, /Evaluate eligibility/);
+  assert.match(html, /live Shopify enforcement, billing, merchant accounts/i);
+  assert.match(html, /never denies checkout/i);
+  assert.match(html, /Automation alone never triggers denial/i);
   assert.match(response.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 });
 
-test("reports a specific MVP health contract", async () => {
+test("reports the offer eligibility health contract", async () => {
   const response = await worker.fetch(new Request("https://buyerorigin.clintware.com/healthz"));
-  assert.deepEqual(await response.json(), { service: "BuyerOrigin", version: "0.1.0", status: "ok", capability: "local-audit-mvp" });
+  assert.deepEqual(await response.json(), { service: "BuyerOrigin", version: "0.2.0", status: "ok", capability: "merchant-offer-eligibility" });
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
