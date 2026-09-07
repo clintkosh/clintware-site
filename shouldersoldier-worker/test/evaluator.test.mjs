@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { analyzeInteraction } from "../src/index.js";
 
-test("credential urgency is high risk and explainable", () => {
+test("credential urgency is elevated and explainable", () => {
   const result = analyzeInteraction({ channel: "email", content: "URGENT: your account will be locked. Send your MFA code immediately." });
-  assert.equal(result.tier, "high");
+  assert.equal(result.tier, "elevated");
   assert.ok(result.signals.some((s) => s.id === "CREDENTIAL_REQUEST"));
   assert.ok(result.signals.some((s) => s.id === "URGENCY_PRESSURE"));
+  assert.match(result.recommendation, /explicit confirmation|verify/i);
 });
 
 test("agent external action requires extra friction without being malicious by definition", () => {
