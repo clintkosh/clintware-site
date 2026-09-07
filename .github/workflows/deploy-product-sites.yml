@@ -44,8 +44,10 @@ jobs:
           node --check buyerorigin-worker/src/browser-app.js
           node --check landtheplane-worker/src/index.js
           node --check landtheplane-review-worker/src/index.js
-      - name: Test BuyerOrigin decision engine
+      - name: Test BuyerOrigin eligibility engine
         run: node --test buyerorigin-worker/test/*.test.mjs
+      - name: Test ShoulderSoldier interaction evaluator
+        run: node --test shouldersoldier-worker/test/*.test.mjs
       - name: Validate Worker configurations
         run: |
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config product-sites/wrangler.jsonc
@@ -72,7 +74,8 @@ jobs:
           set -euo pipefail
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/ || true)
-            if grep -Fq 'SHOULDERSOLDIER' <<< "$page" && grep -Fq 'Protect sensitive email before it reaches the provider.' <<< "$page"; then exit 0; fi
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/healthz || true)
+            if grep -Fq 'USER-INTERACTION FIREWALL' <<< "$page" && grep -Fq 'interaction-risk-evaluator' <<< "$health"; then exit 0; fi
             sleep 3
           done
           exit 1
@@ -96,7 +99,7 @@ jobs:
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/healthz || true)
-            if grep -Fq 'BUYERORIGIN' <<< "$page" && grep -Fq 'Run local audit' <<< "$page" && grep -Fq 'local-audit-mvp' <<< "$health"; then exit 0; fi
+            if grep -Fq 'Protect the offer, not the checkout.' <<< "$page" && grep -Fq 'merchant-offer-eligibility' <<< "$health"; then exit 0; fi
             sleep 3
           done
           exit 1
