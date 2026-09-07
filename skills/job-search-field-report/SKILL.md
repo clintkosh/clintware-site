@@ -1,134 +1,136 @@
 ---
 name: job-search-field-report-astro
-description: Standalone workflow for rebuilding a recurring job-search field report from the exact time the last report was actually sent through the current time. Separates cumulative funnel totals from interval changes, reconciles live vs closed hiring processes, and defaults to draft-only output.
-version: 1.0
+description: Standalone workflow for recurring job-search reporting from the exact time the last report was actually sent through now. Separates cumulative totals from interval changes, reconciles active vs closed processes, adds sourced market-segment intelligence and market-relative progress assessment, and defaults to draft-only output.
+version: 1.1
 ---
 
 # Job Search Field Report ASTRO
 
-## Purpose
-
-Use this skill when a person wants to maintain a recurring, evidence-based job-search update for themselves, family, mentors, coaches, or other supporters.
-
-The report is not a generic status summary. It is a repeatable operating report with two distinct views:
-
-1. **Cumulative search state** — the full funnel to date.
-2. **Difference-period activity** — only what changed after the most recent report was actually sent.
-
-The defining rule is simple:
+## Core rule
 
 `difference_window = (latest_sent_report_at, current_at]`
 
-A draft never advances the baseline.
+A draft never advances the baseline. Only a confirmed sent report does.
 
-## Configuration
+## Three views
 
-Define `series_name`, `subject_prefix`, `timezone`, optional `search_start_at`, optional `target_compensation`, optional seed sent timestamp/issue number, and optional recipients. Recipients never imply send authorization.
-
-## Hard baseline rule
-
-1. Find the most recent actually sent report in the configured series.
-2. Read its sent timestamp and issue number.
-3. Set `difference_window = (last_update_sent_at, current_at]`.
-4. Use seed values only if no prior sent report exists.
-5. A draft never advances the baseline.
-6. Never use upload time, file modified time, chat time, or a guessed interval as the boundary.
-7. Use the real interval in the report title.
+1. **Cumulative search state** — full funnel to date.
+2. **Difference-period activity** — only what changed after the last actually sent report.
+3. **Market-relative read** — target market, current outlook, and how the candidate's funnel compares with the best available evidence.
 
 ## External-action boundary
 
-Default behavior is **DRAFT ONLY**. Update/rebuild/refresh/prepare/draft does not authorize sending. Never send unless the user's current instruction explicitly authorizes sending. A sent report advances the next baseline; a draft does not.
+Default behavior is **DRAFT ONLY**. Words such as update, rebuild, refresh, prepare, or draft do not authorize sending. Never send unless the user's current instruction explicitly authorizes it.
+
+## Candidate context
+
+Infer target roles, seniority, industry, geography, work arrangement, compensation, and search start from current supplied evidence when possible. Relevant model memory/context may fill gaps only when consistent with the current request. Fresh direct evidence overrides remembered or stale context. Never invent missing personal facts.
 
 ## Default report map
 
-1. Hero / issue banner
-2. Current date + audit-through-now line
-3. Mission snapshot
-4. Opening note / audience context
-5. Headline
-6. Actual search funnel — verified overall results
-7. Conversion table
-8. Market assessment — optional
-9. Search clock
-10. External benchmark comparison — optional
-11. Current standings — human-active / high-signal board
-12. Deep dive — current storyline
-13. What changed since the last sent update
-14. New / advanced
-15. Closed / no longer active
-16. Newly applied / refreshed
-17. Priority pending applications
-18. Local / alternate track — optional
-19. Skills / certifications / build proof — optional
-20. Closed ledger
-21. Bottom line
-22. Source / method notes
+1. Issue masthead + exact audit window
+2. At a glance
+3. Search profile / target market
+4. Current read
+5. Verified cumulative funnel + conversion rates
+6. Market segment assessment
+7. Overall job-market outlook
+8. Market-relative progress assessment
+9. Search clock / velocity
+10. Active high-signal pipeline
+11. Most important storyline
+12. Changes since last sent update
+13. New / advanced / closed / pending
+14. Skills, certifications, or build proof when relevant
+15. Strategic adjustments / next focus
+16. Closed-process history
+17. Sources + method notes
+18. Bottom-line summary
 
-## Cumulative totals vs interval changes
+The first screen should quickly answer: **What changed? How is the market? How is this search performing relative to it?**
 
-Recompute cumulative application actions, unique company-role applications, interview/screen processes, completed live interviews, second-round/panel processes, final-stage processes, offers, and search duration from the full record whenever possible.
+## Funnel math
 
-Only include new applications, responses, interviews, advancement, closures, follow-ups, referrals, compensation changes, certifications, relevant build work, and newly learned market information in the difference section when they fall inside `(last_update_sent_at, current_at]`.
+When data permits, calculate:
 
-## Source order
+- `screen_rate = interview_or_screen_tracks / unique_applications`
+- `live_interview_rate = completed_live_interviews / unique_applications`
+- `panel_progression = second_round_or_panel / interview_or_screen_tracks`
+- `final_stage_progression = final_stage / interview_or_screen_tracks`
+- `offer_rate = offers / unique_applications`
+- `active_signal_rate = current_human_active_processes / unique_applications`
+- interval velocity for applications, screens, interviews, advances, and closures
 
-1. Most recent sent report.
-2. Recruiting email/communication.
-3. Application tracker.
-4. Calendar/interview notes/user files.
-5. Current public sources for market context.
-6. Prior narrative only where still valid.
+Keep cumulative totals separate from interval-only changes.
 
-Fresh evidence overrides stale narrative.
+## Market segment classification
+
+Define the market actually being searched: role family, seniority, industry/vertical, geography, remote/hybrid/onsite constraint, and compensation band when known. If the search spans materially different lanes, assess those lanes separately.
+
+## Market intelligence protocol
+
+Refresh market context on every substantive report when web access is available.
+
+### Highest-weight official sources
+
+Prefer current BLS Employment Situation, BLS JOLTS, Federal Reserve Beige Book, BLS occupational data/projections, and relevant state labor-market sources.
+
+### Large-platform / industry sources
+
+When available, use LinkedIn Economic Graph / Workforce Report, Indeed Hiring Lab, CompTIA, or other credible sector-specific hiring data with clear methodology.
+
+### Reddit / practitioner communities
+
+Reddit should be a deliberate qualitative layer, especially for signals official data misses: hiring-cycle length, ghosting, multi-round interviews, compensation pressure, applicant crowding, and role-specific friction.
+
+- Search recent threads, usually the last 30–90 days.
+- Prioritize role-specific communities plus broader job-search communities.
+- Prefer multiple independent threads over one dramatic example.
+- Summarize recurring themes, disagreements, and counterexamples.
+- Label Reddit evidence **anecdotal / community-reported**.
+- Never turn upvotes, comments, or individual searches into population statistics.
+- If community sentiment conflicts with official data, show the conflict rather than forcing agreement.
+
+A strong market section normally combines at least one current official source, one platform/industry source when available, and several recent community signals.
+
+## Overall market outlook
+
+Use one evidence-backed band: **Favorable, Balanced, Selective, Tight, Very tight**. Include the assessment date, 2–4 reasons, the strongest counter-signal, and confidence (`low`, `medium`, `high`).
+
+## Market-relative progress
+
+Compare candidate funnel performance only with genuinely comparable external evidence. If a valid population percentile is not available, use one of:
+
+- **Ahead of observed market**
+- **Competitive with current market**
+- **Mixed / bottlenecked**
+- **Behind observed market**
+- **Insufficient evidence**
+
+Explain where the funnel is strong or weak. Never invent a percentile, quartile, or “top X%” claim. Reddit anecdotes may inform the narrative but cannot create a percentile.
 
 ## Reconciliation
 
-Count each company-role process once. Keep application actions separate from unique applications. Do not inflate interviews with duplicate invites/reschedules/messages. Closed/rejected/withdrawn/filled roles leave the live board. Uncertain status is labeled waiting/unverified/stale-risk.
-
-## Live board
-
-Include only meaningful current human signal: scheduled/recent interviews, recruiter/hiring-manager dialogue, referral/internal advocate, explicit backfill discussion, formal submission, or another strong current signal. Rank by current signal, not preference.
-
-## Closed ledger
-
-Move verified rejected, filled, withdrawn, superseded, or closed requisitions out of the live board while preserving useful learning or relationships.
+Count each company-role process once. Keep application actions separate from unique applications. Do not inflate interview counts with duplicate invites, reschedules, follow-ups, or multiple messages from one process. Closed/rejected/withdrawn/filled roles leave the active board. Uncertain status is labeled waiting, unverified, or stale-risk.
 
 ## Compensation
 
 Classify every value as **verified**, **estimated**, or **unknown / not yet verified**.
 
-## Market / benchmark rules
-
-Refresh official data, distinguish statistics from anecdotes, label proxies honestly, show source dates, and never turn forum/recruiter opinions into population statistics.
-
-## Productive-work proof
-
-Include portfolio, technical projects, AI workflows, certifications, demos, relevant consulting/volunteer work, role-related research, or other public-safe proof only when it strengthens the search story. Keep unrelated identities/projects separate unless explicitly included.
-
 ## Visual contract
 
-For HTML output use email-safe tables, inline CSS, roughly 960–1040px max width, high contrast, compact typography, mobile-readable tables, restrained accents, an integrated banner, and no JavaScript dependency in the email itself.
+Use a polished **tech briefing / modern newsletter** aesthetic without copying any specific newsletter brand. Allowed traits: compact masthead, clear hierarchy, short summaries, small section labels, clean metrics, generous whitespace, one primary accent, and restrained status colors.
 
-Default sample palette: page `#07100a`, report `#0a120d`, panel `#101b13`, border `#35513a`, positive `#9bd34b`, emphasis `#f3c957`, info `#73c9d6`, closure `#e06c5f`, text `#f3f0df`.
+Do not copy another newsletter's logo, exact palette, typography, signature wording, icon system, or section structure. Avoid childish, gamified, military, or achievement-style theming.
+
+Recommended original palette: page `#f3f6fa`, masthead `#0b1220`, surface `#ffffff`, panel `#f7f9fc`, border `#dbe3ec`, primary accent `#19b8c9`, secondary accent `#ff7a59`, positive `#13795b`, info `#315d85`, risk `#b4473d`, ink `#111827`, muted `#64748b`.
+
+For email output use table-based layout, inline CSS, roughly 760–900px max width, mobile-safe stacking, high contrast, and no external JavaScript dependency.
 
 ## Default rebuild workflow
 
-Resolve current local time → find latest sent report → parse issue/timestamp → establish exact window → audit recruiting activity → refresh cumulative totals → reconcile live/closed → refresh market data if used → identify relevant build proof → rebuild report → triple-check facts/counts/status → produce email-safe HTML → draft unless send is explicitly authorized → advance baseline only after confirmed send.
+Resolve current time → find latest sent report → establish exact window → audit recruiting activity → refresh cumulative totals → reconcile active/closed → define target segment → refresh official market data → refresh platform/industry data → review recent Reddit/practitioner signals → assess market outlook → calculate funnel conversion/velocity → assess market-relative progress → identify relevant build proof → build report → triple-check facts, counts, sources, and status → produce email-safe HTML → draft unless send is explicitly authorized → advance baseline only after confirmed send.
 
 ## Acceptance test
 
-Verify the window comes from the latest sent report; cumulative totals are separate from interval changes; every delta falls inside the window; live roles have current signal; closed roles are removed; compensation is correctly labeled; market data is sourced; productive work is relevant; no unrelated/private identity leaked; HTML is mobile-readable; names/dates/organizations/roles/counts were checked; and output remains draft-only unless sending was explicitly authorized.
-
-## Standalone input template
-
-```yaml
-series_name: "Job Search Field Report"
-subject_prefix: "Job Search '26 | Issue"
-timezone: "America/Chicago"
-search_start_at: "2026-05-01T09:00:00-05:00"
-seed_issue_number: 3
-seed_sent_at: "2026-09-01T08:15:00-05:00"
-target_compensation: "$140K+ preferred"
-```
-
-This skill does not require Clintware, a specific email provider, a specific ATS, or a specific tracker. Email, calendar, tracker, files, and web sources are optional adapters around the same core rules.
+Verify the exact sent-report window; clean cumulative vs interval separation; current active/closed reconciliation; truthful compensation labels; explicit target market; current official sources; Reddit clearly labeled anecdotal; dated market outlook with confidence; actual funnel math; no unsupported percentile; fresh evidence overriding stale memory; relevant productive-work proof only; mobile-readable non-childish HTML; and draft-only output unless sending was explicitly authorized.
