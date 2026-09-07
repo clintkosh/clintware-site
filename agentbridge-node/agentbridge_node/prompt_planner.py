@@ -4,32 +4,16 @@ from dataclasses import asdict, dataclass
 import re
 
 from .contextor import estimate_tokens
-from .preferences import PreferenceStore, parse_preference_command, render_preference_context
+from .preferences import PreferenceStore, infer_task_type, parse_preference_command, render_preference_context
 
 
-ACTION_RE = re.compile(
-    r"\b(?:build|create|generate|make|update|edit|modify|fix|implement|add|remove|"
-    r"replace|assemble|combine|export|render|deploy|test|verify|check|review|"
-    r"research|search|compare|analyze|summarize|draft|send|save|upload|download|"
-    r"then|after|once|next|finally|before|proceed|continue)\b",
-    re.I,
-)
+ACTION_RE = re.compile(r"\b(?:build|create|generate|make|update|edit|modify|fix|implement|add|remove|replace|assemble|combine|export|render|deploy|test|verify|check|review|research|search|compare|analyze|summarize|draft|send|save|upload|download|then|after|once|next|finally|before|proceed|continue)\b", re.I)
 SEQUENCE_RE = re.compile(r"\b(?:then|after(?:ward)?|once|next|finally|before|only after|proceed|continue)\b", re.I)
 NUMBERED_RE = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s+", re.M)
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])")
-LOGICAL_BOUNDARY_RE = re.compile(
-    r"\s*;\s*|(?<=[.!?])\s+(?=(?:Then|Next|After(?:ward)?|Once|Finally|Before|Proceed|Continue)\b)",
-    re.I,
-)
-VISUAL_MULTI_RE = re.compile(
-    r"\b(?:pages?|images?|illustrations?|scenes?|frames?|shots?|storyboards?|coloring\s+book|gallery|wallpapers?)\b",
-    re.I,
-)
-VISUAL_VARIATION_RULE = (
-    "For repeated visual/story outputs, preserve recognizable identity/style but deliberately vary pose, body angle, camera distance, "
-    "framing, expression, interaction, environment, and composition; do not clone the same portrait stance across scenes."
-)
-
+LOGICAL_BOUNDARY_RE = re.compile(r"\s*;\s*|(?<=[.!?])\s+(?=(?:Then|Next|After(?:ward)?|Once|Finally|Before|Proceed|Continue)\b)", re.I)
+VISUAL_MULTI_RE = re.compile(r"\b(?:pages?|images?|illustrations?|scenes?|frames?|shots?|storyboards?|coloring\s+book|gallery|wallpapers?)\b", re.I)
+VISUAL_VARIATION_RULE = "For repeated visual/story outputs, preserve recognizable identity/style but deliberately vary pose, body angle, camera distance, framing, expression, interaction, environment, and composition; do not clone the same portrait stance across scenes."
 AUTO_CONTINUE_RULES = (
     "Work through the steps in order without asking for repeated OK/continue confirmations. "
     "Before each next step, re-compact the unresolved requirements plus only the prior outputs needed by that step; do not resend irrelevant completed context. "
@@ -57,6 +41,12 @@ class PromptPlan:
     compacted_tokens_est: int
     complexity_score: int
     triggered_by: list[str]
+    task_type: str = "general"
+    project: str = ""
+    total_rule_count: int = 0
+    applicable_rule_count: int = 0
+    rule_context_tokens_est: int = 0
+    rule_context_avoided_est: int = 0
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -65,255 +55,131 @@ class PromptPlan:
 
 
 def _normalize_preserving_blocks(text: str) -> str:
-    """Conservatively compact whitespace and exact duplicate lines without dropping unique content."""
     text = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
         return ""
-
-    out: list[str] = []
-    seen_lines: set[str] = set()
-    in_fence = False
-    blank = False
+    out: list[str] = []; seen_lines: set[str] = set(); in_fence = False; blank = False
     for raw in text.split("\n"):
         line = raw.rstrip()
         if line.lstrip().startswith("```"):
-            in_fence = not in_fence
-            out.append(line)
-            blank = False
-            continue
-        if in_fence:
-            out.append(line)
-            continue
+            in_fence = not in_fence; out.append(line); blank = False; continue
+        if in_fence: out.append(line); continue
         stripped = " ".join(line.split())
         if not stripped:
-            if not blank and out:
-                out.append("")
-            blank = True
-            continue
-        blank = False
-        key = stripped.casefold()
-        if key in seen_lines and len(stripped) >= 24:
-            continue
-        seen_lines.add(key)
-        out.append(stripped)
-
-    while out and not out[-1]:
-        out.pop()
+            if not blank and out: out.append("")
+            blank = True; continue
+        blank = False; key = stripped.casefold()
+        if key in seen_lines and len(stripped) >= 24: continue
+        seen_lines.add(key); out.append(stripped)
+    while out and not out[-1]: out.pop()
     return "\n".join(out)
 
 
 def _complexity(text: str) -> tuple[int, list[str]]:
-    score = 0
-    reasons: list[str] = []
-    actions = len(ACTION_RE.findall(text))
-    sequences = len(SEQUENCE_RE.findall(text))
-    list_items = len(NUMBERED_RE.findall(text))
-    separators = text.count(";") + text.count("\n")
-
-    if actions >= 6:
-        score += min(6, actions // 3)
-        reasons.append("many_actions")
-    if sequences >= 3:
-        score += min(5, sequences)
-        reasons.append("sequential_dependencies")
-    if list_items >= 4:
-        score += min(5, list_items // 2)
-        reasons.append("many_list_items")
-    if separators >= 10:
-        score += min(4, separators // 8)
-        reasons.append("many_sections")
+    score = 0; reasons: list[str] = []
+    actions = len(ACTION_RE.findall(text)); sequences = len(SEQUENCE_RE.findall(text)); list_items = len(NUMBERED_RE.findall(text)); separators = text.count(";") + text.count("\n")
+    if actions >= 6: score += min(6, actions // 3); reasons.append("many_actions")
+    if sequences >= 3: score += min(5, sequences); reasons.append("sequential_dependencies")
+    if list_items >= 4: score += min(5, list_items // 2); reasons.append("many_list_items")
+    if separators >= 10: score += min(4, separators // 8); reasons.append("many_sections")
     return score, reasons
 
 
 def _split_large_unit(unit: str, target: int) -> list[str]:
     unit = unit.strip()
-    if len(unit) <= target:
-        return [unit] if unit else []
-
+    if len(unit) <= target: return [unit] if unit else []
     sentences = [x.strip() for x in SENTENCE_SPLIT_RE.split(unit) if x.strip()]
     if len(sentences) <= 1:
-        chunks: list[str] = []
-        remaining = unit
+        chunks: list[str] = []; remaining = unit
         while len(remaining) > target:
             cut = remaining.rfind(" ", 0, target)
-            if cut < target // 2:
-                cut = target
-            chunks.append(remaining[:cut].strip())
-            remaining = remaining[cut:].strip()
-        if remaining:
-            chunks.append(remaining)
+            if cut < target // 2: cut = target
+            chunks.append(remaining[:cut].strip()); remaining = remaining[cut:].strip()
+        if remaining: chunks.append(remaining)
         return chunks
-
-    chunks: list[str] = []
-    current = ""
+    chunks: list[str] = []; current = ""
     for sentence in sentences:
         candidate = sentence if not current else f"{current} {sentence}"
-        if len(candidate) <= target:
-            current = candidate
-            continue
-        if current:
-            chunks.append(current)
-        if len(sentence) > target:
-            chunks.extend(_split_large_unit(sentence, target))
-            current = ""
-        else:
-            current = sentence
-    if current:
-        chunks.append(current)
+        if len(candidate) <= target: current = candidate; continue
+        if current: chunks.append(current)
+        if len(sentence) > target: chunks.extend(_split_large_unit(sentence, target)); current = ""
+        else: current = sentence
+    if current: chunks.append(current)
     return chunks
 
 
 def _coalesce_to_limit(steps: list[str], max_steps: int) -> list[str]:
-    if len(steps) <= max_steps:
-        return steps
+    if len(steps) <= max_steps: return steps
     group_size = (len(steps) + max_steps - 1) // max_steps
     return ["\n".join(steps[i:i + group_size]) for i in range(0, len(steps), group_size)]
 
 
 def _chunk(text: str, target: int, max_steps: int, *, prefer_logical_boundaries: bool = False) -> list[str]:
-    base_units = [u.strip() for u in re.split(r"\n{2,}|(?=^\s*(?:\d+[.)]|[-*•])\s+)", text, flags=re.M) if u.strip()]
-    if not base_units:
-        base_units = [text.strip()]
-
+    base_units = [u.strip() for u in re.split(r"\n{2,}|(?=^\s*(?:\d+[.)]|[-*•])\s+)", text, flags=re.M) if u.strip()] or [text.strip()]
     units: list[str] = []
     for unit in base_units:
-        if prefer_logical_boundaries:
-            logical = [x.strip() for x in LOGICAL_BOUNDARY_RE.split(unit) if x.strip()]
-            units.extend(logical or [unit])
-        else:
-            units.append(unit)
-
+        if prefer_logical_boundaries: units.extend([x.strip() for x in LOGICAL_BOUNDARY_RE.split(unit) if x.strip()] or [unit])
+        else: units.append(unit)
     expanded: list[str] = []
-    for unit in units:
-        expanded.extend(_split_large_unit(unit, target))
-
-    if prefer_logical_boundaries and len(expanded) > 1:
-        return _coalesce_to_limit(expanded, max_steps)
-
-    steps: list[str] = []
-    current = ""
+    for unit in units: expanded.extend(_split_large_unit(unit, target))
+    if prefer_logical_boundaries and len(expanded) > 1: return _coalesce_to_limit(expanded, max_steps)
+    steps: list[str] = []; current = ""
     for unit in expanded:
         candidate = unit if not current else f"{current}\n{unit}"
-        if len(candidate) <= target:
-            current = candidate
+        if len(candidate) <= target: current = candidate
         else:
-            if current:
-                steps.append(current)
+            if current: steps.append(current)
             current = unit
-    if current:
-        steps.append(current)
+    if current: steps.append(current)
     return _coalesce_to_limit(steps, max_steps)
 
 
 def _master_prompt(compacted: str, steps: list[str], auto_continue: bool) -> str:
-    if len(steps) <= 1:
-        return compacted
-
-    protocol = AUTO_CONTINUE_RULES if auto_continue else (
-        "Complete the steps in order. Verify each step before moving to the next."
-    )
-    if VISUAL_MULTI_RE.search(compacted):
-        protocol = f"{protocol} {VISUAL_VARIATION_RULE}"
-
-    rendered = [
-        "QUILLGEIST AUTOCOMPACT EXECUTION PLAN",
-        f"Protocol: {protocol}",
-        "Execute the following dependency-ordered steps. Treat all steps as parts of the same original request:",
-    ]
+    if len(steps) <= 1: return compacted
+    protocol = AUTO_CONTINUE_RULES if auto_continue else "Complete the steps in order. Verify each step before moving to the next."
+    if VISUAL_MULTI_RE.search(compacted): protocol = f"{protocol} {VISUAL_VARIATION_RULE}"
+    rendered = ["QUILLGEIST AUTOCOMPACT EXECUTION PLAN", f"Protocol: {protocol}", "Execute the following dependency-ordered steps. Treat all steps as parts of the same original request:"]
     total = len(steps)
-    for idx, step in enumerate(steps, 1):
-        rendered.append(f"\n[STEP {idx}/{total}]\n{step}")
-    rendered.append(
-        "\nBegin with STEP 1 now. After QA, re-compact only the unresolved requirements and required prior outputs for STEP 2, then continue automatically; repeat until final end-to-end QA and delivery."
-    )
+    for idx, step in enumerate(steps, 1): rendered.append(f"\n[STEP {idx}/{total}]\n{step}")
+    rendered.append("\nBegin with STEP 1 now. After QA, re-compact only the unresolved requirements and required prior outputs for STEP 2, then continue automatically; repeat until final end-to-end QA and delivery.")
     return "\n".join(rendered)
 
 
 def _memory_update_plan(raw: str, action: str, value: str) -> PromptPlan:
     store = PreferenceStore()
     if action == "remember":
-        result = store.add(value)
-        pref = result.get("preference", {})
-        status = result.get("status", "saved")
-        message = (
-            f"Quillgeist preference {status} locally: [{pref.get('id', 'unknown')}] {pref.get('text', value)}\n"
-            "No external model call is required. This preference will be injected into future compiled instructions."
-        )
+        result = store.add(value); pref = result.get("preference", {}); status = result.get("status", "saved")
+        message = f"Quillgeist global operating rule {status} locally: [{pref.get('id', 'unknown')}] {pref.get('text', value)}\nNo external model call is required. Use `quillgeist rules add` for project/task-scoped rules."
         trigger = "preference_saved" if status == "saved" else "preference_exists"
     else:
-        result = store.remove(value)
-        status = result.get("status", "not_found")
+        result = store.remove(value); status = result.get("status", "not_found")
         if status == "removed":
-            removed = result.get("removed", [])
-            rendered = ", ".join(f"[{item.get('id')}] {item.get('text')}" for item in removed)
-            message = f"Quillgeist removed local preference: {rendered}"
-            trigger = "preference_removed"
+            removed = result.get("removed", []); rendered = ", ".join(f"[{item.get('id')}] {item.get('text')}" for item in removed); message = f"Quillgeist removed local operating rule: {rendered}"; trigger = "preference_removed"
         elif status == "ambiguous":
-            matches = result.get("matches", [])
-            rendered = "\n".join(f"- [{item.get('id')}] {item.get('text')}" for item in matches)
-            message = f"More than one saved preference matched. Remove one by id:\n{rendered}"
-            trigger = "preference_ambiguous"
-        else:
-            message = f"No saved preference matched: {value}"
-            trigger = "preference_not_found"
-    return PromptPlan(
-        mode="memory_update",
-        master_prompt=message,
-        steps=[PromptStep(index=1, prompt=message)],
-        raw_chars=len(raw),
-        compacted_chars=len(raw.strip()),
-        raw_tokens_est=estimate_tokens(raw),
-        compacted_tokens_est=estimate_tokens(message),
-        complexity_score=0,
-        triggered_by=[trigger],
-    )
+            matches = result.get("matches", []); rendered = "\n".join(f"- [{item.get('id')}] {item.get('text')}" for item in matches); message = f"More than one saved rule matched. Remove one by id:\n{rendered}"; trigger = "preference_ambiguous"
+        else: message = f"No saved operating rule matched: {value}"; trigger = "preference_not_found"
+    return PromptPlan(mode="memory_update", master_prompt=message, steps=[PromptStep(index=1, prompt=message)], raw_chars=len(raw), compacted_chars=len(raw.strip()), raw_tokens_est=estimate_tokens(raw), compacted_tokens_est=estimate_tokens(message), complexity_score=0, triggered_by=[trigger])
 
 
 def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -> PromptPlan:
-    settings = dict(config or {})
-    enabled = bool(settings.get("enabled", True))
-    threshold = int(settings.get("threshold_chars", 3500))
-    target = max(800, int(settings.get("step_target_chars", 2400)))
-    complexity_threshold = int(settings.get("complexity_threshold", 6))
-    max_steps = max(2, int(settings.get("max_steps", 24)))
-    auto_continue = bool(settings.get("auto_continue", True))
-    preference_limit = max(0, int(settings.get("preference_limit", 12)))
-
-    raw = str(text or "").strip()
-    memory_command = parse_preference_command(raw)
-    if memory_command:
-        return _memory_update_plan(raw, *memory_command)
-
-    compacted = _normalize_preserving_blocks(raw)
-    score, reasons = _complexity(compacted)
-    triggered: list[str] = []
-    if len(compacted) >= threshold:
-        triggered.append("length")
-    if score >= complexity_threshold:
-        triggered.append("complexity")
-    if force:
-        triggered.append("forced")
-
-    should_plan = enabled and bool(compacted) and bool(triggered)
-    prefer_logical = "complexity" in triggered or "forced" in triggered
+    settings = dict(config or {}); enabled = bool(settings.get("enabled", True)); threshold = int(settings.get("threshold_chars", 3500)); target = max(800, int(settings.get("step_target_chars", 2400))); complexity_threshold = int(settings.get("complexity_threshold", 6)); max_steps = max(2, int(settings.get("max_steps", 24))); auto_continue = bool(settings.get("auto_continue", True)); preference_limit = max(0, int(settings.get("preference_limit", 20)))
+    raw = str(text or "").strip(); memory_command = parse_preference_command(raw)
+    if memory_command: return _memory_update_plan(raw, *memory_command)
+    compacted = _normalize_preserving_blocks(raw); score, reasons = _complexity(compacted); triggered: list[str] = []
+    if len(compacted) >= threshold: triggered.append("length")
+    if score >= complexity_threshold: triggered.append("complexity")
+    if force: triggered.append("forced")
+    should_plan = enabled and bool(compacted) and bool(triggered); prefer_logical = "complexity" in triggered or "forced" in triggered
     steps_text = _chunk(compacted, target, max_steps, prefer_logical_boundaries=prefer_logical) if should_plan else [compacted]
-    steps = [PromptStep(index=i, prompt=value) for i, value in enumerate(steps_text, 1)]
-    master = _master_prompt(compacted, steps_text, auto_continue) if should_plan else compacted
+    steps = [PromptStep(index=i, prompt=value) for i, value in enumerate(steps_text, 1)]; master = _master_prompt(compacted, steps_text, auto_continue) if should_plan else compacted
 
-    preferences = PreferenceStore().list(limit=preference_limit) if preference_limit else []
-    preference_context = render_preference_context(preferences)
-    if preference_context and master:
-        master = f"{preference_context}\n\n{master}"
-        triggered.append("persistent_preferences")
-
+    project = str(settings.get("project", "") or "").strip(); task_type = str(settings.get("task_type", "") or "").strip().casefold() or infer_task_type(compacted)
+    store = PreferenceStore(); all_rules = store.list(); applicable = store.select(compacted, project=project, task_type=task_type, limit=preference_limit) if preference_limit else []
+    rule_context = render_preference_context(applicable); all_rule_context = render_preference_context(all_rules)
+    if rule_context and master:
+        master = f"{rule_context}\n\n{master}"; triggered.extend(["persistent_preferences", "scoped_operating_rules"])
     return PromptPlan(
-        mode="auto_continue" if should_plan and len(steps) > 1 else "single",
-        master_prompt=master,
-        steps=steps,
-        raw_chars=len(raw),
-        compacted_chars=len(compacted),
-        raw_tokens_est=estimate_tokens(raw),
-        compacted_tokens_est=estimate_tokens(master),
-        complexity_score=score,
-        triggered_by=triggered,
+        mode="auto_continue" if should_plan and len(steps) > 1 else "single", master_prompt=master, steps=steps,
+        raw_chars=len(raw), compacted_chars=len(compacted), raw_tokens_est=estimate_tokens(raw), compacted_tokens_est=estimate_tokens(master), complexity_score=score, triggered_by=triggered,
+        task_type=task_type, project=project, total_rule_count=len(all_rules), applicable_rule_count=len(applicable), rule_context_tokens_est=estimate_tokens(rule_context), rule_context_avoided_est=max(0, estimate_tokens(all_rule_context) - estimate_tokens(rule_context))
     )

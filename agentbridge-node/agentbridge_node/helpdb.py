@@ -11,7 +11,7 @@ from .config import home_dir
 
 BASE_HELP = {
     "schema": 1,
-    "updated_at": "2026-08-16T00:00:00Z",
+    "updated_at": "2026-09-07T00:00:00Z",
     "getting_started": [
         {"id":"quick-start","title":"Quick start","body":"1. Run `agentbridge init`.  2. Pair the Node with Quillgeist using `agentbridge pair --cloud https://quillgeist.clintware.com`.  3. Start `agentbridge daemon`.  4. Inspect an Execution Pack before running it.  5. Run it with `agentbridge run <file>` or send it from Quillgeist Cloud."},
         {"id":"execution-pack","title":"Run an Execution Pack","body":"Quillgeist accepts `.abpack`, runtime JSON, and runtime Markdown.  Use `agentbridge inspect <file>` to review the requested workspace, steps, permissions, and Definition of Done before execution."},
@@ -19,6 +19,8 @@ BASE_HELP = {
         {"id":"permissions","title":"Approve capabilities","body":"Local policy is authoritative.  `always` permits a capability, `ask` requires approval, and `never` cannot be overridden by Cloud.  Owner Mode does not override a local `never` rule."},
         {"id":"dlp","title":"Sensitive-data protection","body":"Quillgeist scans Execution Pack content locally before execution. Standard protection is on by default: high-risk findings such as payment cards, private keys, credentials, API tokens, JWTs, and U.S. SSNs require explicit approval before execution; Strict blocks findings; Monitor records only sanitized finding metadata; Off disables the gate. Email addresses and phone numbers are treated as medium-risk contact data. Use `agentbridge dlp status|standard|strict|monitor|off|on` to control it."},
         {"id":"contextor","title":"Contextor","body":"Contextor compacts execution output before it is returned to an upstream planner.  Small results pass through, large results use deterministic compaction, and Smart mode can optionally use a local Ollama model when the predicted savings justify the overhead."},
+        {"id":"operating-rules","title":"Scoped operating rules","body":"Quillgeist can store explicit operating rules with global, project, or task scope. Use `quillgeist-rules` to inspect/manage them and `quillgeist-plan --project <name> --task <type>` to compile only applicable rules into a task prompt. The planner reports total rules, selected rules, and estimated context avoided rather than injecting every saved preference into every task."},
+        {"id":"assemblerer-manifest","title":"Compile an Assemblerer company manifest","body":"Use `quillgeist-manifest <manifest.json>` to compile an Assemblerer export into bounded task context. Quillgeist preserves the founder authority ceiling, routing preference, pending work, and required evidence. Manifest content is not silently persisted as permanent user rules."},
         {"id":"scheduling","title":"Schedules","body":"Schedules may be device-owned or cloud-owned.  Device-owned schedules can continue while Cloud is unavailable.  Cloud-owned schedules are dispatched by Quillgeist Cloud to the selected paired device."},
         {"id":"telemetry","title":"Usage metrics and error reporting","body":"By default the Node sends operational metadata, Contextor token estimates, run duration, patch/file counts, connection activity, and redacted errors to your Quillgeist Cloud account.  Prompt text and file contents are not included in the telemetry event.  Use `agentbridge telemetry status|on|off|flush` to inspect or control Node telemetry."},
     ],
@@ -34,6 +36,7 @@ BASE_HELP = {
         {"id":"faq-llm","q":"Does Quillgeist require a local LLM?","a":"No.  Explicit Execution Packs use the deterministic local executor.  A local LLM is optional for Smart Contextor compaction and future intent interpretation."},
         {"id":"faq-admin","q":"Does Quillgeist give Clintware unrestricted administrator access?","a":"No.  Cloud requests work; the local Node enforces device policy and permissions.  A local `never` capability cannot be overridden remotely."},
         {"id":"faq-offline","q":"Can Quillgeist work without Cloud?","a":"Yes.  Local Execution Packs and device-owned schedules can run without the hosted control plane.  Cloud adds routing, synchronization, remote control, account history, and reporting."},
+        {"id":"faq-rules","q":"Does Quillgeist automatically learn permanent rules from my corrections?","a":"No. Corrections can create a proposed operating rule, but the proposal remains unsaved until the user explicitly accepts it and chooses its scope. This keeps learned behavior inspectable and prevents silent permanent profile mutation."},
         {"id":"faq-data","q":"What telemetry goes to Cloud?","a":"Operational metadata such as connection/send/receive counts, run status and duration, estimated token savings, patch/file counts, Node version, and redacted errors.  The telemetry path is designed not to send prompt text or file contents."},
         {"id":"faq-dlp","q":"What happens if Quillgeist detects sensitive data?","a":"Detection happens locally before an Execution Pack runs. Standard mode asks before high-risk data can proceed, Strict blocks findings until the data is removed or redacted, Monitor allows the run while recording only sanitized finding metadata, and Off disables the check. Matching secret values are not included in DLP finding reports."},
         {"id":"faq-error","q":"What happens when a run fails?","a":"Quillgeist records the Result Pack locally, sends a redacted error/metrics event to the paired Cloud account when telemetry is enabled, and returns compact planner feedback for a repair iteration."},
@@ -44,6 +47,9 @@ BASE_HELP = {
     "glossary": [
         {"term":"Quillgeist Cloud","definition":"The hosted control plane that pairs devices, routes jobs, synchronizes schedules, stores account-scoped operational history, and exposes remote approvals/reporting."},
         {"term":"Quillgeist Node","definition":"The local Windows, macOS, or Linux executor that enforces local permissions and performs authorized work on the user's machine."},
+        {"term":"Operating rule","definition":"An explicit user-owned instruction with global, project, or task scope that Quillgeist can selectively compile into applicable AI work."},
+        {"term":"Context compilation","definition":"Selecting only operating rules and bounded context relevant to the current project/task instead of injecting the full user history or preference store."},
+        {"term":"Assemblerer manifest","definition":"A portable company/team authority manifest that Quillgeist can compile into bounded execution context without silently converting it into permanent user rules."},
         {"term":"Execution Pack (.abpack)","definition":"Portable structured work instructions sent from an AI/user to Quillgeist for local validation and execution."},
         {"term":"Result Pack (.abresult)","definition":"Structured evidence from a run, including status, Definition-of-Done results, changes, errors, Contextor metrics, and planner feedback."},
         {"term":"Local Sensitive Data Gate","definition":"Quillgeist's deterministic local DLP layer that scans content before execution and, when external model routing is active, is the required pre-send guard for compiled prompts, attached context, and retrieved text."},
@@ -61,6 +67,7 @@ BASE_HELP = {
         {"id":"alpha-1","date":"2026-08-15","version":"0.1.0-alpha.1","title":"Public alpha execution backbone","body":"Added cross-platform Node builds, Cloud routing, Execution/Result Packs, local capability policy, rollback, schedules, Contextor, file associations, and mobile/PWA remote control."},
         {"id":"alpha-2-telemetry","date":"2026-08-15","version":"0.1.0-alpha.2","title":"Telemetry, reports, bug lifecycle, and local Help Center","body":"Added automatic operational metrics/error reporting, per-user filtered reports, de-identified product-health aggregation, bug reported/resolved/reopened tracking, and this locally stored Help Center."},
         {"id":"alpha-3-dlp","date":"2026-08-16","version":"0.1.0-alpha.3","title":"Local sensitive-data gate","body":"Added deterministic local scanning for payment cards, private keys, common API/credential tokens, JWTs, U.S. SSNs, email addresses, and phone numbers; Standard protection is enabled by default with Strict, Monitor, and Off modes."},
+        {"id":"core-0-4","date":"2026-09-07","version":"0.4.0-core","title":"Scoped rules, selective compilation, and company manifests","body":"Added global/project/task operating rules, selective rule compilation with context-avoidance telemetry, correction-to-proposed-rule behavior, and Assemblerer manifest compilation while preserving local execution and verification."},
     ],
 }
 
