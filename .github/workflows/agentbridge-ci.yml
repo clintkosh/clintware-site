@@ -79,6 +79,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install Cloud dependencies
+        run: npm install --prefix agentbridge-cloud --no-audit --no-fund
       - name: JavaScript syntax
         run: |
           node --check agentbridge-cloud/src/index.js
