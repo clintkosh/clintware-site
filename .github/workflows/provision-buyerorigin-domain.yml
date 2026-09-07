@@ -1,0 +1,116 @@
+name: Provision BuyerOrigin.com
+
+on:
+  pull_request:
+    paths:
+      - "buyerorigin-worker/wrangler.apex.jsonc"
+      - ".github/workflows/provision-buyerorigin-domain.yml"
+  push:
+    branches: [main]
+    paths:
+      - "buyerorigin-worker/wrangler.apex.jsonc"
+      - ".github/workflows/provision-buyerorigin-domain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate apex Worker config
+        run: XDG_CONFIG_HOME=/tmp/buyerorigin-domain-xdg npx --yes --cache /tmp/buyerorigin-domain-npm-cache wrangler@4 deploy --dry-run --config buyerorigin-worker/wrangler.apex.jsonc
+
+  provision:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      zone_available: ${{ steps.zone.outputs.zone_available }}
+      nameservers: ${{ steps.zone.outputs.nameservers }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find or create BuyerOrigin.com Cloudflare zone
+        id: zone
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -u
+          api="https://api.cloudflare.com/client/v4"
+          auth=(-H "Authorization: Bearer ${CF_API_TOKEN}" -H "Content-Type: application/json")
+          lookup=$(curl -sS "${auth[@]}" "${api}/zones?name=buyerorigin.com&account.id=${CF_ACCOUNT_ID}" || true)
+          zone_id=$(jq -r '.result[0].id // empty' <<<"$lookup" 2>/dev/null || true)
+          response="$lookup"
+
+          if [ -z "$zone_id" ]; then
+            payload=$(jq -nc --arg account "$CF_ACCOUNT_ID" '{account:{id:$account},name:"buyerorigin.com",type:"full"}')
+            response=$(curl -sS -X POST "${auth[@]}" --data "$payload" "${api}/zones" || true)
+            zone_id=$(jq -r '.result.id // empty' <<<"$response" 2>/dev/null || true)
+          fi
+
+          if [ -n "$zone_id" ]; then
+            detail=$(curl -sS "${auth[@]}" "${api}/zones/${zone_id}" || true)
+            status=$(jq -r '.result.status // "unknown"' <<<"$detail" 2>/dev/null || echo unknown)
+            nameservers=$(jq -r '(.result.name_servers // []) | join(",")' <<<"$detail" 2>/dev/null || true)
+            echo "zone_available=true" >> "$GITHUB_OUTPUT"
+            echo "nameservers=$nameservers" >> "$GITHUB_OUTPUT"
+            echo "BuyerOrigin.com Cloudflare zone: $status"
+            echo "Cloudflare nameservers: ${nameservers:-not returned}"
+            {
+              echo "### BuyerOrigin.com Cloudflare zone"
+              echo "- Status: **$status**"
+              echo "- Nameservers: \`${nameservers:-not returned}\`"
+              echo "- Existing BuyerOrigin subdomain remains live during DNS cutover."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            errors=$(jq -c '.errors // []' <<<"$response" 2>/dev/null || echo '[]')
+            echo "zone_available=false" >> "$GITHUB_OUTPUT"
+            echo "nameservers=" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare zone could not be created with the current token: $errors"
+            {
+              echo "### BuyerOrigin.com domain provisioning"
+              echo "Cloudflare zone creation was not available to this CI token.  The existing BuyerOrigin subdomain was not changed."
+              echo "Errors: \`$errors\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Deploy Worker to BuyerOrigin.com when zone is available
+        if: steps.zone.outputs.zone_available == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --config buyerorigin-worker/wrangler.apex.jsonc
+
+      - name: Verify existing BuyerOrigin production URL
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/ || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/healthz || true)
+            if grep -Fq 'Protect the offer, not the checkout.' <<< "$page" && grep -Fq 'merchant-offer-eligibility' <<< "$health"; then
+              echo "Existing BuyerOrigin production URL is healthy."
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
+
+      - name: Check BuyerOrigin.com DNS/live status
+        if: steps.zone.outputs.zone_available == 'true'
+        shell: bash
+        run: |
+          if page=$(curl -fsS --connect-timeout 5 --max-time 15 https://buyerorigin.com/ 2>/dev/null) && grep -Fq 'Protect the offer, not the checkout.' <<< "$page"; then
+            echo "BuyerOrigin.com is live." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "BuyerOrigin.com Worker is prepared, but public DNS is not resolving to it yet. Configure the domain at Namecheap with the Cloudflare nameservers reported above; buyerorigin.clintware.com remains live meanwhile." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
