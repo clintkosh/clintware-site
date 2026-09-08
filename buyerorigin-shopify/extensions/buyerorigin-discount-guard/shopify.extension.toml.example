@@ -1,0 +1,14 @@
+api_version = "2026-01"
+
+# Generate the real extension with Shopify CLI after the app is registered.
+# Do not copy a UID from another app.  Shopify assigns the UID.
+[[extensions]]
+name = "BuyerOrigin Discount Guard"
+handle = "buyerorigin-discount-guard"
+type = "function"
+# uid = "REQUIRED_SHOPIFY_GENERATED_UID"
+
+[[extensions.targeting]]
+target = "cart.lines.discounts.generate.run"
+input_query = "src/cart_lines_discounts_generate_run.graphql"
+export = "cart_lines_discounts_generate_run"
