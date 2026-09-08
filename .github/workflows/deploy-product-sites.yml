@@ -99,7 +99,7 @@ jobs:
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/healthz || true)
-            if grep -Fq 'Protect the offer, not the checkout.' <<< "$page" && grep -Fq 'merchant-offer-eligibility' <<< "$health"; then exit 0; fi
+            if grep -Fq 'Stop the same buyer from using the same coupon again.' <<< "$page" && grep -Fq 'same-coupon-reuse-audit' <<< "$health"; then exit 0; fi
             sleep 3
           done
           exit 1
