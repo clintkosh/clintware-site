@@ -1,40 +1,64 @@
-# BuyerOrigin design-partner pilot playbook
+# BuyerOrigin founding design-partner pilot
 
-## Qualification gate
+## Pilot identity
 
-Recruit three Shopify merchants that use a limited new-customer or welcome offer.  A useful design partner should have either at least 10 suspicious redemptions per month or a plausible $250 or more in monthly promotion leakage, plus willingness to consider $39 to $99 per month if the review is useful.
+The initial tester is referred to only as `Pilot Merchant A`.  No identifying merchant information belongs in source control, public pages, screenshots, fixtures, analytics notes, or case-study language.
 
-## Pilot sequence
+## Offer
 
-### Days 1 to 7
+Provide a 14-to-30-day founding design-partner pilot.  Public attribution is not required.  The merchant can stop after the browser-local audit without installing anything.
 
-- Ask for a limited, date-bounded CSV export rather than store credentials.
-- Run BuyerOrigin locally in monitor mode.
-- Review every flagged row with the merchant.
-- Record confirmed abuse, legitimate household/shared-address use, uncertainty, and allowlist decisions.
+## First-test flow
 
-### Days 8 to 21
+1. Merchant opens Shopify Admin.
+2. Merchant selects **Orders → Export**.
+3. Merchant selects a limited date range.
+4. Merchant uploads the unedited CSV to BuyerOrigin.
+5. BuyerOrigin displays suspected same-coupon reuse, matched evidence, prior order, estimated leakage, and recommended action.
+6. Merchant tests a current shopper in the local simulator and receives `Allow coupon` or `Reject coupon`.
+7. Merchant marks each reviewed case as legitimate match, abuse, uncertain, or merchant override.
+8. Only after the evidence is reviewed, offer installation of the dedicated custom-distribution Shopify pilot app.
 
-- Refine normalization only from repeated merchant evidence.
-- Measure review time, confirmed leakage, false positives, false negatives found manually, and override rate.
-- Do not add device or IP signals unless the basic workflow fails and a privacy review supports the need.
+## Default pilot policy
 
-### Days 22 to 30
+- Exact same coupon code, case-insensitive.
+- 2 of 3 normalized identity signals.
+- Email, phone, and shipping or billing address.
+- 365-day lookback.
+- Zero allowed previous uses.
+- Reject the coupon only.
+- Missing evidence fails open.
+- Merchant override or allowlist always remains available.
 
-- Present a leakage and accuracy readout.
-- Ask for a paid continuation at $39 to $99 per month.
-- Obtain permission separately before using an anonymized result as public proof.
-- Decide whether to build the connected Shopify monitor.
+## What to measure privately
 
-## Continue criteria
+- Orders analyzed.
+- Coupon uses analyzed.
+- Suspected reuse count.
+- Merchant-confirmed abuse count.
+- Legitimate shared-identity/household cases.
+- Uncertain cases.
+- Override rate.
+- Estimated and merchant-confirmed leakage.
+- Review time.
+- Whether the merchant wants live enforcement after review.
+- Whether the merchant would pay after the pilot.
 
-Continue when all three merchants complete a review, at least two report meaningful recoverable value, the review burden is acceptable, and at least one agrees to pay.  Pause or narrow the idea when merchants rank the problem low, evidence quality remains poor, or false positives cannot be controlled with the two-signal and override model.
+Do not convert a flagged count into a fraud or revenue claim.  Merchant confirmation is required.
 
-## Pilot outputs
+## Consent ledger
 
-- Anonymized order count and offer-redemption count.
-- Flagged count and manually confirmed count.
-- Estimated and confirmed leakage.
-- False-positive and override rates.
-- Time to review.
-- Exact willingness-to-pay response.
+Record four independent yes/no permissions for the merchant:
+
+| Consent | Meaning |
+| --- | --- |
+| Private testing | BuyerOrigin may process the merchant's data for the agreed private pilot. |
+| Anonymous aggregate metrics | Non-identifying aggregate results may be used publicly. |
+| Anonymous quotation | A non-identifying merchant quote may be used publicly. |
+| Named case study | Merchant identity and approved details may be published. |
+
+No higher level is implied by a lower level.  Named attribution requires separate written permission.
+
+## Install gate
+
+Do not ask Pilot Merchant A to install the Shopify app until the CSV audit has produced reviewable evidence and the merchant wants to test live coupon rejection.  At that point, use the dedicated custom-distribution pilot app registration rather than consuming the future public App Store app's irreversible distribution choice.

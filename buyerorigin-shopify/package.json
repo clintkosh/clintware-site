@@ -1,0 +1,1 @@
+{"name":"buyerorigin-shopify","private":true,"type":"module","scripts":{"test":"node --test test/*.test.mjs","check":"node --check src/rejection-policy.js && node --check extensions/buyerorigin-discount-guard/src/cart_lines_discounts_generate_run.js"}}

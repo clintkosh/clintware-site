@@ -1,16 +1,75 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import vm from "node:vm";
 import { BROWSER_ENGINE } from "../src/browser-engine.js";
-import { SAMPLE_CSV } from "../src/browser-app.js";
 
-const context = { globalThis: {}, Date }; vm.createContext(context); vm.runInContext(BROWSER_ENGINE, context); const engine = context.globalThis.BuyerOriginEngine;
-test("normalizes buyer signals", () => { assert.equal(engine.normalizeEmail("Alex.Smith+offer@googlemail.com"), "alexsmith@gmail.com"); assert.equal(engine.normalizePhone("+1 (512) 555-0101"), "5125550101"); assert.equal(engine.normalizeAddress("10 Oak Street, Apt 2"), "10oakst"); });
-test("default merchant policy finds repeat acquisition offer use", () => { const audit = engine.audit(SAMPLE_CSV, { mode: "monitor" }); assert.equal(audit.totals.orders, 6); assert.equal(audit.totals.ineligible, 2); assert.equal(audit.totals.estimated_leakage, 43); const row = audit.results.find((entry) => entry.order_id === "BO-1003"); assert.equal(row.status, "Ineligible"); assert.deepEqual(Array.from(row.reason_codes), ["EMAIL_ALIAS_MATCH", "PHONE_MATCH"]); });
-test("merchant can require all three identity signals", () => { const audit = engine.audit(SAMPLE_CSV, { policy: { min_matching_signals: 3 } }); assert.equal(audit.totals.ineligible, 0); assert.equal(audit.results.find((entry) => entry.order_id === "BO-1003").status, "Eligible"); assert.equal(audit.results.find((entry) => entry.order_id === "BO-1005").status, "Eligible"); });
-test("merchant can scope eligibility to the same offer code", () => { const csv = SAMPLE_CSV + "\nBO-1007,alexsmith@gmail.com,5125550101,902 Lake Avenue,VIP25,2026-08-30,100,25,true,human,"; const broad = engine.audit(csv, { policy: { offer_scope: "acquisition" } }); const narrow = engine.audit(csv, { policy: { offer_scope: "same_code" } }); assert.equal(broad.results.find((row) => row.order_id === "BO-1007").status, "Ineligible"); assert.equal(narrow.results.find((row) => row.order_id === "BO-1007").status, "Eligible"); });
-test("lookback window changes eligibility", () => { const csv = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount,is_new_customer_offer\nA,a@example.com,5125550101,1 Main Street,WELCOME,2025-01-01,100,20,true\nB,a@example.com,5125550101,2 Other Road,WELCOME,2026-08-01,100,20,true`; const short = engine.audit(csv, { policy: { lookback_days: 30 } }); const long = engine.audit(csv, { policy: { lookback_days: 1000 } }); assert.equal(short.results[1].status, "Eligible"); assert.equal(long.results[1].status, "Ineligible"); });
-test("merchant override preserves evidence", () => { const audit = engine.audit(SAMPLE_CSV, { mode: "enforce", allowlist: ["BO-1005"] }); const row = audit.results.find((entry) => entry.order_id === "BO-1005"); assert.equal(row.status, "Merchant override"); assert.equal(row.note, "Merchant allowlist override retained with evidence"); assert.ok(row.reason_codes.length >= 2); });
-test("simulation denies only the offer and never checkout", () => { const audit = engine.audit(SAMPLE_CSV, { mode: "enforce" }); assert.equal(audit.results.find((row) => row.order_id === "BO-1003").action, "Deny offer"); assert.ok(audit.results.every((row) => row.action !== "Deny checkout")); });
-test("shopping agent metadata does not independently affect eligibility", () => { const row = engine.audit(SAMPLE_CSV).results.find((entry) => entry.order_id === "BO-1006"); assert.equal(row.actor_type, "shopping_agent"); assert.equal(row.status, "Eligible"); });
-test("rejects incomplete exports", () => assert.throws(() => engine.audit("order_id,email\n1,a@example.com"), /Missing required columns/));
+globalThis.window = globalThis;
+Function(BROWSER_ENGINE)();
+const E = globalThis.BuyerOriginEngine;
+
+const generic = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount
+1,a@example.com,5125550001,10 Oak St,WELCOME20,2026-01-01,100,20
+2,a@example.com,5125550001,10 Oak Street,welcome20,2026-02-01,100,20
+3,a@example.com,5125550001,10 Oak St,OTHER20,2026-03-01,100,20`;
+
+test("default exact same-code reuse is case-insensitive and rejects coupon only", () => {
+  const audit = E.audit(generic);
+  assert.equal(audit.policy.offer_scope, "same_code");
+  assert.equal(audit.policy.max_prior_redemptions, 0);
+  assert.equal(audit.results[1].action, "Reject coupon");
+  assert.equal(audit.results[1].matched_order_id, "1");
+  assert.equal(audit.results[2].action, "Allow coupon");
+});
+
+test("two of three identity matching is default", () => {
+  const csv = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount
+1,a@example.com,5125550001,10 Oak St,SAVE,2026-01-01,10,2
+2,a@example.com,5125550001,99 Pine Rd,SAVE,2026-01-02,10,2`;
+  assert.equal(E.audit(csv).results[1].action, "Reject coupon");
+});
+
+test("three of three optional policy", () => {
+  const csv = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount
+1,a@example.com,5125550001,10 Oak St,SAVE,2026-01-01,10,2
+2,a@example.com,5125550001,99 Pine Rd,SAVE,2026-01-02,10,2`;
+  assert.equal(E.audit(csv, { policy: { min_matching_signals: 3 } }).results[1].action, "Allow coupon");
+});
+
+test("lookback allows reuse older than 365 days", () => {
+  const csv = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount
+1,a@example.com,5125550001,10 Oak St,SAVE,2024-01-01,10,2
+2,a@example.com,5125550001,10 Oak St,SAVE,2026-01-02,10,2`;
+  assert.equal(E.audit(csv).results[1].action, "Allow coupon");
+});
+
+test("merchant override allows the coupon", () => {
+  const audit = E.audit(generic, { allowlist: ["2"] });
+  assert.equal(audit.results[1].status, "Merchant override");
+  assert.equal(audit.results[1].action, "Allow coupon");
+});
+
+test("Shopify native CSV parses and collapses line-item continuation rows", () => {
+  const csv = `Name,Email,Phone,Created at,Total,Discount Code,Discount Amount,Shipping Address1,Shipping City,Shipping Zip,Lineitem name
+#1001,a@example.com,5125550001,2026-01-01,100,WELCOME20,20,10 Oak St,Austin,78701,Thing A
+,,,,,,,,,,Thing B
+#1002,a@example.com,5125550001,2026-02-01,80,welcome20,16,10 Oak Street,Austin,78701,Thing C`;
+  const rows = E.parseCsv(csv);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].source_format, "shopify_orders_csv");
+  assert.equal(E.audit(csv).results[1].action, "Reject coupon");
+});
+
+test("missing customer evidence fails open", () => {
+  const csv = `order_id,email,phone,address,discount_code,order_date,order_total,discount_amount
+1,,,,SAVE,2026-01-01,10,2
+2,,,,SAVE,2026-01-02,10,2`;
+  const audit = E.audit(csv);
+  assert.match(audit.results[1].status, /insufficient evidence/i);
+  assert.equal(audit.results[1].action, "Allow coupon");
+});
+
+test("current-checkout simulator returns Allow coupon or Reject coupon", () => {
+  const result = E.simulate(generic, { email: "a@example.com", phone: "5125550001", address: "10 Oak St", discount_code: "WELCOME20", order_date: "2026-04-01" });
+  assert.equal(result.label, "Reject coupon");
+  const allowed = E.simulate(generic, { email: "new@example.com", phone: "5125559999", address: "55 Pine Rd", discount_code: "WELCOME20", order_date: "2026-04-01" });
+  assert.equal(allowed.label, "Allow coupon");
+});
