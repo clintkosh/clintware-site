@@ -1,0 +1,11 @@
+query Input {
+  enteredDiscountCodes {
+    code
+    rejectable
+  }
+  discount {
+    metafield(namespace: "$app", key: "buyerorigin-verdicts") {
+      jsonValue
+    }
+  }
+}
