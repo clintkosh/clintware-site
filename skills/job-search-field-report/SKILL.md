@@ -1,7 +1,7 @@
 ---
 name: job-search-field-report-astro
-description: Standalone workflow for recurring job-search reporting from the exact time the last report was actually sent through now. Separates cumulative totals from interval changes, reconciles active vs closed processes, adds sourced market-segment intelligence and market-relative progress assessment, and defaults to draft-only output.
-version: 1.1
+description: Standalone workflow for recurring job-search reporting from the exact time the last report was actually sent through now. Separates cumulative totals from interval deltas, reconciles active vs closed processes, adds sourced market intelligence and market-relative progress, and verifies email rendering before a draft is considered complete.
+version: 1.2
 ---
 
 # Job Search Field Report ASTRO
@@ -12,44 +12,86 @@ version: 1.1
 
 A draft never advances the baseline. Only a confirmed sent report does.
 
-## Three views
+## Operating views
 
-1. **Cumulative search state** — full funnel to date.
-2. **Difference-period activity** — only what changed after the last actually sent report.
-3. **Market-relative read** — target market, current outlook, and how the candidate's funnel compares with the best available evidence.
+1. **Delta since last sent report** — what changed in the exact interval.
+2. **Cumulative search state** — full funnel to date.
+3. **Market-relative read** — target segment, current outlook, and how the funnel compares with available evidence.
 
-## External-action boundary
+## Action boundary
 
-Default behavior is **DRAFT ONLY**. Words such as update, rebuild, refresh, prepare, or draft do not authorize sending. Never send unless the user's current instruction explicitly authorizes it.
+Default behavior is **DRAFT ONLY**. `update`, `rebuild`, `refresh`, `prepare`, `make the next issue`, or `draft` never authorize sending. Send only when the current instruction explicitly says to send.
 
 ## Candidate context
 
-Infer target roles, seniority, industry, geography, work arrangement, compensation, and search start from current supplied evidence when possible. Relevant model memory/context may fill gaps only when consistent with the current request. Fresh direct evidence overrides remembered or stale context. Never invent missing personal facts.
+Infer role family, seniority, industry, geography, work arrangement, compensation, and search start from current supplied evidence when possible. Relevant model memory/context may fill gaps only when consistent with fresh evidence. Never invent missing personal facts.
 
 ## Default report map
 
-1. Issue masthead + exact audit window
-2. At a glance
-3. Search profile / target market
-4. Current read
-5. Verified cumulative funnel + conversion rates
-6. Market segment assessment
-7. Overall job-market outlook
-8. Market-relative progress assessment
-9. Search clock / velocity
-10. Active high-signal pipeline
-11. Most important storyline
-12. Changes since last sent update
-13. New / advanced / closed / pending
-14. Skills, certifications, or build proof when relevant
-15. Strategic adjustments / next focus
-16. Closed-process history
-17. Sources + method notes
-18. Bottom-line summary
+1. Hero / issue banner
+2. Exact audit-through-now line + comparison window
+3. Mission / at-a-glance snapshot
+4. Thank-you / audience note when appropriate
+5. Headline / current read
+6. **Since last sent report — exact delta snapshot**
+7. Verified cumulative funnel + conversion table
+8. Market segment assessment
+9. Overall job-market outlook
+10. Search clock / duration comparison
+11. Market-relative progress assessment
+12. Active high-signal pipeline
+13. Most important storyline / deep dive
+14. Detailed changes since last sent update
+15. New / advanced / closed / pending
+16. Skills, certifications, or build proof when relevant
+17. Strategic adjustments / next focus
+18. Closed-process history
+19. Sources + method notes
+20. Bottom-line summary
 
-The first screen should quickly answer: **What changed? How is the market? How is this search performing relative to it?**
+The first screen should answer: **What changed? How is the market? How is this search performing relative to it?**
 
-## Funnel math
+# Exact delta snapshot
+
+The delta snapshot belongs **before** cumulative funnel totals. It should make movement obvious without forcing the reader to subtract old numbers mentally.
+
+Use a compact table with:
+
+- metric;
+- previous sent issue value;
+- current value;
+- exact delta;
+- short interpretation.
+
+Compare, when available:
+
+- application actions;
+- unique company-role applications;
+- reached interview / screen;
+- completed live interviews;
+- reached second round / panel;
+- final-stage processes;
+- offers.
+
+Also show difference-window event counts when useful:
+
+- newly scheduled interviews;
+- interviews completed in the interval;
+- major process advances;
+- verified closures;
+- referrals / introductions;
+- relevant certifications / proof completed;
+- exact elapsed time since the last sent report.
+
+Rules:
+
+- Compare only against the most recent **sent** report, never a draft.
+- If a value is a conservative floor, label the delta as a floor too.
+- Do not subtract unlike definitions. Normalize both sides first or mark the delta unavailable.
+- Event counts are not automatically cumulative funnel increments.
+- Keep the later detailed `What changed` section. The front delta is numeric; the later section explains the events.
+
+# Funnel math
 
 When data permits, calculate:
 
@@ -59,47 +101,52 @@ When data permits, calculate:
 - `final_stage_progression = final_stage / interview_or_screen_tracks`
 - `offer_rate = offers / unique_applications`
 - `active_signal_rate = current_human_active_processes / unique_applications`
-- interval velocity for applications, screens, interviews, advances, and closures
+- interval velocity for applications, screens, interviews, advances, and closures.
 
-Keep cumulative totals separate from interval-only changes.
+Never mix cumulative totals with interval-only activity.
 
-## Market segment classification
+# Reconciliation rules
 
-Define the market actually being searched: role family, seniority, industry/vertical, geography, remote/hybrid/onsite constraint, and compensation band when known. If the search spans materially different lanes, assess those lanes separately.
+- Count each company-role process once wherever possible.
+- Keep application actions separate from unique applications.
+- Do not inflate interview counts with duplicate invites, reschedules, follow-ups, or multiple messages from one process.
+- `Reached interview / screen` requires a real screen/interview/panel or booked first interview tied to a distinct process.
+- `Completed live interview` requires an actual completed conversation.
+- `Second round / panel` requires progression beyond the first substantive conversation.
+- Closed/rejected/withdrawn/filled roles leave the active board.
+- Uncertain status is `waiting`, `unverified`, or `stale-risk`, not active by assumption.
 
-## Market intelligence protocol
+# Market intelligence protocol
 
-Refresh market context on every substantive report when web access is available.
+Refresh market context on every substantive report when web access exists.
 
-### Highest-weight official sources
+## Official / primary sources — highest weight
 
 Prefer current BLS Employment Situation, BLS JOLTS, Federal Reserve Beige Book, BLS occupational data/projections, and relevant state labor-market sources.
 
-### Large-platform / industry sources
+## Platform / industry sources
 
 When available, use LinkedIn Economic Graph / Workforce Report, Indeed Hiring Lab, CompTIA, or other credible sector-specific hiring data with clear methodology.
 
-### Reddit / practitioner communities
+## Reddit / practitioner communities
 
-Reddit should be a deliberate qualitative layer, especially for signals official data misses: hiring-cycle length, ghosting, multi-round interviews, compensation pressure, applicant crowding, and role-specific friction.
+Use Reddit deliberately for signals official data often misses: hiring-cycle length, ghosting, interview-round inflation, compensation pressure, applicant crowding, and role-specific friction.
 
 - Search recent threads, usually the last 30–90 days.
-- Prioritize role-specific communities plus broader job-search communities.
-- Prefer multiple independent threads over one dramatic example.
-- Summarize recurring themes, disagreements, and counterexamples.
+- Prefer multiple relevant independent threads.
 - Label Reddit evidence **anecdotal / community-reported**.
-- Never turn upvotes, comments, or individual searches into population statistics.
-- If community sentiment conflicts with official data, show the conflict rather than forcing agreement.
+- Never convert individual posts, upvotes, or comments into population statistics.
+- If community sentiment conflicts with official data, show the conflict.
 
 A strong market section normally combines at least one current official source, one platform/industry source when available, and several recent community signals.
 
-## Overall market outlook
+# Overall market outlook
 
-Use one evidence-backed band: **Favorable, Balanced, Selective, Tight, Very tight**. Include the assessment date, 2–4 reasons, the strongest counter-signal, and confidence (`low`, `medium`, `high`).
+Use one evidence-backed band: **Favorable, Balanced, Selective, Tight, Very tight**. Include assessment date, 2–4 reasons, strongest counter-signal, and confidence (`low`, `medium`, `high`).
 
-## Market-relative progress
+# Market-relative progress
 
-Compare candidate funnel performance only with genuinely comparable external evidence. If a valid population percentile is not available, use one of:
+If no valid population percentile exists, use one of:
 
 - **Ahead of observed market**
 - **Competitive with current market**
@@ -107,30 +154,93 @@ Compare candidate funnel performance only with genuinely comparable external evi
 - **Behind observed market**
 - **Insufficient evidence**
 
-Explain where the funnel is strong or weak. Never invent a percentile, quartile, or “top X%” claim. Reddit anecdotes may inform the narrative but cannot create a percentile.
+Explain where the funnel is strong or weak. Never invent a percentile, quartile, benchmark, or `top X%` claim. Reddit anecdotes may inform the narrative but cannot create a percentile.
 
-## Reconciliation
+# Compensation
 
-Count each company-role process once. Keep application actions separate from unique applications. Do not inflate interview counts with duplicate invites, reschedules, follow-ups, or multiple messages from one process. Closed/rejected/withdrawn/filled roles leave the active board. Uncertain status is labeled waiting, unverified, or stale-risk.
+Classify every compensation figure as **verified**, **estimated**, or **unknown / not yet verified**.
 
-## Compensation
+# Productive-work proof
 
-Classify every value as **verified**, **estimated**, or **unknown / not yet verified**.
+Include certifications, portfolio work, technical projects, AI workflows, demos, relevant consulting/volunteer work, or other proof only when it materially strengthens the search story. Keep unrelated identities/projects out unless the user explicitly chooses to include them.
 
-## Visual contract
+# Visual contract
 
-Use a polished **tech briefing / modern newsletter** aesthetic without copying any specific newsletter brand. Allowed traits: compact masthead, clear hierarchy, short summaries, small section labels, clean metrics, generous whitespace, one primary accent, and restrained status colors.
+Use a polished adult tech-briefing / field-report aesthetic. Avoid childish, gamified, military, achievement-badge, or cartoon styling unless explicitly requested.
 
-Do not copy another newsletter's logo, exact palette, typography, signature wording, icon system, or section structure. Avoid childish, gamified, military, or achievement-style theming.
+For email output:
 
-Recommended original palette: page `#f3f6fa`, masthead `#0b1220`, surface `#ffffff`, panel `#f7f9fc`, border `#dbe3ec`, primary accent `#19b8c9`, secondary accent `#ff7a59`, positive `#13795b`, info `#315d85`, risk `#b4473d`, ink `#111827`, muted `#64748b`.
+- table-based email-safe HTML;
+- inline CSS;
+- strong information hierarchy;
+- compact metric cards and comparison tables;
+- high contrast;
+- mobile-safe layout;
+- no external JavaScript.
 
-For email output use table-based layout, inline CSS, roughly 760–900px max width, mobile-safe stacking, high contrast, and no external JavaScript dependency.
+A prior user-specific theme may be preserved only for that user's private report. Public/shared outputs must remain identity-scrubbed and generic.
 
-## Default rebuild workflow
+# Inline banner reliability contract
 
-Resolve current time → find latest sent report → establish exact window → audit recruiting activity → refresh cumulative totals → reconcile active/closed → define target segment → refresh official market data → refresh platform/industry data → review recent Reddit/practitioner signals → assess market outlook → calculate funnel conversion/velocity → assess market-relative progress → identify relevant build proof → build report → triple-check facts, counts, sources, and status → produce email-safe HTML → draft unless send is explicitly authorized → advance baseline only after confirmed send.
+A report is **not complete** until the saved Gmail draft proves the hero/banner is a real inline MIME image.
 
-## Acceptance test
+## Known broken pattern
 
-Verify the exact sent-report window; clean cumulative vs interval separation; current active/closed reconciliation; truthful compensation labels; explicit target market; current official sources; Reddit clearly labeled anecdotal; dated market outlook with confidence; actual funnel math; no unsupported percentile; fresh evidence overriding stale memory; relevant productive-work proof only; mobile-readable non-childish HTML; and draft-only output unless sending was explicitly authorized.
+Do not use:
+
+`<img src="cid:local-banner-filename.png">`
+
+and then merely attach that file. Gmail may store it as `Content-Disposition: attachment`, leaving `inline_images` empty and the CID broken.
+
+## Known working pattern
+
+1. Build the full email-safe HTML first.
+2. Embed the banner in the HTML as `data:image/png;base64,...` (or the correct image MIME type).
+3. Create the Gmail draft from that HTML / HTML file **without separately attaching the same banner**.
+4. Gmail should rewrite the data URI into a generated CID and create an inline image MIME part.
+5. Re-read the saved draft before completion.
+6. Verify:
+   - `inline_images` is non-empty;
+   - the banner has the expected MIME type and plausible byte size;
+   - raw MIME contains `Content-Disposition: inline`;
+   - raw MIME contains `Content-ID`;
+   - the HTML `<img>` source has been rewritten to a matching `cid:<generated-id>`.
+7. `has_attachment: false` can be correct when the banner is genuinely inline.
+8. If the banner appears only under `attachments` and `inline_images` is empty, the draft **fails** acceptance. Rebuild it.
+9. If editing a draft may strip the inline MIME part, create a replacement draft from verified HTML instead. Verify the replacement before removing the superseded draft.
+
+Never say the banner is fixed based only on source HTML. Verify the saved Gmail MIME state.
+
+# Model / reasoning quality floor
+
+This workflow is reconciliation-heavy, not a low-effort formatting task.
+
+- When model/reasoning controls are available, use **Medium reasoning or higher**.
+- Prefer a **GPT-5.5-class or newer** capable reasoning model; use the strongest current equivalent available when model names change.
+- If controls are unavailable, compensate with a deliberate multi-pass process: source audit → reconciliation → calculations → draft → MIME/render verification → acceptance test.
+
+# Default rebuild workflow
+
+Resolve current time → find latest sent report → establish exact window → audit recruiting activity → refresh cumulative totals → reconcile active/closed → calculate front delta snapshot → define target segment → refresh official market data → refresh platform/industry data → review recent Reddit/practitioner signals → assess market outlook → calculate funnel conversion/velocity → assess market-relative progress → identify relevant build proof → build report → triple-check facts/counts/status/sources → create email-safe HTML → create draft → verify real inline banner MIME → draft only unless send is explicitly authorized → advance baseline only after confirmed send.
+
+# Acceptance test
+
+Before completion verify all of the following:
+
+- latest **sent** report defines the interval;
+- front delta snapshot appears before cumulative totals;
+- previous → current → delta math is accurate;
+- cumulative and interval metrics are clearly separated;
+- active/closed reconciliation is current;
+- compensation labels are truthful;
+- target market is defined;
+- official sources are current and dated;
+- Reddit is recent, relevant, and labeled anecdotal;
+- market outlook includes reasons, counter-signal, date, and confidence;
+- no unsupported percentile exists;
+- fresh evidence overrides stale memory;
+- HTML is adult, readable, and mobile-safe;
+- saved Gmail draft shows a real inline banner MIME part;
+- output remains draft-only unless sending was explicitly authorized.
+
+Do not import private names, employers, metrics, addresses, or project details from another user or sample.
