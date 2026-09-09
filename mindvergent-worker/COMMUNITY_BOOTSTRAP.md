@@ -1,4 +1,4 @@
-# Mindvergent Labs — founding community bootstrap
+# MindVergent™ Labs — founding community bootstrap
 
 Status: ready for manual Discord creation
 Public home: https://mindvergent.clintware.com
@@ -6,7 +6,7 @@ Standalone domain held: mindvergent.com
 
 ## Community job
 
-Mindvergent Labs is not a promotional Discord for Clintware. The community exists to make practical knowledge, useful work, and trusted collaborators easier to discover.
+MindVergent™ Labs is not a promotional Discord for Clintware. The community exists to make practical knowledge, useful work, and trusted collaborators easier to discover.
 
 The site is the durable knowledge layer. Discord is the fast conversation layer.
 
@@ -15,7 +15,7 @@ Discord = introductions, questions, live discussion, peer review, build sessions
 
 ## Server name
 
-Mindvergent Labs
+MindVergent™ Labs
 
 Description:
 
@@ -81,7 +81,7 @@ Later, add product-specific opt-in roles only when enough members ask for them.
 
 ## Welcome message
 
-Welcome to Mindvergent Labs.
+Welcome to MindVergent™ Labs.
 
 This is an early community for people who think across disciplines and like turning ideas into useful work.
 
@@ -138,7 +138,7 @@ Overlap is fine.
 
 ## Personal invite copy
 
-I'm starting a small community called Mindvergent Labs. It is an experiment around practical research, peer review, workflows, and building professional trust from what people actually contribute rather than just profile claims.
+I'm starting a small community called MindVergent™ Labs. It is an experiment around practical research, peer review, workflows, and building professional trust from what people actually contribute rather than just profile claims.
 
 I'm keeping the first group deliberately small and inviting people whose judgment I value. I think you'd make the room more useful.
 
@@ -234,7 +234,7 @@ Until then Discord is a cheaper test.
 
 ## When to introduce commerce
 
-Only after members already choose collaborators based on trust created inside Mindvergent.
+Only after members already choose collaborators based on trust created inside MindVergent™.
 
 First transaction experiments should be manual and narrow:
 
