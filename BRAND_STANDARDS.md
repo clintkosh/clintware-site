@@ -1,6 +1,6 @@
 # Clintware™ Brand Standard
 
-Canonical professional brand treatment, updated 2026-09-03.
+Canonical professional brand treatment, updated 2026-09-09.
 
 ## Required wording
 
@@ -39,15 +39,27 @@ The slogan is not a substitute for a product description. Product copy must rema
 
 ## Product hierarchy
 
-- **Quillgeist**: number one product / Winter 2027 YC application priority.  Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot.  Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development.
-- **BuyerOrigin**: number two venture and number one immediate commercial-validation track.  Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge.  The working local audit is current product; Shopify enforcement is not yet shipped.  Promote it to the primary YC pitch only from verified merchant evidence.
-- **LandThePlane**: number three active venture track.  Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge.  Do not reduce it to generic generated interview questions.
+- **Quillgeist**: number one product / Winter 2027 YC application priority. Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot. Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development.
+- **BuyerOrigin**: number two venture and number one immediate commercial-validation track. Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge. The working local audit is current product; Shopify enforcement is not yet shipped. Promote it to the primary YC pitch only from verified merchant evidence.
+- **MindVergent™**: number three YC exploration track. MindVergent is the master company / network brand. Position it as a professional network where reputation comes from work other people can test, improve, and verify. **MindVergent™ Labs** is the research and experimentation surface used to seed useful work before the network is large. Discord/community is a bootstrap mechanism, not the company thesis. Formal contribution profiles, peer-validation scoring, matching, and commerce remain roadmap until founding-user behavior validates them.
+- **LandThePlane**: number four active venture track. Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge. Do not reduce it to generic generated interview questions.
 - **ShoulderSoldier**: provider-independent pre-exposure email protection concept/product track, focused on local or client-side protection before risky content reaches the user.
 - **RenewNudge**: Customer Success renewal-risk and action workflow tool. Describe it as a practical CS utility for surfacing renewal timing/risk, organizing follow-up, and prompting deliberate account action. Do not describe it as autonomous AI, predictive churn modeling, or functionality it does not actually implement.
 
+## MindVergent™ brand rule
+
+Always display the master brand as **MindVergent™**. The trademark symbol follows `MindVergent`, not `Labs`.
+
+- Company / network: **MindVergent™**
+- Research and experimentation surface: **MindVergent™ Labs**
+- Community / Discord: **MindVergent™** or **MindVergent Community** when a descriptor is needed
+- Technical/domain identifiers may remain lowercase, such as `mindvergent.com`, `mindvergent.clintware.com`, and `mindvergent-worker`.
+
+Do not present **MindVergent™ Labs** as the permanent company name. Labs is one surface inside the broader MindVergent product architecture.
+
 ## Winter 2027 YC language
 
-Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan.  BuyerOrigin is the number two challenger and LandThePlane is the number three active track until verified evidence changes the order.
+Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan. BuyerOrigin is the number two challenger, MindVergent™ is the number three exploration track, and LandThePlane is the number four active track until verified evidence changes the order.
 
 Do not imply acceptance, YC interview selection, endorsement, affiliation, funding, or participation unless it actually occurs.
 
