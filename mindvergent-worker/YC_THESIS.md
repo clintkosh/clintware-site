@@ -1,274 +1,228 @@
-# MindVergent™ Labs — YC thesis / operating plan
+# MindVergent™ — YC thesis / operating plan
 
-Status: exploration track, founding community MVP
-Owner: Clintware™
+Status: exploration track, founding MVP
+Owner / incubator: Clintware™
 Domain held: mindvergent.com
 Initial public surface: mindvergent.clintware.com
 
+## Brand hierarchy
+
+- **MindVergent™** = company / professional trust network.
+- **MindVergent™ Labs** = research and experimentation surface used to seed useful work before the network is large.
+- **Community / Discord** = bootstrap and realtime discussion mechanism, not the product thesis.
+- **Trust graph** = long-term product asset if founding-user behavior validates it.
+- **Matching / commerce** = later expansion only if contribution history changes real collaboration decisions.
+
 ## One-line company description
 
-MindVergent™ Labs is a peer-vetted knowledge and collaboration network where people share what actually works, improve it together, and build professional trust through useful contributions rather than self-description alone.
+**MindVergent is building a professional network where reputation comes from work other people can test, improve, and verify.**
 
 ## Problem
 
-Professional knowledge and trust are fragmented across systems that optimize for different things:
+Professional reputation is mostly self-reported.
 
-- LinkedIn is strong for identity and reach, but weak at proving current working expertise.
-- Reddit and forums are strong for discussion, but reputation is usually pseudonymous, coarse, and disconnected from professional collaboration.
-- Discord and Slack are strong for live community, but useful knowledge becomes difficult to discover and reuse over time.
-- GitHub is strong proof for code, but does not represent most operating, product, Customer Success, research, workflow, or cross-functional expertise.
-- Upwork/Fiverr-style marketplaces start with transactions and ratings, not a deep contribution history that exists before the transaction.
-- prompt/agent/template libraries often collect artifacts without enough context about who tested them, what changed, or where they actually work.
+Profiles show titles, employers, endorsements, and claims. Communities contain useful knowledge, but that knowledge rarely becomes durable professional proof. Marketplaces usually generate ratings only after someone has already taken the risk of hiring. GitHub provides strong proof for code but does not represent most operating, product, Customer Success, research, workflow, or cross-functional expertise.
 
-The result: people repeatedly re-evaluate the same advice, expertise, collaborators, workflows, and service providers from scratch.
-
-## Core thesis
-
-A professional trust graph can be built from contribution history.
-
-If useful research, answers, workflows, artifacts, tests, edits, peer review, and collaborations are attributable over time, the network can answer questions that a profile cannot:
-
-- What does this person actually know?
-- What have they contributed recently?
-- Who tested or improved their work?
-- In which domains do peers consistently rely on them?
-- What did they build or help improve?
-- Would someone who already trusts them work with them again?
-
-The long-term moat is not the forum or marketplace UI. It is the graph connecting people, domains of expertise, artifacts, peer validation, and outcomes.
+There is no durable record of who repeatedly contributed useful work, who tested or improved it, and whether that evidence changed who other people trusted or chose to work with.
 
 ## Initial wedge
 
 Do not launch as a marketplace.
 
-Start as a useful, searchable knowledge network with a deliberately small founding community:
+Start with practical research and a deliberately small founding group:
 
-1. Seed practical research and best-practice briefs.
-2. Attach discussion to each topic.
-3. Let members contribute answers, field notes, workflows, prompts, templates, code, checklists, and experiments.
-4. Preserve attribution and visible revision history.
-5. Add lightweight peer validation only after there is something real to validate.
-6. Observe whether people naturally use contribution history to choose collaborators, testers, advisors, hires, or service providers.
+1. Publish useful founder-seeded research and artifacts through **MindVergent™ Labs**.
+2. Recruit 10-20 founding members manually.
+3. Attach discussion and peer review to specific work.
+4. Track who contributes, improves, tests, or validates what.
+5. Observe whether that history changes who members ask for help, refer, hire, test with, or collaborate with.
+6. Build formal reputation and matching only if that behavior appears.
 
-The first product must be useful with a small network. Research and reusable artifacts provide that single-player value.
-
-## Initial audience
-
-Start narrow enough to create repeated interaction but broad enough to test the thesis:
-
-- people actively building with AI and automation;
-- Customer Success / Support / technical operations practitioners who create workflows and systems;
-- founders and product operators;
-- developers and technical builders;
-- practitioners who work across disciplines and prefer practical evidence to titles.
-
-The community is intentionally welcoming to different working styles and ways of thinking without requiring a personal label or diagnosis.
+The first product must have value before the network is large. Labs provides that single-player / small-network utility.
 
 ## Product loop
 
-RESEARCH -> DISCUSS -> CONTRIBUTE -> VALIDATE -> TRUST -> COLLABORATE
-
-### Research
-Searchable practical material creates utility before there is a large community.
-
-### Discuss
-Members challenge assumptions, add missing context, and compare outcomes.
+**CONTRIBUTE -> VALIDATE -> REPUTATION -> COLLABORATE**
 
 ### Contribute
-Members add artifacts and field evidence rather than only reactions.
+Members add research, answers, workflows, templates, experiments, field notes, code, checklists, or other useful work.
 
 ### Validate
-Peers test, improve, dispute, or confirm specific contributions.
+Peers test it, challenge it, improve it, dispute it, or confirm where it worked.
 
-### Trust
-The system gradually learns which people are consistently useful in which domains.
+### Reputation
+Attributed contribution and validation history becomes evidence of who is useful for what.
 
 ### Collaborate
-Trust can later power introductions, pilots, project teams, referrals, hiring, services, paid artifacts, and member-to-member commerce.
+If that evidence changes behavior, it can power better introductions, referrals, hiring, project teams, pilots, services, and eventually commerce.
 
-## What exists in v0
+## What exists now
 
-- public MindVergent™ Labs thesis page;
-- initial network model;
-- seed research/discussion topics;
+- live public MindVergent™ product page;
 - founding-member intake;
-- explicit current-vs-roadmap boundaries;
-- health/manifest endpoints for deployment verification.
+- three founder-seeded research briefs;
+- founding-community operating plan;
+- current-vs-roadmap boundaries;
+- deployment health / manifest endpoints.
 
-## Next product increments
+Not built yet:
 
-### v0.2 — Founding room
-- Discord for fast conversation and community bonding;
-- 10-20 manually invited founding members;
-- four initial discussion tracks;
-- weekly founder-created research brief;
-- founding-member expectations and commercial-disclosure rule.
+- formal contribution profiles;
+- peer-validation scoring;
+- site-native discussion/history;
+- matching;
+- marketplace or paid transactions.
 
-### v0.3 — Searchable knowledge
-- site-native research pages;
-- public forum/discussion index;
-- canonical answer / revision summaries;
-- artifact pages for workflows, prompts, templates, checklists, and code references;
-- attribution and change history.
+Do not describe those as shipped until they are built and tested.
 
-### v0.4 — Contribution profiles
-- public member profile;
-- domain tags derived from contributions, not self-claims alone;
-- visible contribution history;
-- peer acknowledgements tied to specific work;
-- no single global star rating.
+## MindVergent™ Labs
 
-### v0.5 — Trust graph
-- relationship between member, topic, artifact, validation, and outcome;
-- weighted domain-specific reputation;
-- anti-gaming limits;
-- ability to distinguish "helpful answer" from "tested in practice" from "worked together".
+Labs is the first research surface, not the company name.
 
-### v0.6 — Collaboration matching
-- ask for help / looking for collaborator;
-- recommend people based on contribution evidence;
-- project rooms and outcomes;
-- referral loop.
+Its job is to publish practical work that creates value before the network reaches scale and gives founding members something concrete to challenge, improve, test, and attribute.
 
-### v1 — Commerce, only if it emerges naturally
-Potential surfaces:
-- paid expert help;
-- project matching;
-- paid templates/workflows;
-- software and licenses;
-- partner offers;
-- design-partner opportunities;
-- sponsorships;
-- referral fees or transaction fees.
+Initial research tracks:
 
-Do not build a marketplace before members demonstrate that trust history changes who they choose to work with.
+- AI agent action safeguards and permission boundaries;
+- Customer Success health signals that actually change decisions;
+- when repeated prompts should graduate into workflows or products.
+
+The useful output is not simply an article. It is the article plus its revision history, contributors, tests, counterexamples, and eventual evidence of what worked.
 
 ## Why now
 
-AI increases the number of people who can produce software, workflows, analysis, content, and automation. It also lowers the cost of producing plausible-looking expertise and generic artifacts.
+AI makes software, analysis, content, workflows, and plausible-looking expertise cheaper to produce.
 
-That makes provenance, peer evidence, testing, context, and trust more valuable.
+That increases the value of provenance, testing, attribution, context, and trusted contribution history.
 
-At the same time, AI enables individuals to work across more disciplines and produce more reusable artifacts than traditional professional networks were designed to represent.
+**MindVergent's bet: as creation gets easier, evidence of what worked and who repeatedly proved useful becomes more valuable.**
 
-MindVergent™'s bet: as creation becomes cheaper, trusted evidence of who and what is actually useful becomes more valuable.
+## Long-term defensibility
 
-## Network effect
+The moat is not a Discord server, forum UI, or global star rating.
 
-The network should become more useful as contribution history accumulates:
+The potential asset is a graph connecting:
 
-- more contributions improve the knowledge base;
-- more peer testing improves artifact quality;
-- more attributed interactions improve domain-specific reputation;
-- better reputation makes collaborator matching more useful;
-- successful collaborations create stronger trust evidence;
-- trusted participants attract more useful contributors.
+**PERSON -> CONTRIBUTION -> ARTIFACT / ANSWER -> PEER VALIDATION -> OUTCOME / COLLABORATION**
 
-The hard question is whether this loop appears in a small founding cohort. If it does not, there is no reason to build the marketplace layer.
+If this accumulates, MindVergent can know who is useful in a specific domain because the network observed the work that created the trust rather than relying only on a profile claim.
 
-## Business model hypotheses
+## Initial audience
 
-Do not choose one until behavior supports it.
+Start narrow enough for repeated interaction while retaining cross-disciplinary value:
 
-1. Transaction fee on member-to-member paid work or artifact sales.
-2. Pro membership for advanced search, reputation analytics, collaboration tools, or private groups.
-3. Company plans for verified expert communities, design-partner sourcing, practitioner research, or trusted talent discovery.
-4. Sponsored tools / research / build challenges with strict disclosure.
-5. Recruiting/referral fees only when reputation evidence creates materially better matching.
+- people building with AI and automation;
+- Customer Success, Support, and technical-operations practitioners who create workflows and systems;
+- founders and product operators;
+- developers and technical builders;
+- practitioners whose useful work crosses job-title boundaries.
 
-The free knowledge/community layer should remain useful enough to sustain the network.
+The community can be welcoming to different working styles and ways of thinking without making diagnosis or identity a requirement or the product category.
 
-## Competitive substitutes
+## What must be proven
 
-The real competitors are not one company. They are a stack:
+Three questions determine whether this should become a larger company:
 
-LinkedIn + Reddit + Discord + GitHub + Notion/Substack + Upwork/Fiverr + prompt/agent libraries.
+1. **Repeat:** Do members make a substantive contribution, then return and contribute again?
+2. **Trust:** Does contribution history change who another member asks, believes, refers, or chooses?
+3. **Collaboration:** Does that trust produce a project, pilot, referral, hire, test, service engagement, or paid work?
 
-MindVergent™ only matters if combining contribution, validation, knowledge, and professional trust produces behavior none of those surfaces produce alone.
-
-## Main YC objections and answers to test
-
-### "This is just a community."
-It is if the product stops at Discord. The startup thesis is the contribution/reputation graph. Community is the bootstrap mechanism.
-
-### "How do you solve the cold start?"
-Seed useful research and artifacts that have standalone search/social utility. Manually recruit 10-20 founding contributors. Do things that do not scale until repeated contribution appears.
-
-### "Why would people contribute instead of posting on Reddit/LinkedIn?"
-Because high-quality contributions should compound into reusable professional proof, attribution, collaborators, and eventually economic opportunity. This must be demonstrated, not assumed.
-
-### "Why not just use LinkedIn endorsements?"
-MindVergent™ validation is tied to specific contributions, tests, revisions, and collaborations in specific domains rather than a generic skill endorsement.
-
-### "Why won't this become spam?"
-Reputation begins with useful contribution. Commercial interest must be disclosed. Promotion without contribution should receive less distribution, and future marketplace participation should depend on trust history.
-
-### "Is this a two-sided marketplace?"
-Not initially. Treat it as a network with single-player value from knowledge and artifacts. Commerce is a later consequence if trusted collaboration already occurs.
-
-## Falsification criteria
-
-Reconsider or kill the thesis if, after a focused founding cohort:
-
-- members consume but do not contribute;
-- contribution does not repeat;
-- peer review adds little value beyond likes/upvotes;
-- contribution history does not influence who members trust or contact;
-- useful knowledge cannot attract people without continuous founder promotion;
-- commerce has to be artificially forced rather than emerging from trusted relationships.
+If those behaviors do not appear, do not force a marketplace onto the community.
 
 ## 30-day founding experiment
 
 ### Week 1
-- ship public v0;
-- create Discord structure;
-- write first three seed research briefs;
+- keep the public MVP live;
+- create the small community / Discord structure;
 - invite 10 people manually;
-- conduct 5 short user conversations.
+- publish the first three Labs briefs;
+- conduct at least 5 short founding-user conversations.
 
 ### Week 2
 - run one structured peer-review thread;
 - publish one reusable artifact;
 - record who contributes and who returns;
-- interview contributors about why they participated.
+- ask contributors why they participated and what felt useless.
 
 ### Week 3
-- test contribution profiles manually on the site;
+- mock contribution profiles manually before building them;
 - ask members who they would trust for three specific tasks and why;
 - compare stated trust with actual contribution evidence.
 
 ### Week 4
-- run a small collaboration request;
-- measure response quality and whether contribution history affects selection;
-- decide whether to build searchable discussions/profiles next.
+- run one real collaboration request;
+- measure response quality;
+- determine whether contribution history affected selection;
+- decide whether site-native discussions / profiles are justified next.
 
-## Metrics that matter initially
+## Metrics that matter
 
 - invited members who make one substantive contribution;
-- contributors who return and contribute again within 14 days;
-- number of artifacts improved by someone other than the original author;
-- percentage of active members who can name another member they would trust for a specific task;
-- collaborations or introductions caused by contribution history;
-- organic visitors to research who convert into participants.
+- contributors who make a second contribution within 14 days;
+- artifacts improved by someone other than the original author;
+- members who can name another member they trust for a specific task and cite why;
+- collaborations or introductions caused by contribution evidence;
+- visitors to Labs research who convert into participants.
 
-Avoid leading with raw registered-member count.
+Do not optimize for registered-member count yet.
+
+## Main YC objections
+
+### "This is just a community."
+It is if the product stops at chat. The company thesis is contribution-derived professional reputation. The community is how the first evidence is generated.
+
+### "Why would anyone use this instead of LinkedIn, Reddit, Discord, or GitHub?"
+MindVergent only wins if useful contributions compound into reusable proof, attribution, trust, and better collaboration decisions. That must be demonstrated through behavior, not asserted in positioning.
+
+### "How do you solve the cold start?"
+MindVergent™ Labs supplies useful research and artifacts before there is a large network. The first 10-20 contributors are recruited manually. Do things that do not scale until repeated contribution appears.
+
+### "Why is this venture-scale?"
+The venture case is not the founding community. It is a cross-domain trust graph that could improve expert discovery, collaboration, hiring, services, and commerce if contribution evidence becomes a better signal than self-description and generic ratings.
+
+### "Why won't it become spam or reputation gaming?"
+Validation is tied to specific work and specific interactions rather than a single global score. Commercial interests must be disclosed. Anti-gaming systems should only be built once real abuse patterns exist.
+
+## Falsification criteria
+
+Reconsider or kill the thesis if a focused founding cohort shows that:
+
+- people consume but do not contribute;
+- contribution does not repeat;
+- peer review adds little beyond likes or reactions;
+- contribution history does not affect trust or contact decisions;
+- useful research cannot attract participation without constant founder pushing;
+- collaboration or commerce has to be artificially manufactured.
 
 ## Founder-market-fit thesis
 
-The project is rooted in repeated work across Customer Success, technical Support, operations, enterprise software, cross-functional escalation, documentation, process design, and building practical internal/external tooling. The founder's useful role in v0 is therefore not "community influencer"; it is researcher/operator who can seed practical material, moderate evidence quality, recruit practitioners, and build the missing workflow as usage reveals it.
+The founder has repeatedly worked across Customer Success, technical Support, operations, enterprise software, cross-functional escalation, documentation, process design, AI workflows, and practical software building.
+
+The relevant founder role is not "community influencer." It is **operator / researcher / builder**: seed useful material, recruit practitioners, maintain evidence quality, observe behavior, and build the missing workflow only after usage exposes it.
 
 ## YC application framing
 
-Do not pitch "a Discord for builders" or "LinkedIn for neurodivergent people."
+Do not pitch "a Discord for builders," "LinkedIn for neurodivergent people," or a broad future marketplace.
 
-Pitch:
+Use the direct version:
 
-"MindVergent™ Labs is building a professional trust network from actual contribution. We start with searchable practical research and a small peer community where people share and improve workflows, answers, and artifacts. The contribution history becomes domain-specific reputation, which we believe can make it much easier to find people and work you can trust. If that trust changes collaboration behavior, we will build matching and commerce on top of it."
+> **MindVergent is building a professional network where reputation comes from work other people can test, improve, and verify. We are starting with practical research and a small manually recruited group. We track who contributes, who improves what, and whether that history changes who people trust and choose to work with. If it does, that contribution history becomes the trust graph for better collaboration, hiring, services, and commerce.**
 
-The strongest future application evidence would be:
+## Triple adversarial check
 
-- repeat contribution;
-- useful artifacts improved by peers;
-- trust decisions explained by network evidence;
-- collaborations created by the graph;
-- a small cohort that stays active without constant founder prompting.
+### Pass 1 — clarity
+Failure mode: sounding like a philosophy or community manifesto instead of a company.
+
+Guardrail: lead with **professional network + contribution-derived reputation**. Keep "different ways of thinking" as culture, not the core product definition.
+
+### Pass 2 — product truth / cold start
+Failure mode: describing a reputation network that does not yet exist.
+
+Guardrail: clearly separate the live page, seed briefs, intake, and manual cohort from unbuilt profiles, validation scoring, matching, and commerce. Labs must create utility before network scale.
+
+### Pass 3 — venture case
+Failure mode: looking like a small Discord with no reason to become a venture-backed company.
+
+Guardrail: test whether contribution evidence changes real trust and collaboration decisions. Only that behavior justifies building the trust graph and transaction layers.
+
+The next ranking change should be driven by founding-user evidence, not stronger copy alone.

@@ -1,4 +1,4 @@
-# MindVergent™ Labs — founding community bootstrap
+# MindVergent™ — founding community bootstrap
 
 Status: ready for manual Discord creation
 Public home: https://mindvergent.clintware.com
@@ -6,22 +6,24 @@ Standalone domain held: mindvergent.com
 
 ## Community job
 
-MindVergent™ Labs is not a promotional Discord for Clintware. The community exists to make practical knowledge, useful work, and trusted collaborators easier to discover.
+The MindVergent™ community is not a promotional Discord for Clintware. It exists to generate and test the first contribution history behind the professional-trust thesis.
 
-The site is the durable knowledge layer. Discord is the fast conversation layer.
+The site is the durable product / knowledge layer. Discord is the fast conversation layer.
 
-Site = research, canonical summaries, artifacts, profiles, reputation, search, and later commerce.
+Site = research, canonical summaries, artifacts, future contribution profiles, attribution, search, and later trust-driven collaboration.
 Discord = introductions, questions, live discussion, peer review, build sessions, and community relationships.
+
+**MindVergent™ Labs** is the research and experimentation surface that seeds useful work into both layers.
 
 ## Server name
 
-MindVergent™ Labs
+MindVergent™
 
 Description:
 
-Different ways of thinking. Shared research, practical workflows, peer review, and useful things built together.
+Share useful work. Test and improve it together. Build professional trust from contribution rather than claims.
 
-Hosted by Clintware™.
+Incubated by Clintware™.
 
 ## Initial channel structure
 
@@ -81,11 +83,9 @@ Later, add product-specific opt-in roles only when enough members ask for them.
 
 ## Welcome message
 
-Welcome to MindVergent™ Labs.
+Welcome to MindVergent™.
 
-This is an early community for people who think across disciplines and like turning ideas into useful work.
-
-The goal is simple: share what actually works, challenge it constructively, improve it together, and make it easier to find people and work you can trust.
+This is an early community testing a simple idea: professional trust should come from useful work and what other people can actually verify about it, not only what a profile says.
 
 Start in #introductions with four things:
 1. What do you work on or build?
@@ -138,11 +138,11 @@ Overlap is fine.
 
 ## Personal invite copy
 
-I'm starting a small community called MindVergent™ Labs. It is an experiment around practical research, peer review, workflows, and building professional trust from what people actually contribute rather than just profile claims.
+I'm starting a small network called MindVergent™. The idea is to build professional trust from useful work people actually contribute, test, and improve rather than relying only on profile claims.
 
-I'm keeping the first group deliberately small and inviting people whose judgment I value. I think you'd make the room more useful.
+I'm keeping the first group deliberately small and inviting people whose judgment I value. MindVergent™ Labs will seed practical research and workflows so there is something useful to work on from day one.
 
-No pitch and no expectation to be constantly active. I mostly want people who are willing to compare notes, share something useful when they have it, and tell me what the community gets wrong.
+No pitch and no expectation to be constantly active. I mostly want people willing to compare notes, share something useful when they have it, and tell me what the idea gets wrong.
 
 Want an invite?
 
@@ -173,14 +173,14 @@ Members post something they want to build, test, find, or help with. This become
 
 ## Content-to-community loop
 
-For each research post:
+For each MindVergent™ Labs research post:
 
 1. Publish founder research on the public site.
 2. Open a matching Discord discussion.
 3. Capture useful corrections, counterexamples, and implementation notes.
 4. Update the canonical site article with attribution.
 5. Record contributors and the type of contribution.
-6. Later use this history as the first raw material for contribution profiles and peer reputation.
+6. Later use this history as the first raw material for contribution profiles and domain-specific reputation.
 
 This prevents useful knowledge from dying inside chat while keeping the conversation fast.
 
@@ -214,7 +214,7 @@ Track manually in a simple table:
 - replied to another member;
 - artifact or answer improved by someone else;
 - collaboration/test/referral created;
-- member named another member they would trust for a specific task.
+- member named another member they would trust for a specific task and why.
 
 Do not optimize for total member count yet.
 
@@ -225,7 +225,7 @@ Do not build forums just because forums are in the roadmap.
 Build the site-native discussion layer when at least one is true:
 
 - valuable Discord threads are repeatedly difficult to recover;
-- research articles consistently produce useful discussion worth indexing;
+- Labs research consistently produces useful discussion worth indexing;
 - attribution/revision history becomes cumbersome manually;
 - members ask for public searchable answers;
 - contribution history is beginning to affect trust decisions.

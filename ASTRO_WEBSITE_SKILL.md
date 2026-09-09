@@ -89,6 +89,28 @@ Meaning:
 
 The product page should explain both the current local-execution proof and the larger adaptive-intent thesis.  Do not let the implementation details erase the product thesis, and do not let the thesis overstate the implementation.
 
+## MindVergent™-specific rule
+
+MindVergent™ is the master company / network brand. **MindVergent™ Labs** is its research and experimentation surface, not the permanent company name.
+
+Core positioning:
+
+**A professional network where reputation comes from work other people can test, improve, and verify.**
+
+Preserve the product progression:
+
+`CONTRIBUTE -> VALIDATE -> REPUTATION -> COLLABORATE`
+
+The founding community and Discord are bootstrap mechanisms. Do not pitch MindVergent as a Discord, generic community, "LinkedIn for neurodivergent people," or a marketplace that does not yet exist.
+
+Public and YC-oriented copy must clearly distinguish:
+
+- current: public product page, founding intake, three seed research briefs, founding-community operating model;
+- testing: whether people contribute repeatedly and whether contribution history changes trust decisions;
+- roadmap: formal contribution profiles, peer-validation scoring, matching, and commerce.
+
+The venture case is the potential trust graph connecting people, contributions, peer validation, and outcomes. Do not present that graph as proven until founding-user behavior demonstrates it.
+
 ## LandThePlane-specific rule
 
 Do not position LandThePlane as another generic AI interview-question generator.
@@ -107,7 +129,7 @@ The initial wedge can be interview preparation and review because it provides ur
 
 ## Winter 2027 YC language
 
-Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** when that is the current plan.  BuyerOrigin is the number two challenger and LandThePlane is the number three active track until verified evidence changes the order.
+Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** when that is the current plan. BuyerOrigin is the number two challenger, MindVergent™ is the number three exploration track, and LandThePlane is the number four active track until verified evidence changes the order.
 
 Do not imply acceptance, endorsement, affiliation, interview selection, or YC participation unless it actually occurs.
 
