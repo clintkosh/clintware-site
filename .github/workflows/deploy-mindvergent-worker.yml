@@ -1,4 +1,4 @@
-name: Deploy MindVergent™ Labs Worker
+name: Deploy MindVergent™ Worker
 
 on:
   push:
@@ -38,24 +38,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy MindVergent™ Labs Worker
+      - name: Deploy MindVergent™ Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd mindvergent-worker
-      - name: Verify MindVergent™ Labs
+      - name: Verify MindVergent™
         run: |
           set -euo pipefail
           for i in $(seq 1 24); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://mindvergent.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://mindvergent.clintware.com/healthz || true)
-            if grep -Fq 'MindVergent™ Labs' <<< "$page" && grep -Fq 'founding-community-mvp' <<< "$health"; then
-              echo "MindVergent™ Labs verified."
+            if grep -Fq 'MINDVERGENT™' <<< "$page" && grep -Fq 'founding-mvp' <<< "$health"; then
+              echo "MindVergent™ verified."
               exit 0
             fi
             sleep 4
           done
-          echo "MindVergent™ Labs verification failed."
+          echo "MindVergent™ verification failed."
           exit 1
