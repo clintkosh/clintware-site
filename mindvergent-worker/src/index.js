@@ -1,5 +1,5 @@
 const BRAND = Object.freeze({
-  name: "Mindvergent Labs",
+  name: "MindVergent™ Labs",
   owner: "Clintware™",
   thesis: "A peer-vetted knowledge and collaboration network for people who think across disciplines, share what works, improve it together, and earn trust through useful contribution.",
   stage: "Founding community MVP"
@@ -30,7 +30,7 @@ function headers(type) {
 
 function renderPage(hostname) {
   const canonical = `https://${hostname}/`;
-  const joinHref = "mailto:clint.kosh@gmail.com?subject=Mindvergent%20Labs%20-%20Founding%20Member&body=Name%3A%0AWhat%20I%20build%20or%20work%20on%3A%0AWhat%20I%20can%20contribute%3A%0AWhat%20I%20want%20to%20learn%20or%20find%3A%0A";
+  const joinHref = "mailto:clint.kosh@gmail.com?subject=MindVergent%E2%84%A2%20Labs%20-%20Founding%20Member&body=Name%3A%0AWhat%20I%20build%20or%20work%20on%3A%0AWhat%20I%20can%20contribute%3A%0AWhat%20I%20want%20to%20learn%20or%20find%3A%0A";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -39,7 +39,7 @@ function renderPage(hostname) {
   <meta name="description" content="${escapeHtml(BRAND.thesis)}">
   <link rel="canonical" href="${canonical}">
   <meta name="theme-color" content="#070a0f">
-  <title>Mindvergent Labs | by Clintware™</title>
+  <title>MindVergent™ Labs | by Clintware™</title>
   <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_ID}',{anonymize_ip:true});</script>
   <style>
@@ -51,7 +51,7 @@ function renderPage(hostname) {
 </head>
 <body>
   <header class="wrap top">
-    <a class="brand" href="/"><span>MINDVERGENT LABS</span> / BY CLINTWARE™</a>
+    <a class="brand" href="/"><span>MindVergent™ Labs</span> / BY CLINTWARE™</a>
     <nav class="nav" aria-label="Primary">
       <a href="#model">Model</a><a href="#research">Research</a><a href="#community">Community</a><a href="#roadmap">Roadmap</a>
     </nav>
@@ -129,7 +129,7 @@ function renderPage(hostname) {
   </main>
 
   <footer class="wrap footer">
-    <div><strong>Mindvergent Labs</strong><br>Incubated by Clintware™ — GO FURTHEST.™</div>
+    <div><strong>MindVergent™ Labs</strong><br>Incubated by Clintware™ — GO FURTHEST.™</div>
     <div><a href="https://www.clintware.com/">Clintware™</a> · <a href="${joinHref}">Founding access</a></div>
   </footer>
 </body>
