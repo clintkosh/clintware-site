@@ -1,0 +1,61 @@
+name: Deploy Mindvergent Labs Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mindvergent-worker/**"
+      - ".github/workflows/deploy-mindvergent-worker.yml"
+  pull_request:
+    paths:
+      - "mindvergent-worker/**"
+      - ".github/workflows/deploy-mindvergent-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-mindvergent-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check Worker syntax
+        run: node --check mindvergent-worker/src/index.js
+      - name: Validate Worker configuration
+        run: XDG_CONFIG_HOME=/tmp/mindvergent-xdg npx --yes --cache /tmp/mindvergent-npm-cache wrangler@4 deploy --dry-run --config mindvergent-worker/wrangler.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Mindvergent Labs Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd mindvergent-worker
+      - name: Verify Mindvergent Labs
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 24); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://mindvergent.clintware.com/ || true)
+            health=$(curl -sS --connect-timeout 5 --max-time 15 https://mindvergent.clintware.com/healthz || true)
+            if grep -Fq 'MINDVERGENT LABS' <<< "$page" && grep -Fq 'founding-community-mvp' <<< "$health"; then
+              echo "Mindvergent Labs verified."
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "Mindvergent Labs verification failed."
+          exit 1
