@@ -39,12 +39,13 @@ The slogan is not a substitute for a product description. Product copy must rema
 
 ## Product hierarchy
 
-- **Quillgeist**: number one product / Winter 2027 YC application priority. Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot. Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development.
-- **BuyerOrigin**: number two venture and number one immediate commercial-validation track. Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge. The working local audit is current product; Shopify enforcement is not yet shipped. Promote it to the primary YC pitch only from verified merchant evidence.
-- **MindVergent™**: number three YC exploration track. MindVergent is the master company / network brand. Position it as a professional network where reputation comes from work other people can test, improve, and verify. **MindVergent™ Labs** is the research and experimentation surface used to seed useful work before the network is large. Discord/community is a bootstrap mechanism, not the company thesis. Formal contribution profiles, peer-validation scoring, matching, and commerce remain roadmap until founding-user behavior validates them.
-- **LandThePlane**: number four active venture track. Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge. Do not reduce it to generic generated interview questions.
-- **ShoulderSoldier**: provider-independent pre-exposure email protection concept/product track, focused on local or client-side protection before risky content reaches the user.
-- **RenewNudge**: Customer Success renewal-risk and action workflow tool. Describe it as a practical CS utility for surfacing renewal timing/risk, organizing follow-up, and prompting deliberate account action. Do not describe it as autonomous AI, predictive churn modeling, or functionality it does not actually implement.
+- **BuyerOrigin**: number one product / current Winter 2027 YC application priority. Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge. The working local audit is current product; Shopify enforcement is not yet shipped. The immediate proof path is real merchant audits, merchant-confirmed leakage, acceptable false-positive/override behavior, and paid intent.
+- **Quillgeist**: number two product and close technical alternate. Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot. Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development. It can retake the primary position through stronger repeated outside-user evidence across multiple providers.
+- **RenewNudge**: number three current validation track. Customer Success renewal-risk and action workflow tool. Describe it as a practical CS utility for surfacing renewal timing/risk, organizing follow-up, and prompting deliberate account action. Do not describe it as autonomous AI, predictive churn modeling, or functionality it does not actually implement.
+- **ShoulderSoldier**: number four current validation track. Provider-independent pre-exposure email / user-interaction protection concept/product track, focused on local or client-side protection before risky content reaches the user. Keep working heuristic capability separate from unproven intervention outcomes.
+- **Portability Check**: number five fast-validation candidate. Position it as an assessment/remediation path for whether AI-built applications remain independently operable across source, hosting, auth, database, storage, email, secrets, migrations, deployment, and documentation. The method exists; outside assessment demand and paid remediation still must be proven.
+- **MindVergent™**: supporting YC exploration track outside the current top-five validation race. MindVergent is the master company / network brand. Position it as a professional network where reputation comes from work other people can test, improve, and verify. **MindVergent™ Labs** is the research and experimentation surface used to seed useful work before the network is large. Discord/community is a bootstrap mechanism, not the company thesis. Formal contribution profiles, peer-validation scoring, matching, and commerce remain roadmap until founding-user behavior validates them.
+- **LandThePlane**: active supporting product proof outside the current top-five validation race. Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge. Do not reduce it to generic generated interview questions.
 
 ## MindVergent™ brand rule
 
@@ -59,9 +60,9 @@ Do not present **MindVergent™ Labs** as the permanent company name. Labs is on
 
 ## Winter 2027 YC language
 
-Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan. BuyerOrigin is the number two challenger, MindVergent™ is the number three exploration track, and LandThePlane is the number four active track until verified evidence changes the order.
+BuyerOrigin may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan. Quillgeist is the close technical alternate, followed by RenewNudge, ShoulderSoldier, and Portability Check in the current evidence-ranked validation order.
 
-Do not imply acceptance, YC interview selection, endorsement, affiliation, funding, or participation unless it actually occurs.
+Do not call a planned application an `Applicant` before it has actually been submitted.  Do not imply acceptance, YC interview selection, endorsement, affiliation, funding, or participation unless it actually occurs.
 
 ## Copy rule
 
