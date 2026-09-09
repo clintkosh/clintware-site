@@ -1,4 +1,4 @@
-# Mindvergent Labs — YC thesis / operating plan
+# MindVergent™ Labs — YC thesis / operating plan
 
 Status: exploration track, founding community MVP
 Owner: Clintware™
@@ -7,7 +7,7 @@ Initial public surface: mindvergent.clintware.com
 
 ## One-line company description
 
-Mindvergent Labs is a peer-vetted knowledge and collaboration network where people share what actually works, improve it together, and build professional trust through useful contributions rather than self-description alone.
+MindVergent™ Labs is a peer-vetted knowledge and collaboration network where people share what actually works, improve it together, and build professional trust through useful contributions rather than self-description alone.
 
 ## Problem
 
@@ -88,7 +88,7 @@ Trust can later power introductions, pilots, project teams, referrals, hiring, s
 
 ## What exists in v0
 
-- public Mindvergent Labs thesis page;
+- public MindVergent™ Labs thesis page;
 - initial network model;
 - seed research/discussion topics;
 - founding-member intake;
@@ -151,7 +151,7 @@ That makes provenance, peer evidence, testing, context, and trust more valuable.
 
 At the same time, AI enables individuals to work across more disciplines and produce more reusable artifacts than traditional professional networks were designed to represent.
 
-Mindvergent's bet: as creation becomes cheaper, trusted evidence of who and what is actually useful becomes more valuable.
+MindVergent™'s bet: as creation becomes cheaper, trusted evidence of who and what is actually useful becomes more valuable.
 
 ## Network effect
 
@@ -184,7 +184,7 @@ The real competitors are not one company. They are a stack:
 
 LinkedIn + Reddit + Discord + GitHub + Notion/Substack + Upwork/Fiverr + prompt/agent libraries.
 
-Mindvergent only matters if combining contribution, validation, knowledge, and professional trust produces behavior none of those surfaces produce alone.
+MindVergent™ only matters if combining contribution, validation, knowledge, and professional trust produces behavior none of those surfaces produce alone.
 
 ## Main YC objections and answers to test
 
@@ -198,7 +198,7 @@ Seed useful research and artifacts that have standalone search/social utility. M
 Because high-quality contributions should compound into reusable professional proof, attribution, collaborators, and eventually economic opportunity. This must be demonstrated, not assumed.
 
 ### "Why not just use LinkedIn endorsements?"
-Mindvergent validation is tied to specific contributions, tests, revisions, and collaborations in specific domains rather than a generic skill endorsement.
+MindVergent™ validation is tied to specific contributions, tests, revisions, and collaborations in specific domains rather than a generic skill endorsement.
 
 ### "Why won't this become spam?"
 Reputation begins with useful contribution. Commercial interest must be disclosed. Promotion without contribution should receive less distribution, and future marketplace participation should depend on trust history.
@@ -263,7 +263,7 @@ Do not pitch "a Discord for builders" or "LinkedIn for neurodivergent people."
 
 Pitch:
 
-"Mindvergent Labs is building a professional trust network from actual contribution. We start with searchable practical research and a small peer community where people share and improve workflows, answers, and artifacts. The contribution history becomes domain-specific reputation, which we believe can make it much easier to find people and work you can trust. If that trust changes collaboration behavior, we will build matching and commerce on top of it."
+"MindVergent™ Labs is building a professional trust network from actual contribution. We start with searchable practical research and a small peer community where people share and improve workflows, answers, and artifacts. The contribution history becomes domain-specific reputation, which we believe can make it much easier to find people and work you can trust. If that trust changes collaboration behavior, we will build matching and commerce on top of it."
 
 The strongest future application evidence would be:
 
