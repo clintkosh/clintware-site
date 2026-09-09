@@ -9,6 +9,7 @@ on:
       - "materialize_teamsgallery.py"
       - "build_site.py"
       - "generate_crm_pdfs.py"
+      - "restore_resume_links.py"
       - ".github/workflows/deploy-pages.yml"
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - "materialize_teamsgallery.py"
       - "build_site.py"
       - "generate_crm_pdfs.py"
+      - "restore_resume_links.py"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -50,6 +52,9 @@ jobs:
       - name: Verify production bundle
         run: python build_site.py
 
+      - name: Restore sanitized resume links
+        run: python restore_resume_links.py
+
   deploy:
     if: github.event_name != 'pull_request'
     needs: validate
@@ -74,6 +79,9 @@ jobs:
 
       - name: Build instrumented production bundle
         run: python build_site.py
+
+      - name: Restore sanitized resume links
+        run: python restore_resume_links.py
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
