@@ -54,6 +54,47 @@ For each qualifying or materially changed interview:
 11. The official LandThePlane web product is **not** the canonical update target for this workflow unless the user explicitly changes that instruction.
 12. Rebuild and verify the local EXE only when the actual build source/environment is available. Never claim a rebuild or verification that did not happen.
 
+## Mandatory conceptual bridge / experience-evolution pass
+
+Apply this analysis to **every plausible interviewer question**, especially high-probability questions and any question involving a product category, technical domain, operating model, leadership scope, or apparent resume gap.
+
+Do not stop at surface keyword matching. Determine whether the candidate has earlier, adjacent, predecessor, or differently named experience that maps to the modern concept being tested.
+
+For each question, evaluate:
+
+1. **What is really being tested?** Identify the underlying capability, problem, judgment, or operating pattern rather than only the literal wording.
+2. **Direct evidence.** Find the strongest explicit resume/transcript/professional proof.
+3. **Adjacent or predecessor evidence.** Look for earlier work that solved the same underlying problem under older terminology, technology, product categories, job titles, or organizational models.
+4. **Best conceptual bridge.** When useful, build: `EARLIER PROBLEM/WORK -> INTERMEDIATE EVOLUTION -> TARGET ROLE/COMPANY CONCEPT -> WHY IT MATTERS NOW`.
+5. **Overclaim boundary.** State what the candidate did directly versus what is adjacent, inferred, learned, or newly understood. Never convert adjacency into false direct ownership.
+6. **Shortest natural answer.** Turn the bridge into a concise spoken answer that makes the connection obvious without sounding academic or overexplained.
+
+Preferred bridge patterns include, when supported by evidence:
+
+- discovery -> control -> context/risk;
+- traditional sensitive-data scanning/discovery -> DLP policy/control -> DSPM data-centric classification, access, exposure, movement, and risk;
+- Support -> Customer Success -> CS Operations / operating-system ownership;
+- manual workflow -> automation -> governed orchestration;
+- point tooling -> platform / integrated operating model;
+- tactical execution -> repeatable process -> scalable operating system;
+- reactive escalation -> health/risk signals -> proactive prevention;
+- implementation/onboarding -> adoption -> renewal/expansion outcomes.
+
+The sensitive-data example is a model for reasoning, not a claim template: traditional drive/repository scanning can legitimately bridge to DLP and then to DSPM as an evolution of the same core sensitive-data problem, but the candidate must not claim prior DSPM ownership unless direct evidence supports it.
+
+For high-probability questions, the answer card should include, when useful:
+
+- **TEST** — what the interviewer is evaluating;
+- **DIRECT PROOF** — strongest explicit evidence;
+- **BRIDGE** — adjacent/predecessor experience and the modern connection;
+- **TRUTH LINE** — exact overclaim boundary;
+- **SPOKEN ANSWER** — the compressed natural answer;
+- **STOP** — where to end unless probed.
+
+Do not force a bridge when one does not exist. Classify it honestly as adjacent evidence or a gap and use the normal gap-bridge method.
+
+Use prior interview transcripts as a feedback loop. Promote conceptual bridges that clearly resonated or unlocked stronger follow-up discussion. Shorten, reframe, or retire bridges that confused the interviewer or required too much explanation.
+
 ## Mandatory dark-mode artifact contract
 
 Dark mode is the default and required presentation for all live interview-prep artifacts unless the user explicitly requests otherwise.
@@ -89,7 +130,7 @@ When evidence supports the depth, a full stage kit should include:
 - company/product intelligence and role snapshot;
 - interviewer operating profile with verified fact separated from professional inference;
 - opening and positioning versions;
-- 18-25 interviewer-specific likely questions with test, best evidence, tailored answer, result/metric, role relevance, STOP, and likely probes;
+- 18-25 interviewer-specific likely questions with test, direct proof, conceptual bridge when useful, truth line, tailored answer, result/metric, role relevance, STOP, and likely probes;
 - 10-12 strong STAR/STAR-like stories with competency retrieval map and truth-line guardrails;
 - technical drills appropriate to the role;
 - vulnerability/objection map and counters;
@@ -115,10 +156,12 @@ Before saying a kit is complete, confirm:
 2. meeting facts and timezone are correct;
 3. the newest stage/interviewer/transcript/email evidence was incorporated;
 4. every major answer has a STOP point;
-5. ownership/evidence attribution is intact;
-6. PDF/DOCX/cockpit rendering and visual QA passed;
-7. the local-EXE Q&A/STAR update step was executed when the build source was available, or explicitly marked not executable when it was not.
+5. every plausible high-value question was checked for a useful conceptual/experience-evolution bridge;
+6. no conceptual bridge overstates direct ownership or experience;
+7. ownership/evidence attribution is intact;
+8. PDF/DOCX/cockpit rendering and visual QA passed;
+9. the local-EXE Q&A/STAR update step was executed when the build source was available, or explicitly marked not executable when it was not.
 
 Canonical sequence:
 
-`CALENDAR + GMAIL -> QUALIFY / DEDUPE -> FRESH STAGE KIT -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + QA -> DELIVERY -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE`
+`CALENDAR + GMAIL -> QUALIFY / DEDUPE -> FRESH STAGE KIT -> QUESTION TEST -> DIRECT PROOF -> CONCEPTUAL BRIDGE / TRUTH LINE -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + QA -> DELIVERY -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE`
