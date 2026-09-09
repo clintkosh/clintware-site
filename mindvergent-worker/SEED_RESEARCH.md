@@ -1,4 +1,4 @@
-# Mindvergent Labs — seed research pack
+# MindVergent™ Labs — seed research pack
 
 These are founder-seeded starting points for the community. They are not community consensus. Each should be published as a living brief, paired with a discussion thread, and revised when better evidence or practitioner feedback appears.
 
@@ -149,7 +149,7 @@ What prompt or manual AI routine have you repeated enough times that it should p
 
 ## Publishing standard for future research
 
-Every Mindvergent brief should show:
+Every MindVergent™ brief should show:
 
 1. The working question.
 2. The founder/current hypothesis.
