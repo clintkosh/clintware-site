@@ -1,6 +1,6 @@
 # Clintware™ Context Tools
 
-Local-first Windows 11 context-menu, registry hygiene, tune-up, and modular configuration utility.
+Local-first Windows 11 context-menu, registry hygiene, tune-up, browser hygiene, and modular configuration utility.
 
 ## Current public build: v0.3.0 beta
 
@@ -21,12 +21,12 @@ Legacy packaged beta remains available as `Clintware-Context-Tools-v0.3.0.zip` f
 - safe enable/disable of compatible HKCU registry verbs using `LegacyDisable`
 - machine-scope and COM/IExplorerCommand entries shown read-only
 
-### New maintenance modules
+### Maintenance modules
 
 #### Registry Clean
 
 - scans current-user and machine startup registry locations
-- automatically classifies startup values pointing to missing `.exe` files as low-risk cleanup candidates
+- classifies startup values pointing to missing `.exe` files as low-risk cleanup candidates
 - reports questionable uninstall records as review-only rather than deleting them
 - previews candidates before mutation
 - creates a registry export before every applied cleanup
@@ -47,13 +47,52 @@ Legacy packaged beta remains available as `Clintware-Context-Tools-v0.3.0.zip` f
 - creates a backup immediately before each applied edit
 - intentionally blocks arbitrary registry roots outside the default approved scopes
 
+#### Browser & Web Hygiene
+
+Current browser support: Chrome, Edge, and Brave Chromium profiles.
+
+- reports profile cache size, cookies/history presence, password-store presence, extension count, and extension-review count
+- audits installed extension manifests for broad or security-sensitive permissions such as all-site access, proxy, debugger, management, nativeMessaging, privacy, and webRequestBlocking
+- never opens, decrypts, exports, or reads saved passwords; password checks are metadata/presence only
+- can clear cache, cookies, history, or site-storage classes separately
+- requires the target browser to be closed before profile files are changed
+- backs up selected browser data before deletion
+- preserves passwords, autofill, and bookmarks by default
+- provides Guided search-engine setup through the browser's own settings page
+- optionally enforces Google, Brave Search, DuckDuckGo, or Startpage through browser policy after preview and explicit `APPLY`
+- warns that policy enforcement can cause Chromium browsers to display `Managed by your organization`
+
+Search recommendation defaults:
+
+- Google: default for result quality
+- Brave Search: default privacy / independent-index alternative
+- DuckDuckGo and Startpage: optional privacy alternatives
+
+The tool does not silently rewrite opaque Chromium profile databases just to change search defaults.
+
+### Additional hygiene areas planned / being evaluated
+
+- stale site permissions and notification grants
+- orphaned service-worker/site-storage inventory
+- suspicious/unpacked extension detection
+- download-list hygiene without deleting downloaded files
+- browser update/version posture
+- DNS/proxy/VPN drift checks
+- homepage/startup-page hijack detection
+- per-site cookie allowlist cleanup
+- credential-health handoff to the browser/vendor's supported password-breach checker without exposing credentials to Clintware
+
 ### Backup and rollback
 
 Every registry mutation performed by the v0.3 maintenance modules calls the shared backup core first. Backups are stored under:
 
 `%LOCALAPPDATA%\Clintware\ContextTools\Backups`
 
-Each backup contains exported `.reg` data plus a JSON manifest recording which keys existed before the change. The interactive shell can list and restore backup points.
+Browser-data backups are stored under:
+
+`%LOCALAPPDATA%\Clintware\ContextTools\Backups\Browser`
+
+Each registry backup contains exported `.reg` data plus a JSON manifest recording which keys existed before the change. The interactive shell can list and restore registry backup points.
 
 ### Install
 
