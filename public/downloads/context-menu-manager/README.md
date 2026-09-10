@@ -1,23 +1,20 @@
 # Clintware™ Right-Click Menu Manager
 
-Local-first Windows 11 context-menu toggler and discovery utility.
+Local-first Windows 11 context-menu manager and discovery utility.
 
-## v0.1.0
+## Current public build: v0.2.0
 
-The downloadable ZIP contains the full modular PowerShell source tree:
+The live-use fast path is now integrated into the main installer and the toggle UI:
 
-- `Core/Engine.ps1`
-- `Providers/Windows.ps1`
-- `Providers/PowerShell.ps1`
-- `Providers/Terminal.ps1`
-- `Providers/SevenZip.ps1`
-- `Providers/Discovered.ps1`
-- `Clintware.ContextMenuManager.ps1`
-- `Install.ps1`
-- launcher and README
+- `Clintware™ | 7-Zip Extract to Same-Name Folder`
+- `Clintware™ | Open Admin PowerShell Here`
+- ordered Clintware shell keys keep the two actions grouped on archive right-clicks
+- Admin PowerShell works from files, folders, and blank folder backgrounds
+- classic/full Windows 11 menu is enabled by the normal installer, but remains toggleable
+- preview, registry snapshot, rollback, and Explorer restart remain part of the safety model
 
-It detects registry-backed shell verbs, inventories shell extensions, toggles Windows 11 classic/full context menu mode, adds PowerShell/Terminal commands when available, exposes modular 7-Zip actions when 7-Zip is installed, previews pending changes, backs up registry state before Apply, and supports rollback.
+Download `Clintware-ContextMenu-Manager-v0.2.0.zip` for the full modular PowerShell source tree, installer, launcher, product plan, and YC-facing working notes.
 
 Runtime state and backups are stored under `%LOCALAPPDATA%\Clintware\ContextMenuManager`.
 
-Unknown COM context-menu handlers are inventory-only rather than being blindly unregistered.
+Unknown COM context-menu handlers are not blindly unregistered.
