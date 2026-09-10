@@ -27,6 +27,13 @@ function Get-ClintwareChromiumProfiles {
     }
 }
 
+function Get-ClintwareManifestArray {
+    param([Parameter(Mandatory)]$Manifest,[Parameter(Mandatory)][string]$Property)
+    $p = $Manifest.PSObject.Properties[$Property]
+    if (-not $p -or $null -eq $p.Value) { return @() }
+    @($p.Value)
+}
+
 function Get-ClintwareExtensionAudit {
     param([Parameter(Mandatory)][string]$ProfilePath,[Parameter(Mandatory)][string]$Browser,[Parameter(Mandatory)][string]$Profile)
     $root = Join-Path $ProfilePath 'Extensions'
@@ -39,11 +46,12 @@ function Get-ClintwareExtensionAudit {
         if (-not (Test-Path -LiteralPath $manifest)) { continue }
         try {
             $m = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
-            $perms = @($m.permissions) + @($m.host_permissions) + @($m.optional_permissions) + @($m.optional_host_permissions)
+            $perms = @(Get-ClintwareManifestArray $m 'permissions') + @(Get-ClintwareManifestArray $m 'host_permissions') + @(Get-ClintwareManifestArray $m 'optional_permissions') + @(Get-ClintwareManifestArray $m 'optional_host_permissions')
             $perms = @($perms | Where-Object { $_ } | ForEach-Object { [string]$_ } | Sort-Object -Unique)
             $flags = @($perms | Where-Object { $sensitive -contains $_ -or $_ -match '^\*://|^https?://\*/|<all_urls>' })
             $risk = if ($flags.Count -ge 3) {'High'} elseif ($flags.Count -ge 1) {'Review'} else {'Normal'}
-            [pscustomobject]@{ Browser=$Browser; Profile=$Profile; Id=$idDir.Name; Name=([string]$m.name); Version=([string]$m.version); Risk=$risk; FlaggedPermissions=($flags -join ', '); PermissionCount=$perms.Count }
+            $nameProp = $m.PSObject.Properties['name']; $verProp = $m.PSObject.Properties['version']
+            [pscustomobject]@{ Browser=$Browser; Profile=$Profile; Id=$idDir.Name; Name=$(if($nameProp){[string]$nameProp.Value}else{'Unknown'}); Version=$(if($verProp){[string]$verProp.Value}else{''}); Risk=$risk; FlaggedPermissions=($flags -join ', '); PermissionCount=$perms.Count }
         } catch {
             [pscustomobject]@{ Browser=$Browser; Profile=$Profile; Id=$idDir.Name; Name='Unreadable manifest'; Version=''; Risk='Review'; FlaggedPermissions='Manifest parse failed'; PermissionCount=0 }
         }
@@ -87,11 +95,7 @@ function Backup-ClintwareBrowserProfileItems {
 
 function Clear-ClintwareBrowserData {
     [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [Parameter(Mandatory)][ValidateSet('Chrome','Edge','Brave')][string]$Browser,
-        [string]$Profile='Default',
-        [switch]$Cache,[switch]$Cookies,[switch]$History,[switch]$SiteData,[switch]$Apply
-    )
+    param([Parameter(Mandatory)][ValidateSet('Chrome','Edge','Brave')][string]$Browser,[string]$Profile='Default',[switch]$Cache,[switch]$Cookies,[switch]$History,[switch]$SiteData,[switch]$Apply)
     $p = Get-ClintwareChromiumProfiles | Where-Object { $_.Browser -eq $Browser -and $_.Profile -eq $Profile } | Select-Object -First 1
     if (-not $p) { throw "Browser/profile not found: $Browser / $Profile" }
     if (Get-Process -Name $p.Process -ErrorAction SilentlyContinue) { throw "$Browser is running. Close it first so profile databases are not corrupted." }
@@ -105,10 +109,7 @@ function Clear-ClintwareBrowserData {
     $preview = [pscustomobject]@{ Browser=$Browser; Profile=$Profile; Targets=($targets -join '; '); Passwords='PRESERVED'; Autofill='PRESERVED'; Bookmarks='PRESERVED'; Apply=[bool]$Apply }
     if (-not $Apply) { return $preview }
     $backup = Backup-ClintwareBrowserProfileItems -ProfilePath $p.Path -RelativePaths $targets
-    foreach ($rel in $targets) {
-        $path = Join-Path $p.Path $rel
-        if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue }
-    }
+    foreach ($rel in $targets) { $path = Join-Path $p.Path $rel; if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue } }
     [pscustomobject]@{ Browser=$Browser; Profile=$Profile; Backup=$backup; Removed=($targets -join '; '); Passwords='PRESERVED'; Autofill='PRESERVED'; Bookmarks='PRESERVED' }
 }
 
@@ -133,11 +134,7 @@ function Open-ClintwareBrowserSearchSettings {
 
 function Set-ClintwareBrowserSearchPolicy {
     [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [Parameter(Mandatory)][ValidateSet('Chrome','Edge','Brave')][string]$Browser,
-        [Parameter(Mandatory)][ValidateSet('Google','Brave Search','DuckDuckGo','Startpage')][string]$Engine,
-        [switch]$Remove,[switch]$Apply
-    )
+    param([Parameter(Mandatory)][ValidateSet('Chrome','Edge','Brave')][string]$Browser,[Parameter(Mandatory)][ValidateSet('Google','Brave Search','DuckDuckGo','Startpage')][string]$Engine,[switch]$Remove,[switch]$Apply)
     $b = Get-ClintwareBrowserDefinitions | Where-Object Name -eq $Browser | Select-Object -First 1
     $e = Get-ClintwareSearchEngineCatalog | Where-Object Name -eq $Engine | Select-Object -First 1
     $preview = [pscustomobject]@{ Browser=$Browser; Engine=$Engine; PolicyPath=$b.Policy; Action=$(if($Remove){'Remove enforcement'}else{'Enforce default search provider'}); Warning='Browser may display Managed by your organization.'; Apply=[bool]$Apply }
@@ -150,8 +147,7 @@ function Set-ClintwareBrowserSearchPolicy {
         New-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderEnabled' -PropertyType DWord -Value 1 -Force | Out-Null
         New-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderName' -PropertyType String -Value $e.Name -Force | Out-Null
         New-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderSearchURL' -PropertyType String -Value $e.SearchURL -Force | Out-Null
-        if ($e.SuggestURL) { New-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderSuggestURL' -PropertyType String -Value $e.SuggestURL -Force | Out-Null }
-        else { Remove-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderSuggestURL' -ErrorAction SilentlyContinue }
+        if ($e.SuggestURL) { New-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderSuggestURL' -PropertyType String -Value $e.SuggestURL -Force | Out-Null } else { Remove-ItemProperty -Path $b.Policy -Name 'DefaultSearchProviderSuggestURL' -ErrorAction SilentlyContinue }
     }
     [pscustomobject]@{ Browser=$Browser; Engine=$Engine; Applied=$true; Backup=$backup; RestartBrowser=$true }
 }
