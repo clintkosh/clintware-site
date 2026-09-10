@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import sys
 
 from .autonomy import AUTONOMY_LEVELS, IntentError, compile_intent, save_manifest_json
 from .config import Config, home_dir
 from .executor import execute
+from .native_schedule import NativeScheduleError, install_windows_schedule
 from .policy import evaluate
 from .scheduler import add_schedule, approve_schedule
 
@@ -57,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--autonomy", choices=AUTONOMY_LEVELS, default="recommend")
     p.add_argument("--apply", action="store_true", help="Execute the compiled pack now.")
     p.add_argument("--approve-all", action="store_true", help="Explicitly approve capabilities that local policy marks ask.")
-    p.add_argument("--schedule", action="store_true", help="Install a device-owned local schedule using cadence parsed from the intent.")
+    p.add_argument("--schedule", action="store_true", help="Install a local schedule using cadence parsed from the intent.")
     p.add_argument("--every", type=_duration, help="Override/add a local repeat cadence, e.g. 15m, 1h, 1d.")
     p.add_argument("--output", help="Write the generated execution manifest to this JSON path.")
     p.add_argument("--json", action="store_true", help="Print the complete compiler result as JSON.")
@@ -104,12 +106,29 @@ def main(argv=None):
         if not every:
             print("\nSCHEDULE\nNo cadence found. Add wording such as 'every hour' or pass --every 1h.", file=sys.stderr)
             return 2
+        decision = evaluate(pack.manifest, cfg.data.get("policy", {}), approved=args.approve_all)
+        if decision.denied:
+            print(json.dumps({"status": "denied", "denied": decision.denied}, indent=2), file=sys.stderr)
+            return 2
+        if decision.needs_approval and not args.approve_all:
+            print(json.dumps({"status": "approval_required", "needs_approval": decision.needs_approval}, indent=2), file=sys.stderr)
+            return 2
         pack_dir = home_dir() / "autonomy" / "packs"
         pack_path = save_manifest_json(compiled, pack_dir / f"{compiled.id}.json")
-        row = add_schedule(str(pack_path), every_seconds=every, owner="device", device_id=cfg.data["device_id"])
-        if args.approve_all:
-            approve_schedule(row["id"], True)
-            row["approved_local"] = True
+        try:
+            if platform.system().lower() == "windows":
+                if "admin" in compiled.manifest.get("permissions", []):
+                    raise NativeScheduleError("Admin-level repair is not silently installed as an elevated persistent task. Run it interactively or create an explicitly elevated task.")
+                row = install_windows_schedule(pack_path, every, approve_all=args.approve_all)
+            else:
+                row = add_schedule(str(pack_path), every_seconds=every, owner="device", device_id=cfg.data["device_id"])
+                if args.approve_all:
+                    approve_schedule(row["id"], True)
+                    row["approved_local"] = True
+                row = {"provider": "quillgeist_device_scheduler", **row}
+        except NativeScheduleError as exc:
+            print(f"\nSCHEDULE\n{exc}", file=sys.stderr)
+            return 2
         print("\nSCHEDULE")
         print(json.dumps(row, indent=2, default=str))
     return 0
