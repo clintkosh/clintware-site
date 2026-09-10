@@ -9,7 +9,8 @@ $files = @(
     'Core/Backup.ps1',
     'Modules/RegistryClean.ps1',
     'Modules/TuneUp.ps1',
-    'Modules/ModularEditor.ps1'
+    'Modules/ModularEditor.ps1',
+    'Modules/BrowserHygiene.ps1'
 )
 
 foreach ($rel in $files) {
