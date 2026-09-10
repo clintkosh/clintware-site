@@ -7,6 +7,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'Modules\RegistryClean.ps1')
 . (Join-Path $here 'Modules\TuneUp.ps1')
 . (Join-Path $here 'Modules\ModularEditor.ps1')
+. (Join-Path $here 'Modules\BrowserHygiene.ps1')
 
 function Show-ClintwareContextToolsMenu {
     while ($true) {
@@ -23,6 +24,12 @@ function Show-ClintwareContextToolsMenu {
         Write-Host '[7] Modular Registry Editor - remove value'
         Write-Host '[8] List backups'
         Write-Host '[9] Restore backup'
+        Write-Host '[10] Browser Hygiene - profile/cache/cookie/password-store report'
+        Write-Host '[11] Browser Security - extension permission audit'
+        Write-Host '[12] Browser Clean - cache/cookies/history/site data'
+        Write-Host '[13] Search Engine - guided browser setting'
+        Write-Host '[14] Search Engine - enforce/remove policy'
+        Write-Host '[15] Search Engine - recommendation catalog'
         Write-Host '[R] Restart Explorer'
         Write-Host '[Q] Quit'
         $choice = Read-Host 'Select'
@@ -35,18 +42,14 @@ function Show-ClintwareContextToolsMenu {
                     $safe = @($c | Where-Object RecommendedAction -eq 'RemoveValue')
                     $safe | Format-Table -AutoSize
                     if ($safe.Count -eq 0) { Write-Host 'No known-safe candidates found.'; Pause; break }
-                    if ((Read-Host "Apply $($safe.Count) change(s)? Type APPLY") -ceq 'APPLY') {
-                        Invoke-ClintwareRegistryClean -Candidates $safe -Apply -Confirm:$false | Format-List
-                    }
+                    if ((Read-Host "Apply $($safe.Count) change(s)? Type APPLY") -ceq 'APPLY') { Invoke-ClintwareRegistryClean -Candidates $safe -Apply -Confirm:$false | Format-List }
                     Pause
                 }
                 '3' { Get-ClintwareTuneUpPlan | Format-List; Pause }
                 '4' {
                     $preview = Clear-ClintwareUserTemp
                     $preview | Format-List
-                    if ((Read-Host 'Delete these unlocked temp files? Type APPLY') -ceq 'APPLY') {
-                        Clear-ClintwareUserTemp -Apply -Confirm:$false | Format-List
-                    }
+                    if ((Read-Host 'Delete these unlocked temp files? Type APPLY') -ceq 'APPLY') { Clear-ClintwareUserTemp -Apply -Confirm:$false | Format-List }
                     Pause
                 }
                 '5' { $p=Read-Host 'Registry path'; Get-ClintwareRegistryItem -Path $p | Format-List; Pause }
@@ -70,6 +73,29 @@ function Show-ClintwareContextToolsMenu {
                     Restore-ClintwareBackup -BackupDirectory $p -Confirm
                     Pause
                 }
+                '10' { Get-ClintwareBrowserHygieneReport | Format-Table -AutoSize; Pause }
+                '11' { Get-ClintwareBrowserSecurityChecks | Format-Table Browser,Profile,Name,Risk,FlaggedPermissions -Wrap -AutoSize; Pause }
+                '12' {
+                    $b=Read-Host 'Browser [Chrome/Edge/Brave]'; $p=Read-Host 'Profile [Default]'; if(-not $p){$p='Default'}
+                    $mode=Read-Host 'Data [cache / cookies / history / site / all]'
+                    $args=@{Browser=$b;Profile=$p}
+                    switch($mode.ToLowerInvariant()){'cache'{$args.Cache=$true};'cookies'{$args.Cookies=$true};'history'{$args.History=$true};'site'{$args.SiteData=$true};'all'{$args.Cache=$true;$args.Cookies=$true;$args.History=$true;$args.SiteData=$true};default{throw 'Unknown data selection.'}}
+                    Clear-ClintwareBrowserData @args | Format-List
+                    if ((Read-Host 'Back up then clear selected browser data? Type APPLY') -ceq 'APPLY') { $args.Apply=$true; Clear-ClintwareBrowserData @args -Confirm:$false | Format-List }
+                    Pause
+                }
+                '13' {
+                    $b=Read-Host 'Browser [Chrome/Edge/Brave]'; $e=Read-Host 'Engine [Google/Brave Search/DuckDuckGo/Startpage]'; if(-not $e){$e='Google'}
+                    Open-ClintwareBrowserSearchSettings -Browser $b -Engine $e | Format-List; Pause
+                }
+                '14' {
+                    $b=Read-Host 'Browser [Chrome/Edge/Brave]'; $e=Read-Host 'Engine [Google/Brave Search/DuckDuckGo/Startpage]'; if(-not $e){$e='Google'}
+                    $remove=(Read-Host 'Type REMOVE to remove enforcement, otherwise press Enter to enforce') -ceq 'REMOVE'
+                    Set-ClintwareBrowserSearchPolicy -Browser $b -Engine $e -Remove:$remove | Format-List
+                    if ((Read-Host 'This can mark the browser as managed. Type APPLY') -ceq 'APPLY') { Set-ClintwareBrowserSearchPolicy -Browser $b -Engine $e -Remove:$remove -Apply -Confirm:$false | Format-List }
+                    Pause
+                }
+                '15' { Get-ClintwareSearchEngineCatalog | Format-Table -AutoSize; Pause }
                 'R' { Restart-ClintwareExplorer -Confirm }
                 'Q' { return }
                 default { Write-Host 'Unknown selection.'; Start-Sleep 1 }
