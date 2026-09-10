@@ -1,20 +1,32 @@
-# Clintware™ Right-Click Menu Manager
+# Clintware™ Context Tools
 
 Local-first Windows 11 context-menu manager and discovery utility.
 
-## Current public build: v0.2.0
+## Current public build: v0.3.0 beta
 
-The live-use fast path is now integrated into the main installer and the toggle UI:
+Download `Clintware-Context-Tools-v0.3.0.zip`.
 
-- `Clintware™ | 7-Zip Extract to Same-Name Folder`
+SHA-256:
+
+`b1ec31c47c2788770ba89a1fe594d8e0230c68fd78ec7e8120f96ea3168a8a66`
+
+### Current functions
+
+- live check/uncheck state derived from compatible registry verbs actually present on the machine
 - `Clintware™ | Open Admin PowerShell Here`
-- ordered Clintware shell keys keep the two actions grouped on archive right-clicks
-- Admin PowerShell works from files, folders, and blank folder backgrounds
-- classic/full Windows 11 menu is enabled by the normal installer, but remains toggleable
-- preview, registry snapshot, rollback, and Explorer restart remain part of the safety model
+- `Clintware™ | 7-Zip Extract to Same-Name Folder`
+- one-time UAC setup for the persistent PowerShell-only broker
+- protected broker under `%ProgramFiles%\Clintware\ContextTools`
+- hardened task ACL so the normal user token can read/run the task but cannot rewrite its action
+- fixed PowerShell launch with `-NoProfile`; no arbitrary program/command passthrough
+- safe enable/disable of compatible HKCU registry verbs using `LegacyDisable`
+- machine-scope and COM/IExplorerCommand entries shown read-only
+- preview, first-seen baseline, per-Apply change ledger, undo, restore, repair, and uninstall
 
-Download `Clintware-ContextMenu-Manager-v0.2.0.zip` for the full modular PowerShell source tree, installer, launcher, product plan, and YC-facing working notes.
+The Admin PowerShell task persists across reboot and does not globally disable UAC. Normal applications continue to use normal Windows elevation behavior.
 
-Runtime state and backups are stored under `%LOCALAPPDATA%\Clintware\ContextMenuManager`.
+Runtime state and backups are stored under `%LOCALAPPDATA%\Clintware\ContextTools`.
+
+Protected application files are installed under `%ProgramFiles%\Clintware\ContextTools`.
 
 Unknown COM context-menu handlers are not blindly unregistered.
