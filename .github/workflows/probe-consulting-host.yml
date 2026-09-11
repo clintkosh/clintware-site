@@ -1,0 +1,27 @@
+name: Probe Consulting Host
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/probe-consulting-host.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe HTTP response
+        run: |
+          set -u
+          echo "=== HEADERS ==="
+          curl -sS -D /tmp/headers -o /tmp/body --max-time 20 https://consulting.clintware.com/ || true
+          sed -n '1,30p' /tmp/headers || true
+          echo "=== BODY PREFIX ==="
+          head -c 1200 /tmp/body || true
+          echo
+          echo "=== STATUS ==="
+          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 20 https://consulting.clintware.com/ || true
