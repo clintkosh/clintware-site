@@ -1,12 +1,8 @@
-name: Deploy Clintware Consulting
+name: Retire legacy consulting surface
 
 on:
   push:
     branches: [main]
-    paths:
-      - "consulting/**"
-      - ".github/workflows/deploy-consulting-pages.yml"
-  pull_request:
     paths:
       - "consulting/**"
       - ".github/workflows/deploy-consulting-pages.yml"
@@ -18,54 +14,24 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "clintware-consulting-pages-${{ github.ref }}"
+  group: "clintware-consulting-retirement-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  validate:
+  deploy-retired-surface:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: consulting
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install test dependencies
-        run: pip install beautifulsoup4 tinycss2
-
-      - name: Run five regression checks
-        run: python tests/regression.py
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: validate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload consulting site
+      - name: Upload retired consulting surface
         uses: actions/upload-pages-artifact@v4
         with:
           path: consulting
-
-      - name: Deploy to GitHub Pages
+      - name: Deploy retired surface
         id: deployment
         uses: actions/deploy-pages@v4
