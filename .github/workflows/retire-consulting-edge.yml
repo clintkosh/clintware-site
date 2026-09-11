@@ -1,0 +1,82 @@
+name: Retire Consulting Edge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/consulting-retired.js"
+      - ".github/workflows/retire-consulting-edge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_NAME: clintware-consulting-retired
+      TARGET_HOST: consulting.clintware.com
+      ZONE_NAME: clintware.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Clintware zone
+        id: zone
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/zones?name=${ZONE_NAME}&account.id=${CLOUDFLARE_ACCOUNT_ID}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          zone_id=$(printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result",[]); assert r,"zone not found"; print(r[0]["id"])')
+          echo "zone_id=$zone_id" >> "$GITHUB_OUTPUT"
+
+      - name: Upload 410 retirement Worker
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/javascript" \
+            --data-binary @workers/consulting-retired.js)
+          printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print("Retirement Worker uploaded.")'
+
+      - name: Attach only consulting.clintware.com
+        run: |
+          set -euo pipefail
+          payload=$(python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+              "hostname": os.environ["TARGET_HOST"],
+              "service": os.environ["WORKER_NAME"],
+              "zone_id": "${{ steps.zone.outputs.zone_id }}",
+              "zone_name": os.environ["ZONE_NAME"],
+          }))
+          PY
+          )
+          response=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "$payload")
+          printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result",{}); assert r.get("hostname")=="consulting.clintware.com",r; print("Consulting hostname attached to retirement Worker.")'
+
+      - name: Verify retirement response
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -L -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' "https://${TARGET_HOST}/" || true)
+            if [ "$code" = "410" ]; then
+              grep -i '^x-robots-tag:.*noindex' /tmp/headers
+              grep -q 'legacy Clintware surface has been retired' /tmp/body
+              echo "Verified ${TARGET_HOST} returns 410 Gone with noindex."
+              exit 0
+            fi
+            echo "Attempt ${attempt}: received HTTP ${code}; retrying after propagation."
+            sleep 5
+          done
+          echo "Retirement Worker attached, but edge verification did not yet return 410."
+          cat /tmp/headers || true
+          exit 1
