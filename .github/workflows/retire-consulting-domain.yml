@@ -53,19 +53,27 @@ jobs:
             "https://api.cloudflare.com/client/v4/zones?name=${ZONE_NAME}&account.id=${CLOUDFLARE_ACCOUNT_ID}" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
           if [[ ! "$zone_code" =~ ^2 ]]; then
-            echo "Zone API unavailable with this token (HTTP ${zone_code}); Worker-domain cleanup already completed."
+            echo "Zone API unavailable with this token (HTTP ${zone_code}); continuing to public DNS verification."
             cat "$zone_tmp"
             exit 0
           fi
           zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; matches=[x for x in d.get("result",[]) if x.get("name")=="clintware.com"]; print(matches[0]["id"] if matches else "")' < "$zone_tmp")
           if [ -z "$zone_id" ]; then
-            echo "No Cloudflare zone found for ${ZONE_NAME}; skipping direct DNS cleanup."
+            echo "No Cloudflare zone found for ${ZONE_NAME}; continuing to public DNS verification."
             exit 0
           fi
-          records=$(curl --fail-with-body -sS \
+
+          records_tmp=$(mktemp)
+          records_code=$(curl -sS -o "$records_tmp" -w '%{http_code}' \
             "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=${TARGET_HOST}" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          ids=$(printf '%s' "$records" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print("\n".join(str(x["id"]) for x in d.get("result",[]) if x.get("name")=="consulting.clintware.com"))')
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+          if [[ ! "$records_code" =~ ^2 ]]; then
+            echo "DNS Records API unavailable with this token (HTTP ${records_code}); exact DNS deletion cannot be completed with the current credential."
+            cat "$records_tmp"
+            exit 0
+          fi
+
+          ids=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print("\n".join(str(x["id"]) for x in d.get("result",[]) if x.get("name")=="consulting.clintware.com"))' < "$records_tmp")
           if [ -z "$ids" ]; then
             echo "No direct DNS records exist for ${TARGET_HOST}."
           else
@@ -94,3 +102,5 @@ jobs:
           sudo apt-get install -y -qq dnsutils >/dev/null
           echo "Cloudflare resolver result (may briefly reflect cache):"
           dig @1.1.1.1 "${TARGET_HOST}" A AAAA CNAME +noall +answer || true
+          echo "Google resolver result (may briefly reflect cache):"
+          dig @8.8.8.8 "${TARGET_HOST}" A AAAA CNAME +noall +answer || true
