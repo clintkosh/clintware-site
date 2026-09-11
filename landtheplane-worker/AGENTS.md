@@ -43,17 +43,33 @@ Email-targeted dark output must use structural safeguards rather than depending 
 - explicit high-contrast text colors;
 - no transparent critical panels;
 - responsive sizing that remains usable if media queries are ignored;
-- hero/banner first inside the dark wrapper.
+- hero/banner first inside the dark wrapper when a hero is present.
 
 If no actual target-client/mobile preview is available, say static safeguards passed. Do not claim verified client rendering.
 
-## Future Gmail delivery rule
+## Current Gmail OAuth MVP rule
 
-Current alpha is browser-local and does not send Gmail. When connected Gmail drafting is introduced, require provider readback after create/update. Inline hero images must be verified as real inline MIME parts with `Content-Disposition: inline`, `Content-ID`, and matching stored `cid:` HTML. Re-run both MIME and mobile-dark checks after every draft update.
+LandThePlane now has a live browser-direct Gmail OAuth MVP.
+
+Current capability:
+
+- Google OAuth token flow runs in the user's browser;
+- Gmail API requests run from the browser directly to Google;
+- the Cloudflare Worker does not proxy or persist raw Gmail messages;
+- Gmail evidence scanning reads message metadata/snippets needed for job-search classification;
+- imported evidence remains subject to ASTRO deduplication/reconciliation before it becomes a cumulative funnel count;
+- Gmail draft creation is supported;
+- every created draft must be read back from Gmail and pass the stored-marker and mobile-dark structural checks before it is called verified;
+- autonomous sending is not enabled;
+- access tokens remain in page memory and are not intentionally persisted by LandThePlane.
+
+The live public MVP currently supports a tester BYO Google OAuth client ID when the shared Clintware client is not configured. Broad production use through one Clintware OAuth client remains gated by Google restricted-scope verification.
+
+If profile/hero images are later added to Gmail drafts, inline images must be verified as real inline MIME parts with `Content-Disposition: inline`, `Content-ID`, and matching stored `cid:` HTML after every draft mutation. Do not claim CID verification when no inline image is present.
 
 ## Privacy and product truth
 
 - Keep connected sources opt-in and minimally scoped.
 - Do not expose private candidate, recruiter, employer, compensation, transcript, or work data in public demos.
 - Keep current alpha capability separate from roadmap capability.
-- Never claim connected Gmail delivery, server-side storage, or provider rendering checks until they actually exist and are verified.
+- Never claim autonomous Gmail sending, server-side mailbox storage, a production-wide shared Google OAuth client, or physical Gmail-mobile visual verification until those capabilities actually exist and are verified.
