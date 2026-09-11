@@ -100,7 +100,10 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq dnsutils >/dev/null
-          echo "Cloudflare resolver result (may briefly reflect cache):"
-          dig @1.1.1.1 "${TARGET_HOST}" A AAAA CNAME +noall +answer || true
-          echo "Google resolver result (may briefly reflect cache):"
-          dig @8.8.8.8 "${TARGET_HOST}" A AAAA CNAME +noall +answer || true
+          for resolver in 1.1.1.1 8.8.8.8; do
+            echo "Resolver ${resolver}:"
+            for qtype in A AAAA CNAME; do
+              echo "-- ${qtype} --"
+              dig @"${resolver}" "${TARGET_HOST}" "${qtype}" +noall +answer || true
+            done
+          done
