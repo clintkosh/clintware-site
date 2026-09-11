@@ -43,31 +43,64 @@ jobs:
             --data-binary @workers/consulting-retired.js)
           printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print("Retirement Worker uploaded.")'
 
-      - name: Attach only consulting.clintware.com
+      - name: Route only consulting.clintware.com to retirement Worker
         run: |
           set -euo pipefail
-          payload=$(python3 - <<'PY'
-          import json, os
-          print(json.dumps({
-              "hostname": os.environ["TARGET_HOST"],
-              "service": os.environ["WORKER_NAME"],
-              "zone_id": "${{ steps.zone.outputs.zone_id }}",
-              "zone_name": os.environ["ZONE_NAME"],
-          }))
-          PY
-          )
-          response=$(curl --fail-with-body -sS -X PUT \
+          zone_id="${{ steps.zone.outputs.zone_id }}"
+
+          # Prefer a Custom Domain. If an existing DNS record blocks it, use a
+          # Worker Route on the already-proxied hostname instead.
+          domain_body=$(mktemp)
+          domain_code=$(curl -sS -o "$domain_body" -w '%{http_code}' -X PUT \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data "$payload")
-          printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result",{}); assert r.get("hostname")=="consulting.clintware.com",r; print("Consulting hostname attached to retirement Worker.")'
+            --data "{\"hostname\":\"${TARGET_HOST}\",\"service\":\"${WORKER_NAME}\",\"zone_id\":\"${zone_id}\",\"zone_name\":\"${ZONE_NAME}\"}" || true)
+
+          if [[ "$domain_code" =~ ^2 ]]; then
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' < "$domain_body"
+            echo "Attached ${TARGET_HOST} as a Worker Custom Domain."
+            exit 0
+          fi
+
+          echo "Custom Domain attach returned HTTP ${domain_code}; trying an exact Worker Route."
+          cat "$domain_body"
+
+          routes_body=$(mktemp)
+          routes_code=$(curl -sS -o "$routes_body" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/zones/${zone_id}/workers/routes" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" || true)
+          if [[ ! "$routes_code" =~ ^2 ]]; then
+            echo "Worker Routes API unavailable (HTTP ${routes_code})."
+            cat "$routes_body"
+            exit 1
+          fi
+
+          route_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; p="consulting.clintware.com/*"; print(next((x.get("id","") for x in d.get("result",[]) if x.get("pattern")==p),""))' < "$routes_body")
+          route_payload="{\"pattern\":\"${TARGET_HOST}/*\",\"script\":\"${WORKER_NAME}\"}"
+
+          if [ -n "$route_id" ]; then
+            response=$(curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/zones/${zone_id}/workers/routes/${route_id}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$route_payload")
+            echo "Updated existing exact Worker Route ${route_id}."
+          else
+            response=$(curl --fail-with-body -sS -X POST \
+              "https://api.cloudflare.com/client/v4/zones/${zone_id}/workers/routes" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$route_payload")
+            echo "Created exact Worker Route for ${TARGET_HOST}."
+          fi
+          printf '%s' "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result",{}); assert r.get("pattern")=="consulting.clintware.com/*",r; assert r.get("script")=="clintware-consulting-retired",r'
 
       - name: Verify retirement response
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5; do
-            code=$(curl -L -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' "https://${TARGET_HOST}/" || true)
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -sS -o /tmp/body -D /tmp/headers -w '%{http_code}' "https://${TARGET_HOST}/" || true)
             if [ "$code" = "410" ]; then
               grep -i '^x-robots-tag:.*noindex' /tmp/headers
               grep -q 'legacy Clintware surface has been retired' /tmp/body
@@ -77,6 +110,6 @@ jobs:
             echo "Attempt ${attempt}: received HTTP ${code}; retrying after propagation."
             sleep 5
           done
-          echo "Retirement Worker attached, but edge verification did not yet return 410."
+          echo "Edge retirement did not verify as HTTP 410."
           cat /tmp/headers || true
           exit 1
