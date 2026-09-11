@@ -1,4 +1,4 @@
-# Canonical Clintware Pages deployment. Legacy consulting deployment removed 2026-09-10.
+# Canonical Clintware Pages deployment. Legacy consulting web surface removed 2026-09-10.
 name: Deploy Clintware Homepage
 
 on:
