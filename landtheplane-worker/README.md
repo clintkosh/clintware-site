@@ -1,26 +1,28 @@
 # LandThePlane
 
 **Positioning:** **LandThePlane: And Hit the Ground Rolling.**  
-**Status:** local-first alpha + YC fast-track product track  
+**Status:** local-first alpha + browser-direct Gmail OAuth MVP + YC fast-track product track  
 **Public app:** `https://landtheplane.clintware.com/`  
 **Product detail:** `https://www.clintware.com/tools/landtheplane/`
 
-LandThePlane is a continuous career operating system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. After the user gets hired, the same system transitions into a ramp, workflow, and performance layer that learns the actual job from user-approved work signals and helps turn that context into repeatable personal workflows and verified evidence of impact.
+LandThePlane is a continuous career operating system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. The same system can now bring source evidence from the user's own Gmail into the job-search layer, generate ASTRO-style status briefs, and create a Gmail draft that is read back and verified before LandThePlane calls the write successful. After the user gets hired, the same evidence model transitions into ramp, workflow, and performance use cases.
 
 ## Product arc
 
-`LAND → RAMP → OPERATE → IMPROVE → PROVE`
+`SEARCH → LAND → RAMP → OPERATE → IMPROVE → PROVE`
 
-### Land
+### Search
 
 1. Ingest resume/accomplishment evidence plus a target role.
 2. Extract role requirements without treating the job description as proof about the candidate.
 3. Map requirements to verified accomplishment evidence.
-4. Reuse evidence as one-sentence proof, a 30-second opening, a 45–75 second answer, a full STAR story, a panel talking point, and a closing bridge.
-5. Record what was asked and what evidence was used.
-6. Improve future coaching from candidate edits, interview history, outcomes, and recurring weak spots.
+4. Connect Gmail when the user explicitly chooses to and scan job-search messages for application, interview/next-step, pause, closure, and networking signals.
+5. Keep Gmail message evidence separate from canonical company-role counts until ASTRO reconciliation/deduplication is complete.
+6. Generate role-specific prep and recurring ASTRO-style briefs from the reconciled evidence.
+7. Create a Gmail draft when requested and read the stored draft back before labeling the write verified.
+8. Keep final sending user-controlled.
 
-### Ramp
+### Land
 
 When the user accepts the job, the job description becomes version 0 of a living success plan:
 
@@ -36,7 +38,7 @@ The job description is a starting hypothesis, not final truth. Email, meetings, 
 
 ### Operate
 
-The product builds a private work graph from user-approved sources. Email is the primary growth channel after hire because it captures assignments, commitments, deadlines, stakeholders, decisions, recurring processes, terminology, feedback, and results. Meeting intelligence is the second major source.
+The product can build a private work graph from user-approved sources. Email is the first connected-data wedge because it captures assignments, commitments, deadlines, stakeholders, decisions, recurring processes, terminology, feedback, and results. Meeting intelligence is the second major source.
 
 Canonical work entities:
 
@@ -53,8 +55,11 @@ Canonical work entities:
 - `SkillGap`
 - `SuccessSignal`
 - `EvidenceItem`
+- `EvidenceObservation`
+- `SourceReference`
+- `VerificationState`
 
-Each derived object retains source provenance, confidence, timestamp, and user-confirmation state.
+Each derived object should retain source provenance, confidence, timestamp, and user-confirmation state.
 
 ### Improve
 
@@ -87,7 +92,9 @@ The loop closes because work done after hiring becomes verified evidence for the
 
 ## Working public alpha
 
-The dedicated Cloudflare Worker currently serves a browser-local interview evidence mapper:
+The dedicated Cloudflare Worker currently serves:
+
+### Interview evidence mapper
 
 - paste resume/accomplishment text;
 - paste a job description;
@@ -100,7 +107,34 @@ The dedicated Cloudflare Worker currently serves a browser-local interview evide
 - surface evidence gaps;
 - optionally save run-level statistics locally in the browser.
 
-The current alpha does **not** upload or persist raw resume or job text.
+### ASTRO Brief Builder
+
+- local profile setup and optional image;
+- search/interview/offer/onboarding/30-60-90/career brief types;
+- structured opportunity/work rows;
+- themed HTML preview/export;
+- issue numbering and local metadata history;
+- ASTRO evidence/reconciliation rules.
+
+### Gmail OAuth MVP
+
+- browser-direct Google OAuth;
+- `gmail.readonly` evidence scanning;
+- `gmail.compose` draft creation;
+- deterministic evidence classification for application/interview/pause/closure/network signals;
+- import into the existing Brief Builder;
+- post-create Gmail draft readback;
+- stored ASTRO marker verification;
+- stored dark-background/gradient-lock verification;
+- final sending left to the user.
+
+The Worker does **not** proxy or intentionally persist the user's Gmail access token or raw Gmail mailbox content. The OAuth access token is held in browser memory for the active page session.
+
+### Current OAuth launch mode
+
+The code supports a shared Clintware Google OAuth client through the `GOOGLE_OAUTH_CLIENT_ID` Worker binding. That production-wide client is **not configured yet**.
+
+Until the shared client is configured and completes the applicable Google restricted-scope verification, the live public app exposes a **tester BYO Google OAuth client ID** fallback. This allows design partners/testers to exercise the complete browser-direct Gmail flow using their own Google Cloud OAuth client.
 
 ## Target preparation surfaces
 
@@ -137,9 +171,22 @@ Preferred compression:
 
 ## Email integration
 
-Email is the primary post-hire information-growth channel, but ingestion must be permissioned and scoped.
+Email is now both a working search-evidence source and the primary planned post-hire information-growth channel.
 
-Useful extracted signals include:
+### Current search-mode Gmail behavior
+
+- connection is opt-in;
+- Gmail API calls go directly from the browser to Google;
+- message metadata/snippets needed by the classifier are processed in the browser session;
+- Gmail evidence is marked as source-verified but is not automatically a unique employer process;
+- the user explicitly imports selected/reconciled evidence into the Brief Builder;
+- draft creation is explicit;
+- created drafts are read back from Gmail and structurally verified;
+- autonomous sending is not enabled.
+
+### Planned post-hire extraction
+
+Useful structured signals include:
 
 - direct requests and assignments;
 - commitments made by the user;
@@ -191,11 +238,12 @@ Useful trends include answer length, evidence specificity, quantified results, r
 
 ## Storage
 
-### Local mode
+### Local/browser mode
 
 - raw resume/job text can remain in-browser for the current alpha session;
-- persistence is opt-in;
-- a future standalone desktop build can retain the evidence/work graph locally;
+- profile/local history persistence is opt-in;
+- Gmail access tokens remain in active page memory and are not intentionally persisted;
+- Gmail raw mailbox content is not mirrored into the Cloudflare Worker;
 - export/import should use a documented portable format.
 
 ### SaaS mode
@@ -204,9 +252,11 @@ Optional cloud sync should add account-scoped projects, encrypted transport, ret
 
 ## Authentication and connected data
 
-Google sign-in is not required for the interview-prep MVP. Post-hire email learning makes Gmail integration strategically important, but sign-in and mailbox access must remain separate permission decisions. Do not request Gmail, Drive, Calendar, or Contacts scopes merely for authentication.
+Google authentication and Gmail authorization remain separate concepts. LandThePlane should never request Gmail, Drive, Calendar, or Contacts scopes merely to sign a user into the product.
 
-Connected data should be opt-in by source and revocable. The product should extract the minimum structured work context needed rather than treating connected accounts as unlimited raw data stores.
+Current Gmail access is feature-specific and opt-in. Future Drive, Calendar, Contacts, and meeting integrations should be independently permissioned and revocable.
+
+The product should extract the minimum structured career/work context needed rather than treating connected accounts as unlimited raw data stores.
 
 ## Demo and legal boundaries
 
@@ -215,6 +265,7 @@ Connected data should be opt-in by source and revocable. The product should extr
 - Keep the product user-side: preparation, ramp, personal productivity, reflection, workflow building, and user-owned analytics.
 - Do not position it as an employer hiring-decision or employee-ranking system.
 - Add deletion, export, retention, subprocessors, and data-processing terms before paid SaaS cloud storage launches.
+- Production use of the shared Clintware Gmail OAuth client must satisfy Google's applicable restricted-scope verification requirements.
 
 ## Name feasibility
 
@@ -230,13 +281,13 @@ The post-hire extension materially improves the economics because the product no
 | --- | ---: | --- |
 | Problem clarity | 9/10 | Land the job, then ramp and perform faster. |
 | Founder-use loop | 10/10 | Interviewing and future ramping create real dogfood. |
-| MVP speed | 9/10 | Interview evidence mapper already ships; post-hire graph can layer on incrementally. |
+| MVP speed | 9/10 | Interview evidence mapper, ASTRO briefs, and browser-direct Gmail wedge already ship. |
 | Competition | 5/10 | Interview coaching is crowded, but the interview-to-work continuity is less commoditized. |
 | Differentiation potential | 9/10 | Persistent evidence/work graph + workflow learning creates a broader wedge. |
 | Retention potential | 9/10 | Success no longer causes immediate churn; the product gains a reason to stay installed. |
 | Monetization | 8/10 | Active-search, onboarding/ramp, ongoing career OS, and premium coaching surfaces. |
 | Defensibility | 8/10 | Longitudinal user-owned work/evidence graph compounds over years. |
-| Privacy posture | 7/10 | Local-first architecture helps, but email/meeting integrations raise the bar materially. |
+| Privacy posture | 8/10 | Browser-direct Gmail reduces server custody, while future connected sources still raise the operational bar. |
 | YC readiness now | 8/10 | Stronger lifecycle and retention thesis; still needs external repeat-use proof. |
 
 ## Flagship promotion gate
@@ -245,6 +296,7 @@ Promote above Quillgeist when behavior proves the continuous lifecycle:
 
 - external candidates complete role-specific prep;
 - users return for additional rounds;
+- testers successfully connect their own Gmail and reuse source evidence;
 - at least some users transition from interview mode into post-hire ramp mode;
 - connected work context measurably improves their personal workflows;
 - users continue using LandThePlane after the first 30/60/90 days;
@@ -253,4 +305,4 @@ Promote above Quillgeist when behavior proves the continuous lifecycle:
 
 ## Core product thesis
 
-**The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through interviews, becomes a living work graph after hire, and continuously turns work into better workflows and verified evidence.**
+**The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through connected search evidence and interviews, becomes a living work graph after hire, and continuously turns work into better workflows and verified evidence.**
