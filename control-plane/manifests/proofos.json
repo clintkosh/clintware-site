@@ -1,0 +1,38 @@
+{
+  "product": "proofos",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["proofos/", "control-plane/", "public/proofos/"],
+    "allowed_workflows": ["deploy-proofos.yml", "deploy-control-plane.yml"]
+  },
+  "dns": {
+    "allowed_names": ["proof.clintware.com", "mcp.clintware.com"]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:proofos/**",
+    "repo.write:control-plane/**",
+    "repo.branch:create",
+    "deployment.read",
+    "deployment.execute:proof",
+    "dns.ensure:proof.clintware.com",
+    "analytics.write:proofos",
+    "analytics.read:proofos",
+    "research.invoke",
+    "cache.read:proofos",
+    "cache.write:proofos"
+  ],
+  "deny": [
+    "secrets.read",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "telemetry_namespace": "proofos"
+}
