@@ -55,6 +55,47 @@ jobs:
           wranglerVersion: "4"
           command: deploy --cwd control-plane
 
+      - name: Sync central Control Plane secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+          CONTROL_PLANE_ADMIN_TOKEN: ${{ secrets.CONTROL_PLANE_ADMIN_TOKEN }}
+          GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.GITHUB_CONTROL_PLANE_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd control-plane
+
+          put_secret() {
+            local name="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s' "$value" | npx wrangler secret put "$name" >/dev/null
+              echo "$name configured"
+            else
+              echo "$name not present in repository secrets; leaving adapter disabled"
+            fi
+          }
+
+          # The existing Clintware Cloudflare deployment credential stays inside
+          # Clintware and can be reused by the Control Plane for allowlisted DNS
+          # operations. It is never returned through MCP or the application API.
+          put_secret CLOUDFLARE_CONTROL_PLANE_TOKEN "$CLOUDFLARE_API_TOKEN"
+
+          zone_json=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/zones?name=clintware.com&status=active" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print(r[0].get("id","") if d.get("success") and r else "")' <<< "$zone_json")
+          if [ -n "$zone_id" ]; then
+            put_secret CLOUDFLARE_ZONE_ID "$zone_id"
+          else
+            echo "Could not resolve Clintware zone ID; DNS adapter remains disabled"
+          fi
+
+          put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
+          put_secret CONTROL_PLANE_ADMIN_TOKEN "$CONTROL_PLANE_ADMIN_TOKEN"
+          put_secret GITHUB_CONTROL_PLANE_TOKEN "$GITHUB_CONTROL_PLANE_TOKEN"
+
       - name: Verify mcp.clintware.com health
         run: |
           set -euo pipefail
@@ -71,8 +112,8 @@ jobs:
           done
           test "$ready" = "1"
 
-      - name: Report optional adapter configuration
+      - name: Report adapter configuration
         run: |
           body=$(curl -fsS https://mcp.clintware.com/health)
           echo "$body"
-          echo "Control Plane deployed. Adapter booleans in /health show whether central GitHub/Cloudflare and MCP/admin credentials have been provisioned as Worker secrets."
+          echo "GitHub/Cloudflare credentials remain centralized in Clintware; external MCP clients receive only the scoped Control Plane credential."
