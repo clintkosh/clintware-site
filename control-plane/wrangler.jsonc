@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clintware-control-plane",
+  "main": "src/entry.js",
+  "compatibility_date": "2026-09-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    {"pattern":"mcp.clintware.com","custom_domain":true}
+  ],
+  "durable_objects": {
+    "bindings": [
+      {"name":"REGISTRY_HUB","class_name":"RegistryHub"},
+      {"name":"PRODUCT_HUB","class_name":"ProductHub"}
+    ]
+  },
+  "migrations": [
+    {"tag":"v1","new_sqlite_classes":["RegistryHub","ProductHub"]}
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

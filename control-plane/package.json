@@ -1,0 +1,19 @@
+{
+  "name": "clintware-control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/index.js && node --check src/entry.js",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0-beta.5",
+    "agents": "0.20.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.31.0"
+  }
+}

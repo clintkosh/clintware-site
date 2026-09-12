@@ -1,0 +1,78 @@
+name: Deploy Clintware Control Plane
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "control-plane/**"
+      - ".github/workflows/deploy-control-plane.yml"
+  pull_request:
+    paths:
+      - "control-plane/**"
+      - ".github/workflows/deploy-control-plane.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-control-plane
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install control-plane dependencies
+        run: npm install --prefix control-plane --ignore-scripts --no-audit --no-fund
+
+      - name: Syntax check
+        run: npm run check --prefix control-plane
+
+      - name: Wrangler dry run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix control-plane wrangler deploy --dry-run --config control-plane/wrangler.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install control-plane dependencies
+        run: npm install --prefix control-plane --ignore-scripts --no-audit --no-fund
+
+      - name: Deploy control plane
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd control-plane
+
+      - name: Verify mcp.clintware.com health
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
+            if echo "$body" | grep -Fq '"service":"Clintware Control Plane"'; then
+              echo "$body"
+              ready=1
+              break
+            fi
+            echo "Waiting for Clintware Control Plane ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"
+
+      - name: Report optional adapter configuration
+        run: |
+          body=$(curl -fsS https://mcp.clintware.com/health)
+          echo "$body"
+          echo "Control Plane deployed. Adapter booleans in /health show whether central GitHub/Cloudflare and MCP/admin credentials have been provisioned as Worker secrets."
