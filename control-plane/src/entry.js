@@ -18,6 +18,15 @@ const safeEq = async (a,b) => {
   return x===y;
 };
 
+function normalizeApiKeyAuth(request){
+  if(request.headers.get("authorization")) return request;
+  const apiKey=request.headers.get("x-api-key")||request.headers.get("api-key")||"";
+  if(!apiKey) return request;
+  const headers=new Headers(request.headers);
+  headers.set("authorization",`Bearer ${apiKey.trim()}`);
+  return new Request(request,{headers});
+}
+
 const ADMIN_ONLY_REST = new Set([
   "/api/v1/repo/branch",
   "/api/v1/repo/write",
@@ -27,6 +36,7 @@ const ADMIN_ONLY_REST = new Set([
 
 export default {
   async fetch(request,env,ctx){
+    request=normalizeApiKeyAuth(request);
     const url=new URL(request.url);
 
     // Product runtime tokens are deliberately limited to telemetry/query APIs.
