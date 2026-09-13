@@ -23,114 +23,72 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           api="https://api.cloudflare.com/client/v4"
           auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Accept: application/json")
 
-          call() {
-            curl --fail-with-body --compressed -sS "$@" "${auth[@]}"
+          cf_get() {
+            curl --fail-with-body --compressed -sS "$1" "${auth[@]}"
           }
-
-          ok() {
+          cf_write() {
+            local method="$1" url="$2" body="$3"
+            curl --fail-with-body --compressed -sS -X "$method" "$url" \
+              "${auth[@]}" -H "Content-Type: application/json" --data "$body"
+          }
+          assert_ok() {
             python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d'
           }
 
-          echo "Verifying Cloudflare token..."
-          token=$(call "${api}/user/tokens/verify")
-          ok <<< "$token"
-
-          echo "Resolving zone ${DOMAIN}..."
-          zones=$(call "${api}/zones?name=${DOMAIN}&account.id=${CLOUDFLARE_ACCOUNT_ID}&status=active")
-          ok <<< "$zones"
+          echo "Verifying Cloudflare token and resolving Clintware zone..."
+          token=$(cf_get "${api}/user/tokens/verify")
+          assert_ok <<< "$token"
+          zones=$(cf_get "${api}/zones?name=${DOMAIN}&account.id=${CLOUDFLARE_ACCOUNT_ID}&status=active")
+          assert_ok <<< "$zones"
           zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or []; assert len(r)==1, r; print(r[0]["id"])' <<< "$zones")
-          echo "Zone resolved."
+          echo "ZONE_OK=true"
 
-          echo "Checking Email Routing DNS..."
-          dns=$(call "${api}/zones/${zone_id}/email/routing/dns" || true)
-          dns_success=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(str(bool(d.get("success"))).lower())' <<< "$dns" 2>/dev/null || echo false)
-          if [[ "$dns_success" != "true" ]]; then
-            echo "Email Routing DNS is not enabled/healthy; enabling it."
-            dns=$(curl --fail-with-body --compressed -sS -X POST \
-              "${api}/zones/${zone_id}/email/routing/dns" \
-              "${auth[@]}" \
-              -H "Content-Type: application/json" \
-              --data "{\"name\":\"${DOMAIN}\"}")
-            ok <<< "$dns"
-          fi
+          echo "Inspecting live MX records with the normal DNS API..."
+          mx=$(cf_get "${api}/zones/${zone_id}/dns_records?type=MX&name=${DOMAIN}")
+          assert_ok <<< "$mx"
+          python3 -c 'import json,sys; d=json.load(sys.stdin); rows=d.get("result") or []; print("MX_COUNT="+str(len(rows))); [print("MX="+str(x.get("priority",""))+" "+str(x.get("content",""))) for x in rows]' <<< "$mx"
 
-          echo "Checking verified destination address..."
-          addresses=$(call "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses")
-          ok <<< "$addresses"
-          destination_state=$(python3 -c 'import json,sys,os; d=json.load(sys.stdin); target=os.environ["DESTINATION_ADDRESS"].lower(); matches=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==target]; print("missing" if not matches else ("verified" if matches[0].get("verified") else "unverified"))' <<< "$addresses")
+          echo "Checking Cloudflare Email Routing destination..."
+          addresses=$(cf_get "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses")
+          assert_ok <<< "$addresses"
+          destination_state=$(python3 -c 'import json,sys,os; d=json.load(sys.stdin); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; print("missing" if not m else ("verified" if m[0].get("verified") else "unverified"))' <<< "$addresses")
+          echo "DESTINATION_STATE=${destination_state}"
 
           if [[ "$destination_state" == "missing" ]]; then
-            echo "Destination is missing; creating it so Cloudflare sends its verification email."
-            created=$(curl --fail-with-body --compressed -sS -X POST \
-              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
-              "${auth[@]}" \
-              -H "Content-Type: application/json" \
-              --data "{\"email\":\"${DESTINATION_ADDRESS}\"}")
-            ok <<< "$created"
+            echo "Creating destination address; Cloudflare will send its verification message."
+            created=$(cf_write POST "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" "{\"email\":\"${DESTINATION_ADDRESS}\"}")
+            assert_ok <<< "$created"
             destination_state=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or {}; print("verified" if r.get("verified") else "unverified")' <<< "$created")
+            echo "DESTINATION_STATE=${destination_state}"
           fi
 
           if [[ "$destination_state" != "verified" ]]; then
             echo "DESTINATION_REQUIRES_VERIFICATION=${DESTINATION_ADDRESS}"
-            echo "Cloudflare requires destination verification before a forward rule can be activated."
             exit 2
           fi
 
-          echo "Destination is verified. Repairing exact routing rule..."
-          rules=$(call "${api}/zones/${zone_id}/email/routing/rules")
-          ok <<< "$rules"
-          rule_id=$(python3 -c 'import json,sys,os; d=json.load(sys.stdin); target=os.environ["CUSTOM_ADDRESS"].lower(); out="";\nfor r in d.get("result") or []:\n  if any((m.get("field")=="to" and (m.get("value") or "").lower()==target) for m in (r.get("matchers") or [])):\n    out=r.get("id") or ""; break\nprint(out)' <<< "$rules")
+          echo "Destination verified. Inspecting routing rules..."
+          rules=$(cf_get "${api}/zones/${zone_id}/email/routing/rules")
+          assert_ok <<< "$rules"
+          printf '%s' "$rules" > /tmp/rules.json
+          rule_id=$(python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); t=os.environ["CUSTOM_ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if any(x.get("field")=="to" and (x.get("value") or "").lower()==t for x in (r.get("matchers") or []))]; print((m[0].get("id") or "") if m else "")')
 
-          payload=$(python3 - <<'PY'
-          import json, os
-          print(json.dumps({
-              "actions": [{"type": "forward", "value": [os.environ["DESTINATION_ADDRESS"]]}],
-              "matchers": [{"type": "literal", "field": "to", "value": os.environ["CUSTOM_ADDRESS"]}],
-              "enabled": True,
-              "name": "Forward clint@clintware.com to clint.kosh@gmail.com",
-              "source": "api"
-          }))
-          PY
-          )
+          payload=$(python3 -c 'import json,os; print(json.dumps({"actions":[{"type":"forward","value":[os.environ["DESTINATION_ADDRESS"]]}],"matchers":[{"type":"literal","field":"to","value":os.environ["CUSTOM_ADDRESS"]}],"enabled":True,"name":"Forward clint@clintware.com to clint.kosh@gmail.com"}))')
 
           if [[ -n "$rule_id" ]]; then
-            result=$(curl --fail-with-body --compressed -sS -X PUT \
-              "${api}/zones/${zone_id}/email/routing/rules/${rule_id}" \
-              "${auth[@]}" \
-              -H "Content-Type: application/json" \
-              --data "$payload")
+            echo "Updating existing clint@ rule ${rule_id}..."
+            result=$(cf_write PUT "${api}/zones/${zone_id}/email/routing/rules/${rule_id}" "$payload")
           else
-            result=$(curl --fail-with-body --compressed -sS -X POST \
-              "${api}/zones/${zone_id}/email/routing/rules" \
-              "${auth[@]}" \
-              -H "Content-Type: application/json" \
-              --data "$payload")
+            echo "Creating clint@ forwarding rule..."
+            result=$(cf_write POST "${api}/zones/${zone_id}/email/routing/rules" "$payload")
           fi
-          ok <<< "$result"
+          assert_ok <<< "$result"
 
-          echo "Verifying final routing rule..."
-          final_rules=$(call "${api}/zones/${zone_id}/email/routing/rules")
-          ok <<< "$final_rules"
-          python3 - <<'PY' <<< "$final_rules"
-          import json, os, sys
-          d=json.load(sys.stdin)
-          src=os.environ["CUSTOM_ADDRESS"].lower()
-          dst=os.environ["DESTINATION_ADDRESS"].lower()
-          matches=[]
-          for r in d.get("result") or []:
-              to_ok=any(m.get("field")=="to" and (m.get("value") or "").lower()==src for m in (r.get("matchers") or []))
-              fwd_ok=any(a.get("type")=="forward" and dst in [str(v).lower() for v in (a.get("value") or [])] for a in (r.get("actions") or []))
-              if to_ok and fwd_ok and r.get("enabled") is True:
-                  matches.append(r)
-          assert len(matches) == 1, matches
-          r=matches[0]
-          print("ROUTING_OK=true")
-          print("source="+src)
-          print("destination="+dst)
-          print("enabled=true")
-          print("rule_id="+str(r.get("id") or ""))
-          PY
+          echo "Verifying final rule..."
+          final_rules=$(cf_get "${api}/zones/${zone_id}/email/routing/rules")
+          assert_ok <<< "$final_rules"
+          printf '%s' "$final_rules" > /tmp/final_rules.json
+          python3 -c 'import json,os; d=json.load(open("/tmp/final_rules.json")); src=os.environ["CUSTOM_ADDRESS"].lower(); dst=os.environ["DESTINATION_ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if r.get("enabled") is True and any(x.get("field")=="to" and (x.get("value") or "").lower()==src for x in (r.get("matchers") or [])) and any(a.get("type")=="forward" and dst in [str(v).lower() for v in (a.get("value") or [])] for a in (r.get("actions") or []))]; assert len(m)==1,m; print("ROUTING_OK=true"); print("SOURCE="+src); print("DESTINATION="+dst); print("RULE_ID="+str(m[0].get("id") or ""))'
