@@ -19,7 +19,7 @@ jobs:
           set -euo pipefail
           python3 -m pip install --quiet dnspython
           python3 - <<'PY'
-          import dns.resolver, smtplib, socket, uuid, sys
+          import dns.resolver, smtplib, uuid
           from email.message import EmailMessage
 
           domain = "clintware.com"
@@ -43,10 +43,11 @@ jobs:
               print(f"TXT_LOOKUP_ERROR={type(e).__name__}:{e}")
 
           msg = EmailMessage()
-          msg['From'] = 'routing-probe@example.com'
+          msg['From'] = 'Mail Delivery Subsystem <mailer-daemon@localhost>'
           msg['To'] = recipient
           msg['Subject'] = subject
-          msg.set_content('External SMTP delivery probe for Clintware email routing.')
+          msg.set_content('External null-return-path delivery probe for Clintware email routing.')
+          raw = msg.as_string()
 
           delivered = False
           for pref, host in mx:
@@ -55,14 +56,21 @@ jobs:
                   with smtplib.SMTP(host, 25, timeout=20) as s:
                       code, banner = s.ehlo('github-actions.example.com')
                       print(f"EHLO={code} {banner!r}")
-                      result = s.send_message(msg, from_addr='routing-probe@example.com', to_addrs=[recipient])
-                      print(f"SMTP_SEND_RESULT={result}")
-                      delivered = True
-                      break
+                      code, resp = s.mail('')
+                      print(f"MAIL_FROM_NULL={code} {resp!r}")
+                      if code >= 400:
+                          continue
+                      code, resp = s.rcpt(recipient)
+                      print(f"RCPT_TO={code} {resp!r}")
+                      if code >= 400:
+                          continue
+                      code, resp = s.data(raw)
+                      print(f"DATA={code} {resp!r}")
+                      if 200 <= code < 300:
+                          delivered = True
+                          break
               except Exception as e:
                   print(f"SMTP_ERROR={host}:{type(e).__name__}:{e}")
 
           print(f"SMTP_PROBE_SUBMITTED={str(delivered).lower()}")
-          if not delivered:
-              print("SMTP probe could not be submitted from GitHub runner; DNS results are still authoritative.")
           PY
