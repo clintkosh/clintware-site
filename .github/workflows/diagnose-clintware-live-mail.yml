@@ -13,62 +13,45 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Query public DNS and test SMTP externally
+      - name: Compare SMTP recipient acceptance
         shell: bash
         run: |
           set -euo pipefail
           python3 -m pip install --quiet dnspython
           python3 - <<'PY'
           import dns.resolver, smtplib, uuid
-          from email.message import EmailMessage
-          from email.utils import formatdate, make_msgid
-
-          domain = "clintware.com"
-          recipient = "clint@clintware.com"
-          sender = "routing-probe@clintware.com"
-          token = uuid.uuid4().hex[:12]
-          subject = f"CLINTWARE_EXTERNAL_ROUTE_TEST_{token}"
-
-          print(f"TEST_SUBJECT={subject}")
-          mx = sorted((r.preference, str(r.exchange).rstrip('.')) for r in dns.resolver.resolve(domain, 'MX'))
-          for pref, host in mx:
-              print(f"MX={pref} {host}")
-
-          msg = EmailMessage()
-          msg['From'] = f'Clintware Routing Probe <{sender}>'
-          msg['To'] = recipient
-          msg['Date'] = formatdate(localtime=False)
-          msg['Message-ID'] = make_msgid(domain=domain)
-          msg['Subject'] = subject
-          msg['Auto-Submitted'] = 'auto-generated'
-          msg.set_content('Clintware-owned-domain delivery probe. Unique token: ' + token)
-          raw = msg.as_string()
-
-          delivered = False
-          for pref, host in mx:
-              print(f"SMTP_TRY={host}:25")
+          domain='clintware.com'
+          real='clint@clintware.com'
+          fake=f'route-probe-{uuid.uuid4().hex[:14]}@clintware.com'
+          sender='routing-probe@clintware.com'
+          mx=sorted((r.preference,str(r.exchange).rstrip('.')) for r in dns.resolver.resolve(domain,'MX'))
+          print('REAL='+real)
+          print('FAKE='+fake)
+          for pref,host in mx:
+              print(f'MX={pref} {host}')
               try:
-                  with smtplib.SMTP(host, 25, timeout=20) as s:
-                      code, banner = s.ehlo('clintware.com')
-                      print(f"EHLO={code} {banner!r}")
+                  with smtplib.SMTP(host,25,timeout=20) as s:
+                      s.ehlo('clintware.com')
                       if s.has_extn('starttls'):
-                          try:
-                              s.starttls()
-                              s.ehlo('clintware.com')
-                          except Exception as e:
-                              print(f"STARTTLS_ERROR={type(e).__name__}:{e}")
-                      code, resp = s.mail(sender)
-                      print(f"MAIL_FROM={code} {resp!r}")
-                      if code >= 400: continue
-                      code, resp = s.rcpt(recipient)
-                      print(f"RCPT_TO={code} {resp!r}")
-                      if code >= 400: continue
-                      code, resp = s.data(raw)
-                      print(f"DATA={code} {resp!r}")
-                      if 200 <= code < 300:
-                          delivered = True
-                          break
+                          s.starttls(); s.ehlo('clintware.com')
+                      mcode,mresp=s.mail(sender)
+                      print(f'MAIL_FROM={mcode} {mresp!r}')
+                      rcode,rresp=s.rcpt(real)
+                      print(f'REAL_RCPT={rcode} {rresp!r}')
+                  with smtplib.SMTP(host,25,timeout=20) as s:
+                      s.ehlo('clintware.com')
+                      if s.has_extn('starttls'):
+                          s.starttls(); s.ehlo('clintware.com')
+                      mcode,mresp=s.mail(sender)
+                      fcode,fresp=s.rcpt(fake)
+                      print(f'FAKE_RCPT={fcode} {fresp!r}')
+                  if rcode < 400 and fcode >= 400:
+                      print('ADDRESS_RULE_SIGNAL=clint_specific_rule_present')
+                  elif rcode < 400 and fcode < 400:
+                      print('ADDRESS_RULE_SIGNAL=catch_all_or_deferred_validation')
+                  else:
+                      print('ADDRESS_RULE_SIGNAL=clint_not_accepted')
+                  break
               except Exception as e:
-                  print(f"SMTP_ERROR={host}:{type(e).__name__}:{e}")
-          print(f"SMTP_PROBE_SUBMITTED={str(delivered).lower()}")
+                  print(f'ERROR={host}:{type(e).__name__}:{e}')
           PY
