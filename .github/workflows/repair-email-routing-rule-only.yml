@@ -1,0 +1,71 @@
+name: Repair Clintware Email Rule Only
+
+on:
+  push:
+    paths:
+      - ".github/workflows/repair-email-routing-rule-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DOMAIN: clintware.com
+      SOURCE: clint@clintware.com
+      DESTINATION: clint.kosh@gmail.com
+    steps:
+      - name: Repair exact forwarding rule without destination-list access
+        shell: bash
+        run: |
+          set -euo pipefail
+          api=https://api.cloudflare.com/client/v4
+          auth=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Accept: application/json")
+
+          zones=$(curl -fsS "${api}/zones?name=${DOMAIN}&account.id=${CF_ACCOUNT}&status=active" "${auth[@]}")
+          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or []; assert len(r)==1,r; print(r[0]["id"])' <<< "$zones")
+          echo ZONE_OK=true
+
+          code=$(curl -sS -o /tmp/rules.json -w '%{http_code}' "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}")
+          echo RULES_GET_HTTP=$code
+          if [[ "$code" != "200" ]]; then
+            cat /tmp/rules.json
+            exit 3
+          fi
+
+          python3 - <<'PY'
+          import json, os
+          d=json.load(open('/tmp/rules.json'))
+          print('RULE_COUNT='+str(len(d.get('result') or [])))
+          src=os.environ['SOURCE'].lower()
+          for r in d.get('result') or []:
+              if any(m.get('field')=='to' and str(m.get('value','')).lower()==src for m in r.get('matchers') or []):
+                  print('EXISTING_SOURCE_RULE=true')
+                  print('EXISTING_RULE_ID='+str(r.get('id') or ''))
+                  print('EXISTING_ENABLED='+str(bool(r.get('enabled'))).lower())
+                  print('EXISTING_ACTIONS='+json.dumps(r.get('actions') or []))
+          PY
+
+          rule_id=$(python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); src=os.environ["SOURCE"].lower(); rs=[r for r in d.get("result") or [] if any(m.get("field")=="to" and str(m.get("value","")).lower()==src for m in r.get("matchers") or [])]; print(rs[0].get("id","") if rs else "")')
+          payload=$(python3 -c 'import json,os; print(json.dumps({"actions":[{"type":"forward","value":[os.environ["DESTINATION"]]}],"matchers":[{"type":"literal","field":"to","value":os.environ["SOURCE"]}],"enabled":True,"name":"Forward clint@clintware.com to Gmail","priority":0,"source":"api"}))')
+
+          if [[ -n "$rule_id" ]]; then
+            method=PUT
+            url="${api}/zones/${zone_id}/email/routing/rules/${rule_id}"
+          else
+            method=POST
+            url="${api}/zones/${zone_id}/email/routing/rules"
+          fi
+          wcode=$(curl -sS -o /tmp/write.json -w '%{http_code}' -X "$method" "$url" "${auth[@]}" -H "Content-Type: application/json" --data "$payload")
+          echo RULE_WRITE_HTTP=$wcode
+          cat /tmp/write.json
+          echo
+          if [[ "$wcode" -lt 200 || "$wcode" -ge 300 ]]; then exit 4; fi
+
+          vcode=$(curl -sS -o /tmp/final.json -w '%{http_code}' "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}")
+          test "$vcode" = 200
+          python3 -c 'import json,os; d=json.load(open("/tmp/final.json")); src=os.environ["SOURCE"].lower(); dst=os.environ["DESTINATION"].lower(); rs=[r for r in d.get("result") or [] if r.get("enabled") is True and any(m.get("field")=="to" and str(m.get("value","")).lower()==src for m in r.get("matchers") or []) and any(a.get("type")=="forward" and dst in [str(v).lower() for v in a.get("value") or []] for a in r.get("actions") or [])]; assert len(rs)==1,rs; print("ROUTING_RULE_OK=true"); print("RULE_ID="+str(rs[0].get("id") or ""))'
