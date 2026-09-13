@@ -1,0 +1,32 @@
+name: Test Clintware Mail via FormSubmit
+
+on:
+  push:
+    paths:
+      - ".github/workflows/test-clintware-mail-via-formsubmit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger legitimate external activation mail
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="CLINTWARE_ROUTE_$(date +%s)"
+          echo "TEST_TOKEN=$token"
+          code=$(curl -sS -o /tmp/response.txt -w '%{http_code}' \
+            -X POST 'https://formsubmit.co/ajax/clint@clintware.com' \
+            -H 'Accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'Origin: https://clintware.com' \
+            -H 'Referer: https://clintware.com/' \
+            --data "{\"name\":\"Clintware Routing Test\",\"email\":\"clint.kosh@gmail.com\",\"message\":\"Authenticated external routing test ${token}\",\"_subject\":\"${token}\"}")
+          echo "HTTP=$code"
+          cat /tmp/response.txt
+          echo
+          test "$code" -ge 200 -a "$code" -lt 400
