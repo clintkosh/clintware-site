@@ -61,7 +61,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
           CONTROL_PLANE_ADMIN_TOKEN: ${{ secrets.CONTROL_PLANE_ADMIN_TOKEN }}
-          GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.GITHUB_CONTROL_PLANE_TOKEN }}
+          GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.CLINTWARE_GH_CONTROL_PLANE_TOKEN }}
         run: |
           set -euo pipefail
           cd control-plane
