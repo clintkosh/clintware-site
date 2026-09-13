@@ -1,0 +1,136 @@
+name: Fix Clintware Email Routing
+
+on:
+  push:
+    paths:
+      - ".github/workflows/fix-clintware-email-routing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair-email-routing:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DOMAIN: clintware.com
+      CUSTOM_ADDRESS: clint@clintware.com
+      DESTINATION_ADDRESS: clint.kosh@gmail.com
+    steps:
+      - name: Repair Cloudflare Email Routing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api="https://api.cloudflare.com/client/v4"
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Accept: application/json")
+
+          call() {
+            curl --fail-with-body --compressed -sS "$@" "${auth[@]}"
+          }
+
+          ok() {
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d'
+          }
+
+          echo "Verifying Cloudflare token..."
+          token=$(call "${api}/user/tokens/verify")
+          ok <<< "$token"
+
+          echo "Resolving zone ${DOMAIN}..."
+          zones=$(call "${api}/zones?name=${DOMAIN}&account.id=${CLOUDFLARE_ACCOUNT_ID}&status=active")
+          ok <<< "$zones"
+          zone_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or []; assert len(r)==1, r; print(r[0]["id"])' <<< "$zones")
+          echo "Zone resolved."
+
+          echo "Checking Email Routing DNS..."
+          dns=$(call "${api}/zones/${zone_id}/email/routing/dns" || true)
+          dns_success=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(str(bool(d.get("success"))).lower())' <<< "$dns" 2>/dev/null || echo false)
+          if [[ "$dns_success" != "true" ]]; then
+            echo "Email Routing DNS is not enabled/healthy; enabling it."
+            dns=$(curl --fail-with-body --compressed -sS -X POST \
+              "${api}/zones/${zone_id}/email/routing/dns" \
+              "${auth[@]}" \
+              -H "Content-Type: application/json" \
+              --data "{\"name\":\"${DOMAIN}\"}")
+            ok <<< "$dns"
+          fi
+
+          echo "Checking verified destination address..."
+          addresses=$(call "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses")
+          ok <<< "$addresses"
+          destination_state=$(python3 -c 'import json,sys,os; d=json.load(sys.stdin); target=os.environ["DESTINATION_ADDRESS"].lower(); matches=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==target]; print("missing" if not matches else ("verified" if matches[0].get("verified") else "unverified"))' <<< "$addresses")
+
+          if [[ "$destination_state" == "missing" ]]; then
+            echo "Destination is missing; creating it so Cloudflare sends its verification email."
+            created=$(curl --fail-with-body --compressed -sS -X POST \
+              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
+              "${auth[@]}" \
+              -H "Content-Type: application/json" \
+              --data "{\"email\":\"${DESTINATION_ADDRESS}\"}")
+            ok <<< "$created"
+            destination_state=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or {}; print("verified" if r.get("verified") else "unverified")' <<< "$created")
+          fi
+
+          if [[ "$destination_state" != "verified" ]]; then
+            echo "DESTINATION_REQUIRES_VERIFICATION=${DESTINATION_ADDRESS}"
+            echo "Cloudflare requires destination verification before a forward rule can be activated."
+            exit 2
+          fi
+
+          echo "Destination is verified. Repairing exact routing rule..."
+          rules=$(call "${api}/zones/${zone_id}/email/routing/rules")
+          ok <<< "$rules"
+          rule_id=$(python3 -c 'import json,sys,os; d=json.load(sys.stdin); target=os.environ["CUSTOM_ADDRESS"].lower(); out="";\nfor r in d.get("result") or []:\n  if any((m.get("field")=="to" and (m.get("value") or "").lower()==target) for m in (r.get("matchers") or [])):\n    out=r.get("id") or ""; break\nprint(out)' <<< "$rules")
+
+          payload=$(python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+              "actions": [{"type": "forward", "value": [os.environ["DESTINATION_ADDRESS"]]}],
+              "matchers": [{"type": "literal", "field": "to", "value": os.environ["CUSTOM_ADDRESS"]}],
+              "enabled": True,
+              "name": "Forward clint@clintware.com to clint.kosh@gmail.com",
+              "source": "api"
+          }))
+          PY
+          )
+
+          if [[ -n "$rule_id" ]]; then
+            result=$(curl --fail-with-body --compressed -sS -X PUT \
+              "${api}/zones/${zone_id}/email/routing/rules/${rule_id}" \
+              "${auth[@]}" \
+              -H "Content-Type: application/json" \
+              --data "$payload")
+          else
+            result=$(curl --fail-with-body --compressed -sS -X POST \
+              "${api}/zones/${zone_id}/email/routing/rules" \
+              "${auth[@]}" \
+              -H "Content-Type: application/json" \
+              --data "$payload")
+          fi
+          ok <<< "$result"
+
+          echo "Verifying final routing rule..."
+          final_rules=$(call "${api}/zones/${zone_id}/email/routing/rules")
+          ok <<< "$final_rules"
+          python3 - <<'PY' <<< "$final_rules"
+          import json, os, sys
+          d=json.load(sys.stdin)
+          src=os.environ["CUSTOM_ADDRESS"].lower()
+          dst=os.environ["DESTINATION_ADDRESS"].lower()
+          matches=[]
+          for r in d.get("result") or []:
+              to_ok=any(m.get("field")=="to" and (m.get("value") or "").lower()==src for m in (r.get("matchers") or []))
+              fwd_ok=any(a.get("type")=="forward" and dst in [str(v).lower() for v in (a.get("value") or [])] for a in (r.get("actions") or []))
+              if to_ok and fwd_ok and r.get("enabled") is True:
+                  matches.append(r)
+          assert len(matches) == 1, matches
+          r=matches[0]
+          print("ROUTING_OK=true")
+          print("source="+src)
+          print("destination="+dst)
+          print("enabled=true")
+          print("rule_id="+str(r.get("id") or ""))
+          PY
