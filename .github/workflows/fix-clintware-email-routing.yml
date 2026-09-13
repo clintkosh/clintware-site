@@ -28,26 +28,21 @@ jobs:
 
           get_json() {
             local url="$1" outfile="$2"
-            local code
-            code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' "$url" "${auth[@]}")
-            echo "$code"
+            curl --compressed -sS -o "$outfile" -w '%{http_code}' "$url" "${auth[@]}"
           }
+
           write_json() {
             local method="$1" url="$2" body="$3" outfile="$4"
-            local code
-            code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" \
-              "${auth[@]}" -H "Content-Type: application/json" --data "$body")
-            echo "$code"
+            curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" "${auth[@]}" -H "Content-Type: application/json" --data "$body"
           }
+
           require_success() {
             local code="$1" file="$2" label="$3"
             if [[ "$code" -lt 200 || "$code" -ge 300 ]]; then
               echo "${label}_HTTP=${code}"
-              python3 -c 'import json,sys; p=sys.argv[1];
-try:
- d=json.load(open(p)); print("CLOUDFLARE_ERRORS="+json.dumps(d.get("errors") or d))
-except Exception:
- print(open(p).read()[:1000])' "$file" || true
+              echo "Cloudflare response:"
+              head -c 1000 "$file" || true
+              echo
               return 1
             fi
             python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d.get("success") is True,d' "$file"
