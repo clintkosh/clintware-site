@@ -1,0 +1,68 @@
+name: Diagnose Clintware Live Mail
+
+on:
+  push:
+    paths:
+      - ".github/workflows/diagnose-clintware-live-mail.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query public DNS and test SMTP externally
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet dnspython
+          python3 - <<'PY'
+          import dns.resolver, smtplib, socket, uuid, sys
+          from email.message import EmailMessage
+
+          domain = "clintware.com"
+          recipient = "clint@clintware.com"
+          token = uuid.uuid4().hex[:12]
+          subject = f"CLINTWARE_EXTERNAL_ROUTE_TEST_{token}"
+
+          print(f"TEST_SUBJECT={subject}")
+          print("PUBLIC_MX:")
+          mx = sorted((r.preference, str(r.exchange).rstrip('.')) for r in dns.resolver.resolve(domain, 'MX'))
+          for pref, host in mx:
+              print(f"MX={pref} {host}")
+
+          print("PUBLIC_TXT:")
+          try:
+              for r in dns.resolver.resolve(domain, 'TXT'):
+                  txt = ''.join(x.decode() for x in r.strings)
+                  if txt.lower().startswith('v=spf1'):
+                      print(f"SPF={txt}")
+          except Exception as e:
+              print(f"TXT_LOOKUP_ERROR={type(e).__name__}:{e}")
+
+          msg = EmailMessage()
+          msg['From'] = 'routing-probe@example.com'
+          msg['To'] = recipient
+          msg['Subject'] = subject
+          msg.set_content('External SMTP delivery probe for Clintware email routing.')
+
+          delivered = False
+          for pref, host in mx:
+              print(f"SMTP_TRY={host}:25")
+              try:
+                  with smtplib.SMTP(host, 25, timeout=20) as s:
+                      code, banner = s.ehlo('github-actions.example.com')
+                      print(f"EHLO={code} {banner!r}")
+                      result = s.send_message(msg, from_addr='routing-probe@example.com', to_addrs=[recipient])
+                      print(f"SMTP_SEND_RESULT={result}")
+                      delivered = True
+                      break
+              except Exception as e:
+                  print(f"SMTP_ERROR={host}:{type(e).__name__}:{e}")
+
+          print(f"SMTP_PROBE_SUBMITTED={str(delivered).lower()}")
+          if not delivered:
+              print("SMTP probe could not be submitted from GitHub runner; DNS results are still authoritative.")
+          PY
