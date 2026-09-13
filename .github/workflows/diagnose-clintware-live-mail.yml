@@ -21,32 +21,27 @@ jobs:
           python3 - <<'PY'
           import dns.resolver, smtplib, uuid
           from email.message import EmailMessage
+          from email.utils import formatdate, make_msgid
 
           domain = "clintware.com"
           recipient = "clint@clintware.com"
+          sender = "routing-probe@clintware.com"
           token = uuid.uuid4().hex[:12]
           subject = f"CLINTWARE_EXTERNAL_ROUTE_TEST_{token}"
 
           print(f"TEST_SUBJECT={subject}")
-          print("PUBLIC_MX:")
           mx = sorted((r.preference, str(r.exchange).rstrip('.')) for r in dns.resolver.resolve(domain, 'MX'))
           for pref, host in mx:
               print(f"MX={pref} {host}")
 
-          print("PUBLIC_TXT:")
-          try:
-              for r in dns.resolver.resolve(domain, 'TXT'):
-                  txt = ''.join(x.decode() for x in r.strings)
-                  if txt.lower().startswith('v=spf1'):
-                      print(f"SPF={txt}")
-          except Exception as e:
-              print(f"TXT_LOOKUP_ERROR={type(e).__name__}:{e}")
-
           msg = EmailMessage()
-          msg['From'] = 'Mail Delivery Subsystem <mailer-daemon@localhost>'
+          msg['From'] = f'Clintware Routing Probe <{sender}>'
           msg['To'] = recipient
+          msg['Date'] = formatdate(localtime=False)
+          msg['Message-ID'] = make_msgid(domain=domain)
           msg['Subject'] = subject
-          msg.set_content('External null-return-path delivery probe for Clintware email routing.')
+          msg['Auto-Submitted'] = 'auto-generated'
+          msg.set_content('Clintware-owned-domain delivery probe. Unique token: ' + token)
           raw = msg.as_string()
 
           delivered = False
@@ -54,16 +49,20 @@ jobs:
               print(f"SMTP_TRY={host}:25")
               try:
                   with smtplib.SMTP(host, 25, timeout=20) as s:
-                      code, banner = s.ehlo('github-actions.example.com')
+                      code, banner = s.ehlo('clintware.com')
                       print(f"EHLO={code} {banner!r}")
-                      code, resp = s.mail('')
-                      print(f"MAIL_FROM_NULL={code} {resp!r}")
-                      if code >= 400:
-                          continue
+                      if s.has_extn('starttls'):
+                          try:
+                              s.starttls()
+                              s.ehlo('clintware.com')
+                          except Exception as e:
+                              print(f"STARTTLS_ERROR={type(e).__name__}:{e}")
+                      code, resp = s.mail(sender)
+                      print(f"MAIL_FROM={code} {resp!r}")
+                      if code >= 400: continue
                       code, resp = s.rcpt(recipient)
                       print(f"RCPT_TO={code} {resp!r}")
-                      if code >= 400:
-                          continue
+                      if code >= 400: continue
                       code, resp = s.data(raw)
                       print(f"DATA={code} {resp!r}")
                       if 200 <= code < 300:
@@ -71,6 +70,5 @@ jobs:
                           break
               except Exception as e:
                   print(f"SMTP_ERROR={host}:{type(e).__name__}:{e}")
-
           print(f"SMTP_PROBE_SUBMITTED={str(delivered).lower()}")
           PY
