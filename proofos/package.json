@@ -1,0 +1,15 @@
+{
+  "name": "clintware-proofos",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/index.js && node --check src/page.js && node --check src/research.js && node --check src/telemetry.js && node --check src/util.js && node --check lib/control-plane.js",
+    "test": "node --test test/",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.31.0"
+  }
+}
