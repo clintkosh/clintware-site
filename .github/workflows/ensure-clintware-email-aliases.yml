@@ -1,0 +1,74 @@
+name: Ensure Clintware Email Aliases
+
+on:
+  push:
+    paths:
+      - ".github/workflows/ensure-clintware-email-aliases.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ensure-aliases:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DOMAIN: clintware.com
+      DESTINATION_ADDRESS: clint.kosh@gmail.com
+      ALIASES: "clint@clintware.com clint.kosh@clintware.com"
+    steps:
+      - name: Ensure forwarding aliases
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4"
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Accept: application/json")
+
+          zcode=$(curl --compressed -sS -o /tmp/zones.json -w '%{http_code}' \
+            "${api}/zones?name=${DOMAIN}&account.id=${CLOUDFLARE_ACCOUNT_ID}&status=active" "${auth[@]}")
+          test "$zcode" = "200"
+          zone_id=$(python3 -c 'import json; d=json.load(open("/tmp/zones.json")); r=d.get("result") or []; assert len(r)==1,r; print(r[0]["id"])')
+
+          acode=$(curl --compressed -sS -o /tmp/addresses.json -w '%{http_code}' \
+            "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" "${auth[@]}")
+          test "$acode" = "200"
+          python3 -c 'import json,os; d=json.load(open("/tmp/addresses.json")); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; assert m and m[0].get("verified") is True,m; print("DESTINATION_VERIFIED=true")'
+
+          for alias in $ALIASES; do
+            echo "Ensuring $alias -> $DESTINATION_ADDRESS"
+            rcode=$(curl --compressed -sS -o /tmp/rules.json -w '%{http_code}' \
+              "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}")
+            test "$rcode" = "200"
+
+            rule_id=$(ALIAS="$alias" python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); t=os.environ["ALIAS"].lower(); m=[r for r in (d.get("result") or []) if any(x.get("field")=="to" and (x.get("value") or "").lower()==t for x in (r.get("matchers") or []))]; print((m[0].get("id") or "") if m else "")')
+
+            payload=$(ALIAS="$alias" python3 -c 'import json,os; a=os.environ["ALIAS"]; d=os.environ["DESTINATION_ADDRESS"]; print(json.dumps({"actions":[{"type":"forward","value":[d]}],"matchers":[{"type":"literal","field":"to","value":a}],"enabled":True,"name":f"Forward {a} to {d}"}))')
+
+            if [[ -n "$rule_id" ]]; then
+              wcode=$(curl --compressed -sS -o /tmp/write.json -w '%{http_code}' -X PUT \
+                "${api}/zones/${zone_id}/email/routing/rules/${rule_id}" "${auth[@]}" -H "Content-Type: application/json" --data "$payload")
+            else
+              wcode=$(curl --compressed -sS -o /tmp/write.json -w '%{http_code}' -X POST \
+                "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}" -H "Content-Type: application/json" --data "$payload")
+            fi
+            [[ "$wcode" -ge 200 && "$wcode" -lt 300 ]]
+          done
+
+          vcode=$(curl --compressed -sS -o /tmp/final.json -w '%{http_code}' \
+            "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}")
+          test "$vcode" = "200"
+
+          python3 - <<'PY'
+          import json, os
+          d=json.load(open('/tmp/final.json'))
+          dst=os.environ['DESTINATION_ADDRESS'].lower()
+          aliases=os.environ['ALIASES'].split()
+          rules=d.get('result') or []
+          for src in aliases:
+              src=src.lower()
+              matches=[r for r in rules if r.get('enabled') is True and any(x.get('field')=='to' and (x.get('value') or '').lower()==src for x in (r.get('matchers') or [])) and any(a.get('type')=='forward' and dst in [str(v).lower() for v in (a.get('value') or [])] for a in (r.get('actions') or []))]
+              assert len(matches)==1,(src,matches)
+              print(f'ROUTING_OK {src} -> {dst}')
+          PY
