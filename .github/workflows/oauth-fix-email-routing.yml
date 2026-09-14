@@ -8,6 +8,11 @@ on:
 
 permissions:
   contents: read
+  issues: write
+
+concurrency:
+  group: oauth-clintware-email-repair
+  cancel-in-progress: true
 
 jobs:
   repair:
@@ -15,6 +20,7 @@ jobs:
     timeout-minutes: 15
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,11 +28,45 @@ jobs:
           node-version: "22"
 
       - name: Authorize Cloudflare with OAuth device flow
+        id: oauth
         shell: bash
         run: |
           set -euo pipefail
           unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL || true
-          npx --yes wrangler@4.129.0 login --device --browser=false --no-use-keyring
+          rm -f /tmp/wrangler-device.log
+
+          stdbuf -oL -eL npx --yes wrangler@4.129.0 login --device --browser=false --no-use-keyring > /tmp/wrangler-device.log 2>&1 &
+          login_pid=$!
+
+          ready=0
+          for i in $(seq 1 90); do
+            if grep -Eqi 'device|verification|https?://.*cloudflare|code' /tmp/wrangler-device.log 2>/dev/null; then
+              # Wait briefly for the complete device instructions to flush.
+              sleep 2
+              ready=1
+              break
+            fi
+            if ! kill -0 "$login_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          safe_log=$(sed -r 's/\x1B\[[0-9;]*[mK]//g' /tmp/wrangler-device.log | head -n 80)
+          if [[ "$ready" == "1" ]]; then
+            issue_url=$(gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Cloudflare approval needed: Clintware email repair" \
+              --body "Approve this one-time Cloudflare device authorization so the automated repair can finish. The device code is short-lived and the OAuth token is never posted here.\n\n\`\`\`text\n${safe_log}\n\`\`\`")
+            issue_number="${issue_url##*/}"
+            echo "issue_number=$issue_number" >> "$GITHUB_OUTPUT"
+            echo "DEVICE_APPROVAL_ISSUE=$issue_url"
+          else
+            echo "$safe_log"
+          fi
+
+          wait "$login_pid"
+          echo "CLOUDFLARE_OAUTH_OK=true"
 
       - name: Ensure Gmail destination is verified
         shell: bash
@@ -38,7 +78,6 @@ jobs:
           echo "::add-mask::$oauth_token"
           api="https://api.cloudflare.com/client/v4"
           auth=(-H "Authorization: Bearer ${oauth_token}" -H "Accept: application/json")
-          target="clint.kosh@gmail.com"
 
           get_addresses() {
             curl --fail-with-body --compressed -sS "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" "${auth[@]}"
@@ -49,7 +88,6 @@ jobs:
           echo "DESTINATION_STATE=$state"
 
           if [[ "$state" == "missing" ]]; then
-            echo "Creating Gmail destination; Cloudflare will send a verification email."
             created=$(curl --fail-with-body --compressed -sS -X POST \
               "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
               "${auth[@]}" -H "Content-Type: application/json" \
@@ -81,3 +119,9 @@ jobs:
           cd email-forwarder
           npx --yes wrangler@4.129.0 deploy --config wrangler.jsonc
           echo "EMAIL_FORWARDER_DEPLOYED=true"
+
+      - name: Close temporary approval issue
+        if: ${{ success() && steps.oauth.outputs.issue_number != '' }}
+        shell: bash
+        run: |
+          gh issue close "${{ steps.oauth.outputs.issue_number }}" --repo "$GITHUB_REPOSITORY" --comment "Cloudflare OAuth approved and the Clintware email repair completed successfully."
