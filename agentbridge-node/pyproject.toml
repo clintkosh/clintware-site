@@ -16,12 +16,14 @@ dependencies = ["websockets>=14,<16"]
 desktop = ["pystray>=0.19.5,<1", "Pillow>=10,<12"]
 
 [project.scripts]
-quillgeist = "agentbridge_node.cli:main"
+quillgeist = "launcher:main"
 quillgeist-plan = "agentbridge_node.prompt_planner_cli:main"
 quillgeist-rules = "agentbridge_node.rule_cli:main"
 quillgeist-manifest = "agentbridge_node.manifest_cli:main"
+quillgeist-update = "agentbridge_node.updater_cli:main"
 # Temporary compatibility alias for pre-Quillgeist alpha users.
 agentbridge = "agentbridge_node.cli:main"
 
 [tool.setuptools]
 packages = ["agentbridge_node"]
+py-modules = ["launcher"]
