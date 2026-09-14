@@ -86,7 +86,7 @@ footer.bottom .mono{font-family:var(--mono)}
 <div class="hero"><div class="wrap">
   <div class="kicker">Live system · Built and operated by Clint Kosh</div>
   <h1>Implementation intelligence, <em>proven live</em>.</h1>
-  <p class="lede">Type any company. ProofOS researches it in real time and returns an implementation-focused brief with cited sources — through the same delivery pipeline used in production: routing, caching, provider fallback, evidence merge, and privacy-safe telemetry.</p>
+  <p class="lede">Type any company. ProofOS researches it in real time and returns an implementation-focused brief with cited sources — through the same delivery pipeline used in production: routing, caching, provider fallback, evidence merge, and privacy-safe telemetry. Research runs through the Clintware Control Plane; no third-party API is called from the browser or the ProofOS runtime.</p>
 </div></div>
 
 <section class="section" id="brief"><div class="wrap">
@@ -104,7 +104,7 @@ footer.bottom .mono{font-family:var(--mono)}
   <div class="pipeline">
     <div class="pipe-step"><div class="n">01</div><div class="t">Visitor action</div><div class="d">Company query, validated and rate-limited at the edge.</div></div>
     <div class="pipe-step"><div class="n">02</div><div class="t">Router decision</div><div class="d">Fresh cache, stale fallback, or live research — chosen per request.</div></div>
-    <div class="pipe-step"><div class="n">03</div><div class="t">Live research</div><div class="d">Perplexity API called server-side; the browser never sees credentials.</div></div>
+    <div class="pipe-step"><div class="n">03</div><div class="t">Live research</div><div class="d">Routed through the Clintware Control Plane server-side; providers and credentials stay behind Clintware infrastructure.</div></div>
     <div class="pipe-step"><div class="n">04</div><div class="t">Evidence merge</div><div class="d">Answer sections merged with cited sources and first-party detection.</div></div>
     <div class="pipe-step"><div class="n">05</div><div class="t">Provenance</div><div class="d">One request_id tracks the whole analysis end to end.</div></div>
     <div class="pipe-step"><div class="n">06</div><div class="t">Telemetry</div><div class="d">Privacy-safe events to the Clintware Control Plane: latency, cost, cache, conversions.</div></div>
@@ -159,13 +159,18 @@ footer.bottom .mono{font-family:var(--mono)}
       .then(function(r){return r.json().then(function(j){return {status:r.status,body:j}})})
       .then(function(res){
         var b=res.body;
+        if(b.mode==='research_unavailable'){
+          out.innerHTML='<div class="brief-card" style="border-color:rgba(240,189,114,.45)"><h3 style="color:var(--gold)">Pipeline live — research pending activation</h3><p>'+esc(b.notice||'Live research is pending activation on the Clintware Control Plane.')+'</p><p style="opacity:.7">Routing, caching, telemetry, and conversion tracking are fully operational.</p>'+(b.request_id?'<p style="font-family:var(--mono);font-size:11px;opacity:.6">request '+esc(b.request_id)+'</p>':'')+'</div>';
+          return;
+        }
         if(res.status!==200||b.error){
-          out.innerHTML='<div class="error-box"><strong>'+(b.error_class==='provider_not_configured'?'Live research not configured':'Research failed')+'</strong><br>'+esc(b.detail||b.error||'Unknown error')+(b.request_id?'<br><span style="font-family:var(--mono);font-size:11px;opacity:.7">request '+esc(b.request_id)+'</span>':'')+'</div>';
+          out.innerHTML='<div class="error-box"><strong>Research failed</strong><br>'+esc(b.detail||b.error||'Unknown error')+(b.request_id?'<br><span style="font-family:var(--mono);font-size:11px;opacity:.7">request '+esc(b.request_id)+'</span>':'')+'</div>';
           return;
         }
         var badges=[
           '<span class="badge ok">'+esc(b.cache_status==='hit'?'cache hit':(b.cache_status==='stale_fallback'?'stale fallback':'live research'))+'</span>',
-          '<span class="badge">'+esc(b.model||'model')+'</span>',
+          b.provider?'<span class="badge">'+esc(b.provider)+'</span>':'',
+          b.model?'<span class="badge">'+esc(b.model)+'</span>':'',
           b.usage&&b.usage.total_tokens?'<span class="badge">'+esc(b.usage.total_tokens)+' tokens</span>':'',
           '<span class="badge">'+esc((b.sources||[]).length)+' sources</span>',
           b.request_id?'<span class="badge">req '+esc(String(b.request_id).slice(0,8))+'</span>':''
