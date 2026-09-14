@@ -515,7 +515,13 @@ async function invokeResearchProvider(env,body){
   return payload;
 }
 
-function createMcpServer(env){
+function createMcpServer(env,mcpRequest){
+  const headerApiKey=()=>{
+    // Secure relay path: the key arrives in the x-api-key header of the MCP
+    // request itself (injected by a credential proxy), never in chat or logs.
+    const v=mcpRequest&&mcpRequest.headers.get("x-api-key");
+    return v&&v.length>=8?v:null;
+  };
   const server=new McpServer({name:"Clintware Control Plane",version:VERSION});
   server.registerTool("clintware_control_plane_status",{
     title:"Get Clintware Control Plane status",
@@ -639,6 +645,8 @@ function createMcpServer(env){
     inputSchema:{exa_api_key:z.string().min(8).optional(),clear:z.boolean().optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
   },async({exa_api_key,clear})=>{
+    const relayKey=headerApiKey();
+    if(!exa_api_key&&relayKey)exa_api_key=relayKey;
     if(clear){
       await registryHub(env).fetch(new Request("https://internal/research-config",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({exa_api_key:""})}));
       await audit(env,"proofos","research_provider_configured",crypto.randomUUID(),{action:"cleared"},true,"");
@@ -672,7 +680,7 @@ function createMcpServer(env){
 
 async function handleMcp(request,env,ctx){
   if(!await requireMcp(request,env))return json({error:"unauthorized"},401,{"www-authenticate":"Bearer"});
-  const handler=createMcpHandler(()=>createMcpServer(env),{
+  const handler=createMcpHandler(()=>createMcpServer(env,request),{
     route:"/mcp",
     allowedHostnames:["mcp.clintware.com"],
     allowedOriginHostnames:["perplexity.ai","www.perplexity.ai","chatgpt.com","chat.openai.com","platform.openai.com","clintware.com","www.clintware.com"],
