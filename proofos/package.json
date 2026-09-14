@@ -1,6 +1,7 @@
 {
   "name": "clintware-proofos",
   "version": "1.0.0",
+  "description": "Production-verified research-to-implementation intelligence system with cited web research, provider abstraction, fallback routing, provenance, and privacy-safe telemetry.",
   "private": true,
   "type": "module",
   "scripts": {
