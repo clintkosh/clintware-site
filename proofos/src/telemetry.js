@@ -31,7 +31,7 @@ export async function trackAnalysis(fields) {
     feature: "brief",
     action: "analyze",
     route: "/api/brief",
-    provider: fields.provider || "perplexity",
+    provider: fields.provider || "clintware-control-plane",
     model: fields.model || null,
     tool_calls: fields.tool_calls ?? 0,
     source_count: fields.source_count ?? 0,
