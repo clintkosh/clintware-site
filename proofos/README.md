@@ -4,25 +4,32 @@ ProofOS is the live implementation-intelligence product for Clintware, deployed 
 `https://proof.clintware.com`. It is the first production consumer of the
 [Clintware Control Plane](../control-plane/README.md).
 
-A visitor enters a company name. ProofOS runs a live research call server-side,
-merges the answer with cited sources, and returns an implementation-focused
-brief — through a production pipeline: input validation, rate limiting, cache
-routing with stale fallback, evidence merge, request-id correlation, and
-privacy-safe telemetry.
+A visitor enters a company name. ProofOS invokes research through the Clintware
+Control Plane server-side, merges the answer with cited sources, and returns an
+implementation-focused brief — through a production pipeline: input validation,
+rate limiting, cache routing with stale fallback, evidence merge, request-id
+correlation, and privacy-safe telemetry. ProofOS holds no third-party API keys;
+provider selection and credentials live entirely behind the Clintware Control
+Plane.
 
 ## Runtime architecture
 
 ```
-visitor action -> router decision -> cache / Perplexity research
+visitor action -> router decision -> cache / Clintware Control Plane research
 -> sources + evidence merge -> response -> conversion telemetry
 ```
 
+All intelligence, telemetry, and platform calls flow to the Control Plane
+(`clintware-control-plane` worker) over a Cloudflare service binding — a private
+worker-to-worker call in which the Control Plane identifies ProofOS by its
+caller identity. No credential exists in the ProofOS runtime.
+
 - `src/index.js` — Worker entry: routes, session cookie, cache, rate limiting
-- `src/research.js` — Perplexity provider integration and brief parsing
+- `src/research.js` — Control Plane research response handling and brief parsing
 - `src/telemetry.js` — Control Plane event emission (fail-open, never blocks UX)
 - `src/page.js` — self-contained Clintware-branded landing page
 - `src/util.js` — pure helpers (ids, validation, slugs)
-- `lib/control-plane.js` — shared Control Plane client (server-side only)
+- `lib/control-plane.js` — Control Plane transport (service binding first, public URL fallback)
 
 ## Routes
 
@@ -36,27 +43,22 @@ visitor action -> router decision -> cache / Perplexity research
 
 ## Environment
 
-Set once from this directory:
+No secrets are required. The `CONTROL_PLANE` service binding (declared in
+`wrangler.jsonc`) is the credential-free transport for research and telemetry.
 
-```bash
-npx wrangler secret put PERPLEXITY_API_KEY        # live research provider
-npx wrangler secret put CLINTWARE_PRODUCT_TOKEN   # ProofOS runtime token from the Control Plane
-```
+Optional, for local development or environments without the binding:
 
-`CLINTWARE_CONTROL_PLANE_URL` defaults to `https://mcp.clintware.com`.
-Optional: `PERPLEXITY_MODEL` (default `sonar`).
+- `CLINTWARE_CONTROL_PLANE_URL` — defaults to `https://mcp.clintware.com`
+- `CLINTWARE_PRODUCT_TOKEN` — ProofOS product token from the Control Plane
+  (minted by a Control Plane administrator via
+  `POST /api/v1/products/client`), used as Bearer auth on the public transport
 
-The product token is created by a Control Plane administrator:
-
-```bash
-curl -X POST https://mcp.clintware.com/api/v1/products/client \
-  -H "Authorization: Bearer $CONTROL_PLANE_ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"product":"proofos"}'
-```
-
-Never expose these values to browser code. All provider calls and telemetry
-emission happen in Worker server routes.
+The research provider itself is configured on the Clintware Control Plane side
+(`RESEARCH_PROVIDER_URL` / `RESEARCH_PROVIDER_TOKEN` / `RESEARCH_PROVIDER_MODEL`
+secrets on the `clintware-control-plane` worker). Until a provider is activated,
+`/api/brief` responds with a graceful `research_unavailable` mode — the
+pipeline (routing, caching, telemetry, conversions) stays fully operational and
+no brief is fabricated.
 
 ## Development
 
@@ -70,8 +72,9 @@ npm run deploy  # or dispatch .github/workflows/deploy-proofos.yml
 
 ## Operational notes
 
-- Briefs cache fresh for 12h; a 7d stale copy is served as a fallback when the
-  research provider fails (response is flagged `stale_fallback`).
+- Briefs cache fresh for 12h; a 7d stale copy is served as a fallback when live
+  research is unavailable (response is flagged `stale_fallback`). With no stale
+  copy, `/api/brief` returns a graceful `research_unavailable` response.
 - Telemetry failures never break the visitor path; the Control Plane analytics
   remain available through `clintware_usage_summary` and related MCP tools.
 - Rate limit: 10 briefs per anonymous session per 5 minutes (best effort,
