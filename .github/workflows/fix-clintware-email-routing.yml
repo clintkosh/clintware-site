@@ -153,3 +153,5 @@ jobs:
           vcode=$(cf_request GET "${api}/zones/${zone_id}/email/routing/rules" /tmp/final.json)
           require_success "$vcode" /tmp/final.json VERIFY_ROUTING_RULE
           python3 -c 'import json,os; d=json.load(open("/tmp/final.json")); src=os.environ["CUSTOM_ADDRESS"].lower(); dst=os.environ["DESTINATION_ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if r.get("enabled") is True and any(x.get("field")=="to" and (x.get("value") or "").lower()==src for x in (r.get("matchers") or [])) and any(a.get("type")=="forward" and dst in [str(v).lower() for v in (a.get("value") or [])] for a in (r.get("actions") or []))]; assert len(m)==1,m; print("ROUTING_OK=true"); print("SOURCE="+src); print("DESTINATION="+dst); print("RULE_ID="+str(m[0].get("id") or ""))'
+
+# refreshed credentials run: 2026-09-13
