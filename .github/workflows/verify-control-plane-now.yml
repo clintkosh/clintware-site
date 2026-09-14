@@ -1,0 +1,58 @@
+name: Verify Clintware Control Plane Now
+
+on:
+  push:
+    paths:
+      - ".github/workflows/verify-control-plane-now.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+    steps:
+      - name: Verify health and authenticated MCP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== health ==="
+          health=$(curl -fsS --max-time 20 https://mcp.clintware.com/health)
+          echo "$health"
+          python3 - <<'PY' "$health"
+import json,sys
+d=json.loads(sys.argv[1])
+assert d.get('ok') is True
+assert d.get('service') == 'Clintware Control Plane'
+a=d.get('adapters') or {}
+for key in ('github_write','github_actions','cloudflare_dns','mcp_auth'):
+    assert a.get(key) is True, (key,a)
+print('HEALTH_OK=true')
+PY
+
+          echo "=== unauthenticated gate ==="
+          code=$(curl -sS --max-time 20 -o /tmp/unauth -w '%{http_code}' \
+            -X POST https://mcp.clintware.com/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"verify-now","version":"1.0"}}}')
+          echo "UNAUTH_HTTP=$code"
+          test "$code" = "401"
+
+          echo "=== authenticated MCP ==="
+          test -n "${MCP_TOKEN:-}"
+          code=$(curl -sS --max-time 30 -o /tmp/auth -w '%{http_code}' \
+            -X POST https://mcp.clintware.com/mcp \
+            -H "Authorization: Bearer ${MCP_TOKEN}" \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"verify-now","version":"1.0"}}}')
+          echo "AUTH_HTTP=$code"
+          head -c 1200 /tmp/auth || true
+          echo
+          [[ "$code" =~ ^2 ]]
+          grep -Eq 'protocolVersion|jsonrpc|event:' /tmp/auth
+          echo "MCP_AUTH_OK=true"
