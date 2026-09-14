@@ -22,16 +22,7 @@ jobs:
           echo "=== health ==="
           health=$(curl -fsS --max-time 20 https://mcp.clintware.com/health)
           echo "$health"
-          python3 - <<'PY' "$health"
-import json,sys
-d=json.loads(sys.argv[1])
-assert d.get('ok') is True
-assert d.get('service') == 'Clintware Control Plane'
-a=d.get('adapters') or {}
-for key in ('github_write','github_actions','cloudflare_dns','mcp_auth'):
-    assert a.get(key) is True, (key,a)
-print('HEALTH_OK=true')
-PY
+          python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert d.get("ok") is True; assert d.get("service")=="Clintware Control Plane"; a=d.get("adapters") or {}; [(_ for _ in ()).throw(AssertionError((k,a))) for k in ("github_write","github_actions","cloudflare_dns","mcp_auth") if a.get(k) is not True]; print("HEALTH_OK=true")' "$health"
 
           echo "=== unauthenticated gate ==="
           code=$(curl -sS --max-time 20 -o /tmp/unauth -w '%{http_code}' \
