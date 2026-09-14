@@ -254,6 +254,28 @@ async function verifyProductToken(request,env,product){
   const r=await registryHub(env).fetch(new Request("https://internal/verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({product,token_hash})}));
   if(!r.ok)return null;return await r.json();
 }
+// Product workers on the Clintware account reach the Control Plane through Cloudflare
+// service bindings. Binding requests never traverse the public edge: they carry the
+// calling worker's name and no cf-connecting-ip, so the identity cannot be spoofed
+// from outside (public requests always arrive with cf-connecting-ip, which is
+// stripped/managed by the edge and absent on binding traffic).
+const SERVICE_WORKERS={proofos:"clintware-proofos"};
+function serviceProduct(request){
+  if(request.headers.get("cf-connecting-ip"))return null;
+  const caller=(request.headers.get("cf-worker")||"").trim().toLowerCase();
+  if(!caller)return null;
+  for(const[product,name]of Object.entries(SERVICE_WORKERS))if(caller===name)return product;
+  return null;
+}
+async function verifyProductRequest(request,env,product){
+  const auth=await verifyProductToken(request,env,product);
+  if(auth)return auth;
+  if(serviceProduct(request)===normalizeProduct(product)){
+    const manifest=await manifestFor(env,product);
+    if(manifest)return {ok:true,scopes:manifest.capabilities||[],manifest,identity:"service_binding"};
+  }
+  return null;
+}
 async function requireAdmin(request,env){
   const expected=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
   return expected&&await safeEq(bearer(request),expected);
@@ -338,6 +360,42 @@ async function productSummary(env,product,days=30,path="/summary"){
 async function productPath(env,product,path){
   const r=await productHub(env,product).fetch(`https://internal${path}`);
   return await r.json();
+}
+
+// ---- Research gateway (research.invoke) ----
+// The Control Plane is the only research gateway for Clintware products. Provider
+// selection, credentials, and model routing live here behind Clintware-controlled
+// environment configuration; products never see or hold provider credentials.
+// Until a provider is configured, the gateway answers deterministically with
+// available:false so products can degrade gracefully without fabricating data.
+function buildResearchMessages(company){
+  const titles=["Company snapshot","Product and customers","Implementation model","Recent signals","Why this matters for implementations"];
+  return [
+    {role:"system",content:"You are the Clintware research service. You research software companies for an experienced Implementation Manager preparing for a customer conversation or interview. Answer with verifiable facts from current web sources and cite them inline. If evidence is thin or conflicting, say so plainly instead of guessing. Never fabricate metrics, dates, names, or customers."},
+    {role:"user",content:`Prepare an implementation-focused brief on "${company}".\n\nUse exactly these markdown H2 sections, in this order:\n${titles.map(t=>`## ${t}`).join("\n")}\n\nGuidance: company snapshot (what they sell, who buys it, scale if reliably known); product and customers (product lines, customer segments, notable customers, integrations); implementation model (onboarding/delivery model, services partners, rollout pattern, complexity drivers); recent signals (last ~12 months of funding, launches, leadership, M&A relevant to implementations); why this matters for implementations (3-5 actionable bullets).\n\nKeep the whole brief under 500 words. Be specific and evidence-based.`}
+  ];
+}
+async function invokeResearchProvider(env,body){
+  const company=String(body.company||"").trim().slice(0,120);
+  if(!company)return {ok:false,status:400,error:"company_required"};
+  const providerUrl=String(env.RESEARCH_PROVIDER_URL||"").trim();
+  if(!providerUrl||!env.RESEARCH_PROVIDER_TOKEN)return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_not_configured"};
+  try{
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
+    let r;
+    try{
+      r=await fetch(providerUrl,{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${env.RESEARCH_PROVIDER_TOKEN}`},body:JSON.stringify({model:String(env.RESEARCH_PROVIDER_MODEL||""),messages:buildResearchMessages(company)}),signal:controller.signal});
+    }finally{clearTimeout(timer);}
+    if(!r.ok)return {ok:true,available:false,provider:"clintware-control-plane",reason:`research_provider_http_${r.status}`};
+    const data=await r.json();
+    const choice=data&&data.choices&&data.choices[0];
+    const text=choice&&choice.message?String(choice.message.content||""):"";
+    if(!text)return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_empty"};
+    const usage=data&&data.usage&&typeof data.usage==="object"?data.usage:{};
+    return {ok:true,available:true,provider:"clintware-research",model:String(data.model||env.RESEARCH_PROVIDER_MODEL||""),text,citations:Array.isArray(data.citations)?data.citations:[],usage:{prompt_tokens:usage.prompt_tokens??null,completion_tokens:usage.completion_tokens??null,total_tokens:usage.total_tokens??null,reported_api_cost:usage.cost??null}};
+  }catch{
+    return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_unreachable"};
+  }
 }
 
 function createMcpServer(env){
@@ -504,7 +562,7 @@ export default {
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> policy -> capability -> action -> audit"});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1/products"){
         if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
@@ -525,18 +583,30 @@ export default {
       }
 
       if(request.method==="POST"&&url.pathname==="/api/v1/events"){
-        const body=await reqJson(request);const product=normalizeProduct(body.product);
+        const body=await reqJson(request);const product=normalizeProduct(body.product)||serviceProduct(request);
         if(!product)return json({error:"product_required"},400);
-        const auth=await verifyProductToken(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
         if(!capabilityMatches(auth.manifest,`analytics.write:${product}`))return json({error:"capability_denied"},403);
         const event={...body,product};
         const r=await productHub(env,product).fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));
         return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
 
+      if(request.method==="POST"&&url.pathname==="/api/v1/research"){
+        const body=await reqJson(request);const product=normalizeProduct(body.product)||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth&&!await requireAdmin(request,env))return json({error:"unauthorized"},401);
+        const manifest=auth?auth.manifest:await manifestFor(env,product);
+        if(!capabilityMatches(manifest,"research.invoke"))return json({error:"capability_denied"},403);
+        const result=await invokeResearchProvider(env,body);
+        if(result.status)return json({ok:false,error:result.error},result.status);
+        await audit(env,product,"research_invoke",body.request_id,{company:result.company||body.company,available:result.available,reason:result.reason||""},result.available,result.available?"":(result.reason||"unavailable"));
+        return json(result);
+      }
+
       const summaryMatch=url.pathname.match(/^\/api\/v1\/products\/([^/]+)\/(summary|recent|errors|daily|funnel|providers|cache|conversions)$/);
       if(request.method==="GET"&&summaryMatch){
-        const product=normalizeProduct(summaryMatch[1]);const auth=await verifyProductToken(request,env,product);
+        const product=normalizeProduct(summaryMatch[1]);const auth=await verifyProductRequest(request,env,product);
         if(!auth&&!await requireAdmin(request,env))return json({error:"unauthorized"},401);
         const suffix=summaryMatch[2];const internal=new URL(`https://internal/${suffix}`);internal.search=url.search;
         const r=await productHub(env,product).fetch(internal.toString());return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
