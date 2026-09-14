@@ -1,9 +1,9 @@
 {
   // ProofOS — live implementation-intelligence worker for Clintware.
-  // Secrets (set once via `npx wrangler secret put` from this directory):
-  //   PERPLEXITY_API_KEY       — live research provider
-  //   CLINTWARE_PRODUCT_TOKEN  — ProofOS runtime token from the Clintware Control Plane
-  // Optional vars are set in [vars] below with safe defaults.
+  // No third-party API secrets: research, telemetry, and platform calls all
+  // flow through the Clintware Control Plane via the CONTROL_PLANE service
+  // binding (worker-to-worker, credential-free identity). An optional
+  // CLINTWARE_PRODUCT_TOKEN secret can be set for public-transport fallback.
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "clintware-proofos",
   "main": "src/index.js",
@@ -13,6 +13,9 @@
   "preview_urls": false,
   "routes": [
     { "pattern": "proof.clintware.com", "custom_domain": true }
+  ],
+  "services": [
+    { "binding": "CONTROL_PLANE", "service": "clintware-control-plane" }
   ],
   "observability": {
     "enabled": true,
