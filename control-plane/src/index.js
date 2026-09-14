@@ -103,6 +103,21 @@ export class RegistryHub extends DurableObject {
       if(!client||!body.token_hash||client.token_hash!==body.token_hash) return json({ok:false},401);
       return json({ok:true,scopes:client.scopes||[],manifest:products[product]});
     }
+    // Research provider configuration (internal). The stored key is used only by
+    // the research gateway and is never returned through public endpoints/MCP.
+    if(request.method==="GET"&&url.pathname==="/research-config"){
+      const cfg=await this.ctx.storage.get("research_config")||{};
+      return json({exa_api_key:cfg.exa_api_key||"",updated_at:cfg.updated_at||null});
+    }
+    if(request.method==="POST"&&url.pathname==="/research-config"){
+      const body=await reqJson(request);
+      const cfg=await this.ctx.storage.get("research_config")||{};
+      if(typeof body.exa_api_key==="string"&&body.exa_api_key)cfg.exa_api_key=body.exa_api_key;
+      else if(body.exa_api_key==="")delete cfg.exa_api_key;
+      cfg.updated_at=nowIso();
+      await this.ctx.storage.put("research_config",cfg);
+      return json({ok:true,exa_configured:Boolean(cfg.exa_api_key)});
+    }
     return json({error:"not_found"},404);
   }
 }
@@ -363,39 +378,141 @@ async function productPath(env,product,path){
 }
 
 // ---- Research gateway (research.invoke) ----
-// The Control Plane is the only research gateway for Clintware products. Provider
-// selection, credentials, and model routing live here behind Clintware-controlled
-// environment configuration; products never see or hold provider credentials.
-// Until a provider is configured, the gateway answers deterministically with
-// available:false so products can degrade gracefully without fabricating data.
-function buildResearchMessages(company){
-  const titles=["Company snapshot","Product and customers","Implementation model","Recent signals","Why this matters for implementations"];
-  return [
-    {role:"system",content:"You are the Clintware research service. You research software companies for an experienced Implementation Manager preparing for a customer conversation or interview. Answer with verifiable facts from current web sources and cite them inline. If evidence is thin or conflicting, say so plainly instead of guessing. Never fabricate metrics, dates, names, or customers."},
-    {role:"user",content:`Prepare an implementation-focused brief on "${company}".\n\nUse exactly these markdown H2 sections, in this order:\n${titles.map(t=>`## ${t}`).join("\n")}\n\nGuidance: company snapshot (what they sell, who buys it, scale if reliably known); product and customers (product lines, customer segments, notable customers, integrations); implementation model (onboarding/delivery model, services partners, rollout pattern, complexity drivers); recent signals (last ~12 months of funding, launches, leadership, M&A relevant to implementations); why this matters for implementations (3-5 actionable bullets).\n\nKeep the whole brief under 500 words. Be specific and evidence-based.`}
-  ];
+// The Control Plane is the only research gateway for Clintware products. The
+// provider chain is abstract: each provider function returns the same shape
+// {model, text, citations, search_calls, usage} and can be replaced or extended
+// without touching products. Today: Exa retrieval + Cloudflare Workers AI
+// synthesis (primary), Exa answer (fallback). Provider credentials live only
+// here — EXA_API_KEY worker secret first, else Control Plane durable storage —
+// and are never returned through the API or MCP. Results are cached 24h.
+const EXA_ENDPOINT="https://api.exa.ai";
+const SYNTHESIS_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast"; // Workers AI free allocation
+const RESEARCH_CACHE_TTL=86400;
+function companySlugKey(company){
+  return String(company).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60)||"co";
+}
+async function researchConfig(env){
+  try{
+    const r=await registryHub(env).fetch("https://internal/research-config");
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+async function exaApiKey(env){
+  if(env.EXA_API_KEY)return {key:String(env.EXA_API_KEY),source:"worker-secret"};
+  const cfg=await researchConfig(env);
+  if(cfg&&cfg.exa_api_key)return {key:String(cfg.exa_api_key),source:"control-plane-durable"};
+  return null;
+}
+function researchQuery(company){
+  return `Prepare an implementation-focused brief on "${company}" with these markdown H2 sections in order: ## Company snapshot; ## Product and customers; ## Implementation model; ## Recent signals; ## Why this matters for implementations. Under 500 words. Be specific and evidence-based.`;
+}
+async function exaRequest(key,path,body,timeoutMs=40000){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  let r;
+  try{
+    r=await fetch(`${EXA_ENDPOINT}${path}`,{method:"POST",headers:{"content-type":"application/json","x-api-key":key},body:JSON.stringify(body),signal:controller.signal});
+  }finally{clearTimeout(timer);}
+  if(!r.ok){
+    const err=new Error(`exa_http_${r.status}`);
+    err.code=`exa_http_${r.status}`;
+    try{err.body=await r.text();}catch{}
+    throw err;
+  }
+  return await r.json();
+}
+// Provider A: Exa retrieval + Cloudflare Workers AI synthesis.
+async function researchViaExaAndWorkersAI(env,key,company){
+  const search=await exaRequest(key,"/search",{
+    query:`${company} company products customers implementation onboarding`,
+    numResults:6,
+    type:"auto",
+    category:"company",
+    contents:{text:{maxCharacters:1800},highlights:{maxCharacters:400}}
+  });
+  const results=Array.isArray(search.results)?search.results:[];
+  if(!results.length){const err=new Error("exa_no_results");err.code="exa_no_results";throw err;}
+  const excerpts=results.map((r,i)=>`[${i+1}] ${r.title} — ${r.url}${r.publishedDate?` (${String(r.publishedDate).slice(0,10)})`:""}\n${String(r.text||(r.highlights||[]).join(" ")||"").slice(0,1800)}`).join("\n\n");
+  const ai=await env.AI.run(SYNTHESIS_MODEL,{
+    messages:[
+      {role:"system",content:"You are the Clintware research service. You synthesize implementation briefs strictly from the provided numbered sources. Cite inline as [n] for every fact. If evidence is thin or missing for a section, say so plainly. Never fabricate metrics, dates, names, customers, or events."},
+      {role:"user",content:`Company: ${company}\n\nSources:\n${excerpts}\n\nWrite the brief using exactly these markdown H2 sections, in order:\n## Company snapshot\n## Product and customers\n## Implementation model\n## Recent signals\n## Why this matters for implementations\n\nKeep it under 500 words, evidence-based, with [n] citations.`}
+    ],
+    max_tokens:1200
+  });
+  const text=String((ai&&(ai.response||ai.message||""))||"");
+  if(!text){const err=new Error("workers_ai_empty");err.code="workers_ai_empty";throw err;}
+  const usage=(ai&&ai.usage)||{};
+  return {
+    model:`exa-search+${SYNTHESIS_MODEL}`,
+    text,
+    citations:results.map(r=>({url:r.url,title:r.title||r.url,publishedDate:r.publishedDate||null})),
+    search_calls:1,
+    usage:{prompt_tokens:usage.prompt_tokens??null,completion_tokens:usage.completion_tokens??null,total_tokens:usage.total_tokens??null,reported_api_cost:search&&search.costDollars&&typeof search.costDollars.total==="number"?search.costDollars.total:null}
+  };
+}
+// Provider B (fallback): Exa answer — retrieval and synthesis in one call.
+async function researchViaExaAnswer(env,key,company){
+  const data=await exaRequest(key,"/answer",{query:researchQuery(company)});
+  const text=String((data&&data.answer)||"");
+  if(!text){const err=new Error("exa_empty");err.code="exa_empty";throw err;}
+  return {
+    model:"exa-answer",
+    text,
+    citations:(Array.isArray(data.citations)?data.citations:[]).map(c=>({url:c.url,title:c.title||c.url,publishedDate:c.publishedDate||null})),
+    search_calls:1,
+    usage:{prompt_tokens:null,completion_tokens:null,total_tokens:null,reported_api_cost:data&&data.costDollars&&typeof data.costDollars.total==="number"?data.costDollars.total:null}
+  };
 }
 async function invokeResearchProvider(env,body){
   const company=String(body.company||"").trim().slice(0,120);
   if(!company)return {ok:false,status:400,error:"company_required"};
-  const providerUrl=String(env.RESEARCH_PROVIDER_URL||"").trim();
-  if(!providerUrl||!env.RESEARCH_PROVIDER_TOKEN)return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_not_configured"};
-  try{
-    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
-    let r;
+  const cache=(typeof caches!=="undefined")&&caches.default?caches.default:null;
+  const cacheKey=`https://cache.clintware-control-plane.internal/research/${companySlugKey(company)}.json`;
+  if(cache){
     try{
-      r=await fetch(providerUrl,{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${env.RESEARCH_PROVIDER_TOKEN}`},body:JSON.stringify({model:String(env.RESEARCH_PROVIDER_MODEL||""),messages:buildResearchMessages(company)}),signal:controller.signal});
-    }finally{clearTimeout(timer);}
-    if(!r.ok)return {ok:true,available:false,provider:"clintware-control-plane",reason:`research_provider_http_${r.status}`};
-    const data=await r.json();
-    const choice=data&&data.choices&&data.choices[0];
-    const text=choice&&choice.message?String(choice.message.content||""):"";
-    if(!text)return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_empty"};
-    const usage=data&&data.usage&&typeof data.usage==="object"?data.usage:{};
-    return {ok:true,available:true,provider:"clintware-research",model:String(data.model||env.RESEARCH_PROVIDER_MODEL||""),text,citations:Array.isArray(data.citations)?data.citations:[],usage:{prompt_tokens:usage.prompt_tokens??null,completion_tokens:usage.completion_tokens??null,total_tokens:usage.total_tokens??null,reported_api_cost:usage.cost??null}};
-  }catch{
-    return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_unreachable"};
+      const hit=await cache.match(new Request(cacheKey));
+      if(hit){
+        const data=await hit.json();
+        if(data&&data.available===true)return {...data,ok:true,cache:"hit",search_calls:0,source_count:(data.citations||[]).length};
+      }
+    }catch{}
   }
+  const auth=await exaApiKey(env);
+  if(!auth)return {ok:true,available:false,provider:"clintware-control-plane",reason:"research_provider_not_configured",cache:"miss"};
+  const started=Date.now();
+  let result=null;let reason="";
+  try{
+    result=await researchViaExaAndWorkersAI(env,auth.key,company);
+  }catch(e){
+    reason=(e&&e.code)||"research_provider_error";
+    try{
+      result=await researchViaExaAnswer(env,auth.key,company);
+    }catch(e2){
+      reason=(e2&&e2.code)||reason;
+      result=null;
+    }
+  }
+  if(!result)return {ok:true,available:false,provider:"clintware-control-plane",reason,cache:"miss",latency_ms:Date.now()-started};
+  const payload={
+    ok:true,
+    available:true,
+    provider:"clintware-research",
+    model:result.model,
+    text:result.text,
+    citations:result.citations,
+    usage:result.usage,
+    search_calls:result.search_calls,
+    source_count:result.citations.length,
+    latency_ms:Date.now()-started,
+    cache:"miss"
+  };
+  if(cache){
+    try{
+      await cache.put(new Request(cacheKey),new Response(JSON.stringify({available:true,provider:payload.provider,model:payload.model,text:payload.text,citations:payload.citations,usage:payload.usage}),{headers:{"content-type":"application/json","cache-control":`max-age=${RESEARCH_CACHE_TTL}`}}));
+    }catch{}
+  }
+  return payload;
 }
 
 function createMcpServer(env){
@@ -516,6 +633,30 @@ function createMcpServer(env){
     const result=await workflowDispatch(env,manifest,workflow,ref,inputs||{});await audit(env,product,"deployment_dispatch",crypto.randomUUID(),{workflow,ref},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
+  server.registerTool("clintware_research_configure",{
+    title:"Configure the Clintware research provider",
+    description:"Store or clear the Exa API key used by research.invoke. The key is validated against Exa, then kept in Control Plane durable storage (the EXA_API_KEY worker secret takes precedence) and is never returned by any endpoint or tool.",
+    inputSchema:{exa_api_key:z.string().min(8).optional(),clear:z.boolean().optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async({exa_api_key,clear})=>{
+    if(clear){
+      await registryHub(env).fetch(new Request("https://internal/research-config",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({exa_api_key:""})}));
+      await audit(env,"proofos","research_provider_configured",crypto.randomUUID(),{action:"cleared"},true,"");
+      return {content:[{type:"text",text:JSON.stringify({ok:true,exa_configured:Boolean(env.EXA_API_KEY),storage:env.EXA_API_KEY?"worker-secret":"none"})}]};
+    }
+    if(exa_api_key){
+      try{
+        await exaRequest(exa_api_key,"/search",{query:"Clintware",numResults:1},15000);
+      }catch(e){
+        return {isError:true,content:[{type:"text",text:JSON.stringify({error:"exa_key_invalid",detail:(e&&e.code)||"validation_failed"})}]};
+      }
+      await registryHub(env).fetch(new Request("https://internal/research-config",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({exa_api_key})}));
+      await audit(env,"proofos","research_provider_configured",crypto.randomUUID(),{action:"configured",storage:env.EXA_API_KEY?"worker-secret":"control-plane-durable"},true,"");
+      return {content:[{type:"text",text:JSON.stringify({ok:true,exa_configured:true,storage:env.EXA_API_KEY?"worker-secret":"control-plane-durable"})}]};
+    }
+    const cfg=await researchConfig(env);
+    return {content:[{type:"text",text:JSON.stringify({ok:true,exa_configured:Boolean(env.EXA_API_KEY||(cfg&&cfg.exa_api_key)),worker_secret_present:Boolean(env.EXA_API_KEY),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"})}]};
+  });
   server.registerTool("clintware_dns_ensure_record",{
     title:"Ensure an approved DNS record",
     description:"Create or update only an allowlisted DNS name for a registered product using Cloudflare credentials retained by the Clintware Control Plane.",
@@ -557,7 +698,8 @@ export default {
     try{
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:(products.products||[]).map(p=>p.product),adapters:safeConfig(env),time:nowIso()});
+        const rconfig=await researchConfig(env);
+        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:(products.products||[]).map(p=>p.product),adapters:safeConfig(env),research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
@@ -600,7 +742,7 @@ export default {
         if(!capabilityMatches(manifest,"research.invoke"))return json({error:"capability_denied"},403);
         const result=await invokeResearchProvider(env,body);
         if(result.status)return json({ok:false,error:result.error},result.status);
-        await audit(env,product,"research_invoke",body.request_id,{company:result.company||body.company,available:result.available,reason:result.reason||""},result.available,result.available?"":(result.reason||"unavailable"));
+        await audit(env,product,"research_invoke",body.request_id,{company:body.company,provider:result.provider||"",model:result.model||"",available:result.available,cache:result.cache||"miss",search_calls:result.search_calls??0,source_count:result.source_count??((result.citations||[]).length),latency_ms:result.latency_ms??null,reported_api_cost:(result.usage&&result.usage.reported_api_cost)??null,reason:result.reason||""},result.available,result.available?"":(result.reason||"unavailable"));
         return json(result);
       }
 
