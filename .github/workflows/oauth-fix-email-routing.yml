@@ -41,7 +41,6 @@ jobs:
           ready=0
           for i in $(seq 1 90); do
             if grep -Eqi 'device|verification|https?://.*cloudflare|code' /tmp/wrangler-device.log 2>/dev/null; then
-              # Wait briefly for the complete device instructions to flush.
               sleep 2
               ready=1
               break
@@ -125,3 +124,5 @@ jobs:
         shell: bash
         run: |
           gh issue close "${{ steps.oauth.outputs.issue_number }}" --repo "$GITHUB_REPOSITORY" --comment "Cloudflare OAuth approved and the Clintware email repair completed successfully."
+
+# device-code refresh: 2026-09-13T19:05:00-05:00
