@@ -29,7 +29,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
-      - name: Probe Control Plane and MCP auth
+      - name: Probe Control Plane, MCP auth, and GitHub adapter
         id: probe
         shell: bash
         continue-on-error: true
@@ -78,7 +78,6 @@ jobs:
               -H 'accept: application/json, text/event-stream' \
               --data '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor","version":"1.0"}}}' || true)
             echo "auth_mcp_http=$auth_code"
-            echo "response_content_type=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\r",""); print $2}' "$auth_headers" | tail -1)"
             head -c 1200 "$auth_body" || true
             echo
 
@@ -91,9 +90,34 @@ jobs:
             else
               echo "MCP_AUTH_OK=true"
             fi
+
+            echo "=== GITHUB ADAPTER E2E ==="
+            gh_body=$(mktemp)
+            gh_code=$(curl -sS --max-time 30 -o "$gh_body" -w '%{http_code}' \
+              -X POST "$MCP_URL" \
+              -H "Authorization: Bearer ${MCP_TOKEN}" \
+              -H 'content-type: application/json' \
+              -H 'accept: application/json, text/event-stream' \
+              --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"clintware_repo_read_file","arguments":{"product":"proofos","path":"control-plane/README.md","ref":"main"}}}' || true)
+            echo "github_adapter_http=$gh_code"
+            head -c 1600 "$gh_body" || true
+            echo
+
+            if [[ ! "$gh_code" =~ ^2 ]]; then
+              echo "::error::GitHub adapter MCP call failed with HTTP $gh_code"
+              failures=$((failures+1))
+            elif grep -Eq 'github_read_failed|Bad credentials|\"status\":401|isError\":true' "$gh_body"; then
+              echo "::error::GitHub adapter is configured but not operational"
+              failures=$((failures+1))
+            elif ! grep -Fq 'control-plane/README.md' "$gh_body"; then
+              echo "::error::GitHub adapter response did not contain the expected repository file"
+              failures=$((failures+1))
+            else
+              echo "GITHUB_ADAPTER_E2E_OK=true"
+            fi
           fi
 
-          rm -f "$health_body" "${auth_body:-}" "${auth_headers:-}" /tmp/mcp-unauth.out 2>/dev/null || true
+          rm -f "$health_body" "${auth_body:-}" "${auth_headers:-}" "${gh_body:-}" /tmp/mcp-unauth.out 2>/dev/null || true
 
           if [[ "$failures" -eq 0 ]]; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
@@ -134,16 +158,28 @@ jobs:
             -H "Authorization: Bearer ${MCP_TOKEN}" \
             -H 'content-type: application/json' \
             -H 'accept: application/json, text/event-stream' \
-            --data '{"jsonrpc":"2.0","id":3,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor-recovery","version":"1.0"}}}' || true)
+            --data '{"jsonrpc":"2.0","id":4,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor-recovery","version":"1.0"}}}' || true)
+          gh_code=$(curl -sS --max-time 30 -o /tmp/recovery-gh -w '%{http_code}' \
+            -X POST "$MCP_URL" \
+            -H "Authorization: Bearer ${MCP_TOKEN}" \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"clintware_repo_read_file","arguments":{"product":"proofos","path":"control-plane/README.md","ref":"main"}}}' || true)
 
           echo "post_recovery_health_http=$health_code"
           echo "post_recovery_mcp_http=$auth_code"
+          echo "post_recovery_github_adapter_http=$gh_code"
           cat /tmp/recovery-health || true
           echo
           head -c 1200 /tmp/recovery-auth || true
           echo
+          head -c 1600 /tmp/recovery-gh || true
+          echo
 
-          if [[ "$health_code" == "200" && "$auth_code" =~ ^2 ]] && grep -Eq 'protocolVersion|jsonrpc|event:' /tmp/recovery-auth; then
+          if [[ "$health_code" == "200" && "$auth_code" =~ ^2 && "$gh_code" =~ ^2 ]] \
+             && grep -Eq 'protocolVersion|jsonrpc|event:' /tmp/recovery-auth \
+             && grep -Fq 'control-plane/README.md' /tmp/recovery-gh \
+             && ! grep -Eq 'github_read_failed|Bad credentials|\"status\":401|isError\":true' /tmp/recovery-gh; then
             echo "recovered=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -158,7 +194,7 @@ jobs:
           set -euo pipefail
           title='Control Plane monitor: automatic recovery failed'
           existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number // empty')
-          body="Automated monitoring detected that mcp.clintware.com failed its health/auth contract and automatic redeploy did not restore it.\n\nMonitor run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n\nNo credential values are written to this issue."
+          body="Automated monitoring detected that mcp.clintware.com failed its end-to-end health/auth/GitHub-adapter contract and automatic redeploy did not restore it.\n\nMonitor run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n\nNo credential values are written to this issue."
           if [[ -z "$existing" ]]; then
             gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
           else
@@ -174,7 +210,7 @@ jobs:
           title='Control Plane monitor: automatic recovery failed'
           while read -r issue; do
             [[ -z "$issue" ]] && continue
-            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "Automated monitor confirms the Control Plane is healthy again. Closing incident."
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "Automated monitor confirms the Control Plane and GitHub adapter are healthy again. Closing incident."
             gh issue close "$issue" --repo "$GITHUB_REPOSITORY" --reason completed
           done < <(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[].number')
 
@@ -182,5 +218,5 @@ jobs:
         if: always()
         run: |
           echo "Monitor run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          echo "Checks: health contract, adapters, unauthenticated 401 gate, authenticated MCP initialize."
-          echo "Auto-response: redeploy on failure, recheck, create incident only if still broken, close incident after recovery."
+          echo "Checks: health contract, unauthenticated 401 gate, authenticated MCP initialize, live GitHub adapter repository read."
+          echo "Auto-response: redeploy on failure, recheck end to end, create incident only if still broken, close incident after recovery."
