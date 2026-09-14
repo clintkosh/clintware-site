@@ -1,0 +1,83 @@
+name: OAuth Fix Clintware Email Routing
+
+on:
+  push:
+    paths:
+      - ".github/workflows/oauth-fix-email-routing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authorize Cloudflare with OAuth device flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL || true
+          npx --yes wrangler@4.129.0 login --device --browser=false --no-use-keyring
+
+      - name: Ensure Gmail destination is verified
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL || true
+          auth_json=$(npx --yes wrangler@4.129.0 auth token --json)
+          oauth_token=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("type")=="oauth",d; print(d["token"])' <<< "$auth_json")
+          echo "::add-mask::$oauth_token"
+          api="https://api.cloudflare.com/client/v4"
+          auth=(-H "Authorization: Bearer ${oauth_token}" -H "Accept: application/json")
+          target="clint.kosh@gmail.com"
+
+          get_addresses() {
+            curl --fail-with-body --compressed -sS "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" "${auth[@]}"
+          }
+
+          addresses=$(get_addresses)
+          state=$(python3 -c 'import json,sys; d=json.load(sys.stdin); t="clint.kosh@gmail.com"; m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; print("missing" if not m else ("verified" if m[0].get("verified") else "unverified"))' <<< "$addresses")
+          echo "DESTINATION_STATE=$state"
+
+          if [[ "$state" == "missing" ]]; then
+            echo "Creating Gmail destination; Cloudflare will send a verification email."
+            created=$(curl --fail-with-body --compressed -sS -X POST \
+              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
+              "${auth[@]}" -H "Content-Type: application/json" \
+              --data '{"email":"clint.kosh@gmail.com"}')
+            state=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result") or {}; print("verified" if r.get("verified") else "unverified")' <<< "$created")
+            echo "DESTINATION_STATE=$state"
+          fi
+
+          if [[ "$state" != "verified" ]]; then
+            echo "DESTINATION_VERIFICATION_REQUIRED=true"
+            for i in $(seq 1 90); do
+              sleep 5
+              addresses=$(get_addresses)
+              state=$(python3 -c 'import json,sys; d=json.load(sys.stdin); t="clint.kosh@gmail.com"; m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; print("missing" if not m else ("verified" if m[0].get("verified") else "unverified"))' <<< "$addresses")
+              if [[ "$state" == "verified" ]]; then
+                echo "DESTINATION_VERIFIED=true"
+                break
+              fi
+              echo "Waiting for destination verification ($i/90)"
+            done
+          fi
+          test "$state" = "verified"
+
+      - name: Deploy Wrangler-managed clint address trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL || true
+          cd email-forwarder
+          npx --yes wrangler@4.129.0 deploy --config wrangler.jsonc
+          echo "EMAIL_FORWARDER_DEPLOYED=true"
