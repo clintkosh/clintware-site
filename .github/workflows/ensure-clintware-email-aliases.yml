@@ -34,7 +34,7 @@ jobs:
           acode=$(curl --compressed -sS -o /tmp/addresses.json -w '%{http_code}' \
             "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" "${auth[@]}")
           test "$acode" = "200"
-          python3 -c 'import json,os; d=json.load(open("/tmp/addresses.json")); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; assert m and m[0].get("verified") is True,m; print("DESTINATION_VERIFIED=true")'
+          python3 -c 'import json,os; d=json.load(open("/tmp/addresses.json")); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; assert m and (m[0].get("status")=="verified" or bool(m[0].get("verified"))),m; print("DESTINATION_VERIFIED=true")'
 
           for alias in $ALIASES; do
             echo "Ensuring $alias -> $DESTINATION_ADDRESS"
