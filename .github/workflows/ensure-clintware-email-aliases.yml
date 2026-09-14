@@ -17,7 +17,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DOMAIN: clintware.com
       DESTINATION_ADDRESS: clint.kosh@gmail.com
-      ALIASES: "clint@clintware.com clint.kosh@clintware.com"
+      ALIASES: "clint@clintware.com clint.kosh@clintware.com kkosh@clintware.com"
     steps:
       - name: Ensure forwarding aliases
         shell: bash
