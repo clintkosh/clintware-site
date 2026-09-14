@@ -16,6 +16,7 @@ The MCP endpoint is one interface into the broader control plane. The same Worke
 - `POST /mcp` — authenticated MCP endpoint
 - `GET /api/v1` — API index
 - `POST /api/v1/events` — canonical product event ingestion
+- `POST /api/v1/research` — research gateway (`research.invoke` capability); routes to the configured Clintware research provider (`RESEARCH_PROVIDER_URL` / `RESEARCH_PROVIDER_TOKEN` / `RESEARCH_PROVIDER_MODEL` secrets) and answers `available:false` until one is configured. Product workers authenticate via account service bindings (caller identity) or product tokens.
 - `GET /api/v1/products/:product/summary`
 - `GET /api/v1/products/:product/recent`
 - `GET /api/v1/products/:product/errors`
