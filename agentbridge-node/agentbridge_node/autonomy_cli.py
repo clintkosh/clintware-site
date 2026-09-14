@@ -4,13 +4,17 @@ import argparse
 import json
 import platform
 import sys
+import time
+import uuid
 
+from . import __version__
 from .autonomy import AUTONOMY_LEVELS, IntentError, compile_intent, save_manifest_json
 from .config import Config, home_dir
 from .executor import execute
 from .native_schedule import NativeScheduleError, install_windows_schedule
 from .policy import evaluate
 from .scheduler import add_schedule, approve_schedule
+from .telemetry import emit_event, emit_run_result
 
 
 def _duration(value: str) -> int:
@@ -49,6 +53,26 @@ def _human(compiled) -> None:
     print("```")
 
 
+def _intent_event(cfg: Config, event_type: str, status: str, compiled=None, *, source: str = "intent_cli") -> None:
+    metadata = {"source": source, "deterministic": True, "llm_required": False}
+    if compiled is not None:
+        metadata.update({
+            "intent_type": compiled.intent_type,
+            "autonomy": compiled.autonomy,
+            "confidence": compiled.confidence,
+            "scheduled": bool(compiled.schedule_seconds),
+        })
+    emit_event(cfg, {
+        "event_id": f"{event_type}:{uuid.uuid4()}",
+        "type": event_type,
+        "ts": int(time.time() * 1000),
+        "device_id": cfg.data.get("device_id"),
+        "status": status,
+        "node_version": __version__,
+        "metadata": metadata,
+    })
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="quillgeist intent",
@@ -68,15 +92,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    cfg = Config.load()
     try:
         compiled = compile_intent(args.text, workspace=args.workspace, autonomy=args.autonomy)
     except IntentError as exc:
+        _intent_event(cfg, "local_intent_compile", "refused")
         print(f"Quillgeist could not compile this intent: {exc}", file=sys.stderr)
         return 2
 
     if args.every:
         compiled.schedule_seconds = args.every
         compiled.manifest["quillgeist_intent"]["schedule_seconds"] = args.every
+
+    _intent_event(cfg, "local_intent_compile", "prepared", compiled)
 
     if args.output:
         save_manifest_json(compiled, args.output)
@@ -86,20 +114,28 @@ def main(argv=None):
     else:
         _human(compiled)
 
-    cfg = Config.load()
     pack = compiled.execution_pack()
 
     if args.apply:
         decision = evaluate(pack.manifest, cfg.data.get("policy", {}), approved=args.approve_all)
         print("\nEXECUTE")
         if (decision.denied or decision.needs_approval) and not args.approve_all:
+            status = "approval_required" if decision.needs_approval else "denied"
+            _intent_event(cfg, "local_intent_run", status, compiled)
             print(json.dumps({
-                "status": "approval_required" if decision.needs_approval else "denied",
+                "status": status,
                 "needs_approval": decision.needs_approval,
                 "denied": decision.denied,
             }, indent=2))
         else:
-            print(json.dumps(execute(pack, cfg, workspace_override=args.workspace, approved=args.approve_all), indent=2, default=str))
+            result = execute(pack, cfg, workspace_override=args.workspace, approved=args.approve_all)
+            result["product_area"] = "local_autonomy"
+            result["intent_type"] = compiled.intent_type
+            result["autonomy"] = compiled.autonomy
+            result["execution_source"] = "intent_cli"
+            emit_run_result(cfg, result)
+            _intent_event(cfg, "local_intent_run", result.get("status", "unknown"), compiled)
+            print(json.dumps(result, indent=2, default=str))
 
     if args.schedule:
         every = compiled.schedule_seconds
@@ -108,9 +144,11 @@ def main(argv=None):
             return 2
         decision = evaluate(pack.manifest, cfg.data.get("policy", {}), approved=args.approve_all)
         if decision.denied:
+            _intent_event(cfg, "local_intent_schedule", "denied", compiled)
             print(json.dumps({"status": "denied", "denied": decision.denied}, indent=2), file=sys.stderr)
             return 2
         if decision.needs_approval and not args.approve_all:
+            _intent_event(cfg, "local_intent_schedule", "approval_required", compiled)
             print(json.dumps({"status": "approval_required", "needs_approval": decision.needs_approval}, indent=2), file=sys.stderr)
             return 2
         pack_dir = home_dir() / "autonomy" / "packs"
@@ -127,8 +165,10 @@ def main(argv=None):
                     row["approved_local"] = True
                 row = {"provider": "quillgeist_device_scheduler", **row}
         except NativeScheduleError as exc:
+            _intent_event(cfg, "local_intent_schedule", "failed", compiled)
             print(f"\nSCHEDULE\n{exc}", file=sys.stderr)
             return 2
+        _intent_event(cfg, "local_intent_schedule", "installed", compiled)
         print("\nSCHEDULE")
         print(json.dumps(row, indent=2, default=str))
     return 0
