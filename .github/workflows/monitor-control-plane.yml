@@ -1,0 +1,193 @@
+name: Monitor Clintware Control Plane
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+concurrency:
+  group: monitor-clintware-control-plane
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      MCP_URL: https://mcp.clintware.com/mcp
+      HEALTH_URL: https://mcp.clintware.com/health
+      MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Probe Control Plane and MCP auth
+        id: probe
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+
+          probe_once() {
+            local failures=0
+
+            echo "=== HEALTH ==="
+            health_body=$(mktemp)
+            health_code=$(curl -sS --max-time 20 -o "$health_body" -w '%{http_code}' "$HEALTH_URL" || true)
+            echo "health_http=$health_code"
+            cat "$health_body" || true
+            echo
+
+            if [[ "$health_code" != "200" ]]; then
+              echo "::error::Health endpoint returned HTTP $health_code"
+              failures=$((failures+1))
+            else
+              python3 - "$health_body" <<'PY' || failures=$((failures+1))
+import json,sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    d=json.load(f)
+assert d.get('ok') is True, d
+assert d.get('service') == 'Clintware Control Plane', d
+ad=d.get('adapters') or {}
+for key in ('github_write','github_actions','cloudflare_dns','mcp_auth'):
+    assert ad.get(key) is True, (key, ad)
+print('HEALTH_CONTRACT_OK=true')
+PY
+            fi
+
+            echo "=== UNAUTHENTICATED MCP GATE ==="
+            unauth_code=$(curl -sS --max-time 20 -o /tmp/mcp-unauth.out -w '%{http_code}' \
+              -X POST "$MCP_URL" \
+              -H 'content-type: application/json' \
+              -H 'accept: application/json, text/event-stream' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor","version":"1.0"}}}' || true)
+            echo "unauth_mcp_http=$unauth_code"
+            if [[ "$unauth_code" != "401" ]]; then
+              echo "::error::Unauthenticated MCP request should be rejected with 401, got $unauth_code"
+              failures=$((failures+1))
+            fi
+
+            echo "=== AUTHENTICATED MCP ==="
+            if [[ -z "${MCP_TOKEN:-}" ]]; then
+              echo "::error::CONTROL_PLANE_MCP_TOKEN repository secret is missing"
+              failures=$((failures+1))
+            else
+              auth_body=$(mktemp)
+              auth_headers=$(mktemp)
+              auth_code=$(curl -sS --max-time 30 -D "$auth_headers" -o "$auth_body" -w '%{http_code}' \
+                -X POST "$MCP_URL" \
+                -H "Authorization: Bearer ${MCP_TOKEN}" \
+                -H 'content-type: application/json' \
+                -H 'accept: application/json, text/event-stream' \
+                --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor","version":"1.0"}}}' || true)
+              echo "auth_mcp_http=$auth_code"
+              echo "response_content_type=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\r",""); print $2}' "$auth_headers" | tail -1)"
+              head -c 1200 "$auth_body" || true
+              echo
+
+              if [[ ! "$auth_code" =~ ^2 ]]; then
+                echo "::error::Authenticated MCP initialize failed with HTTP $auth_code"
+                failures=$((failures+1))
+              elif ! grep -Eq 'protocolVersion|jsonrpc|event:' "$auth_body"; then
+                echo "::error::Authenticated MCP response did not look like an MCP initialize response"
+                failures=$((failures+1))
+              else
+                echo "MCP_AUTH_OK=true"
+              fi
+            fi
+
+            rm -f "$health_body" "${auth_body:-}" "${auth_headers:-}" /tmp/mcp-unauth.out 2>/dev/null || true
+            return "$failures"
+          }
+
+          if probe_once; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Automatic recovery - redeploy Control Plane
+        if: steps.probe.outputs.healthy != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Control Plane probe failed. Dispatching approved redeploy workflow."
+          gh workflow run deploy-control-plane.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+          sleep 8
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow deploy-control-plane.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "Recovery deployment run: $run_id"
+          gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status
+
+      - name: Recheck after automatic recovery
+        id: recovery
+        if: steps.probe.outputs.healthy != 'true'
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          sleep 5
+
+          health_body=$(mktemp)
+          health_code=$(curl -sS --max-time 20 -o "$health_body" -w '%{http_code}' "$HEALTH_URL" || true)
+          echo "post_recovery_health_http=$health_code"
+          cat "$health_body" || true
+          echo
+
+          auth_body=$(mktemp)
+          auth_code=$(curl -sS --max-time 30 -o "$auth_body" -w '%{http_code}' \
+            -X POST "$MCP_URL" \
+            -H "Authorization: Bearer ${MCP_TOKEN}" \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"clintware-monitor-recovery","version":"1.0"}}}' || true)
+          echo "post_recovery_mcp_http=$auth_code"
+          head -c 1200 "$auth_body" || true
+          echo
+
+          if [[ "$health_code" == "200" && "$auth_code" =~ ^2 ]]; then
+            echo "recovered=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "recovered=false" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Open incident issue if recovery failed
+        if: steps.probe.outputs.healthy != 'true' && steps.recovery.outputs.recovered != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='Control Plane monitor: automatic recovery failed'
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number // empty')
+          body="Automated monitoring detected that mcp.clintware.com failed its health/auth contract and a redeploy did not restore it.\n\nRun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n\nNo credential values are written to this issue."
+          if [[ -z "$existing" ]]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          else
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+          fi
+          exit 1
+
+      - name: Close prior monitor incident after recovery
+        if: steps.probe.outputs.healthy == 'true' || steps.recovery.outputs.recovered == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='Control Plane monitor: automatic recovery failed'
+          while read -r issue; do
+            [[ -z "$issue" ]] && continue
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "Automated monitor confirms the Control Plane is healthy again. Closing incident."
+            gh issue close "$issue" --repo "$GITHUB_REPOSITORY" --reason completed
+          done < <(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[].number')
+
+      - name: Final status
+        if: always()
+        run: |
+          echo "Monitor run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "Checks: public health, adapter contract, unauthenticated 401 gate, authenticated MCP initialize."
+          echo "Recovery: automatic deploy-control-plane.yml dispatch on failure; incident issue only if recovery fails."
