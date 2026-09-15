@@ -18,7 +18,7 @@ npm run typecheck
 npm run build
 ```
 
-Repository CI runs those checks plus the browser BuyerOrigin tests, Worker configuration dry-runs, and `git diff --check` before the branch can be treated as ready for Shopify registration work.
+Repository CI runs those checks plus the browser BuyerOrigin tests, Worker configuration dry-runs, and `git diff --check` before the branch can be treated as ready for Shopify registration work.  The final validation run is intentionally performed after public BuyerOrigin positioning is reconciled with current `main`.
 
 ## Runtime flow
 
