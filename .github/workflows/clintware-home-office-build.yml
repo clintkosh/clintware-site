@@ -1,0 +1,32 @@
+name: Clintware Home Office Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'projects/clintware-home-office/**'
+      - '.github/workflows/clintware-home-office-build.yml'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build desktop app
+        shell: pwsh
+        run: .\projects\clintware-home-office\build_windows.ps1
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+      - name: Build installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\projects\clintware-home-office\installer\ClintwareHomeOffice.iss"'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClintwareHomeOffice-Windows
+          path: |
+            projects/clintware-home-office/dist/ClintwareHomeOffice/**
+            projects/clintware-home-office/dist-installer/*.exe

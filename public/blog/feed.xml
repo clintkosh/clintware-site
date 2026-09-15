@@ -1,17 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>Clintware Build Notes</title>
-    <link>https://www.clintware.com/blog/</link>
-    <description>Build notes on Quillgeist, local-first AI, developer tools, and working software experiments.</description>
-    <language>en-us</language>
-    <lastBuildDate>Fri, 14 Aug 2026 00:00:00 GMT</lastBuildDate>
-    <item>
-      <title>Getting the Teams Background Just Right</title>
-      <link>https://www.clintware.com/blog/getting-the-teams-background-just-right/</link>
-      <guid isPermaLink="true">https://www.clintware.com/blog/getting-the-teams-background-just-right/</guid>
-      <pubDate>Fri, 14 Aug 2026 00:00:00 GMT</pubDate>
-      <description>How a specific visual requirement became a reusable background-generation workflow and public tool.</description>
-    </item>
-  </channel>
-</rss>
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Clintware™ Build Notes</title><link>https://www.clintware.com/blog/</link><description>Practical notes on product decisions, AI-assisted workflows, Customer Success systems, experiments, failures, fixes, and reusable methods.</description><language>en-us</language><lastBuildDate>Thu, 10 Sep 2026 05:14:00 GMT</lastBuildDate><item><title>Think-Sculpting: When Thinking Becomes Building</title><link>https://www.clintware.com/blog/think-sculpting/</link><guid>https://www.clintware.com/blog/think-sculpting/</guid><pubDate>Thu, 10 Sep 2026 05:14:00 GMT</pubDate><description>How AI compresses the distance between an idea and a working test, and why faster building requires stronger guardrails, verification, and iteration.</description></item><item><title>Getting the Teams Background Just Right</title><link>https://www.clintware.com/blog/getting-the-teams-background-just-right/</link><guid>https://www.clintware.com/blog/getting-the-teams-background-just-right/</guid><pubDate>Fri, 14 Aug 2026 10:35:00 GMT</pubDate><description>How a specific visual requirement became a reusable background-generation workflow and public tool.</description></item><item><title>Building the Next Step</title><link>https://www.clintware.com/blog/building-the-next-step/</link><guid>https://www.clintware.com/blog/building-the-next-step/</guid><pubDate>Tue, 04 Aug 2026 19:56:44 GMT</pubDate><description>The builder-origin story behind Clintware: start with a real operating problem, build the smallest useful system, test it, and keep improving it.</description></item></channel></rss>

@@ -1,0 +1,84 @@
+name: Deploy LandThePlane Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landtheplane-worker/**"
+      - ".github/workflows/deploy-landtheplane-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-landtheplane
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate LandThePlane Worker
+        run: npx --yes wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
+
+      - name: Deploy LandThePlane Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd landtheplane-worker --keep-vars
+
+      - name: Configure shared Google OAuth client when available
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LANDTHEPLANE_GOOGLE_CLIENT_ID: ${{ secrets.LANDTHEPLANE_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${LANDTHEPLANE_GOOGLE_CLIENT_ID:-}" ]; then
+            printf '%s' "$LANDTHEPLANE_GOOGLE_CLIENT_ID" | npx --yes wrangler@4 secret put GOOGLE_OAUTH_CLIENT_ID --config landtheplane-worker/wrangler.jsonc
+            echo "Configured LandThePlane shared Google OAuth client."
+          else
+            echo "LANDTHEPLANE_GOOGLE_CLIENT_ID is not configured; live tester BYO-client mode remains enabled."
+          fi
+
+      - name: Attach or verify landtheplane.clintware.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=landtheplane.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="landtheplane.clintware.com" and r[0].get("service")=="clintware-landtheplane" else "no")' <<< "$current")
+          if [ "$correct" != "yes" ]; then
+            curl --fail-with-body -sS -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"hostname":"landtheplane.clintware.com","service":"clintware-landtheplane"}' >/tmp/ltp-domain-put.json
+            python3 -c 'import json; d=json.load(open("/tmp/ltp-domain-put.json")); assert d.get("success") is True,d'
+          fi
+
+      - name: Verify LandThePlane Gmail OAuth MVP live
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 "https://landtheplane.clintware.com/?release=${GITHUB_SHA}" -o /tmp/landtheplane.html || true)
+            if grep -Fqi 'x-landtheplane-gmail-mvp: browser-direct-oauth-v1' <<< "$headers" \
+              && grep -Fq 'Gmail evidence · OAuth MVP' /tmp/landtheplane.html \
+              && grep -Fq 'Create + verify Gmail draft' /tmp/landtheplane.html; then
+              echo 'LandThePlane Gmail OAuth MVP is live.'
+              ready=1
+              break
+            fi
+            echo "Waiting for LandThePlane propagation ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"

@@ -1,0 +1,88 @@
+name: Deploy Perplexity MCP Bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pplx-mcp-bridge/**"
+      - ".github/workflows/deploy-pplx-mcp-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pplx-mcp-bridge
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      UPSTREAM_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -n "${UPSTREAM_MCP_TOKEN:-}"
+
+      - name: Deploy bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.129.0 deploy --config pplx-mcp-bridge/wrangler.jsonc
+
+      - name: Install encrypted upstream MCP token
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$UPSTREAM_MCP_TOKEN" | npx --yes wrangler@4.129.0 secret put UPSTREAM_MCP_TOKEN \
+            --name clintware-pplx-mcp-bridge \
+            --config pplx-mcp-bridge/wrangler.jsonc >/dev/null
+          echo "UPSTREAM_MCP_TOKEN configured"
+
+      - name: Verify bridge health and custom-header MCP auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            health_code=$(curl -sS --max-time 20 -o /tmp/bridge-health -w '%{http_code}' https://pplx-mcp.clintware.com/health || true)
+            if [[ "$health_code" == "200" ]] && grep -Fq '"ok":true' /tmp/bridge-health; then
+              ready=1
+              break
+            fi
+            echo "Waiting for bridge health ($i/24), HTTP $health_code"
+            sleep 5
+          done
+          test "$ready" = "1"
+          cat /tmp/bridge-health
+          echo
+
+          unauth_code=$(curl -sS --max-time 20 -o /tmp/bridge-unauth -w '%{http_code}' \
+            -X POST https://pplx-mcp.clintware.com/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"bridge-deploy-check","version":"1.0"}}}' || true)
+          echo "BRIDGE_UNAUTH_HTTP=$unauth_code"
+          test "$unauth_code" = "401"
+
+          auth_code=$(curl -sS --max-time 30 -o /tmp/bridge-auth -w '%{http_code}' \
+            -X POST https://pplx-mcp.clintware.com/mcp \
+            -H "X-Clintware-MCP-Token: ${UPSTREAM_MCP_TOKEN}" \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            --data '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"bridge-deploy-check","version":"1.0"}}}' || true)
+          echo "BRIDGE_AUTH_HTTP=$auth_code"
+          head -c 1200 /tmp/bridge-auth || true
+          echo
+          [[ "$auth_code" =~ ^2 ]]
+          grep -Eq 'protocolVersion|jsonrpc|event:' /tmp/bridge-auth
+          echo "PPLX_MCP_BRIDGE_OK=true"

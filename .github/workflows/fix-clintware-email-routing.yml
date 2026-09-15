@@ -1,0 +1,157 @@
+name: Fix Clintware Email Routing
+
+on:
+  push:
+    paths:
+      - ".github/workflows/fix-clintware-email-routing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair-email-routing:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+      CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
+      CLOUDFLARE_EMAIL_ROUTING_TOKEN: ${{ secrets.CLOUDFLARE_EMAIL_ROUTING_TOKEN }}
+      CLINTWARE_CLOUDFLARE_API_TOKEN: ${{ secrets.CLINTWARE_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_CONTROL_PLANE_TOKEN: ${{ secrets.CLOUDFLARE_CONTROL_PLANE_TOKEN }}
+      CLOUDFLARE_GLOBAL_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
+      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      DOMAIN: clintware.com
+      CUSTOM_ADDRESS: clint@clintware.com
+      DESTINATION_ADDRESS: clint.kosh@gmail.com
+    steps:
+      - name: Repair Cloudflare Email Routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4"
+          AUTH_MODE=""
+          AUTH_TOKEN=""
+          AUTH_KEY=""
+          AUTH_EMAIL=""
+
+          probe_bearer() {
+            local label="$1" token="$2" code
+            [[ -z "$token" ]] && return 1
+            code=$(curl --compressed -sS -o /tmp/probe.json -w '%{http_code}' \
+              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
+              -H "Authorization: Bearer ${token}" -H "Accept: application/json")
+            if [[ "$code" == "200" ]]; then
+              AUTH_MODE="bearer"
+              AUTH_TOKEN="$token"
+              echo "EMAIL_ROUTING_CREDENTIAL=${label}"
+              return 0
+            fi
+            echo "${label}: no Email Routing access (${code})"
+            return 1
+          }
+
+          probe_global_key() {
+            local label="$1" key="$2" email="$3" code
+            [[ -z "$key" || -z "$email" ]] && return 1
+            code=$(curl --compressed -sS -o /tmp/probe.json -w '%{http_code}' \
+              "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" \
+              -H "X-Auth-Email: ${email}" -H "X-Auth-Key: ${key}" -H "Accept: application/json")
+            if [[ "$code" == "200" ]]; then
+              AUTH_MODE="global_key"
+              AUTH_KEY="$key"
+              AUTH_EMAIL="$email"
+              echo "EMAIL_ROUTING_CREDENTIAL=${label}"
+              return 0
+            fi
+            echo "${label}: no Email Routing access (${code})"
+            return 1
+          }
+
+          echo "Looking for an existing Cloudflare credential with Email Routing access..."
+          probe_bearer CLOUDFLARE_API_TOKEN "$PRIMARY_TOKEN" || \
+          probe_bearer CF_API_TOKEN "$CF_API_TOKEN" || \
+          probe_bearer CLOUDFLARE_TOKEN "$CLOUDFLARE_TOKEN" || \
+          probe_bearer CLOUDFLARE_DNS_API_TOKEN "$CLOUDFLARE_DNS_API_TOKEN" || \
+          probe_bearer CLOUDFLARE_EMAIL_ROUTING_TOKEN "$CLOUDFLARE_EMAIL_ROUTING_TOKEN" || \
+          probe_bearer CLINTWARE_CLOUDFLARE_API_TOKEN "$CLINTWARE_CLOUDFLARE_API_TOKEN" || \
+          probe_bearer CLOUDFLARE_CONTROL_PLANE_TOKEN "$CLOUDFLARE_CONTROL_PLANE_TOKEN" || \
+          probe_global_key CLOUDFLARE_GLOBAL_API_KEY "$CLOUDFLARE_GLOBAL_API_KEY" "$CLOUDFLARE_EMAIL" || \
+          probe_global_key CLOUDFLARE_API_KEY "$CLOUDFLARE_API_KEY" "$CLOUDFLARE_EMAIL" || true
+
+          if [[ -z "$AUTH_MODE" ]]; then
+            echo "EMAIL_ROUTING_REPAIR_BLOCKED=missing_cloudflare_email_routing_permission"
+            echo "Required Cloudflare token permissions: Email Routing Addresses Write + Email Routing Rules Write."
+            exit 3
+          fi
+
+          cf_request() {
+            local method="$1" url="$2" outfile="$3" body="${4:-}" code
+            local auth_args=()
+            if [[ "$AUTH_MODE" == "bearer" ]]; then
+              auth_args=(-H "Authorization: Bearer ${AUTH_TOKEN}")
+            else
+              auth_args=(-H "X-Auth-Email: ${AUTH_EMAIL}" -H "X-Auth-Key: ${AUTH_KEY}")
+            fi
+            if [[ -n "$body" ]]; then
+              code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" "${auth_args[@]}" -H "Accept: application/json" -H "Content-Type: application/json" --data "$body")
+            else
+              code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" "${auth_args[@]}" -H "Accept: application/json")
+            fi
+            echo "$code"
+          }
+
+          require_success() {
+            local code="$1" file="$2" label="$3"
+            if [[ "$code" -lt 200 || "$code" -ge 300 ]]; then
+              echo "${label}_HTTP=${code}"
+              head -c 1000 "$file" || true
+              echo
+              return 1
+            fi
+            python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d.get("success") is True,d' "$file"
+          }
+
+          zcode=$(cf_request GET "${api}/zones?name=${DOMAIN}&account.id=${CLOUDFLARE_ACCOUNT_ID}&status=active" /tmp/zones.json)
+          require_success "$zcode" /tmp/zones.json ZONE
+          zone_id=$(python3 -c 'import json; d=json.load(open("/tmp/zones.json")); r=d.get("result") or []; assert len(r)==1,r; print(r[0]["id"])')
+          echo "ZONE_OK=true"
+
+          acode=$(cf_request GET "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" /tmp/addresses.json)
+          require_success "$acode" /tmp/addresses.json EMAIL_ROUTING_ADDRESSES
+          destination_state=$(python3 -c 'import json,os; d=json.load(open("/tmp/addresses.json")); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; print("missing" if not m else ("verified" if m[0].get("verified") else "unverified"))')
+          echo "DESTINATION_STATE=${destination_state}"
+
+          if [[ "$destination_state" == "missing" ]]; then
+            payload="{\"email\":\"${DESTINATION_ADDRESS}\"}"
+            ccode=$(cf_request POST "${api}/accounts/${CLOUDFLARE_ACCOUNT_ID}/email/routing/addresses" /tmp/created.json "$payload")
+            require_success "$ccode" /tmp/created.json CREATE_DESTINATION
+            destination_state=$(python3 -c 'import json; d=json.load(open("/tmp/created.json")); r=d.get("result") or {}; print("verified" if r.get("verified") else "unverified")')
+            echo "DESTINATION_STATE=${destination_state}"
+          fi
+
+          if [[ "$destination_state" != "verified" ]]; then
+            echo "DESTINATION_REQUIRES_VERIFICATION=${DESTINATION_ADDRESS}"
+            exit 2
+          fi
+
+          rcode=$(cf_request GET "${api}/zones/${zone_id}/email/routing/rules" /tmp/rules.json)
+          require_success "$rcode" /tmp/rules.json EMAIL_ROUTING_RULES
+          rule_id=$(python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); t=os.environ["CUSTOM_ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if any(x.get("field")=="to" and (x.get("value") or "").lower()==t for x in (r.get("matchers") or []))]; print((m[0].get("id") or "") if m else "")')
+          payload=$(python3 -c 'import json,os; print(json.dumps({"actions":[{"type":"forward","value":[os.environ["DESTINATION_ADDRESS"]]}],"matchers":[{"type":"literal","field":"to","value":os.environ["CUSTOM_ADDRESS"]}],"enabled":True,"name":"Forward clint@clintware.com to clint.kosh@gmail.com"}))')
+
+          if [[ -n "$rule_id" ]]; then
+            wcode=$(cf_request PUT "${api}/zones/${zone_id}/email/routing/rules/${rule_id}" /tmp/write.json "$payload")
+          else
+            wcode=$(cf_request POST "${api}/zones/${zone_id}/email/routing/rules" /tmp/write.json "$payload")
+          fi
+          require_success "$wcode" /tmp/write.json WRITE_ROUTING_RULE
+
+          vcode=$(cf_request GET "${api}/zones/${zone_id}/email/routing/rules" /tmp/final.json)
+          require_success "$vcode" /tmp/final.json VERIFY_ROUTING_RULE
+          python3 -c 'import json,os; d=json.load(open("/tmp/final.json")); src=os.environ["CUSTOM_ADDRESS"].lower(); dst=os.environ["DESTINATION_ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if r.get("enabled") is True and any(x.get("field")=="to" and (x.get("value") or "").lower()==src for x in (r.get("matchers") or [])) and any(a.get("type")=="forward" and dst in [str(v).lower() for v in (a.get("value") or [])] for a in (r.get("actions") or []))]; assert len(m)==1,m; print("ROUTING_OK=true"); print("SOURCE="+src); print("DESTINATION="+dst); print("RULE_ID="+str(m[0].get("id") or ""))'
+
+# refreshed credentials run: 2026-09-13

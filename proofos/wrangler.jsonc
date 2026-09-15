@@ -1,0 +1,24 @@
+{
+  // ProofOS — live implementation-intelligence worker for Clintware.
+  // No third-party API secrets: research, telemetry, and platform calls all
+  // flow through the Clintware Control Plane via the CONTROL_PLANE service
+  // binding (worker-to-worker, credential-free identity). An optional
+  // CLINTWARE_PRODUCT_TOKEN secret can be set for public-transport fallback.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clintware-proofos",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "proof.clintware.com", "custom_domain": true }
+  ],
+  "services": [
+    { "binding": "CONTROL_PLANE", "service": "clintware-control-plane" }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

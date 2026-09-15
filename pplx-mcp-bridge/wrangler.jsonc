@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clintware-pplx-mcp-bridge",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-13",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "pplx-mcp.clintware.com",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}

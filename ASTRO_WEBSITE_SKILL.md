@@ -89,6 +89,28 @@ Meaning:
 
 The product page should explain both the current local-execution proof and the larger adaptive-intent thesis.  Do not let the implementation details erase the product thesis, and do not let the thesis overstate the implementation.
 
+## MindVergent™-specific rule
+
+MindVergent™ is the master company / network brand. **MindVergent™ Labs** is its research and experimentation surface, not the permanent company name.
+
+Core positioning:
+
+**A professional network where reputation comes from work other people can test, improve, and verify.**
+
+Preserve the product progression:
+
+`CONTRIBUTE -> VALIDATE -> REPUTATION -> COLLABORATE`
+
+The founding community and Discord are bootstrap mechanisms. Do not pitch MindVergent as a Discord, generic community, "LinkedIn for neurodivergent people," or a marketplace that does not yet exist.
+
+Public and YC-oriented copy must clearly distinguish:
+
+- current: public product page, founding intake, three seed research briefs, founding-community operating model;
+- testing: whether people contribute repeatedly and whether contribution history changes trust decisions;
+- roadmap: formal contribution profiles, peer-validation scoring, matching, and commerce.
+
+The venture case is the potential trust graph connecting people, contributions, peer validation, and outcomes. Do not present that graph as proven until founding-user behavior demonstrates it.
+
 ## LandThePlane-specific rule
 
 Do not position LandThePlane as another generic AI interview-question generator.
@@ -107,9 +129,19 @@ The initial wedge can be interview preparation and review because it provides ur
 
 ## Winter 2027 YC language
 
-Quillgeist may be described as the **primary Winter 2027 Y Combinator application candidate** when that is the current plan.  BuyerOrigin is the number two challenger and LandThePlane is the number three active track until verified evidence changes the order.
+The current evidence-ranked Winter 2027 validation order is:
 
-Do not imply acceptance, endorsement, affiliation, interview selection, or YC participation unless it actually occurs.
+1. **BuyerOrigin** — primary YC track and working MVP;
+2. **Quillgeist** — close technical alternate;
+3. **RenewNudge** — live Customer Success product track;
+4. **ShoulderSoldier** — working security heuristic track;
+5. **Portability Check** — fast-validation candidate whose method exists but outside demand still must be proven.
+
+BuyerOrigin remains primary while merchant validation is the shortest path to meaningful economic evidence.  Quillgeist can retake the primary position if outside users demonstrate stronger repeated multi-provider behavior and measurable reduction in repeated instruction/context before BuyerOrigin produces merchant/payment proof.  Portability Check can rise quickly if outside assessments convert into remediation demand, but newness alone does not earn ranking credit.
+
+MindVergent™ and LandThePlane remain legitimate supporting/exploration product tracks outside the current top-five W27 validation race unless verified evidence changes that order.
+
+Do not imply acceptance, endorsement, affiliation, interview selection, funding, or YC participation unless it actually occurs.  Do not call a planned application an applicant status before submission.
 
 YC-oriented pages should read like founder/product evidence, not investor cosplay.  State:
 
