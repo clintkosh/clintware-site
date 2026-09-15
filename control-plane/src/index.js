@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-const VERSION = "2026-09-12";
+const VERSION = "2026-09-14";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -34,14 +34,19 @@ const safeEq = async (a,b) => {
 const DEFAULT_PROOFOS = {
   product:"proofos",
   environment:"production",
-  version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
+  version:2,
+  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
   dns:{allowed_names:["proof.clintware.com","mcp.clintware.com"]},
   capabilities:[
     "repo.read:clintware-site",
     "repo.write:proofos/**",
     "repo.write:control-plane/**",
+    "repo.delete:proofos/**",
     "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
     "deployment.read",
     "deployment.execute:proof",
     "dns.ensure:proof.clintware.com",
@@ -51,10 +56,116 @@ const DEFAULT_PROOFOS = {
     "cache.read:proofos",
     "cache.write:proofos"
   ],
-  deny:["secrets.read","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete:control-plane/**","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"proofos",
   created_at:"2026-09-12T00:00:00.000Z"
 };
+
+// ---- Capability broker: risk tiers, protected resources, policy evaluation ----
+// Agents express intent ("delete this file"); Clintware resolves provider-specific
+// prerequisites (GitHub SHAs, branch refs, etc.) internally.
+const RISK_TIERS = {
+  "repo.file.read":0, "repo.branch.read":0, "repo.commit.status":0,
+  "repo.workflow.status":0, "deployment.read":0, "telemetry.read":0,
+  "cache.read":0, "analytics.read":0,
+  "repo.file.write":1, "repo.file.create":1, "repo.branch.create":1,
+  "deployment.execute":1, "analytics.write":1, "cache.write":1,
+  "research.invoke":1,
+  "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
+  "repo.workflow.dispatch":2, "dns.ensure":2,
+  "secrets.read":3, "secrets.export":3, "billing.manage":3,
+  "infrastructure.admin":3, "repo.delete":3
+};
+const DEFAULT_PROTECTED_PATHS = [".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"];
+
+function riskTier(capability){return RISK_TIERS[String(capability||"")]??3;}
+
+function isProtectedPath(manifest,path){
+  const p=String(path||"").replace(/^\/+/,"");
+  const prots=manifest?.protected_paths||DEFAULT_PROTECTED_PATHS;
+  return prots.some(pp=>p.startsWith(pp));
+}
+
+function deletePathAllowed(manifest,path){
+  const p=String(path||"").replace(/^\/+/,"");
+  return (manifest?.repo?.delete_prefixes||[]).some(prefix=>p.startsWith(prefix));
+}
+
+// Map a high-level capability to a manifest capability string for matching
+function capabilityForMatch(capability,resource){
+  const cap=String(capability||"");
+  const path=String(resource?.path||"");
+  if(cap==="repo.file.delete"){
+    if(path)return `repo.delete:${path.split("/")[0]}/**`;
+    return "repo.delete";
+  }
+  if(cap==="repo.file.write"||cap==="repo.file.create"){
+    if(path)return `repo.write:${path.split("/")[0]}/**`;
+    return "repo.write";
+  }
+  if(cap==="repo.file.read") return "repo.read:clintware-site";
+  if(cap==="repo.branch.create") return "repo.branch:create";
+  if(cap==="repo.branch.read") return "repo.branch:read";
+  if(cap==="repo.commit.status") return "repo.commit:status";
+  if(cap==="repo.workflow.dispatch") return "repo.workflow:dispatch";
+  if(cap==="repo.workflow.status") return "repo.workflow:status";
+  if(cap==="deployment.execute") return "deployment.execute:proof";
+  if(cap==="deployment.read") return "deployment.read";
+  if(cap==="dns.ensure") return resource?.name?`dns.ensure:${resource.name}`:"dns.ensure";
+  if(cap==="research.invoke") return "research.invoke";
+  if(cap==="analytics.read") return `analytics.read:${resource?.product||"proofos"}`;
+  if(cap==="analytics.write") return `analytics.write:${resource?.product||"proofos"}`;
+  if(cap==="cache.read") return `cache.read:${resource?.product||"proofos"}`;
+  if(cap==="cache.write") return `cache.write:${resource?.product||"proofos"}`;
+  return cap;
+}
+
+// Core policy evaluation: identity → context → policy → capability → decision
+function evaluatePolicy(manifest,capability,resource,reason){
+  if(!manifest) return {decision:"denied",reason:"product_not_found"};
+  // Step 1: check deny list
+  const capForMatch=capabilityForMatch(capability,resource);
+  const denyList=manifest.deny||[];
+  for(const d of denyList){
+    if(d===capability||d===capForMatch) return {decision:"denied",reason:"capability_explicitly_denied"};
+    if(d.endsWith("*")&&(capability.startsWith(d.slice(0,-1))||capForMatch.startsWith(d.slice(0,-1)))) return {decision:"denied",reason:"capability_globally_denied"};
+  }
+  // Step 2: check allow list
+  const allowList=manifest.capabilities||[];
+  let allowed=false;
+  for(const c of allowList){
+    if(c===capability||c===capForMatch){allowed=true;break;}
+    if(c.endsWith("**")&&(capability.startsWith(c.slice(0,-2))||capForMatch.startsWith(c.slice(0,-2)))){allowed=true;break;}
+    if(c.endsWith("*")&&(capability.startsWith(c.slice(0,-1))||capForMatch.startsWith(c.slice(0,-1)))){allowed=true;break;}
+  }
+  if(!allowed) return {decision:"unsupported",reason:"capability_not_in_manifest",smallest_capability:capability};
+  // Step 3: risk tier evaluation
+  const tier=riskTier(capability);
+  if(tier>=3) return {decision:"denied",reason:"tier3_admin_only"};
+  // Step 4: path scope checks
+  const path=String(resource?.path||"");
+  if(path){
+    if(capability==="repo.file.delete"){
+      if(!deletePathAllowed(manifest,path)) return {decision:"denied",reason:"delete_path_outside_scope"};
+      if(isProtectedPath(manifest,path)) return {decision:"denied",reason:"protected_path"};
+    }
+    if(capability==="repo.file.write"||capability==="repo.file.create"){
+      if(!pathAllowed(manifest,path)) return {decision:"denied",reason:"write_path_outside_scope"};
+      if(isProtectedPath(manifest,path)) return {decision:"approval_required",reason:"protected_path_write"};
+    }
+  }
+  // Step 5: tier-based approval
+  if(tier===2){
+    // Tier 2: scoped destructive — allow if path is in delete scope and reason is supplied
+    if(path&&deletePathAllowed(manifest,path)&&!isProtectedPath(manifest,path)&&reason){
+      return {decision:"executed",reason:"tier2_scoped_deletion_permitted"};
+    }
+    return {decision:"approval_required",reason:"tier2_destructive_requires_approval"};
+  }
+  // Tier 0-1: automatic
+  return {decision:"executed",reason:"tier01_automatic"};
+}
 
 function normalizeProduct(value){return String(value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");}
 function productHub(env, product){return env.PRODUCT_HUB.getByName(`product:${normalizeProduct(product)}`);}
@@ -341,6 +452,37 @@ async function repoWrite(env,manifest,{path,content,message,branch,sha}){
   const r=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok)return {ok:false,status:r.status,error:"github_write_failed",detail:await r.text()};
   const data=await r.json();return {ok:true,commit_sha:data.commit?.sha||"",content_sha:data.content?.sha||"",path};
+}
+// Delete a file — Clintware resolves the GitHub SHA internally so the agent never
+// has to. Only allowed within delete_prefixes and never on protected paths.
+async function repoFileDelete(env,manifest,{path,message,branch}){
+  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!deletePathAllowed(manifest,path))return {ok:false,status:403,error:"delete_path_not_allowed"};
+  if(isProtectedPath(manifest,path))return {ok:false,status:403,error:"protected_path"};
+  const owner=manifest.repo.owner,repo=manifest.repo.name;
+  const ref=branch||manifest.repo.default_branch||"main";
+  // Step 1: resolve the current file SHA internally
+  const getR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
+  if(!getR.ok)return {ok:false,status:getR.status,error:"file_lookup_failed",detail:await getR.text()};
+  const fileData=await getR.json();
+  if(Array.isArray(fileData))return {ok:false,status:400,error:"path_is_directory"};
+  // Step 2: delete using the resolved SHA
+  const delR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({message:String(message||"Delete "+path+" via Clintware Control Plane"),sha:fileData.sha,branch:ref})});
+  if(!delR.ok)return {ok:false,status:delR.status,error:"github_delete_failed",detail:await delR.text()};
+  const delData=await delR.json();
+  return {ok:true,commit_sha:delData.commit?.sha||"",path,sha_resolved_internally:true};
+}
+// Move/rename a file — Clintware resolves the SHA, reads content, writes new path, deletes old.
+async function repoFileMove(env,manifest,{from_path,to_path,message,branch}){
+  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!pathAllowed(manifest,to_path))return {ok:false,status:403,error:"target_path_not_allowed"};
+  if(!deletePathAllowed(manifest,from_path))return {ok:false,status:403,error:"source_delete_not_allowed"};
+  const readResult=await repoRead(env,manifest,from_path,branch);
+  if(!readResult.ok||readResult.type!=="file")return {ok:false,status:400,error:"source_read_failed"};
+  const writeResult=await repoWrite(env,manifest,{path:to_path,content:readResult.content,message:String(message||"Move "+from_path+" to "+to_path),branch});
+  if(!writeResult.ok)return writeResult;
+  const delResult=await repoFileDelete(env,manifest,{path:from_path,message:String(message||"Move "+from_path+" to "+to_path),branch});
+  return {ok:true,commit_sha:writeResult.commit_sha,path:to_path,moved_from:from_path};
 }
 async function workflowDispatch(env,manifest,workflow,ref,inputs={}){
   if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_actions_not_configured"};
@@ -675,6 +817,103 @@ function createMcpServer(env,mcpRequest){
     const result=await ensureDns(env,manifest,{name,type,content,proxied:proxied!==false});await audit(env,product,"dns_ensure_record",crypto.randomUUID(),{name,type},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
+  server.registerTool("clintware_capabilities",{
+    title:"Discover available Clintware capabilities",
+    description:"Return all capabilities the active product can request, with scope info (allowed/protected paths, risk tiers). Does not expose secrets.",
+    inputSchema:{product:z.string().default("proofos")},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({product})=>{
+    const manifest=await manifestFor(env,product);
+    if(!manifest)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_found"})}]};
+    const caps=(manifest.capabilities||[]).map(c=>{
+      const baseCap=c.split(":")[0];
+      const tier=riskTier(baseCap);
+      return {capability:c,risk_tier:tier,risk_label:tier===0?"READ":tier===1?"LOW_RISK_MUTATION":tier===2?"DESTRUCTIVE_SCOPED":"ADMIN_HIGH_RISK"};
+    });
+    return {content:[{type:"text",text:JSON.stringify({
+      product,
+      repository:`${manifest.repo.owner}/${manifest.repo.name}`,
+      capabilities:caps,
+      allowed_write_paths:manifest.repo.write_prefixes||[],
+      allowed_delete_paths:manifest.repo.delete_prefixes||[],
+      protected_paths:manifest.protected_paths||DEFAULT_PROTECTED_PATHS,
+      allowed_workflows:manifest.repo.allowed_workflows||[],
+      allowed_dns_names:manifest.dns?.allowed_names||[],
+      denied:manifest.deny||[]
+    })}]};
+  });
+  server.registerTool("clintware_capability_request",{
+    title:"Request a context-aware capability execution",
+    description:"Express an operation intent (e.g. repo.file.delete) and let Clintware resolve provider-specific prerequisites (GitHub SHAs, branch refs) internally. Evaluates identity, context, policy, risk tier, and protected resources before executing.",
+    inputSchema:{
+      product:z.string().default("proofos"),
+      capability:z.string().min(1),
+      resource:z.object({
+        repository:z.string().optional(),
+        branch:z.string().optional(),
+        path:z.string().optional(),
+        from_path:z.string().optional(),
+        to_path:z.string().optional(),
+        workflow:z.string().optional(),
+        name:z.string().optional(),
+        type:z.string().optional(),
+        content:z.string().optional(),
+        ref:z.string().optional()
+      }).default({}),
+      reason:z.string().optional(),
+      requested_operation:z.string().optional(),
+      message:z.string().optional(),
+      request_id:z.string().optional(),
+      expected_content_hash:z.string().optional()
+    },
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:true}
+  },async({product,capability,resource,reason,requested_operation,message,request_id,expected_content_hash})=>{
+    const requestId=request_id||crypto.randomUUID();
+    const auditId="capreq_"+crypto.randomUUID().slice(0,12);
+    const manifest=await manifestFor(env,product);
+    if(!manifest)return {isError:true,content:[{type:"text",text:JSON.stringify({status:"denied",audit_id:auditId,capability,reason:"product_not_found"})}]};
+    // Evaluate policy
+    const policy=evaluatePolicy(manifest,capability,resource,reason||"");
+    if(policy.decision==="denied"){
+      await audit(env,product,"capability_request"+":"+capability,requestId,{audit_id:auditId,decision:"denied",reason:policy.reason,resource},false,policy.reason);
+      return {isError:true,content:[{type:"text",text:JSON.stringify({status:"denied",audit_id:auditId,capability,reason:policy.reason,resource})}]};
+    }
+    if(policy.decision==="unsupported"){
+      await audit(env,product,"capability_request"+":"+capability,requestId,{audit_id:auditId,decision:"unsupported",reason:policy.reason,resource},false,policy.reason);
+      return {isError:true,content:[{type:"text",text:JSON.stringify({status:"unsupported",audit_id:auditId,capability,reason:policy.reason,smallest_capability:policy.smallest_capability||capability,resource})}]};
+    }
+    if(policy.decision==="approval_required"){
+      await audit(env,product,"capability_request"+":"+capability,requestId,{audit_id:auditId,decision:"approval_required",reason:policy.reason,resource},false,policy.reason);
+      return {isError:true,content:[{type:"text",text:JSON.stringify({status:"approval_required",approval_request_id:auditId,capability,scope:{repository:`${manifest.repo.owner}/${manifest.repo.name}`,path:resource?.path||""},risk_tier:riskTier(capability),reason:policy.reason,expires_at:new Date(Date.now()+3600000).toISOString()})}]};
+    }
+    // Execute the capability
+    let result={ok:false,error:"not_implemented"};
+    try{
+      if(capability==="repo.file.delete"){
+        result=await repoFileDelete(env,manifest,{path:resource.path,message:message||reason||"Delete "+resource.path,branch:resource.branch});
+      }else if(capability==="repo.file.write"||capability==="repo.file.create"){
+        result=await repoWrite(env,manifest,{path:resource.path,content:resource.content||"",message:message||reason||"Write "+resource.path,branch:resource.branch,sha:resource.sha});
+      }else if(capability==="repo.file.read"){
+        result=await repoRead(env,manifest,resource.path,resource.ref);
+      }else if(capability==="repo.file.move"||capability==="repo.file.rename"){
+        result=await repoFileMove(env,manifest,{from_path:resource.from_path||resource.path,to_path:resource.to_path,message:message||reason||"Move file",branch:resource.branch});
+      }else if(capability==="repo.branch.create"){
+        result=await repoCreateBranch(env,manifest,resource.branch,resource.ref);
+      }else if(capability==="repo.workflow.dispatch"){
+        result=await workflowDispatch(env,manifest,resource.workflow,resource.ref||resource.branch,{});
+      }else if(capability==="deployment.execute"){
+        result=await workflowDispatch(env,manifest,resource.workflow,resource.ref||resource.branch,{});
+      }else if(capability==="dns.ensure"){
+        result=await ensureDns(env,manifest,{name:resource.name,type:resource.type||"CNAME",content:resource.content||"",proxied:true});
+      }else{
+        result={ok:false,error:"capability_not_implemented",detail:"The Control Plane does not currently implement execution of "+capability};
+      }
+    }catch(e){
+      result={ok:false,error:"execution_error",detail:String(e&&e.message||e)};
+    }
+    await audit(env,product,"capability_request"+":"+capability,requestId,{audit_id:auditId,decision:"executed",capability,resource,reason:reason||"",result:{ok:result.ok,commit_sha:result.commit_sha||"",error:result.error||""},risk_tier:riskTier(capability)},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify({status:result.ok?"executed":"error",audit_id:auditId,capability,reason:policy.reason,result,sha_resolved_internally:result.sha_resolved_internally||false})}]};
+  });
   return server;
 }
 
@@ -712,7 +951,7 @@ export default {
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1/products"){
         if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
@@ -795,6 +1034,42 @@ export default {
         const manifest=await manifestFor(env,product);const result=await ensureDns(env,manifest,body);
         await audit(env,product,"dns_ensure_record",body.request_id,{name:body.name,type:body.type},result.ok,result.error||"");
         return json(result,result.ok?200:result.status||500);
+      }
+      // REST endpoint for capability requests (same logic as MCP tool)
+      if(request.method==="POST"&&url.pathname==="/api/v1/capability"){
+        const body=await reqJson(request);const product=normalizeProduct(body.product);
+        const auth=await verifyProductToken(request,env,product);if(!auth&&!await requireAdmin(request,env))return json({error:"unauthorized"},401);
+        const manifest=await manifestFor(env,product);
+        if(!manifest)return json({error:"product_not_found"},404);
+        const requestId=body.request_id||crypto.randomUUID();
+        const auditId="capreq_"+crypto.randomUUID().slice(0,12);
+        const policy=evaluatePolicy(manifest,body.capability,body.resource||{},body.reason||"");
+        if(policy.decision!=="executed"){
+          await audit(env,product,"capability_request"+":"+body.capability,requestId,{audit_id:auditId,decision:policy.decision,reason:policy.reason,resource:body.resource||{}},false,policy.reason);
+          return json({status:policy.decision,audit_id:auditId,capability:body.capability,reason:policy.reason},policy.decision==="denied"?403:policy.decision==="unsupported"?501:202);
+        }
+        let result={ok:false,error:"not_implemented"};
+        try{
+          if(body.capability==="repo.file.delete"){
+            result=await repoFileDelete(env,manifest,{path:body.resource.path,message:body.message||body.reason,branch:body.resource.branch});
+          }else if(body.capability==="repo.file.write"||body.capability==="repo.file.create"){
+            result=await repoWrite(env,manifest,{path:body.resource.path,content:body.resource.content||"",message:body.message||body.reason,branch:body.resource.branch,sha:body.resource.sha});
+          }else if(body.capability==="repo.file.read"){
+            result=await repoRead(env,manifest,body.resource.path,body.resource.ref);
+          }else if(body.capability==="repo.file.move"){
+            result=await repoFileMove(env,manifest,{from_path:body.resource.from_path,to_path:body.resource.to_path,message:body.message||body.reason,branch:body.resource.branch});
+          }else if(body.capability==="repo.branch.create"){
+            result=await repoCreateBranch(env,manifest,body.resource.branch,body.resource.ref);
+          }else if(body.capability==="repo.workflow.dispatch"||body.capability==="deployment.execute"){
+            result=await workflowDispatch(env,manifest,body.resource.workflow,body.resource.ref||body.resource.branch,{});
+          }else if(body.capability==="dns.ensure"){
+            result=await ensureDns(env,manifest,{name:body.resource.name,type:body.resource.type||"CNAME",content:body.resource.content||"",proxied:true});
+          }
+        }catch(e){
+          result={ok:false,error:"execution_error",detail:String(e&&e.message||e)};
+        }
+        await audit(env,product,"capability_request"+":"+body.capability,requestId,{audit_id:auditId,decision:"executed",capability:body.capability,resource:body.resource||{},reason:body.reason||"",result:{ok:result.ok,commit_sha:result.commit_sha||"",error:result.error||""},risk_tier:riskTier(body.capability)},result.ok,result.error||"");
+        return json({status:result.ok?"executed":"error",audit_id:auditId,capability:body.capability,result,sha_resolved_internally:result.sha_resolved_internally||false},result.ok?200:500);
       }
 
       return json({error:"not_found"},404);
