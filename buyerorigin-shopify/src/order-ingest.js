@@ -11,14 +11,15 @@ export function extractCouponUses(order, secret) {
   const phone = order?.phone || order?.shipping_address?.phone || order?.billing_address?.phone || "";
   const address = addressFromOrder(order);
   const usedAt = order?.processed_at || order?.created_at || new Date().toISOString();
+  const orderId = String(order?.id || order?.admin_graphql_api_id || order?.name || "");
   return discountCodes.map((d) => ({
-    orderId: String(order?.admin_graphql_api_id || order?.id || order?.name || ""),
+    orderId,
     discountCode: normalizeCode(d.code),
     couponKey: keyedToken(secret, "code", d.code),
     emailKey: keyedToken(secret, "email", email),
     phoneKey: keyedToken(secret, "phone", phone),
     addressKey: keyedToken(secret, "address", address),
-    email, phone, address, usedAt,
+    usedAt,
     discountAmount: d.amount == null ? null : Number(d.amount)
   })).filter((x) => x.discountCode);
 }

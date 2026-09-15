@@ -6,6 +6,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "checkJs": false,
     "noEmit": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
