@@ -62,6 +62,7 @@ jobs:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
           CONTROL_PLANE_ADMIN_TOKEN: ${{ secrets.CONTROL_PLANE_ADMIN_TOKEN }}
           GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.CLINTWARE_GH_CONTROL_PLANE_TOKEN }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
           set -euo pipefail
           cd control-plane
@@ -95,6 +96,7 @@ jobs:
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
           put_secret CONTROL_PLANE_ADMIN_TOKEN "$CONTROL_PLANE_ADMIN_TOKEN"
           put_secret GITHUB_CONTROL_PLANE_TOKEN "$GITHUB_CONTROL_PLANE_TOKEN"
+          put_secret EXA_API_KEY "$EXA_API_KEY"
 
       - name: Verify mcp.clintware.com health
         run: |
@@ -116,4 +118,4 @@ jobs:
         run: |
           body=$(curl -fsS https://mcp.clintware.com/health)
           echo "$body"
-          echo "GitHub/Cloudflare credentials remain centralized in Clintware; external MCP clients receive only the scoped Control Plane credential."
+          echo "GitHub/Cloudflare/research credentials remain centralized in Clintware; external MCP clients receive only the scoped Control Plane credential."
