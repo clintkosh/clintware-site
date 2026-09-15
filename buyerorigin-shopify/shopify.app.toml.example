@@ -1,0 +1,47 @@
+# Copy/link this through Shopify CLI after creating the real app registration.
+# Shopify owns client_id.  Do not commit the real secret.
+client_id = "SHOPIFY_GENERATED_CLIENT_ID"
+name = "BuyerOrigin"
+application_url = "https://REPLACE_WITH_HOSTED_APP_URL"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[access_scopes]
+# read_orders carries protected customer data.  Keep scopes minimal.
+scopes = "read_orders,write_discounts"
+
+[auth]
+redirect_urls = [
+  "https://REPLACE_WITH_HOSTED_APP_URL/auth/callback",
+  "https://REPLACE_WITH_HOSTED_APP_URL/auth/shopify/callback",
+  "https://REPLACE_WITH_HOSTED_APP_URL/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2026-01"
+
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/webhooks/app/uninstalled"
+
+[[webhooks.subscriptions]]
+topics = ["app/scopes_update"]
+uri = "/webhooks/app/scopes_update"
+
+[[webhooks.subscriptions]]
+topics = ["orders/create", "orders/updated"]
+uri = "/webhooks/orders"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request"]
+uri = "/webhooks/customers/data_request"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/redact"]
+uri = "/webhooks/customers/redact"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["shop/redact"]
+uri = "/webhooks/shop/redact"
