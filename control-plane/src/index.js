@@ -67,16 +67,19 @@ const DEFAULT_PROOFOS = {
 // prerequisites (GitHub SHAs, branch refs, etc.) internally.
 const RISK_TIERS = {
   // Tier 0 — READ / OBSERVE (automatic if in product scope)
-  "repo.read":0, "repo.file.read":0, "repo.branch.read":0, "repo.commit.status":0,
-  "repo.workflow.status":0, "deployment.read":0, "telemetry.read":0,
+  "repo.read":0, "repo.file.read":0, "repo.branch":0, "repo.branch.read":0, "repo.branch:read":0,
+  "repo.commit":0, "repo.commit.status":0, "repo.commit:status":0,
+  "repo.workflow":0, "repo.workflow.status":0, "repo.workflow:status":0,
+  "deployment.read":0, "telemetry.read":0,
   "cache.read":0, "analytics.read":0,
   // Tier 1 — LOW-RISK SCOPED MUTATION
-  "repo.write":1, "repo.file.write":1, "repo.file.create":1, "repo.branch.create":1,
+  "repo.write":1, "repo.file.write":1, "repo.file.create":1,
+  "repo.branch:create":1, "repo.branch.create":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
   "research.invoke":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
-  "repo.workflow.dispatch":2, "dns.ensure":2,
+  "repo.workflow.dispatch":2, "repo.workflow:dispatch":2, "dns.ensure":2,
   // Tier 3 — ADMIN / HIGH RISK (never auto-escalate)
   "secrets.read":3, "secrets.export":3, "billing.manage":3,
   "infrastructure.admin":3
