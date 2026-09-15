@@ -1,0 +1,146 @@
+name: Deploy Clintware Identity Broker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "identity-broker/**"
+      - "skills/oauth-identity-broker/**"
+      - ".github/workflows/deploy-identity-broker.yml"
+  pull_request:
+    paths:
+      - "identity-broker/**"
+      - "skills/oauth-identity-broker/**"
+      - ".github/workflows/deploy-identity-broker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-identity-broker
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install identity broker dependencies
+        run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
+
+      - name: Syntax check
+        run: npm run check --prefix identity-broker
+
+      - name: Render validation config
+        run: node identity-broker/scripts/render-wrangler.mjs 00000000000000000000000000000000
+
+      - name: Wrangler dry run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix identity-broker wrangler deploy --dry-run --config identity-broker/wrangler.generated.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check activation prerequisites
+        id: ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET CONTROL_PLANE_MCP_TOKEN; do
+            if [ -z "${!name:-}" ]; then
+              echo "$name is not configured"
+              missing=1
+            fi
+          done
+          if [ "$missing" = "0" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Identity Broker code validated, but deployment is intentionally skipped until all required secrets exist."
+          fi
+
+      - name: Install identity broker dependencies
+        if: steps.ready.outputs.ready == 'true'
+        run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
+
+      - name: Ensure OAuth KV namespace
+        if: steps.ready.outputs.ready == 'true'
+        id: kv
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="clintware-identity-oauth"
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces"
+          list=$(curl --fail-with-body -sS "$api?per_page=100&order=title&direction=asc" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); title=sys.argv[1]; print(next((x.get("id","") for x in d.get("result",[]) if x.get("title")==title),""))' "$title" <<< "$list")
+          if [ -z "$id" ]; then
+            created=$(curl --fail-with-body -sS -X POST "$api" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              --data "{\"title\":\"${title}\"}")
+            id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("result",{}).get("id",""))' <<< "$created")
+          fi
+          if ! [[ "$id" =~ ^[A-Fa-f0-9]{32}$ ]]; then
+            echo "Could not resolve/create OAuth KV namespace. Ensure the Cloudflare token has Workers KV Storage Write." >&2
+            exit 1
+          fi
+          echo "namespace_id=$id" >> "$GITHUB_OUTPUT"
+          echo "OAuth KV namespace ready: $title"
+
+      - name: Render production config
+        if: steps.ready.outputs.ready == 'true'
+        run: node identity-broker/scripts/render-wrangler.mjs "${{ steps.kv.outputs.namespace_id }}"
+
+      - name: Deploy identity broker
+        if: steps.ready.outputs.ready == 'true'
+        run: npx --prefix identity-broker wrangler deploy --config identity-broker/wrangler.generated.jsonc
+
+      - name: Sync identity broker secrets
+        if: steps.ready.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd identity-broker
+          put_secret() {
+            local name="$1"
+            local value="$2"
+            printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
+            echo "$name configured"
+          }
+          put_secret GOOGLE_OAUTH_CLIENT_ID "$GOOGLE_OAUTH_CLIENT_ID"
+          put_secret GOOGLE_OAUTH_CLIENT_SECRET "$GOOGLE_OAUTH_CLIENT_SECRET"
+          put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
+
+      - name: Verify identity broker
+        if: steps.ready.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
+            if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' && echo "$body" | grep -Fq '"configured":true'; then
+              echo "$body"
+              ready=1
+              break
+            fi
+            echo "Waiting for Clintware Identity Broker ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"
