@@ -2,9 +2,9 @@
 
 BuyerOrigin's Shopify app implements the live path behind the promise: **Stop the same buyer from using the same coupon again.**
 
-The source now includes the embedded React Router app, Shopify authentication/session storage, transient Shopify Orders CSV seeding, signed order webhooks, pseudonymous coupon-use storage, coupon policy records, automatic app discount creation/refresh, a Discount Function, uninstall handling, and Shopify privacy webhooks.
+The source includes the embedded React Router app, Shopify authentication/session storage, transient Shopify Orders CSV seeding, signed order webhooks, pseudonymous coupon-use storage, coupon policy records, automatic app discount creation/refresh, a Discount Function, uninstall handling, and Shopify privacy webhooks.
 
-It is source-complete but **not installed or deployed**.  A real Shopify app registration, generated extension UID, development store, credentials, protected customer-data approval where required, hosted database/app URL, and merchant authorization remain external requirements.
+It is source-complete and CI-validated but **not installed or deployed**.  A real Shopify app registration, generated extension UID, development store, credentials, protected customer-data approval where required, hosted database/app URL, and merchant authorization remain external requirements.
 
 ## Local validation
 
@@ -17,6 +17,8 @@ npm run check
 npm run typecheck
 npm run build
 ```
+
+Repository CI runs those checks plus the browser BuyerOrigin tests, Worker configuration dry-runs, and `git diff --check` before the branch can be treated as ready for Shopify registration work.
 
 ## Runtime flow
 
@@ -35,4 +37,4 @@ BuyerOrigin rejects the coupon only.  It never blocks checkout.
 
 `shopify.extension.toml.example` deliberately contains no real extension UID.  Link/create the real Shopify app with Shopify CLI first so Shopify generates the UID.  Do not fabricate or copy one from another app.
 
-See `../docs/buyerorigin/SHOPIFY_INTEGRATION.md` and `DEPLOYMENT.md` for registration, protected-data, custom-distribution pilot, and installation steps.
+See `../docs/buyerorigin/SHOPIFY_INTEGRATION.md` and `../docs/buyerorigin/DEPLOYMENT.md` for registration, protected-data, custom-distribution pilot, and installation steps.
