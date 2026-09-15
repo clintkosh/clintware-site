@@ -66,16 +66,20 @@ const DEFAULT_PROOFOS = {
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
 // prerequisites (GitHub SHAs, branch refs, etc.) internally.
 const RISK_TIERS = {
-  "repo.file.read":0, "repo.branch.read":0, "repo.commit.status":0,
+  // Tier 0 — READ / OBSERVE (automatic if in product scope)
+  "repo.read":0, "repo.file.read":0, "repo.branch.read":0, "repo.commit.status":0,
   "repo.workflow.status":0, "deployment.read":0, "telemetry.read":0,
   "cache.read":0, "analytics.read":0,
-  "repo.file.write":1, "repo.file.create":1, "repo.branch.create":1,
+  // Tier 1 — LOW-RISK SCOPED MUTATION
+  "repo.write":1, "repo.file.write":1, "repo.file.create":1, "repo.branch.create":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
   "research.invoke":1,
-  "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
+  // Tier 2 — DESTRUCTIVE BUT SCOPED
+  "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
   "repo.workflow.dispatch":2, "dns.ensure":2,
+  // Tier 3 — ADMIN / HIGH RISK (never auto-escalate)
   "secrets.read":3, "secrets.export":3, "billing.manage":3,
-  "infrastructure.admin":3, "repo.delete":3
+  "infrastructure.admin":3
 };
 const DEFAULT_PROTECTED_PATHS = [".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"];
 
@@ -176,6 +180,11 @@ export class RegistryHub extends DurableObject {
   async ensureDefaults(){
     let products=await this.ctx.storage.get("products");
     if(!products){products={proofos:DEFAULT_PROOFOS};await this.ctx.storage.put("products",products);}
+    // Migrate stored manifests when the schema version changes
+    if(products.proofos&&products.proofos.version!==DEFAULT_PROOFOS.version){
+      products.proofos={...DEFAULT_PROOFOS,...products.proofos,version:DEFAULT_PROOFOS.version,repo:{...DEFAULT_PROOFOS.repo,...(products.proofos.repo||{})},capabilities:DEFAULT_PROOFOS.capabilities,deny:DEFAULT_PROOFOS.deny,protected_paths:DEFAULT_PROOFOS.protected_paths};
+      await this.ctx.storage.put("products",products);
+    }
     return products;
   }
   async fetch(request){
