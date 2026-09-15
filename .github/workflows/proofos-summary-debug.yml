@@ -1,0 +1,24 @@
+name: ProofOS provider diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/proofos-summary-debug.yml"
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read ProofOS telemetry summary and trigger Sweed research
+        run: |
+          set -u
+          echo '--- current summary ---'
+          curl -sS --max-time 20 https://proof.clintware.com/api/summary || true
+          echo
+          echo '--- Sweed request ---'
+          curl -sS --max-time 120 -X POST https://proof.clintware.com/api/brief -H 'content-type: application/json' --data '{"company":"Sweed"}' || true
+          echo
+          sleep 3
+          echo '--- summary after request ---'
+          curl -sS --max-time 20 https://proof.clintware.com/api/summary || true
