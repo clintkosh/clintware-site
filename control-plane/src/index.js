@@ -75,11 +75,12 @@ const RISK_TIERS = {
   // Tier 1 — LOW-RISK SCOPED MUTATION
   "repo.write":1, "repo.file.write":1, "repo.file.create":1,
   "repo.branch:create":1, "repo.branch.create":1,
+  "repo.workflow.dispatch":1, "repo.workflow:dispatch":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
   "research.invoke":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
-  "repo.workflow.dispatch":2, "repo.workflow:dispatch":2, "dns.ensure":2,
+  "dns.ensure":2,
   // Tier 3 — ADMIN / HIGH RISK (never auto-escalate)
   "secrets.read":3, "secrets.export":3, "billing.manage":3,
   "infrastructure.admin":3
@@ -138,19 +139,7 @@ function evaluatePolicy(manifest,capability,resource,reason){
     if(d===capability||d===capForMatch) return {decision:"denied",reason:"capability_explicitly_denied"};
     if(d.endsWith("*")&&(capability.startsWith(d.slice(0,-1))||capForMatch.startsWith(d.slice(0,-1)))) return {decision:"denied",reason:"capability_globally_denied"};
   }
-  // Step 2: check allow list
-  const allowList=manifest.capabilities||[];
-  let allowed=false;
-  for(const c of allowList){
-    if(c===capability||c===capForMatch){allowed=true;break;}
-    if(c.endsWith("**")&&(capability.startsWith(c.slice(0,-2))||capForMatch.startsWith(c.slice(0,-2)))){allowed=true;break;}
-    if(c.endsWith("*")&&(capability.startsWith(c.slice(0,-1))||capForMatch.startsWith(c.slice(0,-1)))){allowed=true;break;}
-  }
-  if(!allowed) return {decision:"unsupported",reason:"capability_not_in_manifest",smallest_capability:capability};
-  // Step 3: risk tier evaluation
-  const tier=riskTier(capability);
-  if(tier>=3) return {decision:"denied",reason:"tier3_admin_only"};
-  // Step 4: path scope checks
+  // Step 2: path scope checks (before allow-list to give precise denial reasons)
   const path=String(resource?.path||"");
   if(path){
     if(capability==="repo.file.delete"){
@@ -159,9 +148,21 @@ function evaluatePolicy(manifest,capability,resource,reason){
     }
     if(capability==="repo.file.write"||capability==="repo.file.create"){
       if(!pathAllowed(manifest,path)) return {decision:"denied",reason:"write_path_outside_scope"};
-      if(isProtectedPath(manifest,path)) return {decision:"approval_required",reason:"protected_path_write"};
+      if(isProtectedPath(manifest,path)) return {decision:"denied",reason:"protected_path"};
     }
   }
+  // Step 3: check allow list
+  const allowList=manifest.capabilities||[];
+  let allowed=false;
+  for(const c of allowList){
+    if(c===capability||c===capForMatch){allowed=true;break;}
+    if(c.endsWith("**")&&(capability.startsWith(c.slice(0,-2))||capForMatch.startsWith(c.slice(0,-2)))){allowed=true;break;}
+    if(c.endsWith("*")&&(capability.startsWith(c.slice(0,-1))||capForMatch.startsWith(c.slice(0,-1)))){allowed=true;break;}
+  }
+  if(!allowed) return {decision:"unsupported",reason:"capability_not_in_manifest",smallest_capability:capability};
+  // Step 4: risk tier evaluation
+  const tier=riskTier(capability);
+  if(tier>=3) return {decision:"denied",reason:"tier3_admin_only"};
   // Step 5: tier-based approval
   if(tier===2){
     // Tier 2: scoped destructive — allow if path is in delete scope and reason is supplied
