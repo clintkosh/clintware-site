@@ -55,7 +55,28 @@ Clintware Control Plane (clintware-control-plane)
   └── Telemetry (Durable Objects)
 ```
 
-**Key design choice**: External AI systems receive scoped Clintware capabilities rather than broad GitHub, Cloudflare, or provider credentials. The security model follows: identity → policy → capability → action → audit.
+**Key design choice**: External AI systems receive scoped Clintware capabilities rather than broad GitHub, Cloudflare, or provider credentials. The security model follows: identity → context → policy → capability → action → audit.
+
+### Capability Broker
+
+The Clintware Control Plane acts as a capability broker. Agents express operations at the intent level ("delete this file") rather than implementing provider-specific mechanics ("find GitHub SHA, construct delete payload, obtain GitHub credential").
+
+**Discovery** — `clintware_capabilities` returns all available capabilities for a product, including risk tiers, allowed paths, protected paths, and denied operations.
+
+**Execution** — `clintware_capability_request` evaluates identity, context, policy, risk tier, and protected resources before executing. Provider-specific prerequisites (GitHub SHAs, branch refs) are resolved internally.
+
+**Risk tiers**:
+
+| Tier | Level | Behavior |
+|---|---|---|
+| 0 | READ / OBSERVE | Automatic if within product scope |
+| 1 | LOW-RISK MUTATION | Automatic when permitted by manifest |
+| 2 | DESTRUCTIVE SCOPED | Contextual validation; scoped deletion allowed with reason |
+| 3 | ADMIN / HIGH RISK | Never auto-escalated; always denied or approval_required |
+
+**Protected resources**: `.github/workflows/`, `.github/actions/`, `control-plane/security/`, `control-plane/policy/` are protected from product-scoped agents regardless of capability.
+
+**Agent rule**: When an operation is reasonably necessary to complete a Clintware task but the required MCP tool is not immediately visible, ask the Clintware Control Plane for the required capability using `clintware_capability_request`. Do not seek direct provider credentials or implement provider-specific workarounds before checking whether Clintware can broker the operation. Ask for the narrowest capability and scope necessary.
 
 This matters because:
 - Least privilege: each caller gets only the capabilities it needs
