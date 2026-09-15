@@ -301,14 +301,14 @@ export class ProductHub extends DurableObject {
       const events=(await this.events()).filter(e=>withinDays(e,days));
       const sessions=new Set(events.map(e=>e.anonymous_session_id).filter(Boolean));
       const providers={},features={},routes={},errors={},costByProvider={};
-      let cost=0,avoided=0,cacheHits=0,fallbacks=0,successes=0;
+      let cost=0,avoided=0,cacheHits=0,fallbacks=0,successes=0,successfulResearchRuns=0;
       for(const e of events){
         inc(providers,e.provider||"local");inc(features,e.feature);inc(routes,e.route||"unspecified");
         if(e.error_class) inc(errors,e.error_class);
         const c=Number(e.reported_api_cost||0);cost+=c;avoided+=Number(e.estimated_cost_avoided||0);inc(costByProvider,e.provider||"local",c);
-        if(e.cache_status==="hit") cacheHits++;if(e.fallback_used)fallbacks++;if(e.success)successes++;
+        if(e.cache_status==="hit") cacheHits++;if(e.fallback_used)fallbacks++;if(e.success)successes++;if(e.success&&e.feature==="brief"&&e.action==="analyze")successfulResearchRuns++;
       }
-      return json({days,event_count:events.length,unique_sessions:sessions.size,success_rate:events.length?successes/events.length:1,total_reported_api_cost:cost,estimated_cost_avoided:avoided,cache_hits:cacheHits,cache_hit_rate:events.length?cacheHits/events.length:0,fallbacks,providers,provider_costs:costByProvider,features,routes,errors});
+      return json({days,event_count:events.length,successful_research_runs:successfulResearchRuns,unique_sessions:sessions.size,success_rate:events.length?successes/events.length:1,total_reported_api_cost:cost,estimated_cost_avoided:avoided,cache_hits:cacheHits,cache_hit_rate:events.length?cacheHits/events.length:0,fallbacks,providers,provider_costs:costByProvider,features,routes,errors});
     }
     if(request.method==="GET"&&url.pathname==="/recent"){
       const limit=Math.max(1,Math.min(200,Number(url.searchParams.get("limit"))||50));
@@ -560,7 +560,7 @@ async function exaApiKey(env){
   return null;
 }
 function researchQuery(company){
-  return `Prepare an implementation-focused brief on "${company}" with these markdown H2 sections in order: ## Company snapshot; ## Product and customers; ## Implementation model; ## Recent signals; ## Why this matters for implementations. Under 500 words. Be specific and evidence-based.`;
+  return `Prepare an implementation-focused brief on "${company}" with these markdown H2 sections in order: ## Company snapshot; ## Product and customers; ## Implementation model; ## Recent signals; ## Why this matters for implementations. In Implementation model, reconstruct public onboarding or implementation steps when the sources support them. If no public onboarding process is documented, say that plainly and add "Suggested onboarding path (inference)" with 4-6 practical steps grounded in the product, customer type, implementation requirements, and cited evidence. Never imply an inferred path is the company's actual process. Under 500 words. Be specific and evidence-based.`;
 }
 async function exaRequest(key,path,body,timeoutMs=40000){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);
@@ -590,7 +590,7 @@ async function researchViaExaAndWorkersAI(env,key,company){
   const excerpts=results.map((r,i)=>`[${i+1}] ${r.title} — ${r.url}${r.publishedDate?` (${String(r.publishedDate).slice(0,10)})`:""}\n${String(r.text||(r.highlights||[]).join(" ")||"").slice(0,1800)}`).join("\n\n");
   const ai=await env.AI.run(SYNTHESIS_MODEL,{
     messages:[
-      {role:"system",content:"You are the Clintware research service. You synthesize implementation briefs strictly from the provided numbered sources. Cite inline as [n] for every fact. If evidence is thin or missing for a section, say so plainly. Never fabricate metrics, dates, names, customers, or events."},
+      {role:"system",content:"You are the Clintware research service. Synthesize implementation briefs from the provided numbered sources. Cite inline as [n] for every company fact. If evidence is thin or missing, say so plainly. For onboarding, reconstruct the company's published process when supported. If no public process is documented, explicitly say so, then add a clearly labeled Suggested onboarding path (inference) with 4-6 practical steps grounded in cited product, customer, and implementation evidence. Never imply an inferred path is the company's actual process. Never fabricate metrics, dates, names, customers, or events."},
       {role:"user",content:`Company: ${company}\n\nSources:\n${excerpts}\n\nWrite the brief using exactly these markdown H2 sections, in order:\n## Company snapshot\n## Product and customers\n## Implementation model\n## Recent signals\n## Why this matters for implementations\n\nKeep it under 500 words, evidence-based, with [n] citations.`}
     ],
     max_tokens:1200
