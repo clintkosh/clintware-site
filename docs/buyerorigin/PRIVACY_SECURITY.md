@@ -1,63 +1,51 @@
 # BuyerOrigin privacy and security model
 
-## Current browser-local boundary
+## Browser-local audit
 
-- Merchant CSV rows are read and analyzed in browser memory.
-- The BuyerOrigin audit route has no raw-order upload endpoint.
-- Order rows are not written to cookies, local storage, session storage, object storage, or a BuyerOrigin database by the audit UI.
-- Refreshing or closing the page clears the working dataset.
-- Results leave the browser only when the merchant explicitly exports them.
-- Synthetic fixtures are the only customer-like data permitted in the repository.
+Merchant CSV rows are read and analyzed in browser memory.  The public audit route has no raw-order upload endpoint and does not persist order rows.  Results leave the browser only when the merchant explicitly exports them.
 
-## Data minimization for the hosted path
+## Installed Shopify app
 
-The hosted product should ingest only fields required to establish policy eligibility and merchant review.  Raw email, phone, and address values should be normalized transiently, converted to pseudonymous lookup keys, then discarded as soon as the configured workflow permits.
+The installed app's optional historical seed accepts a bounded Shopify Orders CSV as multipart form data, parses it transiently, and persists only store-scoped pseudonymous coupon-use keys plus minimal order reference, use timestamp, and discount amount.  Raw email, phone, address, and CSV rows are not written to the BuyerOrigin database.
 
-Preferred persistent representation:
+Signed Shopify order webhooks follow the same model.  Identity values are normalized transiently and converted to store-scoped keyed tokens before persistence.
 
-- Merchant-scoped tenant ID.
-- HMAC-based normalized email key.
-- HMAC-based normalized phone key.
-- HMAC-based normalized address key.
-- HMAC-based normalized coupon-code key when the raw code is not required for display.
-- Minimal Shopify order reference needed for merchant evidence review.
-- First/last qualifying use time and compact use count.
-- Reason codes and merchant override outcome.
+The server derives the store state key from `BUYERORIGIN_MASTER_KEY` using HMAC-SHA256.  The master key remains in the hosting secret manager.  Checkout Function state receives only a derived store-scoped pseudonymization key and pseudonymous prior-use records because ordinary Discount Functions cannot depend on a BuyerOrigin network request at checkout.  Treat the app-owned discount metafield as configuration, not secret storage.
 
-Use keyed HMAC pseudonymization rather than a plain unsalted hash because common emails, phone numbers, addresses, and coupon codes are vulnerable to dictionary attacks.  Keep the HMAC secret outside the database, version keys for rotation, and never log raw identity values.
+## Persistent data
+
+- Shopify session/token data required for the authorized app session.
+- Shop identifier.
+- Coupon policy and automatic discount reference.
+- Pseudonymous coupon, email, phone, and address tokens.
+- Minimal order reference, use date, and optional discount amount.
+- Review/override records when that UI is enabled later.
+
+No cross-merchant identity graph is created.
 
 ## Retention and deletion
 
-- Default raw webhook payload retention target: zero after successful derivation, unless a short retry/dead-letter interval is operationally required and explicitly documented.
-- Compact coupon-use state retention: policy lookback plus a small operational grace period, configurable by merchant and legal requirements.
-- Review evidence: retain only as long as the merchant needs the review/audit record.
-- Store disconnect: revoke tokens and stop ingestion immediately.
-- Merchant deletion: delete tenant state, pseudonymous keys, review records, and derived reporting data within the documented deletion window.
-- Shopify privacy requests and shop redaction must be handled through the required compliance webhooks before production distribution.
+- Raw CSV/webhook identity values: transient only for normalization and pseudonymization.
+- Coupon-use evidence: retain for the configured lookback plus a small operational grace period, then prune in production operations.
+- Uninstall: sessions are deleted immediately and merchant state is marked uninstalled pending Shopify's required shop-redact event/retention rule.
+- Customer redact: matching pseudonymous email/phone/order records are deleted and enabled Function state is refreshed.
+- Shop redact: merchant state and sessions are deleted.
 
 ## Access control
 
-- Encrypt tokens and secrets at rest using a managed secret or key service.
-- Enforce tenant isolation on every query and write.
-- Separate service credentials from merchant sessions.
-- Use least-privilege Shopify scopes.
-- Require authenticated merchant access for hosted review queues and policy changes.
-- Audit administrative access and policy/override changes.
-- Never expose pseudonymous cross-merchant identifiers or build a cross-merchant identity graph.
+- Authenticate merchant admin routes through Shopify.
+- Verify webhooks through Shopify's app framework before handling payloads.
+- Store client secret, master key, and production database credentials outside Git.
+- Enforce merchant ID on every persisted policy/use query.
+- Keep scopes at `read_orders,write_discounts` unless an implemented feature proves another scope is necessary.
+- Do not log raw identity values or raw webhook payloads.
 
 ## Protected Shopify customer data
 
-Email, phone, name, and address fields are protected customer data.  Access to protected fields must be requested and approved in Shopify's Partner or Dev Dashboard as applicable before BuyerOrigin depends on those fields in a connected production app.  The app must document why each requested field is necessary and satisfy Shopify's protected-customer-data requirements.
+Order data plus email, phone, name, and address can be protected customer data/fields.  The production pilot must obtain whatever protected-data approval Shopify requires for the selected distribution and requested fields before relying on them outside development testing.
 
 ## Pilot Merchant A confidentiality
 
-Only `Pilot Merchant A` may appear in committed materials.  Do not commit or publish its company name, domain, industry, products, location, employees, coupon codes, customer/order data, identifying screenshots, identifying quotes, or identifying results.
+Only `Pilot Merchant A` may appear in committed materials.  No company name, domain, industry, products, location, employees, real coupon codes, customer/order data, identifying screenshots, identifying quotes, or identifying results may be committed or published.
 
-Public evidence permissions are separate:
-
-1. Private product testing.
-2. Anonymous aggregate metrics.
-3. Anonymous quotation.
-4. Named case study.
-
-Each level requires its own explicit consent.  Named attribution requires separate written permission.
+Private testing, anonymous aggregate metrics, anonymous quotation, and named case study are four independent consent levels.  Public attribution requires separate written permission.

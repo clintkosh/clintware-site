@@ -1,49 +1,41 @@
 # BuyerOrigin working versus planned boundary
 
-Last reviewed: September 7, 2026.
+Last reviewed: September 15, 2026.
 
-## Working in the repository
+## Working in source
 
-- Browser-local audit UI served by `buyerorigin-worker`.
-- Unedited Shopify Orders CSV recognition.
-- Generic compatible CSV upload or paste.
-- Shopify multi-line-item continuation-row collapse.
-- Case-insensitive exact same-coupon matching.
-- Default 2-of-3 normalized email, phone, and shipping/billing address matching.
-- Optional 3-of-3 identity policy.
-- 365-day lookback and zero allowed previous uses by default.
-- Missing-evidence fail-open behavior.
-- Merchant order/coupon allowlist overrides.
-- Matched evidence, prior order, prior-use count, estimated leakage, and recommended action.
-- CSV result export.
-- Current-checkout simulator returning `Allow coupon` or `Reject coupon`.
-- Worker health/status routes.
-- Shopify rejection-policy contract that emits `enteredDiscountCodesReject` only for codes marked `rejectable` by Shopify.
-- Shopify rejection-policy unit tests.
+- Browser-local online audit with Shopify-native CSV parsing and line-item deduplication.
+- Same-code, case-insensitive policy with 2-of-3 default identity matching, 365-day lookback, zero previous uses, overrides, evidence, export, leakage estimate, and current-checkout simulator.
+- Shopify React Router app structure with authenticated admin routes and Prisma session storage.
+- Transient Shopify Orders CSV seed path that persists pseudonymous coupon-use keys rather than raw rows.
+- Signed order webhook ingestion into pseudonymous coupon-use state.
+- Per-coupon policy persistence.
+- Automatic app discount create/update path using the Function handle.
+- Compact per-coupon checkout state stored on the automatic discount.
+- Discount Function current-shopper comparison using checkout email, phone, delivery/billing address, local date, and entered coupon code.
+- Native `enteredDiscountCodesReject` output only when Shopify marks the code rejectable.
+- Fail-open behavior for missing or insufficient evidence.
+- App uninstall, scopes-update, customer-data-request, customer-redact, and shop-redact webhook handlers.
+- Automated browser, Shopify CSV, pseudonymization, Function, rejectable-code, lookback, and fail-open tests.
 
-## Implemented as a scaffold, not live
+## Not live until external Shopify setup occurs
 
-- Discount Function input GraphQL for `enteredDiscountCodes` plus app-owned compact verdict state.
-- Extension target configuration example for `cart.lines.discounts.generate.run`.
-- Custom-distribution pilot installation procedure.
-- Hosted SaaS architecture and privacy model.
+- Real Shopify app registration/client ID and secret.
+- Shopify-generated Function extension UID/schema linkage.
+- Development store installation.
+- Protected customer-data/field approval where required.
+- Production app URL and persistent production database.
+- Merchant authorization.
+- Selection of the irreversible Custom distribution method for the dedicated pilot registration.
+- Live automatic discount/Function activation in a merchant store.
 
-These parts still require a real Shopify app registration, Shopify-generated extension UID/schema/types, state plumbing, credentials, approvals, installation, and Shopify CLI validation before they are live.
+## Planned after pilot proof
 
-## Planned
-
-- Merchant authentication/accounts.
-- Store connections and encrypted token storage.
-- Initial bounded order sync.
-- Signed order webhook ingestion.
-- Pseudonymized compact coupon-use state.
-- Durable review queues and override history.
-- Reporting dashboards.
+- Durable merchant review queue UI and override history.
+- Reporting dashboards and aggregate metrics.
 - Billing.
-- Public Shopify App Store version using a separate public-distribution app registration.
+- Public App Store registration, review, listing, and multi-merchant operations using a separate app registration.
 
-## Claims that must not be made without evidence
+## Claims boundary
 
-Do not claim that BuyerOrigin is installed, deployed, approved by Shopify, used in production, preventing live coupon abuse, generating revenue, recovering merchant revenue, or validated by a merchant unless repository/deployment evidence and merchant permission support the claim.
-
-Do not publish Pilot Merchant A's identity or infer public consent from private testing.
+Do not claim BuyerOrigin is installed, deployed, approved by Shopify, preventing live abuse, generating revenue, or validated by a merchant until external evidence supports the statement.  Pilot Merchant A remains anonymous unless separate written named-case-study permission exists.

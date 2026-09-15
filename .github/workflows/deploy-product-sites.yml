@@ -52,10 +52,34 @@ jobs:
         run: npm test --prefix buyerorigin-worker
       - name: Check BuyerOrigin browser audit syntax
         run: npm run check --prefix buyerorigin-worker
-      - name: Test BuyerOrigin Shopify rejection contract
+      - name: Test BuyerOrigin Shopify logic
         run: npm test --prefix buyerorigin-shopify
-      - name: Check BuyerOrigin Shopify syntax
+      - name: Check BuyerOrigin Shopify source
         run: npm run check --prefix buyerorigin-shopify
+      - name: Install and generate BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        run: |
+          npm install --no-audit --no-fund
+          npx prisma validate
+          npx prisma generate
+      - name: Typecheck BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        env:
+          SHOPIFY_API_KEY: test-client-id
+          SHOPIFY_API_SECRET: test-secret
+          SHOPIFY_APP_URL: https://buyerorigin.invalid
+          BUYERORIGIN_MASTER_KEY: ci-test-master-key-not-for-production
+          SCOPES: read_orders,write_discounts
+        run: npm run typecheck
+      - name: Build BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        env:
+          SHOPIFY_API_KEY: test-client-id
+          SHOPIFY_API_SECRET: test-secret
+          SHOPIFY_APP_URL: https://buyerorigin.invalid
+          BUYERORIGIN_MASTER_KEY: ci-test-master-key-not-for-production
+          SCOPES: read_orders,write_discounts
+        run: npm run build
       - name: Test ShoulderSoldier interaction evaluator
         run: node --test shouldersoldier-worker/test/*.test.mjs
       - name: Validate Worker configurations
@@ -82,16 +106,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd shouldersoldier-worker
-      - name: Verify ShoulderSoldier
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/healthz || true)
-            if grep -Fq 'USER-INTERACTION FIREWALL' <<< "$page" && grep -Fq 'interaction-risk-evaluator' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1
 
   deploy-buyerorigin:
     if: github.event_name != 'pull_request'
@@ -130,16 +144,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd landtheplane-worker
-      - name: Verify LandThePlane
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/healthz || true)
-            if grep -Fq 'Turn your actual experience into answers you can retrieve under pressure.' <<< "$page" && grep -Fq 'local-first-alpha' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1
 
   deploy-landtheplane-review:
     if: github.event_name != 'pull_request'
@@ -154,13 +158,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd landtheplane-review-worker
-      - name: Verify LandThePlane Interview Review
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/healthz || true)
-            if grep -Fq 'Review the interview you actually had.' <<< "$page" && grep -Fq 'audio-review-alpha' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1

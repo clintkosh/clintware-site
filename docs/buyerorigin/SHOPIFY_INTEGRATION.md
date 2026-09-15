@@ -1,70 +1,57 @@
 # BuyerOrigin Shopify integration and installation guide
 
-Status: implementation scaffold and rejection contract exist.  No Shopify app installation, deployment, merchant authorization, protected-data approval, or production Function activation is claimed.
+Status: the Shopify application and Function logic are implemented in source.  No Shopify installation, deployment, protected-data approval, merchant authorization, or production Function activation is claimed.
 
-## Official architecture
+## Implemented architecture
 
-BuyerOrigin targets Shopify Discount Function API `2026-01` and `cart.lines.discounts.generate.run`.  The Function queries `enteredDiscountCodes { code rejectable }` and may return `enteredDiscountCodesReject` for a code only when Shopify reports `rejectable: true`.
+BuyerOrigin uses Shopify's React Router app architecture plus Discount Function API `2026-01` target `cart.lines.discounts.generate.run`.
 
-The rejection message should stay concise: `This coupon is not available for this order.`
+The app stores only merchant configuration and pseudonymous coupon-use evidence for normal operation.  A bounded Shopify Orders CSV can be seeded transiently after installation.  New order webhooks update the same compact state.
 
-The Function must return no rejection operation when:
+For each protected coupon, the app creates an automatic app discount using Function handle `buyerorigin-discount-guard`.  Its app-owned discount metafield contains compact per-coupon state.  The Function receives the current entered code, Shopify's `rejectable` flag, checkout email/phone, delivery or billing address, and shop-local date.  It compares the current shopper to qualifying prior uses and returns `enteredDiscountCodesReject` only when the default policy is met.
 
-- Shopify marks the entered code as non-rejectable.
-- BuyerOrigin has no verdict for the code.
-- Fewer identity signals are available than the policy requires.
-- The compact verdict is stale, malformed, or cannot be verified.
-- A merchant allowlist/override applies.
+The default remains exact same code, case-insensitive, 2 of 3 identity signals, 365-day lookback, zero previous uses, fail open, and coupon-only rejection.
 
-BuyerOrigin never returns an operation intended to deny the full checkout.
+## Data flow
 
-## Repository implementation
+`bounded CSV seed or signed order webhook -> normalize transiently -> store pseudonymous keys -> build per-coupon compact state -> automatic discount metafield -> Discount Function -> Allow coupon or enteredDiscountCodesReject`
 
-- `buyerorigin-shopify/src/rejection-policy.js` contains the rejectable-only, fail-open output contract.
-- `buyerorigin-shopify/test/rejection-policy.test.mjs` tests rejection, non-rejectable allow behavior, and missing-evidence fail-open behavior.
-- `buyerorigin-shopify/extensions/buyerorigin-discount-guard/src/cart_lines_discounts_generate_run.graphql` contains the intended Function input fields.
-- `buyerorigin-shopify/extensions/buyerorigin-discount-guard/shopify.extension.toml.example` documents the target without fabricating Shopify's generated extension UID.
+No Function network call to BuyerOrigin is required at checkout.
 
 ## Exact external values still required
 
-Do not commit these values to the repository.
+1. Shopify Partner/Dev account owning the dedicated pilot app.
+2. Development store used for validation.
+3. Real app registration and Shopify-generated client ID.
+4. App client secret stored outside Git.
+5. Production HTTPS application URL and auth callback URLs.
+6. Minimum required scopes.  Current source uses `read_orders,write_discounts`.
+7. Protected customer-data/field approval for order/email/phone/address use when Shopify requires it outside development testing.
+8. Shopify-generated Function extension UID and generated schema/types linkage.
+9. `BUYERORIGIN_MASTER_KEY`, generated randomly and stored only in the hosting secret manager.
+10. Persistent production database.
+11. Explicit merchant installation authorization.
+12. Automatic app discount creation in the installed store.
 
-1. **Partner/Dev account**: the actual Shopify account that will own the pilot app.
-2. **Development store**: the selected test store domain/ID.
-3. **App registration**: app client ID and registration created in Shopify's current Dev or Partner Dashboard/CLI flow.
-4. **App secret**: stored in a secret manager/environment configuration, never Git.
-5. **Application URL and callback URLs**: real hosted HTTPS endpoints for the connected app.
-6. **Scopes**: minimum required scopes confirmed against the implemented ingestion/configuration flow.  The Discount Function rejection tutorial requires `write_discounts`.  Historical order ingestion will require the applicable order read scope.  Do not request broader customer/order access than the implemented field map requires.
-7. **Protected customer-data approval**: access to protected customer data and protected fields such as email, phone, name, or address where the connected implementation needs them.
-8. **Function extension UID**: generated by Shopify for this app/extension.  Never copy an example UID.
-9. **Function handle**: expected repository handle is `buyerorigin-discount-guard`, but confirm the generated extension uses it.
-10. **Webhook signing secret / app secret**: real secret used for webhook verification.
-11. **Installation authorization**: explicit merchant install through Shopify's generated install link or current app authorization flow.
-12. **Automatic app discount configuration**: create the automatic app discount that references the Function handle and permits the needed discount classes/combinations.
+## Register and validate the pilot app
 
-## Private pilot distribution path
+1. Create or select the dedicated BuyerOrigin pilot app in the Shopify Dev/Partner workflow.
+2. From `buyerorigin-shopify`, run Shopify CLI's app configuration/link workflow against that registration.
+3. Generate or link a Discount Function extension so Shopify assigns the extension UID.  Preserve handle `buyerorigin-discount-guard` and merge the repository Function query/code into the generated extension rather than inventing a UID.
+4. Replace the example app config with the CLI-linked real configuration outside any credential-bearing commit.
+5. Configure the hosted app URL, callbacks, `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, scopes, `BUYERORIGIN_MASTER_KEY`, and database.
+6. Request only the protected fields actually used.
+7. Run `npm install`, `npx prisma validate`, `npx prisma generate`, `npm test`, `npm run check`, `npm run typecheck`, and `npm run build`.
+8. Run `shopify app dev` against the development store and install there.
+9. Upload a synthetic Shopify Orders CSV, enable one synthetic coupon, and verify an eligible reuse rejects only the coupon.
+10. Verify a different code, non-rejectable code, insufficient evidence, and out-of-lookback use all fail open.
+11. Verify order/update and Shopify privacy webhooks.
+12. Only after development-store proof and required approvals should the dedicated pilot registration select **Custom distribution** and generate the private install link for Pilot Merchant A.
 
-Use a dedicated Shopify app registration for BuyerOrigin's first custom-distribution pilot.
+## Distribution boundary
 
-1. Create/register a dedicated BuyerOrigin pilot app.
-2. Generate the Discount Function with current Shopify CLI so Shopify creates the actual extension UID and generated schema/types.
-3. Port the repository rejection policy into the generated Function entrypoint.
-4. Run Shopify CLI local Function tests/replays against synthetic fixtures.
-5. Request only the scopes and protected fields needed by the connected implementation.
-6. Validate on a development store.
-7. In Shopify distribution settings, choose **Custom distribution** only for this dedicated pilot registration.
-8. Restrict the install to Pilot Merchant A's store/organization as appropriate.
-9. Generate the Shopify install link and provide it privately to the authorized store owner.
-10. Verify the installed app, automatic app discount, webhook signatures, fail-open behavior, and coupon-only rejection before enabling live pilot enforcement.
+The custom-distribution pilot registration is dedicated to Pilot Merchant A.  Keep the future public App Store version in a separate app registration because Shopify distribution method choice is not treated as reversible.
 
-Shopify states that the app distribution method cannot be changed after selection.  Therefore the custom-distribution pilot registration must remain separate from a future public App Store registration.
+## Security note on Function state
 
-## Future public App Store path
-
-Create a separate public-distribution app registration when the product is ready for multiple unrelated merchants.  Do not try to convert the custom pilot app into the public app.  The public version will require Shopify review, listing requirements, production privacy/compliance handling, billing decisions, and protected-customer-data review appropriate to its requested fields.
-
-## State plumbing still to implement
-
-The rejection contract is intentionally separated from historical-state transport.  Before live enforcement, BuyerOrigin still needs an approved mechanism that delivers a compact, current `verdictByCode`/policy state to the Function.  The hosted control plane must derive that state from permitted events/history, minimize raw customer data, and make stale or missing state fail open.
-
-The repository currently uses an app-owned discount metafield in the input contract as the planned compact-state hook.  The final shape must be generated/tested against the actual registered app's Function schema and Shopify size/runtime constraints before activation.
+The Function needs enough deterministic material to reproduce pseudonymous checkout keys without a network call.  The compact discount state therefore carries a store-scoped pseudonymization key derived from the server master key.  Treat the discount metafield as app configuration, not as a secret vault.  The server master key never enters Shopify.  Raw customer values are not placed in the compact state.

@@ -5,7 +5,7 @@
   "engines": { "node": ">=20.19 <22 || >=22.12" },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/rejection-policy.js && node --check src/compact-state.js && node --check src/order-ingest.js && node --check extensions/buyerorigin-discount-guard/src/cart_lines_discounts_generate_run.js && node scripts/verify-app-structure.mjs",
+    "check": "node --check src/rejection-policy.js && node --check src/compact-state.js && node --check src/order-ingest.js && node --check src/shopify-csv.js && node --check extensions/buyerorigin-discount-guard/src/token.js && node --check extensions/buyerorigin-discount-guard/src/cart_lines_discounts_generate_run.js && node scripts/verify-app-structure.mjs",
     "build": "react-router build",
     "dev": "shopify app dev",
     "deploy": "shopify app deploy",

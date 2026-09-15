@@ -1,43 +1,38 @@
-# BuyerOrigin Shopify pilot integration
+# BuyerOrigin Shopify app
 
-This directory contains the Shopify-specific enforcement contract for BuyerOrigin.  It is **not** evidence that a Shopify app has been installed or deployed.
+BuyerOrigin's Shopify app implements the live path behind the promise: **Stop the same buyer from using the same coupon again.**
 
-## Enforcement rule
+The source now includes the embedded React Router app, Shopify authentication/session storage, transient Shopify Orders CSV seeding, signed order webhooks, pseudonymous coupon-use storage, coupon policy records, automatic app discount creation/refresh, a Discount Function, uninstall handling, and Shopify privacy webhooks.
 
-BuyerOrigin's Shopify path uses the current Discount Function target `cart.lines.discounts.generate.run`.  A previously used entered coupon is rejected with Shopify's native `enteredDiscountCodesReject` operation only when:
+It is source-complete but **not installed or deployed**.  A real Shopify app registration, generated extension UID, development store, credentials, protected customer-data approval where required, hosted database/app URL, and merchant authorization remain external requirements.
 
-- Shopify includes the code in `enteredDiscountCodes`.
-- Shopify marks that code `rejectable: true`.
-- BuyerOrigin's compact verdict says `reject_coupon`.
-- The verdict contains at least the configured identity confidence threshold.
-- No merchant override has already converted the verdict to allow.
-
-Everything else fails open with `{ operations: [] }`.
-
-The customer message is intentionally short: `This coupon is not available for this order.`
-
-BuyerOrigin rejects the coupon only.  There is no checkout-block operation in the policy module.
-
-## Files
-
-- `src/rejection-policy.js`: registration-independent rejection output contract.
-- `test/rejection-policy.test.mjs`: rejectable-only, fail-open, coupon-only tests.
-- `extensions/buyerorigin-discount-guard/src/cart_lines_discounts_generate_run.graphql`: intended Function input query.
-- `extensions/buyerorigin-discount-guard/shopify.extension.toml.example`: target metadata with the Shopify-generated UID deliberately omitted.
-
-## Local checks
+## Local validation
 
 ```bash
+npm install
+npx prisma validate
+npx prisma generate
 npm test
 npm run check
+npm run typecheck
+npm run build
 ```
 
-## Registration blocker
+## Runtime flow
 
-A runnable Shopify Function extension must be generated or linked to a real Shopify app registration using Shopify CLI.  Shopify assigns the extension UID and generates the schema/types/build scaffold.  Do not fabricate those values or copy an example UID into this repository.
+1. Merchant authorizes the app.
+2. Merchant may seed a bounded Shopify Orders CSV.  Raw rows are parsed transiently and only pseudonymous coupon-use keys are persisted.
+3. Merchant enters a coupon to protect.
+4. BuyerOrigin creates an automatic app discount backed by `buyerorigin-discount-guard` and writes compact per-coupon state to its app-owned discount metafield.
+5. New order webhooks update pseudonymous history and refresh enabled coupon guards.
+6. At checkout the Discount Function compares current email, phone, and shipping/billing address against the compact state.
+7. If the same entered coupon has a qualifying prior use, and Shopify marks the entered code rejectable, the Function returns `enteredDiscountCodesReject`.
+8. Missing state/evidence, stale/out-of-lookback evidence, different codes, and non-rejectable codes fail open.
 
-See `../docs/buyerorigin/SHOPIFY_INTEGRATION.md` for the exact Partner/Dev account, store, app registration, scopes, protected-data approval, secrets, automatic discount, distribution, and installation steps still required.
+BuyerOrigin rejects the coupon only.  It never blocks checkout.
 
-## Distribution boundary
+## External registration blocker
 
-Use a dedicated custom-distribution app registration for Pilot Merchant A.  Keep a future public App Store registration separate because Shopify distribution method selection cannot be changed after it is selected.
+`shopify.extension.toml.example` deliberately contains no real extension UID.  Link/create the real Shopify app with Shopify CLI first so Shopify generates the UID.  Do not fabricate or copy one from another app.
+
+See `../docs/buyerorigin/SHOPIFY_INTEGRATION.md` and `DEPLOYMENT.md` for registration, protected-data, custom-distribution pilot, and installation steps.
