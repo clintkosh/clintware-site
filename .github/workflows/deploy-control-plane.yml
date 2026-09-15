@@ -114,6 +114,26 @@ jobs:
           done
           test "$ready" = "1"
 
+      - name: Verify research activation and ProofOS end-to-end
+        run: |
+          set -euo pipefail
+          health=$(curl -fsS --max-time 20 https://mcp.clintware.com/health)
+          echo "$health"
+          echo "$health" | grep -Fq '"provider":"exa"'
+          echo "$health" | grep -Fq '"configured":true'
+
+          brief=$(curl -fsS --max-time 120 -X POST https://proof.clintware.com/api/brief \
+            -H 'content-type: application/json' \
+            --data '{"company":"Sweed"}')
+          echo "$brief" | head -c 2000
+          echo
+          if echo "$brief" | grep -Eq '"mode":"research_unavailable"|"error":"research_failed"'; then
+            echo "ProofOS research is still unavailable" >&2
+            exit 1
+          fi
+          echo "$brief" | grep -Fq '"company":"Sweed"'
+          echo "ProofOS live research is active."
+
       - name: Report adapter configuration
         run: |
           body=$(curl -fsS https://mcp.clintware.com/health)
