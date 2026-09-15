@@ -1,0 +1,12 @@
+query Input {
+  enteredDiscountCodes { code rejectable }
+  shop { localTime { date } }
+  cart {
+    buyerIdentity { email phone }
+    billingAddress { address1 address2 city provinceCode zip countryCode }
+    deliveryGroups { deliveryAddress { address1 address2 city provinceCode zip countryCode } }
+  }
+  discount {
+    metafield(namespace: "$app", key: "buyerorigin-state") { jsonValue }
+  }
+}

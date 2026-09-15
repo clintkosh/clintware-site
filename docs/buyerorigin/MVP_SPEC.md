@@ -1,49 +1,68 @@
 # BuyerOrigin MVP specification
 
-Status: working audit MVP as of September 6, 2026.
+Status: browser-local audit working on branch `agent/buyerorigin-shopify-start` as of September 7, 2026.  Shopify checkout enforcement is not installed or deployed.
 
-## Merchant job
+## Primary promise
 
-Show a merchant which limited-offer redemptions may come from a buyer who already used the offer, without treating one changed or shared identifier as proof of abuse.
+**Stop the same buyer from using the same coupon again.**
 
-## Input
+BuyerOrigin audits historical coupon use and recommends `Allow coupon` or `Reject coupon`.  It never recommends blocking or denying the full checkout.
 
-Required CSV columns:
+## Working input paths
 
-| Column | Purpose |
-| --- | --- |
-| `order_id` | Stable merchant review reference |
-| `email` | Email normalization and alias matching |
-| `phone` | Digit-normalized phone matching |
-| `address` | Conservative shipping-address normalization |
-| `discount_code` | Identifies an offer redemption |
-| `order_date` | Orders comparisons chronologically |
-| `order_total` | Context for the merchant |
-| `discount_amount` | Estimated leakage calculation |
+1. Unedited Shopify Orders CSV.  Native Shopify headings such as `Name`, `Email`, `Phone`, `Created at`, `Total`, `Discount Code`, `Discount Amount`, and shipping or billing address columns are recognized automatically.
+2. Compatible CSV paste or upload with `order_id`, `email`, `phone`, `address`, `discount_code`, `order_date`, `order_total`, and `discount_amount`.
 
-Optional `is_new_customer_offer` values of `false`, `no`, or `0` exclude an ordinary promotion from repeat-new-customer analysis.
+Shopify line-item continuation rows are collapsed into a single order before analysis so order totals and coupon use are not counted once per line item.
 
-## Decision rule
+## Default policy
 
-An order is flagged only when two or more non-empty normalized signals match an earlier limited-offer redemption.  Current reason codes are `EMAIL_ALIAS_MATCH`, `PHONE_MATCH`, and `ADDRESS_MATCH`.
+- Coupon scope: exact same coupon code, case-insensitive.
+- Identity threshold: 2 of 3 signals.
+- Signals: normalized email, normalized phone, normalized shipping or billing address.
+- Lookback: 365 days.
+- Allowed previous uses: zero.
+- Outcome on a qualifying prior use: `Reject coupon`.
+- Checkout outcome: unchanged.  BuyerOrigin rejects only the coupon.
+- Missing or insufficient identity evidence: fail open with `Allow coupon`.
+- Merchant override: order IDs or coupon codes can be allowlisted while retaining the evidence in results.
+- Optional stricter identity threshold: 3 of 3.
 
-The rule is intentionally conservative.  One signal never triggers a flag.  A flag creates a review recommendation, not a statement that fraud occurred.
+## Working outputs
 
-## Merchant controls
+Each audited order can include status, recommended action, matched evidence, prior order, prior qualifying use count, estimated leakage, and an explanatory note.  Merchants can export the review results as CSV.
 
-- Monitor mode sends flagged records to review.
-- Enforcement simulation changes the recommendation to deny the discount.
-- Allowlisted order IDs remain visible and are labeled as merchant overrides.
-- CSV export creates a portable review record.
+The current-checkout simulator runs against the loaded history and returns `Allow coupon` or `Reject coupon`.  It is a local simulation and does not change Shopify checkout.
+
+## Working versus simulated
+
+### Working
+
+- Browser-local Shopify Orders CSV parsing.
+- Multi-line-item order deduplication.
+- Same-code reuse analysis.
+- 2-of-3 and optional 3-of-3 identity matching.
+- 365-day lookback.
+- Allowlist or merchant override.
+- Evidence, prior-order, leakage, and recommendation output.
+- Local CSV export.
+- Current-checkout simulation.
+- Worker `/healthz` and `/api/status` routes.
+
+### Simulated or planned
+
+- Installed Shopify app.
+- Live Shopify Discount Function execution.
+- Merchant accounts and store connections.
+- Order webhook ingestion.
+- Hosted compact coupon-use state.
+- Review queues persisted across sessions.
+- Billing.
 
 ## Acceptance criteria
 
-- Safe sample data produces two flags and $43.00 estimated leakage.
-- A single matching signal remains clear.
-- An allowlist override removes the record from flagged totals without deleting its evidence.
-- No result can recommend denying checkout.
-- Invalid CSV input returns a specific missing-column error.
+Automated tests must cover exact same-code reuse, different-code allow behavior, 2-of-3 identity matching, optional 3-of-3 matching, lookback behavior, merchant overrides, Shopify-native CSV parsing, line-item deduplication, coupon-only rejection, non-rejectable Shopify codes, missing-customer fail-open behavior, worker routes, and public/mobile markers.
 
-## MVP boundary
+## Evidence boundary
 
-This proves the audit workflow and explainable decision contract.  It does not prove real-time Shopify integration, merchant demand, willingness to pay, or production accuracy.
+A match is a merchant review signal, not a fraud accusation.  No deployment, merchant approval, traction, revenue, or Shopify installation should be inferred from a synthetic fixture or simulator result.

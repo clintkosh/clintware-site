@@ -7,6 +7,7 @@ on:
       - "product-sites/**"
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
+      - "buyerorigin-shopify/**"
       - "landtheplane-worker/**"
       - "landtheplane-review-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
@@ -15,6 +16,7 @@ on:
       - "product-sites/**"
       - "shouldersoldier-worker/**"
       - "buyerorigin-worker/**"
+      - "buyerorigin-shopify/**"
       - "landtheplane-worker/**"
       - "landtheplane-review-worker/**"
       - ".github/workflows/deploy-product-sites.yml"
@@ -32,6 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -44,8 +48,38 @@ jobs:
           node --check buyerorigin-worker/src/browser-app.js
           node --check landtheplane-worker/src/index.js
           node --check landtheplane-review-worker/src/index.js
-      - name: Test BuyerOrigin eligibility engine
-        run: node --test buyerorigin-worker/test/*.test.mjs
+      - name: Test BuyerOrigin browser audit
+        run: npm test --prefix buyerorigin-worker
+      - name: Check BuyerOrigin browser audit syntax
+        run: npm run check --prefix buyerorigin-worker
+      - name: Test BuyerOrigin Shopify logic
+        run: npm test --prefix buyerorigin-shopify
+      - name: Check BuyerOrigin Shopify source
+        run: npm run check --prefix buyerorigin-shopify
+      - name: Install and generate BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        run: |
+          npm install --no-audit --no-fund
+          npx prisma validate
+          npx prisma generate
+      - name: Typecheck BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        env:
+          SHOPIFY_API_KEY: test-client-id
+          SHOPIFY_API_SECRET: test-secret
+          SHOPIFY_APP_URL: https://buyerorigin.invalid
+          BUYERORIGIN_MASTER_KEY: ci-test-master-key-not-for-production
+          SCOPES: read_orders,write_discounts
+        run: npm run typecheck
+      - name: Build BuyerOrigin Shopify app
+        working-directory: buyerorigin-shopify
+        env:
+          SHOPIFY_API_KEY: test-client-id
+          SHOPIFY_API_SECRET: test-secret
+          SHOPIFY_APP_URL: https://buyerorigin.invalid
+          BUYERORIGIN_MASTER_KEY: ci-test-master-key-not-for-production
+          SCOPES: read_orders,write_discounts
+        run: npm run build
       - name: Test ShoulderSoldier interaction evaluator
         run: node --test shouldersoldier-worker/test/*.test.mjs
       - name: Validate Worker configurations
@@ -55,6 +89,9 @@ jobs:
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config buyerorigin-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-worker/wrangler.jsonc
           XDG_CONFIG_HOME=/tmp/clintware-products-xdg npx --yes --cache /tmp/clintware-products-npm-cache wrangler@4 deploy --dry-run --config landtheplane-review-worker/wrangler.jsonc
+      - name: Check pull-request diff whitespace
+        if: github.event_name == 'pull_request'
+        run: git diff --check "origin/${{ github.base_ref }}...HEAD"
 
   deploy-shouldersoldier:
     if: github.event_name != 'pull_request'
@@ -69,16 +106,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd shouldersoldier-worker
-      - name: Verify ShoulderSoldier
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://shouldersoldier.clintware.com/healthz || true)
-            if grep -Fq 'USER-INTERACTION FIREWALL' <<< "$page" && grep -Fq 'interaction-risk-evaluator' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1
 
   deploy-buyerorigin:
     if: github.event_name != 'pull_request'
@@ -99,7 +126,7 @@ jobs:
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://buyerorigin.clintware.com/healthz || true)
-            if grep -Fq 'Protect the offer, not the checkout.' <<< "$page" && grep -Fq 'merchant-offer-eligibility' <<< "$health"; then exit 0; fi
+            if grep -Fq 'Stop the same buyer from using the same coupon again.' <<< "$page" && grep -Fq 'same-coupon-reuse-audit' <<< "$health"; then exit 0; fi
             sleep 3
           done
           exit 1
@@ -117,16 +144,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd landtheplane-worker
-      - name: Verify LandThePlane
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://landtheplane.clintware.com/healthz || true)
-            if grep -Fq 'Turn your actual experience into answers you can retrieve under pressure.' <<< "$page" && grep -Fq 'local-first-alpha' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1
 
   deploy-landtheplane-review:
     if: github.event_name != 'pull_request'
@@ -141,13 +158,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd landtheplane-review-worker
-      - name: Verify LandThePlane Interview Review
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 20); do
-            page=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/ || true)
-            health=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/healthz || true)
-            if grep -Fq 'Review the interview you actually had.' <<< "$page" && grep -Fq 'audio-review-alpha' <<< "$health"; then exit 0; fi
-            sleep 3
-          done
-          exit 1

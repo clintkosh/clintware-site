@@ -2,24 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import worker from "../src/index.js";
 
-test("serves the working offer eligibility MVP and truth boundary", async () => {
+test("serves same-coupon product markers and mobile viewport", async () => {
   const response = await worker.fetch(new Request("https://buyerorigin.clintware.com/"));
   const html = await response.text();
   assert.equal(response.status, 200);
-  assert.match(html, /Evaluate eligibility/);
-  assert.match(html, /live Shopify enforcement, billing, merchant accounts/i);
-  assert.match(html, /never denies checkout/i);
-  assert.match(html, /Automation alone never triggers denial/i);
+  assert.match(html, /Stop the same buyer from using the same coupon again/);
+  assert.match(html, /unedited CSV/i);
+  assert.match(html, /Working now:/);
+  assert.match(html, /Simulated:/);
+  assert.match(html, /Current-checkout simulator/);
+  assert.match(html, /name="viewport"/);
+  assert.match(html, /never checkout/i);
   assert.match(response.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 });
 
-test("reports the offer eligibility health contract", async () => {
-  const response = await worker.fetch(new Request("https://buyerorigin.clintware.com/healthz"));
-  assert.deepEqual(await response.json(), { service: "BuyerOrigin", version: "0.2.0", status: "ok", capability: "merchant-offer-eligibility" });
-  assert.equal(response.headers.get("cache-control"), "no-store");
+test("reports worker health and honest Shopify status", async () => {
+  const health = await worker.fetch(new Request("https://buyerorigin.clintware.com/healthz"));
+  assert.deepEqual(await health.json(), { service: "BuyerOrigin", version: "0.3.0", status: "ok", capability: "same-coupon-reuse-audit" });
+  const status = await worker.fetch(new Request("https://buyerorigin.clintware.com/api/status"));
+  assert.deepEqual(await status.json(), { service: "BuyerOrigin", version: "0.3.0", status: "ok", audit: "working", shopify_enforcement: "not_installed" });
 });
 
 test("serves browser code and rejects writes", async () => {
   assert.equal((await worker.fetch(new Request("https://buyerorigin.clintware.com/engine.js"))).status, 200);
+  assert.equal((await worker.fetch(new Request("https://buyerorigin.clintware.com/app.js"))).status, 200);
   assert.equal((await worker.fetch(new Request("https://buyerorigin.clintware.com/", { method: "POST" }))).status, 405);
 });
