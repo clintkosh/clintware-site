@@ -1,105 +1,202 @@
 # ProofOS
 
-**ProofOS is a fully functional, production-verified research-to-implementation intelligence system designed and built by Clint Kosh.** It is live at `https://proof.clintware.com` and is the first production consumer of the [Clintware Control Plane](../control-plane/README.md).
+**DON'T JUST READ MY RÉSUMÉ. TEST ME.**
 
-A visitor enters a company name. ProofOS runs live web research through the Clintware Control Plane, combines the answer with cited sources, and returns a structured implementation-focused brief. The request moves through a production pipeline with input validation, rate limiting, cache routing, stale fallback, evidence merge, request-id correlation, privacy-safe telemetry, and conversion instrumentation.
+ProofOS is an evidence-based candidate intelligence system built to move hiring beyond passive résumé review. A visitor enters a company name; ProofOS runs live research through the Clintware Control Plane and returns an implementation-focused brief with cited sources. The system is live at [proof.clintware.com](https://proof.clintware.com).
 
-The application is deliberately separated from its research providers. ProofOS holds no third-party API keys and does not need to know which provider is active. Provider selection, credentials, model routing, and research execution remain behind the Control Plane boundary. The currently verified production path uses Exa plus Workers AI; the boundary is designed so provider integrations can evolve without rewriting the visitor experience or exposing credentials to the product runtime.
+## Why I Built It
 
-## What this demonstrates
+Traditional hiring compresses years of work into résumé bullets, keywords, titles, interviews, and pedigree. That compression loses the most important signal: how someone actually thinks and executes.
 
-ProofOS is intended to show the operating system around an AI/research feature, not only the final generated answer.
+ProofOS instead exposes evidence, decisions, reasoning patterns, work artifacts, outcomes, transferable capability, live research, uncertainty, and gaps — all verifiable in real time.
 
-- **Grounded research:** live web research is returned with cited sources instead of an unsupported generated brief.
-- **Provider abstraction:** research providers and model choices are isolated behind the Clintware Control Plane rather than hard-coded into the front end.
-- **Reliability engineering:** fresh cache, seven-day stale fallback, graceful research-unavailable behavior, request validation, and rate limiting keep failures from becoming fabricated answers.
-- **Provenance:** one `request_id` follows the analysis through research, evidence handling, response generation, and telemetry.
-- **Observability:** latency, provider/model, cache status, source counts, failures, estimated cost, and conversion events are captured as privacy-safe operational signals.
-- **Security boundaries:** browser and ProofOS runtime never receive third-party research credentials; worker-to-worker service binding is the primary transport.
-- **Product thinking:** the system connects research output to real visitor actions while measuring the path without storing raw prompts or responses.
-- **Production delivery:** Cloudflare Workers, Durable Objects in the Control Plane, service bindings, MCP-facing platform capabilities, automated checks, and deployment workflows are part of the implementation.
+## What You Can Test
 
-## Current production state
+- **Live company brief**: Enter any company. ProofOS runs live Exa retrieval and Workers AI synthesis, then returns a structured implementation brief with cited sources.
+- **Evidence boundaries**: Every source is labeled INTERNAL EVIDENCE (first-party), EXTERNAL INTELLIGENCE (external), or INFERENCE (uncited analysis).
+- **Cache behavior**: Results are cached 12h. Repeat requests hit cache; the system records cache status in telemetry.
+- **Telemetry**: Provider, model, latency, source count, cache status, cost, and success/error state are captured for every request.
+- **Conversion tracking**: Resume, contact, and meeting actions are instrumented end to end.
+- **System stats**: Live 30-day aggregates are displayed on the landing page.
 
-As of September 14, 2026, the checked-in build state is `PRODUCTION_VERIFIED`:
+## What I Built
 
-- `proof.clintware.com` live and healthy
-- ProofOS v1.0.0 deployed
-- Clintware Control Plane live with service binding active
-- live research verified with Exa + Workers AI
-- cache hit/miss and stale-fallback paths verified
-- telemetry and conversion event paths verified
-- `/api/brief`, `/api/action`, and `/health` verified
+Clinton designed and implemented the entire system across:
 
-See [`BUILD_STATE.md`](./BUILD_STATE.md) for the current verification snapshot.
+- Product concept and UX
+- Evidence model with tier labeling
+- AI orchestration (Exa retrieval + Workers AI synthesis)
+- Research architecture with provider abstraction
+- Security boundaries (service binding, no client-side credentials)
+- Clintware Control Plane (MCP server, Durable Objects, provider routing)
+- Cloudflare Workers infrastructure
+- GitHub integration through the Control Plane
+- Exa retrieval integration
+- Workers AI synthesis integration
+- Cache strategy (fresh 12h, stale 7d fallback)
+- Telemetry pipeline (fail-open, privacy-safe)
+- Failure handling and graceful degradation
+- Deployment workflows
+- Production verification
 
-## Runtime architecture
+## Architecture
 
 ```text
-visitor action
-  -> validation + rate limit
-  -> router decision
-  -> fresh cache / stale fallback / live research
-  -> Clintware Control Plane
-  -> provider + model execution
-  -> sources + evidence merge
-  -> structured response
-  -> privacy-safe telemetry
+Visitor
+  ↓
+ProofOS Worker (clintware-proofos)
+  ↓ Cloudflare service binding (credential-free, worker-to-worker)
+Clintware Control Plane (clintware-control-plane)
+  ├── Exa research retrieval
+  ├── Workers AI synthesis (@cf/meta/llama-3.3-70b-instruct-fp8-fast)
+  ├── Cache (24h)
+  ├── GitHub capabilities (read/write/deploy)
+  ├── Cloudflare capabilities (DNS)
+  └── Telemetry (Durable Objects)
 ```
 
-All intelligence, telemetry, and platform calls flow to the Control Plane (`clintware-control-plane` worker) over a Cloudflare service binding: a private worker-to-worker call in which the Control Plane identifies ProofOS by caller identity. No third-party credential exists in the ProofOS runtime.
+**Key design choice**: External AI systems receive scoped Clintware capabilities rather than broad GitHub, Cloudflare, or provider credentials. The security model follows: identity → policy → capability → action → audit.
 
-### Key files
+This matters because:
+- Least privilege: each caller gets only the capabilities it needs
+- Reusable infrastructure: the Control Plane serves future Clintware products
+- Centralized observability: all telemetry flows through one pipeline
+- Provider abstraction: Exa can be replaced without touching ProofOS
+- Safer automation: no credential sprawl across workers
+- Lower operational risk: credentials never leave Clintware
 
-- `src/index.js` — Worker entry, routes, session cookie, cache, and rate limiting
-- `src/research.js` — Control Plane research response handling and brief parsing
-- `src/telemetry.js` — Control Plane event emission; fail-open so analytics never block UX
-- `src/page.js` — self-contained Clintware-branded live application UI
-- `src/util.js` — pure helpers for ids, validation, and slugs
-- `lib/control-plane.js` — Control Plane transport; service binding first, public URL fallback
-- `CONTROL_PLANE_CONTRACT.md` — product/control-plane integration contract
-- `BUILD_STATE.md` — production verification state
+## Evidence Model
 
-## Routes
+ProofOS distinguishes facts from interpretation:
 
-| Route | Method | Purpose |
-| --- | --- | --- |
-| `/` | GET | Live application |
-| `/health` | GET | Health/status JSON (`service: "proofos"`) |
-| `/api/brief` | POST | Run or fetch a company brief (`{ "company": "..." }`) |
-| `/api/action` | POST | Conversion tracking (`resume`, `contact`, `meeting`) |
-| `/api/summary` | GET | 30-day telemetry summary from the Control Plane |
+| Tier | Label | Meaning |
+|---|---|---|
+| L1 | Self-reported claim | Stated without corroboration |
+| L2 | Historical role evidence | Supported by role/work history |
+| L3 | Quantified outcome | Includes measurable results |
+| L4 | Corroborating artifact | Backed by a verifiable source |
+| L5 | Live demonstration | Produced in real time |
 
-## Environment and provider boundary
+Each source in a brief is labeled:
 
-No third-party research secret is required by ProofOS. The `CONTROL_PLANE` service binding declared in `wrangler.jsonc` is the primary credential-free transport for research and telemetry.
+- **INTERNAL EVIDENCE** — first-party source (company's own domain)
+- **EXTERNAL INTELLIGENCE** — third-party source
+- **INFERENCE** — uncited analysis, clearly separated from verified evidence
 
-Optional, for local development or environments without the binding:
+Inferred conclusions never appear indistinguishable from verified evidence.
 
-- `CLINTWARE_CONTROL_PLANE_URL` — defaults to `https://mcp.clintware.com`
-- `CLINTWARE_PRODUCT_TOKEN` — ProofOS product token minted by a Control Plane administrator and used as Bearer auth on the public transport fallback
+## Research Architecture
 
-Research-provider credentials and configuration belong to the Control Plane, not ProofOS. This is intentional: provider-specific variables are implementation details behind a stable internal contract, allowing the research layer to change without coupling the public product to one vendor.
+- Exa handles live web retrieval (6 results per query, content extraction)
+- Workers AI (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`) synthesizes the brief from retrieved sources
+- Citations remain attached to the research output as inline [n] references
+- Structured research is cached 24h at the Control Plane level
+- ProofOS adds a second cache layer (fresh 12h, stale 7d)
+- Duplicate provider spend is avoided on cache hits
+- Cache status, latency, provider, model, and cost are recorded in telemetry
+- Stale fallback serves the most recent verified brief when live research fails
+- External research is never presented as internal work evidence
 
-If no research provider is available, `/api/brief` returns a graceful `research_unavailable` mode. Routing, caching, telemetry, and conversion paths remain operational, and ProofOS does not fabricate a brief.
+## Production Verification
 
-## Development
+Verified September 14, 2026 (point-in-time, not a permanent performance guarantee):
 
-```bash
-npm install
-npm run check   # syntax checks
-npm test        # unit tests (node:test, no network)
-npm run dev     # local wrangler dev
-npm run deploy  # or dispatch .github/workflows/deploy-proofos.yml
-```
+- ProofOS live at [proof.clintware.com](https://proof.clintware.com) — health OK, service binding active
+- Control Plane live at [mcp.clintware.com](https://mcp.clintware.com) — all adapters operational
+- Exa retrieval verified — 6 sources returned for "Cloudflare" query
+- Workers AI synthesis verified — brief generated with 5 structured sections
+- First request: cache miss, 16.2s latency, $0.007 Exa cost
+- Second request: cache hit, 0.054s latency, $0 cost (duplicate Exa request avoided)
+- Telemetry captures: request_id, timestamp, provider, model, source_count, cache_status, latency_ms, success, reported_api_cost, fallback_used
+- No Exa credential exposed to ProofOS or the browser
 
-## Operational notes
+## What This Demonstrates
 
-- Briefs cache fresh for 12 hours; a seven-day stale copy can be served when live research is unavailable and is explicitly flagged `stale_fallback`.
-- Telemetry failures never break the visitor path.
-- Rate limit: 10 briefs per anonymous session per five minutes, best effort per isolate.
-- No raw prompts or model responses are persisted by ProofOS; telemetry uses the canonical event model defined by the Control Plane contract.
+### Customer Success / Post-Sales
+- Turning ambiguous customer/business problems into structured workflows
+- Designing around time-to-value
+- Identifying risk and unknowns
+- Building evidence into decision-making
+- Translating technical systems into executive-visible outcomes
 
-## Design principle
+### Implementation
+- Requirements → architecture → integration → validation → deployment
+- Handling dependencies and failure modes
+- Reducing implementation friction
+- Creating reusable delivery patterns
 
-**Treat AI research like a production dependency, not a magic text box.** ProofOS makes source grounding, provider boundaries, fallback behavior, telemetry, security, and user outcomes visible parts of the product architecture.
+### CS Operations
+- Instrumentation: every request tracked with provider, cost, cache, latency
+- Health signals: live status chip, system stats, error logging
+- Process design: rate limiting, cache routing, stale fallback
+- Repeatability: deployment workflows, automated checks
+- Operational visibility: 30-day aggregates, provider breakdown, error tracking
+
+### AI Adoption / Workflow Transformation
+- Deciding where AI adds value (synthesis) and where deterministic logic is better (routing, validation)
+- Provider orchestration: Exa retrieval + Workers AI synthesis with fallback
+- Grounding: system prompt instructs "never fabricate metrics, dates, names, customers, or events"
+- Source provenance: every claim traced to a cited URL
+- Cost-aware routing: cache hits avoid duplicate provider spend
+- Failure handling: graceful degradation instead of fabricated answers
+- Safe credential boundaries: no provider keys in the product runtime
+
+### Technical Leadership
+- Architecture tradeoffs: service binding vs. public endpoint, dual-layer cache, provider abstraction
+- Least-privilege access: identity → policy → capability → action → audit
+- Integrating multiple systems: Cloudflare Workers, Durable Objects, Exa, Workers AI, GitHub, MCP
+- Debugging live production workflows: telemetry-driven, request_id-correlated
+- Shipping instead of only proposing: production-verified, not a prototype
+
+## Why This Matters to an Employer
+
+ProofOS is not intended to prove that one person already knows every domain. It demonstrates how Clinton approaches an unfamiliar problem:
+
+1. Establish the objective
+2. Find the evidence
+3. Identify uncertainty
+4. Research what changed
+5. Challenge assumptions
+6. Design the system
+7. Test it
+8. Instrument it
+9. Iterate
+10. Ship it
+
+That operating pattern maps directly to onboarding, adoption, implementation, renewal risk, customer health, technical escalations, AI adoption, and workflow transformation.
+
+## Built During a Five-Month Compound-Output Period
+
+This system was built during a concentrated period of building, learning, and skill compounding that also included:
+
+- Clintware infrastructure (Control Plane, MCP bridge, DNS management, deployment automation)
+- RenewNudge (customer success workflow tool)
+- AI systems and technical experiments
+- Professional certifications and research
+- Clintware company site and tools
+
+The point is continued execution and skill compounding, not idle time.
+
+## Hire / Talk to Clinton
+
+If you are evaluating Clinton for Customer Success, Customer Success Operations, implementation, AI adoption, technical post-sales, or adjacent leadership work, use ProofOS to test the fit directly.
+
+- [Live system](https://proof.clintware.com)
+- [Book a meeting](https://meet.clintware.com)
+- [Clintware](https://www.clintware.com)
+
+## Key Files
+
+| File | Purpose |
+|---|---|
+| `src/index.js` | Worker entry, routes, session, cache, rate limiting |
+| `src/research.js` | Research response handling and brief parsing |
+| `src/telemetry.js` | Control Plane event emission (fail-open) |
+| `src/page.js` | Self-contained Clintware-branded UI |
+| `src/util.js` | Pure helpers: ids, validation, slugs |
+| `lib/control-plane.js` | Control Plane transport (service binding first) |
+| `wrangler.jsonc` | Cloudflare Worker configuration |
+| `test/research.test.js` | Research pipeline unit tests |
+| `test/util.test.js` | Utility function unit tests |
+| `../control-plane/` | Clintware Control Plane (MCP server, research gateway) |
+| `../.github/workflows/deploy-proofos.yml` | Deployment workflow |
