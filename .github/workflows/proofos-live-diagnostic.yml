@@ -10,12 +10,31 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Check generated browser script
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { renderPage } from './proofos/src/page.js';
+          import { writeFileSync } from 'node:fs';
+          const html = renderPage({version:'diag'});
+          const m = html.match(/<script>([\s\S]*?)<\/script>/);
+          if (!m) throw new Error('inline script missing');
+          writeFileSync('/tmp/proofos-client.js', m[1]);
+          console.log('generated script bytes', m[1].length);
+          NODE
+          node --check /tmp/proofos-client.js
+
       - name: Probe live ProofOS
         shell: bash
         run: |
           set -u
-          echo '--- health ---'
+          echo '--- proof health ---'
           curl -sS -i --max-time 20 https://proof.clintware.com/health || true
+          echo
+          echo '--- control plane health ---'
+          curl -sS -i --max-time 20 https://mcp.clintware.com/health || true
           echo
           echo '--- summary ---'
           curl -sS -i --max-time 20 https://proof.clintware.com/api/summary || true
