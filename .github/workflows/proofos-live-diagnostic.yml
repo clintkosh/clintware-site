@@ -1,0 +1,27 @@
+name: ProofOS live diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/proofos-live-diagnostic.yml"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live ProofOS
+        shell: bash
+        run: |
+          set -u
+          echo '--- health ---'
+          curl -sS -i --max-time 20 https://proof.clintware.com/health || true
+          echo
+          echo '--- summary ---'
+          curl -sS -i --max-time 20 https://proof.clintware.com/api/summary || true
+          echo
+          echo '--- page with company query ---'
+          curl -sS --max-time 20 'https://proof.clintware.com/?company=Sweed' | grep -Eo 'loading current ProofOS telemetry|id="company"[^>]*|How does this company get a customer live\?' | head -10 || true
+          echo
+          echo '--- Sweed brief ---'
+          curl -sS -i --max-time 60 -X POST https://proof.clintware.com/api/brief -H 'content-type: application/json' --data '{"company":"Sweed"}' || true
