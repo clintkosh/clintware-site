@@ -38,3 +38,5 @@ BuyerOrigin rejects the coupon only.  It never blocks checkout.
 `shopify.extension.toml.example` deliberately contains no real extension UID.  Link/create the real Shopify app with Shopify CLI first so Shopify generates the UID.  Do not fabricate or copy one from another app.
 
 See `../docs/buyerorigin/SHOPIFY_INTEGRATION.md` and `../docs/buyerorigin/DEPLOYMENT.md` for registration, protected-data, custom-distribution pilot, and installation steps.
+
+No merge, production deploy, Shopify install, or distribution selection should occur until the external Shopify registration gates above are satisfied.
