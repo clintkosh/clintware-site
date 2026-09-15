@@ -1,0 +1,137 @@
+name: Finalize ProofOS metrics and onboarding
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/proofos-finalize-metrics-onboarding.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch ProofOS UI and research behavior
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              n = text.count(old)
+              if n != 1:
+                  raise SystemExit(f"{label}: expected exactly 1 match, found {n}")
+              return text.replace(old, new, 1)
+
+          page_path = Path('proofos/src/page.js')
+          page = page_path.read_text(encoding='utf-8')
+
+          old = '.status-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}'
+          new = old + '''\n.metrics-ticker{overflow:hidden;border-bottom:1px solid var(--line);background:rgba(10,13,18,.96);min-height:34px}\n.ticker-window{overflow:hidden;white-space:nowrap}\n.ticker-track{display:inline-flex;min-width:max-content;align-items:center;animation:proofTicker 48s linear infinite;will-change:transform}\n.ticker-set{display:inline-flex;align-items:center;gap:30px;padding:9px 30px 9px 0}\n.tick{font:600 10.5px/1 var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}\n.tick b{color:var(--cyan-strong);font-weight:700}\n.tick .good{color:var(--green)}\n.metrics-ticker:hover .ticker-track{animation-play-state:paused}\n@keyframes proofTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}'''
+          page = replace_once(page, old, new, 'ticker css')
+
+          old = '@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}'
+          new = '@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}.ticker-window{overflow-x:auto}.ticker-track{transform:none!important}}'
+          page = replace_once(page, old, new, 'reduced motion')
+
+          old = '<a href="#main" class="skip-link">Skip to main content</a>\n<header class="top"><div class="wrap top-in">'
+          new = '''<a href="#main" class="skip-link">Skip to main content</a>\n<div class="metrics-ticker" aria-label="Live ProofOS metrics"><div class="ticker-window"><div class="ticker-track" id="ticker-track"><span class="ticker-set"><span class="tick"><b>LIVE</b> loading current ProofOS telemetry&hellip;</span></span></div></div></div>\n<header class="top"><div class="wrap top-in">'''
+          page = replace_once(page, old, new, 'ticker html')
+
+          old = '<p class="lede">ProofOS is an evidence-based candidate intelligence system. Give it a company, role, or real problem &mdash; it runs live research through the Clintware Control Plane and returns an implementation-focused brief with cited sources. The same pipeline handles routing, caching, provider fallback, evidence merge, and privacy-safe telemetry. No third-party API is called from the browser.</p>'
+          new = '<p class="lede">ProofOS shows how I work, not just what I say I can do. Give it a company and it researches how that company gets customers from purchase to value using public evidence. If the company publishes an onboarding or implementation path, ProofOS maps it. If it does not, ProofOS says that plainly and proposes a practical path from the product, customer type, implementation signals, and cited evidence &mdash; with the suggestion clearly labeled as inference.</p>'
+          page = replace_once(page, old, new, 'hero copy')
+
+          old = '<p>Give ProofOS your role, company, or a real problem. It will map the requirement against demonstrated evidence, identify gaps, and show where the conclusion came from. Every claim is traced to a source. Inferred conclusions are labeled &mdash; never indistinguishable from verified evidence.</p>'
+          new = '<p>Want to see how I would approach your customers? Enter the company. If its onboarding process is public, ProofOS reconstructs it from the source material. If it is not public, it builds a sensible first-pass onboarding path and shows which parts are sourced facts and which parts are my inferred approach.</p>'
+          page = replace_once(page, old, new, 'hiring copy')
+
+          old = '<h2 class="sec">Live company brief</h2>'
+          new = '<h2 class="sec">How does this company get a customer live?</h2>'
+          page = replace_once(page, old, new, 'brief heading')
+
+          old = '<p class="form-note" id="form-note">Runs a live research call server-side. Results are cached 12h; citations come straight from the sources.</p>'
+          new = '<p class="form-note" id="form-note">Try the company you are interviewing with. If its onboarding process is public, ProofOS reconstructs it from sources. If it is not, the brief says so and switches to a clearly labeled suggested path instead of pretending the company published one. Results are cached 12h.</p>'
+          page = replace_once(page, old, new, 'form note')
+
+          old = '''  fetch('/api/summary').then(function(r){return r.json()}).then(function(s){\n    if(!s.ok)return;\n    var d=s.summary||{},cells=document.querySelectorAll('#stats .stat .v');\n    var vals=[(d.event_count!=null?d.event_count:'\\u2014'),(d.unique_sessions!=null?d.unique_sessions:'\\u2014'),\n              (d.cache_hit_rate!=null?Math.round(d.cache_hit_rate*100)+'%':'\\u2014'),(d.success_rate!=null?Math.round(d.success_rate*100)+'%':'\\u2014')];\n    cells.forEach(function(c,i){c.textContent=vals[i]});\n  }).catch(function(){});'''
+          new = '''  fetch('/api/summary').then(function(r){return r.json()}).then(function(s){\n    if(!s.ok)return;\n    var d=s.summary||{},cells=document.querySelectorAll('#stats .stat .v');\n    var researchRuns=(d.successful_research_runs!=null?d.successful_research_runs:(d.features&&d.features.brief!=null?d.features.brief:null));\n    var success=(d.success_rate!=null?Math.round(d.success_rate*100)+'%':'\\u2014');\n    var cacheRate=(d.cache_hit_rate!=null?Math.round(d.cache_hit_rate*100)+'%':'\\u2014');\n    var vals=[(researchRuns!=null?researchRuns:'\\u2014'),(d.unique_sessions!=null?d.unique_sessions:'\\u2014'),cacheRate,success];\n    cells.forEach(function(c,i){c.textContent=vals[i]});\n\n    var track=document.getElementById('ticker-track');\n    if(track){\n      var cost=(d.total_reported_api_cost!=null?'$'+Number(d.total_reported_api_cost).toFixed(4):'\\u2014');\n      var hits=(d.cache_hits!=null?d.cache_hits:'\\u2014');\n      var items=[\n        '<span class="tick"><b class="good">LIVE</b> proof.clintware.com</span>',\n        '<span class="tick"><b>'+esc(researchRuns!=null?researchRuns:'\\u2014')+'</b> research runs</span>',\n        '<span class="tick"><b>'+esc(success)+'</b> successful events</span>',\n        '<span class="tick"><b>'+esc(hits)+'</b> cache hits</span>',\n        '<span class="tick"><b>'+esc(cacheRate)+'</b> cache hit rate</span>',\n        '<span class="tick"><b>'+esc(d.unique_sessions!=null?d.unique_sessions:'\\u2014')+'</b> sessions</span>',\n        '<span class="tick"><b>'+esc(cost)+'</b> reported provider cost</span>'\n      ].join('');\n      var set='<span class="ticker-set">'+items+'</span>';\n      track.innerHTML=set+set;\n    }\n  }).catch(function(){});'''
+          page = replace_once(page, old, new, 'summary ticker js')
+
+          old = '<div class="stat"><div class="v">&mdash;</div><div class="l">Requests</div></div>'
+          new = '<div class="stat"><div class="v">&mdash;</div><div class="l">Research runs</div></div>'
+          page = replace_once(page, old, new, 'stats label')
+
+          page_path.write_text(page, encoding='utf-8')
+
+          cp_path = Path('control-plane/src/index.js')
+          cp = cp_path.read_text(encoding='utf-8')
+
+          old = 'return `Prepare an implementation-focused brief on "${company}" with these markdown H2 sections in order: ## Company snapshot; ## Product and customers; ## Implementation model; ## Recent signals; ## Why this matters for implementations. Under 500 words. Be specific and evidence-based.`;'
+          new = 'return `Prepare an implementation-focused brief on "${company}" with these markdown H2 sections in order: ## Company snapshot; ## Product and customers; ## Implementation model; ## Recent signals; ## Why this matters for implementations. Under ## Implementation model, reconstruct the company\'s published onboarding or implementation steps when public evidence supports them. If no public onboarding path is documented, say that plainly and add a short "Suggested onboarding path (inference)" grounded in the product, customer type, implementation requirements, and available evidence. Never imply the company uses the inferred path. Under 500 words. Be specific and evidence-based.`;'
+          cp = replace_once(cp, old, new, 'research query')
+
+          old = '{role:"system",content:"You are the Clintware research service. You synthesize implementation briefs strictly from the provided numbered sources. Cite inline as [n] for every fact. If evidence is thin or missing for a section, say so plainly. Never fabricate metrics, dates, names, customers, or events."},'
+          new = '{role:"system",content:"You are the Clintware research service. You synthesize implementation briefs from the provided numbered sources. Cite inline as [n] for every company fact. If evidence is thin or missing, say so plainly. For onboarding only, when the company does not publish a process, you may propose one clearly labeled Suggested onboarding path (inference), grounded in cited product, customer, and implementation evidence. Never imply an inferred path is the company\'s actual process. Never fabricate metrics, dates, names, customers, or events."},'
+          cp = replace_once(cp, old, new, 'research system prompt')
+
+          old = '## Implementation model\\\n## Recent signals\\'
+          new = '## Implementation model\\\nIn this section, reconstruct any public onboarding or implementation path. If the sources do not document one, say so and add "Suggested onboarding path (inference)" with 4-6 practical steps grounded in cited evidence; do not present the inferred path as company fact.\\\n## Recent signals\\'
+          cp = replace_once(cp, old, new, 'research user prompt')
+
+          cp_path.write_text(cp, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: |
+          npm install --prefix proofos --ignore-scripts --no-audit --no-fund
+          npm install --prefix control-plane --ignore-scripts --no-audit --no-fund
+
+      - name: Verify syntax and ProofOS tests
+        run: |
+          npm run --prefix control-plane check
+          npm run --prefix proofos check
+          npm test --prefix proofos
+
+      - name: Commit final source and remove one-time workflow
+        run: |
+          rm .github/workflows/proofos-finalize-metrics-onboarding.yml
+          git config user.name "Clintware Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add proofos/src/page.js control-plane/src/index.js .github/workflows/proofos-finalize-metrics-onboarding.yml
+          git commit -m "Polish ProofOS live metrics and onboarding inference"
+          git push
+
+      - name: Deploy Clintware Control Plane
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix control-plane wrangler deploy --config control-plane/wrangler.jsonc
+
+      - name: Deploy ProofOS
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix proofos wrangler deploy --config proofos/wrangler.jsonc
+
+      - name: Verify live services and updated UI
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 18); do
+            cp=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
+            po=$(curl -fsS --connect-timeout 5 --max-time 20 https://proof.clintware.com/health || true)
+            home=$(curl -fsS --connect-timeout 5 --max-time 20 https://proof.clintware.com/ || true)
+            if echo "$cp" | grep -q 'ok' && echo "$po" | grep -q 'proofos' && echo "$home" | grep -q 'metrics-ticker' && echo "$home" | grep -q 'Suggested onboarding'; then
+              echo "Control Plane and ProofOS verified live."
+              exit 0
+            fi
+            echo "Waiting for deployment ($i/18)"
+            sleep 5
+          done
+          echo "Live verification did not converge in time."
+          exit 1
