@@ -1,6 +1,11 @@
 name: Deploy ProofOS
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "proofos/**"
+      - ".github/workflows/deploy-proofos.yml"
   workflow_dispatch:
     inputs:
       verify_only:
@@ -45,7 +50,7 @@ jobs:
         run: npx --prefix proofos wrangler deploy --dry-run --config proofos/wrangler.jsonc
 
       - name: Deploy ProofOS
-        if: inputs.verify_only != 'true'
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_only != 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -54,7 +59,7 @@ jobs:
           command: deploy --cwd proofos
 
       - name: Verify proof.clintware.com
-        if: inputs.verify_only != 'true'
+        if: github.event_name != 'workflow_dispatch' || inputs.verify_only != 'true'
         run: |
           set -euo pipefail
           ready=0
