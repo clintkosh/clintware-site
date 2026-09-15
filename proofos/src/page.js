@@ -230,7 +230,7 @@ footer.bottom .mono{font-family:var(--mono)}
         html+='<div class="evidence-legend" role="list">';
         html+='<span class="tier external" role="listitem"><span class="swatch" aria-hidden="true"></span>External intelligence</span>';
         html+='<span class="tier inference" role="listitem"><span class="swatch" aria-hidden="true"></span>Inference</span>';
-        html+='<span class="tier internal" role="listitem"><span class="swatch" aria-hidden="true"></span>Internal evidence reserved for Clint\'s own work artifacts</span>';
+        html+='<span class="tier internal" role="listitem"><span class="swatch" aria-hidden="true"></span>Internal evidence reserved for Clint&#39;s own work artifacts</span>';
         html+='</div><div class="brief-card">';
         var sawInference=false;
         (b.brief||[]).forEach(function(s){
@@ -240,7 +240,7 @@ footer.bottom .mono{font-family:var(--mono)}
           html+='<h3>'+esc(title)+'</h3>';
           body.split(/\\n\\n+/).forEach(function(p){if(p.trim())html+='<p>'+md(p.trim())+'</p>'});
         });
-        if(sawInference)html+='<div class="inference-note">The suggested onboarding path is an inferred recommendation based on cited evidence. It is not presented as the company\'s published process.</div>';
+        if(sawInference)html+='<div class="inference-note">The suggested onboarding path is an inferred recommendation based on cited evidence. It is not presented as the company&#39;s published process.</div>';
         html+='</div>';
         if(b.sources&&b.sources.length){
           html+='<div class="sources"><h4>Sources</h4>';
@@ -256,6 +256,12 @@ footer.bottom .mono{font-family:var(--mono)}
       .catch(function(){out.innerHTML='<div class="error-box">Network error &mdash; try again.</div>'})
       .finally(function(){btn.disabled=false;btn.textContent='Research'});
   });
+
+  var initialCompany=new URLSearchParams(window.location.search).get('company');
+  if(initialCompany){
+    input.value=initialCompany.slice(0,80);
+    setTimeout(function(){if(form.requestSubmit)form.requestSubmit();else btn.click();},0);
+  }
 
   document.querySelectorAll('.cta button').forEach(function(el){
     el.addEventListener('click',function(){
