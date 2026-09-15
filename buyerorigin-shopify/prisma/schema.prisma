@@ -28,20 +28,25 @@ model Merchant {
   uninstalledAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  policy CouponPolicy?
+  policies CouponPolicy[]
   couponUses CouponUse[]
   reviews ReviewItem[]
 }
 
 model CouponPolicy {
   id String @id @default(cuid())
-  merchantId String @unique
+  merchantId String
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  couponCode String
+  couponKey String
   minSignals Int @default(2)
   lookbackDays Int @default(365)
   allowedPreviousUses Int @default(0)
   enabled Boolean @default(false)
+  discountId String?
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@unique([merchantId, couponKey])
 }
 
 model CouponUse {

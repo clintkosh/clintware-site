@@ -16,26 +16,28 @@ export const normalizeCode = (value = "") => String(value).trim().toLowerCase();
 export function keyedToken(secret, kind, value) {
   const normalized = kind === "email" ? normalizeEmail(value) : kind === "phone" ? normalizePhone(value) : kind === "address" ? normalizeAddress(value) : normalizeCode(value);
   if (!normalized) return null;
-  return crypto.createHmac("sha256", secret).update(`${kind}:${normalized}`).digest("base64url").slice(0, 22);
+  return crypto.createHash("sha256").update(`${secret}\0${kind}\0${normalized}`, "utf8").digest("hex").slice(0, 32);
 }
 
-export function buildCompactState({ secret, uses, policy = {} }) {
-  const byCode = {};
-  for (const use of uses) {
-    const code = normalizeCode(use.discountCode || use.code);
-    if (!code) continue;
-    const coupon = byCode[code] ||= { uses: [] };
-    coupon.uses.push({
-      e: keyedToken(secret, "email", use.email),
-      p: keyedToken(secret, "phone", use.phone),
-      a: keyedToken(secret, "address", use.address),
-      t: new Date(use.usedAt || use.orderDate).toISOString(),
-      o: String(use.orderId || "")
-    });
-  }
+export function buildCouponState({ secret, couponCode, uses, policy = {}, enabled = true }) {
+  const couponToken = keyedToken(secret, "code", couponCode);
+  const records = (uses || []).map((use) => ({
+    e: use.emailKey || keyedToken(secret, "email", use.email),
+    p: use.phoneKey || keyedToken(secret, "phone", use.phone),
+    a: use.addressKey || keyedToken(secret, "address", use.address),
+    d: String(use.usedAt || use.orderDate || "").slice(0, 10),
+    o: String(use.orderId || "")
+  })).filter((r) => r.d);
   return {
-    v: 1,
-    policy: { minSignals: Number(policy.minSignals || 2), lookbackDays: Number(policy.lookbackDays || 365), allowedPreviousUses: Number(policy.allowedPreviousUses || 0) },
-    byCode
+    v: 2,
+    enabled: Boolean(enabled),
+    k: secret,
+    coupon: couponToken,
+    policy: {
+      minSignals: Number(policy.minSignals || 2),
+      lookbackDays: Number(policy.lookbackDays || 365),
+      allowedPreviousUses: Number(policy.allowedPreviousUses || 0)
+    },
+    uses: records
   };
 }
