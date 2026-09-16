@@ -30,8 +30,14 @@ jobs:
         run: npm install --prefix vidcrm-worker --ignore-scripts --no-audit --no-fund
       - name: Syntax check
         run: npm run check --prefix vidcrm-worker
-      - name: CRM analytics audit
-        run: python3 tests/validate_crm_analytics.py
+      - name: Validate vidCRM analytics integration
+        run: |
+          set -euo pipefail
+          grep -Fq 'G-DCY144YM9P' vidcrm-worker/src/index.js
+          grep -Fq 'www.googletagmanager.com/gtag/js' vidcrm-worker/src/index.js
+          grep -Fq "gtag('config'" vidcrm-worker/src/index.js
+          grep -Fq 'googletagmanager.com' vidcrm-worker/src/index.js
+          grep -Fq 'google-analytics.com' vidcrm-worker/src/index.js
       - name: Wrangler dry run
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
