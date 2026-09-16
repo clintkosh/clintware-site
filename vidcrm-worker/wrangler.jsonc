@@ -12,6 +12,7 @@
   "services": [
     {"binding":"CONTROL_PLANE","service":"clintware-control-plane"}
   ],
+  "ai": {"binding":"AI"},
   "durable_objects": {
     "bindings": [
       {"name":"CRM_HUB","class_name":"CrmHub"}
