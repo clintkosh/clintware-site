@@ -1,0 +1,36 @@
+{
+  "product": "vidcrm",
+  "environment": "demo",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["vidcrm-worker/", "control-plane/manifests/vidcrm.json"],
+    "allowed_workflows": ["deploy-vidcrm.yml"]
+  },
+  "dns": {
+    "allowed_names": ["vidcrmdemo.clintware.com"]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:vidcrm-worker/**",
+    "deployment.read",
+    "deployment.execute:vidcrm",
+    "dns.ensure:vidcrmdemo.clintware.com",
+    "analytics.write:vidcrm",
+    "analytics.read:vidcrm",
+    "research.invoke",
+    "cache.read:vidcrm",
+    "cache.write:vidcrm"
+  ],
+  "deny": [
+    "secrets.read",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "telemetry_namespace": "vidcrm"
+}
