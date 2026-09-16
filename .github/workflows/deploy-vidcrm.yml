@@ -44,6 +44,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Require runtime secrets before touching production
+        env:
+          VIDCRM_DEMO_PASSWORD_SHA256: ${{ secrets.VIDCRM_DEMO_PASSWORD_SHA256 }}
+          VIDCRM_SESSION_SECRET: ${{ secrets.VIDCRM_SESSION_SECRET }}
+          VIDCRM_INGEST_TOKEN: ${{ secrets.VIDCRM_INGEST_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$VIDCRM_DEMO_PASSWORD_SHA256" || { echo "VIDCRM_DEMO_PASSWORD_SHA256 is not configured" >&2; exit 1; }
+          test -n "$VIDCRM_SESSION_SECRET" || { echo "VIDCRM_SESSION_SECRET is not configured" >&2; exit 1; }
+          test -n "$VIDCRM_INGEST_TOKEN" || { echo "VIDCRM_INGEST_TOKEN is not configured" >&2; exit 1; }
       - name: Install dependencies
         run: npm install --prefix vidcrm-worker --ignore-scripts --no-audit --no-fund
       - name: Deploy Worker
@@ -63,14 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           cd vidcrm-worker
-          put_secret() {
-            local name="$1" value="$2"
-            if [ -z "$value" ]; then
-              echo "Missing required secret: $name" >&2
-              exit 1
-            fi
-            printf '%s' "$value" | npx wrangler secret put "$name" >/dev/null
-          }
+          put_secret() { printf '%s' "$2" | npx wrangler secret put "$1" >/dev/null; }
           put_secret VIDCRM_DEMO_PASSWORD_SHA256 "$VIDCRM_DEMO_PASSWORD_SHA256"
           put_secret VIDCRM_SESSION_SECRET "$VIDCRM_SESSION_SECRET"
           put_secret VIDCRM_INGEST_TOKEN "$VIDCRM_INGEST_TOKEN"
