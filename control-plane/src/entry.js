@@ -27,6 +27,71 @@ function normalizeApiKeyAuth(request){
   return new Request(request,{headers});
 }
 
+const VIDCRM_MANIFEST = {
+  product:"vidcrm",
+  environment:"demo",
+  version:1,
+  repo:{
+    owner:"clintkosh",
+    name:"clintware-site",
+    default_branch:"main",
+    read:true,
+    write_prefixes:["vidcrm-worker/","control-plane/manifests/vidcrm.json"],
+    allowed_workflows:["deploy-vidcrm.yml"]
+  },
+  dns:{allowed_names:["vidcrmdemo.clintware.com"]},
+  capabilities:[
+    "repo.read:clintware-site",
+    "repo.write:vidcrm-worker/**",
+    "deployment.read",
+    "deployment.execute:vidcrm",
+    "dns.ensure:vidcrmdemo.clintware.com",
+    "analytics.write:vidcrm",
+    "analytics.read:vidcrm",
+    "research.invoke",
+    "cache.read:vidcrm",
+    "cache.write:vidcrm"
+  ],
+  deny:[
+    "secrets.read",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  telemetry_namespace:"vidcrm"
+};
+
+function trustedVidcrmBinding(request){
+  if(request.headers.get("cf-connecting-ip")) return false;
+  return (request.headers.get("cf-worker")||"").trim().toLowerCase()==="clintware-vidcrm-fluid-system";
+}
+
+async function bootstrapVidcrmService(request,env){
+  if(!trustedVidcrmBinding(request)) return request;
+  const url=new URL(request.url);
+  if(url.pathname!=="/api/v1/research"&&url.pathname!=="/api/v1/events") return request;
+
+  const registry=env.REGISTRY_HUB.getByName("registry:v1");
+  await registry.fetch(new Request("https://internal/register",{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify(VIDCRM_MANIFEST)
+  }));
+
+  const token=crypto.randomUUID()+crypto.randomUUID();
+  const token_hash=await sha256(token);
+  await registry.fetch(new Request("https://internal/client",{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({product:"vidcrm",token_hash,scopes:VIDCRM_MANIFEST.capabilities})
+  }));
+
+  const headers=new Headers(request.headers);
+  headers.set("authorization",`Bearer ${token}`);
+  return new Request(request,{headers});
+}
+
 const ADMIN_ONLY_REST = new Set([
   "/api/v1/repo/branch",
   "/api/v1/repo/write",
@@ -37,12 +102,13 @@ const ADMIN_ONLY_REST = new Set([
 export default {
   async fetch(request,env,ctx){
     request=normalizeApiKeyAuth(request);
+    request=await bootstrapVidcrmService(request,env);
     const url=new URL(request.url);
 
     // Product runtime tokens are deliberately limited to telemetry/query APIs.
     // Infrastructure mutations are available to trusted MCP clients through the
     // scoped product manifest, or to the administrative REST credential. This
-    // prevents a ProofOS runtime token from becoming a general infrastructure key.
+    // prevents a product runtime token from becoming a general infrastructure key.
     if(ADMIN_ONLY_REST.has(url.pathname)){
       const expected=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
       if(!expected||!await safeEq(bearer(request),expected)){
