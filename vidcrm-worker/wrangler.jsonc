@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vidcrm-fluid-system",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    {"pattern":"vidcrmdemo.clintware.com","custom_domain":true}
+  ],
+  "services": [
+    {"binding":"CONTROL_PLANE","service":"clintware-control-plane"}
+  ],
+  "durable_objects": {
+    "bindings": [
+      {"name":"CRM_HUB","class_name":"CrmHub"}
+    ]
+  },
+  "migrations": [
+    {"tag":"v1","new_sqlite_classes":["CrmHub"]}
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
