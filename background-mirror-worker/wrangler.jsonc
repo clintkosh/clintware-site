@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clintware-background-mirror",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "background.clintware.com", "custom_domain": true }
+  ],
+  "services": [
+    { "binding": "CONTROL_PLANE", "service": "clintware-control-plane" }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
