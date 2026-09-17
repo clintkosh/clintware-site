@@ -1,0 +1,48 @@
+{
+  "product": "background-mirror",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["background-mirror-worker/"],
+    "delete_prefixes": ["background-mirror-worker/"],
+    "allowed_workflows": ["deploy-background-mirror.yml"]
+  },
+  "dns": {
+    "allowed_names": ["background.clintware.com"]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:background-mirror-worker/**",
+    "repo.delete:background-mirror-worker/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:background-mirror",
+    "dns.ensure:background.clintware.com",
+    "analytics.write:background-mirror",
+    "analytics.read:background-mirror"
+  ],
+  "deny": [
+    "research.invoke",
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [".github/workflows/", ".github/actions/", "control-plane/security/", "control-plane/policy/"],
+  "telemetry_namespace": "background-mirror",
+  "privacy": {
+    "identity_storage": "browser-local",
+    "finding_storage": "browser-local",
+    "telemetry": "anonymous-feature-events-only",
+    "pii_in_telemetry": false
+  }
+}
