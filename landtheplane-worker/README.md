@@ -1,7 +1,7 @@
 # LandThePlane
 
 **Positioning:** **LandThePlane: And Hit the Ground Rolling.**  
-**Status:** local-first alpha + browser-direct Gmail OAuth MVP + YC fast-track product track  
+**Status:** local-first alpha + browser-direct Gmail OAuth MVP + Offer Gate / Career Shield + YC fast-track product track  
 **Public app:** `https://landtheplane.clintware.com/`  
 **Product detail:** `https://www.clintware.com/tools/landtheplane/`
 
@@ -106,6 +106,16 @@ The dedicated Cloudflare Worker currently serves:
 - create STAR retrieval shells;
 - surface evidence gaps;
 - optionally save run-level statistics locally in the browser.
+
+### Offer Gate / Career Shield
+
+- browser-local career exposure ledger;
+- screening/monitoring authorization record;
+- GREEN / YELLOW / RED / UNKNOWN evidence-workflow state;
+- dated career baseline and new-finding drift detection;
+- import from the standalone Background Mirror JSON format while discarding the identity profile;
+- direct link to the standalone Background Mirror app;
+- no person-level reputation score and no inference that an employer saw or acted on a finding.
 
 ### ASTRO Brief Builder
 
