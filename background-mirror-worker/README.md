@@ -23,7 +23,7 @@ It is the standalone privacy/external-identity engine shared conceptually with L
 
 ## Privacy model
 
-Identity fields, finding text, URLs, notes, report contents, and baseline evidence stay in browser storage by default. The Cloudflare Worker does not intentionally receive them.
+Identity fields remain page-memory-only unless the user explicitly enables local identity saving. Findings, check state, notes, URLs, and baseline evidence stay browser-local. The Cloudflare Worker does not intentionally receive those values.
 
 The worker has a private service binding to the Clintware Control Plane only for anonymous product telemetry. Allowed telemetry events are hard-coded and contain no identity or finding values.
 
