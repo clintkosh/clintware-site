@@ -1,0 +1,66 @@
+name: Deploy Background Mirror Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "background-mirror-worker/**"
+      - ".github/workflows/deploy-background-mirror.yml"
+  pull_request:
+    paths:
+      - "background-mirror-worker/**"
+      - ".github/workflows/deploy-background-mirror.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-background-mirror
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install --prefix background-mirror-worker --ignore-scripts --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check --prefix background-mirror-worker
+      - name: Wrangler dry run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix background-mirror-worker wrangler deploy --dry-run --config background-mirror-worker/wrangler.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install --prefix background-mirror-worker --ignore-scripts --no-audit --no-fund
+      - name: Deploy Background Mirror
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd background-mirror-worker
+      - name: Verify live
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://background.clintware.com/healthz || true)
+            if echo "$body" | grep -Fq '"product":"Background Mirror"'; then
+              echo "$body"
+              ready=1
+              break
+            fi
+            echo "Waiting for Background Mirror ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"
