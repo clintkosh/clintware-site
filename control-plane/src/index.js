@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-const VERSION = "2026-09-14";
+const VERSION = "2026-09-17";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -62,6 +62,35 @@ const DEFAULT_PROOFOS = {
   created_at:"2026-09-12T00:00:00.000Z"
 };
 
+const DEFAULT_LANDTHEPLANE = {
+  product:"landtheplane",
+  environment:"production",
+  version:1,
+  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
+  dns:{allowed_names:["landtheplane.clintware.com"]},
+  capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane"],
+  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"landtheplane",
+  created_at:"2026-09-17T00:00:00.000Z"
+};
+
+const DEFAULT_BACKGROUND_MIRROR = {
+  product:"background-mirror",
+  environment:"production",
+  version:1,
+  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["background-mirror-worker/"],delete_prefixes:["background-mirror-worker/"],allowed_workflows:["deploy-background-mirror.yml"]},
+  dns:{allowed_names:["background.clintware.com"]},
+  capabilities:["repo.read:clintware-site","repo.write:background-mirror-worker/**","repo.delete:background-mirror-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:background-mirror","dns.ensure:background.clintware.com","analytics.write:background-mirror","analytics.read:background-mirror"],
+  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"background-mirror",
+  privacy:{identity_storage:"browser-local",finding_storage:"browser-local",telemetry:"anonymous-feature-events-only",pii_in_telemetry:false},
+  created_at:"2026-09-17T00:00:00.000Z"
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR};
+
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
 // prerequisites (GitHub SHAs, branch refs, etc.) internally.
@@ -118,7 +147,7 @@ function capabilityForMatch(capability,resource){
   if(cap==="repo.commit.status") return "repo.commit:status";
   if(cap==="repo.workflow.dispatch") return "repo.workflow:dispatch";
   if(cap==="repo.workflow.status") return "repo.workflow:status";
-  if(cap==="deployment.execute") return "deployment.execute:proof";
+  if(cap==="deployment.execute") return `deployment.execute:${resource?.product||"proofos"}`;
   if(cap==="deployment.read") return "deployment.read";
   if(cap==="dns.ensure") return resource?.name?`dns.ensure:${resource.name}`:"dns.ensure";
   if(cap==="research.invoke") return "research.invoke";
@@ -183,12 +212,16 @@ export class RegistryHub extends DurableObject {
   constructor(ctx,env){super(ctx,env);}
   async ensureDefaults(){
     let products=await this.ctx.storage.get("products");
-    if(!products){products={proofos:DEFAULT_PROOFOS};await this.ctx.storage.put("products",products);}
-    // Migrate stored manifests when the schema version changes
-    if(products.proofos&&products.proofos.version!==DEFAULT_PROOFOS.version){
-      products.proofos={...DEFAULT_PROOFOS,...products.proofos,version:DEFAULT_PROOFOS.version,repo:{...DEFAULT_PROOFOS.repo,...(products.proofos.repo||{})},capabilities:DEFAULT_PROOFOS.capabilities,deny:DEFAULT_PROOFOS.deny,protected_paths:DEFAULT_PROOFOS.protected_paths};
-      await this.ctx.storage.put("products",products);
+    if(!products)products={};
+    let changed=false;
+    for(const [key,defaults] of Object.entries(DEFAULT_PRODUCTS)){
+      if(!products[key]){products[key]=defaults;changed=true;continue;}
+      if(products[key].version!==defaults.version){
+        products[key]={...defaults,...products[key],version:defaults.version,repo:{...defaults.repo,...(products[key].repo||{})},dns:{...defaults.dns,...(products[key].dns||{})},capabilities:defaults.capabilities,deny:defaults.deny,protected_paths:defaults.protected_paths};
+        changed=true;
+      }
     }
+    if(changed)await this.ctx.storage.put("products",products);
     return products;
   }
   async fetch(request){
@@ -398,7 +431,7 @@ async function verifyProductToken(request,env,product){
 // calling worker's name and no cf-connecting-ip, so the identity cannot be spoofed
 // from outside (public requests always arrive with cf-connecting-ip, which is
 // stripped/managed by the edge and absent on binding traffic).
-const SERVICE_WORKERS={proofos:"clintware-proofos"};
+const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror"};
 function serviceProduct(request){
   if(request.headers.get("cf-connecting-ip"))return null;
   const caller=(request.headers.get("cf-worker")||"").trim().toLowerCase();

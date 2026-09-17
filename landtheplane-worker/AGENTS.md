@@ -73,3 +73,14 @@ If profile/hero images are later added to Gmail drafts, inline images must be ve
 - Do not expose private candidate, recruiter, employer, compensation, transcript, or work data in public demos.
 - Keep current alpha capability separate from roadmap capability.
 - Never claim autonomous Gmail sending, server-side mailbox storage, a production-wide shared Google OAuth client, or physical Gmail-mobile visual verification until those capabilities actually exist and are verified.
+
+
+## Offer Gate / Career Shield invariants
+
+- Treat Background Mirror findings as user-side evidence, not employer conclusions.
+- Never assign a person-level reputation score or hiring/retention recommendation.
+- Offer Gate may classify recorded discrepancies and screening-readiness state only.
+- Career Shield may compare a dated baseline with later findings; it must not infer that an employer saw a finding or took employment action.
+- Screening/monitoring authorization records remain browser-local in the alpha.
+- When importing a Background Mirror export, discard the identity profile and copy only the finding/baseline fields needed for the career view.
+- Current states are evidence workflow states: GREEN / YELLOW / RED / UNKNOWN. They are not predictions of employment outcome.

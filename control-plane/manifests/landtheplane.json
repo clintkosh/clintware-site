@@ -1,0 +1,42 @@
+{
+  "product": "landtheplane",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["landtheplane-worker/"],
+    "delete_prefixes": ["landtheplane-worker/"],
+    "allowed_workflows": ["deploy-landtheplane-worker.yml"]
+  },
+  "dns": {
+    "allowed_names": ["landtheplane.clintware.com"]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:landtheplane-worker/**",
+    "repo.delete:landtheplane-worker/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:landtheplane",
+    "dns.ensure:landtheplane.clintware.com",
+    "analytics.write:landtheplane",
+    "analytics.read:landtheplane"
+  ],
+  "deny": [
+    "research.invoke",
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [".github/workflows/", ".github/actions/", "control-plane/security/", "control-plane/policy/"],
+  "telemetry_namespace": "landtheplane"
+}
