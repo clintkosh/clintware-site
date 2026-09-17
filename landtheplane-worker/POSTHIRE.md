@@ -120,3 +120,26 @@ Prefer summary/action-item/topic ingestion by default. Retrieve full transcripts
 ## Product thesis
 
 The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through interviews, becomes a living work graph after hire, and continuously turns work into better workflows and verified evidence.
+
+
+## Offer Gate / Career Shield
+
+LandThePlane now carries a career-specific view of the Background Mirror evidence model.
+
+### Offer Gate
+
+Before or during a conditional-offer/background-screening stage, the user can record:
+
+- screening provider;
+- one-time vs ongoing authorization scope;
+- authorization date;
+- categories covered;
+- career-relevant discrepancies and remediation state.
+
+The current alpha stores this information in the browser.
+
+### Career Shield
+
+After hire, the user can save a career baseline and compare later findings against it. The state is GREEN / YELLOW / RED / UNKNOWN based on recorded unresolved evidence and drift. It is not a reputation score and is not a prediction of employment outcome.
+
+A Background Mirror JSON export can be imported into LandThePlane. LandThePlane intentionally discards the exported identity profile and retains only the finding/baseline fields needed for the career view.
