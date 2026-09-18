@@ -86,7 +86,7 @@ jobs:
           for i in $(seq 1 30); do
             body=$(mktemp)
             code=$(curl -sS --connect-timeout 5 --max-time 20               -o "$body" -w '%{http_code}' "https://meet.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Pick a time. Get it done.' "$body"               && grep -Fq 'Book meeting' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
+            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Pick a time. Get it done.' "$body"               && grep -Fq 'Book meeting' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Fq 'ca-pub-6169557480632773' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
               echo 'meet.clintware.com serves native ClintCal with no Koalendar or FormSubmit dependency.'
               ready=1
               rm -f "$body"
