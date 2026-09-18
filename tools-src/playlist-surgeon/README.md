@@ -5,6 +5,7 @@ A local-first Windows playlist cleanup utility from Clintware.
 Playlist Surgeon is designed for one awkward job: take a large Spotify playlist you own or collaborate on, select one or many artists at once, select arbitrary tracks, preview the destructive action, and remove the selected material in bulk.
 
 **License:** MIT  
+**Build status:** Windows x64 self-contained build verified in GitHub Actions on 2026-09-18.  
 **Platform:** Windows 10/11 x64  
 **Runtime:** self-contained .NET 8 WPF build  
 **Network use:** Spotify Accounts + Spotify Web API only  
