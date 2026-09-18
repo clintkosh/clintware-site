@@ -20,6 +20,7 @@ The legacy `clintware-audiolab` Cloudflare Pages project uses `audio-lab` as its
 
 - `/` — company overview
 - `/tools/` — Clintware apps and labs
+- `/link/` — ClintLink URL shortener, click summaries, and protected-link access
 - `/blog/` — field notes
 - `/privacy/`
 - `/contact/`
@@ -33,6 +34,10 @@ The GitHub Pages workflow is manual until the official domain move. It validates
 - Keep RenewNudge on its existing Lovable deployment until that project is changed there.
 - Keep separate codeFEDDY properties outside the Clintware product map.
 - Never deploy the retired Aggieland Media Lab address as the public Family Media Lab.
+
+## ClintLink
+
+The public UI is served from `/link/`. Redirects, protected-link access, and click counting are handled by `clintlink-worker/` at `link.clintware.com`. Link creation remains admin-authenticated.
 
 ## CRM analytics requirement
 

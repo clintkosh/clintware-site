@@ -2,6 +2,8 @@
 // Live metrics come from ProofOS telemetry through the Clintware Control Plane.
 // Company research separates sourced intelligence from inference.
 
+const GA_HEAD = `<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>`;
+
 export function renderPage({ version } = {}) {
   const v = version || "1.0.0";
   return `<!doctype html>
@@ -115,6 +117,7 @@ footer.bottom .mono{font-family:var(--mono)}
 @media (max-width:768px){.top-in{flex-direction:column;align-items:flex-start;gap:12px}.hero{padding:36px 0 26px}.hero h1{max-width:none}.hero p.lede{font-size:15px}.brief-form{flex-direction:column}.brief-form input{min-width:0;width:100%}.brief-form button{width:100%}.brief-card{padding:18px 16px}.hiring-banner{padding:20px 18px}.source{flex-direction:column;gap:4px}.source .d{margin-left:0}.cta-row{grid-template-columns:1fr}.evidence-legend{flex-direction:column;gap:8px}}
 @media (max-width:480px){body{font-size:14.5px}.wrap{padding:0 16px}.hero h1{font-size:25px}.stat .v{font-size:18px}.ticker-set{gap:24px;padding-right:24px}}
 </style>
+${GA_HEAD}
 </head>
 <body>
 <a href="#main" class="skip-link">Skip to main content</a>
