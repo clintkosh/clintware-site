@@ -1,0 +1,12 @@
+{
+  "name": "clintware-neuron7-case",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-18",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true }
+}
