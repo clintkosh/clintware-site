@@ -101,7 +101,16 @@ jobs:
       - name: Verify health and live availability
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS https://meet.clintware.com/health >/tmp/meet-health.json
+          health_code=$(curl -sS -o /tmp/meet-health.json -w '%{http_code}' https://meet.clintware.com/health || true)
+          echo "HEALTH_HTTP=$health_code"
+          cat /tmp/meet-health.json
+          echo
+          availability_code=$(curl -sS -o /tmp/availability.json -w '%{http_code}' https://meet.clintware.com/api/availability || true)
+          echo "AVAILABILITY_HTTP=$availability_code"
+          cat /tmp/availability.json
+          echo
+          test "$health_code" = "200"
+          test "$availability_code" = "200"
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/meet-health.json'))
@@ -110,7 +119,6 @@ jobs:
           assert d.get('storage') == 'sqlite',d
           assert d.get('mailer') == 'resend',d
           PY
-          curl --fail-with-body -sS https://meet.clintware.com/api/availability >/tmp/availability.json
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/availability.json'))
