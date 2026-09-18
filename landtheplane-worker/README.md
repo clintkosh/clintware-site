@@ -22,6 +22,23 @@ LandThePlane is a continuous career operating system. It starts before an interv
 7. Create a Gmail draft when requested and read the stored draft back before labeling the write verified.
 8. Keep final sending user-controlled.
 
+### Communication Guard
+
+LandThePlane treats outbound communication as part of the career operating system, not an unreviewed side channel. A shared local-first guard can be run against any drafted message and is mandatory for integrated career-facing composition paths.
+
+It checks for patterns that can unnecessarily reduce seniority or leverage, including self-critique, post-interview mistake narration, reassurance-seeking, over-praise/deference, personal-need disclosure, repeated interest, apologetic follow-up pressure, avoidable negotiation giveaways, and excessive length.
+
+The check is context-aware. Recruiter, hiring-manager, interviewer, networking, status-check, rejection, offer/negotiation, and employer communication use career-facing thresholds. General/personal communication is not treated as if it were a recruiting message.
+
+Current behavior:
+
+- manual Message Guard is available for pasted outbound text;
+- career-facing Gmail draft creation calls the same guard before draft creation;
+- HOLD and REVISE career-facing states block the integrated draft path until the source copy is edited;
+- REVIEW is advisory;
+- autonomous sending remains disabled;
+- future communication surfaces must call the same shared guard.
+
 ### Land
 
 When the user accepts the job, the job description becomes version 0 of a living success plan:
