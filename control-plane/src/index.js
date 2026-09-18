@@ -35,7 +35,7 @@ const DEFAULT_PROOFOS = {
   product:"proofos",
   environment:"production",
   version:2,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
   dns:{allowed_names:["proof.clintware.com","mcp.clintware.com"]},
   capabilities:[
     "repo.read:clintware-site",
@@ -66,7 +66,7 @@ const DEFAULT_LANDTHEPLANE = {
   product:"landtheplane",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
   dns:{allowed_names:["landtheplane.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -79,7 +79,7 @@ const DEFAULT_BACKGROUND_MIRROR = {
   product:"background-mirror",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["background-mirror-worker/"],delete_prefixes:["background-mirror-worker/"],allowed_workflows:["deploy-background-mirror.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["background-mirror-worker/"],delete_prefixes:["background-mirror-worker/"],allowed_workflows:["deploy-background-mirror.yml"]},
   dns:{allowed_names:["background.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:background-mirror-worker/**","repo.delete:background-mirror-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:background-mirror","dns.ensure:background.clintware.com","analytics.write:background-mirror","analytics.read:background-mirror"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -93,7 +93,7 @@ const DEFAULT_NEURON7_CASE = {
   product:"neuron7-case",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
   dns:{allowed_names:["n7.clintware.com","n7case.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:neuron7-case-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:neuron7-case","dns.ensure:n7.clintware.com","dns.ensure:n7case.clintware.com","analytics.write:neuron7-case","analytics.read:neuron7-case"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -103,7 +103,20 @@ const DEFAULT_NEURON7_CASE = {
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE};
+const DEFAULT_CODEFEDDY = {
+  product:"codefeddy",
+  environment:"production",
+  version:1,
+  repo:{identity:"codefeddy",owner:"codeFEDDY",name:"codeFEDDY.github.io",default_branch:"main",read:true,write_prefixes:[""],delete_prefixes:[""],allowed_workflows:[]},
+  dns:{allowed_names:[]},
+  capabilities:["repo.read:codeFEDDY.github.io","repo.write:*","repo.delete:*","repo.branch:create","repo.branch:read","repo.commit:status","analytics.write:codefeddy","analytics.read:codefeddy"],
+  deny:["secrets.read","secrets.export","billing.manage","repo.workflow:dispatch","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/"],
+  telemetry_namespace:"codefeddy",
+  created_at:"2026-09-18T00:00:00.000Z"
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY};
 
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
@@ -144,7 +157,7 @@ function deletePathAllowed(manifest,path){
 }
 
 // Map a high-level capability to a manifest capability string for matching
-function capabilityForMatch(capability,resource){
+function capabilityForMatch(capability,resource,manifest){
   const cap=String(capability||"");
   const path=String(resource?.path||"");
   if(cap==="repo.file.delete"){
@@ -155,7 +168,7 @@ function capabilityForMatch(capability,resource){
     if(path)return `repo.write:${path.split("/")[0]}/**`;
     return "repo.write";
   }
-  if(cap==="repo.file.read") return "repo.read:clintware-site";
+  if(cap==="repo.file.read") return `repo.read:${manifest?.repo?.name||"unknown"}`;
   if(cap==="repo.branch.create") return "repo.branch:create";
   if(cap==="repo.branch.read") return "repo.branch:read";
   if(cap==="repo.commit.status") return "repo.commit:status";
@@ -176,7 +189,7 @@ function capabilityForMatch(capability,resource){
 function evaluatePolicy(manifest,capability,resource,reason){
   if(!manifest) return {decision:"denied",reason:"product_not_found"};
   // Step 1: check deny list
-  const capForMatch=capabilityForMatch(capability,resource);
+  const capForMatch=capabilityForMatch(capability,resource,manifest);
   const denyList=manifest.deny||[];
   for(const d of denyList){
     if(d===capability||d===capForMatch) return {decision:"denied",reason:"capability_explicitly_denied"};
@@ -478,63 +491,83 @@ async function audit(env,product,action,requestId,details={},success=true,error_
   }catch{}
 }
 
-async function github(env,path,init={}){
+function normalizeGithubIdentity(value){
+  return String(value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
+}
+function githubSecretName(identity){
+  const key=normalizeGithubIdentity(identity).toUpperCase().replace(/[^A-Z0-9]/g,"_");
+  return key?`GITHUB_TOKEN_${key}`:"";
+}
+function githubAuth(env,manifest){
+  const identity=normalizeGithubIdentity(manifest?.repo?.identity||manifest?.repo?.owner||"clintkosh");
+  const secretName=githubSecretName(identity);
+  let token=secretName?String(env[secretName]||""):"";
+  let source=token?secretName:"";
+  // Backward-compatible migration path for the original Clintware credential.
+  if(!token&&identity==="clintkosh"&&env.GITHUB_CONTROL_PLANE_TOKEN){
+    token=String(env.GITHUB_CONTROL_PLANE_TOKEN);
+    source="GITHUB_CONTROL_PLANE_TOKEN";
+  }
+  return {identity,secret_name:secretName,configured:Boolean(token),source,token};
+}
+async function github(env,manifest,path,init={}){
   const headers=new Headers(init.headers||{});
   headers.set("accept","application/vnd.github+json");headers.set("x-github-api-version","2022-11-28");headers.set("user-agent","Clintware-Control-Plane/1.0");
-  if(env.GITHUB_CONTROL_PLANE_TOKEN)headers.set("authorization",`Bearer ${env.GITHUB_CONTROL_PLANE_TOKEN}`);
+  const auth=githubAuth(env,manifest);
+  if(auth.token)headers.set("authorization",`Bearer ${auth.token}`);
   return fetch(`https://api.github.com${path}`,{...init,headers});
 }
 async function repoRead(env,manifest,path,ref){
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const q=ref?`?ref=${encodeURIComponent(ref)}`:"";
-  const r=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}${q}`);
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}${q}`);
   if(!r.ok)return {ok:false,status:r.status,error:"github_read_failed",detail:await r.text()};
   const data=await r.json();
   if(Array.isArray(data))return {ok:true,type:"directory",items:data.map(x=>({name:x.name,path:x.path,type:x.type,sha:x.sha}))};
   return {ok:true,type:data.type,path:data.path,sha:data.sha,encoding:data.encoding,content:data.content?fromB64(data.content.replace(/\n/g,"")):"",html_url:data.html_url};
 }
 async function repoCreateBranch(env,manifest,branch,base){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
-  const get=await github(env,`/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base||manifest.repo.default_branch||"main")}`);
+  const get=await github(env,manifest,`/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base||manifest.repo.default_branch||"main")}`);
   if(!get.ok)return {ok:false,status:get.status,error:"base_ref_lookup_failed",detail:await get.text()};
   const baseData=await get.json();
-  const r=await github(env,`/repos/${owner}/${repo}/git/refs`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:`refs/heads/${branch}`,sha:baseData.object.sha})});
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/git/refs`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:`refs/heads/${branch}`,sha:baseData.object.sha})});
   if(!r.ok)return {ok:false,status:r.status,error:"branch_create_failed",detail:await r.text()};
   return {ok:true,branch,sha:baseData.object.sha};
 }
 async function repoWrite(env,manifest,{path,content,message,branch,sha}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!pathAllowed(manifest,path))return {ok:false,status:403,error:"path_not_allowed"};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const body={message:String(message||`Update ${path} via Clintware Control Plane`),content:b64(content),branch:String(branch||manifest.repo.default_branch||"main")};
   if(sha)body.sha=sha;
-  const r=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok)return {ok:false,status:r.status,error:"github_write_failed",detail:await r.text()};
   const data=await r.json();return {ok:true,commit_sha:data.commit?.sha||"",content_sha:data.content?.sha||"",path};
 }
 // Delete a file — Clintware resolves the GitHub SHA internally so the agent never
 // has to. Only allowed within delete_prefixes and never on protected paths.
 async function repoFileDelete(env,manifest,{path,message,branch}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!deletePathAllowed(manifest,path))return {ok:false,status:403,error:"delete_path_not_allowed"};
   if(isProtectedPath(manifest,path))return {ok:false,status:403,error:"protected_path"};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const ref=branch||manifest.repo.default_branch||"main";
   // Step 1: resolve the current file SHA internally
-  const getR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
+  const getR=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
   if(!getR.ok)return {ok:false,status:getR.status,error:"file_lookup_failed",detail:await getR.text()};
   const fileData=await getR.json();
   if(Array.isArray(fileData))return {ok:false,status:400,error:"path_is_directory"};
   // Step 2: delete using the resolved SHA
-  const delR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({message:String(message||"Delete "+path+" via Clintware Control Plane"),sha:fileData.sha,branch:ref})});
+  const delR=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({message:String(message||"Delete "+path+" via Clintware Control Plane"),sha:fileData.sha,branch:ref})});
   if(!delR.ok)return {ok:false,status:delR.status,error:"github_delete_failed",detail:await delR.text()};
   const delData=await delR.json();
   return {ok:true,commit_sha:delData.commit?.sha||"",path,sha_resolved_internally:true};
 }
 // Move/rename a file — Clintware resolves the SHA, reads content, writes new path, deletes old.
 async function repoFileMove(env,manifest,{from_path,to_path,message,branch}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!pathAllowed(manifest,to_path))return {ok:false,status:403,error:"target_path_not_allowed"};
   if(!deletePathAllowed(manifest,from_path))return {ok:false,status:403,error:"source_delete_not_allowed"};
   const readResult=await repoRead(env,manifest,from_path,branch);
@@ -545,9 +578,9 @@ async function repoFileMove(env,manifest,{from_path,to_path,message,branch}){
   return {ok:true,commit_sha:writeResult.commit_sha,path:to_path,moved_from:from_path};
 }
 async function workflowDispatch(env,manifest,workflow,ref,inputs={}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_actions_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_actions_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!(manifest.repo.allowed_workflows||[]).includes(workflow))return {ok:false,status:403,error:"workflow_not_allowed"};
-  const r=await github(env,`/repos/${manifest.repo.owner}/${manifest.repo.name}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:ref||manifest.repo.default_branch||"main",inputs})});
+  const r=await github(env,manifest,`/repos/${manifest.repo.owner}/${manifest.repo.name}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:ref||manifest.repo.default_branch||"main",inputs})});
   if(!r.ok)return {ok:false,status:r.status,error:"workflow_dispatch_failed",detail:await r.text()};
   return {ok:true,workflow,ref:ref||manifest.repo.default_branch||"main"};
 }
@@ -732,7 +765,12 @@ function createMcpServer(env,mcpRequest){
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async()=>{
     const products=await (await registryHub(env).fetch("https://internal/list")).json();
-    return {content:[{type:"text",text:JSON.stringify({ok:true,service:"Clintware Control Plane",version:VERSION,products:products.products?.map(p=>p.product)||[],adapters:{github_read:true,github_write:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID)}})}]};
+    const productList=products.products||[];
+    const identities=[...new Map(productList.map(p=>{
+      const auth=githubAuth(env,p);
+      return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name}];
+    })).values()];
+    return {content:[{type:"text",text:JSON.stringify({ok:true,service:"Clintware Control Plane",version:VERSION,products:productList.map(p=>p.product),github_identities:identities,adapters:{github_read:true,github_write:identities.some(x=>x.configured),cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID)}})}]};
   });
   server.registerTool("clintware_product_manifest",{
     title:"Get a Clintware product capability manifest",
@@ -989,10 +1027,12 @@ async function handleMcp(request,env,ctx){
 }
 
 function safeConfig(env){
+  const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH||env.GITHUB_TOKEN_CODEFEDDY);
   return {
     github_read:true,
-    github_write:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),
-    github_actions:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),
+    github_write:knownGithub,
+    github_actions:knownGithub,
+    github_multi_identity:true,
     cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID),
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
