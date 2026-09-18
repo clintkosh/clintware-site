@@ -41,3 +41,7 @@ npm run check
 ```
 
 The local integration test uses a mock Resend server and a local Wrangler Durable Object instance. It never sends external email.
+
+## Shared mail service
+
+The newsletter Worker also exposes the authenticated internal mail boundary used by Clintware services such as ClintCal. The internal endpoint remains protected by `INTERNAL_MAIL_SECRET`; product Workers do not receive or store the Resend API key directly.
