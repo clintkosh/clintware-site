@@ -1046,7 +1046,18 @@ export default {
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
         const rconfig=await researchConfig(env);
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:(products.products||[]).map(p=>p.product),adapters:safeConfig(env),research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
+        const productList=products.products||[];
+        const githubIdentities=[...new Map(productList.map(p=>{
+          const auth=githubAuth(env,p);
+          return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name,repositories:[]}];
+        })).values()];
+        for(const p of productList){
+          const identity=normalizeGithubIdentity(p?.repo?.identity||p?.repo?.owner||"clintkosh");
+          const row=githubIdentities.find(x=>x.identity===identity);
+          if(row&&p?.repo?.owner&&p?.repo?.name)row.repositories.push(`${p.repo.owner}/${p.repo.name}`);
+        }
+        const adapters={...safeConfig(env),github_write:githubIdentities.some(x=>x.configured),github_actions:githubIdentities.some(x=>x.configured)};
+        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
