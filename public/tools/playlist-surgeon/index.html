@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Playlist Surgeon is a free MIT-licensed local Windows utility for bulk artist and track removal from editable Spotify playlists.">
+  <link rel="canonical" href="https://www.clintware.com/tools/playlist-surgeon/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Playlist Surgeon | Clintware™">
+  <meta property="og:description" content="Local-first bulk playlist cleanup by artist or track, maintained against Spotify Web API changes.">
+  <meta property="og:url" content="https://www.clintware.com/tools/playlist-surgeon/">
+  <title>Playlist Surgeon | Clintware™</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+  <style>
+    .wrap{max-width:980px;margin:auto;padding:0 22px}.hero{padding:42px 0 30px;border-bottom:1px solid #26323d}.section{padding:30px 0;border-bottom:1px solid #1f2a34}
+    .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}.fact{padding:14px;border:1px solid #26323d;border-radius:10px;background:#0f1319}.fact b{display:block;color:#eef6fc;font:700 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.fact span{display:block;margin-top:4px;color:#91a4b8;font-size:12px}
+    .steps{counter-reset:step;display:grid;gap:10px;margin-top:16px;padding:0;list-style:none}.steps li{position:relative;padding:14px 14px 14px 52px;border:1px solid #26323d;border-radius:10px;background:#0f1319;color:#a8b6c5}.steps li:before{counter-increment:step;content:counter(step);position:absolute;left:14px;top:13px;width:24px;height:24px;border:1px solid #68dfff;border-radius:50%;display:grid;place-items:center;color:#68dfff;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace}
+    pre{overflow:auto;padding:14px;border:1px solid #26323d;border-radius:10px;background:#080a0e;color:#cdeef4;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.note{padding:16px;border-left:3px solid #68dfff;background:#0f1319;color:#9eb0c1;line-height:1.6}.note strong{color:#eef6fc}
+    ul.clean{margin-top:14px;color:#9eb0c1}.clean li+li{margin-top:6px}@media(max-width:760px){.facts{grid-template-columns:1fr 1fr}}@media(max-width:480px){.facts{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span>™</a><nav class="site-nav" aria-label="Primary navigation"><a href="/products/">Products</a><a href="/client-work/">Client Work</a><a href="/experiments/">Experiments</a><a href="/blog/">Notes</a><a href="/about/">About</a><a href="/contact/">Contact</a></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
+<main>
+  <section class="hero"><div class="wrap">
+    <span class="section-kicker">FREE WINDOWS UTILITY · MIT</span>
+    <h1>Playlist Surgeon</h1>
+    <p>Bulk-clean Spotify playlists you own or collaborate on. Select one artist, several artists, arbitrary tracks, or a saved local blocklist; review the selection; then remove the matches in controlled API batches with a local backup first.</p>
+    <div class="actions">
+      <a class="button button-cyan" href="https://github.com/clintkosh/clintware-site/tree/main/tools-src/playlist-surgeon">Source on GitHub</a>
+      <a class="button button-ghost" href="https://github.com/clintkosh/clintware-site/actions/workflows/build-playlist-surgeon.yml">Windows builds</a>
+      <a class="button button-ghost" href="https://developer.spotify.com/dashboard">Spotify developer setup</a>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>LICENSE</b><span>MIT</span></div>
+      <div class="fact"><b>PLATFORM</b><span>Windows 10/11 x64</span></div>
+      <div class="fact"><b>AUTH</b><span>OAuth PKCE · no client secret</span></div>
+      <div class="fact"><b>DATA</b><span>Rules, tokens, backups stay local</span></div>
+    </div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>The point is maintenance, not novelty.</h2>
+    <div class="note top-gap"><strong>Many Spotify playlist plugins and managers already exist.</strong> Playlist Surgeon is intentionally a small local utility whose job is to keep this specific bulk-cleanup workflow working as Spotify changes its API. The project is expected to track endpoint, field, authentication, scope, quota, and access-rule changes rather than freeze on one integration. If Spotify eventually builds equivalent artist-level and multi-select cleanup directly into its own clients, the gap may no longer need a separate tool.</div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>What it does now.</h2>
+    <ul class="clean">
+      <li>Loads your playlists and editable playlist items through Spotify's current Web API.</li>
+      <li>Groups tracks by every credited artist and shows artist counts.</li>
+      <li>Ctrl/Shift-select multiple artists and select all matching tracks at once.</li>
+      <li>Select or deselect individual tracks in the same cleanup pass.</li>
+      <li>Save artists to a persistent local blocklist and apply the rule to later playlist scans.</li>
+      <li>Search by track, artist, or album before selecting.</li>
+      <li>Create a timestamped JSON backup before destructive removals.</li>
+      <li>Use Spotify playlist snapshot IDs and batches of up to 100 removal items.</li>
+      <li>Respect Spotify rate limits using Retry-After handling.</li>
+      <li>Protect refresh-token state with Windows DPAPI for the current user.</li>
+    </ul>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>Requirements and one-time setup.</h2>
+    <ol class="steps">
+      <li>Use Windows 10 or Windows 11 x64. The published build is self-contained; .NET 8 is only required when compiling from source.</li>
+      <li>Use a Spotify Premium account. Spotify's current Web API documentation requires Premium for Web API use.</li>
+      <li>Create an app in the Spotify Developer Dashboard and select <strong>Web API</strong>.</li>
+      <li>Add the exact redirect URI <code>http://127.0.0.1:5543/callback/</code>. Spotify permits HTTP for explicit loopback IP addresses; do not substitute <code>localhost</code>.</li>
+      <li>Copy the Spotify <strong>Client ID</strong> into Playlist Surgeon. Do not enter a Client Secret; the desktop app uses Authorization Code + PKCE.</li>
+      <li>Click <strong>Connect Spotify</strong>, approve the playlist scopes, choose a playlist, and review proposed removals before applying them.</li>
+    </ol>
+    <p class="top-gap">Spotify currently exposes playlist items only for playlists you own or collaborate on. For a Spotify-generated mix, first copy it into a playlist you own, then edit that copy.</p>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>Build it yourself.</h2>
+    <p>The full source and MIT license are public. From the project folder on Windows:</p>
+    <pre>.\build.ps1</pre>
+    <p>Or publish directly:</p>
+    <pre>dotnet publish .\PlaylistSurgeon.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\dist</pre>
+    <p>The output is <code>dist\PlaylistSurgeon.exe</code>. GitHub Actions also builds the Windows artifact from the same source.</p>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>Local data boundary.</h2>
+    <p>Playlist Surgeon does not require a Clintware account or backend. Settings, blocklist rules, encrypted OAuth state, and pre-change backups live under:</p>
+    <pre>%LOCALAPPDATA%\Clintware\PlaylistSurgeon</pre>
+    <p>Network traffic is limited to Spotify authentication and Spotify Web API calls required for the playlist operation.</p>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <h2>Compatibility target.</h2>
+    <p>The current implementation targets Spotify's 2026 playlist API migration: <code>GET/POST/DELETE/PUT /playlists/{id}/items</code>, the playlist <code>item</code> response field, PKCE for public desktop clients, explicit loopback redirect URIs, and the current playlist access restrictions.</p>
+    <p class="top-gap">API-change fixes are welcome as issues or pull requests. Compatibility changes should cite the applicable Spotify changelog or reference documentation so the project remains auditable.</p>
+    <div class="actions">
+      <a class="button button-cyan" href="https://github.com/clintkosh/clintware-site/tree/main/tools-src/playlist-surgeon">View source + README</a>
+      <a class="button button-ghost" href="/tools/">Back to Clintware tools</a>
+    </div>
+  </div></section>
+</main>
+<footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware™ · GO FURTHEST.™</span><span class="footer-links"><a href="/">Home</a><a href="/products/">Products</a><a href="/experiments/">Experiments</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></span></div></footer>
+<script src="/assets/clintware.js" defer></script>
+</body>
+</html>
