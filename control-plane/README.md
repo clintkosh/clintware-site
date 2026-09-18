@@ -174,3 +174,21 @@ This lets one `mcp.clintware.com` client work across independent GitHub accounts
 Use `control-plane/add-github-identity.ps1` to add another GitHub account once. Unknown account secrets are not deleted by normal deployments. `GET /health` reports identity aliases, repository mappings, expected secret names, and whether each identity is configured; it never returns token values.
 
 CodeFEDDY is registered as its own product and resolves to `codeFEDDY/codeFEDDY.github.io` using the `codefeddy` identity. Clintware products continue to resolve to the `clintkosh` identity.
+
+
+## Cross-LLM routing
+
+The Control Plane exposes a vendor-neutral handshake and compact work-handoff protocol so different LLM clients can continue the same Clintware project without sharing underlying provider credentials.
+
+MCP tools:
+
+- `clintware_client_handshake`
+- `clintware_handoff_put`
+- `clintware_handoff_get`
+
+Authenticated REST equivalents:
+
+- `POST /api/v1/handoffs`
+- `GET /api/v1/handoffs/:id`
+
+See `UNIVERSAL-LLM-ROUTING.md` for the reusable prompt and packet schema.
