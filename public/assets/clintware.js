@@ -311,4 +311,38 @@
       });
     });
   }
+
+  /* Privacy-minimized acquisition and navigation analytics. Never send form values or query strings. */
+  const cwMetric = (name, params = {}) => {
+    if (typeof window.gtag !== "function") return;
+    window.gtag("event", name, params);
+  };
+
+  let referrerDomain = "direct";
+  try {
+    if (document.referrer) referrerDomain = new URL(document.referrer).hostname || "direct";
+  } catch (_error) {}
+  const campaign = new URLSearchParams(location.search);
+  cwMetric("clintware_landing", {
+    page_path: location.pathname,
+    referrer_domain: referrerDomain,
+    utm_source: (campaign.get("utm_source") || "").slice(0, 100),
+    utm_medium: (campaign.get("utm_medium") || "").slice(0, 100),
+    utm_campaign: (campaign.get("utm_campaign") || "").slice(0, 120),
+    utm_content: (campaign.get("utm_content") || "").slice(0, 120),
+    utm_term: (campaign.get("utm_term") || "").slice(0, 120)
+  });
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href]");
+    if (!link) return;
+    let destination;
+    try { destination = new URL(link.href, location.href); } catch (_error) { return; }
+    const external = destination.origin !== location.origin;
+    cwMetric(external ? "clintware_outbound_click" : "clintware_navigation_click", {
+      link_domain: destination.hostname,
+      link_path: destination.pathname,
+      link_text: (link.textContent || "").trim().replace(/\s+/g, " ").slice(0, 80)
+    });
+  }, { capture: true });
 })();
