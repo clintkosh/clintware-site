@@ -190,6 +190,47 @@ async function unsubscribe(request, url, env) {
   return page("That unsubscribe link is not valid.", `<p><a href="${escapeHtml(blogUrl(env))}">Return to the blog</a></p>`);
 }
 
+async function internalSend(request, env) {
+  if (!env.INTERNAL_MAIL_SECRET || !mailConfigured(env)) return json({ error: "Internal mail is not configured." }, 503);
+  const supplied = request.headers.get("x-clintware-mail-secret") || "";
+  if (!(await secureEquals(env.INTERNAL_MAIL_SECRET, supplied))) return json({ error: "Unauthorized." }, 401);
+
+  const payload = await readRequestPayload(request);
+  const to = Array.isArray(payload.to) ? payload.to.map(normalizeEmail).filter(isValidEmail) : [];
+  const cc = Array.isArray(payload.cc) ? payload.cc.map(normalizeEmail).filter(isValidEmail) : [];
+  const bcc = Array.isArray(payload.bcc) ? payload.bcc.map(normalizeEmail).filter(isValidEmail) : [];
+  const subject = cleanText(payload.subject, 180);
+  const html = typeof payload.html === "string" ? payload.html.slice(0, 120000) : "";
+  const textBody = typeof payload.text === "string" ? payload.text.slice(0, 60000) : "";
+  const replyTo = isValidEmail(normalizeEmail(payload.reply_to || "")) ? normalizeEmail(payload.reply_to) : (env.REPLY_TO || undefined);
+  if (!to.length || !subject || (!html && !textBody)) return json({ error: "Invalid internal email payload." }, 422);
+  if (to.length + cc.length + bcc.length > 10) return json({ error: "Too many recipients." }, 422);
+
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments.slice(0, 4).map((item) => ({
+        filename: cleanText(item?.filename, 120),
+        content: typeof item?.content === "string" ? item.content : "",
+        content_type: cleanText(item?.content_type, 100) || undefined,
+      })).filter((item) => item.filename && item.content && item.content.length <= 500000)
+    : [];
+
+  const message = {
+    from: env.FROM_EMAIL,
+    to,
+    cc: cc.length ? cc : undefined,
+    bcc: bcc.length ? bcc : undefined,
+    reply_to: replyTo,
+    subject,
+    html: html || undefined,
+    text: textBody || undefined,
+    attachments: attachments.length ? attachments : undefined,
+    tags: [{ name: "category", value: cleanText(payload.category || "internal", 64) || "internal" }],
+  };
+  const idempotency = cleanText(payload.idempotency_key, 200) || `cw-internal-${await sha256(JSON.stringify({ to, subject, textBody, html }))}`;
+  await sendResend(env, "/emails", message, idempotency);
+  return json({ ok: true }, 202);
+}
+
 async function publish(request, env) {
   if (!mailConfigured(env) || !env.NEWSLETTER_PUBLISH_SECRET) return json({ error: "Newsletter delivery is not configured." }, 503);
   const header = request.headers.get("authorization") || "";
@@ -379,6 +420,7 @@ export default {
       if (request.method === "GET" && url.pathname === "/confirm") return confirm(url, env);
       if (request.method === "GET" && url.pathname === "/unsubscribe") return unsubscribeForm(url, env);
       if (request.method === "POST" && url.pathname === "/unsubscribe") return unsubscribe(request, url, env);
+      if (request.method === "POST" && url.pathname === "/internal/send") return internalSend(request, env);
       if (request.method === "POST" && url.pathname === "/publish") return publish(request, env);
       return plain("Not found", 404);
     } catch (error) {
