@@ -317,6 +317,43 @@ export class RegistryHub extends DurableObject {
       if(!client||!body.token_hash||client.token_hash!==body.token_hash) return json({ok:false},401);
       return json({ok:true,scopes:client.scopes||[],manifest:products[product]});
     }
+    if(request.method==="POST"&&url.pathname==="/mcp-client"){
+      const body=await reqJson(request);
+      const client_id=normalizeProduct(body.client_id||body.name||"");
+      if(!client_id)return json({error:"client_id_required"},400);
+      if(!body.token_hash)return json({error:"token_hash_required"},400);
+      const clients=await this.ctx.storage.get("mcp_clients")||{};
+      clients[client_id]={
+        client_id,
+        name:clip(body.name||client_id,120),
+        token_hash:String(body.token_hash),
+        allowed_products:Array.isArray(body.allowed_products)&&body.allowed_products.length?body.allowed_products.map(normalizeProduct):["*"],
+        enabled:body.enabled!==false,
+        created_at:clients[client_id]?.created_at||nowIso(),
+        updated_at:nowIso()
+      };
+      await this.ctx.storage.put("mcp_clients",clients);
+      return json({ok:true,client:{client_id,name:clients[client_id].name,allowed_products:clients[client_id].allowed_products,enabled:clients[client_id].enabled,created_at:clients[client_id].created_at,updated_at:clients[client_id].updated_at}});
+    }
+    if(request.method==="POST"&&url.pathname==="/mcp-verify"){
+      const body=await reqJson(request);
+      const token_hash=String(body.token_hash||"");
+      const clients=await this.ctx.storage.get("mcp_clients")||{};
+      const client=Object.values(clients).find(x=>x.enabled!==false&&x.token_hash===token_hash);
+      return client?json({ok:true,client:{client_id:client.client_id,name:client.name,allowed_products:client.allowed_products||["*"]}}):json({ok:false},401);
+    }
+    if(request.method==="GET"&&url.pathname==="/mcp-clients"){
+      const clients=await this.ctx.storage.get("mcp_clients")||{};
+      return json({ok:true,clients:Object.values(clients).map(x=>({client_id:x.client_id,name:x.name,allowed_products:x.allowed_products||["*"],enabled:x.enabled!==false,created_at:x.created_at||null,updated_at:x.updated_at||null}))});
+    }
+    if(request.method==="DELETE"&&url.pathname.startsWith("/mcp-client/")){
+      const client_id=normalizeProduct(decodeURIComponent(url.pathname.slice("/mcp-client/".length)));
+      const clients=await this.ctx.storage.get("mcp_clients")||{};
+      if(!clients[client_id])return json({error:"client_not_found"},404);
+      delete clients[client_id];
+      await this.ctx.storage.put("mcp_clients",clients);
+      return json({ok:true,client_id});
+    }
     // Research provider configuration (internal). The stored key is used only by
     // the research gateway and is never returned through public endpoints/MCP.
     if(request.method==="GET"&&url.pathname==="/research-config"){
@@ -535,8 +572,13 @@ async function requireAdmin(request,env){
   return expected&&await safeEq(bearer(request),expected);
 }
 async function requireMcp(request,env){
+  const token=bearer(request);
+  if(!token)return false;
   const expected=String(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN||"");
-  return expected&&await safeEq(bearer(request),expected);
+  if(expected&&await safeEq(token,expected))return true;
+  const token_hash=await sha256(token);
+  const r=await registryHub(env).fetch(new Request("https://internal/mcp-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token_hash})}));
+  return r.ok;
 }
 async function audit(env,product,action,requestId,details={},success=true,error_class=""){
   try{
@@ -1151,6 +1193,7 @@ function safeConfig(env){
     github_multi_identity:true,
     cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID),
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
+    mcp_per_client_credentials:true,
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
   };
 }
@@ -1178,7 +1221,26 @@ export default {
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+      }
+      if(request.method==="GET"&&url.pathname==="/api/v1/mcp/clients"){
+        if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
+        return await registryHub(env).fetch("https://internal/mcp-clients");
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/mcp/clients"){
+        if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
+        const body=await reqJson(request);
+        const client_id=normalizeProduct(body.client_id||body.name||("client-"+crypto.randomUUID().slice(0,8)));
+        const token=String(body.token||crypto.randomUUID()+crypto.randomUUID()+crypto.randomUUID());
+        const token_hash=await sha256(token);
+        const r=await registryHub(env).fetch(new Request("https://internal/mcp-client",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({client_id,name:body.name||client_id,token_hash,allowed_products:body.allowed_products,enabled:true})}));
+        if(!r.ok)return r;
+        return json({ok:true,client_id,token,warning:"This is the only response that contains the plaintext client token. Store it in that LLM/client only; Clintware retains only its hash."});
+      }
+      const mcpClientMatch=url.pathname.match(/^\/api\/v1\/mcp\/clients\/([^/]+)$/);
+      if(request.method==="DELETE"&&mcpClientMatch){
+        if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
+        return await registryHub(env).fetch(new Request(`https://internal/mcp-client/${encodeURIComponent(decodeURIComponent(mcpClientMatch[1]))}`,{method:"DELETE"}));
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/handoffs"){
         if(!await requireMcp(request,env))return json({error:"unauthorized"},401);
