@@ -10,7 +10,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
-using System.Threading.Tasks;\n\nnamespace Clintware.PlaylistSurgeon;
+using System.Threading.Tasks;
+
+namespace Clintware.PlaylistSurgeon;
 
 public sealed class SpotifyClient
 {
