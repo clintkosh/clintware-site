@@ -84,3 +84,38 @@ If profile/hero images are later added to Gmail drafts, inline images must be ve
 - Screening/monitoring authorization records remain browser-local in the alpha.
 - When importing a Background Mirror export, discard the identity profile and copy only the finding/baseline fields needed for the career view.
 - Current states are evidence workflow states: GREEN / YELLOW / RED / UNKNOWN. They are not predictions of employment outcome.
+
+
+## Communication Guard invariant
+
+Every LandThePlane outbound communication path must run the shared Communication Guard before the product labels the content ready to send or creates a career-facing draft.
+
+This applies to, at minimum:
+
+- recruiter outreach and replies;
+- hiring-manager and interviewer follow-ups;
+- post-interview thank-yous and clarifications;
+- status checks / check-ins;
+- networking and referral requests;
+- rejection replies;
+- offer and compensation negotiation;
+- employer / manager communication features added later;
+- any future LinkedIn, SMS, chat, mail, or connected-app composition path.
+
+Required checks include:
+
+- narrating perceived interview mistakes or shakiness;
+- reassurance-seeking about performance or candidacy;
+- unnecessary personal-need disclosures in career-facing communication;
+- excessive praise, deference, or ingratiation;
+- repeated excitement / repeated statements of interest;
+- apologetic or pressure-heavy follow-ups;
+- unnecessary scope, compensation, timing, or negotiating-leverage giveaways;
+- post-hoc over-explaining when no material factual correction is required;
+- excessive length relative to the communication context.
+
+The guard must preserve normal warmth and specificity. It is not a generic "sound colder" filter.
+
+Context matters. Family/personal updates may legitimately include information that should be flagged in recruiter-facing communication. Career-facing contexts therefore use stronger thresholds than general outbound communication.
+
+Career-facing HOLD or REVISE states must be resolved before an integrated draft-creation path proceeds. REVIEW may proceed with a visible warning when the user remains in control. Autonomous sending remains disabled.
