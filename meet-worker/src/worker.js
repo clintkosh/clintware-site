@@ -31,6 +31,28 @@ function securityHeaders(extra = {}) {
   };
 }
 
+function acquisitionMeta(request) {
+  const url = new URL(request.url);
+  let referrerDomain = "direct";
+  try {
+    const ref = request.headers.get("referer");
+    if (ref) referrerDomain = new URL(ref).hostname || "direct";
+  } catch {}
+  const clip = (value, max = 120) => cleanText(value || "", max);
+  return {
+    event: "meet_page_view",
+    path: url.pathname,
+    referrerDomain,
+    utmSource: clip(url.searchParams.get("utm_source"), 100),
+    utmMedium: clip(url.searchParams.get("utm_medium"), 100),
+    utmCampaign: clip(url.searchParams.get("utm_campaign"), 120),
+    utmContent: clip(url.searchParams.get("utm_content"), 120),
+    country: clip(request.cf?.country, 8),
+    region: clip(request.cf?.region, 80),
+    colo: clip(request.cf?.colo, 16),
+  };
+}
+
 function html(content) {
   return new Response(content, {
     headers: securityHeaders({
@@ -785,6 +807,7 @@ export default {
       if (request.method === "GET" && room) return html(roomPage(room[1]));
 
       if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+        console.log(JSON.stringify(acquisitionMeta(request)));
         return html(bookingPage());
       }
 
