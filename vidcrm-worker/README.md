@@ -8,7 +8,20 @@ Clintware-owned Cloudflare Worker demo for a living Customer Success / technical
 - **Pre-Call Ramp** — 5-minute account/technical ramp using prior call scores, observed gaps, prerequisites, customer-safe troubleshooting rail, and CSM competence.
 - **Technical Ramp** — environment advisories with evidence tiers, known-good internal patterns, and research through the Clintware Control Plane.
 - **Post-Call Learn** — transcript ingestion, automatic Workers AI grading, KEEP/PROMOTE/SHORTEN/RETIRE lessons, and human-reviewed proposed updates.
+- **Knowledge Intake** — central document dump, AI-generated KB/runbook/context candidates, source lineage, confidence, dedupe, and approval gating.
 - **Shared Knowledge** — gap cards, reusable micro-training, competence map, and an Evolution Engine that proposes rather than silently changes production behavior.
+
+## Knowledge intelligence + folder crawler
+
+The system now turns customer/service material into reusable operational knowledge, inspired by the useful service-resolution pattern of connecting manuals, cases, notes, prior fixes, and expert knowledge rather than treating a KB as static document search.
+
+Authenticated workspace users may paste source material into **Knowledge Intake**. A local-first crawler in `vidcrm-agent/` can recursively scan a designated central folder, extract Office/PDF/text content locally, hash/dedupe it, and POST normalized evidence to:
+
+`POST /api/knowledge/ingest/external`
+
+The Worker uses AI to propose KB articles, runbooks, troubleshooting flows, implementation guidance, FAQs, micro-training, risks, constraints, open questions, success criteria, failure modes, and verification checks. All candidates retain source lineage/confidence and require human approval before becoming durable shared knowledge or account context.
+
+Approved knowledge automatically becomes available to the **Pre-Call Ramp**, **Technical Ramp**, and **Shared Knowledge** layers. The design goal is compounding service intelligence: every useful document, case, call, workaround, or proven resolution can improve the next customer interaction without silently rewriting production truth.
 
 ## Call capture
 
