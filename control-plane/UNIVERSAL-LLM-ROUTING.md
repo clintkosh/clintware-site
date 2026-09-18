@@ -6,7 +6,7 @@ Use this contract for any external AI client that can call MCP or HTTPS tools.
 
 - MCP endpoint: `https://mcp.clintware.com/mcp`
 - Control Plane API: `https://mcp.clintware.com/api/v1`
-- Authentication: a scoped Clintware MCP client credential in `Authorization: Bearer <credential>` or `x-api-key: <credential>`
+- Authentication: a dedicated Clintware credential for that LLM/client in `Authorization: Bearer <credential>` or `x-api-key: <credential>`. Prefer one revocable credential per client rather than sharing the root MCP token.
 - Never give the client a GitHub, Cloudflare, deployment, DNS, or other provider credential.
 - GitHub identity selection happens server-side from the product manifest's `repo.identity`.
 
@@ -60,3 +60,18 @@ A manifest identity maps to a Worker secret automatically:
 - `acme-labs` -> `GITHUB_TOKEN_ACME_LABS`
 
 Add future identities with `control-plane/add-github-identity.ps1`; no Control Plane source-code change is required.
+
+
+## Provision each LLM independently
+
+From a trusted local checkout:
+
+```powershell
+.\control-plane\new-mcp-client.ps1 -Name chatgpt
+.\control-plane\new-mcp-client.ps1 -Name claude
+.\control-plane\new-mcp-client.ps1 -Name gemini
+.\control-plane\new-mcp-client.ps1 -Name grok
+.\control-plane\new-mcp-client.ps1 -Name perplexity
+```
+
+Each command returns a different client token once. Configure that token only in that client's MCP/API authentication setting. Revoking one client does not require changing GitHub, Cloudflare, or another LLM's credentials.
