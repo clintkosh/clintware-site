@@ -333,3 +333,18 @@ Promote above Quillgeist when behavior proves the continuous lifecycle:
 ## Core product thesis
 
 **The durable moat is not interview question generation. It is a user-owned career graph that starts with prior accomplishments, grows through connected search evidence and interviews, becomes a living work graph after hire, and continuously turns work into better workflows and verified evidence.**
+
+
+## Crucible preparation standard
+
+LandThePlane now treats deep interview preparation as a product invariant rather than an optional style choice.
+
+The rule is:
+
+**PREPARE DEEPER → INDEX BETTER → ANSWER NARROWER → PROVE MORE**
+
+For each serious round, LandThePlane should reconstruct the scorecard, map verified evidence, build 30-second / 60–90 second / executive answer forms, identify ambiguous question scopes, red-team failure modes, and compress the final material into a retrieval-ready cockpit. Post-round review feeds misses and newly validated evidence back into the next round.
+
+A critical isolation rule applies: one interviewer's preferences do not automatically become the next interviewer's strategy. Company, interviewer, stage, and competency context must be re-established independently for every round.
+
+Canonical specification: `CRUCIBLE_STANDARD.md`.
