@@ -1,0 +1,124 @@
+<Window x:Class="Clintware.PlaylistSurgeon.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Playlist Surgeon · Clintware" Height="760" Width="1180"
+        MinHeight="620" MinWidth="960">
+  <Grid Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0" Margin="0,0,0,14">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="PLAYLIST SURGEON" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="12"/>
+        <TextBlock Text="Bulk playlist cleanup, by artist or track." FontWeight="SemiBold" FontSize="26" Margin="0,4,0,3"/>
+        <TextBlock Text="Local-first Clintware utility for playlists you own or collaborate on." Foreground="{StaticResource Muted}"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="ConnectButton" Content="Connect Spotify" Click="ConnectButton_Click"/>
+        <Button x:Name="RefreshButton" Content="Refresh" Click="RefreshButton_Click" IsEnabled="False"/>
+      </StackPanel>
+    </Grid>
+
+    <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="10" Background="{StaticResource Surface}" Margin="0,0,0,12">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="230"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Spotify Client ID" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+        <TextBox Grid.Column="1" x:Name="ClientIdBox" ToolTip="Client ID from developer.spotify.com/dashboard"/>
+        <TextBlock Grid.Column="2" Text="Playlist" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Muted}"/>
+        <ComboBox Grid.Column="3" x:Name="PlaylistCombo" DisplayMemberPath="Name" SelectionChanged="PlaylistCombo_SelectionChanged" IsEnabled="False"/>
+        <TextBox Grid.Column="4" x:Name="SearchBox" Width="210" TextChanged="SearchBox_TextChanged" ToolTip="Filter artist or track"/>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="320"/>
+        <ColumnDefinition Width="10"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Background="{StaticResource Surface}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Margin="12">
+            <TextBlock Text="ARTISTS" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="11"/>
+            <TextBlock Text="Ctrl/Shift select multiple artists." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,3,0,7"/>
+            <WrapPanel>
+              <Button Content="Select tracks" Click="SelectArtistTracks_Click"/>
+              <Button Content="Block artists" Click="BlockArtists_Click"/>
+            </WrapPanel>
+          </StackPanel>
+          <ListBox x:Name="ArtistList" SelectionMode="Extended" Margin="10,0,10,10">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="3">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Grid.Column="1" Text="{Binding Count}" Foreground="{StaticResource Muted}" Margin="10,0,0,0"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <Border Grid.Column="2" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Background="{StaticResource Surface}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Margin="12">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="TRACKS" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="11"/>
+                <TextBlock x:Name="TrackSummary" Text="Connect Spotify to begin." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,3,0,0"/>
+              </StackPanel>
+              <WrapPanel Grid.Column="1">
+                <Button Content="Apply blocklist" Click="ApplyRules_Click"/>
+                <Button Content="Clear selection" Click="ClearSelection_Click"/>
+                <Button x:Name="RemoveButton" Content="Remove selected" Click="RemoveSelected_Click" IsEnabled="False"/>
+              </WrapPanel>
+            </Grid>
+          </StackPanel>
+
+          <DataGrid x:Name="TrackGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                    IsReadOnly="False" SelectionMode="Extended" SelectionUnit="FullRow"
+                    Margin="10,0,10,10" AlternatingRowBackground="#141A22">
+            <DataGrid.Columns>
+              <DataGridCheckBoxColumn Header="Remove" Binding="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+              <DataGridTextColumn Header="Track" Binding="{Binding Name}" IsReadOnly="True" Width="2*"/>
+              <DataGridTextColumn Header="Artist" Binding="{Binding ArtistDisplay}" IsReadOnly="True" Width="1.4*"/>
+              <DataGridTextColumn Header="Album" Binding="{Binding Album}" IsReadOnly="True" Width="1.4*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="3" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <TextBlock x:Name="StatusText" Text="Ready. Enter a Spotify Client ID, then connect." Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+      <TextBlock Grid.Column="1" Text="MIT · Local-first · No client secret" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+    </Grid>
+  </Grid>
+</Window>
