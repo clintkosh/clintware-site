@@ -19,7 +19,7 @@ The first surface is CRM, but CRM is a view over one shared organizational state
 
 ## Security boundary
 
-The browser MVP intentionally keeps demo data local and makes no external API calls. It is appropriate for synthetic/demo data only.
+The browser MVP keeps operational demo data local and makes no application-data API calls. The Clintware public mirror uses the shared GA4 property for page/navigation telemetry only; CRM record values are not sent to analytics. The MVP is appropriate for synthetic/demo data only.
 
 The production path is an adapter swap rather than a UI rewrite: replace the browser store with a tenant-scoped API backed by Cloudflare D1/Postgres and protect the application with Cloudflare Access or the customer's identity provider. Production requirements include tenant isolation, RBAC/ABAC, audit logs, encryption at rest/in transit, export controls, retention controls, and connector-level scopes.
 
