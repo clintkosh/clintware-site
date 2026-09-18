@@ -119,3 +119,23 @@ The guard must preserve normal warmth and specificity. It is not a generic "soun
 Context matters. Family/personal updates may legitimately include information that should be flagged in recruiter-facing communication. Career-facing contexts therefore use stronger thresholds than general outbound communication.
 
 Career-facing HOLD or REVISE states must be resolved before an integrated draft-creation path proceeds. REVIEW may proceed with a visible warning when the user remains in control. Autonomous sending remains disabled.
+
+
+## Crucible preparation invariant
+
+Before changing interview-preparation or interview-review behavior, read `CRUCIBLE_STANDARD.md`.
+
+LandThePlane must default to deep, indexed preparation rather than reducing preparation depth after a conversational or imperfect prior round. Each company, interviewer, and competency is modeled independently.
+
+Required protections:
+
+- reconstruct the explicit scorecard and distinguish documented criteria from inferred criteria;
+- map every material competency to verified evidence and preserve gaps instead of fabricating proof;
+- provide a 30-second framework, 60–90 second evidence answer, and executive version where evidence supports them;
+- identify ambiguity traps such as self vs team, philosophy vs operating framework, and personal resilience vs people-management practice;
+- red-team scale, metrics, ownership, technical depth, management depth, over-explaining, AI/tool overemphasis, and communication-risk patterns;
+- do not let one interviewer's preferences silently change preparation strategy for another interviewer or company;
+- convert post-round misses into durable next-round defenses and career-graph learning;
+- keep the live cockpit compressed even when the preparation corpus is extensive.
+
+A round is not PREP READY merely because answer text exists. Readiness requires visible evidence coverage, ambiguity protection, failure-mode review, and retrieval-ready compression.
