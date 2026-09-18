@@ -6,6 +6,7 @@ export const communicationGuardJs = String.raw`
   function txt(v){return String(v==null?'':v)}
   function words(s){return txt(s).trim().split(/\s+/).filter(Boolean)}
   function matches(s,re){return (txt(s).match(re)||[]).length}
+  function esc(v){return txt(v).replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]})}
   function add(out,code,severity,label,detail){
     if(!out.some(function(x){return x.code===code})) out.push({code:code,severity:severity,label:label,detail:detail});
   }
@@ -84,10 +85,37 @@ export const communicationGuardJs = String.raw`
     return lead+' · '+result.findings.map(function(x){return x.label}).join('; ');
   }
 
+  function render(result){
+    var el=document.getElementById('ltpGuardResult');
+    if(!el)return;
+    if(!result){el.innerHTML='<div class="muted">Paste a message and run the check.</div>';return}
+    var cls=result.state==='READY'?'ok':result.state==='HOLD'?'gap':'';
+    var body='<div class="item '+cls+'"><strong>'+esc(format(result))+'</strong><p>Context: '+esc(result.context.replace(/_/g,' '))+'</p></div>';
+    if(result.findings.length) body+=result.findings.map(function(x){
+      return '<div class="item '+(x.severity==='high'?'gap':'')+'"><strong>'+esc(x.severity.toUpperCase())+' · '+esc(x.label)+'</strong><p>'+esc(x.detail)+'</p></div>';
+    }).join('');
+    else body+='<div class="item ok"><strong>Ready</strong><p>No current guard pattern suggests neediness, self-undermining, over-praise, reassurance-seeking, or avoidable leverage loss.</p></div>';
+    el.innerHTML=body;
+  }
+
+  function initUi(){
+    var b=document.getElementById('ltpRunGuard');
+    if(!b||b.dataset.bound==='1')return;
+    b.dataset.bound='1';
+    b.addEventListener('click',function(){
+      var m=document.getElementById('ltpGuardMessage');
+      var c=document.getElementById('ltpGuardContext');
+      render(analyze(m?m.value:'',{context:c?c.value:'general'}));
+    });
+  }
+
   window.LandThePlaneCommunicationGuard={
     analyze:analyze,
     format:format,
+    render:render,
     contexts:['general','recruiter','hiring_manager','interviewer','network','negotiation','rejection_reply','status_check','employer']
   };
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initUi);else initUi();
 })();
 `;
