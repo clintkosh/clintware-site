@@ -62,14 +62,7 @@ jobs:
           domains=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=n7case.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 - <<'PY' <<< "$domains"
-          import json,sys
-          d=json.load(sys.stdin); r=d.get('result',[])
-          assert d.get('success') is True and len(r)==1,d
-          x=r[0]
-          assert x.get('hostname')=='n7case.clintware.com' and x.get('service')=='clintware-neuron7-case',x
-          print('Worker domain:', x.get('hostname'), 'service=',x.get('service'),'zone=',x.get('zone_name'),'cert_id=',x.get('cert_id'))
-          PY
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="n7case.clintware.com" and x.get("service")=="clintware-neuron7-case",x; print("Worker domain:",x.get("hostname"),"service=",x.get("service"),"zone=",x.get("zone_name"),"cert_id=",x.get("cert_id"))' <<< "$domains"
 
           zones=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/zones?name=clintware.com&account.id=${CLOUDFLARE_ACCOUNT_ID}" \
@@ -79,7 +72,7 @@ jobs:
           records=$(curl --fail-with-body -sS \
             "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=n7case.clintware.com" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("result",[])))' <<< "$records")
+          count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; print(len(d.get("result",[])))' <<< "$records")
 
           if [ "$count" = "0" ]; then
             echo 'Custom-domain metadata exists but no public DNS record is visible; creating proxied AAAA fallback.'
@@ -90,12 +83,7 @@ jobs:
               --data '{"type":"AAAA","name":"n7case","content":"100::","ttl":1,"proxied":true}')
             python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; x=d["result"]; print("Created DNS:",x["type"],x["name"],"proxied=",x["proxied"])' <<< "$create"
           else
-            python3 - <<'PY' <<< "$records"
-          import json,sys
-          d=json.load(sys.stdin)
-          for x in d.get('result',[]):
-              print('Existing DNS:',x.get('type'),x.get('name'),'content=',x.get('content'),'proxied=',x.get('proxied'))
-          PY
+            python3 -c 'import json,sys; d=json.load(sys.stdin); [print("Existing DNS:",x.get("type"),x.get("name"),"content=",x.get("content"),"proxied=",x.get("proxied")) for x in d.get("result",[])]' <<< "$records"
           fi
 
       - name: Verify HTTPS, headers, UI and health
