@@ -62,6 +62,7 @@ jobs:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
           CONTROL_PLANE_ADMIN_TOKEN: ${{ secrets.CONTROL_PLANE_ADMIN_TOKEN }}
           GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.CLINTWARE_GH_CONTROL_PLANE_TOKEN }}
+          GITHUB_TOKEN_CODEFEDDY: ${{ secrets.CODEFEDDY_GH_CONTROL_PLANE_TOKEN }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
           set -euo pipefail
@@ -96,6 +97,10 @@ jobs:
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
           put_secret CONTROL_PLANE_ADMIN_TOKEN "$CONTROL_PLANE_ADMIN_TOKEN"
           put_secret GITHUB_CONTROL_PLANE_TOKEN "$GITHUB_CONTROL_PLANE_TOKEN"
+          # Per-identity aliases let one Control Plane route independent GitHub accounts.
+          # Keep the original secret during migration and mirror it to the clintkosh identity.
+          put_secret GITHUB_TOKEN_CLINTKOSH "$GITHUB_CONTROL_PLANE_TOKEN"
+          put_secret GITHUB_TOKEN_CODEFEDDY "$GITHUB_TOKEN_CODEFEDDY"
           put_secret EXA_API_KEY "$EXA_API_KEY"
 
       - name: Verify mcp.clintware.com health
