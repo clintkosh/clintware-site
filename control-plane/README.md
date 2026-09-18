@@ -192,3 +192,16 @@ Authenticated REST equivalents:
 - `GET /api/v1/handoffs/:id`
 
 See `UNIVERSAL-LLM-ROUTING.md` for the reusable prompt and packet schema.
+
+
+## Per-client MCP credentials
+
+External LLMs do not need to share the root `CONTROL_PLANE_MCP_TOKEN`. The Control Plane can issue a separate revocable credential for each client while retaining only its SHA-256 hash.
+
+Administrative endpoints:
+
+- `GET /api/v1/mcp/clients` — list client metadata; never returns token hashes or plaintext tokens
+- `POST /api/v1/mcp/clients` — create/rotate a named client credential; plaintext token is returned once
+- `DELETE /api/v1/mcp/clients/:client_id` — revoke that client without affecting other LLMs
+
+Use `control-plane/new-mcp-client.ps1` to provision ChatGPT, Claude, Gemini, Grok, Perplexity, or another client. Product manifests remain the enforcement boundary for repository paths, workflows, DNS, and infrastructure operations.
