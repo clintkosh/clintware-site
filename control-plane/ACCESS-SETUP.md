@@ -88,3 +88,75 @@ Do not give clients the Cloudflare or GitHub infrastructure credentials. Registe
 `product / AI client -> scoped MCP token -> mcp.clintware.com -> policy + manifest -> Cloudflare/GitHub credential -> action -> audit`
 
 This preserves one reusable Clintware integration point without exposing a literal global master key to every project.
+
+
+## Multiple GitHub accounts: one-time setup
+
+The Control Plane no longer requires all repositories to share one GitHub credential. Every project manifest can choose a `repo.identity`, and the Worker resolves that identity to `GITHUB_TOKEN_<IDENTITY>`.
+
+### Clintware / clintkosh
+
+The existing `CLINTWARE_GH_CONTROL_PLANE_TOKEN` GitHub Actions secret is automatically mirrored into the Worker as both:
+
+- `GITHUB_CONTROL_PLANE_TOKEN` (legacy compatibility)
+- `GITHUB_TOKEN_CLINTKOSH` (new identity-specific name)
+
+No additional clintkosh authorization is required unless the existing token is expired or missing permissions.
+
+### CodeFEDDY
+
+Create one fine-grained personal access token while signed into the `codeFEDDY` GitHub account.
+
+Recommended repository scope:
+
+- Resource owner: `codeFEDDY`
+- Repository access: only `codeFEDDY.github.io`
+- Contents: Read and write
+- Actions: Read and write only if CodeFEDDY later dispatches Actions
+- Workflows: Read and write only if the Control Plane must modify workflow files
+- Pull requests: Read and write if PR automation is wanted
+- Metadata: Read
+
+Do not grant repository Administration unless a future capability explicitly requires it.
+
+Store the token either:
+
+1. as the `CODEFEDDY_GH_CONTROL_PLANE_TOKEN` Actions secret in `clintkosh/clintware-site`; the deployment workflow will sync it into Cloudflare as `GITHUB_TOKEN_CODEFEDDY`, or
+2. directly in Cloudflare with the helper:
+
+```powershell
+cd <your-clintware-site-checkout>
+.\control-plane\add-github-identity.ps1 -Alias codefeddy
+```
+
+The token is entered as a secure prompt and is never written to the repository.
+
+### Future GitHub accounts or companies
+
+For each new account, do this once:
+
+```powershell
+.\control-plane\add-github-identity.ps1 -Alias <account-alias>
+```
+
+Then put the alias in that product's manifest:
+
+```json
+"repo": {
+  "identity": "<account-alias>",
+  "owner": "<github-owner>",
+  "name": "<repository>"
+}
+```
+
+The normalized alias determines the secret name automatically. No new Control Plane code is required.
+
+### Verify
+
+After deployment:
+
+```powershell
+Invoke-RestMethod https://mcp.clintware.com/health | ConvertTo-Json -Depth 8
+```
+
+Look for `github_identities`. Each identity should show `configured: true` and the expected repositories. The endpoint never exposes token values.

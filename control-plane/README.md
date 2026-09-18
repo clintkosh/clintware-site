@@ -80,7 +80,7 @@ Provision these once in Cloudflare. External AI systems receive only the scoped 
 - `CLOUDFLARE_CONTROL_PLANE_TOKEN` — Cloudflare token limited to required DNS operations
 - `CLOUDFLARE_ZONE_ID` — Clintware zone ID
 
-`GITHUB_CONTROL_PLANE_TOKEN` and the Cloudflare token are never returned through the API or MCP.
+`GITHUB_CONTROL_PLANE_TOKEN` and the Cloudflare token are never returned through the API or MCP. The legacy `GITHUB_CONTROL_PLANE_TOKEN` remains a backward-compatible fallback for the `clintkosh` identity. New account-specific credentials use `GITHUB_TOKEN_<IDENTITY>`.
 
 ## Create a ProofOS application token
 
@@ -145,3 +145,50 @@ npm run deploy
 ```
 
 The deployment workflow uses the repository's existing `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` GitHub secrets.
+
+
+## Multiple GitHub identities
+
+The Control Plane now resolves GitHub credentials from each product manifest instead of assuming one global GitHub account.
+
+A manifest may set:
+
+```json
+{
+  "repo": {
+    "identity": "codefeddy",
+    "owner": "codeFEDDY",
+    "name": "codeFEDDY.github.io"
+  }
+}
+```
+
+The identity is normalized and mapped to a Cloudflare Worker secret:
+
+- `clintkosh` -> `GITHUB_TOKEN_CLINTKOSH`
+- `codefeddy` -> `GITHUB_TOKEN_CODEFEDDY`
+- `Acme Labs` -> `GITHUB_TOKEN_ACME_LABS`
+
+This lets one `mcp.clintware.com` client work across independent GitHub accounts without receiving or switching provider credentials. Each product still has its own repository/path/workflow policy.
+
+Use `control-plane/add-github-identity.ps1` to add another GitHub account once. Unknown account secrets are not deleted by normal deployments. `GET /health` reports identity aliases, repository mappings, expected secret names, and whether each identity is configured; it never returns token values.
+
+CodeFEDDY is registered as its own product and resolves to `codeFEDDY/codeFEDDY.github.io` using the `codefeddy` identity. Clintware products continue to resolve to the `clintkosh` identity.
+
+
+## Cross-LLM routing
+
+The Control Plane exposes a vendor-neutral handshake and compact work-handoff protocol so different LLM clients can continue the same Clintware project without sharing underlying provider credentials.
+
+MCP tools:
+
+- `clintware_client_handshake`
+- `clintware_handoff_put`
+- `clintware_handoff_get`
+
+Authenticated REST equivalents:
+
+- `POST /api/v1/handoffs`
+- `GET /api/v1/handoffs/:id`
+
+See `UNIVERSAL-LLM-ROUTING.md` for the reusable prompt and packet schema.

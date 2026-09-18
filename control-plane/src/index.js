@@ -35,7 +35,7 @@ const DEFAULT_PROOFOS = {
   product:"proofos",
   environment:"production",
   version:2,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
   dns:{allowed_names:["proof.clintware.com","mcp.clintware.com"]},
   capabilities:[
     "repo.read:clintware-site",
@@ -66,7 +66,7 @@ const DEFAULT_LANDTHEPLANE = {
   product:"landtheplane",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
   dns:{allowed_names:["landtheplane.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -79,7 +79,7 @@ const DEFAULT_BACKGROUND_MIRROR = {
   product:"background-mirror",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["background-mirror-worker/"],delete_prefixes:["background-mirror-worker/"],allowed_workflows:["deploy-background-mirror.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["background-mirror-worker/"],delete_prefixes:["background-mirror-worker/"],allowed_workflows:["deploy-background-mirror.yml"]},
   dns:{allowed_names:["background.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:background-mirror-worker/**","repo.delete:background-mirror-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:background-mirror","dns.ensure:background.clintware.com","analytics.write:background-mirror","analytics.read:background-mirror"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -93,7 +93,7 @@ const DEFAULT_NEURON7_CASE = {
   product:"neuron7-case",
   environment:"production",
   version:1,
-  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
   dns:{allowed_names:["n7.clintware.com","n7case.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:neuron7-case-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:neuron7-case","dns.ensure:n7.clintware.com","dns.ensure:n7case.clintware.com","analytics.write:neuron7-case","analytics.read:neuron7-case"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -103,7 +103,20 @@ const DEFAULT_NEURON7_CASE = {
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE};
+const DEFAULT_CODEFEDDY = {
+  product:"codefeddy",
+  environment:"production",
+  version:1,
+  repo:{identity:"codefeddy",owner:"codeFEDDY",name:"codeFEDDY.github.io",default_branch:"main",read:true,write_prefixes:[""],delete_prefixes:[""],allowed_workflows:[]},
+  dns:{allowed_names:[]},
+  capabilities:["repo.read:codeFEDDY.github.io","repo.write:*","repo.delete:*","repo.branch:create","repo.branch:read","repo.commit:status","analytics.write:codefeddy","analytics.read:codefeddy"],
+  deny:["secrets.read","secrets.export","billing.manage","repo.workflow:dispatch","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/"],
+  telemetry_namespace:"codefeddy",
+  created_at:"2026-09-18T00:00:00.000Z"
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY};
 
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
@@ -144,7 +157,7 @@ function deletePathAllowed(manifest,path){
 }
 
 // Map a high-level capability to a manifest capability string for matching
-function capabilityForMatch(capability,resource){
+function capabilityForMatch(capability,resource,manifest){
   const cap=String(capability||"");
   const path=String(resource?.path||"");
   if(cap==="repo.file.delete"){
@@ -155,7 +168,7 @@ function capabilityForMatch(capability,resource){
     if(path)return `repo.write:${path.split("/")[0]}/**`;
     return "repo.write";
   }
-  if(cap==="repo.file.read") return "repo.read:clintware-site";
+  if(cap==="repo.file.read") return `repo.read:${manifest?.repo?.name||"unknown"}`;
   if(cap==="repo.branch.create") return "repo.branch:create";
   if(cap==="repo.branch.read") return "repo.branch:read";
   if(cap==="repo.commit.status") return "repo.commit:status";
@@ -176,7 +189,7 @@ function capabilityForMatch(capability,resource){
 function evaluatePolicy(manifest,capability,resource,reason){
   if(!manifest) return {decision:"denied",reason:"product_not_found"};
   // Step 1: check deny list
-  const capForMatch=capabilityForMatch(capability,resource);
+  const capForMatch=capabilityForMatch(capability,resource,manifest);
   const denyList=manifest.deny||[];
   for(const d of denyList){
     if(d===capability||d===capForMatch) return {decision:"denied",reason:"capability_explicitly_denied"};
@@ -218,6 +231,36 @@ function evaluatePolicy(manifest,capability,resource,reason){
   return {decision:"executed",reason:"tier01_automatic"};
 }
 
+const HANDOFF_MAX_AGE_MS=7*24*60*60*1000;
+const HANDOFF_MAX_ITEMS=200;
+const clip=(v,max=4000)=>String(v??"").slice(0,max);
+const clipList=(v,maxItems=50,maxLen=1000)=>Array.isArray(v)?v.slice(0,maxItems).map(x=>clip(x,maxLen)):[];
+function normalizeHandoff(body={}){
+  const repo=body.repository&&typeof body.repository==="object"?body.repository:{};
+  return {
+    handoff_id:clip(body.handoff_id||crypto.randomUUID(),120),
+    protocol:"clintware-handoff/v1",
+    created_at:nowIso(),
+    from_client:clip(body.from_client||"unknown",80),
+    target_client:clip(body.target_client||"any",80),
+    product:normalizeProduct(body.product||body.project||""),
+    project:clip(body.project||body.product||"",120),
+    objective:clip(body.objective,4000),
+    context_summary:clip(body.context_summary,12000),
+    repository:{
+      identity:normalizeGithubIdentity(repo.identity||body.repo_identity||""),
+      owner:clip(repo.owner||body.repo_owner||"",120),
+      name:clip(repo.name||body.repo_name||"",160),
+      branch:clip(repo.branch||body.branch||"",160)
+    },
+    decisions:clipList(body.decisions,50,1200),
+    constraints:clipList(body.constraints,50,1200),
+    changed_files:clipList(body.changed_files,100,500),
+    artifacts:clipList(body.artifacts,100,1000),
+    next_actions:clipList(body.next_actions,50,1200),
+    notes:clip(body.notes,8000)
+  };
+}
 function normalizeProduct(value){return String(value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");}
 function productHub(env, product){return env.PRODUCT_HUB.getByName(`product:${normalizeProduct(product)}`);}
 function registryHub(env){return env.REGISTRY_HUB.getByName("registry:v1");}
@@ -288,6 +331,31 @@ export class RegistryHub extends DurableObject {
       cfg.updated_at=nowIso();
       await this.ctx.storage.put("research_config",cfg);
       return json({ok:true,exa_configured:Boolean(cfg.exa_api_key)});
+    }
+    if(request.method==="POST"&&url.pathname==="/handoff"){
+      const body=await reqJson(request,64_000);
+      const packet=normalizeHandoff(body);
+      const key=`handoff:${packet.handoff_id}`;
+      await this.ctx.storage.put(key,packet);
+      let index=await this.ctx.storage.get("handoff_index")||[];
+      const cutoff=Date.now()-HANDOFF_MAX_AGE_MS;
+      const stale=index.filter(x=>Date.parse(x.created_at||"")<cutoff||x.handoff_id===packet.handoff_id);
+      for(const item of stale)await this.ctx.storage.delete(`handoff:${item.handoff_id}`);
+      index=index.filter(x=>Date.parse(x.created_at||"")>=cutoff&&x.handoff_id!==packet.handoff_id);
+      index.unshift({handoff_id:packet.handoff_id,created_at:packet.created_at,from_client:packet.from_client,target_client:packet.target_client,product:packet.product,project:packet.project});
+      for(const item of index.slice(HANDOFF_MAX_ITEMS))await this.ctx.storage.delete(`handoff:${item.handoff_id}`);
+      index=index.slice(0,HANDOFF_MAX_ITEMS);
+      await this.ctx.storage.put("handoff_index",index);
+      return json({ok:true,handoff_id:packet.handoff_id,protocol:packet.protocol,created_at:packet.created_at});
+    }
+    if(request.method==="GET"&&url.pathname.startsWith("/handoff/")){
+      const id=clip(decodeURIComponent(url.pathname.slice("/handoff/".length)),120);
+      const packet=await this.ctx.storage.get(`handoff:${id}`);
+      return packet?json({ok:true,packet}):json({error:"handoff_not_found"},404);
+    }
+    if(request.method==="GET"&&url.pathname==="/handoffs"){
+      const index=await this.ctx.storage.get("handoff_index")||[];
+      return json({ok:true,handoffs:index});
     }
     return json({error:"not_found"},404);
   }
@@ -478,63 +546,83 @@ async function audit(env,product,action,requestId,details={},success=true,error_
   }catch{}
 }
 
-async function github(env,path,init={}){
+function normalizeGithubIdentity(value){
+  return String(value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
+}
+function githubSecretName(identity){
+  const key=normalizeGithubIdentity(identity).toUpperCase().replace(/[^A-Z0-9]/g,"_");
+  return key?`GITHUB_TOKEN_${key}`:"";
+}
+function githubAuth(env,manifest){
+  const identity=normalizeGithubIdentity(manifest?.repo?.identity||manifest?.repo?.owner||"clintkosh");
+  const secretName=githubSecretName(identity);
+  let token=secretName?String(env[secretName]||""):"";
+  let source=token?secretName:"";
+  // Backward-compatible migration path for the original Clintware credential.
+  if(!token&&identity==="clintkosh"&&env.GITHUB_CONTROL_PLANE_TOKEN){
+    token=String(env.GITHUB_CONTROL_PLANE_TOKEN);
+    source="GITHUB_CONTROL_PLANE_TOKEN";
+  }
+  return {identity,secret_name:secretName,configured:Boolean(token),source,token};
+}
+async function github(env,manifest,path,init={}){
   const headers=new Headers(init.headers||{});
   headers.set("accept","application/vnd.github+json");headers.set("x-github-api-version","2022-11-28");headers.set("user-agent","Clintware-Control-Plane/1.0");
-  if(env.GITHUB_CONTROL_PLANE_TOKEN)headers.set("authorization",`Bearer ${env.GITHUB_CONTROL_PLANE_TOKEN}`);
+  const auth=githubAuth(env,manifest);
+  if(auth.token)headers.set("authorization",`Bearer ${auth.token}`);
   return fetch(`https://api.github.com${path}`,{...init,headers});
 }
 async function repoRead(env,manifest,path,ref){
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const q=ref?`?ref=${encodeURIComponent(ref)}`:"";
-  const r=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}${q}`);
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}${q}`);
   if(!r.ok)return {ok:false,status:r.status,error:"github_read_failed",detail:await r.text()};
   const data=await r.json();
   if(Array.isArray(data))return {ok:true,type:"directory",items:data.map(x=>({name:x.name,path:x.path,type:x.type,sha:x.sha}))};
   return {ok:true,type:data.type,path:data.path,sha:data.sha,encoding:data.encoding,content:data.content?fromB64(data.content.replace(/\n/g,"")):"",html_url:data.html_url};
 }
 async function repoCreateBranch(env,manifest,branch,base){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
-  const get=await github(env,`/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base||manifest.repo.default_branch||"main")}`);
+  const get=await github(env,manifest,`/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base||manifest.repo.default_branch||"main")}`);
   if(!get.ok)return {ok:false,status:get.status,error:"base_ref_lookup_failed",detail:await get.text()};
   const baseData=await get.json();
-  const r=await github(env,`/repos/${owner}/${repo}/git/refs`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:`refs/heads/${branch}`,sha:baseData.object.sha})});
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/git/refs`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:`refs/heads/${branch}`,sha:baseData.object.sha})});
   if(!r.ok)return {ok:false,status:r.status,error:"branch_create_failed",detail:await r.text()};
   return {ok:true,branch,sha:baseData.object.sha};
 }
 async function repoWrite(env,manifest,{path,content,message,branch,sha}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!pathAllowed(manifest,path))return {ok:false,status:403,error:"path_not_allowed"};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const body={message:String(message||`Update ${path} via Clintware Control Plane`),content:b64(content),branch:String(branch||manifest.repo.default_branch||"main")};
   if(sha)body.sha=sha;
-  const r=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+  const r=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok)return {ok:false,status:r.status,error:"github_write_failed",detail:await r.text()};
   const data=await r.json();return {ok:true,commit_sha:data.commit?.sha||"",content_sha:data.content?.sha||"",path};
 }
 // Delete a file — Clintware resolves the GitHub SHA internally so the agent never
 // has to. Only allowed within delete_prefixes and never on protected paths.
 async function repoFileDelete(env,manifest,{path,message,branch}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!deletePathAllowed(manifest,path))return {ok:false,status:403,error:"delete_path_not_allowed"};
   if(isProtectedPath(manifest,path))return {ok:false,status:403,error:"protected_path"};
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const ref=branch||manifest.repo.default_branch||"main";
   // Step 1: resolve the current file SHA internally
-  const getR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
+  const getR=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
   if(!getR.ok)return {ok:false,status:getR.status,error:"file_lookup_failed",detail:await getR.text()};
   const fileData=await getR.json();
   if(Array.isArray(fileData))return {ok:false,status:400,error:"path_is_directory"};
   // Step 2: delete using the resolved SHA
-  const delR=await github(env,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({message:String(message||"Delete "+path+" via Clintware Control Plane"),sha:fileData.sha,branch:ref})});
+  const delR=await github(env,manifest,`/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({message:String(message||"Delete "+path+" via Clintware Control Plane"),sha:fileData.sha,branch:ref})});
   if(!delR.ok)return {ok:false,status:delR.status,error:"github_delete_failed",detail:await delR.text()};
   const delData=await delR.json();
   return {ok:true,commit_sha:delData.commit?.sha||"",path,sha_resolved_internally:true};
 }
 // Move/rename a file — Clintware resolves the SHA, reads content, writes new path, deletes old.
 async function repoFileMove(env,manifest,{from_path,to_path,message,branch}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_write_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_write_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!pathAllowed(manifest,to_path))return {ok:false,status:403,error:"target_path_not_allowed"};
   if(!deletePathAllowed(manifest,from_path))return {ok:false,status:403,error:"source_delete_not_allowed"};
   const readResult=await repoRead(env,manifest,from_path,branch);
@@ -545,9 +633,9 @@ async function repoFileMove(env,manifest,{from_path,to_path,message,branch}){
   return {ok:true,commit_sha:writeResult.commit_sha,path:to_path,moved_from:from_path};
 }
 async function workflowDispatch(env,manifest,workflow,ref,inputs={}){
-  if(!env.GITHUB_CONTROL_PLANE_TOKEN)return {ok:false,status:503,error:"github_actions_not_configured"};
+  if(!githubAuth(env,manifest).configured)return {ok:false,status:503,error:"github_actions_not_configured",identity:githubAuth(env,manifest).identity,expected_secret:githubAuth(env,manifest).secret_name};
   if(!(manifest.repo.allowed_workflows||[]).includes(workflow))return {ok:false,status:403,error:"workflow_not_allowed"};
-  const r=await github(env,`/repos/${manifest.repo.owner}/${manifest.repo.name}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:ref||manifest.repo.default_branch||"main",inputs})});
+  const r=await github(env,manifest,`/repos/${manifest.repo.owner}/${manifest.repo.name}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({ref:ref||manifest.repo.default_branch||"main",inputs})});
   if(!r.ok)return {ok:false,status:r.status,error:"workflow_dispatch_failed",detail:await r.text()};
   return {ok:true,workflow,ref:ref||manifest.repo.default_branch||"main"};
 }
@@ -732,7 +820,73 @@ function createMcpServer(env,mcpRequest){
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async()=>{
     const products=await (await registryHub(env).fetch("https://internal/list")).json();
-    return {content:[{type:"text",text:JSON.stringify({ok:true,service:"Clintware Control Plane",version:VERSION,products:products.products?.map(p=>p.product)||[],adapters:{github_read:true,github_write:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID)}})}]};
+    const productList=products.products||[];
+    const identities=[...new Map(productList.map(p=>{
+      const auth=githubAuth(env,p);
+      return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name}];
+    })).values()];
+    return {content:[{type:"text",text:JSON.stringify({ok:true,service:"Clintware Control Plane",version:VERSION,products:productList.map(p=>p.product),github_identities:identities,adapters:{github_read:true,github_write:identities.some(x=>x.configured),cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID)}})}]};
+  });
+  server.registerTool("clintware_client_handshake",{
+    title:"Discover Clintware Control Plane client interoperability",
+    description:"Return the vendor-neutral connection contract for ChatGPT, Claude, Gemini, Grok, Perplexity, CLI agents, and other MCP-capable clients. Never returns provider credentials.",
+    inputSchema:{client:z.string().optional(),product:z.string().optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({client,product})=>{
+    const manifest=product?await manifestFor(env,product):null;
+    const auth=manifest?githubAuth(env,manifest):null;
+    return {content:[{type:"text",text:JSON.stringify({
+      ok:true,
+      protocol:"clintware-control-plane/v1",
+      handoff_protocol:"clintware-handoff/v1",
+      mcp_endpoint:"https://mcp.clintware.com/mcp",
+      authentication:"Bearer or x-api-key using the scoped Clintware MCP client credential; underlying GitHub/Cloudflare credentials remain server-side.",
+      client:clip(client||"unknown",80),
+      product:manifest?.product||normalizeProduct(product||""),
+      repository:manifest?{identity:auth.identity,owner:manifest.repo?.owner||"",name:manifest.repo?.name||"",default_branch:manifest.repo?.default_branch||"main",credential_configured:auth.configured}:null,
+      handoff_fields:["handoff_id","from_client","target_client","product","project","objective","context_summary","repository","decisions","constraints","changed_files","artifacts","next_actions","notes"],
+      guidance:[
+        "Use Clintware product manifests as the source of truth for repository identity and scope.",
+        "Send only compact working context; never place provider tokens, passwords, API keys, cookies, or raw secret values in a handoff.",
+        "When another model continues work, preserve handoff_id in notes/commits where useful for traceability.",
+        "Use capability discovery/request tools rather than requesting broad infrastructure credentials."
+      ]
+    })}]};
+  });
+  server.registerTool("clintware_handoff_put",{
+    title:"Store a cross-client Clintware work handoff",
+    description:"Store a compact vendor-neutral continuation packet for another LLM/client. Do not include secrets or full raw chat histories.",
+    inputSchema:{
+      handoff_id:z.string().optional(),
+      from_client:z.string().default("unknown"),
+      target_client:z.string().default("any"),
+      product:z.string().optional(),
+      project:z.string().optional(),
+      objective:z.string().default(""),
+      context_summary:z.string().default(""),
+      repository:z.object({identity:z.string().optional(),owner:z.string().optional(),name:z.string().optional(),branch:z.string().optional()}).optional(),
+      decisions:z.array(z.string()).optional(),
+      constraints:z.array(z.string()).optional(),
+      changed_files:z.array(z.string()).optional(),
+      artifacts:z.array(z.string()).optional(),
+      next_actions:z.array(z.string()).optional(),
+      notes:z.string().optional()
+    },
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+  },async(packet)=>{
+    const r=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+  server.registerTool("clintware_handoff_get",{
+    title:"Retrieve a cross-client Clintware work handoff",
+    description:"Retrieve one compact work packet by handoff ID so this client can continue work started by another LLM/client.",
+    inputSchema:{handoff_id:z.string().min(1)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({handoff_id})=>{
+    const r=await registryHub(env).fetch(`https://internal/handoff/${encodeURIComponent(handoff_id)}`);
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
   server.registerTool("clintware_product_manifest",{
     title:"Get a Clintware product capability manifest",
@@ -982,17 +1136,19 @@ async function handleMcp(request,env,ctx){
   const handler=createMcpHandler(()=>createMcpServer(env,request),{
     route:"/mcp",
     allowedHostnames:["mcp.clintware.com"],
-    allowedOriginHostnames:["perplexity.ai","www.perplexity.ai","chatgpt.com","chat.openai.com","platform.openai.com","clintware.com","www.clintware.com"],
+    allowedOriginHostnames:["perplexity.ai","www.perplexity.ai","chatgpt.com","chat.openai.com","platform.openai.com","claude.ai","www.claude.ai","console.anthropic.com","gemini.google.com","aistudio.google.com","grok.com","www.grok.com","x.com","www.x.com","copilot.microsoft.com","clintware.com","www.clintware.com"],
     responseMode:"auto"
   });
   return handler(request,env,ctx);
 }
 
 function safeConfig(env){
+  const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH||env.GITHUB_TOKEN_CODEFEDDY);
   return {
     github_read:true,
-    github_write:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),
-    github_actions:Boolean(env.GITHUB_CONTROL_PLANE_TOKEN),
+    github_write:knownGithub,
+    github_actions:knownGithub,
+    github_multi_identity:true,
     cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID),
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
@@ -1006,12 +1162,33 @@ export default {
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
         const rconfig=await researchConfig(env);
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:(products.products||[]).map(p=>p.product),adapters:safeConfig(env),research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
+        const productList=products.products||[];
+        const githubIdentities=[...new Map(productList.map(p=>{
+          const auth=githubAuth(env,p);
+          return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name,repositories:[]}];
+        })).values()];
+        for(const p of productList){
+          const identity=normalizeGithubIdentity(p?.repo?.identity||p?.repo?.owner||"clintkosh");
+          const row=githubIdentities.find(x=>x.identity===identity);
+          if(row&&p?.repo?.owner&&p?.repo?.name)row.repositories.push(`${p.repo.owner}/${p.repo.name}`);
+        }
+        const adapters={...safeConfig(env),github_write:githubIdentities.some(x=>x.configured),github_actions:githubIdentities.some(x=>x.configured)};
+        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/handoffs"){
+        if(!await requireMcp(request,env))return json({error:"unauthorized"},401);
+        const body=await reqJson(request,64_000);
+        return await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}));
+      }
+      const handoffMatch=url.pathname.match(/^\/api\/v1\/handoffs\/([^/]+)$/);
+      if(request.method==="GET"&&handoffMatch){
+        if(!await requireMcp(request,env))return json({error:"unauthorized"},401);
+        return await registryHub(env).fetch(`https://internal/handoff/${encodeURIComponent(decodeURIComponent(handoffMatch[1]))}`);
       }
       if(request.method==="GET"&&url.pathname==="/api/v1/products"){
         if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
