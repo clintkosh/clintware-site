@@ -1,0 +1,49 @@
+name: Build Playlist Surgeon
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/spotify-playlist-surgeon]
+    paths:
+      - "tools-src/playlist-surgeon/**"
+      - ".github/workflows/build-playlist-surgeon.yml"
+  pull_request:
+    paths:
+      - "tools-src/playlist-surgeon/**"
+      - ".github/workflows/build-playlist-surgeon.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tools-src/playlist-surgeon
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore PlaylistSurgeon.csproj
+
+      - name: Build
+        run: dotnet build PlaylistSurgeon.csproj -c Release --no-restore
+
+      - name: Publish self-contained EXE
+        shell: pwsh
+        run: .\build.ps1
+
+      - name: Upload Windows x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaylistSurgeon-win-x64
+          path: tools-src/playlist-surgeon/dist/PlaylistSurgeon.exe
+          if-no-files-found: error
