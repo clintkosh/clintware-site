@@ -52,3 +52,9 @@ jobs:
         run: |
           publish_secret=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           printf '%s' "$publish_secret" | npx --yes wrangler@4 secret put NEWSLETTER_PUBLISH_SECRET --config newsletter/wrangler.jsonc
+      - name: Configure internal mail authentication
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.jsonc
