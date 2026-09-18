@@ -1,17 +1,37 @@
 import base from './index.js';
 import { gmailClientJs } from './gmail-client.js';
 import { gmailDraftJs } from './gmail-draft.js';
+import { communicationGuardJs } from './communication-guard.js';
 
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.compose'
 ];
 
+const communicationGuardSection = `
+<section class="wrap section" id="message-guard">
+  <div class="label">Communication Guard · always-on career check</div>
+  <h2>Check the message before the recipient does.</h2>
+  <p class="lede">Use this on recruiter, hiring-manager, interviewer, networking, negotiation, rejection, and status-check messages. The guard looks for self-undermining, reassurance-seeking, over-praise, personal-need disclosure, repeated interest, follow-up pressure, and avoidable leverage loss. It runs locally in this browser.</p>
+  <div class="grid" style="margin-top:14px">
+    <div class="panel">
+      <div class="field"><label for="ltpGuardContext">Communication context</label><select id="ltpGuardContext"><option value="recruiter">Recruiter</option><option value="hiring_manager">Hiring manager</option><option value="interviewer">Interviewer / post-interview</option><option value="status_check">Status check / follow-up</option><option value="network">Networking / referral</option><option value="negotiation">Offer / negotiation</option><option value="rejection_reply">Rejection reply</option><option value="employer">Employer / manager</option><option value="general">General outbound</option></select></div>
+      <div class="field"><label for="ltpGuardMessage">Message</label><textarea id="ltpGuardMessage" spellcheck="true" placeholder="Paste the exact message you are considering sending."></textarea></div>
+      <div class="actions"><button class="btn primary" id="ltpRunGuard" type="button">Run Message Guard</button></div>
+      <div class="note">The goal is not to make messages cold. It preserves normal warmth while flagging wording that unnecessarily lowers confidence, leverage, or seniority.</div>
+    </div>
+    <div class="panel">
+      <div class="label">Pre-send result</div>
+      <div id="ltpGuardResult" class="result"><div class="muted">Paste a message and run the check.</div></div>
+    </div>
+  </div>
+</section>`;
+
 const gmailSection = `
 <section class="wrap section" id="gmail">
   <div class="label">Gmail evidence · OAuth MVP</div>
   <h2>Connect your Gmail. Keep the mailbox in your browser.</h2>
-  <p class="lede">LandThePlane can now connect directly to a user's own Google account, scan job-search evidence in Gmail, import a reconciled evidence summary into the existing Brief Builder, and create a Gmail draft. Raw Gmail messages are not proxied through or stored by the Clintware Worker.</p>
+  <p class="lede">LandThePlane can now connect directly to a user's own Google account, scan job-search evidence in Gmail, import a reconciled evidence summary into the existing Brief Builder, and create a Gmail draft. Career-facing drafts are checked by Communication Guard before creation. Raw Gmail messages are not proxied through or stored by the Clintware Worker.</p>
   <div class="grid" style="margin-top:14px">
     <div class="panel">
       <h3>1. Connect Gmail</h3>
@@ -60,7 +80,7 @@ const gmailSection = `
         <li>OAuth access token stays in JavaScript memory for the active page session.</li>
         <li>Gmail API calls go from the browser directly to Google.</li>
         <li>LandThePlane does not mirror raw Gmail messages into a Clintware database.</li>
-        <li>Draft creation is enabled; autonomous sending is not part of this MVP.</li>
+        <li>Career-facing draft creation runs the local Communication Guard first; autonomous sending is not part of this MVP.</li>
         <li>Restricted Gmail scopes still require Google's production verification before Clintware can offer one shared OAuth client broadly.</li>
       </ul>
     </div>
@@ -98,10 +118,10 @@ export default {
     if (url.pathname !== '/' || request.method === 'HEAD' || !String(response.headers.get('content-type') || '').includes('text/html')) return response;
 
     let html = await response.text();
-    if (!html.includes('href="#gmail"')) html = html.replace('<a href="#product">Lifecycle</a>', '<a href="#gmail">Gmail</a><a href="#product">Lifecycle</a>');
+    if (!html.includes('href="#gmail"')) html = html.replace('<a href="#product">Lifecycle</a>', '<a href="#message-guard">Message Guard</a><a href="#gmail">Gmail</a><a href="#product">Lifecycle</a>');
     if (!html.includes('id="gmail"')) html = html.replace('</main>', gmailSection + '</main>');
     if (!html.includes('ltp_gmail_mvp_view')) {
-      html = html.replace('</body>', '<script src="https://accounts.google.com/gsi/client" async defer></script><script>' + gmailClientJs + '</script><script>' + gmailDraftJs + '</script></body>');
+      html = html.replace('</body>', '<script src="https://accounts.google.com/gsi/client" async defer></script><script>' + communicationGuardJs + '</script><script>' + gmailClientJs + '</script><script>' + gmailDraftJs + '</script></body>');
     }
 
     const headers = new Headers(response.headers);
