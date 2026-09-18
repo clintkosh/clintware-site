@@ -6,6 +6,10 @@
   "preview_urls": false,
   "routes": [
     {
+      "pattern": "n7.clintware.com",
+      "custom_domain": true
+    },
+    {
       "pattern": "n7case.clintware.com",
       "custom_domain": true
     }
