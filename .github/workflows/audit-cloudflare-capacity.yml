@@ -27,11 +27,11 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
 
-          pages_json=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects?per_page=100" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          pages_json=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
 
           workers_json=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
 
-          pages_count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"); print(len(d.get("result",[])))' <<< "$pages_json")
+          pages_count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"), d.get("errors"); info=d.get("result_info") or {}; print(info.get("total_count", len(d.get("result",[]))))' <<< "$pages_json")
           workers_count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"); r=d.get("result",[]); print(len(r) if isinstance(r,list) else len(r.get("scripts",[])))' <<< "$workers_json")
 
           echo "Cloudflare Pages projects: ${pages_count}/100"
