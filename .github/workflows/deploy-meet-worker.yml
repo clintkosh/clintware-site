@@ -6,33 +6,63 @@ on:
     paths:
       - "meet-worker/**"
       - ".github/workflows/deploy-meet-worker.yml"
+  pull_request:
+    paths:
+      - "meet-worker/**"
+      - ".github/workflows/deploy-meet-worker.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: clintware-meet
+  group: clintware-meet-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Meet Worker
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run scheduler regression tests
+        run: npm --prefix meet-worker test
+
+      - name: Validate Worker source and Cloudflare bundle
         run: |
+          node --check meet-worker/src/lib.js
+          node --check meet-worker/src/ui.js
           node --check meet-worker/src/worker.js
           npx --yes wrangler@4 deploy --dry-run --config meet-worker/wrangler.jsonc
 
-      - name: Deploy Meet Worker
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy ClintCal Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd meet-worker
+          command: deploy --cwd meet-worker --keep-vars
+
+      - name: Configure scheduler secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config meet-worker/wrangler.jsonc
+          printf '%s' "$scheduler_admin_secret" | npx --yes wrangler@4 secret put SCHEDULER_ADMIN_SECRET --config meet-worker/wrangler.jsonc
 
       - name: Attach or verify meet.clintware.com
         env:
@@ -40,35 +70,106 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          current=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          current=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           correct=$(python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); print("yes" if d.get("success") is True and len(r)==1 and r[0].get("hostname")=="meet.clintware.com" and r[0].get("service")=="clintware-meet" else "no")' <<< "$current")
           if [ "$correct" != "yes" ]; then
-            curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"meet.clintware.com","service":"clintware-meet"}' >/tmp/meet-domain-put.json
+            curl --fail-with-body -sS -X PUT               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"               -H "Content-Type: application/json"               --data '{"hostname":"meet.clintware.com","service":"clintware-meet"}' >/tmp/meet-domain-put.json
             python3 -c 'import json; d=json.load(open("/tmp/meet-domain-put.json")); assert d.get("success") is True,d'
           fi
-          verify=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          verify=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=meet.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="meet.clintware.com" and x.get("service")=="clintware-meet",x; print("Meet domain verified:",x["hostname"],"->",x["service"])' <<< "$verify"
 
-      - name: Verify public scheduling bridge
+      - name: Verify public ClintCal scheduler
         run: |
           set -euo pipefail
           ready=0
-          for i in $(seq 1 24); do
+          for i in $(seq 1 30); do
             body=$(mktemp)
-            code=$(curl -sS --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://meet.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'CLINTWARE' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Request meeting' "$body"               && grep -Fq 'formsubmit.co/ajax/clint@clintware.com' "$body"               && ! grep -Fqi 'koalendar.com' "$body"; then
-              echo 'meet.clintware.com serves the Clintware scheduling bridge with no Koalendar dependency.'
+            code=$(curl -sS --connect-timeout 5 --max-time 20               -o "$body" -w '%{http_code}' "https://meet.clintware.com/?release=${GITHUB_SHA}" || true)
+            if [ "$code" = "200" ]               && grep -Fq 'CLINTWARE' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Pick a time. Get it done.' "$body"               && grep -Fq 'Book meeting' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
+              echo 'meet.clintware.com serves native ClintCal with no Koalendar or FormSubmit dependency.'
               ready=1
               rm -f "$body"
               break
             fi
             rm -f "$body"
-            echo "Waiting for scheduling bridge deployment ($i/24)"
+            echo "Waiting for ClintCal deployment ($i/30)"
             sleep 5
           done
           test "$ready" = "1"
 
-      - name: Verify health endpoint
+      - name: Verify health and live availability
         run: |
           set -euo pipefail
-          curl --fail-with-body -sS https://meet.clintware.com/health | grep -Fq '"mode":"clintware-request-bridge"'
+          curl --fail-with-body -sS https://meet.clintware.com/health >/tmp/meet-health.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/meet-health.json'))
+          assert d.get('ok') is True,d
+          assert d.get('mode') == 'clintcal-native',d
+          assert d.get('storage') == 'sqlite',d
+          assert d.get('mailer') == 'resend',d
+          PY
+          curl --fail-with-body -sS https://meet.clintware.com/api/availability >/tmp/availability.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/availability.json'))
+          slots=d.get('slots') or []
+          assert len(slots) >= 2,d
+          assert slots[0]['endMs'] - slots[0]['startMs'] == 30*60*1000,slots[0]
+          print('Availability slots:',len(slots))
+          PY
+
+      - name: Run protected storage self-test
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          curl --fail-with-body -sS -X POST https://meet.clintware.com/api/admin/self-test             -H "x-clintware-admin-secret: $scheduler_admin_secret" >/tmp/selftest.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/selftest.json'))
+          assert d.get('ok') is True,d
+          assert d.get('storage',{}).get('storage') == 'sqlite',d
+          assert d.get('slots',0) > 0,d
+          assert d.get('mailer') is True,d
+          print('Protected self-test passed:',d)
+          PY
+
+      - name: Run one live book-reschedule-cancel test
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[meet-e2e]')
+        run: |
+          set -euo pipefail
+          curl --fail-with-body -sS https://meet.clintware.com/api/availability >/tmp/e2e-availability.json
+          first=$(python3 -c 'import json; d=json.load(open("/tmp/e2e-availability.json")); print(d["slots"][0]["startMs"])')
+          second=$(python3 -c 'import json; d=json.load(open("/tmp/e2e-availability.json")); print(d["slots"][2]["startMs"])')
+
+          python3 - <<PY >/tmp/book.json
+          import json
+          print(json.dumps({
+            "startMs": int("$first"),
+            "timezone": "America/Chicago",
+            "name": "ClintCal Deployment Test",
+            "email": "clint@clintware.com",
+            "company": "Clintware",
+            "purpose": "Other",
+            "topic": "Automated production booking verification"
+          }))
+          PY
+
+          curl --fail-with-body -sS -X POST https://meet.clintware.com/api/book             -H 'content-type: application/json' --data @/tmp/book.json >/tmp/book-response.json
+
+          token=$(python3 -c 'import json,re; d=json.load(open("/tmp/book-response.json")); u=d["booking"]["manageUrl"]; print(re.search(r"/manage/([a-f0-9]{48})",u).group(1))')
+          python3 -c 'import json; d=json.load(open("/tmp/book-response.json")); assert d["booking"]["status"]=="confirmed",d; assert d["delivery"]["guest"] is True,d'
+
+          curl --fail-with-body -sS "https://meet.clintware.com/api/manage/$token" >/tmp/manage.json
+          python3 -c 'import json; d=json.load(open("/tmp/manage.json")); assert d["booking"]["status"]=="confirmed",d'
+
+          printf '{"startMs":%s,"timezone":"America/Chicago"}' "$second" >/tmp/reschedule.json
+          curl --fail-with-body -sS -X POST "https://meet.clintware.com/api/manage/$token/reschedule"             -H 'content-type: application/json' --data @/tmp/reschedule.json >/tmp/reschedule-response.json
+          python3 -c 'import json; d=json.load(open("/tmp/reschedule-response.json")); assert d["booking"]["startMs"]==int("'"$second"'"),d'
+
+          curl --fail-with-body -sS -X POST "https://meet.clintware.com/api/manage/$token/cancel" >/tmp/cancel-response.json
+          python3 -c 'import json; d=json.load(open("/tmp/cancel-response.json")); assert d["booking"]["status"]=="canceled",d'
+          echo 'Live book -> reschedule -> cancel test passed.'
