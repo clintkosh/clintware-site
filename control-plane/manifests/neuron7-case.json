@@ -1,0 +1,55 @@
+{
+  "product": "neuron7-case",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["neuron7-case-worker/"],
+    "allowed_workflows": ["deploy-neuron7-case.yml"]
+  },
+  "dns": {
+    "allowed_names": ["n7.clintware.com", "n7case.clintware.com"]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:neuron7-case-worker/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:neuron7-case",
+    "dns.ensure:n7.clintware.com",
+    "dns.ensure:n7case.clintware.com",
+    "analytics.write:neuron7-case",
+    "analytics.read:neuron7-case"
+  ],
+  "deny": [
+    "research.invoke",
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
+  "telemetry_namespace": "neuron7-case",
+  "privacy": {
+    "public_viewer": true,
+    "indexing": false,
+    "customer_data": false,
+    "oauth_operator_mode": "optional",
+    "identity_boundary": "auth.clintware.com",
+    "infrastructure_boundary": "mcp.clintware.com"
+  }
+}
