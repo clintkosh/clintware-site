@@ -160,3 +160,28 @@ Invoke-RestMethod https://mcp.clintware.com/health | ConvertTo-Json -Depth 8
 ```
 
 Look for `github_identities`. Each identity should show `configured: true` and the expected repositories. The endpoint never exposes token values.
+
+
+## Dedicated MCP credentials for each LLM
+
+Do not reuse the root `CONTROL_PLANE_MCP_TOKEN` across every external AI client. After the Control Plane is deployed, create one revocable client credential per LLM.
+
+From a trusted local checkout:
+
+```powershell
+.\control-plane\new-mcp-client.ps1 -Name chatgpt
+.\control-plane\new-mcp-client.ps1 -Name claude
+.\control-plane\new-mcp-client.ps1 -Name gemini
+.\control-plane\new-mcp-client.ps1 -Name grok
+.\control-plane\new-mcp-client.ps1 -Name perplexity
+```
+
+The helper reads `CONTROL_PLANE_ADMIN_TOKEN` from the current process environment when available; otherwise it securely prompts for it. The generated client token is displayed once. Only its SHA-256 hash is retained by the Control Plane.
+
+Configure each client with:
+
+- MCP URL: `https://mcp.clintware.com/mcp`
+- Authentication: `Authorization: Bearer <that-client-token>` or the client's equivalent API-key header field
+- Routing instruction: `control-plane/UNIVERSAL-LLM-ROUTING.md`
+
+To revoke a client without disturbing the others, call `DELETE /api/v1/mcp/clients/<client-id>` with the admin credential.
