@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,8 +41,7 @@ public sealed class SpotifyClient
         var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
         var state = Base64Url(RandomNumberGenerator.GetBytes(24));
 
-        using var listener = new HttpListener();
-        listener.Prefixes.Add(RedirectUri);
+        var listener = new TcpListener(IPAddress.Loopback, 5543);
         listener.Start();
 
         var authUrl = $"{AccountsBase}/authorize?client_id={Uri.EscapeDataString(_clientId)}" +
@@ -51,26 +51,54 @@ public sealed class SpotifyClient
 
         Process.Start(new ProcessStartInfo(authUrl) { UseShellExecute = true });
 
-        var contextTask = listener.GetContextAsync();
-        var completed = await Task.WhenAny(contextTask, Task.Delay(TimeSpan.FromMinutes(3), cancellationToken));
-        if (completed != contextTask)
+        Dictionary<string, string> query;
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromMinutes(3));
+            using var client = await listener.AcceptTcpClientAsync(timeout.Token);
+            using var stream = client.GetStream();
+            using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
+
+            var requestLine = await reader.ReadLineAsync(timeout.Token);
+            if (string.IsNullOrWhiteSpace(requestLine))
+                throw new InvalidOperationException("Spotify callback was empty.");
+
+            var parts = requestLine.Split(' ');
+            if (parts.Length < 2)
+                throw new InvalidOperationException("Spotify callback request was malformed.");
+
+            var callback = new Uri("http://127.0.0.1" + parts[1]);
+            query = ParseQuery(callback.Query);
+
+            string? header;
+            do { header = await reader.ReadLineAsync(timeout.Token); }
+            while (!string.IsNullOrEmpty(header));
+
+            var errorForPage = query.GetValueOrDefault("error");
+            var responseHtml = string.IsNullOrWhiteSpace(errorForPage)
+                ? "<html><body style='font-family:Segoe UI;background:#080a0e;color:#f4f7fb;padding:40px'><h2>Connected.</h2><p>You can close this window and return to Playlist Surgeon.</p></body></html>"
+                : $"<html><body><h2>Spotify authorization failed</h2><p>{WebUtility.HtmlEncode(errorForPage)}</p></body></html>";
+            var bodyBytes = Encoding.UTF8.GetBytes(responseHtml);
+            var headers = Encoding.ASCII.GetBytes(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " +
+                bodyBytes.Length + "\r\nConnection: close\r\n\r\n");
+            await stream.WriteAsync(headers, timeout.Token);
+            await stream.WriteAsync(bodyBytes, timeout.Token);
+            await stream.FlushAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
             throw new TimeoutException("Spotify authorization timed out.");
+        }
+        finally
+        {
+            listener.Stop();
+        }
 
-        var context = await contextTask;
-        var query = context.Request.QueryString;
-        var returnedState = query["state"];
-        var code = query["code"];
-        var error = query["error"];
-
-        var responseHtml = string.IsNullOrWhiteSpace(error)
-            ? "<html><body style='font-family:Segoe UI;background:#080a0e;color:#f4f7fb;padding:40px'><h2>Connected.</h2><p>You can close this window and return to Playlist Surgeon.</p></body></html>"
-            : $"<html><body><h2>Spotify authorization failed</h2><p>{WebUtility.HtmlEncode(error)}</p></body></html>";
-        var bytes = Encoding.UTF8.GetBytes(responseHtml);
-        context.Response.ContentType = "text/html; charset=utf-8";
-        context.Response.ContentLength64 = bytes.Length;
-        await context.Response.OutputStream.WriteAsync(bytes, cancellationToken);
-        context.Response.Close();
-        listener.Stop();
+        var returnedState = query.GetValueOrDefault("state");
+        var code = query.GetValueOrDefault("code");
+        var error = query.GetValueOrDefault("error");
 
         if (!string.IsNullOrWhiteSpace(error))
             throw new InvalidOperationException($"Spotify authorization failed: {error}");
@@ -323,6 +351,19 @@ public sealed class SpotifyClient
 
     private static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static Dictionary<string, string> ParseQuery(string query)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var split = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(split[0].Replace("+", " "));
+            var value = split.Length > 1 ? Uri.UnescapeDataString(split[1].Replace("+", " ")) : "";
+            result[key] = value;
+        }
+        return result;
+    }
 
     private static string? GetString(JsonElement element, string property) =>
         element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
