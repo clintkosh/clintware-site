@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-const VERSION = "2026-09-17";
+const VERSION = "2026-09-18";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -89,7 +89,21 @@ const DEFAULT_BACKGROUND_MIRROR = {
   created_at:"2026-09-17T00:00:00.000Z"
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR};
+const DEFAULT_NEURON7_CASE = {
+  product:"neuron7-case",
+  environment:"production",
+  version:1,
+  repo:{owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
+  dns:{allowed_names:["n7.clintware.com","n7case.clintware.com"]},
+  capabilities:["repo.read:clintware-site","repo.write:neuron7-case-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:neuron7-case","dns.ensure:n7.clintware.com","dns.ensure:n7case.clintware.com","analytics.write:neuron7-case","analytics.read:neuron7-case"],
+  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"neuron7-case",
+  privacy:{public_viewer:true,indexing:false,customer_data:false,oauth_operator_mode:"optional",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
+  created_at:"2026-09-18T00:00:00.000Z"
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE};
 
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
