@@ -78,3 +78,10 @@ The review receives interview stage, target-role text, optional candidate eviden
 4. chunked long-interview ingestion;
 5. approved interview summaries saved as `InterviewRound`, `QuestionAsked`, `AnswerAttempt`, and `CoachingMetric` objects;
 6. longitudinal learning across interviews so repeated strengths, missed questions, fit gaps, and delivery patterns improve future preparation.
+
+
+## Crucible review behavior
+
+Interview Review follows the LandThePlane Crucible Preparation Standard. Post-round analysis must look for question-scope ambiguity, framework-vs-philosophy misses, self-vs-team confusion, scale/metric/ownership gaps, over-explaining, and interviewer-specific emphasis that should **not** automatically carry into the next company or interviewer.
+
+The review should turn each material miss into a concrete next-round defense while preserving verified evidence and avoiding hiring-outcome predictions.
