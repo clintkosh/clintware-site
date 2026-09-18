@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ClintLink shortens URLs, tracks successful opens, and supports password-protected links.">
+  <link rel="canonical" href="https://www.clintware.com/link/">
+  <meta property="og:title" content="ClintLink | Clintware">
+  <meta property="og:description" content="Short URLs, protected links, click counts, and password-only access.">
+  <meta property="og:url" content="https://www.clintware.com/link/">
+  <title>ClintLink | Clintware</title>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+  <script>
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js',new Date());
+    gtag('config','G-DCY144YM9P',{anonymize_ip:true});
+  </script>
+  <style>
+    :root{color-scheme:dark;--bg:#070a0f;--panel:#0b1017;--panel2:#0e151e;--line:#25303c;--text:#edf5fb;--muted:#94a7b8;--accent:#6ef2b2;--cyan:#6ed8f2;--danger:#ffb4b4;--font:"Cascadia Code","Cascadia Mono","Segoe UI Mono",SFMono-Regular,Menlo,Consolas,monospace}
+    *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:radial-gradient(circle at 80% 4%,rgba(110,216,242,.05),transparent 30rem),var(--bg);color:var(--text);font:14px/1.6 var(--font)}
+    a{color:inherit}.wrap{width:min(1060px,calc(100% - 36px));margin:auto}.top{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.07em}.brand{font-weight:800;text-decoration:none}.brand b{color:var(--accent)}.back{color:var(--muted);text-decoration:none}
+    .hero{padding:44px 0 24px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.08em}.hero h1{font-size:24px;line-height:1.28;margin:12px 0}.hero p{max-width:800px;color:#aebdca;margin:0}
+    .layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:12px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);padding:20px}.panel h2{font-size:17px;margin:0 0 8px}.panel>p{color:var(--muted);margin:0 0 16px}
+    label{display:block;color:#cbd7e1;font-size:12px;margin-top:12px}input,textarea,button{width:100%;border:1px solid var(--line);background:#070a0f;color:var(--text);font:inherit;padding:11px 12px;margin-top:6px}textarea{min-height:84px;resize:vertical}button{cursor:pointer}.primary{background:var(--accent);border-color:var(--accent);color:#04110b;font-weight:800}.secondary{background:var(--panel2);font-weight:700}.small{font-size:12px;color:var(--muted)}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.toggle-row{display:flex;gap:9px;align-items:center;margin-top:14px}.toggle-row input{width:auto;margin:0}.toggle-row label{margin:0}
+    .password-entry{margin-top:12px;border-top:1px solid var(--line);padding-top:14px}.password-box{display:none;margin-top:12px}.password-box.open{display:block}.result{display:none;margin-top:14px;border:1px solid var(--line);padding:13px;background:#08110e}.result.show{display:block}.result.error{background:#160b0b;color:var(--danger)}.result a{color:var(--accent);overflow-wrap:anywhere}
+    .stats{margin-top:12px}.stats-head{display:flex;justify-content:space-between;gap:15px;align-items:end;margin-bottom:10px}.stats-head h2{margin:0}.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.link-card{border:1px solid var(--line);background:var(--panel);padding:14px;min-height:130px}.link-card h3{font-size:14px;margin:0 0 7px;overflow-wrap:anywhere}.link-card p{font-size:12px;color:var(--muted);margin:0 0 10px}.metric{font-size:20px;font-weight:800;color:var(--accent)}.meta{font-size:11px;color:var(--muted)}.empty{border:1px dashed var(--line);padding:18px;color:var(--muted)}
+    .foot{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--line);margin-top:34px;padding:24px 0 34px;color:#718292;font-size:11px}
+    @media(max-width:820px){.layout{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.hero h1{font-size:20px}.two,.stats-grid{grid-template-columns:1fr}.top,.foot{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header class="wrap top"><a class="brand" href="https://www.clintware.com/">CLINT<b>WARE</b> / CLINTLINK</a><a class="back" href="https://www.clintware.com/tools/">Tools ↗</a></header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">CLINTWARE // LINK</div>
+      <h1>Short links with useful controls instead of disposable redirects.</h1>
+      <p>Create compact Clintware URLs, optionally protect them with a password, and see how many successful opens each public link has received.</p>
+    </section>
+
+    <section class="layout">
+      <section class="panel">
+        <h2>Create a ClintLink</h2>
+        <p>Clintware admin access is required while link creation is private.</p>
+        <form id="create-form">
+          <label for="target">Destination URL</label>
+          <input id="target" name="target" type="url" placeholder="https://example.com/long/path" required>
+
+          <div class="two">
+            <div>
+              <label for="slug">Custom ending <span class="small">(optional)</span></label>
+              <input id="slug" name="slug" placeholder="resume">
+            </div>
+            <div>
+              <label for="title">Title <span class="small">(optional)</span></label>
+              <input id="title" name="title" maxlength="160" placeholder="Resume">
+            </div>
+          </div>
+
+          <label for="summary">Brief summary <span class="small">(optional)</span></label>
+          <textarea id="summary" name="summary" maxlength="500" placeholder="What the destination contains."></textarea>
+
+          <label for="protect-password">Password protection <span class="small">(optional, minimum 8 characters)</span></label>
+          <input id="protect-password" name="password" type="password" autocomplete="new-password" placeholder="Leave blank for a normal short link">
+
+          <label for="admin-token">Clintware admin token</label>
+          <input id="admin-token" name="admin-token" type="password" autocomplete="off" required placeholder="Required to create links">
+
+          <div class="toggle-row">
+            <input id="public-stats" type="checkbox" checked>
+            <label for="public-stats">Show this link and its click count in the public summary below.</label>
+          </div>
+
+          <button class="primary" type="submit">Create short link</button>
+        </form>
+        <div id="create-result" class="result" aria-live="polite"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>Open a protected link</h2>
+        <p>If you were given only a ClintLink password, you do not need the short URL.</p>
+        <div class="password-entry">
+          <button id="password-toggle" class="secondary" type="button" aria-expanded="false">Have a password-protected link?</button>
+          <div id="password-box" class="password-box">
+            <form method="post" action="https://link.clintware.com/password">
+              <label for="access-password">Password</label>
+              <input id="access-password" name="password" type="password" autocomplete="current-password" required>
+              <button class="primary" type="submit">Open protected link</button>
+            </form>
+            <p class="small">The password is submitted by POST. It is not placed in the URL.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="stats">
+      <div class="stats-head"><div><div class="eyebrow">PUBLIC LINK SUMMARY</div><h2>Recent ClintLinks</h2></div><button id="refresh" class="secondary" type="button" style="width:auto">Refresh</button></div>
+      <div id="stats-grid" class="stats-grid"><div class="empty">Loading link summaries…</div></div>
+    </section>
+  </main>
+
+  <footer class="wrap foot"><span>A Clintware utility.</span><a href="https://www.clintware.com/privacy/">Privacy ↗</a></footer>
+
+  <script>
+    const API='https://link.clintware.com';
+
+    const toggle=document.getElementById('password-toggle');
+    const box=document.getElementById('password-box');
+    toggle.addEventListener('click',()=>{
+      const open=box.classList.toggle('open');
+      toggle.setAttribute('aria-expanded',String(open));
+      if(open) document.getElementById('access-password').focus();
+      gtag('event','clintlink_password_access_open');
+    });
+
+    function setResult(message,isError=false){
+      const el=document.getElementById('create-result');
+      el.className='result show'+(isError?' error':'');
+      el.innerHTML=message;
+    }
+
+    document.getElementById('create-form').addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      const token=document.getElementById('admin-token').value;
+      const body={
+        url:document.getElementById('target').value.trim(),
+        slug:document.getElementById('slug').value.trim(),
+        title:document.getElementById('title').value.trim(),
+        summary:document.getElementById('summary').value.trim(),
+        password:document.getElementById('protect-password').value,
+        public_stats:document.getElementById('public-stats').checked
+      };
+      try{
+        const res=await fetch(API+'/api/links',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+        const data=await res.json();
+        if(!res.ok) throw new Error(data.error||'Could not create link');
+        const protectedText=data.password_protected?' · password protected':'';
+        setResult('<strong>Created.</strong><br><a href="'+data.short_url+'" target="_blank" rel="noopener">'+data.short_url+'</a>'+protectedText+'<br><span class="small"><a href="'+data.info_url+'" target="_blank" rel="noopener">View summary</a></span>');
+        document.getElementById('protect-password').value='';
+        gtag('event','clintlink_created',{password_protected:data.password_protected});
+        loadStats();
+      }catch(err){
+        setResult(String(err.message||err),true);
+      }
+    });
+
+    function escapeHtml(value){
+      return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function loadStats(){
+      const grid=document.getElementById('stats-grid');
+      try{
+        const res=await fetch(API+'/api/summary',{headers:{'Accept':'application/json'}});
+        if(!res.ok) throw new Error('Summary unavailable');
+        const data=await res.json();
+        const links=data.links||[];
+        if(!links.length){grid.innerHTML='<div class="empty">No public ClintLinks yet.</div>';return;}
+        grid.innerHTML=links.map(link=>{
+          const shortUrl='https://link.clintware.com/'+encodeURIComponent(link.slug);
+          return '<article class="link-card"><h3><a href="'+shortUrl+'" target="_blank" rel="noopener">'+escapeHtml(shortUrl)+'</a></h3><p>'+escapeHtml(link.summary||link.title||'ClintLink shortened URL.')+'</p><div class="metric">'+Number(link.click_count||0).toLocaleString()+'</div><div class="meta">successful opens · '+(link.protected?'password protected':'direct')+'</div></article>';
+        }).join('');
+      }catch{
+        grid.innerHTML='<div class="empty">Link summaries will appear here once the ClintLink Worker is deployed.</div>';
+      }
+    }
+
+    document.getElementById('refresh').addEventListener('click',loadStats);
+    loadStats();
+  </script>
+</body>
+</html>

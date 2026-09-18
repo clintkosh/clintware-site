@@ -1,0 +1,45 @@
+name: Audit Cloudflare Capacity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit-cloudflare-capacity.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/audit-cloudflare-capacity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capacity:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Count Pages projects and Workers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+          pages_json=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects?per_page=100" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+
+          workers_json=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+
+          pages_count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"); print(len(d.get("result",[])))' <<< "$pages_json")
+          workers_count=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"); r=d.get("result",[]); print(len(r) if isinstance(r,list) else len(r.get("scripts",[])))' <<< "$workers_json")
+
+          echo "Cloudflare Pages projects: ${pages_count}/100"
+          echo "Cloudflare Worker scripts: ${workers_count}"
+          {
+            echo "## Cloudflare capacity"
+            echo ""
+            echo "- Pages projects: **${pages_count} / 100**"
+            echo "- Pages project headroom: **$((100-pages_count))**"
+            echo "- Worker scripts currently present: **${workers_count}**"
+          } >> "$GITHUB_STEP_SUMMARY"

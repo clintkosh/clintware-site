@@ -1,0 +1,119 @@
+name: Deploy ClintLink
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "clintlink-worker/**"
+      - ".github/workflows/deploy-clintlink.yml"
+  pull_request:
+    paths:
+      - "clintlink-worker/**"
+      - ".github/workflows/deploy-clintlink.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-clintlink
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ClintLink dependencies
+        run: npm install --prefix clintlink-worker --ignore-scripts --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check --prefix clintlink-worker
+      - name: Validate base Wrangler configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('clintlink-worker/wrangler.jsonc','utf8')); console.log('wrangler config ok')"
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLINTLINK_ADMIN_TOKEN: ${{ secrets.CLINTLINK_ADMIN_TOKEN }}
+      CLINTLINK_PASSWORD_PEPPER: ${{ secrets.CLINTLINK_PASSWORD_PEPPER }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ClintLink dependencies
+        run: npm install --prefix clintlink-worker --ignore-scripts --no-audit --no-fund
+
+      - name: Require ClintLink secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLINTLINK_ADMIN_TOKEN}" || { echo "Missing repository secret CLINTLINK_ADMIN_TOKEN" >&2; exit 1; }
+          test -n "${CLINTLINK_PASSWORD_PEPPER}" || { echo "Missing repository secret CLINTLINK_PASSWORD_PEPPER" >&2; exit 1; }
+
+      - name: Ensure D1 database and generate deployment config
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd clintlink-worker
+          list_db() {
+            npx wrangler d1 list --json | node -e '
+              let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+                const rows=JSON.parse(s);
+                const db=rows.find(x=>x.name==="clintlink");
+                if(db) process.stdout.write(db.uuid || db.id || "");
+              });
+            '
+          }
+          DB_ID="$(list_db)"
+          if [ -z "$DB_ID" ]; then
+            npx wrangler d1 create clintlink
+            DB_ID="$(list_db)"
+          fi
+          test -n "$DB_ID" || { echo "Unable to resolve ClintLink D1 database ID" >&2; exit 1; }
+          DB_ID="$DB_ID" node - <<'NODE'
+          const fs=require("fs");
+          const cfg=JSON.parse(fs.readFileSync("wrangler.jsonc","utf8"));
+          cfg.d1_databases=[{binding:"DB",database_name:"clintlink",database_id:process.env.DB_ID}];
+          fs.writeFileSync("wrangler.deploy.json",JSON.stringify(cfg,null,2)+"\n");
+          NODE
+          echo "Prepared D1 binding for clintlink."
+
+      - name: Apply ClintLink schema
+        run: cd clintlink-worker && npx wrangler d1 execute clintlink --file=./schema.sql --remote --yes --config wrangler.deploy.json
+
+      - name: Deploy ClintLink Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --config wrangler.deploy.json --cwd clintlink-worker
+
+      - name: Sync ClintLink secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd clintlink-worker
+          printf '%s' "$CLINTLINK_ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN --config wrangler.deploy.json >/dev/null
+          printf '%s' "$CLINTLINK_PASSWORD_PEPPER" | npx wrangler secret put PASSWORD_PEPPER --config wrangler.deploy.json >/dev/null
+          echo "ClintLink secrets configured."
+
+      - name: Verify live
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://link.clintware.com/health || true)
+            if echo "$body" | grep -Fq '"product":"ClintLink"'; then
+              echo "$body"
+              ready=1
+              break
+            fi
+            echo "Waiting for ClintLink ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"

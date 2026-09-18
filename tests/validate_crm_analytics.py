@@ -35,7 +35,15 @@ def worker_targets() -> list[tuple[str, str]]:
         sources = [config]
         sources.extend(read_text(path) for path in sorted((project / "src").rglob("*.js")))
         combined = "\n".join(sources)
-        if CRM_MARKERS.search(combined):
+        # Browser analytics only applies to Workers that actually render HTML.
+        # API/control-plane services may contain CRM terminology in manifests
+        # without ever serving a page where gtag can run.
+        serves_html = (
+            "text/html" in combined.lower()
+            or "<!doctype html" in combined.lower()
+            or "<html" in combined.lower()
+        )
+        if CRM_MARKERS.search(combined) and serves_html:
             targets.append((str(project.relative_to(ROOT)), combined))
     return targets
 

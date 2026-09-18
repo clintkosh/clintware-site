@@ -10,6 +10,7 @@ ADSENSE_CLIENT = "ca-pub-6169557480632773"
 REQUIRED = [
     PUBLIC / "index.html",
     PUBLIC / "tools" / "index.html",
+    PUBLIC / "link" / "index.html",
     PUBLIC / "blog" / "index.html",
     PUBLIC / "blog" / "the-runway-and-the-work" / "index.html",
     PUBLIC / "privacy" / "index.html",
