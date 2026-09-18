@@ -1,13 +1,16 @@
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-
-namespace Clintware.PlaylistSurgeon;
+using System.Threading;
+using System.Threading.Tasks;\n\nnamespace Clintware.PlaylistSurgeon;
 
 public sealed class SpotifyClient
 {
@@ -144,7 +147,7 @@ public sealed class SpotifyClient
                     var name = GetString(item, "name");
                     if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) continue;
                     var collaborative = item.TryGetProperty("collaborative", out var c) && c.GetBoolean();
-                    var ownerId = item.TryGetProperty("owner", out var owner) ? GetString(owner, "id") : "";
+                    var ownerId = item.TryGetProperty("owner", out var owner) ? GetString(owner, "id") ?? "" : "";
                     var url = item.TryGetProperty("external_urls", out var urls) ? GetString(urls, "spotify") : null;
                     list.Add(new PlaylistInfo(id, name, collaborative, ownerId, url));
                 }
@@ -193,7 +196,7 @@ public sealed class SpotifyClient
                         }
                     }
 
-                    var album = media.TryGetProperty("album", out var albumObj) ? GetString(albumObj, "name") : "";
+                    var album = media.TryGetProperty("album", out var albumObj) ? GetString(albumObj, "name") ?? "" : "";
                     var url = media.TryGetProperty("external_urls", out var external) ? GetString(external, "spotify") : null;
                     tracks.Add(new TrackItem
                     {
