@@ -1,6 +1,7 @@
 import { CONFIG, escapeHtml } from "./lib.js";
 
 const ANALYTICS_HEAD = `<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6169557480632773" crossorigin="anonymous"></script>
 <script>
 window.dataLayer=window.dataLayer||[];
 function gtag(){dataLayer.push(arguments)}
