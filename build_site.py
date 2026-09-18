@@ -6,6 +6,7 @@ import sys
 
 PUBLIC = Path("public")
 ANALYTICS_ID = "G-DCY144YM9P"
+ADSENSE_CLIENT = "ca-pub-6169557480632773"
 REQUIRED = [
     PUBLIC / "index.html",
     PUBLIC / "tools" / "index.html",
@@ -14,6 +15,7 @@ REQUIRED = [
     PUBLIC / "privacy" / "index.html",
     PUBLIC / "contact" / "index.html",
     PUBLIC / "robots.txt",
+    PUBLIC / "ads.txt",
     PUBLIC / "sitemap.xml",
 ]
 
@@ -159,11 +161,18 @@ for section in ("blog", "consulting", "public", "ranchledger", "tools"):
 
 missing_analytics = []
 analytics_checked = 0
+adsense_script = f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ADSENSE_CLIENT}" crossorigin="anonymous"></script>'
+
 for path in published_html:
     analytics_checked += 1
     text = path.read_text(encoding="utf-8", errors="ignore")
+    if ADSENSE_CLIENT not in text:
+        text = text.replace("</head>", adsense_script + "\n</head>", 1)
+        path.write_text(text, encoding="utf-8")
     if ANALYTICS_ID not in text or "gtag('config'" not in text:
         missing_analytics.append(str(path))
+    if ADSENSE_CLIENT not in text:
+        raise SystemExit(f"AdSense is missing or incomplete in: {path}")
 if missing_analytics:
     raise SystemExit("Google Analytics is missing or incomplete in: " + ", ".join(missing_analytics))
 
