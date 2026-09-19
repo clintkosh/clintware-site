@@ -31,7 +31,7 @@
   "closing": "I look forward to the next conversation.",
   "sender_name": "Taylor Morgan",
   "sender_email": "taylor@example.com",
-  "sender_phone": "+1 555 010 0100",
+  "sender_phone": "+1 202-555-0100",
   "background": "#020e1c",
   "panel": "#05172c",
   "accent": "#f4c44e",
