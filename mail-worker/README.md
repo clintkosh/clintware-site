@@ -52,3 +52,8 @@ Health:
 ```text
 https://mail.clintware.com/health
 ```
+
+
+## Routing ownership
+
+The primary `clint@clintware.com` address is intentionally excluded from the generic forwarding-alias workflow. It is owned by the Clintware Mail Email Worker route. Support and legacy aliases may continue forwarding independently.
