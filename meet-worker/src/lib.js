@@ -250,6 +250,8 @@ export function googleCalendarUrl(booking) {
 }
 
 export function bookingPublic(booking) {
+  const legacyRoomUrl = booking.roomCode ? `${CONFIG.publicUrl}/room/${booking.roomCode}` : "";
+  const meetUrl = booking.googleMeetUrl || legacyRoomUrl;
   return {
     id: booking.id,
     name: booking.name,
@@ -262,10 +264,12 @@ export function bookingPublic(booking) {
     timezone: booking.timezone,
     status: booking.status,
     sequence: booking.sequence || 0,
-    roomUrl: `${CONFIG.publicUrl}/room/${booking.roomCode}`,
+    meetUrl,
+    roomUrl: meetUrl,
+    googleEventUrl: booking.googleEventUrl || "",
     manageUrl: `${CONFIG.publicUrl}/manage/${booking.manageToken}`,
     calendarUrl: `${CONFIG.publicUrl}/calendar/${booking.manageToken}.ics`,
-    googleCalendarUrl: googleCalendarUrl(booking),
+    googleCalendarUrl: booking.googleEventUrl || googleCalendarUrl(booking),
   };
 }
 
