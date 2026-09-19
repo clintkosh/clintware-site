@@ -1025,8 +1025,8 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     return v&&v.length>=8?v:null;
   };
   const scopedManifest=async(product)=>mcpProductAllowed(mcpAuth,product)?manifestFor(env,product):null;
-  const scopedProductSummary=async(product,days,suffix="/summary")=>mcpProductAllowed(mcpAuth,product)?scopedProductSummary(product,days,suffix):{error:"product_not_allowed"};
-  const scopedProductPath=async(product,suffix)=>mcpProductAllowed(mcpAuth,product)?scopedProductPath(product,suffix):{error:"product_not_allowed"};
+  const scopedProductSummary=async(product,days,suffix="/summary")=>mcpProductAllowed(mcpAuth,product)?productSummary(env,product,days,suffix):{error:"product_not_allowed"};
+  const scopedProductPath=async(product,suffix)=>mcpProductAllowed(mcpAuth,product)?productPath(env,product,suffix):{error:"product_not_allowed"};
   const server=new McpServer({name:"Clintware Control Plane",version:VERSION});
   server.registerTool("clintware_control_plane_status",{
     title:"Get Clintware Control Plane status",
@@ -1089,6 +1089,8 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     },
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
   },async(packet)=>{
+    if(packet.product&&!mcpProductAllowed(mcpAuth,packet.product))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    if(!packet.product&&!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_required_for_scoped_client"})}]};
     const r=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
     const data=await r.json();
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
@@ -1101,6 +1103,8 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   },async({handoff_id})=>{
     const r=await registryHub(env).fetch(`https://internal/handoff/${encodeURIComponent(handoff_id)}`);
     const data=await r.json();
+    if(r.ok&&data.packet?.product&&!mcpProductAllowed(mcpAuth,data.packet.product))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    if(r.ok&&!data.packet?.product&&!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
   server.registerTool("clintware_product_manifest",{
@@ -1206,7 +1210,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     inputSchema:{product:z.string().default("proofos"),workflow:z.string().min(1),ref:z.string().optional(),inputs:z.record(z.string(),z.string()).optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
   },async({product,workflow,ref,inputs})=>{
-    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,"deployment.execute:proof"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
+    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,`deployment.execute:${normalizeProduct(product)}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
     const result=await workflowDispatch(env,manifest,workflow,ref,inputs||{});await audit(env,product,"deployment_dispatch",crypto.randomUUID(),{workflow,ref},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
@@ -1344,6 +1348,101 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     await audit(env,product,"capability_request"+":"+capability,requestId,{audit_id:auditId,decision:"executed",capability,resource,reason:reason||"",result:{ok:result.ok,commit_sha:result.commit_sha||"",error:result.error||""},risk_tier:riskTier(capability)},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify({status:result.ok?"executed":"error",audit_id:auditId,capability,reason:policy.reason,result,sha_resolved_internally:result.sha_resolved_internally||false})}]};
   });
+  server.registerTool("clintware_flow_list",{
+    title:"List private Clintware workflows for a scoped product",
+    description:"List workflow definitions stored inside the authenticated Clintware Control Plane for one allowed product. No connector credentials are returned.",
+    inputSchema:{product:z.string().min(1)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({product})=>{
+    const manifest=await scopedManifest(product);
+    if(!manifest||!capabilityMatches(manifest,`flow.read:${normalizeProduct(product)}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_read_not_allowed"})}]};
+    const workflows=await listFlows(env,product);
+    return {content:[{type:"text",text:JSON.stringify({ok:true,product:normalizeProduct(product),workflows})}]};
+  });
+  server.registerTool("clintware_flow_get",{
+    title:"Get one private Clintware workflow",
+    description:"Get a stored workflow definition for an allowed product. Workflow definitions may contain credential references but never credential values.",
+    inputSchema:{product:z.string().min(1),name:z.string().min(1)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({product,name})=>{
+    const manifest=await scopedManifest(product);
+    if(!manifest||!capabilityMatches(manifest,`flow.read:${normalizeProduct(product)}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_read_not_allowed"})}]};
+    const workflow=await flowFor(env,product,name);
+    return {isError:!workflow,content:[{type:"text",text:JSON.stringify(workflow?{ok:true,workflow}:{error:"workflow_not_found"})}]};
+  });
+  server.registerTool("clintware_flow_put",{
+    title:"Create or update a private Clintware workflow",
+    description:"Store a bounded workflow inside the Control Plane. Secret-shaped values and credential-value fields are rejected; use credential references instead.",
+    inputSchema:{
+      product:z.string().min(1),
+      name:z.string().min(1),
+      title:z.string().optional(),
+      description:z.string().optional(),
+      version:z.number().int().positive().optional(),
+      enabled:z.boolean().optional(),
+      trigger:z.object({type:z.enum(["manual","webhook","schedule","event"]).default("manual"),schedule:z.string().optional(),event:z.string().optional()}).optional(),
+      steps:z.array(z.object({
+        id:z.string().optional(),
+        type:z.enum(["set","emit","approval","capability"]),
+        capability:z.string().optional(),
+        resource:z.record(z.string(),z.any()).optional(),
+        values:z.record(z.string(),z.any()).optional(),
+        event:z.string().optional(),
+        metadata:z.record(z.string(),z.any()).optional(),
+        message:z.string().optional(),
+        reason:z.string().optional()
+      })).min(1).max(64)
+    },
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async(definition)=>{
+    const product=normalizeProduct(definition.product);
+    const manifest=await scopedManifest(product);
+    if(!manifest||!capabilityMatches(manifest,`flow.write:${product}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_write_not_allowed"})}]};
+    try{
+      const result=await registerFlow(env,definition);
+      await audit(env,product,"flow_definition_write",crypto.randomUUID(),{workflow:normalizeFlowName(definition.name),version:definition.version||1},result.ok,result.ok?"":(result.error||"flow_write_failed"));
+      return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+    }catch(e){
+      return {isError:true,content:[{type:"text",text:JSON.stringify({error:"invalid_workflow",detail:String(e&&e.message||e)})}]};
+    }
+  });
+  server.registerTool("clintware_flow_run",{
+    title:"Run a private Clintware workflow",
+    description:"Execute a stored workflow through existing product capabilities and policy. Approval nodes pause rather than auto-approve. Underlying provider credentials remain server-side.",
+    inputSchema:{
+      product:z.string().min(1),
+      name:z.string().min(1),
+      input:z.record(z.string(),z.any()).optional(),
+      approved_steps:z.array(z.string()).optional()
+    },
+    annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:true}
+  },async({product,name,input,approved_steps})=>{
+    product=normalizeProduct(product);
+    const manifest=await scopedManifest(product);
+    if(!manifest||!capabilityMatches(manifest,`flow.run:${product}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_run_not_allowed"})}]};
+    const workflow=await flowFor(env,product,name);
+    if(!workflow)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"workflow_not_found"})}]};
+    try{
+      const run=await executeFlow(env,manifest,workflow,input||{},approved_steps||[]);
+      return {isError:!run.ok&&run.status!=="approval_required",content:[{type:"text",text:JSON.stringify(run)}]};
+    }catch(e){
+      return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_execution_error",detail:String(e&&e.message||e)})}]};
+    }
+  });
+  server.registerTool("clintware_flow_runs",{
+    title:"List recent private Clintware workflow runs",
+    description:"Return privacy-safe run metadata for an allowed product. Raw credentials and step payloads are not stored in run history.",
+    inputSchema:{product:z.string().min(1)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({product})=>{
+    product=normalizeProduct(product);
+    const manifest=await scopedManifest(product);
+    if(!manifest||!capabilityMatches(manifest,`flow.read:${product}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"flow_read_not_allowed"})}]};
+    const r=await registryHub(env).fetch(`https://internal/flow-runs/${encodeURIComponent(product)}`);
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
   return server;
 }
 
