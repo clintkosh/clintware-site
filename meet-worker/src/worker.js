@@ -652,11 +652,30 @@ export class SchedulerState extends DurableObject {
 }
 
 async function apiAvailability(env) {
+  if (!calendarConfigured(env)) {
+    return json({ error: "google_calendar_not_configured", slots: [] }, 503, { "Cache-Control": "no-store" });
+  }
   const response = await store(env).fetch("https://scheduler/availability");
   const data = await response.json();
-  return json(data, response.status, { "Cache-Control": "no-store" });
+  if (!response.ok) return json(data, response.status, { "Cache-Control": "no-store" });
+  const slots = Array.isArray(data.slots) ? data.slots : [];
+  if (!slots.length) return json(data, 200, { "Cache-Control": "no-store" });
+  try {
+    const min = slots[0].startMs - CONFIG.bufferBeforeMinutes * 60_000;
+    const max = slots.at(-1).endMs + CONFIG.bufferAfterMinutes * 60_000;
+    const busy = await googleBusyWindows(env, min, max);
+    const before = CONFIG.bufferBeforeMinutes * 60_000;
+    const after = CONFIG.bufferAfterMinutes * 60_000;
+    data.slots = slots.filter((slot) => !busy.some((window) =>
+      slot.startMs - before < window.endMs && slot.endMs + after > window.startMs
+    ));
+    data.calendar = { provider: "google", organizer: CONFIG.hostEmail };
+    return json(data, 200, { "Cache-Control": "no-store" });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "google_availability_failed", message: String(error), status: error.status || 0 }));
+    return json({ error: "Google Calendar availability is temporarily unavailable.", slots: [] }, 503, { "Cache-Control": "no-store" });
+  }
 }
-
 async function apiBook(request, env) {
   const input = normalizeBookingInput(await readJson(request));
   if (!input) {
