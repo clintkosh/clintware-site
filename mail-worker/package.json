@@ -1,0 +1,8 @@
+{
+  "name": "clintware-mail",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/ui.js && node --check src/worker.js && XDG_CONFIG_HOME=/tmp/clintware-mail-xdg npx --yes --cache /tmp/clintware-mail-npm-cache wrangler@4 deploy --dry-run --config wrangler.jsonc"
+  }
+}
