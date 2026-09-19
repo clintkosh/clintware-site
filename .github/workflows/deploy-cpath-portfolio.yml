@@ -25,25 +25,78 @@ jobs:
         run: |
           node --check cpath-worker/src/worker.js
           python3 - <<'PY'
+          from collections import Counter
           from html.parser import HTMLParser
           from pathlib import Path
-          class P(HTMLParser): pass
+          import re
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = []
+                  self.hrefs = []
+                  self.h1 = 0
+                  self.apps = 0
+                  self.images = []
+                  self.iframes = []
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if attrs.get('id'):
+                      self.ids.append(attrs['id'])
+                  if attrs.get('href'):
+                      self.hrefs.append(attrs['href'])
+                  if tag == 'h1':
+                      self.h1 += 1
+                  if tag == 'article' and 'app' in (attrs.get('class') or '').split():
+                      self.apps += 1
+                  if tag == 'img':
+                      self.images.append(attrs)
+                  if tag == 'iframe':
+                      self.iframes.append(attrs)
+
           html = Path('cpath-worker/public/index.html').read_text(encoding='utf-8')
-          P().feed(html)
+          parser = P()
+          parser.feed(html)
+
           required = [
             'I turn messy work into systems people actually use.',
             'This is my work and how I think',
             '19 published applications / tools',
             '19 implemented skills',
+            '18 published and 1 internal',
+            'Dear Quinton,',
+            'welcome-greeting',
+            'welcome-viewport',
+            '@media(prefers-reduced-motion:reduce)',
+            'I could have stopped at using n8n as the connective tissue.',
+            'Clintware Flow',
+            'published a sanitized reusable skill',
             'AI slop',
             'RenewNudge',
             'OrgSynapse',
             'Full résumé'
           ]
           missing = [x for x in required if x not in html]
-          assert not missing, missing
+          assert not missing, f'Missing required content: {missing}'
+
+          duplicates = [key for key, count in Counter(parser.ids).items() if count > 1]
+          assert not duplicates, f'Duplicate IDs: {duplicates}'
+
+          anchors = [href[1:] for href in parser.hrefs if href.startswith('#')]
+          broken = [anchor for anchor in anchors if anchor and anchor not in parser.ids]
+          assert not broken, f'Broken internal anchors: {broken}'
+
+          unsafe = [href for href in parser.hrefs if re.match(r'^(javascript|data):', href, re.I)]
+          assert not unsafe, f'Unsafe href schemes: {unsafe}'
+
+          assert parser.h1 == 1, f'Expected exactly one H1, found {parser.h1}'
+          assert parser.apps == 19, f'Expected 19 application/tool cards, found {parser.apps}'
+          assert parser.images and all(img.get('alt') for img in parser.images), 'Every image must have alt text'
+          assert parser.iframes and all(frame.get('title') for frame in parser.iframes), 'Every iframe must have a title'
+          assert '18 implemented skills' not in html
+          assert '17 published and 1 internal' not in html
           assert 'CodePath' not in html
-          print('Portfolio content checks passed')
+          print('Portfolio content, structure, accessibility and link checks passed')
           PY
           npx --yes wrangler@4 deploy --dry-run --config cpath-worker/wrangler.jsonc
 
@@ -73,7 +126,7 @@ jobs:
             headers=$(mktemp)
             body=$(mktemp)
             code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://cpath.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Fq 'Dear Quinton,' "$body"               && grep -Fq 'Clintware Flow' "$body"               && grep -Fq 'published a sanitized reusable skill' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
               ready=1
               rm -f "$headers" "$body"
               break
