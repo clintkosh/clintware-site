@@ -19,6 +19,7 @@ SURFACES = [
     ROOT / "BRAND_STANDARDS.md",
     ROOT / "docs" / "yc-venture-sites.md",
     ROOT / "public" / "startup" / "index.html",
+    ROOT / "public" / "tools" / "index.html",
 ]
 
 ROUTE_OWNERS = {
