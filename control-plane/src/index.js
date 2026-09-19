@@ -148,6 +148,61 @@ const DEFAULT_ORGSYNAPSE = {
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE};
 
+const DEFAULT_FLOW_DEFINITIONS = [
+  {
+    product:"landtheplane",
+    name:"application-turbo-sprint",
+    title:"Application Turbo Sprint",
+    description:"Internal orchestration skeleton for role intake, definition-of-done approval, evidence assembly, and later publishing connectors.",
+    version:1,
+    trigger:{type:"manual"},
+    steps:[
+      {id:"intake",type:"emit",event:"application.intake"},
+      {id:"definition-of-done",type:"approval",message:"Approve the application Definition of Done before any externally visible action."},
+      {id:"ready",type:"emit",event:"application.ready_for_execution"}
+    ]
+  },
+  {
+    product:"landtheplane",
+    name:"interview-intelligence",
+    title:"Interview Intelligence",
+    description:"Internal orchestration skeleton for post-meeting evidence extraction, review, and downstream career-system updates.",
+    version:1,
+    trigger:{type:"event",event:"meeting.completed"},
+    steps:[
+      {id:"meeting-complete",type:"emit",event:"interview.meeting_completed"},
+      {id:"review-actions",type:"approval",message:"Review extracted interview actions and evidence before updating downstream records or drafting external communication."},
+      {id:"accepted",type:"emit",event:"interview.actions_accepted"}
+    ]
+  },
+  {
+    product:"mindtoform",
+    name:"definition-of-done",
+    title:"Definition of Done Gate",
+    description:"Internal orchestration skeleton preserving the mandatory agreement boundary before form generation or manufacturing actions.",
+    version:1,
+    trigger:{type:"manual"},
+    steps:[
+      {id:"idea-received",type:"emit",event:"mindtoform.idea_received"},
+      {id:"approve-definition",type:"approval",message:"Approve the Definition of Done before design generation or downstream manufacturing actions."},
+      {id:"definition-approved",type:"emit",event:"mindtoform.definition_approved"}
+    ]
+  },
+  {
+    product:"orgsynapse",
+    name:"operating-signal",
+    title:"Operating Signal",
+    description:"Internal orchestration skeleton for turning a shared organizational signal into reviewed cross-department work.",
+    version:1,
+    trigger:{type:"event",event:"org.signal"},
+    steps:[
+      {id:"signal",type:"emit",event:"orgsynapse.signal_received"},
+      {id:"review",type:"approval",message:"Review the proposed cross-department state change before committing an externally visible or destructive action."},
+      {id:"accepted",type:"emit",event:"orgsynapse.signal_accepted"}
+    ]
+  }
+];
+
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
 // prerequisites (GitHub SHAs, branch refs, etc.) internally.
@@ -298,6 +353,22 @@ function registryHub(env){return env.REGISTRY_HUB.getByName("registry:v1");}
 
 export class RegistryHub extends DurableObject {
   constructor(ctx,env){super(ctx,env);}
+  async ensureDefaultFlows(){
+    let flows=await this.ctx.storage.get("flows")||{};
+    let changed=false;
+    for(const definition of DEFAULT_FLOW_DEFINITIONS){
+      const normalized=normalizeWorkflow(definition);
+      const key=normalized.product+":"+normalized.name;
+      const current=flows[key];
+      if(!current||Number(current.version||0)<Number(normalized.version||1)){
+        normalized.created_at=current?.created_at||normalized.updated_at;
+        flows[key]=normalized;
+        changed=true;
+      }
+    }
+    if(changed)await this.ctx.storage.put("flows",flows);
+    return flows;
+  }
   async ensureDefaults(){
     let products=await this.ctx.storage.get("products");
     if(!products)products={};
@@ -315,6 +386,7 @@ export class RegistryHub extends DurableObject {
   async fetch(request){
     const url=new URL(request.url);
     const products=await this.ensureDefaults();
+    await this.ensureDefaultFlows();
     if(request.method==="GET"&&url.pathname==="/list") return json({products:Object.values(products)});
     if(request.method==="GET"&&url.pathname.startsWith("/get/")){
       const key=normalizeProduct(url.pathname.split("/").pop());
