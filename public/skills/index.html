@@ -5,41 +5,212 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Clintware skill registry: free public workflow specifications, implementation rules, and reusable operating methods, with ASTRO as the required website/product guardrail.">
+  <meta name="description" content="Verified Clintware plugin and skill inventory: 17 skills and 1 public plugin package, separated by published and internal status.">
   <meta name="theme-color" content="#07090d">
   <link rel="canonical" href="https://www.clintware.com/skills/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Shared Skills | Clintware™">
-  <meta property="og:description" content="Free, inspectable workflow specifications for professional profiles, building, portability, Customer Success, interviews, and practical AI-assisted work.">
+  <meta property="og:title" content="Plugins + Skills | Clintware™">
+  <meta property="og:description" content="A verified inventory of Clintware reusable AI operating skills and public plugin work, with first-party links to every published skill.">
   <meta property="og:url" content="https://www.clintware.com/skills/">
-  <title>Shared Skills | Clintware™</title>
+  <title>Plugins + Skills | Clintware™</title>
   <link rel="stylesheet" href="/assets/clintware.css">
   <style>
-    .registry{width:min(calc(100% - 32px),1080px);margin:auto}.hero{padding:38px 0 26px;border-bottom:1px solid #26323d}.hero h1{margin:8px 0 11px}.section{padding:31px 0;border-bottom:1px solid #1f2a34}.rows{border-top:1px solid #26323d;margin-top:17px}.row{display:grid;grid-template-columns:210px 135px minmax(0,1fr) auto;gap:20px;align-items:start;padding:16px 0;border-bottom:1px solid #26323d}.row .name{font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#eef6fc}.row .state{font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase;color:#68dfff}.row strong{display:block;color:#eef6fc;font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}.row span{display:block;margin-top:5px;color:#91a4b8;font-size:13px;line-height:1.62}.row a{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;color:#dcebf4;white-space:nowrap}.warning{margin-top:17px;padding:14px 0;border-top:1px solid #26323d;color:#91a4b8;font-size:13px;line-height:1.65}.warning strong{color:#eef6fc}@media(max-width:800px){.row{grid-template-columns:1fr;gap:5px}}
+    .registry{width:min(calc(100% - 32px),1080px);margin:auto}
+    .hero{padding:38px 0 26px;border-bottom:1px solid #26323d}
+    .hero h1{margin:8px 0 11px}
+    .hero p{max-width:820px}
+    .section{padding:31px 0;border-bottom:1px solid #1f2a34}
+    .inventory-head{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:34px;align-items:start}
+    .countline{display:flex;gap:26px;flex-wrap:wrap;margin:17px 0 0}
+    .count{min-width:120px}
+    .count b{display:block;color:#eef6fc;font:800 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+    .count span{display:block;margin-top:6px;color:#91a4b8;font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.06em}
+    .chart{border-left:1px solid #26323d;padding-left:24px}
+    .chart-title{color:#eef6fc;font:700 12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin-bottom:14px}
+    .bar-row{display:grid;grid-template-columns:62px minmax(0,1fr) 72px;gap:10px;align-items:center;margin:11px 0}
+    .bar-label,.bar-value{font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;color:#91a4b8}
+    .bar-value{text-align:right;color:#dcebf4}
+    .bar-track{height:12px;background:#0a0f15;border:1px solid #26323d;display:flex;overflow:hidden}
+    .bar-public{height:100%;background:#68dfff}
+    .bar-internal{height:100%;background:#9d87ff}
+    .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:13px;color:#91a4b8;font-size:11px}
+    .legend i{display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:1px}
+    .legend .pub{background:#68dfff}.legend .int{background:#9d87ff}
+    .rows{border-top:1px solid #26323d;margin-top:17px}
+    .row{display:grid;grid-template-columns:225px 118px minmax(0,1fr) auto;gap:20px;align-items:start;padding:15px 0;border-bottom:1px solid #26323d}
+    .row .name{font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#eef6fc}
+    .row .state{font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase;color:#68dfff}
+    .row .state.internal{color:#b9a9ff}
+    .row strong{display:block;color:#eef6fc;font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+    .row span{display:block;margin-top:5px;color:#91a4b8;font-size:13px;line-height:1.62}
+    .row a{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;color:#dcebf4;white-space:nowrap}
+    .note{margin-top:16px;color:#91a4b8;font-size:12px;line-height:1.65}
+    .note strong{color:#eef6fc}
+    .plugin-proof{border-top:1px solid #26323d;margin-top:17px;padding-top:16px;display:grid;grid-template-columns:225px minmax(0,1fr) auto;gap:20px}
+    .plugin-proof b{color:#68dfff;font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
+    .plugin-proof strong{display:block;color:#eef6fc;font:700 14px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+    .plugin-proof span{display:block;margin-top:5px;color:#91a4b8;font-size:13px;line-height:1.62}
+    .plugin-proof a{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;color:#dcebf4;white-space:nowrap}
+    @media(max-width:820px){.inventory-head{grid-template-columns:1fr}.chart{border-left:0;border-top:1px solid #26323d;padding:20px 0 0}.row,.plugin-proof{grid-template-columns:1fr;gap:5px}.countline{gap:18px}}
   </style>
 </head>
 <body>
   <header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span>™</a><nav class="site-nav" data-site-nav aria-label="Primary navigation"></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
   <main>
-    <section class="hero"><div class="registry"><span class="section-kicker">SHARED SKILLS · CLINTWARE™</span><h1>Reusable operating rules and implementation specifications.</h1><p>Free, inspectable workflows built from repeated work.  A skill exists when a task benefits from explicit inputs, constraints, steps, QA, and a definition of done rather than another layer of “AI magic.”</p></div></section>
+    <section class="hero"><div class="registry">
+      <span class="section-kicker">VERIFIED INVENTORY · CLINTWARE™</span>
+      <h1>Plugins + skills I actually use and maintain.</h1>
+      <p>This is the working inventory, not a roadmap count. Planned ideas, generators, product experiments, and half-defined concepts are excluded. Published items link to first-party Clintware copies so the public catalog and the implementation inventory stay aligned.</p>
+    </div></section>
 
-    <section class="section"><div class="registry"><h2>Required Clintware guardrail</h2><div class="rows"><div class="row"><div class="name">ASTRO Website / Product Skill</div><div class="state">Required</div><div><strong>Prevents Clintware public pages from collapsing into generic AI/SaaS boilerplate.</strong><span>Defines the page-job test, product-truth hierarchy, compact visual rules, roadmap boundaries, current venture positioning, and professional-profile evidence rules.  Repository agents are required to read it before public site/product changes.</span></div><a href="/skills/astro-website-product/SKILL.md">Read skill →</a></div></div></div></section>
+    <section class="section"><div class="registry inventory-head">
+      <div>
+        <h2>Current count</h2>
+        <p>Distinct implemented packages/specifications verified across the Clintware site repository and the public Clintware GPTs repository.</p>
+        <div class="countline">
+          <div class="count"><b>17</b><span>Skills total</span></div>
+          <div class="count"><b>16</b><span>Published skills</span></div>
+          <div class="count"><b>1</b><span>Internal skill</span></div>
+          <div class="count"><b>1</b><span>Plugin package</span></div>
+        </div>
+        <p class="note"><strong>Counting rule:</strong> a skill needs an actual <code>SKILL.md</code>; a plugin needs an actual plugin manifest/package. Plugin Forge is a tool that creates plug-ins, so it is not counted as a plugin. Quillgeist is counted once as a plugin package and once as its bundled reusable skill because those are separate artifact types.</p>
+      </div>
+      <div class="chart" aria-label="Published versus internal AI asset counts">
+        <div class="chart-title">PUBLISHED VS PERSONAL / INTERNAL</div>
+        <div class="bar-row"><div class="bar-label">Skills</div><div class="bar-track"><div class="bar-public" style="width:94.12%"></div><div class="bar-internal" style="width:5.88%"></div></div><div class="bar-value">16 / 1</div></div>
+        <div class="bar-row"><div class="bar-label">Plugins</div><div class="bar-track"><div class="bar-public" style="width:100%"></div></div><div class="bar-value">1 / 0</div></div>
+        <div class="legend"><span><i class="pub"></i>Published on Clintware</span><span><i class="int"></i>Personal / internal</span></div>
+      </div>
+    </div></section>
 
-    <section class="section"><div class="registry"><h2>Build &amp; portability</h2><div class="rows">
-      <div class="row"><div class="name">Lovable Portability Guardrail</div><div class="state">Free · Current</div><div><strong>Use Lovable for build speed without making Lovable a production dependency.</strong><span>Keeps GitHub as source of truth, makes independent Cloudflare deployment the default, and keeps auth, database, email, storage, secrets, and external services under accounts you control.  Includes a ready-to-paste Lovable starter prompt and exit-path QA.</span></div><a href="/skills/lovable-portability-guardrail/">Open →</a></div>
-      <div class="row"><div class="name">Standard SaaS Website Template</div><div class="state">Generic starter</div><div><strong>Reusable website/Worker starter for non-Clintware quick builds.</strong><span>Useful for baseline secure headers, responsive scaffolding, and independent Worker setup.  It complements the portability guardrail, but does not override ASTRO or Clintware's public design system.</span></div><a href="/skills/standard-saas-website-template/SKILL.md">Read →</a></div>
-    </div><div class="warning"><strong>Use them together:</strong> the portability guardrail controls ownership and runtime dependencies; the website template supplies a generic independent deployment baseline.  For Clintware public pages, ASTRO remains the design and positioning authority.</div></div></section>
+    <section class="section"><div class="registry">
+      <span class="section-kicker">PLUGIN PACKAGE · PUBLIC</span>
+      <h2>Quillgeist</h2>
+      <div class="plugin-proof">
+        <b>Public alpha</b>
+        <div><strong>One implemented public plugin package, not one claimed directory listing.</strong><span>The Quillgeist package includes a Codex/OpenAI plugin manifest, a bundled skill, remote MCP submission materials, and a public product surface. OpenAI Plugin Directory submission materials are prepared; this page does not claim directory approval or publication until that actually occurs.</span></div>
+        <a href="/tools/quillgeist/">Open Quillgeist →</a>
+      </div>
+      <p class="note"><a href="/plugins/">Plugin status page →</a></p>
+    </div></section>
 
-    <section class="section"><div class="registry"><h2>Professional &amp; operating workflows</h2><div class="rows">
-      <div class="row"><div class="name">Profile Sharpener</div><div class="state">New · Free · ASTRO</div><div><strong>Sharpen LinkedIn and public professional profiles without desperation, keyword stuffing, or founder/hiring contradictions.</strong><span>Balances recruiter discoverability, founder credibility, operating proof, ex-company shorthand, leadership behavior, Featured work, skills, banner claims, and truthful startup/accelerator status.  Includes a three-reader devil's-advocate pass for hiring teams, founder/investor audiences, and skeptical peers.</span></div><a href="/skills/profile-sharpener/">Open →</a></div>
-      <div class="row"><div class="name">Fact-Locked Cover Letter</div><div class="state">New · Free</div><div><strong>Tailored cover letters without fact drift.</strong><span>Locks claims to resume evidence, preserves exact metrics and terminology, blocks invented causation and employer/tool reassignment, handles transferable experience cleanly, and keeps relevant supplied project or portfolio links intact.</span></div><a href="/skills/fact-locked-cover-letter/SKILL.md">Read →</a></div>
-      <div class="row"><div class="name">Job Search Field Report ASTRO</div><div class="state">Updated · Free · v1.4</div><div><strong>Recurring job-search reporting with evidence reconciliation and stored-artifact verification.</strong><span>Uses the latest actually sent report as the exact comparison boundary, separates lifetime funnel totals from interval changes, keeps application receipts distinct from unique company-role processes, reconciles active/paused/closed state, adds source/confidence verification state, hardens mobile-dark email output, and re-reads consequential writes before calling them complete. Public version is identity-scrubbed and includes a fictional sample.</span></div><a href="/skills/job-search-field-report/">Open →</a></div>
-      <div class="row"><div class="name">Interview Followup Polisher</div><div class="state">Current</div><div><strong>Recipient-side quality gate for recruiting follow-ups.</strong><span>Checks evidence, stage-appropriate brevity, human cadence, role positioning, prior feedback, and send timing before release.</span></div><a href="/skills/interview-followup-polisher/SKILL.md">Read →</a></div>
-      <div class="row"><div class="name">High-Definition Follow-Up</div><div class="state">Current</div><div><strong>Structured follow-up after interviews, customer meetings, sales calls, and networking conversations.</strong><span>Interview use routes through the dedicated adversarial polishing gate rather than treating every follow-up the same.</span></div><a href="/skills/high-definition-followup/SKILL.md">Read →</a></div>
-      <div class="row"><div class="name">Customer Success Command Center Builder</div><div class="state">Public</div><div><strong>Transparent Customer Success workspace specification.</strong><span>Defines health calculations, structured account records, notes, playbooks, and operating visibility rather than opaque recommendation logic.</span></div><a href="https://github.com/clintkosh/GPTs/tree/main/skills/customer-success-command-center-builder">Source →</a></div>
-      <div class="row"><div class="name">LLM Usage Auditor</div><div class="state">Public</div><div><strong>Audit corrective AI usage caused by failures and retries.</strong><span>Tracks ignored instructions, context failures, broken tools, repeated attempts, and defective deliverables so avoidable usage can be identified.</span></div><a href="https://github.com/clintkosh/GPTs/tree/main/skills/llm-usage-auditor">Source →</a></div>
-      <div class="row"><div class="name">Regional Virtual Background Studio</div><div class="state">Public</div><div><strong>Generate plausible 16:9 video-call backgrounds around real webcam composition needs.</strong><span>Prioritizes practical framing and believable regional settings rather than decorative scene generation.</span></div><a href="https://github.com/clintkosh/GPTs/tree/main/skills/regional-virtual-background-studio">Source →</a></div>
-    </div></div></section>
+    <section class="section" id="published"><div class="registry">
+      <span class="section-kicker">16 PUBLISHED SKILLS</span>
+      <h2>First-party Clintware links.</h2>
+      <p>These are the published skills currently counted in the inventory. Each link stays on Clintware even when the original source began in the public GPTs repository.</p>
+      <div class="rows">
+      <div class="row">
+        <div class="name">ASTRO Website / Product Skill</div>
+        <div class="state">Published</div>
+        <div><strong>Website / product guardrail</strong><span>The required Clintware public-page guardrail. It keeps product truth, evidence, boundaries, compact technical design, and anti-boilerplate rules explicit.</span></div>
+        <a href="/skills/astro-website-product/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Quillgeist</div>
+        <div class="state">Published</div>
+        <div><strong>AI operating context</strong><span>Compacts and decomposes large AI context while preserving high-signal evidence, execution boundaries, and measurable token-impact language.</span></div>
+        <a href="/skills/quillgeist/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Lovable Portability Guardrail</div>
+        <div class="state">Published</div>
+        <div><strong>Build portability</strong><span>Keeps GitHub and independent deployment authoritative so build speed does not quietly become platform lock-in.</span></div>
+        <a href="/skills/lovable-portability-guardrail/">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Standard SaaS Website Template</div>
+        <div class="state">Published</div>
+        <div><strong>Web development</strong><span>A privacy-scrubbed independent website and Worker baseline for fast builds outside the Clintware public design system.</span></div>
+        <a href="/skills/standard-saas-website-template/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Profile Sharpener</div>
+        <div class="state">Published</div>
+        <div><strong>Professional positioning</strong><span>Sharpens public professional profiles around evidence, discoverability, operating range, and consistent founder/hiring positioning.</span></div>
+        <a href="/skills/profile-sharpener/">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Fact-Locked Cover Letter</div>
+        <div class="state">Published</div>
+        <div><strong>Professional writing</strong><span>Tailors cover letters while locking claims to supplied evidence and blocking metric drift, invented causation, and employer/tool reassignment.</span></div>
+        <a href="/skills/fact-locked-cover-letter/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Job Search Field Report ASTRO</div>
+        <div class="state">Published</div>
+        <div><strong>Job-search operations</strong><span>Produces recurring evidence-reconciled job-search reporting with interval deltas, source confidence, stored-artifact verification, and mobile-dark output.</span></div>
+        <a href="/skills/job-search-field-report/">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Interview Followup Polisher</div>
+        <div class="state">Published</div>
+        <div><strong>Interview communication</strong><span>A recipient-side gate for concise recruiting follow-up with evidence, stage fit, timing, natural cadence, and anti-desperation checks.</span></div>
+        <a href="/skills/interview-followup-polisher/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Interview Prep Runtime</div>
+        <div class="state">Published</div>
+        <div><strong>Interview operations</strong><span>Defines the live interview-prep trigger, evidence refresh, stage-specific kit, dark cockpit, QA, and next-round continuation rules.</span></div>
+        <a href="/skills/interview-prep-runtime/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">High-Definition Follow-Up</div>
+        <div class="state">Published</div>
+        <div><strong>Professional communication</strong><span>Builds evidence-grounded follow-up after interviews, customer meetings, sales calls, and networking conversations.</span></div>
+        <a href="/skills/high-definition-followup/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Customer Success Command Center Builder</div>
+        <div class="state">Published</div>
+        <div><strong>Customer Success systems</strong><span>Builds transparent, metrics-first CS command centers with explicit health formulas, structured records, persistence, and bounded automation.</span></div>
+        <a href="/skills/customer-success-command-center-builder/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">LLM Usage Auditor</div>
+        <div class="state">Published</div>
+        <div><strong>AI accountability</strong><span>Audits corrective AI usage caused by ignored instructions, context failure, broken tools, retry loops, and objectively defective deliverables.</span></div>
+        <a href="/skills/llm-usage-auditor/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Master Prompt Accuracy & Efficiency</div>
+        <div class="state">Published</div>
+        <div><strong>AI execution</strong><span>Preflights complex work, preserves existing assets, minimizes scope drift and regeneration, and verifies completion before claiming success.</span></div>
+        <a href="/skills/master-prompt-accuracy-efficiency/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Recruiter Reachout Precheck</div>
+        <div class="state">Published</div>
+        <div><strong>Recruiting verification</strong><span>Separates recruiter claims from independent evidence, assigns a provisional risk level, creates proving questions, and drafts a verification reply.</span></div>
+        <a href="/skills/recruiter-reachout-precheck/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Regional Virtual Background Studio</div>
+        <div class="state">Published</div>
+        <div><strong>Visual workflow</strong><span>Generates plausible video-call backgrounds around webcam composition, regional realism, and practical 16:9 framing constraints.</span></div>
+        <a href="/skills/regional-virtual-background-studio/SKILL.md">Open →</a>
+      </div>
+      <div class="row">
+        <div class="name">Running Quota Notification Icon</div>
+        <div class="state">Published</div>
+        <div><strong>Usage visibility</strong><span>Specifies an always-visible quota indicator with reset timing, thresholds, provider adapters, and honest exact-versus-estimated labeling.</span></div>
+        <a href="/skills/running-quota-notification-icon/SKILL.md">Open →</a>
+      </div>
+      </div>
+    </div></section>
+
+    <section class="section"><div class="registry">
+      <span class="section-kicker">PERSONAL / INTERNAL</span>
+      <h2>Useful internally, not catalog-published.</h2>
+      <div class="rows">
+        <div class="row">
+          <div class="name">OAuth Identity Broker</div>
+          <div class="state internal">Internal</div>
+          <div><strong>Identity and authorization operating skill.</strong><span>Used for secure OAuth/OIDC client patterns and authorization boundaries around Clintware control-plane work. It is counted because the implemented skill exists, but it is intentionally not linked as a public catalog skill here.</span></div>
+          <span></span>
+        </div>
+      </div>
+      <p class="note">This split is about publication state, not secrecy. The public catalog only links items I am intentionally presenting as reusable Clintware skills.</p>
+    </div></section>
   </main>
   <footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware™ · GO FURTHEST.™</span><span class="footer-links"><a href="/">Home</a><a href="/tools/">Products</a><a href="/skills/">Skills</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a></span></div></footer>
   <script src="/assets/clintware.js" defer></script>
