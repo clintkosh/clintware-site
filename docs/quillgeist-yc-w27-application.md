@@ -1,3 +1,5 @@
+> Status update — September 19, 2026: This remains a usable Quillgeist-specific application draft, but Quillgeist is no longer the repository-wide #1 venture priority. See `docs/yc-venture-priority-2026-09-19.md`. Retain this draft if evidence later promotes Quillgeist again; its older prioritization language must not override the current portfolio ranking.
+
 # Quillgeist — Y Combinator Winter 2027 Application Draft
 
 Status: working draft aligned to the implemented MVP.  Do not invent traction.  Replace bracketed fields only with verified values before submission.
