@@ -19,6 +19,24 @@ Required order:
 9. QA the finished page against ASTRO's rejection checklist before deployment.
 10. Never call the page complete until the deployment and public behavior are actually verified.
 
+## YC venture canonical-domain invariant
+
+Every venture listed on the Clintware YC / startup ranking must have its own canonical Clintware subdomain. The main `/startup/` page is the portfolio/ranking index only; it must link to venture subdomains rather than treating `/tools/<venture>/` as canonical.
+
+Canonical venture domains:
+- Mind to Form: `https://mindtoform.clintware.com/`
+- BuyerOrigin: `https://buyerorigin.clintware.com/`
+- Quillgeist: `https://quillgeist.clintware.com/`
+- LandThePlane: `https://landtheplane.clintware.com/`
+- Prompt Iris: `https://promptiris.clintware.com/`
+- RenewNudge: `https://renewnudge.clintware.com/`
+- OrgSynapse: `https://orgsynapse.clintware.com/`
+- ShoulderSoldier: `https://shouldersoldier.clintware.com/`
+- Portability Check: `https://portability.clintware.com/`
+- MindVergent: `https://mindvergent.clintware.com/`
+
+Legacy `/tools/` pages may remain for product documentation, but YC/startup navigation must prefer the dedicated venture subdomain.
+
 A Clintware public-page change made without first applying ASTRO is an incomplete task and must be revisited before delivery.
 
 ## Global Auto-Compact Continuation Protocol
