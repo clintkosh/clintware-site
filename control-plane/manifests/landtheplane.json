@@ -1,18 +1,27 @@
 {
   "product": "landtheplane",
   "environment": "production",
-  "version": 1,
+  "version": 2,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
-    "write_prefixes": ["landtheplane-worker/"],
-    "delete_prefixes": ["landtheplane-worker/"],
-    "allowed_workflows": ["deploy-landtheplane-worker.yml"]
+    "write_prefixes": [
+      "landtheplane-worker/"
+    ],
+    "delete_prefixes": [
+      "landtheplane-worker/"
+    ],
+    "allowed_workflows": [
+      "deploy-landtheplane-worker.yml"
+    ],
+    "identity": "clintkosh"
   },
   "dns": {
-    "allowed_names": ["landtheplane.clintware.com"]
+    "allowed_names": [
+      "landtheplane.clintware.com"
+    ]
   },
   "capabilities": [
     "repo.read:clintware-site",
@@ -27,7 +36,10 @@
     "deployment.execute:landtheplane",
     "dns.ensure:landtheplane.clintware.com",
     "analytics.write:landtheplane",
-    "analytics.read:landtheplane"
+    "analytics.read:landtheplane",
+    "flow.read:landtheplane",
+    "flow.write:landtheplane",
+    "flow.run:landtheplane"
   ],
   "deny": [
     "research.invoke",
@@ -37,6 +49,11 @@
     "repo.write:unrelated/**",
     "infrastructure.admin:*"
   ],
-  "protected_paths": [".github/workflows/", ".github/actions/", "control-plane/security/", "control-plane/policy/"],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
   "telemetry_namespace": "landtheplane"
 }
