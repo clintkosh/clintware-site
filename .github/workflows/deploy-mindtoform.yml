@@ -45,7 +45,7 @@ jobs:
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://mindtoform.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://mindtoform.clintware.com/healthz || true)
-            if grep -Fq 'Agree on what' <<< "$page" && grep -Fq 'browser-local-dod-gated' <<< "$health"; then
+            if grep -Fq 'Agree on what' <<< "$page" && grep -Fq 'adaptive-vet-dod-gated-local-form' <<< "$health"; then
               exit 0
             fi
             sleep 3
