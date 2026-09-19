@@ -597,6 +597,91 @@ export class ProductHub extends DurableObject {
   }
 }
 
+async function flowFor(env,product,name){
+  const p=normalizeProduct(product),n=normalizeFlowName(name);
+  const r=await registryHub(env).fetch(`https://internal/flow/${encodeURIComponent(p)}/${encodeURIComponent(n)}`);
+  if(!r.ok)return null;
+  return (await r.json()).workflow||null;
+}
+async function listFlows(env,product){
+  const p=normalizeProduct(product);
+  const r=await registryHub(env).fetch(`https://internal/flows/${encodeURIComponent(p)}`);
+  if(!r.ok)return [];
+  return (await r.json()).workflows||[];
+}
+async function registerFlow(env,body){
+  const r=await registryHub(env).fetch(new Request("https://internal/flow/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}));
+  const data=await r.json();
+  return {ok:r.ok,status:r.status,...data};
+}
+function compactFlowRun(run){
+  return {
+    run_id:run.run_id,
+    workflow:run.workflow,
+    product:run.product,
+    status:run.status,
+    ok:Boolean(run.ok),
+    started_at:run.started_at||null,
+    finished_at:run.finished_at||run.stopped_at||null,
+    failed_step:run.failed_step||null,
+    approval:run.approval?{step_id:run.approval.step_id||"",message:clip(run.approval.message||"",600)}:null,
+    steps:(run.results||[]).map(x=>({
+      step_id:x.step_id,
+      type:x.type,
+      capability:x.capability||"",
+      status:x.status,
+      duration_ms:Number(x.duration_ms||0),
+      ok:x.result?.ok!==false,
+      error:clip(x.result?.error||"",240),
+      commit_sha:clip(x.result?.commit_sha||"",80)
+    }))
+  };
+}
+async function recordFlowRun(env,run){
+  if(!run?.product||!run?.run_id)return;
+  try{
+    await registryHub(env).fetch(new Request("https://internal/flow/run-record",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(compactFlowRun(run))}));
+  }catch{}
+}
+async function executeCapabilityAction(env,manifest,{capability,resource={},reason="",message=""}){
+  const scopedResource={...resource,product:resource.product||manifest.product};
+  const policy=evaluatePolicy(manifest,capability,scopedResource,reason);
+  if(policy.decision!=="executed"){
+    return {ok:false,status:policy.decision,reason:policy.reason,capability};
+  }
+  let result={ok:false,error:"capability_not_implemented"};
+  if(capability==="repo.file.delete"){
+    result=await repoFileDelete(env,manifest,{path:scopedResource.path,message:message||reason||("Delete "+scopedResource.path),branch:scopedResource.branch});
+  }else if(capability==="repo.file.write"||capability==="repo.file.create"){
+    result=await repoWrite(env,manifest,{path:scopedResource.path,content:scopedResource.content||"",message:message||reason||("Write "+scopedResource.path),branch:scopedResource.branch,sha:scopedResource.sha});
+  }else if(capability==="repo.file.read"){
+    result=await repoRead(env,manifest,scopedResource.path,scopedResource.ref);
+  }else if(capability==="repo.file.move"||capability==="repo.file.rename"){
+    result=await repoFileMove(env,manifest,{from_path:scopedResource.from_path||scopedResource.path,to_path:scopedResource.to_path,message:message||reason||"Move file",branch:scopedResource.branch});
+  }else if(capability==="repo.branch.create"){
+    result=await repoCreateBranch(env,manifest,scopedResource.branch,scopedResource.ref);
+  }else if(capability==="repo.workflow.dispatch"||capability==="deployment.execute"){
+    result=await workflowDispatch(env,manifest,scopedResource.workflow,scopedResource.ref||scopedResource.branch,scopedResource.inputs||{});
+  }else if(capability==="dns.ensure"){
+    result=await ensureDns(env,manifest,{name:scopedResource.name,type:scopedResource.type||"CNAME",content:scopedResource.content||"",proxied:scopedResource.proxied!==false});
+  }
+  return {ok:Boolean(result?.ok),status:result?.ok?"executed":"error",reason:policy.reason,result};
+}
+async function executeFlow(env,manifest,workflow,input={},approvedSteps=[]){
+  const run=await runWorkflowDefinition({
+    workflow,
+    input,
+    approvedSteps,
+    capabilityRunner:args=>executeCapabilityAction(env,manifest,args),
+    emit:async({event,metadata,run_id,step_id})=>{
+      await audit(env,manifest.product,"flow_event:"+event,run_id,{step_id,metadata},true,"");
+    }
+  });
+  await recordFlowRun(env,run);
+  await audit(env,manifest.product,"flow_run",run.run_id,{workflow:workflow.name,status:run.status,step_count:(run.results||[]).length},Boolean(run.ok),run.ok?"":run.status);
+  return run;
+}
+
 async function manifestFor(env,product){
   const r=await registryHub(env).fetch(`https://internal/get/${encodeURIComponent(normalizeProduct(product))}`);
   if(!r.ok)return null;return (await r.json()).manifest;
