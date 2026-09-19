@@ -89,6 +89,32 @@ Meaning:
 
 The product page should explain both the current local-execution proof and the larger adaptive-intent thesis.  Do not let the implementation details erase the product thesis, and do not let the thesis overstate the implementation.
 
+## Mind to Form-specific rule
+
+Mind to Form is not an AI mesh generator, generic CAD assistant, or manufacturing marketplace.
+
+Core positioning:
+
+**Intent-to-physical-product compiler.**
+
+Preserve the progression:
+
+`DESCRIBE -> VET -> DEFINE DONE -> AGREE -> FORM -> VALIDATE -> QUOTE -> MAKE`
+
+The Definition-of-Done gate is mandatory:
+
+- a user may start with an incomplete or nontechnical idea;
+- ask only questions that materially affect success, constraints, interfaces, priorities, quantities, or exclusions;
+- show exactly what the system believes "done" means;
+- do not generate the first design or hand anything to manufacturing until the user explicitly approves that Definition of Done;
+- later requirement changes create a visible revision rather than silently changing the original agreement.
+
+Current browser alpha must be described accurately: adaptive intake, explicit Definition-of-Done approval, first-draft structured engineering spec, local parametric 3D preview, and local export package. Parametric B-rep/STEP, simulation/DFM, live manufacturer quotes, purchasing, and production tracking are roadmap until connected and verified.
+
+The differentiated thesis is:
+
+`HUMAN INTENT -> AGREED DEFINITION OF DONE -> ENGINEERED ARTIFACT -> MANUFACTURING ECONOMICS -> PHYSICAL PRODUCT`.
+
 ## MindVergent™-specific rule
 
 MindVergent™ is the master company / network brand. **MindVergent™ Labs** is its research and experimentation surface, not the permanent company name.
@@ -129,21 +155,26 @@ The initial wedge can be interview preparation and review because it provides ur
 
 ## Winter 2027 YC language
 
-The current evidence-ranked Winter 2027 validation order is:
+The current founder-priority / YC-validation order as of September 19, 2026 is:
 
-1. **BuyerOrigin** — primary YC track and working MVP;
-2. **Quillgeist** — close technical alternate;
-3. **RenewNudge** — live Customer Success product track;
-4. **ShoulderSoldier** — working security heuristic track;
-5. **Portability Check** — fast-validation candidate whose method exists but outside demand still must be proven.
+1. **Mind to Form** — primary new venture thesis; browser alpha is the immediate proof surface.
+2. **BuyerOrigin** — strongest current commercial-validation challenger with a working merchant-policy MVP.
+3. **Quillgeist** — strongest technical alternate with a working local-execution/context alpha.
+4. **LandThePlane** — working candidate-owned evidence system.
+5. **Prompt Iris** — browser MVP for quality-adjusted AI efficiency.
+6. **RenewNudge** — live Customer Success product.
+7. **OrgSynapse** — working shared-operational-state alpha.
+8. **ShoulderSoldier** — working deterministic interaction-risk MVP.
+9. **Portability Check** — defined assessment/remediation track.
+10. **MindVergent™** — broader verified-work network thesis.
 
-BuyerOrigin remains primary while merchant validation is the shortest path to meaningful economic evidence.  Quillgeist can retake the primary position if outside users demonstrate stronger repeated multi-provider behavior and measurable reduction in repeated instruction/context before BuyerOrigin produces merchant/payment proof.  Portability Check can rise quickly if outside assessments convert into remediation demand, but newness alone does not earn ranking credit.
+Idea priority and evidence maturity are separate. Do not imply that a higher-ranked idea has more external proof than a lower-ranked working product.
 
-MindVergent™ and LandThePlane remain legitimate supporting/exploration product tracks outside the current top-five W27 validation race unless verified evidence changes that order.
+Every venture in this ranking uses its own canonical `<venture>.clintware.com` subdomain. The main `/startup/` page is the ranking/index only.
 
-Do not imply acceptance, endorsement, affiliation, interview selection, funding, or YC participation unless it actually occurs.  Do not call a planned application an applicant status before submission.
+Do not imply acceptance, endorsement, affiliation, interview selection, funding, or YC participation unless it actually occurs. Do not call a planned application an applicant status before submission.
 
-YC-oriented pages should read like founder/product evidence, not investor cosplay.  State:
+YC-oriented pages should read like founder/product evidence, not investor cosplay. State:
 
 - the problem;
 - the wedge;
