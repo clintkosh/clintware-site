@@ -47,7 +47,7 @@ jobs:
       CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
       CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
       DOMAIN: clintware.com
-      MAIL_ADDRESS: clint@clintware.com
+      MAIL_ADDRESSES: "clint@clintware.com support@clintware.com"
       MAIL_WORKER: clintware-mail
       FORWARD_COPY_TO: clint.kosh@gmail.com
     steps:
@@ -147,18 +147,23 @@ jobs:
 
           rcode=$(cf GET "$api/zones/$zone_id/email/routing/rules" /tmp/rules.json)
           test "$rcode" = "200"
-          rule_id=$(python3 -c 'import json,os;d=json.load(open("/tmp/rules.json"));target=os.environ["MAIL_ADDRESS"].lower();m=[r for r in d.get("result",[]) if any(x.get("field")=="to" and str(x.get("value","")).lower()==target for x in r.get("matchers",[]))];print(m[0].get("id","") if m else "")')
+          for address in $MAIL_ADDRESSES; do
+            export CURRENT_MAIL_ADDRESS="$address"
+            rule_id=$(python3 -c 'import json,os;d=json.load(open("/tmp/rules.json"));target=os.environ["CURRENT_MAIL_ADDRESS"].lower();m=[r for r in d.get("result",[]) if any(x.get("field")=="to" and str(x.get("value","")).lower()==target for x in r.get("matchers",[]))];print(m[0].get("id","") if m else "")')
 
-          payload=$(python3 -c 'import json,os;print(json.dumps({"actions":[{"type":"worker","value":[os.environ["MAIL_WORKER"]]}],"matchers":[{"type":"literal","field":"to","value":os.environ["MAIL_ADDRESS"]}],"enabled":True,"name":"Deliver clint@clintware.com to Clintware Mail"}))')
-          if [[ -n "$rule_id" ]]; then
-            wcode=$(cf PUT "$api/zones/$zone_id/email/routing/rules/$rule_id" /tmp/write.json "$payload")
-          else
-            wcode=$(cf POST "$api/zones/$zone_id/email/routing/rules" /tmp/write.json "$payload")
-          fi
-          [[ "$wcode" -ge 200 && "$wcode" -lt 300 ]]
-          python3 -c 'import json;d=json.load(open("/tmp/write.json"));assert d.get("success") is True,d'
+            payload=$(python3 -c 'import json,os;a=os.environ["CURRENT_MAIL_ADDRESS"];print(json.dumps({"actions":[{"type":"worker","value":[os.environ["MAIL_WORKER"]]}],"matchers":[{"type":"literal","field":"to","value":a}],"enabled":True,"name":f"Deliver {a} to Clintware Mail"}))')
+            if [[ -n "$rule_id" ]]; then
+              wcode=$(cf PUT "$api/zones/$zone_id/email/routing/rules/$rule_id" /tmp/write.json "$payload")
+            else
+              wcode=$(cf POST "$api/zones/$zone_id/email/routing/rules" /tmp/write.json "$payload")
+            fi
+            [[ "$wcode" -ge 200 && "$wcode" -lt 300 ]]
+            python3 -c 'import json;d=json.load(open("/tmp/write.json"));assert d.get("success") is True,d'
+            echo "Email Routing now delivers $address to $MAIL_WORKER."
+            rcode=$(cf GET "$api/zones/$zone_id/email/routing/rules" /tmp/rules.json)
+            test "$rcode" = "200"
+          done
           echo "configured=true" >> "$GITHUB_OUTPUT"
-          echo "Email Routing now delivers $MAIL_ADDRESS to $MAIL_WORKER."
 
       - name: Verify public Clintware Mail
         shell: bash
