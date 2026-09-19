@@ -90,9 +90,9 @@ const env = {
   REPLY_TO: "hello@clintware.com",
   ALLOWED_ORIGINS: "https://www.clintware.com,https://clintware.com",
   MAIL_PROVIDER: "gmail",
-  GOOGLE_CLIENT_ID: "test-client",
-  GOOGLE_CLIENT_SECRET: "test-secret",
-  GOOGLE_REFRESH_TOKEN: "test-refresh",
+  GOOGLE_OAUTH_CLIENT_ID: "test-client",
+  GOOGLE_OAUTH_CLIENT_SECRET: "test-secret",
+  GOOGLE_DELEGATED_REFRESH_TOKEN: "test-refresh",
   NEWSLETTER_PUBLISH_SECRET: "fixture-publish-secret",
 };
 
