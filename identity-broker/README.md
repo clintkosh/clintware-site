@@ -39,16 +39,18 @@ Use `client_type=server` for normal Clintware web apps with a backend/BFF. The g
 
 ## Google setup
 
-Create one Google Cloud **Web application** OAuth client for the identity broker.
+Create one Google Cloud **Web application** OAuth client for Clintware. This same Google client ID/secret is the canonical first-party Clintware Google identity and delegated-access client. Sign-in remains OIDC-only; Gmail/Calendar or other offline access uses a separate delegated refresh grant and never becomes an MCP credential.
 
-Authorized redirect URI:
+Authorized redirect URIs:
 
-`https://auth.clintware.com/callback`
+- `https://auth.clintware.com/callback`
+- `http://127.0.0.1:53682/` for the local Clintware delegated-access bootstrap helper
 
 Repository/Actions secrets required for deployment:
 
 - `GOOGLE_OAUTH_CLIENT_ID`
 - `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_DELEGATED_REFRESH_TOKEN` when a Clintware service needs approved offline Google API access such as Gmail/Calendar
 - `CONTROL_PLANE_MCP_TOKEN` (already used by Clintware Control Plane)
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
