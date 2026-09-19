@@ -1,0 +1,59 @@
+{
+  "product": "mindtoform",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "identity": "clintkosh",
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": [
+      "mindtoform-worker/"
+    ],
+    "delete_prefixes": [
+      "mindtoform-worker/"
+    ],
+    "allowed_workflows": [
+      "deploy-mindtoform.yml"
+    ]
+  },
+  "dns": {
+    "allowed_names": [
+      "mindtoform.clintware.com"
+    ]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:mindtoform-worker/**",
+    "repo.delete:mindtoform-worker/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:mindtoform",
+    "dns.ensure:mindtoform.clintware.com",
+    "analytics.write:mindtoform",
+    "analytics.read:mindtoform",
+    "flow.read:mindtoform",
+    "flow.write:mindtoform",
+    "flow.run:mindtoform"
+  ],
+  "deny": [
+    "research.invoke",
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
+  "telemetry_namespace": "mindtoform"
+}
