@@ -6,6 +6,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  "vars": {
+    "GOOGLE_CALENDAR_ID": "clint@clintware.com"
+  },
   "services": [
     { "binding": "MAILER", "service": "clintware-blog-newsletter" }
   ],
