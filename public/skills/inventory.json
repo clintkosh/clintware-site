@@ -2,8 +2,8 @@
   "generated_at": "2026-09-19",
   "counting_rule": "Count only implemented skills with SKILL.md and implemented plugin packages with a plugin manifest. Planned concepts and generator tools are excluded.",
   "totals": {
-    "skills_total": 17,
-    "skills_published_on_clintware": 16,
+    "skills_total": 18,
+    "skills_published_on_clintware": 17,
     "skills_personal_internal": 1,
     "plugin_packages_total": 1,
     "plugin_packages_published_on_clintware": 1,
@@ -115,6 +115,13 @@
       "status": "published_on_clintware",
       "category": "Usage visibility",
       "clintware_path": "/skills/running-quota-notification-icon/SKILL.md"
+    },
+    {
+      "name": "Job Application Evidence Microsite",
+      "slug": "job-application-evidence-microsite",
+      "status": "published_on_clintware",
+      "category": "Job application / evidence presentation",
+      "clintware_path": "/skills/job-application-evidence-microsite/SKILL.md"
     },
     {
       "name": "OAuth Identity Broker",
