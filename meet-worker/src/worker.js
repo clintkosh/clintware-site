@@ -824,6 +824,18 @@ async function apiReschedule(request, env, token) {
   }
 }
 async function apiCancel(env, token) {
+  if (!calendarConfigured(env)) return json({ error: "google_calendar_not_configured" }, 503);
+
+  const existing = await lookupBooking(env, token);
+  if (!existing) return json({ error: "booking_not_found" }, 404);
+
+  try {
+    await cancelGoogleMeeting(env, existing);
+  } catch (error) {
+    console.error(JSON.stringify({ event: "google_cancel_failed", bookingId: existing.id, message: String(error) }));
+    return json({ error: "Google could not cancel the calendar invitation. The booking was not canceled." }, 503);
+  }
+
   const manageHash = await sha256(token);
   const response = await store(env).fetch("https://scheduler/cancel", {
     method: "POST",
@@ -834,19 +846,8 @@ async function apiCancel(env, token) {
   if (!response.ok) return json(data, response.status);
 
   const booking = { ...data.booking, manageToken: token };
-  try {
-    await sendCancellationMail(env, booking);
-  } catch (error) {
-    console.error(JSON.stringify({
-      event: "cancel_mail_failed",
-      bookingId: booking.id,
-      message: String(error),
-    }));
-  }
-
-  return json({ booking: publicBookingWithToken(booking) });
+  return json({ booking: publicBookingWithToken(booking), delivery: { google: true } });
 }
-
 async function health(env) {
   const [storageResponse, mailResponse] = await Promise.allSettled([
     store(env).fetch("https://scheduler/health"),
