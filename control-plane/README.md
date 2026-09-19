@@ -85,7 +85,7 @@ It explicitly denies secret reads, billing administration, repository deletion, 
 Provision these once in Cloudflare. External AI systems receive only the scoped Control Plane MCP credential, never the underlying credentials.
 
 - `CONTROL_PLANE_MCP_TOKEN` — bearer credential used by trusted MCP clients such as the Perplexity ProofOS project
-- `CONTROL_PLANE_ADMIN_TOKEN` — administrative API credential used to register products/clients
+- `CONTROL_PLANE_ADMIN_TOKEN` — administrative API credential used to register products/clients; preferred as a separate credential. If it is not configured, the root `CONTROL_PLANE_MCP_TOKEN` can perform administrative REST actions so scoped client keys can still be provisioned. Once the separate admin token exists, it takes precedence
 - `GITHUB_CONTROL_PLANE_TOKEN` — central GitHub credential with only the repository permissions needed for scoped writes/branch/workflow actions
 - `CLOUDFLARE_CONTROL_PLANE_TOKEN` — Cloudflare token limited to required DNS operations
 - `CLOUDFLARE_ZONE_ID` — Clintware zone ID
