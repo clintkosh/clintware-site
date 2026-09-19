@@ -39,13 +39,37 @@ The slogan is not a substitute for a product description. Product copy must rema
 
 ## Product hierarchy
 
-- **BuyerOrigin**: number one product / current Winter 2027 YC application priority. Position it as commerce identity and promotion-eligibility infrastructure, with repeated-new-customer promotion prevention as the initial wedge. The working local audit is current product; Shopify enforcement is not yet shipped. The immediate proof path is real merchant audits, merchant-confirmed leakage, acceptable false-positive/override behavior, and paid intent.
-- **Quillgeist**: number two product and close technical alternate. Position it as an adaptive intent compiler / execution layer, not merely a prompt optimizer, writing assistant, or generic copilot. Preserve the `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` product story while clearly separating the working local-execution alpha from adaptive learning still in development. It can retake the primary position through stronger repeated outside-user evidence across multiple providers.
-- **RenewNudge**: number three current validation track. Customer Success renewal-risk and action workflow tool. Describe it as a practical CS utility for surfacing renewal timing/risk, organizing follow-up, and prompting deliberate account action. Do not describe it as autonomous AI, predictive churn modeling, or functionality it does not actually implement.
-- **ShoulderSoldier**: number four current validation track. Provider-independent pre-exposure email / user-interaction protection concept/product track, focused on local or client-side protection before risky content reaches the user. Keep working heuristic capability separate from unproven intervention outcomes.
-- **Portability Check**: number five fast-validation candidate. Position it as an assessment/remediation path for whether AI-built applications remain independently operable across source, hosting, auth, database, storage, email, secrets, migrations, deployment, and documentation. The method exists; outside assessment demand and paid remediation still must be proven.
-- **MindVergent™**: supporting YC exploration track outside the current top-five validation race. MindVergent is the master company / network brand. Position it as a professional network where reputation comes from work other people can test, improve, and verify. **MindVergent™ Labs** is the research and experimentation surface used to seed useful work before the network is large. Discord/community is a bootstrap mechanism, not the company thesis. Formal contribution profiles, peer-validation scoring, matching, and commerce remain roadmap until founding-user behavior validates them.
-- **LandThePlane**: active supporting product proof outside the current top-five validation race. Position it around the candidate-owned evidence graph / career evidence system, with interview preparation and review as the initial wedge. Do not reduce it to generic generated interview questions.
+The current founder-priority / Winter 2027 validation order, updated September 19, 2026:
+
+1. **Mind to Form**: primary new venture thesis. Intent-to-physical-product compiler with a mandatory Definition-of-Done approval gate.
+2. **BuyerOrigin**: working merchant-controlled acquisition-offer eligibility MVP and strongest commercial-validation challenger.
+3. **Quillgeist**: working adaptive-intent/local-execution alpha and strongest technical alternate.
+4. **LandThePlane**: working candidate-owned evidence / career-system alpha.
+5. **Prompt Iris**: working browser MVP for quality-adjusted AI efficiency.
+6. **RenewNudge**: live Customer Success renewal-risk and action workflow.
+7. **OrgSynapse**: working shared company-operating-state alpha.
+8. **ShoulderSoldier**: working deterministic user-interaction risk evaluator.
+9. **Portability Check**: defined portability assessment/remediation track.
+10. **MindVergent™**: supporting verified-work network thesis.
+
+Idea priority and evidence maturity are separate. Never imply that the #1 idea has more external proof than a lower-ranked working product unless verified evidence supports that claim.
+
+### Canonical YC venture domains
+
+Every venture in the YC/startup ranking gets its own dedicated Clintware subdomain. `/startup/` is the ranking/index only.
+
+- `mindtoform.clintware.com`
+- `buyerorigin.clintware.com`
+- `quillgeist.clintware.com`
+- `landtheplane.clintware.com`
+- `promptiris.clintware.com`
+- `renewnudge.clintware.com`
+- `orgsynapse.clintware.com`
+- `shouldersoldier.clintware.com`
+- `portability.clintware.com`
+- `mindvergent.clintware.com`
+
+Legacy `/tools/` pages may remain, but public YC/startup links must prefer these canonical subdomains.
 
 ## MindVergent™ brand rule
 
