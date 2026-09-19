@@ -1,17 +1,28 @@
 {
   "product": "proofos",
   "environment": "production",
-  "version": 1,
+  "version": 3,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
-    "write_prefixes": ["proofos/", "control-plane/", "public/proofos/"],
-    "allowed_workflows": ["deploy-proofos.yml", "deploy-control-plane.yml"]
+    "write_prefixes": [
+      "proofos/",
+      "control-plane/",
+      "public/proofos/"
+    ],
+    "allowed_workflows": [
+      "deploy-proofos.yml",
+      "deploy-control-plane.yml"
+    ],
+    "identity": "clintkosh"
   },
   "dns": {
-    "allowed_names": ["proof.clintware.com", "mcp.clintware.com"]
+    "allowed_names": [
+      "proof.clintware.com",
+      "mcp.clintware.com"
+    ]
   },
   "capabilities": [
     "repo.read:clintware-site",
@@ -25,14 +36,24 @@
     "analytics.read:proofos",
     "research.invoke",
     "cache.read:proofos",
-    "cache.write:proofos"
+    "cache.write:proofos",
+    "flow.read:proofos",
+    "flow.write:proofos",
+    "flow.run:proofos"
   ],
   "deny": [
     "secrets.read",
     "billing.manage",
     "repo.delete",
     "repo.write:unrelated/**",
-    "infrastructure.admin:*"
+    "infrastructure.admin:*",
+    "secrets.export"
   ],
-  "telemetry_namespace": "proofos"
+  "telemetry_namespace": "proofos",
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ]
 }
