@@ -11,6 +11,18 @@ LandThePlane is a continuous career operating system. It starts before an interv
 
 `SEARCH → LAND → RAMP → OPERATE → IMPROVE → PROVE`
 
+## Internal orchestration
+
+LandThePlane uses the private Clintware Flow runtime inside the authenticated Control Plane for connected orchestration. The public browser product does not contain a Control Plane key.
+
+Seeded internal workflows:
+
+- `application-turbo-sprint`: intake → explicit Definition-of-Done approval → ready-for-execution event.
+- `interview-intelligence`: meeting-complete event → human review → accepted-actions event.
+
+Future Gmail, Calendar, transcript, research, publishing, and application-state adapters should be added as scoped Control Plane capabilities and then invoked from Flow. Provider credentials stay behind the Control Plane. External LLMs or operators receive only a revocable MCP client key with an explicit product allowlist.
+
+
 ### Search
 
 1. Ingest resume/accomplishment evidence plus a target role.
