@@ -11,6 +11,7 @@ import {
   sha256,
   validBlogPostUrl,
 } from "./lib.js";
+import { mailConfigured, mailProvider, sendMail, sendMailBatch } from "./mail.js";
 
 const CONFIRMATION_COOLDOWN_MS = 10 * 60 * 1000;
 const CONFIRMATION_TTL_MS = 48 * 60 * 60 * 1000;
@@ -60,9 +61,6 @@ function registry(env) {
   return env.SUBSCRIBERS.getByName("clintware-blog-newsletter-v1");
 }
 
-function mailConfigured(env) {
-  return Boolean(env.RESEND_API_KEY && env.PUBLIC_ENDPOINT && env.SITE_URL && env.FROM_EMAIL);
-}
 
 function blogUrl(env) {
   return new URL("/blog/", env.SITE_URL).toString();
@@ -101,24 +99,6 @@ function notificationEmail(env, publication, subscriber) {
   };
 }
 
-async function sendResend(env, path, payload, idempotencyKey) {
-  const response = await fetch(`${String(env.RESEND_API_BASE_URL || "https://api.resend.com").replace(/\/$/, "")}${path}`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "content-type": "application/json",
-      "idempotency-key": idempotencyKey,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const error = new Error("email_delivery_failed");
-    error.code = "email_delivery_failed";
-    error.status = response.status;
-    throw error;
-  }
-}
-
 function page(title, body) {
   return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#080a0e;color:#f4f7fb;font-family:Inter,Arial,sans-serif}.card{width:min(100%,560px);padding:30px;border:1px solid #28323d;border-radius:18px;background:#10151b}.eyebrow{color:#68e4f6;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}h1{margin:10px 0 12px;font-size:30px;line-height:1.1}p{color:#c2cbd7;line-height:1.58}a{color:#bdf7ff}</style></head><body><main class="card"><div class="eyebrow">Clintware Blog</div><h1>${escapeHtml(title)}</h1>${body}</main></body></html>`, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
@@ -151,7 +131,7 @@ async function subscribe(request, env) {
     const confirmUrl = endpointUrl(env, "/confirm", { token: reservation.confirmationToken });
     const message = confirmationEmail(env, confirmUrl);
     message.to = [email];
-    await sendResend(env, "/emails", message, `cw-confirm-${await sha256(reservation.confirmationToken)}`);
+    await sendMail(env, message);
   }
   return json({ ok: true, message: "Check your inbox to confirm your subscription." }, 202, corsHeaders(origin));
 }
@@ -227,7 +207,7 @@ async function internalSend(request, env) {
     tags: [{ name: "category", value: cleanText(payload.category || "internal", 64) || "internal" }],
   };
   const idempotency = cleanText(payload.idempotency_key, 200) || `cw-internal-${await sha256(JSON.stringify({ to, subject, textBody, html }))}`;
-  await sendResend(env, "/emails", message, idempotency);
+  await sendMail(env, message);
   return json({ ok: true }, 202);
 }
 
@@ -252,7 +232,7 @@ async function publish(request, env) {
     const batches = chunks(subscribers, EMAIL_BATCH_SIZE);
     for (const [index, batch] of batches.entries()) {
       const messages = batch.map((subscriber) => notificationEmail(env, publication, subscriber));
-      await sendResend(env, "/emails/batch", messages, `cw-blog-${publication.id}-${index}`);
+      await sendMailBatch(env, messages);
     }
     await store.completePublication(publication.url, subscribers.length);
     return json({ ok: true, notified: true, recipients: subscribers.length }, 202);
@@ -415,7 +395,7 @@ export default {
         const origin = approvedOrigin(request, env);
         return origin ? new Response(null, { status: 204, headers: corsHeaders(origin) }) : plain("Forbidden", 403);
       }
-      if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, deliveryConfigured: mailConfigured(env) });
+      if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, deliveryConfigured: mailConfigured(env), provider: mailProvider(env) });
       if (request.method === "POST" && url.pathname === "/subscribe") return subscribe(request, env);
       if (request.method === "GET" && url.pathname === "/confirm") return confirm(url, env);
       if (request.method === "GET" && url.pathname === "/unsubscribe") return unsubscribeForm(url, env);
