@@ -759,8 +759,11 @@ async function apiManage(env, token) {
 }
 
 async function apiReschedule(request, env, token) {
+  if (!calendarConfigured(env)) return json({ error: "google_calendar_not_configured" }, 503);
+
   const existing = await lookupBooking(env, token);
   if (!existing) return json({ error: "booking_not_found" }, 404);
+  if (!existing.googleEventId) return json({ error: "google_event_not_linked" }, 409);
 
   const body = await readJson(request);
   const startMs = Number(body.startMs);
@@ -772,6 +775,7 @@ async function apiReschedule(request, env, token) {
   }
 
   const manageHash = await sha256(token);
+  const old = { ...existing };
   const response = await store(env).fetch("https://scheduler/reschedule", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -780,20 +784,45 @@ async function apiReschedule(request, env, token) {
   const data = await response.json();
   if (!response.ok) return json(data, response.status);
 
-  const booking = { ...data.booking, manageToken: token };
+  let booking = { ...data.booking, manageToken: token, publicUrl: CONFIG.publicUrl };
   try {
-    await sendBookingMail(env, booking, "rescheduled");
+    const google = await updateGoogleMeeting(env, booking);
+    const attached = await store(env).fetch("https://scheduler/attach-google", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: booking.id,
+        googleEventId: google.eventId,
+        googleMeetUrl: google.meetUrl,
+        googleEventUrl: google.eventUrl,
+      }),
+    });
+    if (attached.ok) {
+      const attachedData = await attached.json();
+      booking = { ...attachedData.booking, manageToken: token };
+    }
+    return json({ booking: publicBookingWithToken(booking), delivery: { google: true } });
   } catch (error) {
-    console.error(JSON.stringify({
-      event: "reschedule_mail_failed",
-      bookingId: booking.id,
-      message: String(error),
-    }));
+    await store(env).fetch("https://scheduler/restore", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: old.id,
+        manageHash,
+        startMs: old.startMs,
+        endMs: old.endMs,
+        hostDate: old.hostDate,
+        timezone: old.timezone,
+        sequence: old.sequence,
+        reminder120Sent: 0,
+        reminder5Sent: 0,
+        followupSent: 0,
+      }),
+    }).catch(() => {});
+    console.error(JSON.stringify({ event: "google_reschedule_failed", bookingId: old.id, message: String(error) }));
+    return json({ error: "Google could not update the invitation. The original booking time was kept." }, 503);
   }
-
-  return json({ booking: publicBookingWithToken(booking) });
 }
-
 async function apiCancel(env, token) {
   const manageHash = await sha256(token);
   const response = await store(env).fetch("https://scheduler/cancel", {
