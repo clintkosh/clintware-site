@@ -727,14 +727,28 @@ async function requireAdmin(request,env){
   const expected=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
   return expected&&await safeEq(bearer(request),expected);
 }
-async function requireMcp(request,env){
+async function mcpAuthContext(request,env){
   const token=bearer(request);
-  if(!token)return false;
-  const expected=String(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN||"");
-  if(expected&&await safeEq(token,expected))return true;
+  if(!token)return null;
+  const rootMcp=String(env.CONTROL_PLANE_MCP_TOKEN||"");
+  const admin=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
+  if((rootMcp&&await safeEq(token,rootMcp))||(admin&&await safeEq(token,admin))){
+    return {ok:true,root:true,client_id:"root",name:"Clintware root MCP",allowed_products:["*"]};
+  }
   const token_hash=await sha256(token);
   const r=await registryHub(env).fetch(new Request("https://internal/mcp-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token_hash})}));
-  return r.ok;
+  if(!r.ok)return null;
+  const data=await r.json();
+  return {ok:true,root:false,...(data.client||{}),allowed_products:data.client?.allowed_products||[]};
+}
+function mcpProductAllowed(auth,product){
+  if(!auth)return false;
+  const p=normalizeProduct(product);
+  const allowed=Array.isArray(auth.allowed_products)?auth.allowed_products:[];
+  return Boolean(auth.root||allowed.includes("*")||allowed.map(normalizeProduct).includes(p));
+}
+async function requireMcp(request,env){
+  return Boolean(await mcpAuthContext(request,env));
 }
 async function audit(env,product,action,requestId,details={},success=true,error_class=""){
   try{
@@ -1003,13 +1017,16 @@ async function invokeResearchProvider(env,body){
   return payload;
 }
 
-function createMcpServer(env,mcpRequest){
+function createMcpServer(env,mcpRequest,mcpAuth){
   const headerApiKey=()=>{
     // Secure relay path: the key arrives in the x-api-key header of the MCP
     // request itself (injected by a credential proxy), never in chat or logs.
     const v=mcpRequest&&mcpRequest.headers.get("x-api-key");
     return v&&v.length>=8?v:null;
   };
+  const scopedManifest=async(product)=>mcpProductAllowed(mcpAuth,product)?manifestFor(env,product):null;
+  const scopedProductSummary=async(product,days,suffix="/summary")=>mcpProductAllowed(mcpAuth,product)?scopedProductSummary(product,days,suffix):{error:"product_not_allowed"};
+  const scopedProductPath=async(product,suffix)=>mcpProductAllowed(mcpAuth,product)?scopedProductPath(product,suffix):{error:"product_not_allowed"};
   const server=new McpServer({name:"Clintware Control Plane",version:VERSION});
   server.registerTool("clintware_control_plane_status",{
     title:"Get Clintware Control Plane status",
@@ -1018,7 +1035,7 @@ function createMcpServer(env,mcpRequest){
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async()=>{
     const products=await (await registryHub(env).fetch("https://internal/list")).json();
-    const productList=products.products||[];
+    const productList=(products.products||[]).filter(p=>mcpProductAllowed(mcpAuth,p.product));
     const identities=[...new Map(productList.map(p=>{
       const auth=githubAuth(env,p);
       return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name}];
@@ -1031,7 +1048,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{client:z.string().optional(),product:z.string().optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({client,product})=>{
-    const manifest=product?await manifestFor(env,product):null;
+    const manifest=product?await scopedManifest(product):null;
     const auth=manifest?githubAuth(env,manifest):null;
     return {content:[{type:"text",text:JSON.stringify({
       ok:true,
@@ -1092,7 +1109,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().min(1)},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({product})=>{
-    const manifest=await manifestFor(env,product);return {content:[{type:"text",text:JSON.stringify(manifest?{manifest}:{error:"product_not_found"})}],isError:!manifest};
+    const manifest=await scopedManifest(product);return {content:[{type:"text",text:JSON.stringify(manifest?{manifest}:{error:"product_not_found"})}],isError:!manifest};
   });
   server.registerTool("clintware_capability_check",{
     title:"Check a scoped Clintware capability",
@@ -1100,7 +1117,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().min(1),capability:z.string().min(1)},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({product,capability})=>{
-    const manifest=await manifestFor(env,product);const allowed=capabilityMatches(manifest,capability);
+    const manifest=await scopedManifest(product);const allowed=capabilityMatches(manifest,capability);
     return {content:[{type:"text",text:JSON.stringify({product,capability,allowed})}]};
   });
   server.registerTool("clintware_usage_summary",{
@@ -1108,7 +1125,7 @@ function createMcpServer(env,mcpRequest){
     description:"Return privacy-safe usage, provider, cost, cache, error, fallback, feature, and session totals for a Clintware product.",
     inputSchema:{product:z.string().default("proofos"),days:z.number().int().min(1).max(90).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await productSummary(env,product,days||30))}]}));
+  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await scopedProductSummary(product,days||30))}]}));
   server.registerTool("clintware_feature_funnel",{
     title:"Get product feature funnel",
     description:"Return anonymous ordered feature-funnel counts for a Clintware product.",
@@ -1116,51 +1133,51 @@ function createMcpServer(env,mcpRequest){
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({product,days,steps})=>{
     const q=new URLSearchParams({days:String(days||30)});if(steps?.length)q.set("steps",steps.join(","));
-    return {content:[{type:"text",text:JSON.stringify(await productPath(env,product,`/funnel?${q}`))}]};
+    return {content:[{type:"text",text:JSON.stringify(await scopedProductPath(product,`/funnel?${q}`))}]};
   });
   server.registerTool("clintware_provider_breakdown",{
     title:"Get provider breakdown",
     description:"Return request counts, reported API cost, errors, and latency by provider.",
     inputSchema:{product:z.string().default("proofos"),days:z.number().int().min(1).max(90).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await productSummary(env,product,days||30,"/providers"))}]}));
+  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await scopedProductSummary(product,days||30,"/providers"))}]}));
   server.registerTool("clintware_cache_performance",{
     title:"Get cache performance",
     description:"Return cache hit/miss performance for a Clintware product.",
     inputSchema:{product:z.string().default("proofos"),days:z.number().int().min(1).max(90).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await productSummary(env,product,days||30,"/cache"))}]}));
+  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await scopedProductSummary(product,days||30,"/cache"))}]}));
   server.registerTool("clintware_conversion_summary",{
     title:"Get conversion summary",
     description:"Return privacy-safe conversion event counts such as resume, contact, or meeting actions.",
     inputSchema:{product:z.string().default("proofos"),days:z.number().int().min(1).max(90).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await productSummary(env,product,days||30,"/conversions"))}]}));
+  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await scopedProductSummary(product,days||30,"/conversions"))}]}));
   server.registerTool("clintware_recent_errors",{
     title:"Get recent product errors",
     description:"Return recent structured errors without raw sensitive visitor content.",
     inputSchema:{product:z.string().default("proofos"),limit:z.number().int().min(1).max(200).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,limit})=>({content:[{type:"text",text:JSON.stringify(await productPath(env,product,`/errors?limit=${limit||50}`))}]}));
+  },async({product,limit})=>({content:[{type:"text",text:JSON.stringify(await scopedProductPath(product,`/errors?limit=${limit||50}`))}]}));
   server.registerTool("clintware_recent_activity",{
     title:"Get recent product activity",
     description:"Return recent canonical activity metadata without requiring raw prompt or response retention.",
     inputSchema:{product:z.string().default("proofos"),limit:z.number().int().min(1).max(200).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,limit})=>({content:[{type:"text",text:JSON.stringify(await productPath(env,product,`/recent?limit=${limit||50}`))}]}));
+  },async({product,limit})=>({content:[{type:"text",text:JSON.stringify(await scopedProductPath(product,`/recent?limit=${limit||50}`))}]}));
   server.registerTool("clintware_daily_activity",{
     title:"Get daily product activity",
     description:"Return daily event/session/cost/error/conversion aggregates.",
     inputSchema:{product:z.string().default("proofos"),days:z.number().int().min(1).max(90).optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
-  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await productSummary(env,product,days||30,"/daily"))}]}));
+  },async({product,days})=>({content:[{type:"text",text:JSON.stringify(await scopedProductSummary(product,days||30,"/daily"))}]}));
   server.registerTool("clintware_repo_read_file",{
     title:"Read an approved Clintware repository file",
     description:"Read a file or directory from the repository scoped to a registered product. Public repository reads do not require exposing GitHub credentials to the caller.",
     inputSchema:{product:z.string().default("proofos"),path:z.string().min(1),ref:z.string().optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
   },async({product,path,ref})=>{
-    const manifest=await manifestFor(env,product);if(!manifest?.repo?.read)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"repo_read_not_allowed"})}]};
+    const manifest=await scopedManifest(product);if(!manifest?.repo?.read)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"repo_read_not_allowed"})}]};
     const result=await repoRead(env,manifest,path,ref);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
   server.registerTool("clintware_repo_create_branch",{
@@ -1169,7 +1186,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().default("proofos"),branch:z.string().regex(/^[A-Za-z0-9._\/-]+$/),base:z.string().optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
   },async({product,branch,base})=>{
-    const manifest=await manifestFor(env,product);if(!capabilityMatches(manifest,"repo.branch:create"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
+    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,"repo.branch:create"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
     const result=await repoCreateBranch(env,manifest,branch,base);await audit(env,product,"repo_create_branch",crypto.randomUUID(),{branch,base},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
@@ -1179,7 +1196,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().default("proofos"),path:z.string().min(1),content:z.string(),message:z.string().min(1),branch:z.string().optional(),sha:z.string().optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
   },async({product,path,content,message,branch,sha})=>{
-    const manifest=await manifestFor(env,product);if(!capabilityMatches(manifest,"repo.write:proofos/**")&&!pathAllowed(manifest,path))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
+    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,"repo.write:proofos/**")&&!pathAllowed(manifest,path))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
     const result=await repoWrite(env,manifest,{path,content,message,branch,sha});await audit(env,product,"repo_write_file",crypto.randomUUID(),{path,branch},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
@@ -1189,7 +1206,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().default("proofos"),workflow:z.string().min(1),ref:z.string().optional(),inputs:z.record(z.string(),z.string()).optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
   },async({product,workflow,ref,inputs})=>{
-    const manifest=await manifestFor(env,product);if(!capabilityMatches(manifest,"deployment.execute:proof"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
+    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,"deployment.execute:proof"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
     const result=await workflowDispatch(env,manifest,workflow,ref,inputs||{});await audit(env,product,"deployment_dispatch",crypto.randomUUID(),{workflow,ref},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
@@ -1199,6 +1216,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{exa_api_key:z.string().min(8).optional(),clear:z.boolean().optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
   },async({exa_api_key,clear})=>{
+    if(!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"root_mcp_required"})}]};
     const relayKey=headerApiKey();
     if(!exa_api_key&&relayKey)exa_api_key=relayKey;
     if(clear){
@@ -1225,7 +1243,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().default("proofos"),name:z.string().min(1),type:z.enum(["CNAME","A","AAAA"]).default("CNAME"),content:z.string().min(1),proxied:z.boolean().optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
   },async({product,name,type,content,proxied})=>{
-    const manifest=await manifestFor(env,product);if(!capabilityMatches(manifest,`dns.ensure:${name}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
+    const manifest=await scopedManifest(product);if(!capabilityMatches(manifest,`dns.ensure:${name}`))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"capability_denied"})}]};
     const result=await ensureDns(env,manifest,{name,type,content,proxied:proxied!==false});await audit(env,product,"dns_ensure_record",crypto.randomUUID(),{name,type},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
@@ -1235,7 +1253,7 @@ function createMcpServer(env,mcpRequest){
     inputSchema:{product:z.string().default("proofos")},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({product})=>{
-    const manifest=await manifestFor(env,product);
+    const manifest=await scopedManifest(product);
     if(!manifest)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_found"})}]};
     const caps=(manifest.capabilities||[]).map(c=>{
       const baseCap=c.split(":")[0];
@@ -1282,7 +1300,7 @@ function createMcpServer(env,mcpRequest){
   },async({product,capability,resource,reason,requested_operation,message,request_id,expected_content_hash})=>{
     const requestId=request_id||crypto.randomUUID();
     const auditId="capreq_"+crypto.randomUUID().slice(0,12);
-    const manifest=await manifestFor(env,product);
+    const manifest=await scopedManifest(product);
     if(!manifest)return {isError:true,content:[{type:"text",text:JSON.stringify({status:"denied",audit_id:auditId,capability,reason:"product_not_found"})}]};
     // Evaluate policy
     const policy=evaluatePolicy(manifest,capability,resource,reason||"");
@@ -1330,8 +1348,9 @@ function createMcpServer(env,mcpRequest){
 }
 
 async function handleMcp(request,env,ctx){
-  if(!await requireMcp(request,env))return json({error:"unauthorized"},401,{"www-authenticate":"Bearer"});
-  const handler=createMcpHandler(()=>createMcpServer(env,request),{
+  const mcpAuth=await mcpAuthContext(request,env);
+  if(!mcpAuth)return json({error:"unauthorized"},401,{"www-authenticate":"Bearer"});
+  const handler=createMcpHandler(()=>createMcpServer(env,request,mcpAuth),{
     route:"/mcp",
     allowedHostnames:["mcp.clintware.com"],
     allowedOriginHostnames:["perplexity.ai","www.perplexity.ai","chatgpt.com","chat.openai.com","platform.openai.com","claude.ai","www.claude.ai","console.anthropic.com","gemini.google.com","aistudio.google.com","grok.com","www.grok.com","x.com","www.x.com","copilot.microsoft.com","clintware.com","www.clintware.com"],
