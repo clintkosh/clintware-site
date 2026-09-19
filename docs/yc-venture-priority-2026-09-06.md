@@ -1,3 +1,5 @@
+> Superseded for current ranking by `docs/yc-venture-priority-2026-09-19.md`. This file is retained as the September 6 decision record and must not be used as the current venture order.
+
 # Clintware Winter 2027 venture priority
 
 Decision date: September 6, 2026.  Revisit at the October 19 application lock using verified usage only.
