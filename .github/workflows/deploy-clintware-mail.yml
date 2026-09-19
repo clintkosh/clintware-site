@@ -49,6 +49,7 @@ jobs:
       DOMAIN: clintware.com
       MAIL_ADDRESS: clint@clintware.com
       MAIL_WORKER: clintware-mail
+      FORWARD_COPY_TO: clint.kosh@gmail.com
     steps:
       - uses: actions/checkout@v4
 
@@ -67,6 +68,14 @@ jobs:
           set -euo pipefail
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config mail-worker/wrangler.jsonc
+
+      - name: Verify Worker before changing mail routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --retry 12 --retry-delay 5 --retry-all-errors https://mail.clintware.com/health)
+          echo "$body"
+          python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("service")=="clintware-mail",d;assert d.get("storage")=="sqlite",d;assert d.get("forwardCopy") is True,d' <<< "$body"
 
       - name: Route clint@clintware.com into Clintware Mail
         id: routing
@@ -126,6 +135,15 @@ jobs:
           zcode=$(cf GET "$api/zones?name=$DOMAIN&account.id=$CLOUDFLARE_ACCOUNT_ID&status=active" /tmp/zones.json)
           test "$zcode" = "200"
           zone_id=$(python3 -c 'import json;d=json.load(open("/tmp/zones.json"));r=d.get("result") or [];assert len(r)==1,r;print(r[0]["id"])')
+
+          acode=$(cf GET "$api/accounts/$CLOUDFLARE_ACCOUNT_ID/email/routing/addresses" /tmp/addresses.json)
+          test "$acode" = "200"
+          verified=$(python3 -c 'import json,os;d=json.load(open("/tmp/addresses.json"));target=os.environ["FORWARD_COPY_TO"].lower();m=[x for x in (d.get("result") or []) if str(x.get("email","")).lower()==target];print("true" if m and (m[0].get("verified") or m[0].get("status")=="verified") else "false")')
+          if [[ "$verified" != "true" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Safety-copy destination is not verified; existing routing is left untouched."
+            exit 0
+          fi
 
           rcode=$(cf GET "$api/zones/$zone_id/email/routing/rules" /tmp/rules.json)
           test "$rcode" = "200"
