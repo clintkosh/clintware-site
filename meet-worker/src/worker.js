@@ -232,11 +232,11 @@ function normalizeBookingInput(input) {
   const name = cleanText(input.name, 100);
   const email = normalizeEmail(input.email);
   const company = cleanText(input.company, 120);
-  const purpose = cleanText(input.purpose, 100);
-  const topic = cleanText(input.topic, 1200);
+  const purpose = cleanText(input.purpose, 100) || "Meeting";
+  const topic = cleanText(input.topic, 1200) || "Conversation";
   const timezone = cleanText(input.timezone, 100) || CONFIG.hostTimeZone;
   const startMs = Number(input.startMs);
-  if (!name || !isValidEmail(email) || !purpose || !topic || !Number.isFinite(startMs)) return null;
+  if (!name || !isValidEmail(email) || !Number.isFinite(startMs)) return null;
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
   } catch {
@@ -682,7 +682,7 @@ async function apiBook(request, env) {
   }
   const input = normalizeBookingInput(await readJson(request));
   if (!input) {
-    return json({ error: "Enter a valid name, email, purpose, topic, timezone, and available time." }, 422);
+    return json({ error: "Enter a valid name, email, timezone, and available time." }, 422);
   }
 
   const manageToken = createToken(24);
