@@ -1,0 +1,154 @@
+name: Deploy Clintware Mail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mail-worker/**"
+      - ".github/workflows/deploy-clintware-mail.yml"
+  pull_request:
+    paths:
+      - "mail-worker/**"
+      - ".github/workflows/deploy-clintware-mail.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-mail
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Clintware Mail
+        run: npm --prefix mail-worker run check
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+      CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
+      CLOUDFLARE_EMAIL_ROUTING_TOKEN: ${{ secrets.CLOUDFLARE_EMAIL_ROUTING_TOKEN }}
+      CLINTWARE_CLOUDFLARE_API_TOKEN: ${{ secrets.CLINTWARE_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_CONTROL_PLANE_TOKEN: ${{ secrets.CLOUDFLARE_CONTROL_PLANE_TOKEN }}
+      CLOUDFLARE_GLOBAL_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
+      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      DOMAIN: clintware.com
+      MAIL_ADDRESS: clint@clintware.com
+      MAIL_WORKER: clintware-mail
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Clintware Mail Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd mail-worker --keep-vars
+
+      - name: Configure internal mail authentication
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config mail-worker/wrangler.jsonc
+
+      - name: Route clint@clintware.com into Clintware Mail
+        id: routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4"
+          AUTH_MODE=""
+          AUTH_TOKEN=""
+          AUTH_KEY=""
+          AUTH_EMAIL=""
+
+          probe_bearer() {
+            local label="$1" token="$2" code
+            [[ -z "$token" ]] && return 1
+            code=$(curl --compressed -sS -o /tmp/probe.json -w '%{http_code}'               "$api/accounts/$CLOUDFLARE_ACCOUNT_ID/email/routing/addresses"               -H "Authorization: Bearer $token" -H "Accept: application/json")
+            if [[ "$code" == "200" ]]; then
+              AUTH_MODE="bearer"; AUTH_TOKEN="$token"; echo "Using $label for Email Routing"; return 0
+            fi
+            return 1
+          }
+
+          probe_global() {
+            local label="$1" key="$2" email="$3" code
+            [[ -z "$key" || -z "$email" ]] && return 1
+            code=$(curl --compressed -sS -o /tmp/probe.json -w '%{http_code}'               "$api/accounts/$CLOUDFLARE_ACCOUNT_ID/email/routing/addresses"               -H "X-Auth-Email: $email" -H "X-Auth-Key: $key" -H "Accept: application/json")
+            if [[ "$code" == "200" ]]; then
+              AUTH_MODE="global"; AUTH_KEY="$key"; AUTH_EMAIL="$email"; echo "Using $label for Email Routing"; return 0
+            fi
+            return 1
+          }
+
+          probe_bearer CLOUDFLARE_API_TOKEN "$PRIMARY_TOKEN" ||           probe_bearer CF_API_TOKEN "$CF_API_TOKEN" ||           probe_bearer CLOUDFLARE_TOKEN "$CLOUDFLARE_TOKEN" ||           probe_bearer CLOUDFLARE_DNS_API_TOKEN "$CLOUDFLARE_DNS_API_TOKEN" ||           probe_bearer CLOUDFLARE_EMAIL_ROUTING_TOKEN "$CLOUDFLARE_EMAIL_ROUTING_TOKEN" ||           probe_bearer CLINTWARE_CLOUDFLARE_API_TOKEN "$CLINTWARE_CLOUDFLARE_API_TOKEN" ||           probe_bearer CLOUDFLARE_CONTROL_PLANE_TOKEN "$CLOUDFLARE_CONTROL_PLANE_TOKEN" ||           probe_global CLOUDFLARE_GLOBAL_API_KEY "$CLOUDFLARE_GLOBAL_API_KEY" "$CLOUDFLARE_EMAIL" ||           probe_global CLOUDFLARE_API_KEY "$CLOUDFLARE_API_KEY" "$CLOUDFLARE_EMAIL" || true
+
+          if [[ -z "$AUTH_MODE" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "No existing credential has Email Routing rules permission. Worker is deployed; routing remains unchanged."
+            exit 0
+          fi
+
+          cf() {
+            local method="$1" url="$2" outfile="$3" body="${4:-}" code
+            local args=()
+            if [[ "$AUTH_MODE" == "bearer" ]]; then
+              args=(-H "Authorization: Bearer $AUTH_TOKEN")
+            else
+              args=(-H "X-Auth-Email: $AUTH_EMAIL" -H "X-Auth-Key: $AUTH_KEY")
+            fi
+            if [[ -n "$body" ]]; then
+              code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" "${args[@]}" -H "Accept: application/json" -H "Content-Type: application/json" --data "$body")
+            else
+              code=$(curl --compressed -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url" "${args[@]}" -H "Accept: application/json")
+            fi
+            echo "$code"
+          }
+
+          zcode=$(cf GET "$api/zones?name=$DOMAIN&account.id=$CLOUDFLARE_ACCOUNT_ID&status=active" /tmp/zones.json)
+          test "$zcode" = "200"
+          zone_id=$(python3 -c 'import json;d=json.load(open("/tmp/zones.json"));r=d.get("result") or [];assert len(r)==1,r;print(r[0]["id"])')
+
+          rcode=$(cf GET "$api/zones/$zone_id/email/routing/rules" /tmp/rules.json)
+          test "$rcode" = "200"
+          rule_id=$(python3 -c 'import json,os;d=json.load(open("/tmp/rules.json"));target=os.environ["MAIL_ADDRESS"].lower();m=[r for r in d.get("result",[]) if any(x.get("field")=="to" and str(x.get("value","")).lower()==target for x in r.get("matchers",[]))];print(m[0].get("id","") if m else "")')
+
+          payload=$(python3 -c 'import json,os;print(json.dumps({"actions":[{"type":"worker","value":[os.environ["MAIL_WORKER"]]}],"matchers":[{"type":"literal","field":"to","value":os.environ["MAIL_ADDRESS"]}],"enabled":True,"name":"Deliver clint@clintware.com to Clintware Mail"}))')
+          if [[ -n "$rule_id" ]]; then
+            wcode=$(cf PUT "$api/zones/$zone_id/email/routing/rules/$rule_id" /tmp/write.json "$payload")
+          else
+            wcode=$(cf POST "$api/zones/$zone_id/email/routing/rules" /tmp/write.json "$payload")
+          fi
+          [[ "$wcode" -ge 200 && "$wcode" -lt 300 ]]
+          python3 -c 'import json;d=json.load(open("/tmp/write.json"));assert d.get("success") is True,d'
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "Email Routing now delivers $MAIL_ADDRESS to $MAIL_WORKER."
+
+      - name: Verify public Clintware Mail
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --retry 12 --retry-delay 5 --retry-all-errors https://mail.clintware.com/health)
+          echo "$body"
+          python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("service")=="clintware-mail",d;assert d.get("storage")=="sqlite",d' <<< "$body"
+          page=$(curl -fsS https://mail.clintware.com/)
+          grep -Fq "Clintware Mail" <<< "$page"
+          grep -Fq "GO FURTHEST.™" <<< "$page"
