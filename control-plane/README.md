@@ -6,7 +6,7 @@ ProofOS is the first registered production consumer. The control plane keeps Git
 
 ## Architecture
 
-`external AI/app -> mcp.clintware.com -> identity -> policy -> capability -> action -> audit`
+`external AI/app -> mcp.clintware.com -> identity -> client product scope -> policy -> Clintware Flow / capability -> action -> audit`
 
 The MCP endpoint is one interface into the broader control plane. The same Worker also exposes authenticated application/event APIs.
 
@@ -54,6 +54,16 @@ Scoped mutations:
 - `clintware_repo_write_file`
 - `clintware_deploy_workflow`
 - `clintware_dns_ensure_record`
+
+Private orchestration:
+
+- `clintware_flow_list`
+- `clintware_flow_get`
+- `clintware_flow_put`
+- `clintware_flow_run`
+- `clintware_flow_runs`
+
+Flow definitions live inside the Control Plane and contain credential references only. See `CLINTWARE_FLOW.md`.
 
 Mutation tools enforce each product's manifest before touching external infrastructure.
 
@@ -204,4 +214,4 @@ Administrative endpoints:
 - `POST /api/v1/mcp/clients` — create/rotate a named client credential; plaintext token is returned once
 - `DELETE /api/v1/mcp/clients/:client_id` — revoke that client without affecting other LLMs
 
-Use `control-plane/new-mcp-client.ps1` to provision ChatGPT, Claude, Gemini, Grok, Perplexity, or another client. Product manifests remain the enforcement boundary for repository paths, workflows, DNS, and infrastructure operations.
+Use `control-plane/new-mcp-client.ps1` to provision ChatGPT, Claude, Gemini, Grok, Perplexity, or another client. Each client’s `allowed_products` list is enforced by the MCP tool layer before product data or actions are exposed. Product manifests remain the second enforcement boundary for repository paths, workflows, DNS, Flow execution, and infrastructure operations.
