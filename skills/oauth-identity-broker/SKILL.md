@@ -31,7 +31,9 @@ For sign-in only:
 - do not retain a Google refresh token;
 - never store or request a Google password.
 
-Only add Google API scopes or offline access when a specific product feature truly needs to act on a user's Google data while the user is absent. Treat that as a separate delegated-access capability, not as part of login.
+Use one Google Cloud OAuth client for Clintware first-party Google integration when practical. The same client credentials may identify Clintware to Google for sign-in and for approved delegated capabilities such as Gmail or Calendar, but the grants remain separate.
+
+Only add Google API scopes or offline access when a specific product feature truly needs to act on a user's Google data while the user is absent. Treat that as a separate delegated-access capability, not as part of login. Store delegated refresh grants separately from sign-in state and name them by trust domain/purpose (for example GOOGLE_DELEGATED_REFRESH_TOKEN).
 
 ## OAuth protocol rules
 
@@ -110,7 +112,7 @@ Before calling an integration complete, verify all of the following:
 7. Service client secret is never browser-exposed.
 8. Refresh token is not stored in `localStorage`.
 9. Email is not the immutable account key.
-10. Public identity tokens cannot authenticate to `mcp.clintware.com` infrastructure tools.
+10. Public identity tokens and Google delegated-access tokens cannot authenticate to `mcp.clintware.com` infrastructure tools. MCP keeps its own control-plane credential and may invoke only explicitly approved delegated Google capabilities.
 11. OAuth access and refresh tokens can be revoked.
 12. Logs and telemetry contain no credentials.
 13. Deleting an OAuth client cascades revocation of its grants/tokens.
