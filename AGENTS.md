@@ -39,6 +39,20 @@ Legacy `/tools/` pages may remain for product documentation, but YC/startup navi
 
 A Clintware public-page change made without first applying ASTRO is an incomplete task and must be revisited before delivery.
 
+## Public/shared skill security boundary
+
+Every skill or reusable artifact published under `public/skills/` must be safe for an unrelated operator to use without receiving access to Clintware private infrastructure.
+
+Required rules:
+
+1. Public skills must be infrastructure-neutral and must run against infrastructure, domains, repositories, accounts, and credentials supplied by the new operator.
+2. Never publish `mcp.clintware.com`, `auth.clintware.com`, Clintware control-plane credential names, personal repository/account identifiers, private IPs, live tokens, cookies, sessions, OAuth client secrets, or non-placeholder contact data inside a shared skill.
+3. Never include a hidden callback, telemetry endpoint, maintenance key, default administrator credential, or author-controlled backdoor.
+4. Public examples must use neutral placeholders such as `YOUR_DOMAIN`, `YOUR_REPOSITORY`, `YOUR_PROVIDER_TOKEN`, and `example.com`.
+5. A public skill may describe generic MCP/API patterns, but possession of the skill file must never imply or grant authorization to any Clintware service.
+6. Internal implementations may use Clintware infrastructure only outside the published skill tree and only behind the appropriate authenticated control-plane boundary.
+7. Run `node scripts/validate-public-skill-boundary.mjs` before publishing. A failure blocks publication until the artifact is sanitized.
+
 ## Global Auto-Compact Continuation Protocol
 
 These rules apply to every repository agent and every Quillgeist task unless a more specific safety, permission, or user instruction requires a pause.
