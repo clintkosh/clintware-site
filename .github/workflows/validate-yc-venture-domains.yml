@@ -1,0 +1,44 @@
+name: Validate YC Venture Domains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "AGENTS.md"
+      - "BRAND_STANDARDS.md"
+      - "docs/yc-venture-sites.md"
+      - "docs/yc-venture-priority-2026-09-19.md"
+      - "public/startup/**"
+      - "mindtoform-worker/**"
+      - "venture-pages-worker/**"
+      - "buyerorigin-worker/wrangler.jsonc"
+      - "landtheplane-worker/wrangler.jsonc"
+      - "shouldersoldier-worker/wrangler.jsonc"
+      - "mindvergent-worker/wrangler.jsonc"
+      - "tests/validate_yc_venture_domains.py"
+      - ".github/workflows/validate-yc-venture-domains.yml"
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "BRAND_STANDARDS.md"
+      - "docs/yc-venture-sites.md"
+      - "docs/yc-venture-priority-2026-09-19.md"
+      - "public/startup/**"
+      - "mindtoform-worker/**"
+      - "venture-pages-worker/**"
+      - "tests/validate_yc_venture_domains.py"
+      - ".github/workflows/validate-yc-venture-domains.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python tests/validate_yc_venture_domains.py
