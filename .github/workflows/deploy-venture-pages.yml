@@ -1,0 +1,53 @@
+name: Deploy YC Venture Canonical Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "venture-pages-worker/**"
+      - ".github/workflows/deploy-venture-pages.yml"
+  pull_request:
+    paths:
+      - "venture-pages-worker/**"
+      - ".github/workflows/deploy-venture-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check venture-pages-worker/src/index.js
+      - run: XDG_CONFIG_HOME=/tmp/vp-xdg npx --yes --cache /tmp/vp-npm-cache wrangler@4 deploy --dry-run --config venture-pages-worker/wrangler.jsonc
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy venture pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd venture-pages-worker
+      - name: Verify venture domains
+        run: |
+          set -euo pipefail
+          for host in quillgeist.clintware.com promptiris.clintware.com orgsynapse.clintware.com portability.clintware.com; do
+            ok=0
+            for i in $(seq 1 20); do
+              health=$(curl -sS --connect-timeout 5 --max-time 15 "https://$host/healthz" || true)
+              if grep -Fq '"ok":true' <<< "$health"; then ok=1; break; fi
+              sleep 3
+            done
+            test "$ok" = 1
+          done
