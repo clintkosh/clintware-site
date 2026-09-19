@@ -45,19 +45,33 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd newsletter --keep-vars
-      - name: Configure Gmail OAuth delivery
+      - name: Check Google delegated-access prerequisites
+        id: google_ready
         env:
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_DELEGATED_REFRESH_TOKEN: ${{ secrets.GOOGLE_DELEGATED_REFRESH_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
-          test -n "$GOOGLE_CLIENT_ID"
-          test -n "$GOOGLE_CLIENT_SECRET"
-          test -n "$GOOGLE_REFRESH_TOKEN"
-          printf '%s' "$GOOGLE_CLIENT_ID" | npx --yes wrangler@4 secret put GOOGLE_CLIENT_ID --config newsletter/wrangler.jsonc
-          printf '%s' "$GOOGLE_CLIENT_SECRET" | npx --yes wrangler@4 secret put GOOGLE_CLIENT_SECRET --config newsletter/wrangler.jsonc
-          printf '%s' "$GOOGLE_REFRESH_TOKEN" | npx --yes wrangler@4 secret put GOOGLE_REFRESH_TOKEN --config newsletter/wrangler.jsonc
+          if [ -n "$GOOGLE_OAUTH_CLIENT_ID" ] && [ -n "$GOOGLE_OAUTH_CLIENT_SECRET" ] && [ -n "$GOOGLE_DELEGATED_REFRESH_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Google delegated access is not configured yet; Worker code deployed without Gmail delivery activation."
+          fi
+
+      - name: Configure Gmail OAuth delivery
+        if: steps.google_ready.outputs.ready == 'true'
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_DELEGATED_REFRESH_TOKEN: ${{ secrets.GOOGLE_DELEGATED_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | npx --yes wrangler@4 secret put GOOGLE_OAUTH_CLIENT_ID --config newsletter/wrangler.jsonc
+          printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | npx --yes wrangler@4 secret put GOOGLE_OAUTH_CLIENT_SECRET --config newsletter/wrangler.jsonc
+          printf '%s' "$GOOGLE_DELEGATED_REFRESH_TOKEN" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_REFRESH_TOKEN --config newsletter/wrangler.jsonc
 
       - name: Configure publish authentication
         env:
