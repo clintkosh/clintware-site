@@ -425,6 +425,46 @@ export class RegistryHub extends DurableObject {
       const index=await this.ctx.storage.get("handoff_index")||[];
       return json({ok:true,handoffs:index});
     }
+    if(request.method==="POST"&&url.pathname==="/flow/register"){
+      const body=await reqJson(request,128_000);
+      const workflow=normalizeWorkflow(body);
+      const flows=await this.ctx.storage.get("flows")||{};
+      const key=workflow.product+":"+workflow.name;
+      const previous=flows[key];
+      workflow.created_at=previous?.created_at||workflow.updated_at;
+      flows[key]=workflow;
+      await this.ctx.storage.put("flows",flows);
+      return json({ok:true,workflow});
+    }
+    if(request.method==="GET"&&url.pathname.startsWith("/flows/")){
+      const product=normalizeProduct(decodeURIComponent(url.pathname.slice("/flows/".length)));
+      const flows=await this.ctx.storage.get("flows")||{};
+      return json({ok:true,workflows:Object.values(flows).filter(x=>x.product===product)});
+    }
+    if(request.method==="GET"&&url.pathname.startsWith("/flow/")){
+      const rest=url.pathname.slice("/flow/".length).split("/").map(decodeURIComponent);
+      const product=normalizeProduct(rest.shift()||"");
+      const name=normalizeFlowName(rest.join("/"));
+      const flows=await this.ctx.storage.get("flows")||{};
+      const workflow=flows[product+":"+name];
+      return workflow?json({ok:true,workflow}):json({error:"workflow_not_found"},404);
+    }
+    if(request.method==="POST"&&url.pathname==="/flow/run-record"){
+      const body=await reqJson(request,128_000);
+      const product=normalizeProduct(body.product);
+      if(!product||!body.run_id)return json({error:"product_and_run_id_required"},400);
+      const key="flow_runs:"+product;
+      let runs=await this.ctx.storage.get(key)||[];
+      runs.unshift({...body,product,recorded_at:nowIso()});
+      runs=runs.slice(0,250);
+      await this.ctx.storage.put(key,runs);
+      return json({ok:true,run_id:body.run_id});
+    }
+    if(request.method==="GET"&&url.pathname.startsWith("/flow-runs/")){
+      const product=normalizeProduct(decodeURIComponent(url.pathname.slice("/flow-runs/".length)));
+      const runs=await this.ctx.storage.get("flow_runs:"+product)||[];
+      return json({ok:true,runs});
+    }
     return json({error:"not_found"},404);
   }
 }
