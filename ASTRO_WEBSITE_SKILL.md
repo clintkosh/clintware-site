@@ -109,7 +109,7 @@ The Definition-of-Done gate is mandatory:
 - do not generate the first design or hand anything to manufacturing until the user explicitly approves that Definition of Done;
 - later requirement changes create a visible revision rather than silently changing the original agreement.
 
-Current browser alpha must be described accurately: adaptive intake, explicit Definition-of-Done approval, first-draft structured engineering spec, local parametric 3D preview, and local export package. Parametric B-rep/STEP, simulation/DFM, live manufacturer quotes, purchasing, and production tracking are roadmap until connected and verified.
+Current browser alpha must be described accurately: Workers-AI-assisted adaptive vetting of the initial idea text, explicit Definition-of-Done approval, first-draft structured engineering spec, browser-local parametric 3D preview, and local export package. Only the initial idea text is sent for adaptive vetting in the current flow; the remaining form answers, concept geometry, and exports stay client-side. Parametric B-rep/STEP, simulation/DFM, live manufacturer quotes, purchasing, and production tracking are roadmap until connected and verified.
 
 The differentiated thesis is:
 
