@@ -1,0 +1,86 @@
+name: Deploy CPath Portfolio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cpath-worker/**"
+      - ".github/workflows/deploy-cpath-portfolio.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-cpath-portfolio
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate portfolio
+        run: |
+          node --check cpath-worker/src/worker.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class P(HTMLParser): pass
+          html = Path('cpath-worker/public/index.html').read_text(encoding='utf-8')
+          P().feed(html)
+          required = [
+            'I turn messy work into systems people actually use.',
+            'This is my work and how I think',
+            '19 published applications / tools',
+            '17 implemented skills',
+            'AI slop',
+            'RenewNudge',
+            'OrgSynapse',
+            'Full résumé'
+          ]
+          missing = [x for x in required if x not in html]
+          assert not missing, missing
+          assert 'CodePath' not in html
+          print('Portfolio content checks passed')
+          PY
+          npx --yes wrangler@4 deploy --dry-run --config cpath-worker/wrangler.jsonc
+
+      - name: Deploy portfolio Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd cpath-worker
+
+      - name: Verify custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          host=cpath.clintware.com
+          domains=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="cpath.clintware.com" and x.get("service")=="clintware-cpath-portfolio",x; print("Worker domain ready:",x.get("hostname"))' <<< "$domains"
+
+      - name: Verify HTTPS and content
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 60); do
+            headers=$(mktemp)
+            body=$(mktemp)
+            code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://cpath.clintware.com/?release=${GITHUB_SHA}" || true)
+            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+              ready=1
+              rm -f "$headers" "$body"
+              break
+            fi
+            rm -f "$headers" "$body"
+            sleep 5
+          done
+          test "$ready" = "1"
+          curl --fail-with-body -sS https://cpath.clintware.com/health | grep -Fq '"ok":true'
+          echo 'cpath.clintware.com passed HTTPS, content, header and health checks.'
