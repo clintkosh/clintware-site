@@ -21,6 +21,14 @@ import {
   validateRequestedStart,
 } from "./lib.js";
 import { bookingPage, managePage, roomPage } from "./ui.js";
+import {
+  calendarConfigured,
+  cancelGoogleMeeting,
+  createGoogleMeeting,
+  googleBusyWindows,
+  updateGoogleMeeting,
+  verifyCalendar,
+} from "./google-calendar.js";
 
 function securityHeaders(extra = {}) {
   return {
@@ -84,6 +92,9 @@ function rowToBooking(row) {
     timezone: row.timezone || CONFIG.hostTimeZone,
     status: row.status,
     roomCode: row.room_code,
+    googleEventId: row.google_event_id || "",
+    googleMeetUrl: row.google_meet_url || "",
+    googleEventUrl: row.google_event_url || "",
     sequence: Number(row.sequence || 0),
     createdAt: Number(row.created_at || 0),
     updatedAt: Number(row.updated_at || 0),
@@ -256,6 +267,9 @@ export class SchedulerState extends DurableObject {
         timezone TEXT NOT NULL,
         status TEXT NOT NULL,
         room_code TEXT NOT NULL,
+        google_event_id TEXT,
+        google_meet_url TEXT,
+        google_event_url TEXT,
         sequence INTEGER NOT NULL DEFAULT 0,
         reminder_120_sent INTEGER NOT NULL DEFAULT 0,
         reminder_5_sent INTEGER NOT NULL DEFAULT 0,
@@ -267,6 +281,13 @@ export class SchedulerState extends DurableObject {
       CREATE INDEX IF NOT EXISTS idx_bookings_time ON bookings(status, start_ms, end_ms);
       CREATE INDEX IF NOT EXISTS idx_bookings_hash ON bookings(manage_hash);
     `);
+    for (const statement of [
+      "ALTER TABLE bookings ADD COLUMN google_event_id TEXT",
+      "ALTER TABLE bookings ADD COLUMN google_meet_url TEXT",
+      "ALTER TABLE bookings ADD COLUMN google_event_url TEXT",
+    ]) {
+      try { this.sql.exec(statement); } catch {}
+    }
   }
 
   async fetch(request) {
@@ -278,6 +299,9 @@ export class SchedulerState extends DurableObject {
     if (request.method === "GET" && url.pathname === "/availability") return this.availability();
     if (request.method === "GET" && url.pathname === "/lookup") return this.lookup(url.searchParams.get("hash") || "");
     if (request.method === "POST" && url.pathname === "/reserve") return this.reserve(await request.json());
+    if (request.method === "POST" && url.pathname === "/attach-google") return this.attachGoogle(await request.json());
+    if (request.method === "POST" && url.pathname === "/rollback") return this.rollback(await request.json());
+    if (request.method === "POST" && url.pathname === "/restore") return this.restore(await request.json());
     if (request.method === "POST" && url.pathname === "/reschedule") return this.reschedule(await request.json());
     if (request.method === "POST" && url.pathname === "/cancel") return this.cancel(await request.json());
     if (request.method === "POST" && url.pathname === "/self-test") return this.selfTest();
@@ -415,6 +439,51 @@ export class SchedulerState extends DurableObject {
 
     await this.scheduleNextAlarm();
     return json({ booking }, 201);
+  }
+
+  async attachGoogle(input) {
+    const row = this.sql.exec("SELECT * FROM bookings WHERE id=? LIMIT 1", input.id).toArray()[0];
+    if (!row) return json({ error: "booking_not_found" }, 404);
+    this.sql.exec(
+      "UPDATE bookings SET google_event_id=?,google_meet_url=?,google_event_url=?,updated_at=? WHERE id=?",
+      String(input.googleEventId || ""),
+      String(input.googleMeetUrl || ""),
+      String(input.googleEventUrl || ""),
+      Date.now(),
+      input.id,
+    );
+    return this.lookup(row.manage_hash);
+  }
+
+  async rollback(input) {
+    const row = this.sql.exec("SELECT id FROM bookings WHERE id=? AND manage_hash=? LIMIT 1", input.id, input.manageHash).toArray()[0];
+    if (!row) return json({ ok: true, removed: false });
+    this.sql.exec("DELETE FROM bookings WHERE id=?", input.id);
+    await this.scheduleNextAlarm();
+    return json({ ok: true, removed: true });
+  }
+
+  async restore(input) {
+    const row = this.sql.exec("SELECT * FROM bookings WHERE id=? AND manage_hash=? LIMIT 1", input.id, input.manageHash).toArray()[0];
+    if (!row) return json({ error: "booking_not_found" }, 404);
+    this.sql.exec(
+      `UPDATE bookings
+       SET start_ms=?,end_ms=?,host_date=?,timezone=?,sequence=?,
+           reminder_120_sent=?,reminder_5_sent=?,followup_sent=?,updated_at=?
+       WHERE id=?`,
+      Number(input.startMs),
+      Number(input.endMs),
+      String(input.hostDate),
+      String(input.timezone),
+      Number(input.sequence || 0),
+      Number(input.reminder120Sent || 0),
+      Number(input.reminder5Sent || 0),
+      Number(input.followupSent || 0),
+      Date.now(),
+      input.id,
+    );
+    await this.scheduleNextAlarm();
+    return this.lookup(input.manageHash);
   }
 
   async reschedule(input) {
