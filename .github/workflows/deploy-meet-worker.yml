@@ -35,6 +35,7 @@ jobs:
       - name: Validate Worker source and Cloudflare bundle
         run: |
           node --check meet-worker/src/lib.js
+          node --check meet-worker/src/google-calendar.js
           node --check meet-worker/src/ui.js
           node --check meet-worker/src/worker.js
           npx --yes wrangler@4 deploy --dry-run --config meet-worker/wrangler.jsonc
@@ -45,6 +46,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Require and configure Google Calendar authorization
+        env:
+          GOOGLE_CALENDAR_CLIENT_ID: ${{ secrets.MEET_GOOGLE_CALENDAR_CLIENT_ID }}
+          GOOGLE_CALENDAR_CLIENT_SECRET: ${{ secrets.MEET_GOOGLE_CALENDAR_CLIENT_SECRET }}
+          GOOGLE_CALENDAR_REFRESH_TOKEN: ${{ secrets.MEET_GOOGLE_CALENDAR_REFRESH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_CALENDAR_CLIENT_ID" || { echo "Missing MEET_GOOGLE_CALENDAR_CLIENT_ID" >&2; exit 1; }
+          test -n "$GOOGLE_CALENDAR_CLIENT_SECRET" || { echo "Missing MEET_GOOGLE_CALENDAR_CLIENT_SECRET" >&2; exit 1; }
+          test -n "$GOOGLE_CALENDAR_REFRESH_TOKEN" || { echo "Missing MEET_GOOGLE_CALENDAR_REFRESH_TOKEN" >&2; exit 1; }
+          printf '%s' "$GOOGLE_CALENDAR_CLIENT_ID" | npx --yes wrangler@4 secret put GOOGLE_CALENDAR_CLIENT_ID --config meet-worker/wrangler.jsonc
+          printf '%s' "$GOOGLE_CALENDAR_CLIENT_SECRET" | npx --yes wrangler@4 secret put GOOGLE_CALENDAR_CLIENT_SECRET --config meet-worker/wrangler.jsonc
+          printf '%s' "$GOOGLE_CALENDAR_REFRESH_TOKEN" | npx --yes wrangler@4 secret put GOOGLE_CALENDAR_REFRESH_TOKEN --config meet-worker/wrangler.jsonc
 
       - name: Deploy ClintCal Worker
         uses: cloudflare/wrangler-action@v3
@@ -86,7 +103,7 @@ jobs:
           for i in $(seq 1 30); do
             body=$(mktemp)
             code=$(curl -sS --connect-timeout 5 --max-time 20               -o "$body" -w '%{http_code}' "https://meet.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Pick a time. Get it done.' "$body"               && grep -Fq 'Book meeting' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Fq 'ca-pub-6169557480632773' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
+            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Find a time that works.' "$body"               && grep -Fq 'Book meeting' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Fq 'ca-pub-6169557480632773' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
               echo 'meet.clintware.com serves native ClintCal with no Koalendar or FormSubmit dependency.'
               ready=1
               rm -f "$body"
@@ -115,9 +132,12 @@ jobs:
           import json
           d=json.load(open('/tmp/meet-health.json'))
           assert d.get('ok') is True,d
-          assert d.get('mode') == 'clintcal-native',d
+          assert d.get('mode') == 'google-calendar-meet',d
           assert d.get('storage') == 'sqlite',d
-          assert d.get('mailer') == 'resend',d
+          cal=d.get('calendar') or {}
+          assert cal.get('ok') is True,cal
+          assert cal.get('calendarId') == 'clint@clintware.com',cal
+          assert cal.get('googleMeetSupported') is True,cal
           PY
           python3 - <<'PY'
           import json
@@ -141,8 +161,11 @@ jobs:
           assert d.get('ok') is True,d
           assert d.get('storage',{}).get('storage') == 'sqlite',d
           assert d.get('slots',0) > 0,d
-          assert d.get('mailer') is True,d
-          print('Protected self-test passed:',d)
+          cal=d.get('calendar') or {}
+          assert cal.get('ok') is True,cal
+          assert cal.get('calendarId') == 'clint@clintware.com',cal
+          assert cal.get('googleMeetSupported') is True,cal
+          print('Protected Google Calendar self-test passed:',d)
           PY
 
       - name: Run one live book-reschedule-cancel test
@@ -159,7 +182,7 @@ jobs:
             "startMs": int("$first"),
             "timezone": "America/Chicago",
             "name": "ClintCal Deployment Test",
-            "email": "clint@clintware.com",
+            "email": "clint.kosh@gmail.com",
             "company": "Clintware",
             "purpose": "Other",
             "topic": "Automated production booking verification"
@@ -169,7 +192,7 @@ jobs:
           curl --fail-with-body -sS -X POST https://meet.clintware.com/api/book             -H 'content-type: application/json' --data @/tmp/book.json >/tmp/book-response.json
 
           token=$(python3 -c 'import json,re; d=json.load(open("/tmp/book-response.json")); u=d["booking"]["manageUrl"]; print(re.search(r"/manage/([a-f0-9]{48})",u).group(1))')
-          python3 -c 'import json; d=json.load(open("/tmp/book-response.json")); assert d["booking"]["status"]=="confirmed",d; assert d["delivery"]["guest"] is True,d'
+          python3 -c 'import json; d=json.load(open("/tmp/book-response.json")); assert d["booking"]["status"]=="confirmed",d; assert d["delivery"]["google"] is True,d; assert d["delivery"]["organizer"].lower()=="clint@clintware.com",d; assert d["booking"]["meetUrl"].startswith("https://meet.google.com/"),d'
 
           curl --fail-with-body -sS "https://meet.clintware.com/api/manage/$token" >/tmp/manage.json
           python3 -c 'import json; d=json.load(open("/tmp/manage.json")); assert d["booking"]["status"]=="confirmed",d'
