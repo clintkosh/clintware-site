@@ -6,6 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
+  "ai": { "binding": "AI" },
   "routes": [
     { "pattern": "mindtoform.clintware.com", "custom_domain": true }
   ],
