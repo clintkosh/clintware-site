@@ -50,6 +50,9 @@ jobs:
       - name: Materialize Teams gallery assets
         run: python materialize_teamsgallery.py
 
+      - name: Verify public skill sanitization boundary
+        run: node scripts/validate-public-skill-boundary.mjs
+
       - name: Verify production bundle
         run: python build_site.py
 
