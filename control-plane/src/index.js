@@ -2,8 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
+import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 
-const VERSION = "2026-09-18";
+const VERSION = "2026-09-19";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -34,7 +35,7 @@ const safeEq = async (a,b) => {
 const DEFAULT_PROOFOS = {
   product:"proofos",
   environment:"production",
-  version:2,
+  version:3,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["proofos/","control-plane/","public/proofos/"],delete_prefixes:["proofos/"],allowed_workflows:["deploy-proofos.yml","deploy-control-plane.yml"]},
   dns:{allowed_names:["proof.clintware.com","mcp.clintware.com"]},
   capabilities:[
@@ -54,7 +55,10 @@ const DEFAULT_PROOFOS = {
     "analytics.read:proofos",
     "research.invoke",
     "cache.read:proofos",
-    "cache.write:proofos"
+    "cache.write:proofos",
+    "flow.read:proofos",
+    "flow.write:proofos",
+    "flow.run:proofos"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete:control-plane/**","repo.write:unrelated/**","infrastructure.admin:*"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
@@ -65,10 +69,10 @@ const DEFAULT_PROOFOS = {
 const DEFAULT_LANDTHEPLANE = {
   product:"landtheplane",
   environment:"production",
-  version:1,
+  version:2,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
   dns:{allowed_names:["landtheplane.clintware.com"]},
-  capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane"],
+  capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane","flow.read:landtheplane","flow.write:landtheplane","flow.run:landtheplane"],
   deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"landtheplane",
@@ -116,7 +120,33 @@ const DEFAULT_CODEFEDDY = {
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY};
+const DEFAULT_MINDTOFORM = {
+  product:"mindtoform",
+  environment:"production",
+  version:1,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["mindtoform-worker/"],delete_prefixes:["mindtoform-worker/"],allowed_workflows:["deploy-mindtoform.yml"]},
+  dns:{allowed_names:["mindtoform.clintware.com"]},
+  capabilities:["repo.read:clintware-site","repo.write:mindtoform-worker/**","repo.delete:mindtoform-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:mindtoform","dns.ensure:mindtoform.clintware.com","analytics.write:mindtoform","analytics.read:mindtoform","flow.read:mindtoform","flow.write:mindtoform","flow.run:mindtoform"],
+  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"mindtoform",
+  created_at:"2026-09-19T00:00:00.000Z"
+};
+
+const DEFAULT_ORGSYNAPSE = {
+  product:"orgsynapse",
+  environment:"prototype",
+  version:1,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["orgsynapse/","public/tools/orgsynapse/"],delete_prefixes:["orgsynapse/","public/tools/orgsynapse/"],allowed_workflows:[]},
+  dns:{allowed_names:["orgsynapse.clintware.com"]},
+  capabilities:["repo.read:clintware-site","repo.write:orgsynapse/**","repo.write:public/tools/orgsynapse/**","repo.delete:orgsynapse/**","repo.delete:public/tools/orgsynapse/**","repo.branch:create","repo.branch:read","repo.commit:status","analytics.write:orgsynapse","analytics.read:orgsynapse","flow.read:orgsynapse","flow.write:orgsynapse","flow.run:orgsynapse"],
+  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.workflow:dispatch","deployment.execute","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"orgsynapse",
+  created_at:"2026-09-19T00:00:00.000Z"
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE};
 
 // ---- Capability broker: risk tiers, protected resources, policy evaluation ----
 // Agents express intent ("delete this file"); Clintware resolves provider-specific
@@ -127,13 +157,13 @@ const RISK_TIERS = {
   "repo.commit":0, "repo.commit.status":0, "repo.commit:status":0,
   "repo.workflow":0, "repo.workflow.status":0, "repo.workflow:status":0,
   "deployment.read":0, "telemetry.read":0,
-  "cache.read":0, "analytics.read":0,
+  "cache.read":0, "analytics.read":0, "flow.read":0,
   // Tier 1 — LOW-RISK SCOPED MUTATION
   "repo.write":1, "repo.file.write":1, "repo.file.create":1,
   "repo.branch:create":1, "repo.branch.create":1,
   "repo.workflow.dispatch":1, "repo.workflow:dispatch":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
-  "research.invoke":1,
+  "research.invoke":1, "flow.write":1, "flow.run":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
   "dns.ensure":2,
@@ -182,6 +212,7 @@ function capabilityForMatch(capability,resource,manifest){
   if(cap==="analytics.write") return `analytics.write:${resource?.product||"proofos"}`;
   if(cap==="cache.read") return `cache.read:${resource?.product||"proofos"}`;
   if(cap==="cache.write") return `cache.write:${resource?.product||"proofos"}`;
+  if(cap==="flow.read"||cap==="flow.write"||cap==="flow.run") return `${cap}:${resource?.product||manifest?.product||"unknown"}`;
   return cap;
 }
 
