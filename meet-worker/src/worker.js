@@ -849,34 +849,23 @@ async function apiCancel(env, token) {
   return json({ booking: publicBookingWithToken(booking), delivery: { google: true } });
 }
 async function health(env) {
-  const [storageResponse, mailResponse] = await Promise.allSettled([
+  const [storageResponse, calendar] = await Promise.all([
     store(env).fetch("https://scheduler/health"),
-    env.MAILER
-      ? env.MAILER.fetch("https://mailer/health")
-      : Promise.reject(new Error("mailer_binding_missing")),
+    verifyCalendar(env),
   ]);
-
-  let storage = { ok: false };
-  let mailer = { ok: false };
-
-  if (storageResponse.status === "fulfilled") {
-    storage = await storageResponse.value.json().catch(() => ({ ok: false }));
-  }
-  if (mailResponse.status === "fulfilled") {
-    mailer = await mailResponse.value.json().catch(() => ({ ok: false }));
-  }
-
-  const ok = Boolean(storage.ok && mailer.deliveryConfigured && env.INTERNAL_MAIL_SECRET);
+  const storage = await storageResponse.json().catch(() => ({ ok: false }));
+  const ok = Boolean(storage.ok && calendar.ok && calendar.googleMeetSupported);
   return json({
     ok,
     app: "clintware-meet",
-    mode: "clintcal-native",
+    mode: "google-calendar-meet",
     storage: storage.ok ? "sqlite" : "error",
-    mailer: mailer.deliveryConfigured ? "resend" : "error",
+    calendar,
+    confirmations: "google-calendar",
+    reminders: env.MAILER && env.INTERNAL_MAIL_SECRET ? "clintware-mailer" : "calendar-defaults",
     durationMinutes: CONFIG.durationMinutes,
   }, ok ? 200 : 503, { "Cache-Control": "no-store" });
 }
-
 async function adminSelfTest(request, env) {
   const supplied = request.headers.get("x-clintware-admin-secret") || "";
   if (!env.SCHEDULER_ADMIN_SECRET || supplied !== env.SCHEDULER_ADMIN_SECRET) {
@@ -885,29 +874,26 @@ async function adminSelfTest(request, env) {
 
   const storageResponse = await store(env).fetch("https://scheduler/self-test", { method: "POST" });
   const storage = await storageResponse.json();
-
   const availabilityResponse = await store(env).fetch("https://scheduler/availability");
   const availability = await availabilityResponse.json();
-
-  const mailResponse = env.MAILER ? await env.MAILER.fetch("https://mailer/health") : null;
-  const mailer = mailResponse ? await mailResponse.json().catch(() => ({})) : {};
+  const calendar = await verifyCalendar(env);
 
   const ok = Boolean(
     storage.ok &&
     Array.isArray(availability.slots) &&
     availability.slots.length > 0 &&
-    mailer.deliveryConfigured
+    calendar.ok &&
+    calendar.googleMeetSupported
   );
 
   return json({
     ok,
     storage,
     slots: availability.slots?.length || 0,
-    mailer: Boolean(mailer.deliveryConfigured),
-    bookingFlow: "reserve/reschedule/cancel protected by durable-object serialization",
+    calendar,
+    bookingFlow: "Google Calendar event + Google Meet + attendee notifications",
   }, ok ? 200 : 503);
 }
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
