@@ -720,7 +720,7 @@ async function health(env) {
     app: "clintware-meet",
     mode: "clintcal-native",
     storage: storage.ok ? "sqlite" : "error",
-    mailer: mailer.deliveryConfigured ? "resend" : "error",
+    mailer: mailer.deliveryConfigured ? (mailer.provider || "configured") : "error",
     durationMinutes: CONFIG.durationMinutes,
   }, ok ? 200 : 503, { "Cache-Control": "no-store" });
 }
