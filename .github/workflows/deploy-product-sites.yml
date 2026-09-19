@@ -149,7 +149,7 @@ jobs:
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://review.landtheplane.clintware.com/healthz || true)
             selftest=$(curl -sS --connect-timeout 5 --max-time 60 https://review.landtheplane.clintware.com/api/selftest || true)
             if grep -Fq 'Review the interview you actually had.' <<< "$page" \
-              && grep -Fq '2026-09-16-functional-v2' <<< "$health" \
+              && grep -Fq '2026-09-18-interpretation-gap-v1' <<< "$health" \
               && grep -Fq '"ok":true' <<< "$selftest"; then
               exit 0
             fi
