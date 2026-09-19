@@ -21,7 +21,7 @@ const hardForbidden = [
 ];
 
 const allowedEmailDomains = new Set(["example.com","example.org","example.net","example.invalid"]);
-const allowedPhone = /(?:\+?1[ .-]?)?555[ .-]?01\d{2}\b/;
+const allowedPhone = /(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]?555[ .-]?01\d{2}\b/;
 
 function walk(dir){
   const out=[];
