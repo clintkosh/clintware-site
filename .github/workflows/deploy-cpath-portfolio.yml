@@ -137,3 +137,45 @@ jobs:
           test "$ready" = "1"
           curl --fail-with-body -sS https://cpath.clintware.com/health | grep -Fq '"ok":true'
           echo 'cpath.clintware.com passed HTTPS, content, header and health checks.'
+
+      - name: Verify first-party application links and assets
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/cpath-first-party-urls.txt
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlparse, urldefrag
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.urls = []
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  for key in ('href', 'src'):
+                      value = attrs.get(key)
+                      if not value or not value.startswith(('http://','https://')):
+                          continue
+                      clean = urldefrag(value)[0]
+                      host = (urlparse(clean).hostname or '').lower()
+                      if host == 'clintware.com' or host.endswith('.clintware.com'):
+                          self.urls.append(clean)
+
+          p = P()
+          p.feed(Path('cpath-worker/public/index.html').read_text(encoding='utf-8'))
+          for url in sorted(set(p.urls)):
+              print(url)
+          PY
+
+          failures=0
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            code=$(curl -L -sS --connect-timeout 8 --max-time 30 -o /dev/null -w '%{http_code}' "$url" || true)
+            case "$code" in
+              2??|3??) echo "OK $code $url" ;;
+              *) echo "FAIL $code $url" >&2; failures=$((failures+1)) ;;
+            esac
+          done < /tmp/cpath-first-party-urls.txt
+
+          test "$failures" = "0"
+          echo 'All first-party application links and assets returned successful HTTP status.'
