@@ -131,7 +131,11 @@ export default {
     const body=textBody(raw);
     const record={id:crypto.randomUUID(),fromAddr:String(message.from||h.get("from")||""),toAddr:String(message.to||h.get("to")||""),subject:String(h.get("subject")||"(no subject)").slice(0,500),receivedAt:new Date().toISOString(),messageId:String(h.get("message-id")||""),inReplyTo:String(h.get("in-reply-to")||""),preview:body.replace(/\s+/g," ").trim().slice(0,220),body,raw:raw.slice(0,10_000_000)};
     await mailbox(env).saveInbound(record);
-    if(env.FORWARD_COPY_TO){try{await message.forward(env.FORWARD_COPY_TO)}catch(e){console.error(JSON.stringify({event:"mail_forward_copy_failed",message:String(e?.message||e)}))}}
+    const safetyCopyAddresses=String(env.SAFETY_COPY_ADDRESSES||"clint@clintware.com").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+    if(env.FORWARD_COPY_TO && safetyCopyAddresses.includes(String(message.to||"").toLowerCase())){
+      try{await message.forward(env.FORWARD_COPY_TO)}
+      catch(e){console.error(JSON.stringify({event:"mail_forward_copy_failed",message:String(e?.message||e)}))}
+    }
   },
   async fetch(request,env){
     const url=new URL(request.url);
