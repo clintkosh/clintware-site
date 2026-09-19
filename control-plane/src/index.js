@@ -796,8 +796,10 @@ async function verifyProductRequest(request,env,product){
   return null;
 }
 async function requireAdmin(request,env){
-  const expected=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
-  return expected&&await safeEq(bearer(request),expected);
+  const admin=String(env.CONTROL_PLANE_ADMIN_TOKEN||"");
+  if(admin)return Boolean(await safeEq(bearer(request),admin));
+  const rootMcp=String(env.CONTROL_PLANE_MCP_TOKEN||"");
+  return Boolean(rootMcp&&await safeEq(bearer(request),rootMcp));
 }
 async function mcpAuthContext(request,env){
   const token=bearer(request);
@@ -1540,7 +1542,8 @@ function safeConfig(env){
     cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID),
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
     mcp_per_client_credentials:true,
-    admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
+    admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN||env.CONTROL_PLANE_MCP_TOKEN),
+    admin_auth_separate:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
   };
 }
 
