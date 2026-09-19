@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const root = path.resolve("public/skills");
+const roots = ["public/skills","skills","agentbridge-cloud/chatgpt-plugin/skills"].map(p=>path.resolve(p)).filter(p=>fs.existsSync(p));
 const textExtensions = new Set([".md",".html",".json",".js",".mjs",".ts",".txt",".yml",".yaml"]);
 
 const hardForbidden = [
@@ -33,7 +33,7 @@ function walk(dir){
   return out;
 }
 
-const files=walk(root);
+const files=[...new Set(roots.flatMap(walk))];
 const violations=[];
 for(const file of files){
   const body=fs.readFileSync(file,"utf8");
