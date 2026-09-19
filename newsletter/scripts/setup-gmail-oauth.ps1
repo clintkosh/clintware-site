@@ -1,10 +1,11 @@
 param(
   [string]$Repo = "clintkosh/clintware-site",
-  [int]$Port = 53682
+  [int]$Port = 53682,
+  [string[]]$Scopes = @("https://www.googleapis.com/auth/gmail.send")
 )
 
 $ErrorActionPreference = "Stop"
-$Scope = "https://www.googleapis.com/auth/gmail.send"
+$Scope = ($Scopes -join " ")
 $RedirectUri = "http://127.0.0.1:$Port/"
 
 function Require-Command {
@@ -36,8 +37,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Clintware Gmail OAuth setup" -ForegroundColor Cyan
-Write-Host "This requests ONLY the Gmail send scope." -ForegroundColor DarkGray
+Write-Host "Clintware Google delegated-access setup" -ForegroundColor Cyan
+Write-Host "OAuth client credentials are shared with auth.clintware.com; delegated refresh access remains a separate grant." -ForegroundColor DarkGray
+Write-Host ("Requested delegated scopes: " + ($Scopes -join ", ")) -ForegroundColor DarkGray
 Write-Host ""
 
 $ClientId = Read-Host "Google OAuth Client ID"
@@ -122,14 +124,23 @@ if ([string]::IsNullOrWhiteSpace($Token.refresh_token)) {
 
 Write-Host ""
 Write-Host "Saving OAuth credentials as encrypted GitHub Actions secrets..." -ForegroundColor Cyan
-Set-GitHubSecret "GOOGLE_CLIENT_ID" $ClientId
-Set-GitHubSecret "GOOGLE_CLIENT_SECRET" $ClientSecret
-Set-GitHubSecret "GOOGLE_REFRESH_TOKEN" $Token.refresh_token
+Set-GitHubSecret "GOOGLE_OAUTH_CLIENT_ID" $ClientId
+Set-GitHubSecret "GOOGLE_OAUTH_CLIENT_SECRET" $ClientSecret
+Set-GitHubSecret "GOOGLE_DELEGATED_REFRESH_TOKEN" $Token.refresh_token
 
 $ClientSecret = $null
 $ClientSecretSecure = $null
 
-Write-Host "Secrets saved." -ForegroundColor Green
+Write-Host "Shared Clintware OAuth client and delegated refresh grant saved." -ForegroundColor Green
+Write-Host ""
+Write-Host "Deploying Clintware Identity Broker..." -ForegroundColor Cyan
+gh workflow run deploy-identity-broker.yml --repo $Repo --ref main
+if ($LASTEXITCODE -ne 0) { throw "Could not start Clintware Identity Broker deployment." }
+Start-Sleep -Seconds 3
+$IdentityRun = gh run list --repo $Repo --workflow deploy-identity-broker.yml --limit 1 --json databaseId --jq '.[0].databaseId'
+gh run watch --repo $Repo $IdentityRun --exit-status
+if ($LASTEXITCODE -ne 0) { throw "Clintware Identity Broker deployment failed." }
+
 Write-Host ""
 Write-Host "Deploying shared Clintware mail Worker..." -ForegroundColor Cyan
 gh workflow run deploy-newsletter-worker.yml --repo $Repo --ref main
