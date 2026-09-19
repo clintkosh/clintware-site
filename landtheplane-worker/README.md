@@ -19,8 +19,10 @@ LandThePlane is a continuous career operating system. It starts before an interv
 4. Connect Gmail when the user explicitly chooses to and scan job-search messages for application, interview/next-step, pause, closure, and networking signals.
 5. Keep Gmail message evidence separate from canonical company-role counts until ASTRO reconciliation/deduplication is complete.
 6. Generate role-specific prep and recurring ASTRO-style briefs from the reconciled evidence.
-7. Create a Gmail draft when requested and read the stored draft back before labeling the write verified.
-8. Keep final sending user-controlled.
+7. For unusually high-fit applications, optionally generate a privacy-scrubbed role-tailored HTML evidence microsite in Turbo Sprint mode.
+8. Review/download that microsite locally before any publication; LandThePlane does not auto-publish it.
+9. Create a Gmail draft when requested and read the stored draft back before labeling the write verified.
+10. Keep final sending user-controlled.
 
 ### Communication Guard
 
@@ -123,6 +125,19 @@ The dedicated Cloudflare Worker currently serves:
 - create STAR retrieval shells;
 - surface evidence gaps;
 - optionally save run-level statistics locally in the browser.
+
+### Turbo Sprint Application Microsite
+
+- late-stage optional application step for unusually high-fit roles;
+- reuses the existing resume/accomplishment evidence and target role text;
+- extracts a bounded requirement set and maps each requirement to supplied evidence;
+- leaves weak matches visible as evidence gaps instead of inventing proof;
+- deterministic redaction of likely email, phone, street-address, and secret/token patterns before preview/export;
+- public proof links are opt-in and restricted to HTTP(S);
+- optional browser-local profile image reuse;
+- self-contained HTML preview, copy, and download;
+- no automatic publication;
+- powered by the public `Job Application Evidence Microsite` skill specification.
 
 ### Offer Gate / Career Shield
 
@@ -268,6 +283,7 @@ Useful trends include answer length, evidence specificity, quantified results, r
 ### Local/browser mode
 
 - raw resume/job text can remain in-browser for the current alpha session;
+- application-microsite generation and privacy scrubbing occur in-browser before preview/export;
 - profile/local history persistence is opt-in;
 - Gmail access tokens remain in active page memory and are not intentionally persisted;
 - Gmail raw mailbox content is not mirrored into the Cloudflare Worker;
