@@ -9,8 +9,8 @@
   "vars": {
     "PUBLIC_ENDPOINT": "https://clintware-blog-newsletter.clint-kosh.workers.dev",
     "SITE_URL": "https://www.clintware.com",
-    "FROM_EMAIL": "Clintware <hello@clintware.com>",
-    "REPLY_TO": "hello@clintware.com",
+    "FROM_EMAIL": "Clintware <clint@clintware.com>",
+    "REPLY_TO": "clint@clintware.com",
     "ALLOWED_ORIGINS": "https://www.clintware.com,https://clintware.com",
     "MAIL_PROVIDER": "gmail"
   },
