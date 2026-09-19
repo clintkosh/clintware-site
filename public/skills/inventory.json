@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-09-19",
+  "counting_rule": "Count only implemented skills with SKILL.md and implemented plugin packages with a plugin manifest. Planned concepts and generator tools are excluded.",
+  "totals": {
+    "skills_total": 17,
+    "skills_published_on_clintware": 16,
+    "skills_personal_internal": 1,
+    "plugin_packages_total": 1,
+    "plugin_packages_published_on_clintware": 1,
+    "plugin_packages_personal_internal": 0
+  },
+  "plugins": [
+    {
+      "name": "Quillgeist",
+      "slug": "quillgeist",
+      "status": "published_on_clintware",
+      "directory_status": "submission_prepared_not_claimed_published",
+      "clintware_url": "https://www.clintware.com/tools/quillgeist/",
+      "manifest_path": "agentbridge-cloud/chatgpt-plugin/.codex-plugin/plugin.json"
+    }
+  ],
+  "skills": [
+    {
+      "name": "ASTRO Website / Product Skill",
+      "status": "published_on_clintware",
+      "category": "Website / product guardrail",
+      "clintware_path": "/skills/astro-website-product/SKILL.md"
+    },
+    {
+      "name": "Quillgeist",
+      "status": "published_on_clintware",
+      "category": "AI operating context",
+      "clintware_path": "/skills/quillgeist/SKILL.md"
+    },
+    {
+      "name": "Lovable Portability Guardrail",
+      "status": "published_on_clintware",
+      "category": "Build portability",
+      "clintware_path": "/skills/lovable-portability-guardrail/"
+    },
+    {
+      "name": "Standard SaaS Website Template",
+      "status": "published_on_clintware",
+      "category": "Web development",
+      "clintware_path": "/skills/standard-saas-website-template/SKILL.md"
+    },
+    {
+      "name": "Profile Sharpener",
+      "status": "published_on_clintware",
+      "category": "Professional positioning",
+      "clintware_path": "/skills/profile-sharpener/"
+    },
+    {
+      "name": "Fact-Locked Cover Letter",
+      "status": "published_on_clintware",
+      "category": "Professional writing",
+      "clintware_path": "/skills/fact-locked-cover-letter/SKILL.md"
+    },
+    {
+      "name": "Job Search Field Report ASTRO",
+      "status": "published_on_clintware",
+      "category": "Job-search operations",
+      "clintware_path": "/skills/job-search-field-report/"
+    },
+    {
+      "name": "Interview Followup Polisher",
+      "status": "published_on_clintware",
+      "category": "Interview communication",
+      "clintware_path": "/skills/interview-followup-polisher/SKILL.md"
+    },
+    {
+      "name": "Interview Prep Runtime",
+      "status": "published_on_clintware",
+      "category": "Interview operations",
+      "clintware_path": "/skills/interview-prep-runtime/SKILL.md"
+    },
+    {
+      "name": "High-Definition Follow-Up",
+      "status": "published_on_clintware",
+      "category": "Professional communication",
+      "clintware_path": "/skills/high-definition-followup/SKILL.md"
+    },
+    {
+      "name": "Customer Success Command Center Builder",
+      "status": "published_on_clintware",
+      "category": "Customer Success systems",
+      "clintware_path": "/skills/customer-success-command-center-builder/SKILL.md"
+    },
+    {
+      "name": "LLM Usage Auditor",
+      "status": "published_on_clintware",
+      "category": "AI accountability",
+      "clintware_path": "/skills/llm-usage-auditor/SKILL.md"
+    },
+    {
+      "name": "Master Prompt Accuracy & Efficiency",
+      "status": "published_on_clintware",
+      "category": "AI execution",
+      "clintware_path": "/skills/master-prompt-accuracy-efficiency/SKILL.md"
+    },
+    {
+      "name": "Recruiter Reachout Precheck",
+      "status": "published_on_clintware",
+      "category": "Recruiting verification",
+      "clintware_path": "/skills/recruiter-reachout-precheck/SKILL.md"
+    },
+    {
+      "name": "Regional Virtual Background Studio",
+      "status": "published_on_clintware",
+      "category": "Visual workflow",
+      "clintware_path": "/skills/regional-virtual-background-studio/SKILL.md"
+    },
+    {
+      "name": "Running Quota Notification Icon",
+      "status": "published_on_clintware",
+      "category": "Usage visibility",
+      "clintware_path": "/skills/running-quota-notification-icon/SKILL.md"
+    },
+    {
+      "name": "OAuth Identity Broker",
+      "slug": "oauth-identity-broker",
+      "status": "personal_internal_not_catalog_published",
+      "source_path": "skills/oauth-identity-broker/SKILL.md"
+    }
+  ]
+}
