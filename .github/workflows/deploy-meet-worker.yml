@@ -117,7 +117,7 @@ jobs:
           assert d.get('ok') is True,d
           assert d.get('mode') == 'clintcal-native',d
           assert d.get('storage') == 'sqlite',d
-          assert d.get('mailer') == 'resend',d
+          assert d.get('mailer') == 'gmail',d
           PY
           python3 - <<'PY'
           import json
