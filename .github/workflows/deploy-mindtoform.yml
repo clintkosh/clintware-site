@@ -49,7 +49,8 @@ jobs:
           for i in $(seq 1 20); do
             page=$(curl -sS --connect-timeout 5 --max-time 15 https://mindtoform.clintware.com/ || true)
             health=$(curl -sS --connect-timeout 5 --max-time 15 https://mindtoform.clintware.com/healthz || true)
-            if grep -Fq 'Agree on what' <<< "$page" && grep -Fq 'adaptive-vet-dod-gated-local-form' <<< "$health"; then
+            vet=$(curl -sS --connect-timeout 5 --max-time 45 -X POST -H 'Content-Type: application/json' --data '{"idea":"Design a compact weatherproof enclosure for a small outdoor temperature sensor that mounts to a pole."}' https://mindtoform.clintware.com/api/vet || true)
+            if grep -Fq 'Agree on what' <<< "$page"               && grep -Fq 'adaptive-vet-dod-gated-local-form' <<< "$health"               && grep -Fq '"ok":true' <<< "$vet"               && grep -Fq '"questions":' <<< "$vet"; then
               exit 0
             fi
             sleep 3
