@@ -405,6 +405,46 @@ function publicClient(client) {
   };
 }
 
+
+async function ensureFirstPartyClient(env, key) {
+  const definitions = {
+    mail: {
+      clientName: "Clintware Mail",
+      redirectUris: ["https://mail.clintware.com/callback"],
+      clientUri: "https://mail.clintware.com",
+      tokenEndpointAuthMethod: "none",
+    },
+  };
+  const definition = definitions[key];
+  if (!definition) return null;
+  const api = oauthApi(env);
+  const listed = await api.listClients({ limit: 100 });
+  const existing = (listed.items || []).find((client) =>
+    client.clientName === definition.clientName &&
+    client.tokenEndpointAuthMethod === definition.tokenEndpointAuthMethod &&
+    JSON.stringify([...(client.redirectUris || [])].sort()) === JSON.stringify([...definition.redirectUris].sort())
+  );
+  if (existing) return existing;
+  return api.createClient(definition);
+}
+
+async function firstPartyClientConfig(env, key) {
+  if (!env.OAUTH_KV) return null;
+  const client = await ensureFirstPartyClient(env, key);
+  if (!client) return null;
+  return {
+    client_id: client.clientId,
+    client_name: client.clientName,
+    redirect_uri: client.redirectUris[0],
+    authorization_endpoint: `${AUTH_ORIGIN}/authorize`,
+    token_endpoint: `${AUTH_ORIGIN}/oauth/token`,
+    userinfo_endpoint: USERINFO_RESOURCE,
+    resource: USERINFO_RESOURCE,
+    scopes: ["identity", "email", "profile"],
+    pkce: "S256",
+  };
+}
+
 function createAdminMcpServer(env) {
   const server = new McpServer({ name: "Clintware Identity Broker Admin", version: VERSION });
 
@@ -534,6 +574,11 @@ const defaultHandler = {
       });
     }
     if (url.pathname === "/admin-mcp") return handleAdminMcp(request, env, ctx);
+    if (url.pathname === "/client-config/mail" && request.method === "GET") {
+      if (!oauthConfigured(env)) return json({ error: "identity_provider_not_configured" }, 503);
+      const config = await firstPartyClientConfig(env, "mail");
+      return config ? json(config) : json({ error: "unknown_first_party_client" }, 404);
+    }
     if (url.pathname === "/authorize" && request.method === "GET") return beginConsent(request, env);
     if (url.pathname === "/authorize" && request.method === "POST") return finishConsent(request, env);
     if (url.pathname === "/callback" && request.method === "GET") return finishGoogle(request, env);
