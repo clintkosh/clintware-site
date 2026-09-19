@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clintware-mindtoform",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "mindtoform.clintware.com", "custom_domain": true }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}
