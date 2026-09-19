@@ -677,11 +677,12 @@ async function apiAvailability(env) {
   }
 }
 async function apiBook(request, env) {
+  if (!calendarConfigured(env)) {
+    return json({ error: "Google Calendar booking is not configured yet." }, 503);
+  }
   const input = normalizeBookingInput(await readJson(request));
   if (!input) {
-    return json({
-      error: "Enter a valid name, email, purpose, topic, timezone, and available time.",
-    }, 422);
+    return json({ error: "Enter a valid name, email, purpose, topic, timezone, and available time." }, 422);
   }
 
   const manageToken = createToken(24);
@@ -702,21 +703,54 @@ async function apiBook(request, env) {
   const data = await reserved.json();
   if (!reserved.ok) return json(data, reserved.status);
 
-  const booking = data.booking;
-  let delivery = { guest: false, host: false };
+  const booking = { ...data.booking, manageToken, publicUrl: CONFIG.publicUrl };
   try {
-    delivery = await sendBookingMail(env, booking, "confirmed");
+    const google = await createGoogleMeeting(env, booking);
+    if (String(google.organizerEmail || "").toLowerCase() !== CONFIG.hostEmail.toLowerCase()) {
+      await cancelGoogleMeeting(env, { ...booking, googleEventId: google.eventId }).catch(() => {});
+      throw new Error("google_organizer_mismatch");
+    }
+
+    const attached = await store(env).fetch("https://scheduler/attach-google", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: booking.id,
+        googleEventId: google.eventId,
+        googleMeetUrl: google.meetUrl,
+        googleEventUrl: google.eventUrl,
+      }),
+    });
+    const attachedData = await attached.json();
+    if (!attached.ok) throw new Error("google_event_persistence_failed");
+
+    const confirmed = { ...attachedData.booking, manageToken };
+    return json({
+      booking: publicBookingWithToken(confirmed),
+      delivery: { google: true, organizer: google.organizerEmail },
+    }, 201);
   } catch (error) {
+    await store(env).fetch("https://scheduler/rollback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: booking.id, manageHash }),
+    }).catch(() => {});
+
     console.error(JSON.stringify({
-      event: "booking_mail_failed",
+      event: "google_booking_failed",
       bookingId: booking.id,
       message: String(error),
+      status: error.status || 0,
     }));
+
+    const mismatch = String(error.message || error) === "google_organizer_mismatch";
+    return json({
+      error: mismatch
+        ? "Booking is unavailable because the Google organizer is not clint@clintware.com."
+        : "Google could not create the calendar invitation. No booking was saved. Please try again.",
+    }, 503);
   }
-
-  return json({ booking: publicBookingWithToken(booking), delivery }, 201);
 }
-
 async function apiManage(env, token) {
   const booking = await lookupBooking(env, token);
   return booking
