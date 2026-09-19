@@ -70,7 +70,7 @@ export function mailProvider(env) {
 }
 export function mailConfigured(env) {
   const provider = mailProvider(env);
-  if (provider === "gmail") return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REFRESH_TOKEN && env.FROM_EMAIL);
+  if (provider === "gmail") return Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_DELEGATED_REFRESH_TOKEN && env.FROM_EMAIL);
   if (provider === "smtp") return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USERNAME && env.SMTP_PASSWORD && env.FROM_EMAIL);
   return false;
 }
@@ -79,9 +79,9 @@ async function gmailAccessToken(env) {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      refresh_token: env.GOOGLE_REFRESH_TOKEN,
+      client_id: env.GOOGLE_OAUTH_CLIENT_ID,
+      client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+      refresh_token: env.GOOGLE_DELEGATED_REFRESH_TOKEN,
       grant_type: "refresh_token",
     }),
   });
