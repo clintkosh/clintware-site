@@ -12,7 +12,7 @@
     "FROM_EMAIL": "Clintware <hello@clintware.com>",
     "REPLY_TO": "hello@clintware.com",
     "ALLOWED_ORIGINS": "https://www.clintware.com,https://clintware.com",
-    "RESEND_API_BASE_URL": "https://api.resend.com"
+    "MAIL_PROVIDER": "gmail"
   },
   "durable_objects": {
     "bindings": [
