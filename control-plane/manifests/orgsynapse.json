@@ -1,0 +1,58 @@
+{
+  "product": "orgsynapse",
+  "environment": "prototype",
+  "version": 1,
+  "repo": {
+    "identity": "clintkosh",
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": [
+      "orgsynapse/",
+      "public/tools/orgsynapse/"
+    ],
+    "delete_prefixes": [
+      "orgsynapse/",
+      "public/tools/orgsynapse/"
+    ],
+    "allowed_workflows": []
+  },
+  "dns": {
+    "allowed_names": [
+      "orgsynapse.clintware.com"
+    ]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:orgsynapse/**",
+    "repo.write:public/tools/orgsynapse/**",
+    "repo.delete:orgsynapse/**",
+    "repo.delete:public/tools/orgsynapse/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "analytics.write:orgsynapse",
+    "analytics.read:orgsynapse",
+    "flow.read:orgsynapse",
+    "flow.write:orgsynapse",
+    "flow.run:orgsynapse"
+  ],
+  "deny": [
+    "research.invoke",
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.workflow:dispatch",
+    "deployment.execute",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
+  "telemetry_namespace": "orgsynapse"
+}
