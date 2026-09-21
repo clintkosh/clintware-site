@@ -1477,6 +1477,62 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     if(r.ok&&!data.packet?.product&&!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
+  server.registerTool("clintware_quillgeist_lite_status",{
+    title:"Get Clintware Quillgeist Lite status",
+    description:"Return whether the local event-driven Windows runner is connected plus recent bounded job metadata. Does not expose provider credentials.",
+    inputSchema:{},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async()=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const r=await registryHub(env).fetch("https://internal/quillgeist-lite-status");
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_lite_run",{
+    title:"Run an allowlisted Clintware task on Quillgeist Lite",
+    description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
+    inputSchema:{
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth"]),
+      args:z.record(z.string(),z.string()).optional(),
+      objective:z.string().max(2000).optional()
+    },
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+  },async({task_id,args,objective})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const task=QUILLGEIST_LITE_TASKS[task_id];
+    if(!task)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"task_not_allowed"})}]};
+    const allowed=new Set(task.parameters||[]);
+    for(const key of Object.keys(args||{})){
+      if(!allowed.has(key))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"argument_not_allowed",argument:key})}]};
+    }
+    const createdResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      job_id:crypto.randomUUID(),
+      task_id,
+      args:args||{},
+      objective:objective||"",
+      requested_by:mcpAuth?.client_id||"mcp"
+    })}));
+    const created=await createdResp.json();
+    if(!createdResp.ok||!created.ok)return {isError:true,content:[{type:"text",text:JSON.stringify(created)}]};
+    const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
+    const delivery=await broadcastResp.json();
+    await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
+    return {content:[{type:"text",text:JSON.stringify({ok:true,job_id:created.job.job_id,task_id,status:"queued",delivery,continuation:"If this job fails, inspect it with clintware_quillgeist_lite_job and choose the next allowlisted task. The runner stays connected."})}]};
+  });
+
+  server.registerTool("clintware_quillgeist_lite_job",{
+    title:"Read a Quillgeist Lite job and live logs",
+    description:"Return bounded live logs, status, and final result for one local task. A failed result is diagnostic evidence, not a terminal session state.",
+    inputSchema:{job_id:z.string().min(1)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({job_id})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const r=await registryHub(env).fetch(`https://internal/quillgeist-lite-job/${encodeURIComponent(job_id)}`);
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
   server.registerTool("clintware_product_manifest",{
     title:"Get a Clintware product capability manifest",
     description:"Return the scoped capabilities, repository bounds, DNS bounds, and telemetry namespace for a registered Clintware product.",
@@ -1904,6 +1960,7 @@ function safeConfig(env){
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
     mcp_per_client_credentials:true,
     handoff_realtime_stream:true,
+    quillgeist_lite_realtime:true,
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN||env.CONTROL_PLANE_MCP_TOKEN),
     admin_auth_separate:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
   };
@@ -1940,8 +1997,17 @@ export default {
         headers.set("upgrade","websocket");
         return await registryHub(env).fetch(new Request("https://internal/handoff-stream",{method:"GET",headers}));
       }
+
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/stream"){
+        if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
+        const receiver=await verifyGithubReceiver(request);
+        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const headers=new Headers();
+        headers.set("upgrade","websocket");
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
+      }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1/mcp/clients"){
         if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
