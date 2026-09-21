@@ -176,9 +176,9 @@ const DEFAULT_QUILLGEIST_LITE = {
 };
 
 const QUILLGEIST_LITE_TASKS = {
-  "clintware-doctor":{parameters:[],max_auto_retries:1},
-  "google-cloud-support-access":{parameters:["OwnerAccount","SupportAccount","ProjectName"],max_auto_retries:1},
-  "finish-google-oauth":{parameters:["Repo"],max_auto_retries:1}
+  "clintware-doctor":{parameters:[]},
+  "google-cloud-support-access":{parameters:["OwnerAccount","SupportAccount","ProjectName"]},
+  "finish-google-oauth":{parameters:["Repo"]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
