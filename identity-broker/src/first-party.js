@@ -1,4 +1,7 @@
+export const FIRST_PARTY_CLIENT_ID = "https://auth.clintware.com/client/clintware-web";
+
 export const FIRST_PARTY_CLIENT = Object.freeze({
+  clientId: FIRST_PARTY_CLIENT_ID,
   clientName: "Clintware Web",
   clientUri: "https://clintware.com",
   tokenEndpointAuthMethod: "none",
@@ -27,4 +30,16 @@ export function universalRedirectUris() {
 
 export function firstPartyApp(key) {
   return FIRST_PARTY_APPS[String(key || "").trim().toLowerCase()] || null;
+}
+
+export function firstPartyClientMetadata() {
+  return {
+    client_id: FIRST_PARTY_CLIENT_ID,
+    client_name: FIRST_PARTY_CLIENT.clientName,
+    client_uri: FIRST_PARTY_CLIENT.clientUri,
+    redirect_uris: universalRedirectUris(),
+    token_endpoint_auth_method: FIRST_PARTY_CLIENT.tokenEndpointAuthMethod,
+    grant_types: ["authorization_code", "refresh_token"],
+    response_types: ["code"],
+  };
 }
