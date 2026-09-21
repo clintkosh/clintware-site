@@ -55,7 +55,14 @@ jobs:
           ready=0
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://background.clintware.com/healthz || true)
-            if echo "$body" | grep -Fq '"product":"Background Mirror"'; then
+            page=$(curl -fsS --connect-timeout 5 --max-time 20 https://background.clintware.com/ || true)
+            if echo "$body" | grep -Fq '"product":"Background Mirror"' \
+              && echo "$body" | grep -Fq 'pwned-passwords-k-anonymity' \
+              && echo "$body" | grep -Fq 'profile-fingerprint-drift' \
+              && echo "$body" | grep -Fq 'local-report-intake' \
+              && echo "$page" | grep -Fq 'Pwned Passwords · automated' \
+              && echo "$page" | grep -Fq 'Professional-profile drift · local fingerprint' \
+              && echo "$page" | grep -Fq 'Consumer/background report intake · local review'; then
               echo "$body"
               ready=1
               break
