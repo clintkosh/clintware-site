@@ -2009,6 +2009,40 @@ export default {
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/jobs"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const body=await reqJson(request,64_000);
+        const task_id=clip(body.task_id||"",120);
+        const task=QUILLGEIST_LITE_TASKS[task_id];
+        if(!task)return json({error:"task_not_allowed"},400);
+        const allowed=new Set(task.parameters||[]);
+        for(const key of Object.keys(body.args||{})){
+          if(!allowed.has(key))return json({error:"argument_not_allowed",argument:key},400);
+        }
+        const createdResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+          job_id:crypto.randomUUID(),
+          task_id,
+          args:body.args||{},
+          objective:body.objective||"",
+          requested_by:mcpAuth.client_id||"rest-mcp"
+        })}));
+        const created=await createdResp.json();
+        if(!createdResp.ok||!created.ok)return json(created,createdResp.status||400);
+        const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
+        const delivery=await broadcastResp.json();
+        await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
+        return json({ok:true,job_id:created.job.job_id,task_id,status:"queued",delivery},202);
+      }
+      const quillgeistLiteJobMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/jobs\/([^/]+)$/);
+      if(request.method==="GET"&&quillgeistLiteJobMatch){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        return await registryHub(env).fetch(`https://internal/quillgeist-lite-job/${encodeURIComponent(decodeURIComponent(quillgeistLiteJobMatch[1]))}`);
+      }
+
       if(request.method==="GET"&&url.pathname==="/api/v1/mcp/clients"){
         if(!await requireAdmin(request,env))return json({error:"unauthorized"},401);
         return await registryHub(env).fetch("https://internal/mcp-clients");
