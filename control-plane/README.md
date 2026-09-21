@@ -4,6 +4,29 @@ Reusable, least-privilege access and telemetry layer for Clintware products and 
 
 ProofOS is the first registered production consumer. The control plane keeps GitHub, Cloudflare, deployment, analytics, and product credentials centralized inside Clintware instead of distributing broad credentials to every external system.
 
+
+## Convenience and access rule
+
+Clintware should prefer the Control Plane/MCP whenever it reduces repeated setup, lets multiple authorized clients reuse the same capability, or avoids distributing provider credentials.
+
+Default order of operations:
+
+1. **MCP/control-plane capability first** when the action can be safely mediated server-side.
+2. **One-line PowerShell bootstrap second** when an operation must happen on a local Windows machine or requires an interactive local browser/device step.
+3. **Manual console work last**, only when the provider exposes no safe programmable path.
+
+Access is spread by capability, not by secret:
+
+- GitHub, Cloudflare, Google, research, deployment, and other provider credentials remain centralized server-side whenever possible.
+- ChatGPT, Gemini, Claude, Perplexity, local Clintware tools, and future clients receive separate revocable Clintware MCP credentials with only the products/capabilities they need.
+- A client may invoke an approved Google/GitHub/Cloudflare action through Clintware without receiving the underlying provider token.
+- Local bootstrap scripts should call Clintware MCP/control-plane endpoints where doing so removes duplicated credentials or setup.
+- Scripts must be idempotent, fail-fast, self-verifying, and maintained in this repository so the user can normally run a short `irm ... | iex` launcher instead of pasting large transient scripts.
+- Provider credentials must never be copied into public source, workflow JSON, prompts, logs, or unrelated client configuration.
+- Brand/security boundaries remain intact: sharing a Clintware capability does not authorize unrelated products or identities to inherit the underlying credential.
+
+This is the default implementation pattern for new Clintware automation unless a provider limitation or security boundary requires a different design.
+
 ## Architecture
 
 `external AI/app -> mcp.clintware.com -> identity -> client product scope -> policy -> Clintware Flow / capability -> action -> audit`
