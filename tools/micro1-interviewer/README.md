@@ -2,60 +2,40 @@
 
 Windows live interview listener for **micro1 — Revenue Operations & CRM Systems Specialist (SaaS)**.
 
-## Correct product behavior
-This is not a mock interviewer.
+## Behavior
 
-The application listens to the real interview, transcribes interviewer audio, detects the likely question, and surfaces the best evidence-grounded Micro1 answer card for the candidate to use.
+**SYSTEM / MIC AUDIO → LOCAL WHISPER → QUESTION DETECTION → ROLE ROUTER → VISIBLE ANSWER + PROOF + GUARDRAIL**
 
-Pipeline:
+This is the live listener, not a mock interviewer.
 
-**SYSTEM / MIC AUDIO → LOCAL WHISPER → QUESTION DETECTION → ROLE ROUTER → ANSWER + PROOF + GUARDRAIL**
+## Visible-answer v2
+
+The answer surface is now designed for live readability rather than a static label:
+
+- dedicated high-contrast black answer pane;
+- white 18 pt answer text by default;
+- independent vertical scrollbar so long answers never disappear below the panel;
+- **A− / A+** controls for live font scaling;
+- **TEST CARD** button that instantly fills the answer pane before the call;
+- status moved to its own row so it cannot push controls or answer content off-screen;
+- tested with both normal and enlarged/DPI-like text scaling.
 
 ## Audio
-- Default: Windows WASAPI loopback, intended for Teams / Zoom / Meet audio.
-- Optional microphone input.
-- PyAudioWPatch provides Windows WASAPI loopback capture.
-- faster-whisper provides local transcription.
-- The first run may download the selected Whisper model into the user's local LandThePlane model cache. Later transcription is local.
 
-## Live UI
-- live transcript
-- detected interviewer question
-- answer card
-- proof points to land
-- evidence-integrity guardrail
-- top alternate answer matches
-- paste-question fallback
-- JSON session export
+- Default: Windows WASAPI loopback for Teams / Zoom / Meet output.
+- Optional microphone input.
+- PyAudioWPatch handles WASAPI capture.
+- faster-whisper handles local transcription.
+- First use may download the selected Whisper model into the local LandThePlane model cache.
 
 ## Micro1 answer bank
-21 prepared routes covering:
-- tell me about yourself
-- why the role
-- Salesforce / CRM depth
-- process improvement
-- stale automation cleanup
-- duplicate customer entities
-- CRM / billing / ticketing source-of-truth conflicts
-- permissions
-- cascading field changes
-- data quality
-- renewal / entitlement exceptions
-- integration failures
-- evaluating AI-generated workflow recommendations
-- conflicting policies
-- change management
-- ambiguity / ownership
-- success metrics
-- mistakes / lessons
-- prioritization
-- written operational reasoning
-- direct-experience gaps
+
+21 evidence-grounded routes covering the current role's core screening areas, including Salesforce/CRM depth, stale automations, duplicate customer records, CRM/billing/ticketing source-of-truth conflicts, permissions, cascading field changes, data quality, renewals/entitlements, integration failures, AI workflow evaluation, policy conflicts, adoption, ambiguity, metrics, mistakes, prioritization, written reasoning, and direct-experience gaps.
 
 ## Evidence boundary
-The answer bank is written to use established candidate evidence without inflating it. In particular, it does not turn adjacent operational ownership into years of dedicated Salesforce administration or deep CPQ / subscription-billing administration.
 
-## Live answer standard
-POINT → PROOF → RESULT → RELEVANCE → STOP.
+The answers do not convert adjacent operational ownership into fake years of dedicated Salesforce administration or deep CPQ/subscription-billing administration.
 
-The listener intentionally keeps the surfaced answer narrower than the candidate's full capability so it is readable during a live interview.
+## Answer rail
+
+**POINT → PROOF → RESULT → RELEVANCE → STOP**
