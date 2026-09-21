@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "product": "Clintware Quillgeist Lite",
+  "description": "Allowlisted local tasks that may be dispatched by the Clintware Control Plane to the user's Windows runner.",
+  "tasks": {
+    "clintware-doctor": {
+      "title": "Check local Clintware prerequisites",
+      "script": "quillgeist-lite/tasks/clintware-doctor.ps1",
+      "parameters": []
+    },
+    "google-cloud-support-access": {
+      "title": "Grant the Clintware support Google account access to the existing Google Cloud project",
+      "script": "identity-broker/scripts/grant-google-cloud-support-access.ps1",
+      "parameters": ["OwnerAccount", "SupportAccount", "ProjectName"]
+    },
+    "finish-google-oauth": {
+      "title": "Finish Clintware Google OAuth and delegated Gmail/Calendar authorization",
+      "script": "identity-broker/scripts/finish-google-oauth.ps1",
+      "parameters": ["Repo"]
+    }
+  }
+}
