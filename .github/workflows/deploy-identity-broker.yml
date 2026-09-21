@@ -158,7 +158,20 @@ jobs:
           assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
           assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
           assert mail["pkce"] == "S256" and n7["pkce"] == "S256"
-          assert mail["client_model"] == "central-first-party-public-client"
-          assert n7["client_model"] == "central-first-party-public-client"
-          print("Central Clintware OAuth client verified for mail + neuron7-case:", mail["client_id"])
+          assert mail["client_model"] == "central-first-party-cimd"
+          assert n7["client_model"] == "central-first-party-cimd"
+          assert mail["client_id"] == "https://auth.clintware.com/client/clintware-web"
+          assert n7["client_id"] == "https://auth.clintware.com/client/clintware-web"
+          print("Central Clintware OAuth CIMD client verified for mail + neuron7-case:", mail["client_id"])
+          PY
+          metadata=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client/clintware-web)
+          METADATA_JSON="$metadata" python3 - <<'PY'
+          import json, os
+          m=json.loads(os.environ["METADATA_JSON"])
+          assert m["client_id"] == "https://auth.clintware.com/client/clintware-web", m
+          assert m["client_name"] == "Clintware Web", m
+          assert m["token_endpoint_auth_method"] == "none", m
+          assert "https://mail.clintware.com/callback" in m["redirect_uris"], m
+          assert "https://n7.clintware.com/auth/callback" in m["redirect_uris"], m
+          print("CIMD metadata document verified.")
           PY
