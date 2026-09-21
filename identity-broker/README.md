@@ -67,9 +67,9 @@ Current product config endpoints:
 - `GET /client-config/mail`
 - `GET /client-config/neuron7-case`
 
-Both return the same central Clintware client ID and authorization/token/userinfo endpoints, but each receives its own exact allowlisted redirect URI. PKCE S256 is mandatory and there is no product-level client secret.
+Both return the same central Clintware client ID and authorization/token/userinfo endpoints, but each receives its own exact allowlisted redirect URI. The client ID is the deterministic Client ID Metadata Document URL `https://auth.clintware.com/client/clintware-web`. PKCE S256 is mandatory and there is no product-level client secret or per-product OAuth registration.
 
-To add another first-party product, add its exact HTTPS callback to `src/first-party.js`. The central client is created or updated automatically in OAuth storage the next time a first-party config endpoint is used.
+To add another first-party product, add its exact HTTPS callback to `src/first-party.js`. The metadata document changes with that allowlist; no new OAuth client record is created.
 
 External integrations that should not share the first-party Clintware trust boundary may still be registered through the authenticated `/admin-mcp` tools.
 
