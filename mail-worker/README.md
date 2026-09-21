@@ -16,12 +16,13 @@ The Google delegated credentials remain in the shared Clintware mail service. Th
 
 ## OAuth
 
-The Clintware Identity Broker automatically creates the first-party public OAuth client named `Clintware Mail` with:
+Clintware Mail uses the single central first-party OAuth client named `Clintware Web`. The Identity Broker returns Mail's exact callback through `/client-config/mail`:
 
-- redirect: `https://mail.clintware.com/callback`
+- central client shared by first-party Clintware products
+- Mail redirect: `https://mail.clintware.com/callback`
 - scopes: `identity email profile`
 - PKCE: S256
-- no client secret
+- no product-level client secret
 
 The Worker performs the authorization flow server-side, creates a random host-bound HttpOnly application session, and discards Clintware OAuth tokens after identity validation.
 
