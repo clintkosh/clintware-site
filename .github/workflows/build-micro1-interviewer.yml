@@ -1,0 +1,61 @@
+name: Build Micro1 Interviewer EXE
+
+on:
+  push:
+    branches:
+      - feature/micro1-interviewer-20260921
+    paths:
+      - 'tools/micro1-interviewer/**'
+      - '.github/workflows/build-micro1-interviewer.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/micro1-interviewer/**'
+      - '.github/workflows/build-micro1-interviewer.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Restore source
+        shell: pwsh
+        run: |
+          python -c "import base64,gzip,pathlib; src=pathlib.Path('tools/micro1-interviewer/micro1_interviewer.py.gz.b64'); pathlib.Path('tools/micro1-interviewer/micro1_interviewer.py').write_bytes(gzip.decompress(base64.b64decode(src.read_text().strip())))"
+
+      - name: Validate source
+        shell: pwsh
+        run: |
+          python -m py_compile tools/micro1-interviewer/micro1_interviewer.py
+          python -c "import importlib.util; p='tools/micro1-interviewer/micro1_interviewer.py'; s=importlib.util.spec_from_file_location('m',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); assert len(m.QUESTIONS) >= 18; assert m.find_question('duplicate customer account with billing and support history')['id']=='duplicate_accounts'; print('Micro1 role pack OK:', len(m.QUESTIONS), 'questions')"
+
+      - name: Install packager
+        run: python -m pip install --upgrade pyinstaller
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name Micro1_Interviewer tools/micro1-interviewer/micro1_interviewer.py
+
+      - name: Create release bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bundle | Out-Null
+          Copy-Item dist/Micro1_Interviewer.exe bundle/Micro1_Interviewer.exe
+          Copy-Item tools/micro1-interviewer/README.md bundle/README.md
+          Get-FileHash bundle/Micro1_Interviewer.exe -Algorithm SHA256 | Format-List | Out-File bundle/SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Micro1-Interviewer-Windows
+          path: bundle/
+          if-no-files-found: error
