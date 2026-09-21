@@ -10,7 +10,8 @@ Central OAuth 2.1 identity service for Clintware products at `https://auth.clint
 - A stable pseudonymous Clintware user ID is derived from Google's immutable `sub`, so the same Google account maps back to the same Clintware identity without making email the primary key.
 - OAuth authorization transactions are encrypted before their short-lived KV storage and bound to the same browser with a `Secure`, `HttpOnly`, `SameSite=Lax`, `__Host-` cookie.
 - Public user authorization is isolated from the privileged `mcp.clintware.com` Control Plane. A Google login never grants repository, deployment, DNS, or administrative MCP permissions.
-- OAuth clients are first-party/admin-created only. Open Dynamic Client Registration is intentionally not enabled.
+- Google is configured once for Clintware. First-party Clintware products share one central public OAuth client (`Clintware Web`) with exact per-product redirect allowlists and PKCE S256. Products do not create their own Google OAuth apps or carry Google client secrets.
+- External/service OAuth clients can still be admin-created when needed. Open Dynamic Client Registration is intentionally not enabled.
 
 ## Public endpoints
 
@@ -57,15 +58,20 @@ Repository/Actions secrets required for deployment:
 
 The deployment workflow creates/reuses a Workers KV namespace named `clintware-identity-oauth` and injects it as `OAUTH_KV`. The Cloudflare API token therefore needs **Workers Scripts** deployment rights, the normal custom-domain permissions, and **Workers KV Storage Write**.
 
-## Registering a service
+## First-party Clintware products
 
-1. Connect an administrator MCP client to `https://auth.clintware.com/admin-mcp` with the Control Plane bearer token.
-2. Call `clintware_oauth_create_client` with the service name, exact redirect URI(s), and `client_type=server` unless the app is browser-only.
-3. Store the returned client ID and one-time client secret in that service's secret store.
-4. Initiate an OAuth Authorization Code flow against `/authorize`, requesting the canonical resource `https://auth.clintware.com/userinfo` and scopes `identity email profile` as needed.
-5. Use PKCE S256. Server/BFF clients should use PKCE too even though they also authenticate with a client secret.
-6. Keep Clintware refresh tokens server-side. For browser apps, prefer an HttpOnly application session cookie/BFF rather than placing refresh tokens in `localStorage`.
-7. Call `/userinfo` with the Clintware access token to obtain the stable `sub` and fields allowed by the granted scopes. Persist the `sub` as the service's external identity key; do not use email as the immutable key.
+First-party products use the central `Clintware Web` public client. They do **not** register separate OAuth clients.
+
+Current product config endpoints:
+
+- `GET /client-config/mail`
+- `GET /client-config/neuron7-case`
+
+Both return the same central Clintware client ID and authorization/token/userinfo endpoints, but each receives its own exact allowlisted redirect URI. PKCE S256 is mandatory and there is no product-level client secret.
+
+To add another first-party product, add its exact HTTPS callback to `src/first-party.js`. The central client is created or updated automatically in OAuth storage the next time a first-party config endpoint is used.
+
+External integrations that should not share the first-party Clintware trust boundary may still be registered through the authenticated `/admin-mcp` tools.
 
 ## Session permanence
 
