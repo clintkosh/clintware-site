@@ -147,7 +147,41 @@ const DEFAULT_ORGSYNAPSE = {
   created_at:"2026-09-19T00:00:00.000Z"
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE};
+const DEFAULT_QUILLGEIST_LITE = {
+  product:"quillgeist-lite",
+  environment:"production",
+  version:1,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["quillgeist-lite/","identity-broker/scripts/"],delete_prefixes:[],allowed_workflows:["deploy-control-plane.yml"]},
+  dns:{allowed_names:["mcp.clintware.com"]},
+  capabilities:[
+    "repo.read:clintware-site",
+    "repo.write:quillgeist-lite/**",
+    "repo.write:identity-broker/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:quillgeist-lite",
+    "analytics.write:quillgeist-lite",
+    "analytics.read:quillgeist-lite",
+    "local.read:quillgeist-lite",
+    "local.run:quillgeist-lite"
+  ],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete","infrastructure.admin:*","local.shell:raw"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"quillgeist-lite",
+  created_at:"2026-09-21T00:00:00.000Z"
+};
+
+const QUILLGEIST_LITE_TASKS = {
+  "clintware-doctor":{parameters:[],max_auto_retries:1},
+  "google-cloud-support-access":{parameters:["OwnerAccount","SupportAccount","ProjectName"],max_auto_retries:1},
+  "finish-google-oauth":{parameters:["Repo"],max_auto_retries:1}
+};
+
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
 
 const DEFAULT_FLOW_DEFINITIONS = [
   {
@@ -213,13 +247,13 @@ const RISK_TIERS = {
   "repo.commit":0, "repo.commit.status":0, "repo.commit:status":0,
   "repo.workflow":0, "repo.workflow.status":0, "repo.workflow:status":0,
   "deployment.read":0, "telemetry.read":0,
-  "cache.read":0, "analytics.read":0, "flow.read":0,
+  "cache.read":0, "analytics.read":0, "flow.read":0, "local.read":0,
   // Tier 1 — LOW-RISK SCOPED MUTATION
   "repo.write":1, "repo.file.write":1, "repo.file.create":1,
   "repo.branch:create":1, "repo.branch.create":1,
   "repo.workflow.dispatch":1, "repo.workflow:dispatch":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
-  "research.invoke":1, "flow.write":1, "flow.run":1,
+  "research.invoke":1, "flow.write":1, "flow.run":1, "local.run":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
   "dns.ensure":2,
