@@ -1,0 +1,83 @@
+name: Validate Quillgeist Lite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "quillgeist-lite/**"
+      - "identity-broker/scripts/grant-google-cloud-support-access.ps1"
+      - "identity-broker/scripts/finish-google-oauth.ps1"
+      - ".github/workflows/validate-quillgeist-lite.yml"
+  pull_request:
+    paths:
+      - "quillgeist-lite/**"
+      - "identity-broker/scripts/grant-google-cloud-support-access.ps1"
+      - "identity-broker/scripts/finish-google-oauth.ps1"
+      - ".github/workflows/validate-quillgeist-lite.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $files = @(
+            "quillgeist-lite/runner.ps1",
+            "quillgeist-lite/install.ps1",
+            "quillgeist-lite/uninstall.ps1",
+            "quillgeist-lite/tasks/clintware-doctor.ps1",
+            "identity-broker/scripts/grant-google-cloud-support-access.ps1",
+            "identity-broker/scripts/finish-google-oauth.ps1"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing expected file: $file"
+            }
+
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+
+            if ($errors.Count -gt 0) {
+              $errors | Format-List *
+              throw "PowerShell parse errors in $file"
+            }
+
+            Write-Host "PARSE_OK $file"
+          }
+
+      - name: Validate task registry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
+
+          if ($registry.version -ne 1) {
+            throw "Unexpected task registry version."
+          }
+
+          foreach ($property in $registry.tasks.PSObject.Properties) {
+            $task = $property.Value
+            if (-not $task.script.EndsWith(".ps1")) {
+              throw "Task $($property.Name) does not point to a PowerShell script."
+            }
+            if ($task.script.Contains("..")) {
+              throw "Task $($property.Name) contains path traversal."
+            }
+            if (-not (Test-Path $task.script)) {
+              throw "Task $($property.Name) references missing script $($task.script)"
+            }
+            Write-Host "TASK_OK $($property.Name) -> $($task.script)"
+          }
