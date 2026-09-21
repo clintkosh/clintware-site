@@ -430,9 +430,130 @@ export class RegistryHub extends DurableObject {
     }
     return delivered;
   }
+
+  async pendingQuillgeistLiteJobs(){
+    const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+    const cutoff=Date.now()-7*24*60*60*1000;
+    const jobs=[];
+    for(const item of index){
+      if(Date.parse(item.created_at||"")<cutoff)continue;
+      const job=await this.ctx.storage.get(`quillgeist_lite_job:${item.job_id}`);
+      if(job&&["queued","running"].includes(String(job.status||"queued")))jobs.push(job);
+    }
+    return jobs.reverse();
+  }
+  async broadcastQuillgeistLite(job){
+    let delivered=0;
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
+      try{
+        if(ws.readyState===1){
+          ws.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job}));
+          delivered++;
+        }
+      }catch{}
+    }
+    return delivered;
+  }
+  async quillgeistLiteStatus(){
+    const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+    const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
+    return {
+      online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
+      runner,
+      jobs:index.slice(0,50)
+    };
+  }
+  async putQuillgeistLiteJob(job){
+    const task=QUILLGEIST_LITE_TASKS[job.task_id];
+    if(!task)return {ok:false,error:"task_not_allowed"};
+    const allowed=new Set(task.parameters||[]);
+    const args={};
+    for(const [key,value] of Object.entries(job.args||{})){
+      if(!allowed.has(key))return {ok:false,error:"argument_not_allowed",argument:key};
+      args[key]=clip(value,2000);
+    }
+    const normalized={
+      job_id:clip(job.job_id||crypto.randomUUID(),120),
+      task_id:clip(job.task_id,120),
+      args,
+      requested_by:clip(job.requested_by||"mcp",120),
+      objective:clip(job.objective||"",2000),
+      status:"queued",
+      created_at:nowIso(),
+      updated_at:nowIso(),
+      logs:[],
+      result:null
+    };
+    await this.ctx.storage.put(`quillgeist_lite_job:${normalized.job_id}`,normalized);
+    let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+    index=index.filter(x=>x.job_id!==normalized.job_id);
+    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
+    index=index.slice(0,200);
+    await this.ctx.storage.put("quillgeist_lite_job_index",index);
+    return {ok:true,job:normalized};
+  }
+  async updateQuillgeistLiteJob(jobId,patch){
+    const key=`quillgeist_lite_job:${jobId}`;
+    const job=await this.ctx.storage.get(key);
+    if(!job)return null;
+    const next={...job,...patch,updated_at:nowIso()};
+    if(Array.isArray(next.logs)&&next.logs.length>500)next.logs=next.logs.slice(-500);
+    await this.ctx.storage.put(key,next);
+    let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+    index=index.map(x=>x.job_id===jobId?{...x,status:next.status,updated_at:next.updated_at}:x);
+    await this.ctx.storage.put("quillgeist_lite_job_index",index);
+    return next;
+  }
   async webSocketMessage(ws,message){
     try{
       const data=JSON.parse(typeof message==="string"?message:new TextDecoder().decode(message));
+      const attachment=ws.deserializeAttachment()||{};
+      if(attachment.receiver==="quillgeist-lite"){
+        if(data?.type==="hello"){
+          const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
+          await this.ctx.storage.put("quillgeist_lite_runner",runner);
+          ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite/v1",time:nowIso()}));
+          return;
+        }
+        if(data?.type==="ack"&&data.job_id){
+          const jobId=clip(data.job_id,120);
+          await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
+          await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          return;
+        }
+        if(data?.type==="log"&&data.job_id){
+          const jobId=clip(data.job_id,120);
+          const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+          if(job){
+            const logs=Array.isArray(job.logs)?job.logs:[];
+            logs.push({seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)});
+            await this.updateQuillgeistLiteJob(jobId,{status:"running",logs});
+          }
+          return;
+        }
+        if(data?.type==="result"&&data.job_id){
+          const jobId=clip(data.job_id,120);
+          const status=["passed","failed"].includes(String(data.status))?String(data.status):"failed";
+          await this.updateQuillgeistLiteJob(jobId,{
+            status,
+            completed_at:clip(data.completed_at||nowIso(),80),
+            result:{
+              task_id:clip(data.task_id||"",120),
+              status,
+              exit_code:Number(data.exit_code||0),
+              duration_ms:Number(data.duration_ms||0),
+              output:clip(data.output||"",40000),
+              log_lines:Number(data.log_lines||0)
+            }
+          });
+          await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          return;
+        }
+        if(data?.type==="pong"){
+          await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          return;
+        }
+      }
       if(data?.type==="ack"&&data.handoff_id){
         const acked=await this.ctx.storage.get("handoff_ack_chatgpt")||{};
         acked[clip(data.handoff_id,120)]={acked_at:nowIso()};
@@ -444,7 +565,7 @@ export class RegistryHub extends DurableObject {
       }else if(data?.type==="ping"){
         ws.send(JSON.stringify({type:"pong",time:nowIso()}));
       }
-    }catch{}
+    }catch(e){console.error(JSON.stringify({event:"registry_ws_message_error",message:String(e?.message||e)}));}
   }
   async webSocketClose(ws,code,reason){try{ws.close(code,reason);}catch{}}
   async ensureDefaultFlows(){
@@ -489,6 +610,36 @@ export class RegistryHub extends DurableObject {
         try{server.send(JSON.stringify({type:"handoff",protocol:"clintware-handoff-stream/v1",packet,backlog:true}));}catch{}
       }
       return new Response(null,{status:101,webSocket:client});
+    }
+
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
+      const pair=new WebSocketPair();
+      const [client,server]=Object.values(pair);
+      this.ctx.acceptWebSocket(server,["quillgeist-lite"]);
+      server.serializeAttachment({receiver:"quillgeist-lite",connected_at:nowIso()});
+      const pending=await this.pendingQuillgeistLiteJobs();
+      for(const job of pending){
+        try{server.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job,backlog:true}));}catch{}
+      }
+      return new Response(null,{status:101,webSocket:client});
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-job"){
+      const body=await reqJson(request,64_000);
+      return json(await this.putQuillgeistLiteJob(body));
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-broadcast"){
+      const body=await reqJson(request,64_000);
+      const job=body.job||body;
+      const delivered=await this.broadcastQuillgeistLite(job);
+      return json({ok:true,delivered});
+    }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-status"){
+      return json({ok:true,...await this.quillgeistLiteStatus()});
+    }
+    if(request.method==="GET"&&url.pathname.startsWith("/quillgeist-lite-job/")){
+      const id=clip(decodeURIComponent(url.pathname.slice("/quillgeist-lite-job/".length)),120);
+      const job=await this.ctx.storage.get(`quillgeist_lite_job:${id}`);
+      return job?json({ok:true,job}):json({error:"job_not_found"},404);
     }
     if(request.method==="POST"&&url.pathname==="/handoff-broadcast"){
       const packet=await reqJson(request,64_000);
