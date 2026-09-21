@@ -7,11 +7,18 @@
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
-    "write_prefixes": ["neuron7-case-worker/"],
-    "allowed_workflows": ["deploy-neuron7-case.yml"]
+    "write_prefixes": [
+      "neuron7-case-worker/"
+    ],
+    "allowed_workflows": [
+      "deploy-neuron7-case.yml"
+    ]
   },
   "dns": {
-    "allowed_names": ["n7.clintware.com", "n7case.clintware.com"]
+    "allowed_names": [
+      "n7.clintware.com",
+      "n7case.clintware.com"
+    ]
   },
   "capabilities": [
     "repo.read:clintware-site",
@@ -51,5 +58,18 @@
     "oauth_operator_mode": "optional",
     "identity_boundary": "auth.clintware.com",
     "infrastructure_boundary": "mcp.clintware.com"
+  },
+  "identity": {
+    "enabled": true,
+    "authority": "https://auth.clintware.com",
+    "first_party_client": "Clintware Web",
+    "config_endpoint": "https://auth.clintware.com/client-config/neuron7-case",
+    "redirect_uri": "https://n7.clintware.com/auth/callback",
+    "scopes": [
+      "identity",
+      "email",
+      "profile"
+    ],
+    "pkce": "S256"
   }
 }
