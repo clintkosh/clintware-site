@@ -77,7 +77,7 @@ jobs:
           echo "$body"
           python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("service")=="clintware-mail",d;assert d.get("storage")=="sqlite",d;assert d.get("forwardCopy") is True,d' <<< "$body"
 
-      - name: Route clint@clintware.com into Clintware Mail
+      - name: Route Clintware addresses into Clintware Mail
         id: routing
         shell: bash
         run: |
