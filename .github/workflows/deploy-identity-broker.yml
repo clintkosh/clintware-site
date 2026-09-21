@@ -55,31 +55,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check activation prerequisites
-        id: ready
+      - name: Check deployment prerequisites
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET CONTROL_PLANE_MCP_TOKEN; do
-            if [ -z "${!name:-}" ]; then
-              echo "$name is not configured"
-              missing=1
-            fi
-          done
-          if [ "$missing" = "0" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          if [ -n "${GOOGLE_OAUTH_CLIENT_ID:-}" ] && [ -n "${GOOGLE_OAUTH_CLIENT_SECRET:-}" ]; then
+            echo "Google OAuth credentials are present; sign-in can activate after deploy."
           else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Identity Broker code validated, but deployment is intentionally skipped until all required secrets exist."
+            echo "Google OAuth credentials are not present yet. Deploying the broker in setup mode so auth.clintware.com can report exact readiness."
           fi
 
       - name: Install identity broker dependencies
-        if: steps.ready.outputs.ready == 'true'
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
 
       - name: Ensure OAuth KV namespace
-        if: steps.ready.outputs.ready == 'true'
         id: kv
         shell: bash
         run: |
@@ -104,15 +95,12 @@ jobs:
           echo "OAuth KV namespace ready: $title"
 
       - name: Render production config
-        if: steps.ready.outputs.ready == 'true'
         run: node identity-broker/scripts/render-wrangler.mjs "${{ steps.kv.outputs.namespace_id }}"
 
       - name: Deploy identity broker
-        if: steps.ready.outputs.ready == 'true'
         run: npx --prefix identity-broker wrangler deploy --config identity-broker/wrangler.generated.jsonc
 
       - name: Sync identity broker secrets
-        if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -123,19 +111,28 @@ jobs:
             printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
             echo "$name configured"
           }
+          put_secret() {
+            local name="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
+              echo "$name configured"
+            else
+              echo "$name not configured; leaving related feature inactive"
+            fi
+          }
           put_secret GOOGLE_OAUTH_CLIENT_ID "$GOOGLE_OAUTH_CLIENT_ID"
           put_secret GOOGLE_OAUTH_CLIENT_SECRET "$GOOGLE_OAUTH_CLIENT_SECRET"
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
 
       - name: Verify identity broker
-        if: steps.ready.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
           ready=0
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
-            if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' && echo "$body" | grep -Fq '"configured":true'; then
+            if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"'; then
               echo "$body"
               ready=1
               break
@@ -144,3 +141,9 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
+          body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health)
+          if echo "$body" | grep -Fq '"configured":true'; then
+            echo "Clintware Google OAuth is ACTIVE."
+          else
+            echo "Clintware Identity Broker is LIVE in setup mode. Remaining blocker: GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET."
+          fi
