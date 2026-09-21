@@ -317,6 +317,23 @@ function evaluatePolicy(manifest,capability,resource,reason){
   return {decision:"executed",reason:"tier01_automatic"};
 }
 
+async function verifyGithubReceiver(request){
+  const header=String(request.headers.get("authorization")||"");
+  const token=header.toLowerCase().startsWith("bearer ")?header.slice(7).trim():"";
+  if(!token)return {ok:false,reason:"missing_receiver_auth"};
+  try{
+    const r=await fetch("https://api.github.com/user",{headers:{
+      "authorization":`Bearer ${token}`,
+      "accept":"application/vnd.github+json",
+      "user-agent":"clintware-control-plane"
+    }});
+    if(!r.ok)return {ok:false,reason:"github_auth_failed"};
+    const user=await r.json();
+    const login=String(user?.login||"").toLowerCase();
+    return login==="clintkosh"?{ok:true,login}:{ok:false,reason:"receiver_identity_not_allowed"};
+  }catch{return {ok:false,reason:"github_auth_unavailable"};}
+}
+
 const HANDOFF_MAX_AGE_MS=7*24*60*60*1000;
 const HANDOFF_MAX_ITEMS=200;
 const clip=(v,max=4000)=>String(v??"").slice(0,max);
@@ -353,6 +370,48 @@ function registryHub(env){return env.REGISTRY_HUB.getByName("registry:v1");}
 
 export class RegistryHub extends DurableObject {
   constructor(ctx,env){super(ctx,env);}
+  async pendingChatgptHandoffs(){
+    const index=await this.ctx.storage.get("handoff_index")||[];
+    const acked=await this.ctx.storage.get("handoff_ack_chatgpt")||{};
+    const cutoff=Date.now()-HANDOFF_MAX_AGE_MS;
+    const packets=[];
+    for(const item of index){
+      if(Date.parse(item.created_at||"")<cutoff||acked[item.handoff_id])continue;
+      const packet=await this.ctx.storage.get(`handoff:${item.handoff_id}`);
+      if(packet&&String(packet.target_client||"").toLowerCase()==="chatgpt")packets.push(packet);
+    }
+    return packets.reverse();
+  }
+  async broadcastHandoff(packet){
+    if(String(packet?.target_client||"").toLowerCase()!=="chatgpt")return 0;
+    let delivered=0;
+    for(const ws of this.ctx.getWebSockets("chatgpt")){
+      try{
+        if(ws.readyState===1){
+          ws.send(JSON.stringify({type:"handoff",protocol:"clintware-handoff-stream/v1",packet}));
+          delivered++;
+        }
+      }catch{}
+    }
+    return delivered;
+  }
+  async webSocketMessage(ws,message){
+    try{
+      const data=JSON.parse(typeof message==="string"?message:new TextDecoder().decode(message));
+      if(data?.type==="ack"&&data.handoff_id){
+        const acked=await this.ctx.storage.get("handoff_ack_chatgpt")||{};
+        acked[clip(data.handoff_id,120)]={acked_at:nowIso()};
+        const cutoff=Date.now()-HANDOFF_MAX_AGE_MS;
+        for(const [id,row] of Object.entries(acked)){
+          if(Date.parse(row?.acked_at||"")<cutoff)delete acked[id];
+        }
+        await this.ctx.storage.put("handoff_ack_chatgpt",acked);
+      }else if(data?.type==="ping"){
+        ws.send(JSON.stringify({type:"pong",time:nowIso()}));
+      }
+    }catch{}
+  }
+  async webSocketClose(ws,code,reason){try{ws.close(code,reason);}catch{}}
   async ensureDefaultFlows(){
     let flows=await this.ctx.storage.get("flows")||{};
     let changed=false;
@@ -385,6 +444,22 @@ export class RegistryHub extends DurableObject {
   }
   async fetch(request){
     const url=new URL(request.url);
+    if(request.method==="GET"&&url.pathname==="/handoff-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
+      const pair=new WebSocketPair();
+      const [client,server]=Object.values(pair);
+      this.ctx.acceptWebSocket(server,["chatgpt"]);
+      server.serializeAttachment({receiver:"chatgpt",connected_at:nowIso()});
+      const pending=await this.pendingChatgptHandoffs();
+      for(const packet of pending){
+        try{server.send(JSON.stringify({type:"handoff",protocol:"clintware-handoff-stream/v1",packet,backlog:true}));}catch{}
+      }
+      return new Response(null,{status:101,webSocket:client});
+    }
+    if(request.method==="POST"&&url.pathname==="/handoff-broadcast"){
+      const packet=await reqJson(request,64_000);
+      const delivered=await this.broadcastHandoff(packet);
+      return json({ok:true,delivered});
+    }
     const products=await this.ensureDefaults();
     await this.ensureDefaultFlows();
     if(request.method==="GET"&&url.pathname==="/list") return json({products:Object.values(products)});
@@ -1198,9 +1273,11 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     const r=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
     const data=await r.json();
     if(!r.ok)return {isError:true,content:[{type:"text",text:JSON.stringify(data)}]};
-    const bridge=await mirrorHandoffToPowerChatBridge(env,normalized);
-    await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,bridge_mirrored:Boolean(bridge.mirrored)},bridge.ok,bridge.error||"");
-    return {isError:!bridge.ok,content:[{type:"text",text:JSON.stringify({...data,delivery:bridge})}]};
+    const streamResponse=await registryHub(env).fetch(new Request("https://internal/handoff-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
+    const stream=await streamResponse.json();
+    const mirror=await mirrorHandoffToPowerChatBridge(env,normalized);
+    await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,realtime_receivers:Number(stream.delivered||0),private_mirror:Boolean(mirror.mirrored)},true,"");
+    return {content:[{type:"text",text:JSON.stringify({...data,delivery:{realtime:stream,private_mirror:mirror}})}]};
   });
   server.registerTool("clintware_handoff_get",{
     title:"Retrieve a cross-client Clintware work handoff",
@@ -1575,6 +1652,7 @@ function safeConfig(env){
     cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID),
     mcp_auth:Boolean(env.CONTROL_PLANE_MCP_TOKEN||env.CONTROL_PLANE_ADMIN_TOKEN),
     mcp_per_client_credentials:true,
+    handoff_realtime_stream:true,
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN||env.CONTROL_PLANE_MCP_TOKEN),
     admin_auth_separate:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
   };
@@ -1602,6 +1680,14 @@ export default {
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
+      if(request.method==="GET"&&url.pathname==="/api/v1/handoff-stream"){
+        if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
+        const receiver=await verifyGithubReceiver(request);
+        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const headers=new Headers();
+        headers.set("upgrade","websocket");
+        return await registryHub(env).fetch(new Request("https://internal/handoff-stream",{method:"GET",headers}));
+      }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
@@ -1634,9 +1720,12 @@ export default {
         const stored=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
         const data=await stored.json();
         if(!stored.ok)return json(data,stored.status);
-        const bridge=await mirrorHandoffToPowerChatBridge(env,normalized);
-        await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,bridge_mirrored:Boolean(bridge.mirrored)},bridge.ok,bridge.error||"");
-        return json({...data,delivery:bridge},bridge.ok?200:502);
+        const streamResponse=await registryHub(env).fetch(new Request("https://internal/handoff-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
+        const stream=await streamResponse.json();
+        const mirror=await mirrorHandoffToPowerChatBridge(env,normalized);
+        await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,realtime_receivers:Number(stream.delivered||0),private_mirror:Boolean(mirror.mirrored)},true,"");
+        return json({...data,delivery:{realtime:stream,private_mirror:mirror}});
+
       }
       const handoffMatch=url.pathname.match(/^\/api\/v1\/handoffs\/([^/]+)$/);
       if(request.method==="GET"&&handoffMatch){
