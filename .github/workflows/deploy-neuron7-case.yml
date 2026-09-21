@@ -111,6 +111,18 @@ jobs:
           curl --fail-with-body -sS https://n7.clintware.com/health             | grep -Fq '"canonicalUrl":"https://n7.clintware.com"'
           echo 'n7.clintware.com passed HTTPS, content, header and health checks.'
 
+      - name: Verify central identity operator surface
+        run: |
+          set -euo pipefail
+          health=$(curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://n7.clintware.com/health)
+          echo "$health" | grep -Fq '"identityBroker":"https://auth.clintware.com"'
+          echo "$health" | grep -Fq '"identityConfig":"https://auth.clintware.com/client-config/neuron7-case"'
+          echo "$health" | grep -Fq '"operatorMode":"/operator"'
+          operator=$(curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://n7.clintware.com/operator)
+          echo "$operator" | grep -Fq 'N7 operator mode'
+          echo "$operator" | grep -Fq 'central Clintware OAuth authority'
+          echo 'N7 central identity operator surface verified.'
+
       - name: Verify legacy URL redirects to canonical
         run: |
           set -euo pipefail
