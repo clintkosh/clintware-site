@@ -474,6 +474,55 @@
       .principle,.principle:nth-child(odd),.principle:nth-child(even){border-right:0;padding:24px 0}
     }
 
+    /* Full scrolling cover letter */
+    .welcome-letter{
+      position:relative;
+      max-width:820px;
+      height:205px;
+      overflow:hidden;
+      margin:0 0 24px;
+      border-top:1px solid rgba(17,24,61,.16);
+      border-bottom:1px solid rgba(17,24,61,.16);
+      background:linear-gradient(180deg,rgba(251,251,248,.97),rgba(251,251,248,.88));
+      color:#4b546d;
+      font-size:12px;
+      line-height:1.62;
+      mask-image:linear-gradient(to bottom,transparent 0,#000 10%,#000 90%,transparent 100%);
+      -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 10%,#000 90%,transparent 100%);
+    }
+    .welcome-letter:focus-visible{outline:2px solid #4b52ff;outline-offset:4px}
+    .welcome-letter-track{
+      padding:18px 0 22px;
+      animation:cover-letter-rise 108s linear infinite;
+      will-change:transform;
+    }
+    .welcome-letter:hover .welcome-letter-track,
+    .welcome-letter:focus-within .welcome-letter-track{animation-play-state:paused}
+    .welcome-letter-copy{max-width:790px}
+    .welcome-letter-copy p{margin:0 0 14px}
+    .welcome-letter-copy strong{color:#11183d;font-weight:750}
+    .welcome-letter-copy a{color:#3139d8;text-decoration-thickness:1px;text-underline-offset:2px}
+    @keyframes cover-letter-rise{
+      0%,4%{transform:translateY(0)}
+      96%,100%{transform:translateY(calc(-100% + 205px))}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .welcome-letter{
+        height:205px;
+        overflow-y:auto;
+        mask-image:none;
+        -webkit-mask-image:none;
+      }
+      .welcome-letter-track{animation:none!important;transform:none!important}
+    }
+    @media(max-width:620px){
+      .welcome-letter{height:180px;font-size:11.5px}
+      @keyframes cover-letter-rise{
+        0%,4%{transform:translateY(0)}
+        96%,100%{transform:translateY(calc(-100% + 180px))}
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -496,12 +545,31 @@
 <section class="hero">
   <div class="shell hero-grid">
     <div>
-      <div class="welcome-strip" aria-label="Application welcome note" tabindex="0">
-        <strong class="welcome-greeting">Dear Quinton,</strong>
-        <div class="welcome-viewport">
-          <div class="welcome-track">
-            <span>Reading this role description felt uncanny because so much of it already matches how I work: embed with the team, build beside them, make the workflow hold, turn what works into reusable capability, and measure whether the work actually got better. I could have stopped at using n8n as the connective tissue. Instead, I built my own modular equivalent, Clintware Flow, so the orchestration layer can scale with what I build, and I published a sanitized reusable skill so others can build their own independent version.</span>
-            <span aria-hidden="true">Reading this role description felt uncanny because so much of it already matches how I work: embed with the team, build beside them, make the workflow hold, turn what works into reusable capability, and measure whether the work actually got better. I could have stopped at using n8n as the connective tissue. Instead, I built my own modular equivalent, Clintware Flow, so the orchestration layer can scale with what I build, and I published a sanitized reusable skill so others can build their own independent version.</span>
+
+      <div class="welcome-letter" aria-label="Cover letter" tabindex="0">
+        <div class="welcome-letter-track">
+          <div class="welcome-letter-copy">
+            <p><strong>Hi Quinton,</strong></p>
+            <p>Reading your job description was an uncanny experience. So much of it reflects the exact principles I operate by. I believe in building alongside people, staying until the workflow actually holds, leaving the team more capable than I found it, and turning what works into reusable skills. I am looking for genuine improvement, not vanity AI activity metrics.</p>
+            <p>I found this role through a tailored search targeting the cross section of my actual strengths rather than just my last title. I am part Customer Success leader, part technical operator, part systems builder, and part teacher. Most of my career has centered on walking into environments where a team has a vital outcome, the path forward is ambiguous, and the technical and human components are thoroughly tangled. Before choosing tools, I focus on what the team is actually trying to accomplish.</p>
+            <p>If an implementation does not make a workflow meaningfully better, it should not exist. Success means giving time back, cutting repetitive friction, eliminating error loops, surfacing useful information sooner, or clarifying decisions. Otherwise, we just added another system to maintain.</p>
+            <p>That mindset comes directly from my background in Customer Success, where I focus on catching signals before they become obvious. Critical indicators rarely start on a dashboard. A customer might say everything is fine while engagement tells a different story. My goal is to detect those patterns early and make them visible and repeatable for everyone else.</p>
+            <p>At Check Point and Avanan I managed 20 to 40 customers representing around 3 million dollars in account value. I improved team efficiency by about 30 percent and moved portfolio visibility from 40 percent to 99 percent by clarifying ownership, customer health, risk, and next actions.</p>
+            <p>At Dedrone I improved renewals by roughly 20 percent and customer engagement by 25 percent. I standardized enterprise onboarding to roughly one month and built stakeholder alignment around a 3 million dollar AWS hosted solution.</p>
+            <p>At Cofense I improved critical issue resolution time by 25 percent while building documentation, self service, and repeatable operating processes around complex customer issues. As Product Owner for PhishMe Reporter, I built an automated installer customizer so Support Engineers could generate complex customer packages without needing to understand the underlying technical details, removing the barrier of knowledge trapped in one person's head.</p>
+            <p>At IBM I contributed to an environment supporting 99.9 percent portal uptime and earned customer satisfaction scores above 95 percent, placing in the top tier of the engineering organization.</p>
+            <p>AI dramatically compresses the feedback loop. I can research a hypothesis, prototype an idea in hours, identify flawed assumptions, and iterate immediately. Over the past several months, I have treated my lab, Clintware, as an end to end prototyping environment.</p>
+            <p>My verified inventory includes 19 published applications and tools, 19 implemented skills, including 18 published skills, and 1 public plugin package. You can find these at <a href="https://www.clintware.com/tools/">clintware.com/tools</a>, <a href="https://www.clintware.com/skills/">clintware.com/skills</a>, and <a href="https://www.clintware.com/plugins/">clintware.com/plugins</a>.</p>
+            <p>For a look at a deliberate product experience, RenewNudge at <a href="https://renewnudge.clintware.com/">renewnudge.clintware.com</a> represents how I pair deterministic logic with targeted LLM enrichment for Customer Success, rather than forcing AI into places where ordinary automation works better. I also built cpath.clintware.com to map the work I have actually done directly to the capabilities this role calls for.</p>
+            <p>I define AI slop broadly. It isn't just generic prose, it is an unnecessary interface, five features that should have been one, or an agent confidently reasoning from its own invented assumptions. True utility comes from knowing the audience's definition of done.</p>
+            <p>When a model produces a broken state, the answer is usually not ten increasingly frustrated prompts. You stop. Find the first bad assumption. Compare it against the source of truth. Roll back, reduce scope, or switch models, and test again. This is why I care deeply about deterministic quality gates, strict context management, rollback paths, and human approval for consequential actions.</p>
+            <p>While I run a flexible multi model stack across Claude, ChatGPT, Gemini, Grok, and local models via Ollama, standardizing around Claude Enterprise makes complete strategic sense. My Anthropic training includes Building with the Claude API, Claude Code in Action, and Intro to Claude Cowork.</p>
+            <p>The most interesting enterprise frontier is not isolated chat boxes. It is shared context, durable project knowledge, explicit quality standards, and controlled execution. This philosophy guides my work with the Model Context Protocol at <a href="https://mcp.clintware.com/">mcp.clintware.com</a>. I treat MCP as an organizational control plane where capabilities remain durable even as models change. I rely on n8n in a similar way for deterministic orchestration. Trigger an event, transform what can be transformed deterministically, and only use an LLM where interpretation is genuinely necessary.</p>
+            <p>Enablement is central to how I operate. At the Bush School at Texas A&amp;M, teaching meant meeting people where they were. When explaining the Windows Registry, I started with the familiar concept of a library card catalog before moving into hives and keys. The goal is always servant leadership. Demystify the black box and leave the team more capable.</p>
+            <p>Instead of a standard interview pitch, I prefer to start with the actual work.</p>
+            <p><strong>Bring me one real problem.</strong> Pick an operational bottleneck where the current process is painful, the team knows it is not working, but the fix is not straightforward. Tell me the target outcome and the smallest meaningful improvement that would make tackling it worthwhile.</p>
+            <p>Whether the answer turns out to be a custom Claude agent, an n8n pipeline, an MCP skill, or simply deleting an unnecessary process step, I will work through it directly with you.</p>
+            <p>You can grab a time on my calendar at <a href="https://meet.clintware.com/">meet.clintware.com</a>.</p>
           </div>
         </div>
       </div>
