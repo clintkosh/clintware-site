@@ -104,6 +104,7 @@ const DEFAULT_NEURON7_CASE = {
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"neuron7-case",
   privacy:{public_viewer:true,indexing:false,customer_data:false,oauth_operator_mode:"optional",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
+  identity:{enabled:true,authority:"https://auth.clintware.com",first_party_client:"Clintware Web",config_endpoint:"https://auth.clintware.com/client-config/neuron7-case",redirect_uri:"https://n7.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256"},
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
