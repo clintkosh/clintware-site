@@ -141,3 +141,24 @@ jobs:
           else
             echo "Clintware Identity Broker is LIVE in setup mode. Remaining blocker: GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET."
           fi
+
+      - name: Verify central first-party Clintware client
+        shell: bash
+        run: |
+          set -euo pipefail
+          mail=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/mail)
+          n7=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/neuron7-case)
+          MAIL_JSON="$mail" N7_JSON="$n7" python3 - <<'PY'
+          import json, os
+          mail=json.loads(os.environ["MAIL_JSON"])
+          n7=json.loads(os.environ["N7_JSON"])
+          assert mail["client_id"] == n7["client_id"], (mail,n7)
+          assert mail["client_name"] == "Clintware Web", mail
+          assert n7["client_name"] == "Clintware Web", n7
+          assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
+          assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
+          assert mail["pkce"] == "S256" and n7["pkce"] == "S256"
+          assert mail["client_model"] == "central-first-party-public-client"
+          assert n7["client_model"] == "central-first-party-public-client"
+          print("Central Clintware OAuth client verified for mail + neuron7-case:", mail["client_id"])
+          PY
