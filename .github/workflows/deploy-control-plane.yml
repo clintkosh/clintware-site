@@ -119,6 +119,15 @@ jobs:
           done
           test "$ready" = "1"
 
+      - name: Verify public Control Plane landing page
+        run: |
+          set -euo pipefail
+          page=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/)
+          echo "$page" | grep -Fq 'Clintware Control Plane'
+          echo "$page" | grep -Fq 'Capabilities should outlive the model using them.'
+          echo "$page" | grep -Fq 'The browser page is informational. The control surface is authenticated.'
+          echo 'mcp.clintware.com public landing page is live.'
+
       - name: Verify research activation and ProofOS end-to-end
         run: |
           set -euo pipefail
