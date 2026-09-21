@@ -10,8 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MEASUREMENT_ID = "G-DCY144YM9P"
-CRM_MARKERS = re.compile(
-    r"customer success|command center|\bcrm[_-]|-cs-|crmdemo",
+CRM_CONFIG_MARKERS = re.compile(
+    r'"name"\s*:\s*"[^"]*(?:crm|customer-success|cs-command|cs-business|enterprise-customer-success)[^"]*"',
     re.IGNORECASE,
 )
 STATIC_CRM_MARKERS = re.compile(
@@ -32,19 +32,17 @@ def worker_targets() -> list[tuple[str, str]]:
             continue
         project = config_path.parent
         config = read_text(config_path)
+        # A Worker is a CRM target because its Wrangler service identity says so,
+        # not because arbitrary source text happens to mention Customer Success.
+        # This prevents unrelated HTML products (for example ProofOS) and API
+        # infrastructure (for example the Control Plane) from becoming false
+        # positives when they discuss CRM/CS concepts in copy, manifests, or docs.
+        if not CRM_CONFIG_MARKERS.search(config):
+            continue
         sources = [config]
         sources.extend(read_text(path) for path in sorted((project / "src").rglob("*.js")))
         combined = "\n".join(sources)
-        # Browser analytics only applies to Workers that actually render HTML.
-        # API/control-plane services may contain CRM terminology in manifests
-        # without ever serving a page where gtag can run.
-        serves_html = (
-            "text/html" in combined.lower()
-            or "<!doctype html" in combined.lower()
-            or "<html" in combined.lower()
-        )
-        if CRM_MARKERS.search(combined) and serves_html:
-            targets.append((str(project.relative_to(ROOT)), combined))
+        targets.append((str(project.relative_to(ROOT)), combined))
     return targets
 
 
@@ -76,6 +74,13 @@ def analytics_errors(name: str, text: str) -> list[str]:
 
 def main() -> int:
     targets = worker_targets() + static_targets()
+    discovered_names = {name for name, _ in targets}
+    forbidden_false_positives = {"control-plane", "proofos"} & discovered_names
+    if forbidden_false_positives:
+        raise SystemExit(
+            "CRM discovery regression: unrelated projects were classified as CRM targets: "
+            + ", ".join(sorted(forbidden_false_positives))
+        )
     if not targets:
         raise SystemExit("No CRM targets were discovered; analytics coverage cannot be verified")
 
