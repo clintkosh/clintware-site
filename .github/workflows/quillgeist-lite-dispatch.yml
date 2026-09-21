@@ -1,0 +1,138 @@
+name: Dispatch Quillgeist Lite Task
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "quillgeist-lite/dispatch/request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quillgeist-lite-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+      REQUEST_FILE: quillgeist-lite/dispatch/request.json
+      CONTROL_PLANE: https://mcp.clintware.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CONTROL_PLANE_MCP_TOKEN"
+          test -f "$REQUEST_FILE"
+          python3 - <<'PY'
+          import json, re
+          p="quillgeist-lite/dispatch/request.json"
+          d=json.load(open(p,encoding="utf-8"))
+          allowed={"clintware-doctor","google-cloud-support-access","finish-google-oauth"}
+          task=d.get("task_id")
+          assert task in allowed, f"task_not_allowed: {task!r}"
+          args=d.get("args") or {}
+          assert isinstance(args,dict), "args must be an object"
+          blocked=re.compile(r"(secret|password|token|api[_-]?key|authorization)",re.I)
+          for k,v in args.items():
+              assert not blocked.search(str(k)), f"sensitive argument name not allowed: {k}"
+              assert isinstance(v,(str,int,float,bool)), f"argument {k} must be scalar"
+              assert len(str(v)) <= 2000, f"argument {k} too long"
+          print(f"REQUEST_OK task={task} request_id={d.get('request_id','')}")
+          PY
+
+      - name: Dispatch to Clintware Control Plane
+        id: dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=$(python3 - <<'PY'
+          import json
+          d=json.load(open("quillgeist-lite/dispatch/request.json",encoding="utf-8"))
+          print(json.dumps({
+            "task_id": d["task_id"],
+            "args": d.get("args") or {},
+            "objective": d.get("objective") or ""
+          }))
+          PY
+          )
+
+          response=$(curl --fail-with-body -sS             -X POST "$CONTROL_PLANE/api/v1/quillgeist-lite/jobs"             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data "$body")
+
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is True,d; print(d["job_id"])' <<< "$response")
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+          echo "Quillgeist Lite job: $job_id"
+
+      - name: Stream job logs until result
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.dispatch.outputs.job_id }}
+        run: |
+          set -euo pipefail
+          last_seq=0
+
+          for i in $(seq 1 900); do
+            body=$(curl --fail-with-body -sS               "$CONTROL_PLANE/api/v1/quillgeist-lite/jobs/$JOB_ID"               -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+
+            parsed=$(LAST_SEQ="$last_seq" python3 - <<'PY' <<< "$body"
+          import json, os, sys
+          d=json.load(sys.stdin)
+          job=d.get("job") or {}
+          last=int(os.environ.get("LAST_SEQ","0"))
+          logs=job.get("logs") or []
+          newer=[x for x in logs if int(x.get("seq") or 0)>last]
+          new_last=max([last]+[int(x.get("seq") or 0) for x in newer])
+          print(new_last)
+          print(job.get("status") or "unknown")
+          for x in newer:
+              ts=x.get("timestamp") or ""
+              line=str(x.get("line") or "")
+              print(f"[{ts}] {line}")
+          PY
+            )
+
+            new_last=$(printf '%s
+' "$parsed" | sed -n '1p')
+            status=$(printf '%s
+' "$parsed" | sed -n '2p')
+            printf '%s
+' "$parsed" | tail -n +3
+            last_seq="$new_last"
+
+            if [[ "$status" == "passed" || "$status" == "failed" ]]; then
+              echo ""
+              echo "FINAL_STATUS=$status"
+              final=$(curl --fail-with-body -sS                 "$CONTROL_PLANE/api/v1/quillgeist-lite/jobs/$JOB_ID"                 -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+              python3 - <<'PY' <<< "$final"
+          import json,sys
+          d=json.load(sys.stdin)
+          j=d.get("job") or {}
+          r=j.get("result") or {}
+          print("TASK:",j.get("task_id"))
+          print("STATUS:",j.get("status"))
+          print("EXIT_CODE:",r.get("exit_code"))
+          print("DURATION_MS:",r.get("duration_ms"))
+          out=str(r.get("output") or "")
+          if out:
+              print("--- FINAL OUTPUT ---")
+              print(out[-20000:])
+          PY
+              if [[ "$status" == "failed" ]]; then
+                exit 1
+              fi
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "Timed out waiting for Quillgeist Lite job $JOB_ID" >&2
+          exit 1
