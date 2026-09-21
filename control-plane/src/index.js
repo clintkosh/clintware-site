@@ -1642,6 +1642,71 @@ async function handleMcp(request,env,ctx){
   return handler(request,env,ctx);
 }
 
+function controlPlaneLanding(){
+  const html=`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#071018">
+  <meta name="description" content="Clintware Control Plane: a model-agnostic capability, policy, and orchestration layer for AI systems.">
+  <title>Clintware Control Plane</title>
+  <style>
+    :root{--bg:#071018;--panel:#0c1620;--line:#243341;--text:#edf5f8;--muted:#9bafbd;--cyan:#68dfff;--mint:#7ce4b4;--violet:#9c86ff}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 8%,rgba(104,223,255,.11),transparent 27%),radial-gradient(circle at 12% 92%,rgba(156,134,255,.10),transparent 28%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+    a{color:inherit}.wrap{width:min(1080px,calc(100% - 34px));margin:auto}.top{padding:24px 0;border-bottom:1px solid var(--line)}.toprow{display:flex;justify-content:space-between;gap:24px;align-items:center}.brand{font:800 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase}.brand span{color:var(--cyan)}.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.status i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 16px rgba(124,228,180,.6)}main{padding:76px 0 50px}.kicker{color:var(--cyan);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}h1{max-width:900px;margin:14px 0 18px;font-size:clamp(46px,7vw,80px);line-height:.98;letter-spacing:-.055em;font-weight:650}.lead{max-width:790px;margin:0;color:#c7d3da;font-size:20px;line-height:1.55}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn{display:inline-flex;padding:11px 14px;border:1px solid #355065;text-decoration:none;font:750 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;background:#0c1c28}.btn.primary{border-color:#3e94ad;background:#0b2733;color:#eafcff}.section{padding:50px 0;border-top:1px solid var(--line)}h2{font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-.035em;margin:0 0 14px}.intro{max-width:800px;color:var(--muted);margin:0 0 26px}.flow{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.flow div{padding:18px 12px;border-right:1px solid var(--line)}.flow div:last-child{border-right:0}.flow b{display:block;color:var(--cyan);font:800 10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}.flow span{display:block;margin-top:6px;color:var(--muted);font-size:12px}.rows{border-top:1px solid var(--line)}.row{display:grid;grid-template-columns:200px 1fr;gap:28px;padding:18px 0;border-bottom:1px solid var(--line)}.row b{color:var(--cyan);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}.row strong{display:block;font-size:16px}.row span{display:block;margin-top:5px;color:var(--muted);font-size:13px;line-height:1.6}.code{margin-top:24px;padding:18px;border:1px solid var(--line);background:#050b10;overflow:auto;color:#b9c9d2;font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}.code em{font-style:normal;color:var(--mint)}footer{padding:28px 0 36px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}@media(max-width:800px){.flow{grid-template-columns:1fr 1fr 1fr}.flow div:nth-child(3){border-right:0}.row{grid-template-columns:1fr;gap:5px}}@media(max-width:520px){main{padding-top:54px}.flow{grid-template-columns:1fr}.flow div{border-right:0;border-bottom:1px solid var(--line)}.flow div:last-child{border-bottom:0}.lead{font-size:17px}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="wrap toprow"><div class="brand">CLINT<span>WARE</span> / CONTROL PLANE</div><div class="status"><i></i> live service</div></div></header>
+  <main>
+    <section><div class="wrap">
+      <div class="kicker">Model-agnostic AI infrastructure</div>
+      <h1>Capabilities should outlive the model using them.</h1>
+      <p class="lead">The Clintware Control Plane is a permissioned layer between AI systems and the tools they are allowed to use. It keeps identity, policy, reusable workflows, provider credentials, and audit boundaries outside the model itself.</p>
+      <div class="actions"><a class="btn primary" href="/health">Service health</a><a class="btn" href="/api/v1">API index</a><a class="btn" href="https://www.clintware.com/">Clintware</a></div>
+    </div></section>
+
+    <section class="section"><div class="wrap">
+      <div class="kicker">Operating model</div>
+      <h2>One governed path from intent to action.</h2>
+      <p class="intro">Instead of giving every agent broad credentials, the model requests an approved capability. The Control Plane resolves the underlying provider action, applies product scope and risk policy, executes only what is allowed, and records the result.</p>
+      <div class="flow">
+        <div><b>Identity</b><span>Who is asking?</span></div>
+        <div><b>Context</b><span>Which product or workflow?</span></div>
+        <div><b>Policy</b><span>What is allowed?</span></div>
+        <div><b>Capability</b><span>What action is needed?</span></div>
+        <div><b>Execution</b><span>Run the bounded action.</span></div>
+        <div><b>Audit</b><span>Record the outcome.</span></div>
+      </div>
+    </div></section>
+
+    <section class="section"><div class="wrap">
+      <div class="kicker">Why it exists</div>
+      <h2>Reusable infrastructure without credential sprawl.</h2>
+      <div class="rows">
+        <div class="row"><b>Model independent</b><div><strong>Claude, ChatGPT, Gemini, Grok, local models, or another client can use the same approved capability layer.</strong><span>The integration belongs to the organization, not to one model vendor.</span></div></div>
+        <div class="row"><b>Least privilege</b><div><strong>Products and clients receive scoped capabilities rather than unrestricted provider credentials.</strong><span>Repository paths, workflows, DNS names, destructive operations, and product boundaries are evaluated before execution.</span></div></div>
+        <div class="row"><b>Clintware Flow</b><div><strong>Private reusable workflows can combine deterministic steps, approvals, events, and capabilities.</strong><span>A successful implementation becomes infrastructure that the next workflow can reuse instead of starting from zero.</span></div></div>
+        <div class="row"><b>Human gates</b><div><strong>Approval steps can pause consequential actions rather than allowing an agent to infer consent.</strong><span>The system is designed around bounded autonomy, not maximum autonomy.</span></div></div>
+        <div class="row"><b>Observability</b><div><strong>Operational events can be measured without requiring storage of raw prompts or responses.</strong><span>Usage, latency, errors, providers, conversions, and workflow outcomes can be tracked as structured metadata.</span></div></div>
+      </div>
+    </div></section>
+
+    <section class="section"><div class="wrap">
+      <div class="kicker">Public service boundary</div>
+      <h2>The browser page is informational. The control surface is authenticated.</h2>
+      <p class="intro">Health and API discovery are intentionally visible. MCP actions, product telemetry, infrastructure mutations, and client provisioning remain behind scoped authentication and product policy.</p>
+      <div class="code"><em>GET</em> /health&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; service/configuration status<br><em>GET</em> /api/v1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; API discovery<br><em>POST</em> /mcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; authenticated MCP transport<br><em>POST</em> /api/v1/capability&nbsp; policy-evaluated capability execution</div>
+    </div></section>
+  </main>
+  <footer><div class="wrap foot"><span>Clintware™ · GO FURTHEST.™</span><span>Control Plane · mcp.clintware.com</span></div></footer>
+</body>
+</html>`;
+  return new Response(html,{status:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-robots-tag":"noindex, nofollow","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
+}
+
 function safeConfig(env){
   const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH||env.GITHUB_TOKEN_CODEFEDDY);
   return {
@@ -1662,6 +1727,7 @@ export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      if(request.method==="GET"&&url.pathname==="/")return controlPlaneLanding();
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
         const rconfig=await researchConfig(env);
