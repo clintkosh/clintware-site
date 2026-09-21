@@ -70,6 +70,8 @@
       "email",
       "profile"
     ],
-    "pkce": "S256"
+    "pkce": "S256",
+    "client_id": "https://auth.clintware.com/client/clintware-web",
+    "client_model": "cimd"
   }
 }
