@@ -3,8 +3,9 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import * as oauth from "oauth4webapi";
 import { z } from "zod";
+import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, universalRedirectUris, firstPartyApp } from "./first-party.js";
 
-const VERSION = "2026-09-15";
+const VERSION = "2026-09-21";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -406,42 +407,51 @@ function publicClient(client) {
 }
 
 
-async function ensureFirstPartyClient(env, key) {
-  const definitions = {
-    mail: {
-      clientName: "Clintware Mail",
-      redirectUris: ["https://mail.clintware.com/callback"],
-      clientUri: "https://mail.clintware.com",
-      tokenEndpointAuthMethod: "none",
-    },
-  };
-  const definition = definitions[key];
-  if (!definition) return null;
+async function ensureFirstPartyClient(env) {
   const api = oauthApi(env);
+  const redirectUris = universalRedirectUris();
   const listed = await api.listClients({ limit: 100 });
-  const existing = (listed.items || []).find((client) =>
-    client.clientName === definition.clientName &&
-    client.tokenEndpointAuthMethod === definition.tokenEndpointAuthMethod &&
-    JSON.stringify([...(client.redirectUris || [])].sort()) === JSON.stringify([...definition.redirectUris].sort())
-  );
-  if (existing) return existing;
-  return api.createClient(definition);
+  const existing = (listed.items || []).find((client) => client.clientName === FIRST_PARTY_CLIENT.clientName);
+
+  const desired = {
+    clientName: FIRST_PARTY_CLIENT.clientName,
+    clientUri: FIRST_PARTY_CLIENT.clientUri,
+    redirectUris,
+    tokenEndpointAuthMethod: FIRST_PARTY_CLIENT.tokenEndpointAuthMethod,
+  };
+
+  if (!existing) return api.createClient(desired);
+
+  const sameRedirects =
+    JSON.stringify([...(existing.redirectUris || [])].sort()) === JSON.stringify(redirectUris);
+  const sameMethod =
+    (existing.tokenEndpointAuthMethod || "client_secret_basic") === desired.tokenEndpointAuthMethod;
+  const sameUri = (existing.clientUri || "") === desired.clientUri;
+
+  if (sameRedirects && sameMethod && sameUri) return existing;
+  return api.updateClient(existing.clientId, desired);
 }
 
 async function firstPartyClientConfig(env, key) {
   if (!env.OAUTH_KV) return null;
-  const client = await ensureFirstPartyClient(env, key);
+  const app = firstPartyApp(key);
+  if (!app) return null;
+  const client = await ensureFirstPartyClient(env);
   if (!client) return null;
   return {
     client_id: client.clientId,
     client_name: client.clientName,
-    redirect_uri: client.redirectUris[0],
+    app: app.product,
+    app_name: app.name,
+    app_home: app.home,
+    redirect_uri: app.redirectUri,
     authorization_endpoint: `${AUTH_ORIGIN}/authorize`,
     token_endpoint: `${AUTH_ORIGIN}/oauth/token`,
     userinfo_endpoint: USERINFO_RESOURCE,
     resource: USERINFO_RESOURCE,
-    scopes: ["identity", "email", "profile"],
+    scopes: [...app.scopes],
     pkce: "S256",
+    client_model: "central-first-party-public-client",
   };
 }
 
@@ -568,16 +578,19 @@ const defaultHandler = {
         google_configured: Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET),
         oauth_storage: Boolean(env.OAUTH_KV),
         admin_mcp: Boolean(env.CONTROL_PLANE_MCP_TOKEN),
+        first_party_client: FIRST_PARTY_CLIENT.clientName,
+        first_party_apps: Object.keys(FIRST_PARTY_APPS),
         issuer: AUTH_ORIGIN,
         resource: USERINFO_RESOURCE,
         time: new Date().toISOString(),
       });
     }
     if (url.pathname === "/admin-mcp") return handleAdminMcp(request, env, ctx);
-    if (url.pathname === "/client-config/mail" && request.method === "GET") {
-      if (!oauthConfigured(env)) return json({ error: "identity_provider_not_configured" }, 503);
-      const config = await firstPartyClientConfig(env, "mail");
-      return config ? json(config) : json({ error: "unknown_first_party_client" }, 404);
+    const firstPartyMatch = url.pathname.match(/^\/client-config\/([a-z0-9_-]+)$/);
+    if (request.method === "GET" && firstPartyMatch) {
+      if (!env.OAUTH_KV) return json({ error: "identity_storage_not_configured" }, 503);
+      const config = await firstPartyClientConfig(env, firstPartyMatch[1]);
+      return config ? json(config) : json({ error: "unknown_first_party_app" }, 404);
     }
     if (url.pathname === "/authorize" && request.method === "GET") return beginConsent(request, env);
     if (url.pathname === "/authorize" && request.method === "POST") return finishConsent(request, env);
@@ -588,7 +601,9 @@ const defaultHandler = {
         issuer: AUTH_ORIGIN,
         userinfo: USERINFO_RESOURCE,
         scopes: SUPPORTED_SCOPES,
-        docs: "OAuth clients are registered through the authenticated /admin-mcp endpoint.",
+        first_party_client: FIRST_PARTY_CLIENT.clientName,
+        first_party_apps: Object.keys(FIRST_PARTY_APPS),
+        docs: "Clintware first-party products share one central public OAuth client with exact redirect allowlists. External/service clients may still be managed through /admin-mcp.",
       });
     }
     return json({ error: "not_found" }, 404);
