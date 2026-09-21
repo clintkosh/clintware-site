@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-19",
+  "generated_at": "2026-09-21",
   "counting_rule": "Count only implemented skills with SKILL.md and implemented plugin packages with a plugin manifest. Planned concepts and generator tools are excluded.",
   "totals": {
-    "skills_total": 19,
-    "skills_published_on_clintware": 18,
+    "skills_total": 20,
+    "skills_published_on_clintware": 19,
     "skills_personal_internal": 1,
     "plugin_packages_total": 1,
     "plugin_packages_published_on_clintware": 1,
@@ -135,6 +135,13 @@
       "slug": "oauth-identity-broker",
       "status": "personal_internal_not_catalog_published",
       "source_path": "skills/oauth-identity-broker/SKILL.md"
+    },
+    {
+      "name": "MCP Local Runner Builder",
+      "slug": "mcp-local-runner-builder",
+      "status": "published_on_clintware",
+      "category": "MCP / local automation",
+      "clintware_path": "/skills/mcp-local-runner-builder/SKILL.md"
     }
   ]
 }
