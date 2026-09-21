@@ -86,3 +86,10 @@ The sender uses only its existing Clintware MCP token. No extra handoff credenti
 For `target_client: "chatgpt"`, the Control Plane automatically mirrors the sanitized packet to the private `clintkosh/PowerChatBridge` inbox. A running PowerChatBridge receiver detects the packet and submits it into the active ChatGPT web conversation. The user does not need to copy a link, handoff ID, packet, token, or prompt between models.
 
 Do not put provider credentials or secrets in the packet. The private bridge is a context transport, not a secret transport.
+
+
+## Real-time receiver behavior
+
+For `target_client: "chatgpt"`, the handoff event is broadcast immediately through Clintware's durable WebSocket relay. PowerChatBridge receives it without polling GitHub or consuming a ChatGPT scheduled-task slot. If the receiver is offline, the stored handoff is replayed when the receiver reconnects and remains pending until acknowledged.
+
+The source LLM does not need a receiver credential. It continues to use only its normal scoped Clintware MCP token.

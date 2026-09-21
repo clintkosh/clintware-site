@@ -222,3 +222,12 @@ Use `control-plane/new-mcp-client.ps1` to provision ChatGPT, Claude, Gemini, Gro
 A handoff with `target_client: "chatgpt"` is automatically mirrored to the private PowerChatBridge inbox after normal MCP authentication and product-scope checks. The sending LLM needs no credential beyond its existing Clintware MCP token.
 
 PowerChatBridge then imports the packet locally and submits it into the active ChatGPT web conversation. This provides a no-copy/paste path for ChatGPT accounts that do not expose custom MCP/Developer Mode.
+
+
+## Event-driven ChatGPT receiver
+
+ChatGPT-targeted handoffs use a persistent WebSocket receiver at `wss://mcp.clintware.com/api/v1/handoff-stream`. The sender still uses only its existing scoped Clintware MCP credential and calls `clintware_handoff_put` with `target_client: "chatgpt"`.
+
+PowerChatBridge authenticates the receiver connection with the machine's existing GitHub CLI login for `clintkosh`. Clintware validates that GitHub identity live and does not persist the GitHub access token. Undelivered ChatGPT handoffs remain in RegistryHub and are replayed after reconnect until PowerChatBridge acknowledges local persistence.
+
+The private GitHub handoff mirror remains a best-effort audit/fallback copy; it is no longer the primary delivery mechanism.
