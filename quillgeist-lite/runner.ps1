@@ -131,8 +131,31 @@ function Find-Task {
   return $null
 }
 
+function Redact-LogLine {
+  param([string]$Line)
+  if ($null -eq $Line) { return "" }
+
+  $s = [string]$Line
+  $patterns = @(
+    '(?i)(client_secret|refresh_token|access_token|authorization|api[_-]?key|password)\s*[:=]\s*([^\s,;]+)',
+    'gh[pousr]_[A-Za-z0-9_]{20,}',
+    'github_pat_[A-Za-z0-9_]{20,}',
+    'ya29\.[A-Za-z0-9._-]+'
+  )
+
+  foreach ($pattern in $patterns) {
+    $s = [regex]::Replace($s,$pattern,'$1=[REDACTED]')
+  }
+
+  if ($s.Length -gt 4000) { $s = $s.Substring(0,4000) + " …[truncated]" }
+  return $s
+}
+
 function Invoke-AllowlistedTask {
-  param([object]$Job)
+  param(
+    [object]$Job,
+    [System.Net.WebSockets.ClientWebSocket]$Socket
+  )
 
   $registry = Get-Registry
   $task = Find-Task $registry ([string]$Job.task_id)
@@ -155,7 +178,6 @@ function Invoke-AllowlistedTask {
   $localScript = Join-Path $CacheDir ($safeName + ".ps1")
 
   Invoke-WebRequest -Uri ($RepoRaw + "/" + $scriptPath) -OutFile $localScript -UseBasicParsing
-
   if (-not (Test-Path $localScript)) {
     throw "Could not download task script '$scriptPath'."
   }
@@ -176,11 +198,32 @@ function Invoke-AllowlistedTask {
 
   $started = Get-Date
   $global:LASTEXITCODE = 0
-  $output = & $localScript @named 2>&1 | Out-String
+  $captured = New-Object System.Collections.Generic.List[string]
+  $seq = 0
+
+  & $localScript @named *>&1 | ForEach-Object {
+    $line = Redact-LogLine ([string]$_)
+    if ($line) {
+      $seq++
+      $captured.Add($line)
+      Write-Host $line
+      if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
+        Send-Json $Socket @{
+          type = "log"
+          job_id = [string]$Job.job_id
+          task_id = [string]$Job.task_id
+          seq = $seq
+          line = $line
+          timestamp = (Get-Date).ToUniversalTime().ToString("o")
+        }
+      }
+    }
+  }
+
   $code = $LASTEXITCODE
   if ($null -eq $code) { $code = 0 }
-
   $duration = [int]((Get-Date)-$started).TotalMilliseconds
+  $output = ($captured -join [Environment]::NewLine)
 
   if ($output.Length -gt 40000) {
     $output = $output.Substring($output.Length-40000)
@@ -194,6 +237,7 @@ function Invoke-AllowlistedTask {
     exit_code = [int]$code
     duration_ms = $duration
     output = $output
+    log_lines = $seq
     completed_at = (Get-Date).ToUniversalTime().ToString("o")
   }
 }
@@ -259,7 +303,7 @@ try {
         }
 
         try {
-          $result = Invoke-AllowlistedTask $job
+          $result = Invoke-AllowlistedTask $job $ws
         } catch {
           $result = @{
             type = "result"
