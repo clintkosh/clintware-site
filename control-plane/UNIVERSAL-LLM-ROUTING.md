@@ -75,3 +75,14 @@ From a trusted local checkout:
 ```
 
 Each command returns a different client token once. Configure that token only in that client's MCP/API authentication setting. Revoking one client does not require changing GitHub, Cloudflare, or another LLM's credentials.
+
+
+## Hands-free delivery to ChatGPT without ChatGPT Developer Mode
+
+When handing work to ChatGPT, the sending LLM should call `clintware_handoff_put` with `target_client: "chatgpt"`.
+
+The sender uses only its existing Clintware MCP token. No extra handoff credential is required.
+
+For `target_client: "chatgpt"`, the Control Plane automatically mirrors the sanitized packet to the private `clintkosh/PowerChatBridge` inbox. A running PowerChatBridge receiver detects the packet and submits it into the active ChatGPT web conversation. The user does not need to copy a link, handoff ID, packet, token, or prompt between models.
+
+Do not put provider credentials or secrets in the packet. The private bridge is a context transport, not a secret transport.
