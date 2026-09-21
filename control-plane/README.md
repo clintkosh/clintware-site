@@ -215,3 +215,10 @@ Administrative endpoints:
 - `DELETE /api/v1/mcp/clients/:client_id` — revoke that client without affecting other LLMs
 
 Use `control-plane/new-mcp-client.ps1` to provision ChatGPT, Claude, Gemini, Grok, Perplexity, or another client. Each client’s `allowed_products` list is enforced by the MCP tool layer before product data or actions are exposed. Product manifests remain the second enforcement boundary for repository paths, workflows, DNS, Flow execution, and infrastructure operations.
+
+
+## Automatic ChatGPT receiver
+
+A handoff with `target_client: "chatgpt"` is automatically mirrored to the private PowerChatBridge inbox after normal MCP authentication and product-scope checks. The sending LLM needs no credential beyond its existing Clintware MCP token.
+
+PowerChatBridge then imports the packet locally and submits it into the active ChatGPT web conversation. This provides a no-copy/paste path for ChatGPT accounts that do not expose custom MCP/Developer Mode.
