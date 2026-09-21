@@ -858,6 +858,34 @@ async function github(env,manifest,path,init={}){
   if(auth.token)headers.set("authorization",`Bearer ${auth.token}`);
   return fetch(`https://api.github.com${path}`,{...init,headers});
 }
+const POWERCHATBRIDGE_REPO={identity:"clintkosh",owner:"clintkosh",name:"PowerChatBridge"};
+async function mirrorHandoffToPowerChatBridge(env,packet){
+  if(String(packet?.target_client||"").toLowerCase()!=="chatgpt")return {ok:true,mirrored:false,reason:"target_not_chatgpt"};
+  const authManifest={repo:POWERCHATBRIDGE_REPO};
+  const auth=githubAuth(env,authManifest);
+  if(!auth.configured)return {ok:false,mirrored:false,error:"powerchatbridge_github_not_configured"};
+  const safePacket={
+    schema_version:1,
+    source:"clintware-control-plane",
+    transport:"private-github-inbox",
+    handoff:packet
+  };
+  const path=`handoffs/inbox/${String(packet.handoff_id).replace(/[^A-Za-z0-9._-]/g,"_")}.json`;
+  const body={
+    message:`Queue Clintware handoff ${packet.handoff_id} for ChatGPT`,
+    content:b64(JSON.stringify(safePacket)),
+    branch:"main"
+  };
+  const r=await github(env,authManifest,`/repos/${POWERCHATBRIDGE_REPO.owner}/${POWERCHATBRIDGE_REPO.name}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,{
+    method:"PUT",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok)return {ok:false,mirrored:false,status:r.status,error:"powerchatbridge_mirror_failed",detail:clip(await r.text(),2000)};
+  const data=await r.json();
+  return {ok:true,mirrored:true,path,commit_sha:data.commit?.sha||""};
+}
+
 async function repoRead(env,manifest,path,ref){
   const owner=manifest.repo.owner,repo=manifest.repo.name;
   const q=ref?`?ref=${encodeURIComponent(ref)}`:"";
@@ -1138,7 +1166,8 @@ function createMcpServer(env,mcpRequest,mcpAuth){
         "Use Clintware product manifests as the source of truth for repository identity and scope.",
         "Send only compact working context; never place provider tokens, passwords, API keys, cookies, or raw secret values in a handoff.",
         "When another model continues work, preserve handoff_id in notes/commits where useful for traceability.",
-        "Use capability discovery/request tools rather than requesting broad infrastructure credentials."
+        "Use capability discovery/request tools rather than requesting broad infrastructure credentials.",
+        "For a hands-free ChatGPT handoff, set target_client to chatgpt. Clintware will route the sanitized packet to the private PowerChatBridge inbox automatically."
       ]
     })}]};
   });
@@ -1165,9 +1194,13 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   },async(packet)=>{
     if(packet.product&&!mcpProductAllowed(mcpAuth,packet.product))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     if(!packet.product&&!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_required_for_scoped_client"})}]};
-    const r=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
+    const normalized=normalizeHandoff(packet);
+    const r=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
     const data=await r.json();
-    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+    if(!r.ok)return {isError:true,content:[{type:"text",text:JSON.stringify(data)}]};
+    const bridge=await mirrorHandoffToPowerChatBridge(env,normalized);
+    await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,bridge_mirrored:Boolean(bridge.mirrored)},bridge.ok,bridge.error||"");
+    return {isError:!bridge.ok,content:[{type:"text",text:JSON.stringify({...data,delivery:bridge})}]};
   });
   server.registerTool("clintware_handoff_get",{
     title:"Retrieve a cross-client Clintware work handoff",
@@ -1592,9 +1625,18 @@ export default {
         return await registryHub(env).fetch(new Request(`https://internal/mcp-client/${encodeURIComponent(decodeURIComponent(mcpClientMatch[1]))}`,{method:"DELETE"}));
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/handoffs"){
-        if(!await requireMcp(request,env))return json({error:"unauthorized"},401);
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
         const body=await reqJson(request,64_000);
-        return await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}));
+        if(body.product&&!mcpProductAllowed(mcpAuth,body.product))return json({error:"product_not_allowed"},403);
+        if(!body.product&&!mcpAuth.root)return json({error:"product_required_for_scoped_client"},400);
+        const normalized=normalizeHandoff(body);
+        const stored=await registryHub(env).fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(normalized)}));
+        const data=await stored.json();
+        if(!stored.ok)return json(data,stored.status);
+        const bridge=await mirrorHandoffToPowerChatBridge(env,normalized);
+        await audit(env,normalized.product||"proofos","handoff_put",normalized.handoff_id,{from_client:normalized.from_client,target_client:normalized.target_client,bridge_mirrored:Boolean(bridge.mirrored)},bridge.ok,bridge.error||"");
+        return json({...data,delivery:bridge},bridge.ok?200:502);
       }
       const handoffMatch=url.pathname.match(/^\/api\/v1\/handoffs\/([^/]+)$/);
       if(request.method==="GET"&&handoffMatch){
