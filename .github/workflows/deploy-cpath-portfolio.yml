@@ -64,11 +64,11 @@ jobs:
             '19 published applications / tools',
             '19 implemented skills',
             '18 published and 1 internal',
-            'Dear Quinton,',
+            'Hi Quinton,',
             'welcome-greeting',
             'welcome-viewport',
             '@media(prefers-reduced-motion:reduce)',
-            'I could have stopped at using n8n as the connective tissue.',
+            'I rely on n8n in a similar way for deterministic orchestration.',
             'Clintware Flow',
             'published a sanitized reusable skill',
             'AI slop',
@@ -126,7 +126,7 @@ jobs:
             headers=$(mktemp)
             body=$(mktemp)
             code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://cpath.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Fq 'Dear Quinton,' "$body"               && grep -Fq 'Clintware Flow' "$body"               && grep -Fq 'published a sanitized reusable skill' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Fq 'Hi Quinton,' "$body"               && grep -Fq 'Clintware Flow' "$body"               && grep -Fq 'published a sanitized reusable skill' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
               ready=1
               rm -f "$headers" "$body"
               break
