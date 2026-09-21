@@ -1,52 +1,61 @@
-# Micro1 Interviewer — LandThePlane
+# Micro1 Live Listener — LandThePlane
 
-Role-specific Windows interviewer for **micro1 — Revenue Operations & CRM Systems Specialist (SaaS)**.
+Windows live interview listener for **micro1 — Revenue Operations & CRM Systems Specialist (SaaS)**.
 
-## Current build
-2026-09-21
+## Correct product behavior
+This is not a mock interviewer.
 
-This build carries forward the current LandThePlane interview standard:
-- QUESTION → POINT → PROOF → RESULT → RELEVANCE → STOP → FOLLOW-UP
-- Crucible directness / proof / ownership scoring
-- Interpretation Gap minimal-repair coaching
-- user-selected communication lenses; nothing is inferred
-- evidence-integrity guardrails
-- high-contrast live-use UI
+The application listens to the real interview, transcribes interviewer audio, detects the likely question, and surfaces the best evidence-grounded Micro1 answer card for the candidate to use.
 
-## Micro1 role emphasis
-The question bank is weighted toward:
-- direct CRM configuration and ownership
+Pipeline:
+
+**SYSTEM / MIC AUDIO → LOCAL WHISPER → QUESTION DETECTION → ROLE ROUTER → ANSWER + PROOF + GUARDRAIL**
+
+## Audio
+- Default: Windows WASAPI loopback, intended for Teams / Zoom / Meet audio.
+- Optional microphone input.
+- PyAudioWPatch provides Windows WASAPI loopback capture.
+- faster-whisper provides local transcription.
+- The first run may download the selected Whisper model into the user's local LandThePlane model cache. Later transcription is local.
+
+## Live UI
+- live transcript
+- detected interviewer question
+- answer card
+- proof points to land
+- evidence-integrity guardrail
+- top alternate answer matches
+- paste-question fallback
+- JSON session export
+
+## Micro1 answer bank
+21 prepared routes covering:
+- tell me about yourself
+- why the role
+- Salesforce / CRM depth
+- process improvement
+- stale automation cleanup
+- duplicate customer entities
 - CRM / billing / ticketing source-of-truth conflicts
-- duplicate entity reconciliation
-- stale automations
-- permissions mismatches
-- cascading changes across automations and reports
-- renewal and entitlement exceptions
-- data-quality and reporting trust
-- AI-generated workflow recommendation evaluation
+- permissions
+- cascading field changes
+- data quality
+- renewal / entitlement exceptions
+- integration failures
+- evaluating AI-generated workflow recommendations
+- conflicting policies
+- change management
+- ambiguity / ownership
+- success metrics
+- mistakes / lessons
+- prioritization
 - written operational reasoning
+- direct-experience gaps
 
-## Candidate evidence loaded
-- Salesforce, Custify, Jira
-- roughly 40% → 99% visibility improvement
-- roughly 30% team-efficiency improvement
-- roughly $3M ARR portfolio context
-- roughly +20% renewals and +25% engagement at Dedrone
-- enterprise onboarding standardized to about one month
-- cross-functional CS / Support / Sales / Product / technical ownership
+## Evidence boundary
+The answer bank is written to use established candidate evidence without inflating it. In particular, it does not turn adjacent operational ownership into years of dedicated Salesforce administration or deep CPQ / subscription-billing administration.
 
-## Integrity boundary
-The build explicitly prevents answers from implying years as a dedicated Salesforce administrator or deep CPQ / subscription-billing administrator where that experience is not established. It coaches the candidate to distinguish direct operational ownership from privileged administrator-controlled changes.
+## Live answer standard
+POINT → PROOF → RESULT → RELEVANCE → STOP.
 
-## Features
-- Mock Interview with role-specific prompts
-- optional Windows text-to-speech for questions
-- optional Windows speech recognition for answers
-- local answer scoring
-- READY / REVIEW / REVISE / HOLD outcome
-- evidence-preservation + minimal-repair feedback
-- Live Coach question router
-- Evidence Bank
-- session review and Markdown/JSON export
-
-No API key is required. The application runs locally.
+The listener intentionally keeps the surfaced answer narrower than the candidate's full capability so it is readable during a live interview.
