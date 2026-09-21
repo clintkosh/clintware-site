@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import * as oauth from "oauth4webapi";
 import { z } from "zod";
-import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, universalRedirectUris, firstPartyApp } from "./first-party.js";
+import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
 
 const VERSION = "2026-09-21";
 const AUTH_ORIGIN = "https://auth.clintware.com";
@@ -407,40 +407,12 @@ function publicClient(client) {
 }
 
 
-async function ensureFirstPartyClient(env) {
-  const api = oauthApi(env);
-  const redirectUris = universalRedirectUris();
-  const listed = await api.listClients({ limit: 100 });
-  const existing = (listed.items || []).find((client) => client.clientName === FIRST_PARTY_CLIENT.clientName);
-
-  const desired = {
-    clientName: FIRST_PARTY_CLIENT.clientName,
-    clientUri: FIRST_PARTY_CLIENT.clientUri,
-    redirectUris,
-    tokenEndpointAuthMethod: FIRST_PARTY_CLIENT.tokenEndpointAuthMethod,
-  };
-
-  if (!existing) return api.createClient(desired);
-
-  const sameRedirects =
-    JSON.stringify([...(existing.redirectUris || [])].sort()) === JSON.stringify(redirectUris);
-  const sameMethod =
-    (existing.tokenEndpointAuthMethod || "client_secret_basic") === desired.tokenEndpointAuthMethod;
-  const sameUri = (existing.clientUri || "") === desired.clientUri;
-
-  if (sameRedirects && sameMethod && sameUri) return existing;
-  return api.updateClient(existing.clientId, desired);
-}
-
-async function firstPartyClientConfig(env, key) {
-  if (!env.OAUTH_KV) return null;
+async function firstPartyClientConfig(_env, key) {
   const app = firstPartyApp(key);
   if (!app) return null;
-  const client = await ensureFirstPartyClient(env);
-  if (!client) return null;
   return {
-    client_id: client.clientId,
-    client_name: client.clientName,
+    client_id: FIRST_PARTY_CLIENT_ID,
+    client_name: FIRST_PARTY_CLIENT.clientName,
     app: app.product,
     app_name: app.name,
     app_home: app.home,
@@ -451,7 +423,8 @@ async function firstPartyClientConfig(env, key) {
     resource: USERINFO_RESOURCE,
     scopes: [...app.scopes],
     pkce: "S256",
-    client_model: "central-first-party-public-client",
+    client_model: "central-first-party-cimd",
+    client_metadata_document: FIRST_PARTY_CLIENT_ID,
   };
 }
 
@@ -579,6 +552,8 @@ const defaultHandler = {
         oauth_storage: Boolean(env.OAUTH_KV),
         admin_mcp: Boolean(env.CONTROL_PLANE_MCP_TOKEN),
         first_party_client: FIRST_PARTY_CLIENT.clientName,
+        first_party_client_id: FIRST_PARTY_CLIENT_ID,
+        first_party_client_model: "cimd",
         first_party_apps: Object.keys(FIRST_PARTY_APPS),
         issuer: AUTH_ORIGIN,
         resource: USERINFO_RESOURCE,
@@ -586,9 +561,14 @@ const defaultHandler = {
       });
     }
     if (url.pathname === "/admin-mcp") return handleAdminMcp(request, env, ctx);
+    if (request.method === "GET" && url.pathname === "/client/clintware-web") {
+      return json(firstPartyClientMetadata(), 200, {
+        "cache-control": "public, max-age=300",
+      });
+    }
+
     const firstPartyMatch = url.pathname.match(/^\/client-config\/([a-z0-9_-]+)$/);
     if (request.method === "GET" && firstPartyMatch) {
-      if (!env.OAUTH_KV) return json({ error: "identity_storage_not_configured" }, 503);
       const config = await firstPartyClientConfig(env, firstPartyMatch[1]);
       return config ? json(config) : json({ error: "unknown_first_party_app" }, 404);
     }
@@ -602,8 +582,10 @@ const defaultHandler = {
         userinfo: USERINFO_RESOURCE,
         scopes: SUPPORTED_SCOPES,
         first_party_client: FIRST_PARTY_CLIENT.clientName,
+        first_party_client_id: FIRST_PARTY_CLIENT_ID,
+        first_party_client_model: "cimd",
         first_party_apps: Object.keys(FIRST_PARTY_APPS),
-        docs: "Clintware first-party products share one central public OAuth client with exact redirect allowlists. External/service clients may still be managed through /admin-mcp.",
+        docs: "Clintware first-party products share one central public OAuth Client ID Metadata Document with exact redirect allowlists. External/service clients may still be managed through /admin-mcp.",
       });
     }
     return json({ error: "not_found" }, 404);
@@ -625,6 +607,7 @@ const OAUTH_OPTIONS = {
     scopes_supported: SUPPORTED_SCOPES,
     resource_name: "Clintware Identity",
   },
+  clientIdMetadataDocumentEnabled: true,
   allowImplicitFlow: false,
   allowPlainPKCE: false,
 };
