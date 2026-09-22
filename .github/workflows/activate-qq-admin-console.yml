@@ -48,7 +48,7 @@ jobs:
           echo "JOB_ID=$job_id"
 
           final=""
-          for i in $(seq 1 36); do
+          for i in $(seq 1 60); do
             state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
             echo "$state"
             status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
