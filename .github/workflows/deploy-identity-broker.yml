@@ -148,18 +148,22 @@ jobs:
           set -euo pipefail
           mail=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/mail)
           n7=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/neuron7-case)
-          MAIL_JSON="$mail" N7_JSON="$n7" python3 - <<'PY'
+          admin=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-admin)
+          MAIL_JSON="$mail" N7_JSON="$n7" ADMIN_JSON="$admin" python3 - <<'PY'
           import json, os
           mail=json.loads(os.environ["MAIL_JSON"])
           n7=json.loads(os.environ["N7_JSON"])
-          assert mail["client_id"] == n7["client_id"], (mail,n7)
+          admin=json.loads(os.environ["ADMIN_JSON"])
+          assert mail["client_id"] == n7["client_id"] == admin["client_id"], (mail,n7,admin)
           assert mail["client_name"] == "Clintware Web", mail
           assert n7["client_name"] == "Clintware Web", n7
           assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
           assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
-          assert mail["pkce"] == "S256" and n7["pkce"] == "S256"
+          assert admin["redirect_uri"] == "https://mcp.clintware.com/admin/callback", admin
+          assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256"
           assert mail["client_model"] == "central-first-party-cimd"
           assert n7["client_model"] == "central-first-party-cimd"
+          assert admin["client_model"] == "central-first-party-cimd"
           assert mail["client_id"] == "https://auth.clintware.com/client/clintware-web"
           assert n7["client_id"] == "https://auth.clintware.com/client/clintware-web"
           print("Central Clintware OAuth CIMD client verified for mail + neuron7-case:", mail["client_id"])
@@ -173,5 +177,6 @@ jobs:
           assert m["token_endpoint_auth_method"] == "none", m
           assert "https://mail.clintware.com/callback" in m["redirect_uris"], m
           assert "https://n7.clintware.com/auth/callback" in m["redirect_uris"], m
+          assert "https://mcp.clintware.com/admin/callback" in m["redirect_uris"], m
           print("CIMD metadata document verified.")
           PY
