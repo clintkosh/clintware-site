@@ -13,8 +13,28 @@ $LogoPath = Join-Path $FragmentDir "clintware-logo.png"
 $LogoUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64"
 $ProfileName = "Clintware(TM) Quillgeist Lite"
 $ProfileGuid = "{5c7d2c59-4989-4f24-9f07-cbd0a38acb6d}"
+$LauncherUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/launcher.ps1"
 
 Write-Host "Configuring Clintware Quillgeist Lite glass terminal..." -ForegroundColor Cyan
+
+Write-Host "Refreshing managed launcher..." -ForegroundColor Cyan
+$launcherTemp = $LauncherPath + ".new"
+Invoke-WebRequest -Uri $LauncherUrl -OutFile $launcherTemp -UseBasicParsing
+
+$tokens = $null
+$errors = $null
+[System.Management.Automation.Language.Parser]::ParseFile(
+  (Resolve-Path $launcherTemp),
+  [ref]$tokens,
+  [ref]$errors
+) | Out-Null
+
+if ($errors.Count -gt 0) {
+  Remove-Item $launcherTemp -Force -ErrorAction SilentlyContinue
+  throw "Updated Quillgeist Lite launcher failed PowerShell validation."
+}
+
+Move-Item $launcherTemp $LauncherPath -Force
 
 $wt = Get-Command wt.exe -ErrorAction SilentlyContinue
 if (-not $wt) {
