@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-doctor-20260922-1021",
+  "request_id": "chatgpt-doctor-20260922-1024",
   "task_id": "clintware-doctor",
   "args": {},
-  "objective": "Verify that this ChatGPT session can dispatch a task through the Clintware Control Plane to the local Quillgeist Lite runner and receive the result."
+  "objective": "Verify end-to-end ChatGPT -> GitHub event -> Clintware Control Plane -> Quillgeist Lite local runner -> streamed result."
 }
