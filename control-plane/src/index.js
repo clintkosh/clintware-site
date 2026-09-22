@@ -7,7 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceSpaces, confluenceStatus, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-22-qq.2";
+const VERSION = "2026-09-22-n7-live.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -1652,6 +1652,40 @@ async function genericResearch(env,query){
     return {available:false,citations:[],context:"",reason:String(e?.code||"research_provider_error")};
   }
 }
+const N7_SPEECH_MODEL="@cf/openai/whisper-large-v3-turbo";
+
+async function transcribeAudioProvider(env,body){
+  if(!env.AI)return {ok:true,available:false,provider:"clintware-workers-ai",reason:"workers_ai_not_configured"};
+  const audio=String(body.audio_base64||"").trim();
+  if(!audio)return {ok:false,status:400,error:"audio_required"};
+  if(audio.length>18_000_000)return {ok:false,status:413,error:"audio_chunk_too_large"};
+  const language=clip(body.language||"en",20);
+  const initialPrompt=clip(body.initial_prompt||"",1500);
+  try{
+    const result=await env.AI.run(N7_SPEECH_MODEL,{
+      audio,
+      task:"transcribe",
+      language,
+      vad_filter:true,
+      initial_prompt:initialPrompt||undefined,
+      condition_on_previous_text:true
+    });
+    const text=String(result?.text||result?.transcription_info?.text||"").trim();
+    if(!text)return {ok:true,available:false,provider:"clintware-workers-ai",model:N7_SPEECH_MODEL,reason:"empty_transcript"};
+    return {
+      ok:true,
+      available:true,
+      provider:"clintware-workers-ai",
+      model:N7_SPEECH_MODEL,
+      text,
+      word_count:Number(result?.word_count||result?.transcription_info?.word_count||0)||undefined,
+      segments:Array.isArray(result?.segments)?result.segments:undefined
+    };
+  }catch(e){
+    return {ok:true,available:false,provider:"clintware-workers-ai",model:N7_SPEECH_MODEL,reason:String(e?.message||"speech_to_text_error")};
+  }
+}
+
 async function invokeAiProvider(env,body){
   if(!env.AI)return {ok:true,available:false,provider:"clintware-workers-ai",reason:"workers_ai_not_configured"};
   const task=clip(body.task||"general",120);
@@ -2590,6 +2624,16 @@ export default {
         const internal=new Request("https://internal/state",{method:request.method,headers:{"content-type":"application/json"},body:request.method==="PUT"?JSON.stringify(body):undefined});
         const r=await productHub(env,product).fetch(internal);
         return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
+      }
+
+      if(request.method==="POST"&&url.pathname==="/api/v1/audio/transcribe"){
+        const body=await reqJson(request,20_000_000);const product=normalizeProduct(body.product)||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        if(!capabilityMatches(auth.manifest,`audio.transcribe:${product}`))return json({error:"capability_denied"},403);
+        const result=await transcribeAudioProvider(env,body);
+        await audit(env,product,"audio_transcribe",body.request_id,{provider:result.provider||"",model:result.model||"",available:result.available,mime_type:clip(body.mime_type||"",80)},result.available!==false,result.error||result.reason||"");
+        return json(result,result?.status||200);
       }
 
       if(request.method==="POST"&&url.pathname==="/api/v1/ai"){
