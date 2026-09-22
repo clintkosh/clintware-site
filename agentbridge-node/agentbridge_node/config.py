@@ -51,6 +51,17 @@ def _defaults() -> dict:
             "max_steps": 24,
             "auto_continue": True
         },
+        "state_compactor": {
+            "enabled": True,
+            "auto_scope_from_project": True,
+            "max_active_chars": 12000,
+            "min_duplicate_ratio": 0.25,
+            "min_reduction_pct": 8.0,
+            "recent_limit": 48,
+            "rehydrate_hits": 12,
+            "working_limit": 12,
+            "archive_max_atoms": 4000
+        },
         "telemetry": {
             "enabled": True,
             "privacy": "metadata_only",
@@ -83,6 +94,7 @@ class Config:
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["prompt_planner"] = {**_defaults()["prompt_planner"], **incoming.get("prompt_planner", {})}
+            base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
