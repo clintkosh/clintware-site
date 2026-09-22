@@ -517,6 +517,211 @@ function Resolve-CCompiler {
   throw "C compiler not found. Run the approved ensure-c-runtime task, then retry the C task."
 }
 
+function Get-QQLocalTokens {
+  param([string]$Text)
+  $tokens = New-Object System.Collections.Generic.List[string]
+  foreach ($m in [regex]::Matches([string]$Text,'(?:"([^"]*)"|''([^'']*)''|(\S+))')) {
+    if ($m.Groups[1].Success) { $tokens.Add($m.Groups[1].Value) }
+    elseif ($m.Groups[2].Success) { $tokens.Add($m.Groups[2].Value) }
+    else { $tokens.Add($m.Groups[3].Value) }
+  }
+  return $tokens.ToArray()
+}
+
+function Show-QQHelp {
+  Suspend-QQPrompt
+  Write-Host ""
+  Write-Host "QQ LOCAL CONSOLE" -ForegroundColor White
+  Write-Host "  help                         Show this command reference." -ForegroundColor Cyan
+  Write-Host "  status                       Show local runner, service, and admin state." -ForegroundColor Cyan
+  Write-Host "  tasks                        List reviewed qq tasks." -ForegroundColor Cyan
+  Write-Host "  run <task> [Name=Value ...]  Run an allowlisted task locally." -ForegroundColor Cyan
+  Write-Host "  jira                         Connect/reconnect Jira." -ForegroundColor Cyan
+  Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
+  Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
+  Write-Host "  reconnect                    Reconnect the Control Plane channel." -ForegroundColor Cyan
+  Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
+  Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
+  Write-Host ""
+  Write-Host "Remote MCP callers still cannot send arbitrary shell commands. The ! escape exists only for text physically entered in this local console." -ForegroundColor DarkGray
+  Write-Host ""
+  Show-QQPrompt
+}
+
+function Show-QQStatus {
+  Suspend-QQPrompt
+  $admin = Test-QQAdministrator
+  $socketState = if ($script:RunnerSocket) { [string]$script:RunnerSocket.State } else { "Disconnected" }
+  $service = Get-Service -Name "ClintwareQuillgeistLiteHealth" -ErrorAction SilentlyContinue
+
+  Write-Host ""
+  Write-Host "QQ STATUS" -ForegroundColor White
+  Write-Host ("  Privilege     : " + $(if($admin){"ADMIN"}else{"STANDARD"})) -ForegroundColor $(if($admin){"Cyan"}else{"DarkYellow"})
+  Write-Host ("  Control Plane : " + $socketState) -ForegroundColor Cyan
+  Write-Host ("  Health service: " + $(if($service){$service.Status}else{"not installed"})) -ForegroundColor Cyan
+  Write-Host ("  Machine       : " + $env:COMPUTERNAME) -ForegroundColor DarkGray
+  Write-Host ("  User          : " + [Security.Principal.WindowsIdentity]::GetCurrent().Name) -ForegroundColor DarkGray
+  Write-Host ""
+  Show-QQPrompt
+}
+
+function Invoke-QQLocalTask {
+  param(
+    [string]$TaskId,
+    [hashtable]$Arguments = @{}
+  )
+
+  $registry = Get-Registry
+  if (-not (Find-Task $registry $TaskId)) {
+    Suspend-QQPrompt
+    Write-Host ("Unknown qq task: " + $TaskId) -ForegroundColor Red
+    Show-QQPrompt
+    return
+  }
+
+  $job = [pscustomobject]@{
+    job_id = "local-" + [Guid]::NewGuid().ToString("n")
+    task_id = $TaskId
+    args = [pscustomobject]$Arguments
+    objective = "Local qq console"
+  }
+
+  Suspend-QQPrompt
+  Write-Host ("LOCAL TASK // " + $TaskId) -ForegroundColor Cyan
+  try {
+    $result = Invoke-AllowlistedTask $job $null
+    $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
+    Write-Log ("Local task {0} finished with status {1}" -f $TaskId,$result.status) $level
+    if ($result.output) {
+      Suspend-QQPrompt
+      Write-Host "--- RESULT ---" -ForegroundColor DarkCyan
+      Write-Host ([string]$result.output) -ForegroundColor White
+    }
+  } catch {
+    Write-Log ("Local task failed: " + $_.Exception.Message) "ERROR"
+  }
+  Show-QQPrompt
+}
+
+function Invoke-QQLocalShell {
+  param([string]$Command)
+
+  if (-not $Command) {
+    Suspend-QQPrompt
+    Write-Host "Usage: ! <PowerShell command>" -ForegroundColor DarkYellow
+    Show-QQPrompt
+    return
+  }
+
+  Suspend-QQPrompt
+  $mode = if (Test-QQAdministrator) { "ADMIN" } else { "STANDARD" }
+  Write-Host ("LOCAL " + $mode + " POWERSHELL // " + $Command) -ForegroundColor DarkYellow
+
+  $ps = Get-Command pwsh -ErrorAction SilentlyContinue
+  if (-not $ps) { $ps = Get-Command powershell -ErrorAction Stop }
+
+  try {
+    & $ps.Source -NoProfile -ExecutionPolicy Bypass -Command $Command *>&1 | ForEach-Object {
+      Write-Host (Redact-LogLine ([string]$_)) -ForegroundColor White
+    }
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host ("Exit code: " + $LASTEXITCODE) -ForegroundColor Red
+    }
+  } catch {
+    Write-Host (Redact-LogLine $_.Exception.Message) -ForegroundColor Red
+  }
+
+  Show-QQPrompt
+}
+
+function Invoke-QQLocalCommand {
+  param([string]$Line)
+
+  $line = ([string]$Line).Trim()
+  if (-not $line) { Show-QQPrompt; return }
+
+  if ($line.StartsWith("!")) {
+    Invoke-QQLocalShell ($line.Substring(1).Trim())
+    return
+  }
+
+  $lower = $line.ToLowerInvariant()
+  switch ($lower) {
+    "help" { Show-QQHelp; return }
+    "?" { Show-QQHelp; return }
+    "status" { Show-QQStatus; return }
+    "tasks" {
+      Suspend-QQPrompt
+      $registry = Get-Registry
+      Write-Host ""
+      Write-Host "QQ REVIEWED TASKS" -ForegroundColor White
+      foreach ($p in $registry.tasks.PSObject.Properties) {
+        Write-Host ("  " + $p.Name) -ForegroundColor Cyan -NoNewline
+        Write-Host ("  // " + [string]$p.Value.title) -ForegroundColor DarkGray
+      }
+      Write-Host ""
+      Show-QQPrompt
+      return
+    }
+    "jira" { Invoke-QQLocalTask "connect-jira"; return }
+    "connect jira" { Invoke-QQLocalTask "connect-jira"; return }
+    "connect-jira" { Invoke-QQLocalTask "connect-jira"; return }
+    "doctor" { Invoke-QQLocalTask "clintware-doctor"; return }
+    "update" { Invoke-QQLocalTask "self-update"; return }
+    "update qq" { Invoke-QQLocalTask "self-update"; return }
+    "clear" {
+      try { Clear-Host } catch {}
+      Show-QuillgeistSplash
+      Show-QQPrompt
+      return
+    }
+    "reconnect" {
+      Write-Log "Local reconnect requested." "WARN"
+      try { if ($script:RunnerSocket) { $script:RunnerSocket.Abort() } } catch {}
+      return
+    }
+  }
+
+  if ($lower.StartsWith("run ")) {
+    $tokens = @(Get-QQLocalTokens $line.Substring(4).Trim())
+    if ($tokens.Count -lt 1) {
+      Suspend-QQPrompt
+      Write-Host "Usage: run <task> [Name=Value ...]" -ForegroundColor DarkYellow
+      Show-QQPrompt
+      return
+    }
+
+    $taskId = [string]$tokens[0]
+    $args = @{}
+    foreach ($token in $tokens | Select-Object -Skip 1) {
+      $idx = $token.IndexOf("=")
+      if ($idx -le 0) {
+        Suspend-QQPrompt
+        Write-Host ("Invalid task argument '" + $token + "'. Use Name=Value.") -ForegroundColor Red
+        Show-QQPrompt
+        return
+      }
+      $args[$token.Substring(0,$idx)] = $token.Substring($idx+1)
+    }
+
+    Invoke-QQLocalTask $taskId $args
+    return
+  }
+
+  try {
+    $registry = Get-Registry
+    if (Find-Task $registry $line) {
+      Invoke-QQLocalTask $line
+      return
+    }
+  } catch {}
+
+  Suspend-QQPrompt
+  Write-Host ("Unknown qq command: " + $line) -ForegroundColor DarkYellow
+  Write-Host "Type help for local commands, tasks for the reviewed task list, or prefix a local PowerShell command with !." -ForegroundColor DarkGray
+  Show-QQPrompt
+}
+
 function Invoke-AllowlistedTask {
   param(
     [object]$Job,
@@ -643,7 +848,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.3.0"
+        version = "1.4.0"
         runtimes = @("powershell","python","c")
       }
 
@@ -663,10 +868,31 @@ try {
       Write-Host "READY" -ForegroundColor White -NoNewline
       Write-Host " // CONTROL PLANE LINK ACTIVE" -ForegroundColor Cyan
       Write-Host ""
+      Write-Host "  Interactive local console enabled. Type " -ForegroundColor DarkGray -NoNewline
+      Write-Host "help" -ForegroundColor Cyan -NoNewline
+      Write-Host " or use " -ForegroundColor DarkGray -NoNewline
+      Write-Host "! <PowerShell>" -ForegroundColor DarkYellow -NoNewline
+      Write-Host " for a local-only shell command." -ForegroundColor DarkGray
+      Write-Host ""
+      Show-QQPrompt
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
-        $msg = Receive-Json $ws
-        if ($null -eq $msg) { break }
+        $localInput = Read-QQConsoleLine
+        if ($localInput.Ready) {
+          Invoke-QQLocalCommand ([string]$localInput.Line)
+        }
+
+        $incoming = Poll-ReceiveJson $ws
+        if ($incoming.State -eq "pending") {
+          Start-Sleep -Milliseconds 35
+          continue
+        }
+        if ($incoming.State -eq "closed") { break }
+        $msg = $incoming.Message
+        if ($null -eq $msg) {
+          Start-Sleep -Milliseconds 35
+          continue
+        }
 
         if ($msg.type -eq "ping") {
           Send-Json $ws @{
@@ -728,6 +954,7 @@ try {
       } catch {}
     } finally {
       $script:RunnerSocket = $null
+      Reset-QQReceiveState
       if ($ws) {
         try { $ws.Dispose() } catch {}
       }
