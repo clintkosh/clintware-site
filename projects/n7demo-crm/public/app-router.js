@@ -1,5 +1,6 @@
 function body(){
  if(tab==='command')return command();
+ if(tab==='kb')return kb();
  if(tab==='implementation')return implementation();
  if(tab==='raci')return raci();
  if(tab==='deployment')return deployment();
@@ -36,6 +37,10 @@ function bind(){
  let th=document.querySelector('#theme');th.value=theme;th.onchange=()=>{theme=th.value;localStorage.setItem('n7theme',theme);applyTheme()};
  let tm=document.querySelector('#template');if(tm)tm.onclick=accuracyTemplate;
  let br=document.querySelector('#brief');if(br)br.onclick=brief;
+ let kn=document.querySelector('#kb-new');if(kn)kn.onclick=()=>kbEdit();
+ let kg=document.querySelector('#kb-guideline');if(kg)kg.onclick=kbGuideline;
+ let ks=document.querySelector('#kb-settings');if(ks)ks.onclick=kbSettings;
+ document.querySelectorAll('[data-kb-open]').forEach(x=>x.onclick=()=>openKbArticle(x.dataset.kbOpen));
  let ra=document.querySelector('#raci-add');if(ra)ra.onclick=()=>raciEdit();
  document.querySelectorAll('[data-raci-edit]').forEach(b=>b.onclick=()=>raciEdit(Number(b.dataset.raciEdit)));
  document.querySelectorAll('[data-edit-jira]').forEach(b=>b.onclick=jiraSettings);
