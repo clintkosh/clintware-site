@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
 $script:RunnerSocket = $null
 $script:RunnerDiagSeq = 0
-$script:PendingDiagnostics = New-Object System.Collections.Generic.List[object]
+$script:PendingDiagnostics = @()
 
 function Queue-RunnerDiagnostic {
   param(
@@ -41,14 +41,14 @@ function Queue-RunnerDiagnostic {
     } catch {}
   }
 
-  $script:PendingDiagnostics.Add($entry)
+  $script:PendingDiagnostics += ,$entry
 }
 
 function Flush-RunnerDiagnostics {
   if (-not $script:RunnerSocket -or $script:RunnerSocket.State -ne [Net.WebSockets.WebSocketState]::Open) { return }
 
-  $pending = @($script:PendingDiagnostics)
-  $script:PendingDiagnostics.Clear()
+  $pending = $script:PendingDiagnostics
+  $script:PendingDiagnostics = @()
 
   foreach ($entry in $pending) {
     try {
@@ -338,8 +338,8 @@ function Send-Json {
 
   $json = $Value | ConvertTo-Json -Depth 12 -Compress
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-  $seg = New-Object "System.ArraySegment[byte]" -ArgumentList (,$bytes)
-  $Socket.SendAsync(
+  $seg = [System.ArraySegment[byte]]::new([byte[]]$bytes,0,$bytes.Length)
+  $null = $Socket.SendAsync(
     $seg,
     [Net.WebSockets.WebSocketMessageType]::Text,
     $true,
@@ -355,7 +355,7 @@ function Receive-Json {
 
   try {
     do {
-      $seg = New-Object "System.ArraySegment[byte]" -ArgumentList (,$buffer)
+      $seg = [System.ArraySegment[byte]]::new([byte[]]$buffer,0,$buffer.Length)
       $r = $Socket.ReceiveAsync(
         $seg,
         [Threading.CancellationToken]::None
@@ -612,7 +612,7 @@ try {
       $ws.Options.SetRequestHeader("Authorization","Bearer $token")
       $ws.Options.SetRequestHeader("X-Quillgeist-Runner-Id",$env:COMPUTERNAME)
 
-      $ws.ConnectAsync(
+      $null = $ws.ConnectAsync(
         [Uri]$Endpoint,
         [Threading.CancellationToken]::None
       ).GetAwaiter().GetResult()
@@ -700,6 +700,9 @@ try {
     } catch {
       Write-Log ("Connection error: " + $_.Exception.Message) "WARN"
       Queue-RunnerDiagnostic "WARN" ($_.Exception.ToString()) "connection"
+      try {
+        Add-Content -Path $LogPath -Value ("FULL_EXCEPTION " + $_.Exception.ToString())
+      } catch {}
     } finally {
       $script:RunnerSocket = $null
       if ($ws) {
