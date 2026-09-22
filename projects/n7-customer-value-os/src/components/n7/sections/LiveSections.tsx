@@ -604,7 +604,9 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       try {
         const blob = await recordSegment(stream, 8000);
         if (!liveRef.current && !blob.size) break;
-        processingRef.current = processingRef.current.then(() => processBlob(blob));
+        processingRef.current = processingRef.current.then(async () => {
+          await processBlob(blob);
+        });
       } catch (error: any) {
         toast.error(error?.message || "Could not capture machine audio.");
         break;
