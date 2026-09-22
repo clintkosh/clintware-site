@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-theme-20260922-1418",
-  "task_id": "self-update",
+  "request_id": "chatgpt-theme-verify-20260922-1424",
+  "task_id": "clintware-doctor",
   "args": {},
-  "objective": "Apply the new static Clintware ASCII eclipse boot logo and Clintware dark terminal theme locally, then restart Quillgeist Lite visibly."
+  "objective": "Verify the restarted Quillgeist Lite runner is live after the Clintware terminal theme update and emit visible status lines in the local terminal."
 }
