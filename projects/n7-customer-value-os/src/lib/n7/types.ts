@@ -388,6 +388,19 @@ export type MeetingType =
   | "checkpoint";
 
 /** A recorded checkpoint. The snapshot is what the delta engine compares against. */
+export interface CallPrepRecord {
+  id: ID;
+  customerId: ID;
+  date: string;
+  type: MeetingType;
+  objective: string;
+  attendeeIds: ID[];
+  sourceIds: ID[];
+  generatedAt: string;
+  generationMode: "local" | "control-plane";
+  briefText: string;
+}
+
 export interface MeetingRecord {
   id: ID;
   customerId: ID;
@@ -507,6 +520,8 @@ export interface CustomerWorkspace {
   readiness: ReadinessGateField[];
   messages: CustomerMessage[];
   assumptions: Assumption[];
+  /** Prepared call packs. Optional so older persisted state still loads. */
+  callPreps?: CallPrepRecord[];
   /** Recorded meeting checkpoints. Optional so older persisted state still loads. */
   meetings?: MeetingRecord[];
 }
