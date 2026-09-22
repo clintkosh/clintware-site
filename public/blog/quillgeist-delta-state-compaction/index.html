@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Quillgeist was already compacting long AI work. A new dlab post on CliffCompaction highlighted the same problem, and prompted the next step: delta-state context that stops resending known history.">
+  <meta name="theme-color" content="#07090d">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Beyond Auto-Compaction: Quillgeist Moves to Delta-State Context | Clintware™">
+  <meta property="og:description" content="Independent convergence on long-session AI compaction, and the next Quillgeist step: exact anchors, bounded working state, cold history, and just-in-time rehydration.">
+  <meta property="og:url" content="https://www.clintware.com/blog/quillgeist-delta-state-compaction/">
+  <meta property="article:published_time" content="2026-09-22">
+  <link rel="canonical" href="https://www.clintware.com/blog/quillgeist-delta-state-compaction/">
+  <title>Beyond Auto-Compaction: Quillgeist Moves to Delta-State Context | Clintware™</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+</head>
+<body>
+  <header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span>™</a><nav class="site-nav" data-site-nav aria-label="Primary navigation"></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
+  <main>
+    <header class="article-header"><div class="article-shell">
+      <div class="crumbs"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/blog/">Build Notes</a><span aria-hidden="true">/</span><span>Delta-State Context</span></div>
+      <span class="section-kicker">BUILD NOTE · SEPTEMBER 22, 2026</span>
+      <h1>Beyond Auto-Compaction: Quillgeist Moves to Delta-State Context</h1>
+      <p class="article-dek">A new dlab post on CliffCompaction described the same long-session problem Quillgeist had already been attacking. The interesting part is the independent convergence, and what happens when compaction becomes state management instead of repeated summarization.</p>
+      <div class="article-meta">By Clinton Kosh</div>
+      <div class="article-rule"></div>
+    </div></header>
+    <article class="article-shell article-body">
+      <p>Yesterday I read <a href="https://timdettmers.com/2026/09/21/dlab-open-source-week/" rel="noopener noreferrer">Tim Dettmers' dlab Open Source Week post</a>. One section immediately felt familiar. It described <strong>CliffCompaction</strong>, an automatic context-compaction system intended to keep long-running AI agents useful without continuously paying to resend the full history.</p>
+
+      <p>Dettmers writes that dlab has used the approach for months, including sessions reaching millions of cumulative tokens and some exceeding 100 million, and reports roughly 50 percent inference-cost reduction. He also cites a partner reporting a 45 percent AI-budget reduction. Those are dlab and partner claims, not numbers I have independently reproduced.</p>
+
+      <p>The benchmark claims were interesting. The problem definition was more interesting.</p>
+
+      <h2>Why it felt familiar</h2>
+
+      <p>Quillgeist had already been moving toward the same class of solution.</p>
+
+      <p>On <strong>September 2, 2026</strong>, I committed the first <a href="https://github.com/clintkosh/clintware-site/commit/a425e15c47cdc3f79f5448cd7717d1a5ba1c50c7" rel="noopener noreferrer">Quillgeist automatic prompt compaction and continuation planner</a>. Follow-up work that same day strengthened recursive auto-compaction, logical task boundaries, QA, and continuation. By September 19, the reusable Quillgeist skill was published on Clintware.</p>
+
+      <p>That history matters because it lets me describe the connection carefully. This is <strong>independent convergence on the same problem</strong>. I am not claiming Quillgeist and CliffCompaction use the same implementation, and I am not claiming Quillgeist currently beats dlab's system.</p>
+
+      <p>What the dlab post did was give me a useful external signal that this problem is worth pushing harder.</p>
+
+      <h2>The weakness in Quillgeist's first approach</h2>
+
+      <p>The first Quillgeist design already avoided blindly carrying the entire conversation forward. It compacted unresolved requirements plus only the prior outputs needed for the next step, then continued automatically.</p>
+
+      <p>That is better than replaying raw history, but it still leaves a subtle inefficiency. If the system keeps summarizing information it already knows, the compaction process itself becomes repeated work.</p>
+
+      <p>There is also a fidelity problem. A summary of a summary can slowly soften exact requirements. A filename changes. A count disappears. A negative constraint gets paraphrased. A failure that mattered three steps ago becomes generic background.</p>
+
+      <p>So the next Quillgeist question became:</p>
+
+      <p><strong>What if we stop treating the conversation as memory at all?</strong></p>
+
+      <h2>Delta-state instead of conversation memory</h2>
+
+      <p>The new Quillgeist delta-state layer separates context into four different jobs.</p>
+
+      <ul>
+        <li><strong>Exact anchors</strong> preserve names, counts, quoted text, paths, URLs, permissions, privacy constraints, exclusions, and definitions of done without paraphrasing them.</li>
+        <li><strong>Working state</strong> keeps the newest delta, current failures, explicit decisions, and a bounded set of open work.</li>
+        <li><strong>Recent unique context</strong> keeps a short tail of information that has not yet become durable state.</li>
+        <li><strong>Cold history</strong> keeps older material locally and rehydrates only the pieces strongly relevant to the next step.</li>
+      </ul>
+
+      <p>The sequence is now closer to this:</p>
+
+      <p><code>KNOWN STATE + NEW DELTA → EXACT ANCHORS → BOUNDED WORKING SET → COLD HISTORY → JIT REHYDRATION → NEXT STEP → STATE UPDATE</code></p>
+
+      <p>The important change is that Quillgeist does not need to keep recompressing the same known material. Incoming context is fingerprinted. Repeated material is recognized. New information becomes the delta. Older work can stay available without staying expensive.</p>
+
+      <h2>Compaction is allowed to do nothing</h2>
+
+      <p>One result from implementing this was counterintuitive but important. A compactor can make a short prompt <em>bigger</em> once headers, metadata, and state labels are added.</p>
+
+      <p>So delta-state compaction does not automatically replace the original prompt just because the feature exists.</p>
+
+      <p>The runtime checks whether prior state exists, how much of the incoming context is already known, and whether the rendered active state is actually smaller by a meaningful amount. If it is not, the original context passes through unchanged while the local state can still be updated for later use.</p>
+
+      <p>Exact anchors also get a safety check. If preserving them would consume too much of the active-context budget, the system fails open to the original context rather than quietly throwing requirements away.</p>
+
+      <h2>Less model work where deterministic work is enough</h2>
+
+      <p>This is another area where I want Quillgeist to push beyond its first implementation.</p>
+
+      <p>Not every context problem requires another model call. Deduplication, fingerprints, exact-anchor preservation, state hashing, bounded selection, and much of retrieval can be handled deterministically and locally. Model reasoning should be spent where semantic judgment adds value, not on repeatedly rediscovering facts the system already has.</p>
+
+      <p>The local state now has an inspectable revision and hash, and the standalone Quillgeist state interface supports ingest, show, status, and explicit reset operations. Project-scoped planning can use the state automatically while still allowing it to be disabled.</p>
+
+      <h2>Is it better than CliffCompaction?</h2>
+
+      <p>I do not know yet.</p>
+
+      <p>That comparison needs a real benchmark. The dlab announcement describes impressive results, but I have not tested its implementation against this one. Claiming a winner before measuring task fidelity, anchor loss, token use, latency, error recovery, and cost would turn an interesting engineering problem into marketing.</p>
+
+      <p>What I can say now is narrower and more useful. <strong>Delta-state is a meaningful improvement over Quillgeist's own first recursive-compaction design.</strong> It attacks redundant re-compaction directly, gives exact requirements a separate protected layer, and makes old context retrievable without making it permanently active.</p>
+
+      <h2>I published the method as a reusable skill</h2>
+
+      <p>The architecture is not useful only inside Quillgeist, so I pulled the operating method out into a public, infrastructure-neutral skill.</p>
+
+      <p><a href="/skills/delta-state-context-compaction/SKILL.md"><strong>Delta-State Context Compaction → Read the shared skill</strong></a></p>
+
+      <p>It covers delta ingestion, exact anchors, bounded working state, cold history, just-in-time rehydration, state inspection, compaction thresholds, privacy boundaries, failure modes, and the measurements needed before anyone claims an efficiency win.</p>
+
+      <p>The Quillgeist implementation remains local-first. The shared skill does not require Clintware infrastructure and can be adapted to another agent harness, MCP service, CLI, or application.</p>
+
+      <h2>What I want to measure next</h2>
+
+      <p>The next useful work is not another feature list. It is comparison data.</p>
+
+      <p>I want to measure recursive compaction against delta-state on long-running tasks using the same starting context and definition of done. The important metrics are not only tokens removed. They include exact-anchor retention, downstream task success, failure recovery, latency, state drift, and how often cold context has to be rehydrated.</p>
+
+      <p>If CliffCompaction's implementation becomes available for a reproducible comparison, it belongs in that test as well.</p>
+
+      <p>The part I like most about this is not a claim that I got there first. It is that an idea I had been building toward independently showed up in serious frontier-model work a few weeks later. That is useful validation of the problem. It also creates a better question than “who thought of compaction?”</p>
+
+      <p><strong>How little context can an agent carry while still remembering exactly what matters?</strong></p>
+
+      <p>That is the question Quillgeist is now designed to test.</p>
+
+      <div class="article-closing">Explore <a href="https://quillgeist.clintware.com/">Quillgeist</a>, read the <a href="/skills/delta-state-context-compaction/SKILL.md">Delta-State Context Compaction skill</a>, or return to <a href="/blog/">Clintware™ Build Notes</a>.</div>
+    </article>
+  </main>
+  <footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware™ · GO FURTHEST.™</span><span class="footer-links"><a href="/work/">Professional</a><a href="/tools/">Products</a><a href="/startup/">Startup / YC</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a></span></div></footer>
+  <script src="/assets/clintware.js" defer></script>
+</body>
+</html>
