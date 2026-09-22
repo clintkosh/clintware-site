@@ -5,7 +5,7 @@ const REQUIRED_READ = ["read:confluence-content.all","read:confluence-space.summ
 const REQUIRED_WRITE = ["write:confluence-content"];
 
 function scopeSet(grant){
-  return new Set(String(grant?.scope||"").split(/\\s+/).filter(Boolean));
+  return new Set(String(grant?.scope||"").split(/\s+/).filter(Boolean));
 }
 function hasScopes(grant, required){
   const s=scopeSet(grant);
@@ -27,7 +27,7 @@ async function callConfluence(env,{cloud_id,method="GET",path,body}){
   if(!hasScopes(auth.grant,REQUIRED_READ))return{ok:false,error:"confluence_reauthorization_required",missing_scopes:REQUIRED_READ.filter(x=>!scopeSet(auth.grant).has(x))};
   const selected=selectSite(auth.grant,cloud_id);
   if(!selected.ok)return selected;
-  const apiUrl=API_ORIGIN+"/ex/confluence/"+encodeURIComponent(selected.site.id)+"/wiki/api/v2/"+String(path||"").replace(/^\\/+/, "");
+  const apiUrl=API_ORIGIN+"/ex/confluence/"+encodeURIComponent(selected.site.id)+"/wiki/api/v2/"+String(path||"").replace(/^\/+/, "");
   const doFetch=token=>fetch(apiUrl,{
     method,
     headers:{
@@ -52,15 +52,15 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 function storageBody(value){
-  const lines=String(value||"").split(/\\r?\\n/);
+  const lines=String(value||"").split(/\r?\n/);
   let html="",inList=false;
   const closeList=()=>{if(inList){html+="</ul>";inList=false;}};
   for(const raw of lines){
     const line=raw.trimEnd();
     if(!line.trim()){closeList();continue;}
-    if(/^•\\s+/.test(line)){
+    if(/^•\s+/.test(line)){
       if(!inList){html+="<ul>";inList=true;}
-      html+="<li>"+escapeHtml(line.replace(/^•\\s+/,""))+"</li>";
+      html+="<li>"+escapeHtml(line.replace(/^•\s+/,""))+"</li>";
       continue;
     }
     closeList();
