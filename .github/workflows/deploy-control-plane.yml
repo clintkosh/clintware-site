@@ -64,6 +64,9 @@ jobs:
           GITHUB_CONTROL_PLANE_TOKEN: ${{ secrets.CLINTWARE_GH_CONTROL_PLANE_TOKEN }}
           GITHUB_TOKEN_CODEFEDDY: ${{ secrets.CODEFEDDY_GH_CONTROL_PLANE_TOKEN }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          ATLASSIAN_CLIENT_ID: ${{ secrets.ATLASSIAN_CLIENT_ID }}
+          ATLASSIAN_CLIENT_SECRET: ${{ secrets.ATLASSIAN_CLIENT_SECRET }}
+          JIRA_TOKEN_ENCRYPTION_KEY: ${{ secrets.JIRA_TOKEN_ENCRYPTION_KEY }}
         run: |
           set -euo pipefail
           cd control-plane
@@ -102,6 +105,9 @@ jobs:
           put_secret GITHUB_TOKEN_CLINTKOSH "$GITHUB_CONTROL_PLANE_TOKEN"
           put_secret GITHUB_TOKEN_CODEFEDDY "$GITHUB_TOKEN_CODEFEDDY"
           put_secret EXA_API_KEY "$EXA_API_KEY"
+          put_secret ATLASSIAN_CLIENT_ID "$ATLASSIAN_CLIENT_ID"
+          put_secret ATLASSIAN_CLIENT_SECRET "$ATLASSIAN_CLIENT_SECRET"
+          put_secret JIRA_TOKEN_ENCRYPTION_KEY "$JIRA_TOKEN_ENCRYPTION_KEY"
 
       - name: Verify mcp.clintware.com health
         run: |
