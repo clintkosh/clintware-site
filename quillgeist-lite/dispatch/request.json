@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-theme-verify-20260922-1424",
-  "task_id": "clintware-doctor",
+  "request_id": "chatgpt-apply-glass-20260922",
+  "task_id": "apply-terminal-glass",
   "args": {},
-  "objective": "Verify the restarted Quillgeist Lite runner is live after the Clintware terminal theme update and emit visible status lines in the local terminal."
+  "objective": "Apply the dedicated Clintware Quillgeist Lite Windows Terminal acrylic profile at 20% opacity, install the real logo as a faint centered background image, preserve Clintware blue/white/orange/red terminal colors, refresh the managed launcher, and restart Quillgeist Lite into the glass profile."
 }
