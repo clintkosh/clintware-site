@@ -59,6 +59,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/self-update.ps1",
       "parameters": []
+    },
+    "apply-terminal-glass": {
+      "title": "Apply the Clintware acrylic Windows Terminal profile and restart Quillgeist Lite into it",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/apply-terminal-glass.ps1",
+      "parameters": []
     }
   }
 }
