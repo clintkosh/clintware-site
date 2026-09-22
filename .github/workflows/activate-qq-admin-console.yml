@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# verification pass: supervised admin console
+# verification pass: supervised admin console v3
 
 jobs:
   activate:
