@@ -1,0 +1,21 @@
+{
+  "candidate": "Clinton Kosh",
+  "target_role": "Director of Customer Experience",
+  "target_company": "Ridge",
+  "public_contact": "clint@clintware.com",
+  "evidence": [
+    {"source":"Dedrone","claim":"+20% renewals","use":"retention / customer health"},
+    {"source":"Dedrone","claim":"+25% engagement","use":"adoption / proactive customer motion"},
+    {"source":"Dedrone","claim":"standardized onboarding to about one month","use":"time-to-value / onboarding"},
+    {"source":"Check Point / Avanan","claim":"portfolio visibility improved from roughly 40% to 99%","use":"operational visibility"},
+    {"source":"Check Point / Avanan","claim":"roughly 30% efficiency improvement","use":"operating scale"},
+    {"source":"Cofense","claim":"roughly 90% CSAT under support leadership","use":"customer experience / support"},
+    {"source":"Dedrone","claim":"approximately $3M AWS-hosted solution value story","use":"executive and technical alignment"}
+  ],
+  "boundaries": [
+    "No claim of prior DTC ownership is made.",
+    "DTC-specific operating concepts are proposed approaches, not prior-employment claims.",
+    "No management-scope number is invented.",
+    "No private recruiting or interview content is included."
+  ]
+}
