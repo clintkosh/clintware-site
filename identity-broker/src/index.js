@@ -5,7 +5,7 @@ import * as oauth from "oauth4webapi";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-21.1";
+const VERSION = "2026-09-22.2";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -13,7 +13,6 @@ const GOOGLE_ISSUER = new URL("https://accounts.google.com");
 const GOOGLE_CALLBACK = `${AUTH_ORIGIN}/callback`;
 const TX_TTL_SECONDS = 600;
 const BIND_COOKIE = "__Host-clintware-oauth-bind";
-const TX_COOKIE = "__Host-clintware-oauth-tx";
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -139,27 +138,6 @@ function oauthConfigured(env) {
   return Boolean(env.OAUTH_KV && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET);
 }
 
-function setTransactionCookie(value) {
-  return `${TX_COOKIE}=${encodeURIComponent(value)}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${TX_TTL_SECONDS}`;
-}
-
-function clearTransactionCookie() {
-  return `${TX_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
-}
-
-async function readTransactionCookie(request, env, expectedKind) {
-  const sealed = cookieValue(request, TX_COOKIE);
-  if (!sealed) return null;
-  try {
-    const transaction = await unseal(env, sealed);
-    if (!transaction || transaction.kind !== expectedKind) return null;
-    const age = Date.now() - Number(transaction.createdAt || 0);
-    if (!Number.isFinite(age) || age < 0 || age > TX_TTL_SECONDS * 1000) return null;
-    return transaction;
-  } catch {
-    return null;
-  }
-}
 
 async function googleAuthorizationServer() {
   const response = await oauth.discoveryRequest(GOOGLE_ISSUER, { algorithm: "oidc" });
@@ -190,20 +168,41 @@ function denyAuthorization(oauthRequest) {
   return Response.redirect(redirect, 302);
 }
 
-function consentPage(client, oauthRequest, consentId, csrfToken) {
+function consentPage(client, oauthRequest, transactionToken, csrfToken) {
   const labels = {
-    identity: "Know your stable Clintware account ID",
-    email: "Read your verified Google email address",
-    profile: "Read your Google display name and profile image",
+    identity: "Stable Clintware account identity",
+    email: "Verified email address",
+    profile: "Display name and profile image",
   };
   const scopes = oauthRequest.scope.filter((scope) => SUPPORTED_SCOPES.includes(scope));
-  const scopeList = scopes.map((scope) => `<li><strong>${htmlEscape(scope)}</strong> — ${htmlEscape(labels[scope] || scope)}</li>`).join("");
+  const scopeList = scopes.map((scope) => `<li><span class="scope">${htmlEscape(scope)}</span><span>${htmlEscape(labels[scope] || scope)}</span></li>`).join("");
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize ${htmlEscape(client.clientName || "Clintware service")}</title>
-<style>body{margin:0;background:#0b0d10;color:#f4f7fb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:620px;margin:8vh auto;padding:28px}section{background:#14181d;border:1px solid #2b333d;border-radius:16px;padding:28px}h1{font-size:1.55rem;margin-top:0}p,li{color:#c8d0da;line-height:1.55}ul{padding-left:1.25rem}.actions{display:flex;gap:12px;margin-top:24px}button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}.approve{background:#f4f7fb;color:#0b0d10}.deny{background:#262d36;color:#f4f7fb}.fine{font-size:.85rem;color:#8f9aa7;margin-top:18px}</style></head>
-<body><main><section><p>CLINTWARE IDENTITY</p><h1>${htmlEscape(client.clientName || "A Clintware service")} wants to sign you in</h1><p>You will continue to Google to prove which account you control. Clintware does not store your Google password and does not keep a Google refresh token for sign-in.</p><ul>${scopeList}</ul>
-<form method="post" action="/authorize"><input type="hidden" name="consent" value="${htmlEscape(consentId)}"><input type="hidden" name="csrf" value="${htmlEscape(csrfToken)}"><div class="actions"><button class="approve" name="decision" value="approve" type="submit">Continue with Google</button><button class="deny" name="decision" value="deny" type="submit">Cancel</button></div></form>
-<p class="fine">Access is limited to the scopes shown above. Service authorization can be revoked without exposing your Google credentials.</p></section></main></body></html>`;
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Continue to Clintware</title>
+<style>
+:root{color-scheme:dark;--bg:#03070b;--panel:#0a1118;--line:#203344;--text:#f7fbff;--muted:#8ea2b4;--cyan:#57dcff;--mint:#75f2c0}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 21%,#103349 0,#071019 22%,#03070b 52%,#020406 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:720px;margin:0 auto;padding:7vh 22px 48px}.brandstage{height:260px;display:grid;place-items:center;position:relative}.eclipse{position:absolute;width:220px;height:220px;border-radius:50%;background:#010204;box-shadow:0 0 8px 1px #8eeaff,0 0 34px 8px #3dd7ff,0 0 78px 20px #168fc4,0 0 120px 35px #0a4d70}.wordmark{position:relative;z-index:2;font-size:clamp(44px,9vw,72px);font-weight:850;letter-spacing:-.055em;text-shadow:0 2px 28px #000}.tm{font-size:.28em;vertical-align:top;margin-left:5px;letter-spacing:0}
+.card{position:relative;background:linear-gradient(180deg,#0d1721ee,#071019f4);border:1px solid #294258;border-radius:24px;padding:30px;box-shadow:0 24px 90px #0008,inset 0 1px #ffffff0a;backdrop-filter:blur(18px)}.eyebrow{color:var(--cyan);font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}h1{font-size:31px;line-height:1.12;margin:12px 0 10px}.lead{color:#b8c6d2;line-height:1.6;margin:0 0 22px}
+ul{list-style:none;padding:0;margin:18px 0;border-top:1px solid var(--line)}li{display:grid;grid-template-columns:110px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);color:#a9bac8}.scope{color:var(--mint);font:700 12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:24px}button{appearance:none;border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:800;font-size:15px;cursor:pointer}.approve{background:#f7fbff;color:#061018;border-color:#f7fbff}.approve:hover{background:#dff7ff}.deny{background:#0a141e;color:#c9d6df}.fine{font-size:12px;color:#718697;line-height:1.55;margin:18px 0 0}.secure{display:flex;align-items:center;justify-content:center;gap:8px;color:#8297a9;font-size:12px;margin-top:22px}.dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}
+@media(max-width:580px){main{padding-top:18px}.brandstage{height:220px}.eclipse{width:185px;height:185px}.card{padding:22px;border-radius:18px}li{grid-template-columns:90px 1fr}.actions{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<div class="brandstage"><div class="eclipse" aria-hidden="true"></div><div class="wordmark">Clintware<span class="tm">TM</span></div></div>
+<section class="card">
+<div class="eyebrow">Clintware Identity</div>
+<h1>Continue to ${htmlEscape(client.clientName || "Clintware")}</h1>
+<p class="lead">Use Google to verify the account you control. Clintware does not receive your Google password and does not keep a Google refresh token for sign-in.</p>
+<ul>${scopeList}</ul>
+<form method="post" action="/authorize">
+<input type="hidden" name="transaction" value="${htmlEscape(transactionToken)}">
+<input type="hidden" name="csrf" value="${htmlEscape(csrfToken)}">
+<div class="actions"><button class="approve" name="decision" value="approve" type="submit">Continue with Google</button><button class="deny" name="decision" value="deny" type="submit">Cancel</button></div>
+</form>
+<p class="fine">Only the permissions shown above are requested. Google proves identity; Clintware issues its own scoped authorization separately from infrastructure credentials.</p>
+</section>
+<div class="secure"><span class="dot"></span><span>Secure sign-in · auth.clintware.com</span></div>
+</main></body></html>`;
 }
 
 async function beginConsent(request, env) {
@@ -225,32 +224,28 @@ async function beginConsent(request, env) {
     return Response.redirect(redirect, 302);
   }
 
-  const consentId = randomToken(24);
   const csrf = randomToken(24);
   const binding = randomToken(32);
   const transaction = await seal(env, {
     kind: "consent",
-    consentId,
     oauthRequest,
     csrfHash: await sha256(csrf),
     bindingHash: await sha256(binding),
     createdAt: Date.now(),
   });
-  return html(consentPage(client, oauthRequest, consentId, csrf), 200, {
-    "set-cookie": [setBindingCookie(binding), setTransactionCookie(transaction)],
+  return html(consentPage(client, oauthRequest, transaction, csrf), 200, {
+    "set-cookie": setBindingCookie(binding),
   });
 }
 
 async function startGoogle(oauthRequest, binding, env) {
   const as = await googleAuthorizationServer();
   if (!as.authorization_endpoint) throw new Error("google_authorization_endpoint_missing");
-  const state = randomToken(32);
   const nonce = oauth.generateRandomNonce();
   const codeVerifier = oauth.generateRandomCodeVerifier();
   const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
-  const transaction = await seal(env, {
+  const state = await seal(env, {
     kind: "google",
-    state,
     oauthRequest,
     bindingHash: await sha256(binding),
     codeVerifier,
@@ -273,7 +268,6 @@ async function startGoogle(oauthRequest, binding, env) {
     "cache-control": "no-store",
     "referrer-policy": "no-referrer",
   });
-  headers.append("set-cookie", setTransactionCookie(transaction));
   return new Response(null, { status: 302, headers });
 }
 
@@ -282,20 +276,22 @@ async function finishConsent(request, env) {
   const len = Number(request.headers.get("content-length") || 0);
   if (len > 16_384) return json({ error: "request_too_large" }, 413);
   const form = await request.formData();
-  const consentId = String(form.get("consent") || "");
+  const transactionToken = String(form.get("transaction") || "");
   const csrf = String(form.get("csrf") || "");
   const decision = String(form.get("decision") || "");
-  if (!consentId || !csrf) return json({ error: "invalid_consent_submission" }, 400);
-  const transaction = await readTransactionCookie(request, env, "consent");
-  if (!transaction || transaction.consentId !== consentId) {
-    return json({ error: "authorization_transaction_expired" }, 400, {
-      "set-cookie": clearTransactionCookie(),
-    });
+  if (!transactionToken || !csrf) return json({ error: "invalid_consent_submission" }, 400);
+  let transaction = null;
+  try {
+    transaction = await unseal(env, transactionToken);
+  } catch {}
+  const age = transaction ? Date.now() - Number(transaction.createdAt || 0) : Infinity;
+  if (!transaction || transaction.kind !== "consent" || !Number.isFinite(age) || age < 0 || age > TX_TTL_SECONDS * 1000) {
+    return json({ error: "authorization_transaction_expired" }, 400);
   }
   const binding = cookieValue(request, BIND_COOKIE);
   if (!binding || (await sha256(binding)) !== transaction.bindingHash || (await sha256(csrf)) !== transaction.csrfHash) {
     return json({ error: "authorization_transaction_mismatch" }, 400, {
-      "set-cookie": [clearBindingCookie(), clearTransactionCookie()],
+      "set-cookie": clearBindingCookie(),
     });
   }
   if (decision !== "approve") return denyAuthorization(transaction.oauthRequest);
@@ -307,10 +303,14 @@ async function finishGoogle(request, env) {
   const currentUrl = new URL(request.url);
   const state = currentUrl.searchParams.get("state") || "";
   if (!state) return json({ error: "missing_state" }, 400);
-  const transaction = await readTransactionCookie(request, env, "google");
-  if (!transaction || transaction.state !== state) {
+  let transaction = null;
+  try {
+    transaction = await unseal(env, state);
+  } catch {}
+  const age = transaction ? Date.now() - Number(transaction.createdAt || 0) : Infinity;
+  if (!transaction || transaction.kind !== "google" || !Number.isFinite(age) || age < 0 || age > TX_TTL_SECONDS * 1000) {
     return json({ error: "authorization_transaction_expired" }, 400, {
-      "set-cookie": [clearBindingCookie(), clearTransactionCookie()],
+      "set-cookie": clearBindingCookie(),
     });
   }
   const binding = cookieValue(request, BIND_COOKIE);
@@ -372,7 +372,6 @@ async function finishGoogle(request, env) {
 
   const headers = new Headers({ location: authResult.redirectTo, "cache-control": "no-store" });
   headers.append("set-cookie", clearBindingCookie());
-  headers.append("set-cookie", clearTransactionCookie());
   return new Response(null, { status: 302, headers });
 }
 
