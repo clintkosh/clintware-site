@@ -18,7 +18,7 @@ if (-not (Test-Administrator)) {
   $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $self + '" -BootstrapPath "' + $BootstrapPath + '"'
   $p = Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $args -Verb RunAs -Wait -PassThru
   if ($p.ExitCode -ne 0) { throw "Elevated Quillgeist Lite service installation failed with exit code $($p.ExitCode)." }
-  exit 0
+  return
 }
 
 $bootstrap = Get-Content $BootstrapPath -Raw | ConvertFrom-Json
@@ -131,6 +131,8 @@ Start-Sleep -Seconds 2
 
 $service = Get-Service -Name $ServiceName
 if ($service.Status -ne "Running") { throw "Quillgeist Lite health service did not reach Running state." }
+
+Set-Content -Path (Join-Path $HomeDir "service-install.ok") -Value ((Get-Date).ToUniversalTime().ToString("o")) -Encoding ASCII
 
 Write-Host ""
 Write-Host "HEALTH SERVICE ACTIVE" -ForegroundColor Green
