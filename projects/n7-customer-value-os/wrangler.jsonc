@@ -2,6 +2,18 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "n7-customer-value-os",
   "compatibility_date": "2026-09-22",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "@tanstack/react-start/server-entry",
+  "services": [
+    {
+      "binding": "CONTROL_PLANE",
+      "service": "clintware-control-plane"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
 }
