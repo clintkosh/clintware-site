@@ -161,7 +161,7 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
         sourceMilestoneId: m.id,
         provenance: m.provenance,
       }));
-    if (!additions.length) return toast("No new milestones to import.");
+    if (!additions.length) { toast("No new milestones to import."); return; }
     saveItems([...items, ...additions]);
     toast.success(`Imported ${additions.length} milestone${additions.length === 1 ? "" : "s"}.`);
   }
@@ -203,7 +203,7 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
   }
 
   async function sendToJira(item: DeploymentWorkItem) {
-    if (!jira.projectKey) return toast.error("Set a Jira project key first.");
+    if (!jira.projectKey) { toast.error("Set a Jira project key first."); return; }
     try {
       const result: any = await jiraBridge({
         data: {
@@ -227,8 +227,10 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       if (!key) throw new Error("Jira did not return an issue key.");
       saveItems(items.map((row) => (row.id === item.id ? { ...row, jiraKey: key } : row)));
       toast.success(`Created Jira issue ${key}.`);
+      return;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Jira issue creation failed.");
+      return;
     }
   }
 
@@ -251,8 +253,10 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       });
       setJiraIssues(Array.isArray(result?.issues) ? result.issues : []);
       toast.success("Jira deployment board refreshed.");
+      return;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Jira refresh failed.");
+      return;
     } finally {
       setJiraLoading(false);
     }
@@ -402,7 +406,7 @@ export function RolloutSprints({ ws }: { ws: CustomerWorkspace }) {
       </Panel>
 
       {sprints.length ? (
-        <Tabs defaultValue={sprints[0]?.id}>
+        <Tabs defaultValue={sprints[0]!.id}>
           <TabsList className="flex h-auto flex-wrap">
             {sprints.map((sprint) => <TabsTrigger key={sprint.id} value={sprint.id}>{sprint.name}</TabsTrigger>)}
           </TabsList>
@@ -428,14 +432,14 @@ export function RolloutSprints({ ws }: { ws: CustomerWorkspace }) {
                         <span className="min-w-0 flex-1 text-sm font-medium">{item.title}</span>
                         <span className="text-xs text-muted-foreground">{item.storyPoints ?? 0} pt · {item.status}</span>
                       </div>
-                    )) : <EmptyState title="No work assigned" description="Assign deployment-board cards to this sprint below." />}
+                    )) : <EmptyState title="No work assigned" body="Assign deployment-board cards to this sprint below." />}
                   </div>
                 </Panel>
               </TabsContent>
             );
           })}
         </Tabs>
-      ) : <EmptyState title="No sprints yet" description="Create a sprint only when the team has a real rollout period to track." />}
+      ) : <EmptyState title="No sprints yet" body="Create a sprint only when the team has a real rollout period to track." />}
 
       <Panel title="Assign deployment work">
         <div className="space-y-2">
@@ -552,7 +556,7 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
   }
 
   async function createJira(issue: EngineeringIssueIntake) {
-    if (!issueReady(issue)) return toast.error("Complete the engineering intake gate before creating a Jira issue.");
+    if (!issueReady(issue)) { toast.error("Complete the engineering intake gate before creating a Jira issue."); return; }
     if (!jira.projectKey) return toast.error("Set a Jira project key first.");
     try {
       const result: any = await jiraBridge({
@@ -719,7 +723,7 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
               </article>
             ))}
           </div>
-        ) : <EmptyState title="No engineering issues" description="No customer issue is implied until the team records one." />}
+        ) : <EmptyState title="No engineering issues" body="No customer issue is implied until the team records one." />}
       </Panel>
 
       {jiraIssues.length ? (
