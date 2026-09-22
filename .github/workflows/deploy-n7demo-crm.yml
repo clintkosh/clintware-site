@@ -35,13 +35,10 @@ jobs:
           grep -Fq "Engineering-ready" public/app-views.js
           grep -Fq "RACI" public/app-views.js
 
-      - name: Ensure backup bucket
+      - name: Wrangler dry run
         run: |
           set -euo pipefail
           cd projects/n7demo-crm
-          if ! npx wrangler r2 bucket list | grep -Fq 'clintware-n7demo-crm-backups'; then
-            npx wrangler r2 bucket create clintware-n7demo-crm-backups
-          fi
           npx wrangler deploy --dry-run
 
       - name: Deploy Worker
@@ -71,7 +68,7 @@ jobs:
             p=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/ || true)
             if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" \
               && grep -Fq '"lovable":false' <<< "$h" \
-              && grep -Fq '"storage":"Durable Objects SQLite + daily R2 backups"' <<< "$h" \
+              && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
               && grep -Fq 'Clintware Identity' <<< "$p" \
               && grep -Fq 'N7 Demo CRM' <<< "$p"; then
               ready=1
