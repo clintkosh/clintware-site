@@ -18,9 +18,9 @@ export const FIRST_PARTY_APPS = Object.freeze({
   }),
   "neuron7-case": Object.freeze({
     product: "neuron7-case",
-    name: "Neuron7 Case Console",
-    home: "https://n7.clintware.com",
-    redirectUri: "https://n7.clintware.com/auth/callback",
+    name: "N7 Customer Value OS",
+    home: "https://n7crm.clintware.com",
+    redirectUri: "https://n7crm.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
     allowedEmailDomains: Object.freeze(["neuron7.ai"]),
     allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
