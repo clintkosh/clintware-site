@@ -20,6 +20,7 @@ import {
 } from "@/lib/n7/seed";
 import { WorkstreamBoard } from "@/components/n7/WorkstreamBoard";
 import type { CustomerWorkspace, Milestone } from "@/lib/n7/types";
+import { useN7 } from "@/lib/n7/store";
 
 import { cn } from "@/lib/utils";
 
@@ -402,6 +403,17 @@ export function RisksDecisions({ ws }: { ws: CustomerWorkspace }) {
 }
 
 export function Governance({ ws }: { ws: CustomerWorkspace }) {
+  const { patchWorkspace, updateItem } = useN7();
+  const workingOwners = ws.workingRaciOwners ?? [];
+
+  function toggleGovernanceOwner(owner: string) {
+    patchWorkspace(ws.customer.id, {
+      workingRaciOwners: workingOwners.includes(owner)
+        ? workingOwners.filter((item) => item !== owner)
+        : [...workingOwners, owner],
+    });
+  }
+
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -411,23 +423,49 @@ export function Governance({ ws }: { ws: CustomerWorkspace }) {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {GOVERNANCE.map((g) => (
-          <Panel key={g.owner} title={g.owner} subtitle={`Owns: ${g.owns}`}>
-            <ul className="space-y-1 text-sm text-foreground/90">
-              {g.items.map((i) => (
-                <li key={i}>• {i}</li>
-              ))}
-            </ul>
-          </Panel>
-        ))}
+        {GOVERNANCE.map((g) => {
+          const working = workingOwners.includes(g.owner);
+          return (
+            <Panel
+              key={g.owner}
+              title={g.owner}
+              subtitle={`Owns: ${g.owns}`}
+              right={
+                <Button
+                  size="sm"
+                  variant={working ? "default" : "outline"}
+                  onClick={() => toggleGovernanceOwner(g.owner)}
+                  aria-pressed={working}
+                  title="Personal working marker; does not change RACI ownership"
+                >
+                  {working ? "You are here" : "Working here"}
+                </Button>
+              }
+            >
+              <ul className="space-y-1 text-sm text-foreground/90">
+                {g.items.map((i) => (
+                  <li key={i}>• {i}</li>
+                ))}
+              </ul>
+              {working ? (
+                <p className="mt-3 text-xs font-medium text-primary">
+                  You are actively working in this responsibility area.
+                </p>
+              ) : null}
+            </Panel>
+          );
+        })}
       </div>
 
-      <Panel title="RACI matrix">
+      <Panel
+        title="RACI matrix"
+        subtitle="Use “Working here” as a personal activity marker. It does not change Responsible or Accountable ownership."
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                {["Activity", "Responsible", "Accountable", "Consulted", "Informed"].map((h) => (
+                {["Activity", "Responsible", "Accountable", "Consulted", "Informed", "You"].map((h) => (
                   <th key={h} className="label-caps py-2 pr-4">
                     {h}
                   </th>
@@ -441,7 +479,23 @@ export function Governance({ ws }: { ws: CustomerWorkspace }) {
                   <td className="py-3 pr-4 text-muted-foreground">{r.responsible}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{r.accountable}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{r.consulted}</td>
-                  <td className="py-3 text-muted-foreground">{r.informed}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">{r.informed}</td>
+                  <td className="py-3">
+                    <Button
+                      size="sm"
+                      variant={r.workingHere ? "default" : "outline"}
+                      onClick={() =>
+                        updateItem(ws.customer.id, "raci", r.id, {
+                          workingHere: !r.workingHere,
+                          workingSince: !r.workingHere ? new Date().toISOString() : undefined,
+                        })
+                      }
+                      aria-pressed={Boolean(r.workingHere)}
+                      title="Personal working marker; does not change RACI ownership"
+                    >
+                      {r.workingHere ? "You are here" : "Working here"}
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

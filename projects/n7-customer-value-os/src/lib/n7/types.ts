@@ -178,6 +178,9 @@ export interface RACIEntry {
   accountable: string;
   consulted: string;
   informed: string;
+  /** Personal working marker. It does not change Responsible/Accountable ownership. */
+  workingHere?: boolean;
+  workingSince?: string;
   provenance: Provenance;
 }
 
@@ -415,6 +418,8 @@ export interface CustomerWorkspace {
   risks: Risk[];
   decisions: Decision[];
   raci: RACIEntry[];
+  /** Generic governance-role cards the current user has marked as active work. */
+  workingRaciOwners?: string[];
   nodes: EnvironmentNode[];
   edges: EnvironmentEdge[];
   integrations: Integration[];
