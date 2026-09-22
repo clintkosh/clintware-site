@@ -10,12 +10,16 @@ import sqlite3
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 
 from . import __version__
 from .cloud import pair as cloud_pair
 from .config import Config, home_dir
 from .prompt_planner import plan_prompt
+from .scheduler import add_schedule, load_schedules, remove_schedule, set_schedule_enabled, update_schedule
+from .runner import execute_pack_path
+from .active_jobs import list_active_jobs, request_stop
 
 
 APP_NAME = "Quillgeist"
@@ -275,6 +279,7 @@ class QuillgeistDesktop:
         self.actions_frame = tk.Frame(self.root, bg=bg)
         self.actions_frame.pack(fill="x", padx=24, pady=(0, 10))
         for label, command in [
+            ("Task control", self.open_task_manager),
             ("Pair device", self.pair_device),
             ("Open Cloud", self.open_cloud),
             ("Doctor", self.run_doctor),
@@ -547,6 +552,253 @@ class QuillgeistDesktop:
         )
         self.ledger.add("intent", compiled.get("action", "general"), text)
         self.refresh()
+
+    def _format_epoch(self, value) -> str:
+        try:
+            return datetime.fromtimestamp(float(value)).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return "—"
+
+    def open_task_manager(self) -> None:
+        tk = self.tk
+        from tkinter import ttk, filedialog, simpledialog
+
+        if getattr(self, "_task_window", None) is not None:
+            try:
+                if self._task_window.winfo_exists():
+                    self._task_window.deiconify()
+                    self._task_window.lift()
+                    self._refresh_task_manager()
+                    return
+            except Exception:
+                pass
+
+        win = tk.Toplevel(self.root)
+        self._task_window = win
+        win.title("Quillgeist · Task Control")
+        win.geometry("1120x720")
+        win.minsize(900, 580)
+        win.configure(bg="#05070b")
+
+        style = ttk.Style(win)
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+        style.configure("QG.Treeview", background="#070b11", fieldbackground="#070b11", foreground="#f4f7fb", rowheight=28, borderwidth=0)
+        style.configure("QG.Treeview.Heading", background="#111a25", foreground="#8fa1b5", relief="flat", font=("Segoe UI", 9, "bold"))
+        style.map("QG.Treeview", background=[("selected", "#1d4968")], foreground=[("selected", "#ffffff")])
+
+        header = tk.Frame(win, bg="#05070b", padx=22, pady=16)
+        header.pack(fill="x")
+        tk.Label(header, text="TASK CONTROL", bg="#05070b", fg="#f4f7fb", font=("Consolas", 18, "bold")).pack(side="left")
+        self.task_summary_label = tk.Label(header, text="", bg="#05070b", fg="#7dd3fc", font=("Consolas", 10, "bold"))
+        self.task_summary_label.pack(side="right")
+
+        scheduled_panel = tk.Frame(win, bg="#0b111a", highlightbackground="#1b2a3a", highlightthickness=1, padx=14, pady=12)
+        scheduled_panel.pack(fill="both", expand=True, padx=22, pady=(0, 10))
+        tk.Label(scheduled_panel, text="SCHEDULED TASKS", bg="#0b111a", fg="#7dd3fc", font=("Consolas", 10, "bold")).pack(anchor="w")
+        tk.Label(scheduled_panel, text="Device-owned tasks can be edited live. Cloud-owned tasks remain visible and sync-authoritative.", bg="#0b111a", fg="#8fa1b5", font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 8))
+
+        cols = ("state", "next", "repeat", "owner", "last", "pack")
+        self.schedule_tree = ttk.Treeview(scheduled_panel, columns=cols, show="headings", style="QG.Treeview", height=9)
+        headings = {"state":"State","next":"Next run","repeat":"Repeat","owner":"Owner","last":"Last status","pack":"Pack"}
+        widths = {"state":80,"next":160,"repeat":110,"owner":90,"last":110,"pack":430}
+        for col in cols:
+            self.schedule_tree.heading(col, text=headings[col])
+            self.schedule_tree.column(col, width=widths[col], anchor="w", stretch=(col=="pack"))
+        self.schedule_tree.pack(fill="both", expand=True)
+
+        sched_buttons = tk.Frame(scheduled_panel, bg="#0b111a")
+        sched_buttons.pack(fill="x", pady=(10, 0))
+        for label, command, strong in [
+            ("Add", self._task_add_schedule, True),
+            ("Edit", self._task_edit_schedule, False),
+            ("Pause / Resume", self._task_toggle_schedule, False),
+            ("Run now", self._task_run_now, True),
+            ("Remove", self._task_remove_schedule, False),
+        ]:
+            tk.Button(sched_buttons, text=label, command=command,
+                      bg="#1d4968" if strong else "#111a25", fg="#f4f7fb",
+                      activebackground="#255b80" if strong else "#172536", activeforeground="#ffffff",
+                      relief="flat", padx=12, pady=7, font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0,8))
+
+        running_panel = tk.Frame(win, bg="#0b111a", highlightbackground="#1b2a3a", highlightthickness=1, padx=14, pady=12)
+        running_panel.pack(fill="both", expand=True, padx=22, pady=(0, 12))
+        tk.Label(running_panel, text="RUNNING NOW", bg="#0b111a", fg="#7dd3fc", font=("Consolas", 10, "bold")).pack(anchor="w")
+        tk.Label(running_panel, text="Live execution registry. Stop requests terminate the active child process and prevent the next step from starting.", bg="#0b111a", fg="#8fa1b5", font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 8))
+
+        rcols = ("state","started","step","source","title")
+        self.running_tree = ttk.Treeview(running_panel, columns=rcols, show="headings", style="QG.Treeview", height=6)
+        rh = {"state":"State","started":"Started","step":"Step","source":"Source","title":"Task"}
+        rw = {"state":110,"started":160,"step":80,"source":100,"title":520}
+        for col in rcols:
+            self.running_tree.heading(col, text=rh[col])
+            self.running_tree.column(col, width=rw[col], anchor="w", stretch=(col=="title"))
+        self.running_tree.pack(fill="both", expand=True)
+
+        run_buttons = tk.Frame(running_panel, bg="#0b111a")
+        run_buttons.pack(fill="x", pady=(10,0))
+        tk.Button(run_buttons, text="Stop selected", command=self._task_stop_job,
+                  bg="#4a1f28", fg="#ffffff", activebackground="#6a2936", activeforeground="#ffffff",
+                  relief="flat", padx=12, pady=7, font=("Segoe UI", 9, "bold")).pack(side="left")
+        tk.Button(run_buttons, text="Refresh", command=self._refresh_task_manager,
+                  bg="#111a25", fg="#f4f7fb", activebackground="#172536", activeforeground="#ffffff",
+                  relief="flat", padx=12, pady=7, font=("Segoe UI", 9, "bold")).pack(side="left", padx=(8,0))
+
+        self._refresh_task_manager()
+        self._schedule_task_refresh()
+
+    def _schedule_task_refresh(self) -> None:
+        win = getattr(self, "_task_window", None)
+        if win is None:
+            return
+        try:
+            if win.winfo_exists():
+                self._refresh_task_manager()
+                win.after(1000, self._schedule_task_refresh)
+        except Exception:
+            pass
+
+    def _refresh_task_manager(self) -> None:
+        if not hasattr(self, "schedule_tree") or not hasattr(self, "running_tree"):
+            return
+        schedules = load_schedules()
+        jobs = list_active_jobs()
+        self.schedule_tree.delete(*self.schedule_tree.get_children())
+        for row in schedules:
+            every = row.get("every_seconds")
+            repeat = f"{every}s" if every else "one-time"
+            state = "ON" if row.get("enabled") else "PAUSED"
+            iid = str(row.get("id"))
+            self.schedule_tree.insert("", "end", iid=iid, values=(
+                state,
+                self._format_epoch(row.get("next_run_at")),
+                repeat,
+                row.get("owner") or "device",
+                row.get("last_status") or "—",
+                row.get("pack_path") or row.get("pack_name") or "—",
+            ))
+        self.running_tree.delete(*self.running_tree.get_children())
+        for row in jobs:
+            run_id = str(row.get("run_id"))
+            started = str(row.get("started_at") or "")
+            if "T" in started:
+                started = started.replace("T"," ")[:19]
+            self.running_tree.insert("", "end", iid=run_id, values=(
+                str(row.get("state") or "running").upper(),
+                started or "—",
+                row.get("current_step", "—"),
+                row.get("source") or "local",
+                row.get("title") or row.get("job_id") or run_id,
+            ))
+        if hasattr(self, "task_summary_label"):
+            self.task_summary_label.config(text=f"{len(schedules)} scheduled  ·  {len(jobs)} running")
+
+    def _selected_schedule(self) -> dict | None:
+        selected = self.schedule_tree.selection() if hasattr(self, "schedule_tree") else ()
+        if not selected:
+            self.messagebox.showinfo("Task Control", "Select a scheduled task first.")
+            return None
+        sid = selected[0]
+        return next((x for x in load_schedules() if str(x.get("id")) == sid), None)
+
+    def _task_add_schedule(self) -> None:
+        from tkinter import filedialog, simpledialog
+        path = filedialog.askopenfilename(title="Choose Quillgeist execution pack", filetypes=[("Quillgeist pack","*.abpack"),("All files","*.*")])
+        if not path:
+            return
+        every = simpledialog.askstring("Repeat", "Repeat every N seconds. Leave blank for a one-time run.", parent=self._task_window)
+        at_text = simpledialog.askstring("Next run", "Next run as local ISO date/time (YYYY-MM-DDTHH:MM:SS). Leave blank for about one minute from now.", parent=self._task_window)
+        try:
+            every_seconds = int(every) if every and every.strip() else None
+            at_epoch = None
+            if at_text and at_text.strip():
+                dt = datetime.fromisoformat(at_text.strip())
+                if dt.tzinfo is None:
+                    dt = dt.astimezone()
+                at_epoch = dt.timestamp()
+            add_schedule(path, at_epoch=at_epoch, every_seconds=every_seconds, owner="device", device_id=self.cfg.data.get("device_id"))
+            self.ledger.add("schedule", "added", path)
+            self._refresh_task_manager()
+        except Exception as exc:
+            self.messagebox.showerror("Unable to add schedule", str(exc))
+
+    def _task_edit_schedule(self) -> None:
+        from tkinter import simpledialog
+        row = self._selected_schedule()
+        if not row:
+            return
+        if row.get("owner") == "cloud":
+            self.messagebox.showinfo("Cloud-owned schedule", "This schedule is controlled by Quillgeist Cloud. Open Cloud to change its authoritative schedule.")
+            return
+        current_next = self._format_epoch(row.get("next_run_at")).replace(" ","T")
+        next_text = simpledialog.askstring("Next run", "Next run (local ISO date/time):", initialvalue=current_next, parent=self._task_window)
+        if next_text is None:
+            return
+        repeat_text = simpledialog.askstring("Repeat", "Repeat every N seconds. Leave blank for one-time.", initialvalue=str(row.get("every_seconds") or ""), parent=self._task_window)
+        if repeat_text is None:
+            return
+        try:
+            dt = datetime.fromisoformat(next_text.strip())
+            if dt.tzinfo is None:
+                dt = dt.astimezone()
+            update_schedule(row["id"], next_run_at=dt.timestamp(), every_seconds=int(repeat_text) if repeat_text.strip() else None)
+            self.ledger.add("schedule", "edited", row["id"])
+            self._refresh_task_manager()
+        except Exception as exc:
+            self.messagebox.showerror("Unable to edit schedule", str(exc))
+
+    def _task_toggle_schedule(self) -> None:
+        row = self._selected_schedule()
+        if not row:
+            return
+        if row.get("owner") == "cloud":
+            self.messagebox.showinfo("Cloud-owned schedule", "This schedule is controlled by Quillgeist Cloud. Open Cloud to pause or resume it.")
+            return
+        set_schedule_enabled(row["id"], not bool(row.get("enabled")))
+        self.ledger.add("schedule", "resumed" if not row.get("enabled") else "paused", row["id"])
+        self._refresh_task_manager()
+
+    def _task_run_now(self) -> None:
+        row = self._selected_schedule()
+        if not row:
+            return
+        path = row.get("pack_path")
+        if not path:
+            self.messagebox.showerror("Run now", "This schedule has no local execution pack.")
+            return
+        def worker():
+            try:
+                result = execute_pack_path(path, Config.load(), approved=bool(row.get("approved_local")))
+                self.ledger.add("manual run", result.get("status","completed"), path)
+            except Exception as exc:
+                self.ledger.add("error", "manual run failed", str(exc))
+            self.root.after(0, self._refresh_task_manager)
+        threading.Thread(target=worker, daemon=True).start()
+        self.root.after(150, self._refresh_task_manager)
+
+    def _task_remove_schedule(self) -> None:
+        row = self._selected_schedule()
+        if not row:
+            return
+        if row.get("owner") == "cloud":
+            self.messagebox.showinfo("Cloud-owned schedule", "This schedule is controlled by Quillgeist Cloud. Open Cloud to remove it.")
+            return
+        if self.messagebox.askyesno("Remove schedule", "Remove this scheduled task? The execution pack will not be deleted."):
+            remove_schedule(row["id"])
+            self.ledger.add("schedule", "removed", row["id"])
+            self._refresh_task_manager()
+
+    def _task_stop_job(self) -> None:
+        selected = self.running_tree.selection() if hasattr(self, "running_tree") else ()
+        if not selected:
+            self.messagebox.showinfo("Task Control", "Select a running task first.")
+            return
+        row = request_stop(selected[0])
+        if row:
+            self.ledger.add("run", "stop requested", selected[0])
+            self._refresh_task_manager()
 
     def show_window(self) -> None:
         self.root.deiconify()
