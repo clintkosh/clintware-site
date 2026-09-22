@@ -1,6 +1,6 @@
 const API="/api";
 const TABS=[
-["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
+["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Update AI"],["live_assistant","Live Assistant"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
 ];
 const SCEN=[
 {id:"sap",label:"SAP connector slips beyond Week 10",impact:"Reassess full-scope go-live, escalation timing, and parallel work."},
@@ -22,7 +22,9 @@ document:[["name","Document"],["classification","Classification"],["binaryStatus
 action:[["title","Action"],["owner","Owner"],["due","Due"],["status","Status"],["audience","Customer / Internal"]],
 deployment_card:[["title","Card"],["column","Kanban column"],["stageOrder","Stage order"],["sprint","Sprint / week"],["owner","Owner"],["dependency","Dependency"],["jiraKey","Jira key"],["jiraUrl","Jira URL"],["notes","Notes"]],
 sprint:[["name","Sprint"],["weeks","Planned weeks"],["goal","Goal"],["planned","Planned cards"],["completed","Completed cards"],["notes","Notes"]],
-jira_config:[["siteUrl","Jira site URL"],["projectKey","Project key"],["deploymentBoardId","Deployment board ID"],["issueBoardId","Issue board ID"],["connection","Connection status"],["mode","Integration mode"]]
+jira_config:[["siteUrl","Jira site URL"],["projectKey","Project key"],["deploymentBoardId","Deployment board ID"],["issueBoardId","Issue board ID"],["connection","Connection status"],["mode","Integration mode"]],
+assistant_profile:[["title","Profile"],["playbook","Assistant playbook"],["updatedFrom","Updated from"]],
+assistant_session:[["title","Session"],["startedAt","Started"],["endedAt","Ended"],["source","Source"],["consentConfirmed","Consent"],["transcript","Transcript"],["suggestions","Suggestions"]]
 };
 let S={customer:null,customers:[],records:[],workspace:null,access:{authenticated:false,mode:"guest"}},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},I={jira:null,confluence:null,controlPlane:null},tab="customers",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
 document.documentElement.dataset.theme=theme;
