@@ -539,6 +539,7 @@ function Show-QQHelp {
   Write-Host "  jira                         Connect/reconnect Jira." -ForegroundColor Cyan
   Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
   Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
+  Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
   Write-Host "  reconnect                    Reconnect the Control Plane channel." -ForegroundColor Cyan
   Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
   Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
@@ -669,6 +670,8 @@ function Invoke-QQLocalCommand {
     "doctor" { Invoke-QQLocalTask "clintware-doctor"; return }
     "update" { Invoke-QQLocalTask "self-update"; return }
     "update qq" { Invoke-QQLocalTask "self-update"; return }
+    "admin" { Invoke-QQLocalTask "enable-admin-console"; return }
+    "admin qq" { Invoke-QQLocalTask "enable-admin-console"; return }
     "clear" {
       try { Clear-Host } catch {}
       Show-QuillgeistSplash
