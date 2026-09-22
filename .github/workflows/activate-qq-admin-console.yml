@@ -40,8 +40,34 @@ jobs:
             exit 1
           fi
 
-          response=$(curl --fail-with-body -sS             -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data '{"task_id":"enable-admin-console","args":{},"objective":"Ensure qq is a service-supervised interactive administrator console."}')
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"enable-admin-console","args":{},"objective":"Ensure qq is a service-supervised interactive administrator console."}')
 
           echo "$response"
           echo "$response" | grep -Fq '"ok":true'
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+          echo "JOB_ID=$job_id"
+
+          final=""
+          for i in $(seq 1 36); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            echo "$state"
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ] || [ "$status" = "failed" ]; then
+              final="$status"
+              break
+            fi
+            sleep 5
+          done
+
+          if [ -z "$final" ]; then final="queued_or_running"; fi
+          echo "QQ_LOCAL_JOB_STATUS=$final"
           echo "qq admin-console activation dispatched. If Windows requests UAC locally, approve it once."
+
+      - name: Report qq local service diagnostics
+        if: always()
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set +e
+          curl -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=20" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"
+          echo
