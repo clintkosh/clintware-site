@@ -1,0 +1,7 @@
+{
+  "mode": "public-safe",
+  "allowed_contact": ["clint@clintware.com"],
+  "blocked": ["personal email", "phone number", "street address", "private recruiter/interviewer data", "compensation details", "calendar links", "tokens/secrets", "family or health information"],
+  "public_professional_links": ["https://www.clintware.com/","https://renewnudge.clintware.com/","https://www.clintware.com/work/Clinton_Kosh_Resume.pdf"],
+  "manual_review_required": false
+}
