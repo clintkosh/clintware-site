@@ -73,3 +73,31 @@ jobs:
           set +e
           curl -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=20" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"
           echo
+
+
+      - name: Refresh and reopen qq interactive window
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"self-update","args":{},"objective":"Refresh qq and reopen the interactive administrator console now."}')
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+
+          for i in $(seq 1 30); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            echo "$state"
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then
+              echo "qq refresh accepted; the local admin console will reopen."
+              exit 0
+            fi
+            if [ "$status" = "failed" ]; then
+              echo "qq refresh failed" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "Timed out waiting for qq refresh result" >&2
+          exit 1
