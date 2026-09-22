@@ -66,102 +66,188 @@ function Show-QuillgeistSplash {
 
   $frames = @(
 @'
-                    .-=================-.
-                .-==                   ==-.
-              .==                         ==.
-             ==                             ==
-            ==                               ==
-           ==                                 ==
-           ==          CLINTWARE(TM)          ==
-           ==                                 ==
-            ==                               ==
-             ==                             ==
-              '==.                       .=='
-                 '-==.               .==-'
-                     '-=============-'
+                         .##~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
 '@,
 @'
-                    .-=================-.
-                .-==                   ==-.
-              .==                         ==.
-             ==                             ==
-            ==                               ==
-           ==                                 ==
-           ==          CLINTWARE(TM)          ==
-           ==                                 ==
-            ==                               ==
-             ==                             ==
-              '==.                       .=='
-                 '-===.             .===-'
-                     '--===========--'
+                         .-~~~~~##~~~~~~~~.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
 '@,
 @'
-                    .-=================-.
-                .===-                 -===.
-              .==                         ==.
-             ==                             ==
-            ==                               ==
-           ==                                 ==
-           ==          CLINTWARE(TM)          ==
-           ==                                 ==
-            ==                               ==
-             ==                             ==
-              '==.                       .=='
-                 '-==.               .==-'
-                     '-=============-'
+                         .-~~~~~~~~~~~~~##.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       ##
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
 '@,
 @'
-                    --===============--
-                -===.                 .===-
-              .==                         ==.
-             ==                             ==
-            ==                               ==
-           ==                                 ==
-           ==          CLINTWARE(TM)          ==
-           ==                                 ==
-            ==                               ==
-             ==                             ==
-              '==.                       .=='
-                 '-==.               .==-'
-                     '-=============-'
+                         .-~~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+            |                                        ##
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
 '@,
 @'
-                    .-=================-.
-                .-==                   ==-.
-              .==                         ==.
-             ==                             ==
-            ==                               ==
-           ==                                 ==
-           ==          CLINTWARE(TM)          ==
-           ==                                 ==
-            ==                               ==
-             ==                             ==
-              '===.                     .==='
-                  '===-.           .-==='
-                      '--========--'
+                         .-~~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~##'
+'@,
+@'
+                         .-~~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         ##~~~~~~~~~~~~~~-'
+'@,
+@'
+                         .-~~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+             /                                       \
+           ##                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
+'@,
+@'
+                         .-~~~~~~~~~~~~~~-.
+                    .-~~'                 '~~-.
+                 .~~'                         '~~.
+               .~'                               '~.
+              /                                     \
+            ##                                       \
+            |                                         |
+            |          C L I N T W A R E  (TM)       |
+            |                                         |
+             \                                       /
+              \                                     /
+               '~.                               .~'
+                 '~~.                         .~~'
+                    '-~~.                 .~~-'
+                         '-~~~~~~~~~~~~~-'
 '@
   )
+
+  function Write-LogoLine {
+    param([string]$Line)
+
+    $wordStart = $Line.IndexOf("C L I N T W A R E")
+
+    for ($i = 0; $i -lt $Line.Length; $i++) {
+      if ($i + 1 -lt $Line.Length -and $Line.Substring($i,2) -eq "##") {
+        Write-Host "##" -ForegroundColor Cyan -NoNewline
+        $i++
+        continue
+      }
+
+      if ($wordStart -ge 0 -and $i -ge $wordStart) {
+        Write-Host $Line[$i] -ForegroundColor White -NoNewline
+      } else {
+        Write-Host $Line[$i] -ForegroundColor DarkCyan -NoNewline
+      }
+    }
+
+    Write-Host ""
+  }
 
   function Draw-SplashFrame {
     param([string]$Frame)
 
     try {
       [Console]::SetCursorPosition(0,0)
-      [Console]::Write((" " * 86 + [Environment]::NewLine) * 24)
+      [Console]::Write((" " * 88 + [Environment]::NewLine) * 27)
       [Console]::SetCursorPosition(0,0)
     } catch {
       try { Clear-Host } catch {}
     }
 
-    Write-Host $Frame -ForegroundColor Cyan
+    foreach ($line in ($Frame -split '\r?\n')) {
+      Write-LogoLine $line
+    }
+
     Write-Host ""
-    Write-Host "                       Q U I L L G E I S T   L I T E" -ForegroundColor White
+    Write-Host "                    Q U I L L G E I S T   L I T E" -ForegroundColor White
     Write-Host ""
-    Write-Host '                           "GO FURTHEST.(TM)"' -ForegroundColor Cyan
-    Write-Host "                     EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
+    Write-Host "                        GO FURTHEST. (TM)" -ForegroundColor Cyan
+    Write-Host "                  EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "                    MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-    Write-Host "                         PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
+    Write-Host "                 MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
+    Write-Host "                      PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
   }
 
   try { Clear-Host } catch {}
@@ -169,18 +255,13 @@ function Show-QuillgeistSplash {
   for ($spin = 0; $spin -lt 2; $spin++) {
     for ($i = 0; $i -lt $frames.Count; $i++) {
       Draw-SplashFrame $frames[$i]
-      Start-Sleep -Milliseconds 90
-    }
-
-    for ($i = $frames.Count - 2; $i -ge 1; $i--) {
-      Draw-SplashFrame $frames[$i]
-      Start-Sleep -Milliseconds 90
+      Start-Sleep -Milliseconds 85
     }
   }
 
   Draw-SplashFrame $frames[0]
   Write-Host ""
-  Write-Host "                    EVENT-DRIVEN // STREAMING EVIDENCE" -ForegroundColor DarkGray
+  Write-Host "                 EVENT-DRIVEN // STREAMING EVIDENCE" -ForegroundColor DarkGray
   Write-Host ""
 
   try { [Console]::CursorVisible = $true } catch {}
