@@ -30,8 +30,10 @@ jobs:
           $ErrorActionPreference = "Stop"
           $files = @(
             "quillgeist-lite/runner.ps1",
+            "quillgeist-lite/launcher.ps1",
             "quillgeist-lite/install.ps1",
             "quillgeist-lite/uninstall.ps1",
+            "quillgeist-lite/service/install-service.ps1",
             "quillgeist-lite/tasks/clintware-doctor.ps1",
             "quillgeist-lite/tasks/ensure-c-runtime.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
@@ -106,3 +108,24 @@ jobs:
           }
 
           Write-Host "PYTHON_PARSE_OK quillgeist-lite/tasks/runtime-python-check.py"
+
+
+      - name: Compile Windows health service
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "quillgeist-lite/service/QuillgeistLiteHealthService.cs"
+          $output = Join-Path $env:RUNNER_TEMP "QuillgeistLiteHealthService.exe"
+
+          if (-not (Test-Path $source)) {
+            throw "Missing health service source: $source"
+          }
+
+          $refs = @("System.ServiceProcess.dll","System.Runtime.Serialization.dll")
+          Add-Type -Path $source -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $output -OutputType WindowsApplication
+
+          if (-not (Test-Path $output)) {
+            throw "Health service compilation did not produce an executable."
+          }
+
+          Write-Host "SERVICE_COMPILE_OK $output"
