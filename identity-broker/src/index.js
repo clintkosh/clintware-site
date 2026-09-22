@@ -5,7 +5,7 @@ import * as oauth from "oauth4webapi";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-21";
+const VERSION = "2026-09-21.1";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -13,6 +13,7 @@ const GOOGLE_ISSUER = new URL("https://accounts.google.com");
 const GOOGLE_CALLBACK = `${AUTH_ORIGIN}/callback`;
 const TX_TTL_SECONDS = 600;
 const BIND_COOKIE = "__Host-clintware-oauth-bind";
+const TX_COOKIE = "__Host-clintware-oauth-tx";
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -115,41 +116,49 @@ function htmlEscape(value) {
 }
 
 function html(body, status = 200, extra = {}) {
-  return new Response(body, {
-    status,
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-      pragma: "no-cache",
-      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
-      "x-frame-options": "DENY",
-      "x-content-type-options": "nosniff",
-      "referrer-policy": "no-referrer",
-      ...extra,
-    },
+  const headers = new Headers({
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store",
+    pragma: "no-cache",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
   });
+  for (const [key, value] of Object.entries(extra)) {
+    if (key.toLowerCase() === "set-cookie") {
+      for (const cookie of (Array.isArray(value) ? value : [value])) headers.append("set-cookie", cookie);
+    } else {
+      headers.set(key, String(value));
+    }
+  }
+  return new Response(body, { status, headers });
 }
 
 function oauthConfigured(env) {
   return Boolean(env.OAUTH_KV && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET);
 }
 
-async function kvKey(prefix, token) {
-  return `clintware:${prefix}:${await sha256(token)}`;
+function setTransactionCookie(value) {
+  return `${TX_COOKIE}=${encodeURIComponent(value)}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${TX_TTL_SECONDS}`;
 }
 
-async function putTransaction(env, prefix, token, value) {
-  await env.OAUTH_KV.put(await kvKey(prefix, token), await seal(env, value), {
-    expirationTtl: TX_TTL_SECONDS,
-  });
+function clearTransactionCookie() {
+  return `${TX_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
-async function takeTransaction(env, prefix, token) {
-  const key = await kvKey(prefix, token);
-  const value = await env.OAUTH_KV.get(key);
-  if (!value) return null;
-  await env.OAUTH_KV.delete(key);
-  return unseal(env, value);
+async function readTransactionCookie(request, env, expectedKind) {
+  const sealed = cookieValue(request, TX_COOKIE);
+  if (!sealed) return null;
+  try {
+    const transaction = await unseal(env, sealed);
+    if (!transaction || transaction.kind !== expectedKind) return null;
+    const age = Date.now() - Number(transaction.createdAt || 0);
+    if (!Number.isFinite(age) || age < 0 || age > TX_TTL_SECONDS * 1000) return null;
+    return transaction;
+  } catch {
+    return null;
+  }
 }
 
 async function googleAuthorizationServer() {
@@ -219,13 +228,17 @@ async function beginConsent(request, env) {
   const consentId = randomToken(24);
   const csrf = randomToken(24);
   const binding = randomToken(32);
-  await putTransaction(env, "consent", consentId, {
+  const transaction = await seal(env, {
+    kind: "consent",
+    consentId,
     oauthRequest,
     csrfHash: await sha256(csrf),
     bindingHash: await sha256(binding),
     createdAt: Date.now(),
   });
-  return html(consentPage(client, oauthRequest, consentId, csrf), 200, { "set-cookie": setBindingCookie(binding) });
+  return html(consentPage(client, oauthRequest, consentId, csrf), 200, {
+    "set-cookie": [setBindingCookie(binding), setTransactionCookie(transaction)],
+  });
 }
 
 async function startGoogle(oauthRequest, binding, env) {
@@ -235,7 +248,9 @@ async function startGoogle(oauthRequest, binding, env) {
   const nonce = oauth.generateRandomNonce();
   const codeVerifier = oauth.generateRandomCodeVerifier();
   const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
-  await putTransaction(env, "google", state, {
+  const transaction = await seal(env, {
+    kind: "google",
+    state,
     oauthRequest,
     bindingHash: await sha256(binding),
     codeVerifier,
@@ -253,14 +268,13 @@ async function startGoogle(oauthRequest, binding, env) {
   url.searchParams.set("code_challenge", codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("include_granted_scopes", "true");
-  return new Response(null, {
-    status: 302,
-    headers: {
-      location: url.href,
-      "cache-control": "no-store",
-      "referrer-policy": "no-referrer",
-    },
+  const headers = new Headers({
+    location: url.href,
+    "cache-control": "no-store",
+    "referrer-policy": "no-referrer",
   });
+  headers.append("set-cookie", setTransactionCookie(transaction));
+  return new Response(null, { status: 302, headers });
 }
 
 async function finishConsent(request, env) {
@@ -272,11 +286,17 @@ async function finishConsent(request, env) {
   const csrf = String(form.get("csrf") || "");
   const decision = String(form.get("decision") || "");
   if (!consentId || !csrf) return json({ error: "invalid_consent_submission" }, 400);
-  const transaction = await takeTransaction(env, "consent", consentId);
-  if (!transaction) return json({ error: "authorization_transaction_expired" }, 400);
+  const transaction = await readTransactionCookie(request, env, "consent");
+  if (!transaction || transaction.consentId !== consentId) {
+    return json({ error: "authorization_transaction_expired" }, 400, {
+      "set-cookie": clearTransactionCookie(),
+    });
+  }
   const binding = cookieValue(request, BIND_COOKIE);
   if (!binding || (await sha256(binding)) !== transaction.bindingHash || (await sha256(csrf)) !== transaction.csrfHash) {
-    return json({ error: "authorization_transaction_mismatch" }, 400, { "set-cookie": clearBindingCookie() });
+    return json({ error: "authorization_transaction_mismatch" }, 400, {
+      "set-cookie": [clearBindingCookie(), clearTransactionCookie()],
+    });
   }
   if (decision !== "approve") return denyAuthorization(transaction.oauthRequest);
   return startGoogle(transaction.oauthRequest, binding, env);
@@ -287,8 +307,12 @@ async function finishGoogle(request, env) {
   const currentUrl = new URL(request.url);
   const state = currentUrl.searchParams.get("state") || "";
   if (!state) return json({ error: "missing_state" }, 400);
-  const transaction = await takeTransaction(env, "google", state);
-  if (!transaction) return json({ error: "authorization_transaction_expired" }, 400, { "set-cookie": clearBindingCookie() });
+  const transaction = await readTransactionCookie(request, env, "google");
+  if (!transaction || transaction.state !== state) {
+    return json({ error: "authorization_transaction_expired" }, 400, {
+      "set-cookie": [clearBindingCookie(), clearTransactionCookie()],
+    });
+  }
   const binding = cookieValue(request, BIND_COOKIE);
   if (!binding || (await sha256(binding)) !== transaction.bindingHash) {
     return json({ error: "authorization_transaction_mismatch" }, 400, { "set-cookie": clearBindingCookie() });
@@ -347,7 +371,8 @@ async function finishGoogle(request, env) {
   });
 
   const headers = new Headers({ location: authResult.redirectTo, "cache-control": "no-store" });
-  headers.set("set-cookie", clearBindingCookie());
+  headers.append("set-cookie", clearBindingCookie());
+  headers.append("set-cookie", clearTransactionCookie());
   return new Response(null, { status: 302, headers });
 }
 
