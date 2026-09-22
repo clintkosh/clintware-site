@@ -8,6 +8,28 @@ export default {
       "X-Content-Type-Options": "nosniff",
       "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
     };
+    if (url.pathname === "/resume.pdf") {
+      const upstream = await fetch("https://www.clintware.com/work/Clinton_Kosh_Resume.pdf", {
+        headers: { "User-Agent": "Clintware-Ridge-Application/1.0" }
+      });
+      if (!upstream.ok) {
+        return new Response("Resume temporarily unavailable.", { status: 502, headers });
+      }
+      const out = new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: upstream.headers
+      });
+      out.headers.set("Content-Type", "application/pdf");
+      out.headers.set("Content-Disposition", 'inline; filename="Clinton_Kosh_Resume.pdf"');
+      out.headers.set("Cache-Control", "public, max-age=300");
+      out.headers.set("X-Content-Type-Options", "nosniff");
+      out.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      out.headers.delete("X-Frame-Options");
+      out.headers.delete("Content-Security-Policy");
+      return out;
+    }
+
     if (url.pathname === "/health" || url.pathname === "/healthz") {
       return new Response(JSON.stringify({
         ok: true,
