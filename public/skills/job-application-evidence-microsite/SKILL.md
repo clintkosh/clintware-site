@@ -2,7 +2,7 @@
 name: job-application-evidence-microsite
 description: Build a privacy-scrubbed, role-tailored, self-contained HTML job-application microsite from verified career evidence, a target role, and public work samples. Use when a candidate wants a custom application page that maps employer requirements to proof without inventing claims or exposing private search/interview data.
 license: MIT
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Job Application Evidence Microsite
@@ -240,6 +240,45 @@ Before final output, produce a privacy check containing:
 
 Do not publish automatically unless the user explicitly requested publication and the deployment path is authorized.
 
+### 9.5 Temporary publication lifecycle
+
+For role-specific application pages, prefer a temporary-publication lifecycle over permanent exposure when the candidate wants a shareable URL but does not want the application left online indefinitely.
+
+When enabled:
+
+- keep `noindex,nofollow` and the equivalent HTTP `X-Robots-Tag` when the deployment layer supports headers;
+- do not add the application to the candidate's main site navigation unless explicitly requested;
+- show a discreet notice such as: `This role-specific application page is temporarily available during the hiring process.`;
+- accept an explicit sunset date or a relative duration such as 30 or 45 days;
+- after sunset, stop serving the application content and show a minimal retired-state screen;
+- the retired screen should link to an intentionally public portfolio or professional home supplied by the candidate;
+- optionally show a short countdown, default 8 seconds, and automatically redirect to that approved destination;
+- return HTTP `410 Gone` after sunset when a programmable deployment layer is available;
+- keep health/status endpoints available if the deployment uses them;
+- never redirect to a private account, recruiter link, unpublished page, or inferred URL.
+
+For a self-contained static HTML export where server-side expiry is unavailable, embed a client-side sunset check as a convenience but label it as weaker than server-side enforcement. Static hosting can still expose cached/source content, so server-side expiry is preferred for sensitive applications.
+
+### 9.6 Embedded résumé reliability
+
+When the application is deployed on its own subdomain and embeds a public résumé PDF, avoid cross-origin iframe failures.
+
+Preferred deployment pattern:
+
+`APPLICATION DOMAIN /resume.pdf -> server/worker proxy -> approved public résumé source`
+
+Requirements:
+
+- proxy only an intentionally public résumé;
+- return `Content-Type: application/pdf`;
+- use `Content-Disposition: inline`;
+- remove upstream frame-blocking headers only for that approved public résumé response when needed;
+- keep normal security headers on the rest of the application;
+- point both the embedded viewer and the open-PDF action to the same-origin résumé endpoint;
+- verify the returned bytes are a valid PDF and that the response does not contain a frame-blocking header.
+
+If a same-origin proxy is not available, use a normal external PDF link instead of a broken iframe.
+
 ### 10. Output package
 
 Minimum output:
@@ -312,3 +351,5 @@ Before declaring the page complete, verify:
 10. The design does not look like generic AI-generated marketing boilerplate.
 11. The final HTML is reviewable before publication.
 12. Publication remains user-controlled unless explicitly requested.
+13. If temporary publication is enabled, the notice, sunset date, retired-state behavior, portfolio destination, and redirect countdown are verified.
+14. If a résumé is embedded, the deployed viewer is tested for cross-origin/frame-header failure; use a same-origin proxy or fall back to a normal link.
