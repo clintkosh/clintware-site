@@ -151,4 +151,12 @@ jobs:
           test "$ready" = "1"
           curl --fail-with-body -sS https://ridge.clintware.com/health | grep -Fq '"ok":true'
           curl --fail-with-body -sSI https://www.clintware.com/work/Clinton_Kosh_Resume.pdf | grep -Eiq '^HTTP/.* 2'
-          echo "Ridge application passed HTTPS, content, resume-link, header and health checks."
+          resume_headers=$(mktemp)
+          curl --fail-with-body -sS -D "$resume_headers" -o /tmp/ridge-resume.pdf https://ridge.clintware.com/resume.pdf
+          grep -Eqi '^content-type: *application/pdf' "$resume_headers"
+          if grep -Eqi '^x-frame-options:' "$resume_headers"; then
+            echo "Embedded resume unexpectedly carries X-Frame-Options" >&2
+            exit 1
+          fi
+          pdfinfo /tmp/ridge-resume.pdf >/dev/null
+          echo "Ridge application passed HTTPS, content, embedded-resume, header and health checks."
