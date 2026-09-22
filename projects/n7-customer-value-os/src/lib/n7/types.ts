@@ -180,7 +180,7 @@ export interface RACIEntry {
   informed: string;
   /** Personal working marker. It does not change Responsible/Accountable ownership. */
   workingHere?: boolean;
-  workingSince?: string;
+  workingSince?: string | undefined;
   provenance: Provenance;
 }
 
@@ -425,10 +425,10 @@ export interface DeploymentWorkItem {
   status: DeploymentWorkStatus;
   owner: string;
   week: string;
-  sprintId?: ID;
-  storyPoints?: number;
-  sourceMilestoneId?: ID;
-  jiraKey?: string;
+  sprintId?: ID | undefined;
+  storyPoints?: number | undefined;
+  sourceMilestoneId?: ID | undefined;
+  jiraKey?: string | undefined;
   provenance: Provenance;
 }
 
@@ -440,7 +440,7 @@ export interface SprintPlan {
   weekEnd: string;
   goal: string;
   status: "planned" | "active" | "complete";
-  capacityPoints?: number;
+  capacityPoints?: number | undefined;
   provenance: Provenance;
 }
 
@@ -453,7 +453,7 @@ export interface EngineeringIssueIntake {
   actual: string;
   reproSteps: string;
   reproducible: boolean;
-  notReproducibleReason?: string;
+  notReproducibleReason?: string | undefined;
   environment: string;
   evidence: string;
   severity: "low" | "medium" | "high" | "critical";
