@@ -22,6 +22,13 @@ export const FIRST_PARTY_APPS = Object.freeze({
     redirectUri: "https://n7.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
   }),
+  "control-plane-admin": Object.freeze({
+    product: "control-plane-admin",
+    name: "Clintware Control Plane Admin",
+    home: "https://mcp.clintware.com/admin",
+    redirectUri: "https://mcp.clintware.com/admin/callback",
+    scopes: Object.freeze(["identity", "email", "profile"]),
+  }),
 });
 
 export function universalRedirectUris() {
