@@ -66,6 +66,7 @@ After that, the local runner starts at Windows sign-in and waits on the event-dr
 - `c-runtime-check`
 - `ensure-c-runtime`
 - `self-update`
+- `connect-jira` — open Atlassian OAuth in the browser and connect Jira to the Control Plane without storing Jira credentials locally
 
 The task registry can grow as new Clintware local automations are needed.
 

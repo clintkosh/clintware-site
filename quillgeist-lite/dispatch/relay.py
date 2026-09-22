@@ -18,6 +18,7 @@ ALLOWED = {
     "ensure-c-runtime": set(),
     "self-update": set(),
     "apply-terminal-glass": set(),
+    "connect-jira": set(),
 }
 
 def request_json(method, path, body=None):

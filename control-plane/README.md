@@ -177,6 +177,12 @@ Events support:
 
 Raw visitor prompts/responses are intentionally not required for product analytics.
 
+## Jira adapter
+
+Jira Cloud access is mediated by Atlassian OAuth 2.0 (3LO). qq can launch the one-time browser authorization with the allowlisted `connect-jira` task; Jira access/refresh tokens remain encrypted server-side. MCP clients use scoped `clintware_jira_*` tools and never receive the provider credential.
+
+See `JIRA-SETUP.md` for callback URL, scopes, secret names, connection flow, and tool list.
+
 ## Deployment
 
 The Worker is configured for `mcp.clintware.com`. Use `.github/workflows/deploy-control-plane.yml` or run from this directory:

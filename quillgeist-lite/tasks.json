@@ -65,6 +65,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/apply-terminal-glass.ps1",
       "parameters": []
+    },
+    "connect-jira": {
+      "title": "Connect Jira to the Clintware Control Plane with Atlassian OAuth",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/connect-jira.ps1",
+      "parameters": []
     }
   }
 }
