@@ -1,7 +1,7 @@
 let PROMPT_PLAN=null;
 const LIVE={
   active:false,display:null,mic:null,ctx:null,processor:null,sources:[],mute:null,
-  buffers:[],samples:0,chunkSeconds:12,pending:Promise.resolve(),startedAt:null,
+  buffers:[],samples:0,chunkSeconds:12,overlapSeconds:.7,pending:Promise.resolve(),startedAt:null,
   transcript:[],suggestions:[],gate:"Not started",source:"",lastError:"",processing:false,
   participants:"",customerId:""
 };
@@ -26,7 +26,7 @@ function livePrompt(){
         return '<article class="ai-op"><div class="split"><strong>'+e((op.action||'change').toUpperCase()+' · '+(label||op.type||'record'))+'</strong><span class="prov">'+e(P(op.provenance||'internal_record'))+'</span></div><div class="muted">'+e(op.reason||'')+'</div><pre>'+e(JSON.stringify(payload||{},null,2))+'</pre></article>'
       }).join('')+'</div>'+
       ((p.gaps||[]).length?'<div class="callout"><strong>Gaps</strong><span>'+p.gaps.map(x=>e(x)).join('<br>')+'</span></div>':'')+
-      '<div class="actions"><button class="btn primary" id="prompt-approve">Approve and apply '+(p.operations||[]).length+' change'+((p.operations||[]).length===1?'':'s')+'</button><button class="btn" id="prompt-discard">Discard</button></div>'+
+      '<div class="actions">'+((p.operations||[]).length?'<button class="btn primary" id="prompt-approve">Approve and apply '+(p.operations||[]).length+' change'+((p.operations||[]).length===1?'':'s')+'</button>':'<span class="status warn">No writable changes proposed</span>')+'<button class="btn" id="prompt-discard">Discard</button></div>'+
       (PROMPT_PLAN.researchUsed?'<div class="muted" style="margin-top:10px">External research was used as context only. Customer facts remain sourced from CRM/user input.</div>':'')+
       ((PROMPT_PLAN.citations||[]).length?'<div class="citations">'+PROMPT_PLAN.citations.map(x=>{let u=safeHttpUrl(x.url);return u?'<a href="'+e(u)+'" target="_blank" rel="noreferrer">'+e(x.title||u)+'</a>':''}).join('')+'</div>':'');
   }
@@ -35,7 +35,7 @@ function livePrompt(){
     authGate('Live Prompt')+
     '<div class="grid g2" style="margin-top:16px"><div class="card"><div class="eyebrow">Selected customer</div><h2>'+e(S.customer?.name||'No customer selected')+'</h2><p class="muted">Examples: “SAP connector moved to week 9, mark the integration blocked and move the dependent deployment card.” “Customer confirmed the baseline is 42 minutes.” “Research the latest public SAP connector requirements and tell me if our plan needs a review.”</p>'+
     '<div class="field"><label>What changed?</label><textarea id="prompt-change" class="textarea ai-big" placeholder="Type the update in plain language."></textarea></div>'+
-    '<div class="field"><label>Exa context</label><select id="prompt-research" class="select"><option value="on">On: use Exa implementation / best-practice context</option><option value="auto">Auto: use Exa when the wording calls for external verification</option><option value="off">Off: CRM context only</option></select></div>'+
+    '<div class="field"><label>Exa context</label><select id="prompt-research" class="select"><option value="auto">Auto: use Exa only when the wording calls for public/external verification</option><option value="on">On: always add public implementation / best-practice context</option><option value="off">Off: CRM context only</option></select></div>'+
     '<div class="callout"><strong>Write boundary</strong><span>No AI-proposed update is committed until you approve the interpreted plan below.</span></div>'+
     '<button class="btn primary" id="prompt-run" '+(!S?.access?.authenticated?'disabled':'')+'>Interpret update</button><div id="prompt-status" class="muted" style="margin-top:10px"></div></div>'+
     '<div><div class="section" style="margin-top:0"><h2>Proposed changes</h2></div>'+(preview||'<div class="empty">No pending AI plan. The live CRM remains unchanged.</div>')+
@@ -61,9 +61,9 @@ async function approveLivePrompt(){
   try{
     await api('/ai/plans/'+encodeURIComponent(PROMPT_PLAN.planId)+'/apply',{method:'POST',body:'{}'});
     PROMPT_PLAN=null;
+    tab='live_prompt';
     await load(S.customer.id);
-    tab='command';
-    render();
+    let st=document.querySelector('#prompt-status');if(st)st.textContent='Approved changes applied and customer record refreshed.';
   }catch(err){if(b){b.disabled=false;b.textContent='Approve and apply'}alert('Apply failed: '+err.message)}
 }
 
@@ -112,6 +112,13 @@ function updateLiveDom(){
   let train=document.querySelector('#assistant-train');if(train)train.disabled=!LIVE.transcript.length;
   let save=document.querySelector('#live-save-session');if(save)save.disabled=!LIVE.transcript.length;
 }
+function dedupeTranscriptChunk(existing,incoming){
+  const a=String(existing||'').trim().split(/\s+/).filter(Boolean),b=String(incoming||'').trim().split(/\s+/).filter(Boolean);
+  if(!b.length)return '';
+  const norm=x=>x.toLowerCase().replace(/[^a-z0-9']/g,'');
+  for(let n=Math.min(18,a.length,b.length);n>=2;n--){let ok=true;for(let i=0;i<n;i++)if(norm(a[a.length-n+i])!==norm(b[i])){ok=false;break}if(ok)return b.slice(n).join(' ')}
+  return b.join(' ')
+}
 function rms(samples){let sum=0;for(let i=0;i<samples.length;i++)sum+=samples[i]*samples[i];return Math.sqrt(sum/Math.max(1,samples.length))}
 function mergeFloat(parts,total){let out=new Float32Array(total),at=0;for(const p of parts){out.set(p,at);at+=p.length}return out}
 function downsample(input,inRate,outRate=16000){
@@ -126,44 +133,48 @@ function wavBlob(samples,sampleRate=16000){
   let o=44;for(let i=0;i<samples.length;i++,o+=2){let s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,s<0?s*0x8000:s*0x7fff,true)}
   return new Blob([buf],{type:'audio/wav'})
 }
-async function transcribeBlob(blob,source){
+async function transcribeBlob(blob,source,analyze=true){
   LIVE.processing=true;updateLiveDom();
   try{
-    let r=await fetch('/api/audio/transcribe',{method:'POST',headers:{'content-type':'audio/wav'},body:blob});
+    let r=await fetch('/api/audio/transcribe',{method:'POST',headers:{'content-type':'audio/wav','x-transcript-hint':transcriptText().slice(-800)},body:blob});
     let x=await r.json().catch(()=>({}));
     if(!r.ok)throw Error(x.error||r.statusText);
-    let text=String(x.text||'').trim();
+    let text=dedupeTranscriptChunk(transcriptText(),String(x.text||'').trim());
     if(text){
       LIVE.transcript.push({at:new Date().toLocaleTimeString(),source,text});
       if(LIVE.transcript.length>250)LIVE.transcript=LIVE.transcript.slice(-250);
       updateLiveDom();
-      await askLiveAssistant(false,'');
+      if(analyze)await askLiveAssistant(false,'');
     }
   }catch(err){LIVE.lastError='Transcription error: '+err.message;updateLiveDom()}
   finally{LIVE.processing=false;updateLiveDom()}
 }
 function flushLiveChunk(force=false){
   if(!LIVE.buffers.length||!LIVE.ctx)return;
-  if(!force&&LIVE.samples<LIVE.ctx.sampleRate*LIVE.chunkSeconds)return;
-  let merged=mergeFloat(LIVE.buffers,LIVE.samples),rate=LIVE.ctx.sampleRate;LIVE.buffers=[];LIVE.samples=0;
+  const rate=LIVE.ctx.sampleRate,overlap=Math.floor(rate*LIVE.overlapSeconds);
+  if(!force&&LIVE.samples<rate*LIVE.chunkSeconds)return;
+  if(force&&LIVE.samples<=overlap)return;
+  let merged=mergeFloat(LIVE.buffers,LIVE.samples);LIVE.buffers=[];LIVE.samples=0;
+  if(!force&&merged.length>overlap){let tail=merged.slice(merged.length-overlap);LIVE.buffers=[tail];LIVE.samples=tail.length}
   if(rms(merged)<0.002)return;
   let pcm=downsample(merged,rate,16000),blob=wavBlob(pcm,16000);
-  LIVE.pending=LIVE.pending.then(()=>transcribeBlob(blob,LIVE.source||'live')).catch(err=>{LIVE.lastError=String(err);updateLiveDom()})
+  LIVE.pending=LIVE.pending.then(()=>transcribeBlob(blob,LIVE.source||'live',true)).catch(err=>{LIVE.lastError=String(err);updateLiveDom()})
 }
 async function startLiveAudio(){
   if(!document.querySelector('#live-consent')?.checked){alert('Confirm participant consent before starting transcription.');return}
   if(!navigator.mediaDevices?.getDisplayMedia){alert('This browser does not support machine/tab audio capture. Use current Chrome or Edge.');return}
+  let display=null,mic=null;
   try{
     LIVE.lastError='';LIVE.gate='Awaiting selected customer';LIVE.startedAt=new Date().toISOString();LIVE.source='machine audio';
-    const display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
+    display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
     if(!display.getAudioTracks().length){display.getTracks().forEach(t=>t.stop());throw Error('No shared audio track. In the share picker, choose a tab/screen source with Share audio enabled.')}
-    let mic=null;if(document.querySelector('#live-mic')?.checked)mic=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(document.querySelector('#live-mic')?.checked)mic=await navigator.mediaDevices.getUserMedia({audio:true});
     let ctx=new (window.AudioContext||window.webkitAudioContext)(),processor=ctx.createScriptProcessor(4096,2,1),mute=ctx.createGain();mute.gain.value=0;processor.connect(mute);mute.connect(ctx.destination);
     let sources=[];for(const stream of [new MediaStream(display.getAudioTracks()),mic].filter(Boolean)){let src=ctx.createMediaStreamSource(stream);src.connect(processor);sources.push(src)}
     processor.onaudioprocess=ev=>{let ib=ev.inputBuffer,n=ib.length,ch=ib.numberOfChannels,mono=new Float32Array(n);for(let c=0;c<ch;c++){let d=ib.getChannelData(c);for(let i=0;i<n;i++)mono[i]+=d[i]/ch}LIVE.buffers.push(mono);LIVE.samples+=n;flushLiveChunk(false)};
     display.getVideoTracks().forEach(t=>t.onended=()=>{if(LIVE.active)stopLiveAudio()});
     LIVE.active=true;LIVE.display=display;LIVE.mic=mic;LIVE.ctx=ctx;LIVE.processor=processor;LIVE.sources=sources;LIVE.mute=mute;await ctx.resume();updateLiveDom()
-  }catch(err){LIVE.lastError='Could not start audio: '+err.message;LIVE.active=false;updateLiveDom()}
+  }catch(err){for(const s of [display,mic])try{s&&s.getTracks().forEach(t=>t.stop())}catch{};LIVE.lastError='Could not start audio: '+err.message;LIVE.active=false;updateLiveDom()}
 }
 async function stopLiveAudio(){
   if(!LIVE.active)return;
@@ -179,14 +190,14 @@ async function transcribeRecordedFile(){
   let file=document.querySelector('#live-file')?.files?.[0];if(!file)return;
   let p=document.querySelector('#live-progress');LIVE.lastError='';LIVE.source='recorded call';LIVE.startedAt=LIVE.startedAt||new Date().toISOString();
   try{
-    let ctx=new (window.AudioContext||window.webkitAudioContext)(),raw=await file.arrayBuffer(),ab=await ctx.decodeAudioData(raw.slice(0)),rate=ab.sampleRate,total=ab.length,channels=ab.numberOfChannels,chunk=Math.max(1,Math.floor(rate*25));
-    for(let start=0,part=1;start<total;start+=chunk,part++){
+    let ctx=new (window.AudioContext||window.webkitAudioContext)(),raw=await file.arrayBuffer(),ab=await ctx.decodeAudioData(raw.slice(0)),rate=ab.sampleRate,total=ab.length,channels=ab.numberOfChannels,chunk=Math.max(1,Math.floor(rate*25)),overlap=Math.floor(rate*LIVE.overlapSeconds),stride=Math.max(1,chunk-overlap),parts=Math.ceil(Math.max(1,total-overlap)/stride);
+    for(let start=0,part=1;start<total;start+=stride,part++){
       let end=Math.min(total,start+chunk),mono=new Float32Array(end-start);
       for(let ch=0;ch<channels;ch++){let d=ab.getChannelData(ch);for(let i=start;i<end;i++)mono[i-start]+=d[i]/channels}
-      if(p)p.textContent='Transcribing recording chunk '+part+' of '+Math.ceil(total/chunk)+'…';
-      if(rms(mono)>=0.002)await transcribeBlob(wavBlob(downsample(mono,rate,16000),16000),'recorded call');
+      if(p)p.textContent='Transcribing recording chunk '+part+' of '+parts+'…';
+      if(rms(mono)>=0.002)await transcribeBlob(wavBlob(downsample(mono,rate,16000),16000),'recorded call',false);
     }
-    await ctx.close();LIVE.lastError='Recording transcription complete.';updateLiveDom()
+    await ctx.close();LIVE.gate='Recording transcribed · ready to train';LIVE.lastError='Recording transcription complete. Review the transcript, then train or ask directly.';updateLiveDom()
   }catch(err){LIVE.lastError='Could not transcribe recording: '+err.message;updateLiveDom()}
 }
 async function askLiveAssistant(direct=false,question=''){
@@ -248,3 +259,5 @@ function bindAiFeatures(){
   let sv=document.querySelector('#live-save-session');if(sv)sv.onclick=saveAssistantSession;
   updateLiveDom()
 }
+
+window.addEventListener('pagehide',()=>{if(LIVE.active)void stopLiveAudio()},{capture:true});
