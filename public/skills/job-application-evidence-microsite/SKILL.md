@@ -2,7 +2,7 @@
 name: job-application-evidence-microsite
 description: Build a privacy-scrubbed, role-tailored, self-contained HTML job-application microsite from verified career evidence, a target role, and public work samples. Use when a candidate wants a custom application page that maps employer requirements to proof without inventing claims or exposing private search/interview data.
 license: MIT
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Job Application Evidence Microsite
@@ -79,6 +79,33 @@ Prefer:
 - measurable outcome expectations.
 
 Avoid turning generic company marketing copy into candidate requirements.
+
+### 2.5 Analyze adjacent public signals when available
+
+When the candidate supplies a hiring-manager post, public thread, public interview, podcast, company article, or other employer-authored discussion, treat it as an additional requirements-discovery layer.
+
+Extract only job-relevant public signals such as:
+
+- operating principles;
+- objections or failure modes;
+- metrics and definitions of success;
+- examples the hiring manager repeats;
+- cross-functional expectations;
+- terminology the employer uses consistently;
+- concerns raised in the public discussion that the job description underweights.
+
+Classify each useful signal as:
+
+1. **Already covered** — existing verified evidence addresses it.
+2. **Transferable bridge** — candidate has adjacent evidence but not direct domain ownership.
+3. **Real gap** — no verified evidence; address with a learning or operating plan rather than fabricated experience.
+4. **Non-requirement** — interesting discussion that should not distort the application.
+
+Before generating the page, run a gap question:
+
+`What important area appears in the public discussion that neither the job description nor the candidate's current application adequately addresses?`
+
+Do not quote private comments, inaccessible thread content, or material that has not actually been retrieved. Never infer candidate experience from employer discussion.
 
 ### 3. Map requirement → proof
 
