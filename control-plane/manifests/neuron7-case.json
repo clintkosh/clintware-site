@@ -1,28 +1,29 @@
 {
   "product": "neuron7-case",
   "environment": "production",
-  "version": 2,
+  "version": 3,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
     "write_prefixes": [
-      "neuron7-case-worker/"
+      "projects/n7-customer-value-os/"
     ],
     "allowed_workflows": [
-      "deploy-neuron7-case.yml"
+      "deploy-n7-customer-value-os.yml"
     ]
   },
   "dns": {
     "allowed_names": [
+      "n7crm.clintware.com",
       "n7.clintware.com",
       "n7case.clintware.com"
     ]
   },
   "capabilities": [
     "repo.read:clintware-site",
-    "repo.write:neuron7-case-worker/**",
+    "repo.write:projects/n7-customer-value-os/**",
     "repo.branch:create",
     "repo.branch:read",
     "repo.commit:status",
@@ -30,13 +31,17 @@
     "repo.workflow:status",
     "deployment.read",
     "deployment.execute:neuron7-case",
-    "dns.ensure:n7.clintware.com",
-    "dns.ensure:n7case.clintware.com",
+    "dns.ensure:n7crm.clintware.com",
     "analytics.write:neuron7-case",
-    "analytics.read:neuron7-case"
+    "analytics.read:neuron7-case",
+    "research.invoke",
+    "ai.invoke",
+    "state.read:neuron7-case",
+    "state.write:neuron7-case",
+    "jira.read:neuron7-case",
+    "jira.write:neuron7-case"
   ],
   "deny": [
-    "research.invoke",
     "secrets.read",
     "secrets.export",
     "billing.manage",
@@ -52,10 +57,10 @@
   ],
   "telemetry_namespace": "neuron7-case",
   "privacy": {
-    "public_viewer": true,
+    "public_viewer": false,
     "indexing": false,
-    "customer_data": false,
-    "oauth_operator_mode": "optional",
+    "customer_data": true,
+    "oauth_operator_mode": "required",
     "identity_boundary": "auth.clintware.com",
     "infrastructure_boundary": "mcp.clintware.com"
   },
@@ -64,7 +69,7 @@
     "authority": "https://auth.clintware.com",
     "first_party_client": "Clintware Web",
     "config_endpoint": "https://auth.clintware.com/client-config/neuron7-case",
-    "redirect_uri": "https://n7.clintware.com/auth/callback",
+    "redirect_uri": "https://n7crm.clintware.com/auth/callback",
     "scopes": [
       "identity",
       "email",
