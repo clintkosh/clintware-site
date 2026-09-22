@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check src/flow.js && node --check src/admin.js && node --check src/jira.js && node --check src/index.js && node --check src/entry.js && node --test test/*.test.mjs",
+    "check": "node --check src/flow.js && node --check src/admin.js && node --check src/jira.js && node --check src/confluence.js && node --check src/index.js && node --check src/entry.js && node --test test/*.test.mjs",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },
