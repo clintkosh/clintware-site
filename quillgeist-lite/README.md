@@ -31,6 +31,8 @@ Full Quillgeist remains the richer local-agent product with execution packs, pol
 
 Quillgeist Lite is intentionally smaller. It exists for the recurring Clintware case where an LLM needs to run a known maintenance/bootstrap task on Clint's Windows machine without requiring a new PowerShell block to be copied out of chat every time.
 
+The visible qq window is also a real local console, not a passive log viewer. The signed-in user can type qq commands, run reviewed local tasks, and use a local-only PowerShell escape. Remote MCP callers remain restricted to the reviewed task allowlist and cannot use that arbitrary local shell escape.
+
 ## Security model
 
 Quillgeist Lite is not an arbitrary remote shell.
@@ -55,7 +57,9 @@ A new type of local work is added by committing a reviewed task script and regis
 irm https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/install.ps1 | iex
 ```
 
-After that, the local runner starts at Windows sign-in and waits on the event-driven WebSocket. There is no recurring polling task. The console opens with an animated retro ASCII interpretation of the Clintware mark and the `"GO FURTHEST.(TM)"` line, then remains available for live task logs.
+After that, the local runner starts at Windows sign-in and waits on the event-driven WebSocket. There is no recurring polling task. The Windows health service also reopens the console automatically if the runner disappears. The managed interactive scheduled task runs at **Highest** privilege, so qq is an administrator console after the one-time elevated install/upgrade.
+
+The console opens with the Clintware/Quillgeist terminal treatment and remains available for both live task logs and direct local input. The prompt is `qq(admin)>` when the managed task is running elevated.
 
 ## Initial tasks
 
@@ -67,8 +71,27 @@ After that, the local runner starts at Windows sign-in and waits on the event-dr
 - `ensure-c-runtime`
 - `self-update`
 - `connect-jira` — open Atlassian OAuth in the browser and connect Jira to the Control Plane without storing Jira credentials locally
+- `enable-admin-console` — convert an existing qq installation to the service-supervised interactive administrator console and reopen it elevated
 
 The task registry can grow as new Clintware local automations are needed.
+
+## Interactive local console
+
+The visible qq window accepts local commands while its Control Plane WebSocket remains active:
+
+- `help` / `?` — command reference
+- `status` — privilege, service, and Control Plane connection state
+- `tasks` — reviewed local task list
+- `run <task> [Name=Value ...]` — execute an allowlisted task locally
+- `jira` — shorthand for `connect-jira`
+- `doctor` — Clintware local diagnostics
+- `update` — self-update qq
+- `admin` — one-time upgrade/reopen as the supervised admin console
+- `reconnect` — reconnect the Control Plane channel
+- `clear` — redraw the terminal
+- `! <PowerShell>` — **local-only** PowerShell escape
+
+The `!` escape is intentionally available only to keystrokes entered in the local console. It is not represented as an MCP tool or task and cannot be sent by a remote model through the Control Plane.
 
 ## MCP surface
 
@@ -129,13 +152,13 @@ The health service:
 - starts automatically with Windows;
 - monitors the interactive runner process;
 - captures crash-log and important warning/error lines;
-- requests a runner restart through the registered interactive scheduled task when the runner dies;
+- requests a runner restart through the registered interactive scheduled task when the runner dies, which causes the visible qq window to reopen automatically;
 - rate-limits restart loops;
 - sends bounded diagnostics through a separate machine/device credential;
 - never receives the user's GitHub token, Google credential, or MCP client secret;
 - sends a low-frequency health heartbeat and state changes rather than normal log chatter.
 
-The interactive runner remains responsible for task execution and the visible terminal UI. A service cannot safely display an interactive window from Windows Session 0, so the service supervises a user-session scheduled task rather than trying to own the UI itself.
+The interactive runner remains responsible for task execution and the visible terminal UI. A Windows service cannot safely draw directly into the signed-in desktop from Session 0, so the service launches and supervises a user-session scheduled task instead. That task is registered at Highest privilege and opens the qq Windows Terminal profile in the interactive user session.
 
 The installer registers the service credential by sending only its SHA-256 hash to the Control Plane. The plaintext device credential is stored only in the protected local service configuration.
 
