@@ -27,7 +27,9 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
           ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
-          grep -Fq "ACME MEDICAL" src/index.js\n          grep -Fq "HelioMed Imaging Systems" src/sample-customers.js\n          grep -Fq "customersFromFile" public/import-utils.js
+          grep -Fq "ACME MEDICAL" src/index.js
+          grep -Fq "HelioMed Imaging Systems" src/sample-customers.js
+          grep -Fq "customersFromFile" public/import-utils.js
           grep -Fq "50% improvement by end of Year 1" src/index.js
           grep -Fq "6–8 weeks from start to go-live" src/index.js
           grep -Fq "8–10 weeks" src/index.js
