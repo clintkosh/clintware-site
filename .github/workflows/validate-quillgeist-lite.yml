@@ -114,8 +114,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $source = "quillgeist-lite/service/QuillgeistLiteHealthService.cs"
-          $output = Join-Path $env:RUNNER_TEMP "QuillgeistLiteHealthService.exe"
+          $source = (Resolve-Path "quillgeist-lite/service/QuillgeistLiteHealthService.cs").Path
+          $output = [IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP "QuillgeistLiteHealthService.exe"))
 
           if (-not (Test-Path $source)) {
             throw "Missing health service source: $source"
