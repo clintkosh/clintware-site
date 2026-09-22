@@ -165,7 +165,8 @@ async function sendBookingMail(env, booking, kind = "confirmed", includeIcs = tr
   return { guest: results[0].status === "fulfilled", host: results[1].status === "fulfilled" };
 }
 
-async function sendCancellationMail(env, booking) {
+async function sendCancellationMail(env, booking, includeIcs = true) {
+  const attachments = includeIcs ? attachmentFor(booking, "CANCEL") : [];
   const local = new Intl.DateTimeFormat("en-US", {
     timeZone: booking.timezone || CONFIG.hostTimeZone,
     weekday: "long",
@@ -189,7 +190,7 @@ async function sendCancellationMail(env, booking) {
         to: [booking.email],
         reply_to: CONFIG.hostEmail,
         ...guest,
-        attachments: attachmentFor(booking, "CANCEL"),
+        attachments,
         category: "scheduler_cancel",
         idempotency_key: `meet-guest-${suffix}`,
       }),
@@ -201,7 +202,7 @@ async function sendCancellationMail(env, booking) {
       to: [booking.email],
       reply_to: CONFIG.hostEmail,
       ...guest,
-      attachments: attachmentFor(booking, "CANCEL"),
+      attachments,
       category: "scheduler_cancel",
       idempotency_key: `meet-guest-${suffix}`,
     }),
@@ -209,7 +210,7 @@ async function sendCancellationMail(env, booking) {
       to: [CONFIG.hostEmail],
       reply_to: booking.email,
       ...host,
-      attachments: attachmentFor(booking, "CANCEL"),
+      attachments,
       category: "scheduler_cancel_host",
       idempotency_key: `meet-host-${suffix}`,
     }),
@@ -744,6 +745,25 @@ async function apiReschedule(request, env, token) {
     return json({ error: "invalid_timezone" }, 422);
   }
 
+  if (googleCalendarConfigured(env) && startMs !== existing.startMs) {
+    try {
+      const endMs = startMs + CONFIG.durationMinutes * 60_000;
+      const before = CONFIG.bufferBeforeMinutes * 60_000;
+      const after = CONFIG.bufferAfterMinutes * 60_000;
+      const busy = await googleBusyIntervals(env, startMs - before, endMs + after);
+      if (requestedTimeIsGoogleBusy(startMs, endMs, busy, CONFIG)) {
+        return json({ error: "slot_not_available" }, 409);
+      }
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_prereschedule_check_failed",
+        bookingId: existing.id,
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
   const manageHash = await sha256(token);
   const response = await store(env).fetch("https://scheduler/reschedule", {
     method: "POST",
@@ -754,8 +774,40 @@ async function apiReschedule(request, env, token) {
   if (!response.ok) return json(data, response.status);
 
   const booking = { ...data.booking, manageToken: token };
+  let calendar = {
+    configured: googleCalendarConfigured(env),
+    synced: false,
+    inviteSent: false,
+  };
+
+  if (calendar.configured) {
+    try {
+      let event;
+      if (booking.googleEventId) {
+        event = await updateGoogleCalendarEvent(env, booking);
+      } else {
+        event = await createGoogleCalendarEvent(env, booking);
+        booking.googleEventId = event.id;
+        const linked = await store(env).fetch("https://scheduler/google-event", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: booking.id, googleEventId: event.id }),
+        });
+        if (!linked.ok) throw new Error("google_event_link_failed");
+      }
+      calendar = { configured: true, synced: true, inviteSent: true };
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_event_update_failed",
+        bookingId: booking.id,
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
   try {
-    await sendBookingMail(env, booking, "rescheduled");
+    await sendBookingMail(env, booking, "rescheduled", !calendar.synced);
   } catch (error) {
     console.error(JSON.stringify({
       event: "reschedule_mail_failed",
@@ -764,10 +816,32 @@ async function apiReschedule(request, env, token) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking) });
+  return json({ booking: publicBookingWithToken(booking), calendar });
 }
 
 async function apiCancel(env, token) {
+  const existing = await lookupBooking(env, token);
+  if (!existing) return json({ error: "booking_not_found" }, 404);
+
+  let calendar = {
+    configured: googleCalendarConfigured(env),
+    synced: false,
+    inviteSent: false,
+  };
+  if (calendar.configured && existing.googleEventId) {
+    try {
+      await deleteGoogleCalendarEvent(env, { ...existing, manageToken: token });
+      calendar = { configured: true, synced: true, inviteSent: true };
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_event_delete_failed",
+        bookingId: existing.id,
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
   const manageHash = await sha256(token);
   const response = await store(env).fetch("https://scheduler/cancel", {
     method: "POST",
@@ -779,7 +853,7 @@ async function apiCancel(env, token) {
 
   const booking = { ...data.booking, manageToken: token };
   try {
-    await sendCancellationMail(env, booking);
+    await sendCancellationMail(env, booking, !calendar.synced);
   } catch (error) {
     console.error(JSON.stringify({
       event: "cancel_mail_failed",
@@ -788,7 +862,7 @@ async function apiCancel(env, token) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking) });
+  return json({ booking: publicBookingWithToken(booking), calendar });
 }
 
 async function health(env) {
