@@ -230,6 +230,16 @@ jobs:
           delegated=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/delegated/google/status)
           echo "$delegated" | grep -Fq '"connected":'
           echo "Delegated Google grant endpoint is live."
+          rm -f /tmp/google-delegated-start.headers
+          curl -sS -o /dev/null -D /tmp/google-delegated-start.headers https://auth.clintware.com/delegated/google/start
+          delegated_status=$(awk 'NR==1{print $2}' /tmp/google-delegated-start.headers)
+          test "$delegated_status" = "302"
+          delegated_location=$(awk 'BEGIN{IGNORECASE=1}/^location:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' /tmp/google-delegated-start.headers)
+          echo "$delegated_location" | grep -Eq '^https://accounts\.google\.com/'
+          echo "$delegated_location" | grep -Fq 'access_type=offline'
+          echo "$delegated_location" | grep -Fq 'code_challenge='
+          echo "$delegated_location" | grep -Eq 'calendar(\.events|\.freebusy|%2Fcalendar)'
+          echo "One-click delegated Google consent handoff verified."
 
       - name: Verify central first-party Clintware client
         shell: bash
