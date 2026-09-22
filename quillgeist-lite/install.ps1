@@ -4,6 +4,7 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ServiceDir = Join-Path $HomeDir "service"
 
 $BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
+$CacheBust = "?v=20260922-qq-admin-2"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
@@ -45,11 +46,11 @@ if ($LASTEXITCODE -ne 0 -or $login.ToLowerInvariant() -ne "clintkosh") {
 New-Item -ItemType Directory -Force -Path $HomeDir,$ServiceDir | Out-Null
 
 $downloads = @{
-  "$BaseRaw/runner.ps1" = $RunnerPath
-  "$BaseRaw/launcher.ps1" = $LauncherPath
-  "$BaseRaw/service/QuillgeistLiteHealthService.cs" = $ServiceSourcePath
-  "$BaseRaw/service/install-service.ps1" = $ServiceInstallerPath
-  "$BaseRaw/tasks/apply-terminal-glass.ps1" = $GlassInstallerPath
+  "$BaseRaw/runner.ps1$CacheBust" = $RunnerPath
+  "$BaseRaw/launcher.ps1$CacheBust" = $LauncherPath
+  "$BaseRaw/service/QuillgeistLiteHealthService.cs$CacheBust" = $ServiceSourcePath
+  "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
+  "$BaseRaw/tasks/apply-terminal-glass.ps1$CacheBust" = $GlassInstallerPath
 }
 
 foreach ($entry in $downloads.GetEnumerator()) {
