@@ -7,7 +7,8 @@
   "workers_dev": false,
   "preview_urls": false,
   "services": [
-    { "binding": "MAILER", "service": "clintware-blog-newsletter" }
+    { "binding": "MAILER", "service": "clintware-blog-newsletter" },
+    { "binding": "AUTH_BROKER", "service": "clintware-identity-broker" }
   ],
   "durable_objects": {
     "bindings": [
