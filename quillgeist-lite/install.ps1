@@ -8,6 +8,7 @@ $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
 $ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
+$GlassInstallerPath = Join-Path $HomeDir "apply-terminal-glass.ps1"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 
 Write-Host ""
@@ -48,6 +49,7 @@ $downloads = @{
   "$BaseRaw/launcher.ps1" = $LauncherPath
   "$BaseRaw/service/QuillgeistLiteHealthService.cs" = $ServiceSourcePath
   "$BaseRaw/service/install-service.ps1" = $ServiceInstallerPath
+  "$BaseRaw/tasks/apply-terminal-glass.ps1" = $GlassInstallerPath
 }
 
 foreach ($entry in $downloads.GetEnumerator()) {
@@ -56,7 +58,7 @@ foreach ($entry in $downloads.GetEnumerator()) {
 }
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
-foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
+foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath,$GlassInstallerPath)) {
   $tokens = $null
   $errors = $null
   [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
@@ -64,6 +66,12 @@ foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
     $errors | Format-List *
     throw "PowerShell parse validation failed: $file"
   }
+}
+
+Write-Host "Applying Clintware acrylic Windows Terminal profile..." -ForegroundColor Cyan
+& $GlassInstallerPath -NoRestart
+if ($LASTEXITCODE -ne 0) {
+  throw "Quillgeist Lite glass terminal configuration failed."
 }
 
 Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
@@ -152,4 +160,5 @@ Write-Host "Execution      : PowerShell / Python / C"
 Write-Host "Policy         : Best result first; efficiency after quality"
 Write-Host "Transport      : Event-driven outbound control channel"
 Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
+Write-Host "Terminal       : Windows Terminal acrylic glass, 20% opacity"
 Write-Host ""
