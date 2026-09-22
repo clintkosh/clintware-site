@@ -78,7 +78,7 @@ function kbEdit(a){
 }
 function kbGuideline(){
  let o=modal('<h2>Add guideline point</h2><p class="muted">Use this for a reusable lesson. It appends to the KB guidelines with an audit trail. Do not paste raw customer secrets or unverified claims.</p><div class="field"><label>Guideline point</label><textarea id="gp" class="textarea kb-editor" placeholder="Situation, action, why it matters, and when to apply it."></textarea></div><button class="btn primary" id="gp-save">Append to guidelines</button>');
- o.querySelector('#gp-save').onclick=async()=>{let point=o.querySelector('#gp').value.trim();if(!point){alert('Add the guideline point first.');return}await api('/kb/guidelines/append',{method:'POST',body:JSON.stringify({point})});o.remove();await load(S.customer.id);let g=K.articles.find(x=>x.id==='kb-guidelines');if(g)openKbArticle(g.id)}
+ o.querySelector('#gp-save').onclick=async()=>{let point=o.querySelector('#gp').value.trim();if(!point){alert('Add the guideline point first.');return}let y=await api('/kb/guidelines/append',{method:'POST',body:JSON.stringify({point})});o.remove();await load(S.customer?.id);let g=K.articles.find(x=>x.id===y.articleId);if(g)openKbArticle(g.id)}
 }
 function kbSettings(){
  let d=K.config||{},cp=I.confluence||{},sites=Array.isArray(cp.sites)?cp.sites:[];
