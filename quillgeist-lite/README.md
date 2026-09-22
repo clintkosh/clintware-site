@@ -90,3 +90,52 @@ Each registry entry declares a `runtime`:
 The model does not send arbitrary source code directly to the runner. New source is first committed/reviewed in the repository and registered as an allowlisted task.
 
 The `self-update` task updates the maintained runner file and safely restarts it after the task result has had time to return.
+
+
+## Quality-first runtime selection
+
+Unless the user explicitly chooses a language, Quillgeist Lite uses this priority order:
+
+1. Choose the implementation that best matches the intended result and produces the highest-quality outcome.
+2. Prefer the most reliable and maintainable approach for the target environment.
+3. Only after the quality bar is met, optimize for setup time, runtime cost, token/log volume, latency, and maintenance overhead.
+
+PowerShell, Python, and C are tools, not rankings. The task decides the runtime. Efficiency is the tiebreaker among approaches that can meet the same quality standard.
+
+See `EXECUTION_POLICY.md`.
+
+## Local health service
+
+The normal Windows installation now has two cooperating components:
+
+```text
+ClintwareQuillgeistLiteHealth  (Windows Service / LocalSystem)
+        |
+        | health + crash monitoring
+        | secure device diagnostics
+        | restart request
+        v
+Clintware Quillgeist Lite Runner  (interactive user session)
+        |
+        | outbound WebSocket
+        | task logs/results
+        v
+mcp.clintware.com
+```
+
+The health service:
+
+- starts automatically with Windows;
+- monitors the interactive runner process;
+- captures crash-log and important warning/error lines;
+- requests a runner restart through the registered interactive scheduled task when the runner dies;
+- rate-limits restart loops;
+- sends bounded diagnostics through a separate machine/device credential;
+- never receives the user's GitHub token, Google credential, or MCP client secret;
+- sends a low-frequency health heartbeat and state changes rather than normal log chatter.
+
+The interactive runner remains responsible for task execution and the visible terminal UI. A service cannot safely display an interactive window from Windows Session 0, so the service supervises a user-session scheduled task rather than trying to own the UI itself.
+
+The installer registers the service credential by sending only its SHA-256 hash to the Control Plane. The plaintext device credential is stored only in the protected local service configuration.
+
+The Control Plane exposes the bounded health stream through `clintware_quillgeist_lite_diagnostics`.
