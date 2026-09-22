@@ -5,10 +5,14 @@ import { ExecutiveQBR, KPIContract, ROIWorkshop } from "./ValueSections";
 import { AccuracyTriage, Documents, VirtualLiaison } from "./TechSections";
 import { Evidence, Messaging, ReadinessGate } from "./SystemSections";
 import { EnvironmentMapper } from "./EnvironmentMapper";
+import { DeploymentBoard, EngineeringIssues, RolloutSprints } from "./OperationsSections";
 
 export const SECTION_COMPONENTS: Record<string, (props: { ws: CustomerWorkspace }) => React.ReactElement> = {
   "executive-summary": ExecutiveSummary,
   implementation: Implementation,
+  "deployment-board": DeploymentBoard,
+  "rollout-sprints": RolloutSprints,
+  "engineering-issues": EngineeringIssues,
   "critical-path": CriticalPath,
   "risks-decisions": RisksDecisions,
   raci: Governance,

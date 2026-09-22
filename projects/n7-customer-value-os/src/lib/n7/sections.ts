@@ -19,6 +19,24 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Week-by-week plan, parallel workstreams, decision triggers.",
   },
   {
+    slug: "deployment-board",
+    label: "Deployment Board",
+    group: "Plan",
+    blurb: "Kanban execution board with optional Jira-backed cards.",
+  },
+  {
+    slug: "rollout-sprints",
+    label: "Rollout / Sprints",
+    group: "Plan",
+    blurb: "Sprint goals, planned weeks, capacity and measured velocity.",
+  },
+  {
+    slug: "engineering-issues",
+    label: "Engineering Issues",
+    group: "Technical",
+    blurb: "Engineering-ready issue intake and Jira ticket board.",
+  },
+  {
     slug: "critical-path",
     label: "Critical Path",
     group: "Plan",
@@ -113,6 +131,10 @@ export const SECTION_ALIASES: Record<string, string> = {
   "customer-messaging": "messaging",
   "documents-knowledge": "documents",
   "evidence-artifacts": "evidence",
+  kanban: "deployment-board",
+  deployment: "deployment-board",
+  sprints: "rollout-sprints",
+  issues: "engineering-issues",
 };
 
 export function resolveSectionSlug(slug: string) {
