@@ -16,6 +16,11 @@ New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 $script:RunnerSocket = $null
 $script:RunnerDiagSeq = 0
 $script:PendingDiagnostics = @()
+$script:QQPromptVisible = $false
+$script:QQInputBuffer = New-Object Text.StringBuilder
+$script:QQReceiveBuffer = New-Object byte[] 65536
+$script:QQReceiveStream = New-Object IO.MemoryStream
+$script:QQReceiveTask = $null
 
 function Queue-RunnerDiagnostic {
   param(
@@ -60,6 +65,90 @@ function Flush-RunnerDiagnostics {
   }
 }
 
+function Test-QQAdministrator {
+  try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  } catch {
+    return $false
+  }
+}
+
+function Suspend-QQPrompt {
+  if (-not $script:QQPromptVisible) { return }
+  try {
+    $width = [Math]::Max(20,[Console]::BufferWidth - 1)
+    Write-Host (([string][char]13) + (" " * $width) + ([string][char]13)) -NoNewline
+  } catch {
+    Write-Host ""
+  }
+  $script:QQPromptVisible = $false
+}
+
+function Show-QQPrompt {
+  if ($script:QQPromptVisible) { return }
+  $mode = if (Test-QQAdministrator) { "admin" } else { "user" }
+  Write-Host "qq" -ForegroundColor Cyan -NoNewline
+  Write-Host ("(" + $mode + ")") -ForegroundColor White -NoNewline
+  Write-Host "> " -ForegroundColor Cyan -NoNewline
+  $existing = $script:QQInputBuffer.ToString()
+  if ($existing) { Write-Host $existing -ForegroundColor White -NoNewline }
+  $script:QQPromptVisible = $true
+}
+
+function Read-QQConsoleLine {
+  try {
+    if ([Console]::IsInputRedirected) { return [pscustomobject]@{Ready=$false;Line=$null} }
+  } catch {
+    return [pscustomobject]@{Ready=$false;Line=$null}
+  }
+
+  try {
+    while ([Console]::KeyAvailable) {
+      $key = [Console]::ReadKey($true)
+
+      if ($key.Key -eq [ConsoleKey]::Enter) {
+        $line = $script:QQInputBuffer.ToString()
+        $null = $script:QQInputBuffer.Clear()
+        Write-Host ""
+        $script:QQPromptVisible = $false
+        return [pscustomobject]@{Ready=$true;Line=$line}
+      }
+
+      if ($key.Key -eq [ConsoleKey]::Backspace) {
+        if ($script:QQInputBuffer.Length -gt 0) {
+          $script:QQInputBuffer.Remove($script:QQInputBuffer.Length-1,1) | Out-Null
+          Write-Host (([string][char]8) + " " + ([string][char]8)) -NoNewline
+        }
+        continue
+      }
+
+      if ($key.Key -eq [ConsoleKey]::Escape) {
+        Suspend-QQPrompt
+        $null = $script:QQInputBuffer.Clear()
+        Show-QQPrompt
+        continue
+      }
+
+      if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq [ConsoleKey]::C) {
+        Suspend-QQPrompt
+        $null = $script:QQInputBuffer.Clear()
+        Write-Host "^C" -ForegroundColor DarkYellow
+        Show-QQPrompt
+        continue
+      }
+
+      if (-not [char]::IsControl($key.KeyChar)) {
+        $null = $script:QQInputBuffer.Append($key.KeyChar)
+        Write-Host ([string]$key.KeyChar) -ForegroundColor White -NoNewline
+      }
+    }
+  } catch {}
+
+  return [pscustomobject]@{Ready=$false;Line=$null}
+}
+
 function Initialize-ClintwareTerminal {
   try {
     [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
@@ -71,7 +160,8 @@ function Initialize-ClintwareTerminal {
     $raw = $Host.UI.RawUI
     $raw.BackgroundColor = "Black"
     $raw.ForegroundColor = "White"
-    $raw.WindowTitle = "Clintware Quillgeist Lite"
+    $mode = if (Test-QQAdministrator) { "ADMIN" } else { "USER" }
+    $raw.WindowTitle = "Clintware Quillgeist Lite [$mode]"
 
     $targetWidth = [Math]::Min(118,[Math]::Max(92,$raw.MaxPhysicalWindowSize.Width))
     if ($raw.BufferSize.Width -lt $targetWidth) {
@@ -144,6 +234,7 @@ function Show-QuillgeistSplash {
 function Write-Log {
   param([string]$Message,[string]$Level="INFO")
 
+  Suspend-QQPrompt
   $stamp = (Get-Date).ToString("s")
   $line = "{0} [{1}] {2}" -f $stamp,$Level,$Message
   Add-Content -Path $LogPath -Value $line
@@ -175,6 +266,7 @@ function Write-Log {
   Write-Host $Message -ForegroundColor $messageColor
 
   try { Queue-RunnerDiagnostic $Level $Message "runner" } catch {}
+  Show-QQPrompt
 }
 
 $mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLite")
@@ -245,33 +337,47 @@ function Send-Json {
   ).GetAwaiter().GetResult()
 }
 
-function Receive-Json {
+function Reset-QQReceiveState {
+  try { $script:QQReceiveStream.SetLength(0) } catch {}
+  $script:QQReceiveTask = $null
+}
+
+function Poll-ReceiveJson {
   param([System.Net.WebSockets.ClientWebSocket]$Socket)
 
-  $buffer = New-Object byte[] 65536
-  $ms = New-Object IO.MemoryStream
-
-  try {
-    do {
-      $seg = [System.ArraySegment[byte]]::new([byte[]]$buffer,0,$buffer.Length)
-      $r = $Socket.ReceiveAsync(
-        $seg,
-        [Threading.CancellationToken]::None
-      ).GetAwaiter().GetResult()
-
-      if ($r.MessageType -eq [Net.WebSockets.WebSocketMessageType]::Close) {
-        return $null
-      }
-
-      $ms.Write($buffer,0,$r.Count)
-      if ($ms.Length -gt 1048576) { throw "Incoming Quillgeist Lite message exceeded 1 MB." }
-    } until ($r.EndOfMessage)
-
-    $text = [Text.Encoding]::UTF8.GetString($ms.ToArray())
-    return $text | ConvertFrom-Json
-  } finally {
-    $ms.Dispose()
+  if ($null -eq $script:QQReceiveTask) {
+    $seg = [System.ArraySegment[byte]]::new([byte[]]$script:QQReceiveBuffer,0,$script:QQReceiveBuffer.Length)
+    $script:QQReceiveTask = $Socket.ReceiveAsync(
+      $seg,
+      [Threading.CancellationToken]::None
+    )
   }
+
+  if (-not $script:QQReceiveTask.IsCompleted) {
+    return [pscustomobject]@{State="pending";Message=$null}
+  }
+
+  $r = $script:QQReceiveTask.GetAwaiter().GetResult()
+  $script:QQReceiveTask = $null
+
+  if ($r.MessageType -eq [Net.WebSockets.WebSocketMessageType]::Close) {
+    Reset-QQReceiveState
+    return [pscustomobject]@{State="closed";Message=$null}
+  }
+
+  $script:QQReceiveStream.Write($script:QQReceiveBuffer,0,$r.Count)
+  if ($script:QQReceiveStream.Length -gt 1048576) {
+    Reset-QQReceiveState
+    throw "Incoming Quillgeist Lite message exceeded 1 MB."
+  }
+
+  if (-not $r.EndOfMessage) {
+    return [pscustomobject]@{State="pending";Message=$null}
+  }
+
+  $text = [Text.Encoding]::UTF8.GetString($script:QQReceiveStream.ToArray())
+  $script:QQReceiveStream.SetLength(0)
+  return [pscustomobject]@{State="message";Message=($text | ConvertFrom-Json)}
 }
 
 function Find-Task {
@@ -332,7 +438,9 @@ function Emit-TaskLine {
     $displayColor = "DarkCyan"
   }
 
+  Suspend-QQPrompt
   Write-Host $safe -ForegroundColor $displayColor
+  Show-QQPrompt
 
   if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
     Send-Json $Socket @{
