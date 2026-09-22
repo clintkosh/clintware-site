@@ -43,9 +43,12 @@ load().catch(err=>document.querySelector('#app').innerHTML='<div class="empty" s
 async function openKbArticle(id){
  let x=await api('/kb/articles/'+encodeURIComponent(id)),a=x.article;
  let con=a.confluenceUrl?'<a class="btn" target="_blank" rel="noreferrer" href="'+e(a.confluenceUrl)+'">Open in Confluence</a>':'';
- let o=modal('<div class="section" style="margin:0"><div><div class="eyebrow">'+e(a.category||'Implementation')+'</div><h2>'+e(a.title)+'</h2><div class="muted">Updated '+e(new Date(a.updatedAt).toLocaleString())+' · '+Number(a.views||0)+' views · '+Number(a.useful||0)+' useful</div></div><button class="btn" data-close>Close</button></div><p class="kb-summary">'+e(a.summary||'')+'</p><div class="kb-body">'+e(a.body||'')+'</div><div class="actions" style="margin-top:14px"><button class="btn primary" id="kb-useful">Useful</button><button class="btn" id="kb-edit">Edit</button>'+con+'</div>');
+ let canPublish=I.confluence?.writable===true&&Boolean(K.config?.spaceKey||K.config?.spaceId);
+ let publish=canPublish?'<button class="btn" id="kb-publish">'+(a.confluencePageId?'Update Confluence':'Publish to Confluence')+'</button>':'';
+ let o=modal('<div class="section" style="margin:0"><div><div class="eyebrow">'+e(a.category||'Implementation')+'</div><h2>'+e(a.title)+'</h2><div class="muted">Updated '+e(new Date(a.updatedAt).toLocaleString())+' · '+Number(a.views||0)+' views · '+Number(a.useful||0)+' useful</div></div><button class="btn" data-close>Close</button></div><p class="kb-summary">'+e(a.summary||'')+'</p><div class="kb-body">'+e(a.body||'')+'</div><div class="actions" style="margin-top:14px"><button class="btn primary" id="kb-useful">Useful</button><button class="btn" id="kb-edit">Edit</button>'+publish+con+'</div>');
  o.querySelector('#kb-useful').onclick=async()=>{await api('/kb/articles/'+encodeURIComponent(id)+'/useful',{method:'POST'});o.remove();await load(S.customer.id)};
- o.querySelector('#kb-edit').onclick=()=>{o.remove();kbEdit(a)}
+ o.querySelector('#kb-edit').onclick=()=>{o.remove();kbEdit(a)};
+ let pub=o.querySelector('#kb-publish');if(pub)pub.onclick=async()=>{pub.disabled=true;pub.textContent='Publishing…';try{let y=await api('/integrations/confluence/publish',{method:'POST',body:JSON.stringify({articleId:id})});o.remove();await load(S.customer.id);let fresh=K.articles.find(z=>z.id===id);if(fresh)openKbArticle(id)}catch(err){pub.disabled=false;pub.textContent='Publish to Confluence';alert('Confluence publish failed: '+err.message)}}
 }
 function kbEdit(a){
  let o=modal('<div class="section" style="margin:0"><h2>'+(a?'Edit':'New')+' KB article</h2><button class="btn" data-close>Close</button></div>'+
@@ -63,9 +66,11 @@ function kbGuideline(){
  o.querySelector('#gp-save').onclick=async()=>{let point=o.querySelector('#gp').value.trim();if(!point){alert('Add the guideline point first.');return}await api('/kb/guidelines/append',{method:'POST',body:JSON.stringify({point})});o.remove();await load(S.customer.id);let g=K.articles.find(x=>x.id==='kb-guidelines');if(g)openKbArticle(g.id)}
 }
 function kbSettings(){
- let d=K.config||{},o=modal('<h2>Confluence publication settings</h2><p class="muted">The CRM KB works without Confluence. Atlassian credentials stay server-side in the Clintware control plane. These fields map the workspace to the intended Confluence location; they do not fake a successful connection.</p>'+
- '<div class="fields">'+[['siteUrl','Confluence site URL'],['spaceKey','Space key'],['parentPageId','Parent page ID'],['homePageUrl','KB home page URL']].map(x=>'<div class="field"><label>'+x[1]+'</label><input class="input" data-kcfg="'+x[0]+'" value="'+e(d[x[0]]||'')+'"></div>').join('')+'</div>'+
- '<div class="callout"><strong>Status</strong><span>'+e(d.connection||'Not connected')+' · '+e(d.mode||'Clintware Control Plane')+'. When the Atlassian Confluence connector is authorized in the control plane, publication/sync can be activated without exposing tokens to the browser.</span></div>'+
- '<button class="btn primary" id="kcfg-save">Save mapping</button>');
- o.querySelector('#kcfg-save').onclick=async()=>{let body={};o.querySelectorAll('[data-kcfg]').forEach(x=>body[x.dataset.kcfg]=x.value.trim());await api('/kb/config',{method:'PATCH',body:JSON.stringify(body)});o.remove();await load(S.customer.id)}
+ let d=K.config||{},cp=I.confluence||{},sites=Array.isArray(cp.sites)?cp.sites:[];
+ let o=modal('<h2>Confluence publication settings</h2><p class="muted">The CRM KB works without Confluence. Atlassian credentials stay server-side in the Clintware control plane. These fields map the workspace to the intended Confluence location.</p>'+
+ '<div class="callout"><strong>Control plane</strong><span>'+(cp.writable?'Connected and publish-ready':cp.reauthorization_required?'Reauthorize Atlassian to add Confluence scopes.':'Not connected. Authorize Atlassian through the Clintware control plane.')+(sites.length?' Available sites: '+e(sites.map(s=>s.name).join(', '))+'.':'')+'</span></div>'+
+ '<div class="fields">'+[['siteUrl','Confluence site URL'],['cloudId','Atlassian cloud ID'],['spaceId','Confluence space ID (optional)'],['spaceKey','Space key'],['parentPageId','Parent page ID'],['homePageUrl','KB home page URL']].map(x=>'<div class="field"><label>'+x[1]+'</label><input class="input" data-kcfg="'+x[0]+'" value="'+e(d[x[0]]||'')+'"></div>').join('')+'</div>'+
+ '<div class="callout"><strong>Publishing</strong><span>If Space ID is blank, the control plane resolves the Space key. Existing articles with a Confluence Page ID are updated in place; new articles create a new page under the configured parent.</span></div>'+
+ '<div class="actions"><button class="btn primary" id="kcfg-save">Save mapping</button>'+(!cp.writable?'<a class="btn" target="_blank" rel="noreferrer" href="/api/integrations/atlassian/connect">Authorize / reauthorize Atlassian</a>':'')+'</div>');
+ o.querySelector('#kcfg-save').onclick=async()=>{let body={};o.querySelectorAll('[data-kcfg]').forEach(x=>body[x.dataset.kcfg]=x.value.trim());body.connection=cp.writable?'Connected':'Not connected';await api('/kb/config',{method:'PATCH',body:JSON.stringify(body)});o.remove();await load(S.customer.id)}
 }
