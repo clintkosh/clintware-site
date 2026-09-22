@@ -1,6 +1,6 @@
 const API="/api";
 const TABS=[
-["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Update AI"],["live_assistant","Live Assistant"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
+["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Prompt"],["live_assistant","Live Assist"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
 ];
 const SCEN=[
 {id:"sap",label:"SAP connector slips beyond Week 10",impact:"Reassess full-scope go-live, escalation timing, and parallel work."},
