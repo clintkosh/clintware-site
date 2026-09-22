@@ -7,7 +7,7 @@ description: Build a user-owned MCP server plus event-driven local runner so an 
 
 Use this skill when the user wants to connect an AI/LLM client to their own computer through a user-owned MCP server, especially when they want:
 
-- an LLM to trigger local PowerShell, Python, Node, Git, or maintenance tasks without copying commands by hand;
+- an LLM to trigger local PowerShell, Python, C, Node, Git, or maintenance tasks without copying commands by hand;
 - a persistent event-driven bridge rather than polling;
 - continuous stdout/stderr streaming back to the control plane;
 - a durable job/result history;
@@ -73,12 +73,19 @@ Example task registry:
   "version": 1,
   "tasks": {
     "doctor": {
+      "runtime": "powershell",
       "script": "tasks/doctor.ps1",
       "parameters": []
     },
-    "configure-example": {
-      "script": "tasks/configure-example.ps1",
-      "parameters": ["Project", "Environment"]
+    "python-check": {
+      "runtime": "python",
+      "script": "tasks/python-check.py",
+      "parameters": ["Message"]
+    },
+    "c-check": {
+      "runtime": "c",
+      "script": "tasks/c-check.c",
+      "parameters": ["Message"]
     }
   }
 }
@@ -99,6 +106,20 @@ The MCP request should contain only:
 The server validates the task ID and parameter names. The local runner validates them again before execution.
 
 A new local capability should normally be added by committing/reviewing a new task script and registering its task ID once.
+
+## Multi-runtime task execution
+
+A useful local runner can support multiple reviewed runtimes without exposing arbitrary remote code execution.
+
+Recommended runtime contract:
+
+- `powershell`: execute a reviewed `.ps1` file with named parameters.
+- `python`: execute a reviewed `.py` file with CLI-style parameters.
+- `c`: compile a reviewed `.c` file locally with an allowlisted compiler, stream compiler output, and execute the resulting binary only if compilation succeeds.
+
+The runtime is part of the task registry. The caller chooses only a registered task ID plus declared arguments; it does not upload raw code in the MCP request.
+
+For compiled tasks, treat compilation as a first-class log phase so the model can distinguish compiler errors from runtime errors.
 
 ## MCP tool surface
 
