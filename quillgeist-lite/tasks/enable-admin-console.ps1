@@ -40,7 +40,19 @@ if (-not (Test-Administrator)) {
 
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if (-not $task) {
-  throw "Managed qq scheduled task '$TaskName' was not found. Re-run the Quillgeist Lite installer."
+  Write-Host "SERVICE // managed qq service/task is not installed. Bootstrapping it now." -ForegroundColor Cyan
+  Write-Host "ADMIN // Windows may request one UAC approval for the service installation." -ForegroundColor DarkYellow
+
+  $installerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/install.ps1"
+  $installer = (Invoke-WebRequest -Uri $installerUrl -UseBasicParsing).Content
+  if (-not $installer) { throw "Could not download the maintained qq installer." }
+
+  Invoke-Expression $installer
+
+  $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  if (-not $task) {
+    throw "qq installer completed without creating the managed interactive task."
+  }
 }
 
 if (([string]$task.Principal.RunLevel) -eq "Highest" -and (Test-Administrator)) {
