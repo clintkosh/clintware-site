@@ -128,11 +128,12 @@ jobs:
           python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); assert len(d["customers"])==11; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10'
           echo "Verifying security headers"
           headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/)
-          grep -Fqi "strict-transport-security:" <<< "$headers"
-          grep -Fqi "x-frame-options: DENY" <<< "$headers"
-          grep -Fqi "content-security-policy:" <<< "$headers"
-          grep -Fqi "script-src 'self'" <<< "$headers"
-          grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers"
+          echo "$headers"
+          grep -Fqi "strict-transport-security:" <<< "$headers" || { echo "Missing HSTS" >&2; exit 1; }
+          grep -Fqi "x-frame-options: DENY" <<< "$headers" || { echo "Missing X-Frame-Options DENY" >&2; exit 1; }
+          grep -Fqi "content-security-policy:" <<< "$headers" || { echo "Missing CSP" >&2; exit 1; }
+          grep -Fqi "script-src 'self'" <<< "$headers" || { echo "CSP is not self-only for scripts" >&2; exit 1; }
+          grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers" || { echo "Missing COOP same-origin" >&2; exit 1; }
           echo "Verifying internal-route shielding and auth boundary"
           blocked_backup_status=$(curl -sS -o /tmp/n7-backup-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/backup | tr -cd '0-9')
           echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
