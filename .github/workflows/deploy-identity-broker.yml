@@ -111,6 +111,15 @@ jobs:
       - name: Deploy identity broker
         run: npx --prefix identity-broker wrangler deploy --config identity-broker/wrangler.generated.jsonc
 
+      - name: Verify auth custom domain ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          domains=$(curl --fail-with-body -sS \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=auth.clintware.com" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="auth.clintware.com" and x.get("service")=="clintware-identity-broker",x; print("Identity custom domain ready:",x.get("hostname"),"->",x.get("service"))' <<< "$domains"
+
       - name: Sync identity broker secrets
         shell: bash
         run: |
@@ -148,7 +157,8 @@ jobs:
           ready=0
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
-            if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"'; then
+            if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' \
+              && echo "$body" | grep -Fq '"version":"2026-09-22.5"'; then
               echo "$body"
               ready=1
               break
@@ -161,6 +171,8 @@ jobs:
           echo "$body" | grep -Fq '"configured":true'
           echo "$body" | grep -Fq '"google_secret_required":false'
           echo "$body" | grep -Fq '"google_mode":"oidc-id-token-form-post"'
+          echo "$body" | grep -Fq '"version":"2026-09-22.5"'
+          echo "Live identity broker version 2026-09-22.5 verified."
           echo "Clintware Google sign-in is ACTIVE without a Google client secret."
 
       - name: Verify central first-party Clintware client
