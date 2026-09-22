@@ -33,6 +33,8 @@ jobs:
             "quillgeist-lite/install.ps1",
             "quillgeist-lite/uninstall.ps1",
             "quillgeist-lite/tasks/clintware-doctor.ps1",
+            "quillgeist-lite/tasks/ensure-c-runtime.ps1",
+            "quillgeist-lite/tasks/self-update.ps1",
             "identity-broker/scripts/grant-google-cloud-support-access.ps1",
             "identity-broker/scripts/finish-google-oauth.ps1"
           )
@@ -64,20 +66,43 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 1) {
+          if ($registry.version -ne 2) {
             throw "Unexpected task registry version."
+          }
+
+          $extensions = @{
+            powershell = ".ps1"
+            python = ".py"
+            c = ".c"
           }
 
           foreach ($property in $registry.tasks.PSObject.Properties) {
             $task = $property.Value
-            if (-not $task.script.EndsWith(".ps1")) {
-              throw "Task $($property.Name) does not point to a PowerShell script."
+            $runtime = [string]$task.runtime
+
+            if (-not $extensions.ContainsKey($runtime)) {
+              throw "Task $($property.Name) uses unsupported runtime '$runtime'."
             }
+
+            $required = $extensions[$runtime]
+            if (-not ([string]$task.script).EndsWith($required,[StringComparison]::OrdinalIgnoreCase)) {
+              throw "Task $($property.Name) runtime '$runtime' must reference a $required file."
+            }
+
             if ($task.script.Contains("..")) {
               throw "Task $($property.Name) contains path traversal."
             }
+
             if (-not (Test-Path $task.script)) {
-              throw "Task $($property.Name) references missing script $($task.script)"
+              throw "Task $($property.Name) references missing source $($task.script)"
             }
-            Write-Host "TASK_OK $($property.Name) -> $($task.script)"
+
+            Write-Host "TASK_OK $($property.Name) [$runtime] -> $($task.script)"
           }
+
+          python -m py_compile quillgeist-lite/tasks/runtime-python-check.py
+          if ($LASTEXITCODE -ne 0) {
+            throw "Python runtime check source failed py_compile."
+          }
+
+          Write-Host "PYTHON_PARSE_OK quillgeist-lite/tasks/runtime-python-check.py"
