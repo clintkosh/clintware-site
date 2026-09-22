@@ -403,7 +403,7 @@ function denyAuthorization(oauthRequest) {
   return Response.redirect(redirect, 302);
 }
 
-function consentPage(client, oauthRequest, transactionToken, csrfToken) {
+function consentPage(client, oauthRequest, transactionToken, csrfToken, providers) {
   const labels = {
     identity: "Stable Clintware account identity",
     email: "Verified email address",
@@ -411,6 +411,9 @@ function consentPage(client, oauthRequest, transactionToken, csrfToken) {
   };
   const scopes = oauthRequest.scope.filter((scope) => SUPPORTED_SCOPES.includes(scope));
   const scopeList = scopes.map((scope) => `<li><span class="scope">${htmlEscape(scope)}</span><span>${htmlEscape(labels[scope] || scope)}</span></li>`).join("");
+  const providerButtons = providers.map((provider) =>
+    `<button class="approve provider" name="decision" value="approve:${htmlEscape(provider.id)}" type="submit">Continue with ${htmlEscape(provider.label)}</button>`
+  ).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Continue to Clintware</title>
 <style>
@@ -419,22 +422,22 @@ function consentPage(client, oauthRequest, transactionToken, csrfToken) {
 main{max-width:720px;margin:0 auto;padding:7vh 22px 48px}.brandstage{height:260px;display:grid;place-items:center;position:relative}.eclipse{position:absolute;width:220px;height:220px;border-radius:50%;background:#010204;box-shadow:0 0 8px 1px #8eeaff,0 0 34px 8px #3dd7ff,0 0 78px 20px #168fc4,0 0 120px 35px #0a4d70}.wordmark{position:relative;z-index:2;font-size:clamp(44px,9vw,72px);font-weight:850;letter-spacing:-.055em;text-shadow:0 2px 28px #000}.tm{font-size:.28em;vertical-align:top;margin-left:5px;letter-spacing:0}
 .card{position:relative;background:linear-gradient(180deg,#0d1721ee,#071019f4);border:1px solid #294258;border-radius:24px;padding:30px;box-shadow:0 24px 90px #0008,inset 0 1px #ffffff0a;backdrop-filter:blur(18px)}.eyebrow{color:var(--cyan);font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}h1{font-size:31px;line-height:1.12;margin:12px 0 10px}.lead{color:#b8c6d2;line-height:1.6;margin:0 0 22px}
 ul{list-style:none;padding:0;margin:18px 0;border-top:1px solid var(--line)}li{display:grid;grid-template-columns:110px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);color:#a9bac8}.scope{color:var(--mint);font:700 12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
-.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:24px}button{appearance:none;border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:800;font-size:15px;cursor:pointer}.approve{background:#f7fbff;color:#061018;border-color:#f7fbff}.approve:hover{background:#dff7ff}.deny{background:#0a141e;color:#c9d6df}.fine{font-size:12px;color:#718697;line-height:1.55;margin:18px 0 0}.secure{display:flex;align-items:center;justify-content:center;gap:8px;color:#8297a9;font-size:12px;margin-top:22px}.dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}
-@media(max-width:580px){main{padding-top:18px}.brandstage{height:220px}.eclipse{width:185px;height:185px}.card{padding:22px;border-radius:18px}li{grid-template-columns:90px 1fr}.actions{grid-template-columns:1fr}}
+.actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}button{appearance:none;border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:800;font-size:15px;cursor:pointer}.approve{background:#f7fbff;color:#061018;border-color:#f7fbff}.approve:hover{background:#dff7ff}.provider:nth-last-child(2):nth-child(odd){grid-column:1/-1}.deny{grid-column:1/-1;background:#0a141e;color:#c9d6df}.fine{font-size:12px;color:#718697;line-height:1.55;margin:18px 0 0}.secure{display:flex;align-items:center;justify-content:center;gap:8px;color:#8297a9;font-size:12px;margin-top:22px}.dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}
+@media(max-width:580px){main{padding-top:18px}.brandstage{height:220px}.eclipse{width:185px;height:185px}.card{padding:22px;border-radius:18px}li{grid-template-columns:90px 1fr}.actions{grid-template-columns:1fr}.provider,.provider:nth-last-child(2):nth-child(odd),.deny{grid-column:1}}
 </style></head>
 <body><main>
 <div class="brandstage"><div class="eclipse" aria-hidden="true"></div><div class="wordmark">Clintware<span class="tm">TM</span></div></div>
 <section class="card">
 <div class="eyebrow">Clintware Identity</div>
 <h1>Continue to ${htmlEscape(client.clientName || "Clintware")}</h1>
-<p class="lead">Use Google to verify the account you control. Clintware does not receive your Google password and does not keep a Google refresh token for sign-in.</p>
+<p class="lead">Choose an approved identity provider for this application. Clintware receives only the verified identity claims needed for the permissions shown below and keeps the resulting access scoped to this application.</p>
 <ul>${scopeList}</ul>
 <form method="post" action="/authorize">
 <input type="hidden" name="transaction" value="${htmlEscape(transactionToken)}">
 <input type="hidden" name="csrf" value="${htmlEscape(csrfToken)}">
-<div class="actions"><button class="approve" name="decision" value="approve" type="submit">Continue with Google</button><button class="deny" name="decision" value="deny" type="submit">Cancel</button></div>
+<div class="actions">${providerButtons}<button class="deny" name="decision" value="deny" type="submit">Cancel</button></div>
 </form>
-<p class="fine">Only the permissions shown above are requested. Google proves identity; Clintware issues its own scoped authorization separately from infrastructure credentials.</p>
+<p class="fine">Only configured providers approved for this application are shown. Identity proof does not grant MCP, repository, deployment, DNS, Control Plane, or another Clintware application access unless that application explicitly authorizes it.</p>
 </section>
 <div class="secure"><span class="dot"></span><span>Secure sign-in · auth.clintware.com</span></div>
 </main></body></html>`;
