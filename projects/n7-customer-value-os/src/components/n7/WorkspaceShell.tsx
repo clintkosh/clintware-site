@@ -14,6 +14,8 @@ const TOUR_BY_SECTION: Record<string, string> = {
   environment: "Map systems and flows, maintain approved source context, and review topology proposals.",
   documents: "Maintain approved knowledge sources, owners, freshness, and system relevance.",
   "assumption-change": "Use temporary scenario overlays to test plan impacts without changing the live plan.",
+  "live-prompt": "Describe a real customer change, review the AI interpretation and exact record edits, then approve before anything changes.",
+  "live-assist": "Train the account assistant with approved context, capture opted-in machine audio, and review live suggested answers.",
 };
 
 function GuidedTour({ activeSection, onClose }: { activeSection: string; onClose: () => void }) {
