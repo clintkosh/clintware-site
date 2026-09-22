@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-self-update-20260922-1031",
-  "task_id": "self-update",
+  "request_id": "chatgpt-doctor-20260922-1243",
+  "task_id": "clintware-doctor",
   "args": {},
-  "objective": "Update the installed Clintware Quillgeist Lite runner to the latest maintained version, restart it visibly, and display the rotating ASCII Clintware splash."
+  "objective": "Verify the repaired Clintware Quillgeist Lite runner is connected and can receive a task from ChatGPT through the Control Plane."
 }
