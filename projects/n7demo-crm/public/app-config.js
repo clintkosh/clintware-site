@@ -1,6 +1,6 @@
 const API="/api";
 const TABS=[
-["command","Command Center"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
+["command","Command Center"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
 ];
 const SCEN=[
 {id:"sap",label:"SAP connector slips beyond Week 10",impact:"Reassess full-scope go-live, escalation timing, and parallel work."},
@@ -24,10 +24,10 @@ deployment_card:[["title","Card"],["column","Kanban column"],["stageOrder","Stag
 sprint:[["name","Sprint"],["weeks","Planned weeks"],["goal","Goal"],["planned","Planned cards"],["completed","Completed cards"],["notes","Notes"]],
 jira_config:[["siteUrl","Jira site URL"],["projectKey","Project key"],["deploymentBoardId","Deployment board ID"],["issueBoardId","Issue board ID"],["connection","Connection status"],["mode","Integration mode"]]
 };
-let S={customer:null,customers:[],records:[],workspace:null},tab="command",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
+let S={customer:null,customers:[],records:[],workspace:null},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},tab="command",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
 document.documentElement.dataset.theme=theme;
 const e=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const R=t=>S.records.filter(r=>r.type===t);
 const P=p=>({customer_provided:"Customer-provided",internal_record:"Internal record",internal_proposal:"Internal proposed plan",derived_calculation:"Derived",ai_suggestion:"AI suggestion",template:"Template",scenario:"Scenario"}[p]||p);
 const api=async(p,o={})=>{let r=await fetch(API+p,{headers:{"content-type":"application/json"},...o});if(r.status===401){location.href="/";throw Error("Sign-in required")}if(!r.ok)throw Error((await r.json().catch(()=>({}))).error||r.statusText);return r.json()};
-async function load(id){S=await api("/state"+(id?"?customer="+encodeURIComponent(id):""));render()}
+async function load(id){[S,K]=await Promise.all([api("/state"+(id?"?customer="+encodeURIComponent(id):"")),api("/kb")]);render()}
