@@ -27,6 +27,17 @@ export const FIRST_PARTY_APPS = Object.freeze({
     contextScopes: Object.freeze(["neuron7-case:read", "neuron7-case:operator"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
+  "n7demo-crm": Object.freeze({
+    product: "n7demo-crm",
+    name: "N7 Demo CRM",
+    home: "https://n7demo.clintware.com",
+    redirectUri: "https://n7demo.clintware.com/auth/callback",
+    scopes: Object.freeze(["identity", "email", "profile"]),
+    allowedEmailDomains: Object.freeze(["neuron7.ai"]),
+    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    contextScopes: Object.freeze(["n7demo-crm:read", "n7demo-crm:write"]),
+    identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
+  }),
   "control-plane-admin": Object.freeze({
     product: "control-plane-admin",
     name: "Clintware Control Plane Admin",
