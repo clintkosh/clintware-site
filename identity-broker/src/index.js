@@ -5,7 +5,7 @@ import * as oauth from "oauth4webapi";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-22.2";
+const VERSION = "2026-09-22.3";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -119,7 +119,7 @@ function html(body, status = 200, extra = {}) {
     "content-type": "text/html; charset=utf-8",
     "cache-control": "no-store",
     pragma: "no-cache",
-    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://accounts.google.com; base-uri 'none'; frame-ancestors 'none'",
     "x-frame-options": "DENY",
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
