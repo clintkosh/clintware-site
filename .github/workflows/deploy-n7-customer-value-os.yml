@@ -97,6 +97,8 @@ jobs:
             accuracy-triage
             messaging
             meeting-prep
+            live-prompt
+            live-assist
             roi-workshop
             kpi-contract
             executive-qbr
