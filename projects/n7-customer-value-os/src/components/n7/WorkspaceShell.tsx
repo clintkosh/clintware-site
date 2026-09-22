@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/n7/AppHeader";
-import { MeetingBriefDialog } from "@/components/n7/MeetingBrief";
-
 import { Button } from "@/components/ui/button";
 import { SECTIONS, SECTION_GROUPS } from "@/lib/n7/sections";
 import { useN7 } from "@/lib/n7/store";
@@ -100,7 +98,14 @@ export function WorkspaceShell({
               ) : null}
             </div>
             <div className="print:hidden">
-              <MeetingBriefDialog ws={ws} />
+              <Button asChild size="sm" variant="outline" className="w-full justify-center">
+                <Link
+                  to="/customers/$customerId/$section"
+                  params={{ customerId: ws.customer.id, section: "meeting-prep" }}
+                >
+                  Meeting prep
+                </Link>
+              </Button>
             </div>
 
             <nav aria-label="Workspace sections" className="space-y-4">
