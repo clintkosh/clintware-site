@@ -19,107 +19,123 @@ function Show-QuillgeistSplash {
 
   $frames = @(
 @'
-                         ______
-                      __/ ____/|
-                    _/  /___ / |
-                   /___/___//  |
-                   |  /   / |  |
-                   | /___/  | /
-                   |____/___|/
+                    .-=================-.
+                .-==                   ==-.
+              .==                         ==.
+             ==                             ==
+            ==                               ==
+           ==                                 ==
+           ==          CLINTWARE(TM)          ==
+           ==                                 ==
+            ==                               ==
+             ==                             ==
+              '==.                       .=='
+                 '-==.               .==-'
+                     '-=============-'
 '@,
 @'
-                      __________
-                   __/  _____  /|
-                 _/   / ___ / / |
-                /____/ /__/ / / |
-                |    \_____/ |  |
-                |   ____    /| /
-                |__/___/___/ |/
-                |___________/
+                    .-=================-.
+                .-==                   ==-.
+              .==                         ==.
+             ==                             ==
+            ==                               ==
+           ==                                 ==
+           ==          CLINTWARE(TM)          ==
+           ==                                 ==
+            ==                               ==
+             ==                             ==
+              '==.                       .=='
+                 '-===.             .===-'
+                     '--===========--'
 '@,
 @'
-                    ______________
-                 __/ __________  /|
-               _/  /  ______ /  / |
-              /___/  / ____//  /  |
-              |   \_/ /___ /  /   |
-              |      ____ /  /    |
-              |  ___/   //  /    /
-              |_/______/____/____/
-              |_______________ _/
+                    .-=================-.
+                .===-                 -===.
+              .==                         ==.
+             ==                             ==
+            ==                               ==
+           ==                                 ==
+           ==          CLINTWARE(TM)          ==
+           ==                                 ==
+            ==                               ==
+             ==                             ==
+              '==.                       .=='
+                 '-==.               .==-'
+                     '-=============-'
 '@,
 @'
-                 __________________
-              __/  _____________  /|
-            _/   /  _________  / / |
-           /____/  /  _____ / / /  |
-           |    \_/  / ___// / /   |
-           |       _/ /___  / /    |
-           |   ___/  ____/ / /     |
-           |  /  /  /____/ /      /
-           |_/__/__________/______/
-           |_____________________/
+                    --===============--
+                -===.                 .===-
+              .==                         ==.
+             ==                             ==
+            ==                               ==
+           ==                                 ==
+           ==          CLINTWARE(TM)          ==
+           ==                                 ==
+            ==                               ==
+             ==                             ==
+              '==.                       .=='
+                 '-==.               .==-'
+                     '-=============-'
 '@,
 @'
-              ______________________
-           __/  _________________  /|
-         _/   /  ______________ / / |
-        /____/  /  __________  / /  |
-        |    \_/  /  _______/ / /   |
-        |        /  / ______ / /    |
-        |   ____/  / /______/ /     |
-        |  /      /__________/      /
-        |_/________________________/
-        |_________________________/
+                    .-=================-.
+                .-==                   ==-.
+              .==                         ==.
+             ==                             ==
+            ==                               ==
+           ==                                 ==
+           ==          CLINTWARE(TM)          ==
+           ==                                 ==
+            ==                               ==
+             ==                             ==
+              '===.                     .==='
+                  '===-.           .-==='
+                      '--========--'
 '@
   )
 
-  try { Clear-Host } catch {}
+  function Draw-SplashFrame {
+    param([string]$Frame)
 
-  for ($spin = 0; $spin -lt 3; $spin++) {
-    foreach ($frame in $frames) {
-      try { [Console]::SetCursorPosition(0,0) } catch {}
-      Write-Host $frame -ForegroundColor DarkGray
-      Write-Host ""
-      Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
-      Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
-      Write-Host ""
-      Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
-      Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
-      Write-Host ""
-      Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-      Start-Sleep -Milliseconds 95
+    try {
+      [Console]::SetCursorPosition(0,0)
+      [Console]::Write((" " * 86 + [Environment]::NewLine) * 24)
+      [Console]::SetCursorPosition(0,0)
+    } catch {
+      try { Clear-Host } catch {}
     }
 
-    foreach ($frame in @($frames | Select-Object -Reverse)) {
-      try { [Console]::SetCursorPosition(0,0) } catch {}
-      Write-Host $frame -ForegroundColor DarkGray
-      Write-Host ""
-      Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
-      Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
-      Write-Host ""
-      Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
-      Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
-      Write-Host ""
-      Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-      Start-Sleep -Milliseconds 95
+    Write-Host $Frame -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "                       Q U I L L G E I S T   L I T E" -ForegroundColor White
+    Write-Host ""
+    Write-Host '                           "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+    Write-Host "                     EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "                    MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
+    Write-Host "                         PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
+  }
+
+  try { Clear-Host } catch {}
+
+  for ($spin = 0; $spin -lt 2; $spin++) {
+    for ($i = 0; $i -lt $frames.Count; $i++) {
+      Draw-SplashFrame $frames[$i]
+      Start-Sleep -Milliseconds 90
+    }
+
+    for ($i = $frames.Count - 2; $i -ge 1; $i--) {
+      Draw-SplashFrame $frames[$i]
+      Start-Sleep -Milliseconds 90
     }
   }
 
-  try { [Console]::SetCursorPosition(0,0) } catch {}
-  Write-Host $frames[-1] -ForegroundColor DarkGray
+  Draw-SplashFrame $frames[0]
   Write-Host ""
-  Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
-  Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
+  Write-Host "                    EVENT-DRIVEN // STREAMING EVIDENCE" -ForegroundColor DarkGray
   Write-Host ""
-  Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
-  Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
-  Write-Host ""
-  Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-  Write-Host ""
-  Write-Host "  PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
-  Write-Host "  Event-driven. Allowlisted. Streaming evidence." -ForegroundColor DarkGray
-  Write-Host ""
+
   try { [Console]::CursorVisible = $true } catch {}
 }
 
