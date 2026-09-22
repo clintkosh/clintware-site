@@ -63,7 +63,8 @@ Start-Sleep -Milliseconds 800
 Remove-Item $ServiceExe -Force -ErrorAction SilentlyContinue
 
 $refs = @("System.ServiceProcess.dll","System.Runtime.Serialization.dll")
-Add-Type -Path $SourcePath -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $ServiceExe -OutputType WindowsApplication
+$serviceSource = Get-Content $SourcePath -Raw
+Add-Type -TypeDefinition $serviceSource -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $ServiceExe -OutputType WindowsApplication
 
 if (-not (Test-Path $ServiceExe)) { throw "Health service compilation did not produce $ServiceExe" }
 
