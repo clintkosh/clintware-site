@@ -71,6 +71,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/connect-jira.ps1",
       "parameters": []
+    },
+    "enable-admin-console": {
+      "title": "Upgrade qq to the supervised interactive admin console",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/enable-admin-console.ps1",
+      "parameters": []
     }
   }
 }
