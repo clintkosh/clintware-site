@@ -490,6 +490,69 @@ export interface JiraWorkspaceConfig {
   issuesJql?: string;
 }
 
+export type PlanChangeCollection =
+  | "milestones"
+  | "dependencies"
+  | "risks"
+  | "decisions"
+  | "raci"
+  | "integrations"
+  | "kpis"
+  | "deploymentWork"
+  | "sprints"
+  | "engineeringIssues"
+  | "documents"
+  | "valueEvents";
+
+export interface PlanChangeOperation {
+  id: ID;
+  action: "update-customer" | "update-item" | "add-item";
+  collection?: PlanChangeCollection;
+  itemId?: ID;
+  label: string;
+  reason: string;
+  patch: Record<string, unknown>;
+}
+
+export interface PlanChangeRecord {
+  id: ID;
+  customerId: ID;
+  createdAt: string;
+  approvedAt: string;
+  input: string;
+  interpretation: string;
+  confidence: "low" | "medium" | "high";
+  operations: PlanChangeOperation[];
+  citations?: { url: string; title?: string; publishedDate?: string | null }[];
+  researchUsed: boolean;
+  appliedBy: string;
+  provenance: Provenance;
+}
+
+export interface LiveAssistTrainingSource {
+  id: ID;
+  customerId: ID;
+  createdAt: string;
+  label: string;
+  transcript: string;
+  source: "uploaded-call" | "live-call" | "operator-note";
+  approved: boolean;
+  provenance: Provenance;
+}
+
+export interface LiveAssistSession {
+  id: ID;
+  customerId: ID;
+  startedAt: string;
+  endedAt?: string;
+  source: "machine-audio" | "uploaded-call" | "direct-ask";
+  consentConfirmed: boolean;
+  targetParticipantNames: string[];
+  transcript: string;
+  suggestions: string[];
+  provenance: Provenance;
+}
+
 export interface CustomerWorkspace {
   customer: Customer;
   stakeholders: Stakeholder[];
@@ -524,4 +587,10 @@ export interface CustomerWorkspace {
   callPreps?: CallPrepRecord[];
   /** Recorded meeting checkpoints. Optional so older persisted state still loads. */
   meetings?: MeetingRecord[];
+  /** Human-approved AI interpretations applied to the live customer plan. */
+  planChangeRecords?: PlanChangeRecord[];
+  /** Approved transcripts/notes used as account-specific assistant context. */
+  liveAssistTraining?: LiveAssistTrainingSource[];
+  /** Optional call-assist history. Live transcripts are only persisted when the operator chooses to save them. */
+  liveAssistSessions?: LiveAssistSession[];
 }
