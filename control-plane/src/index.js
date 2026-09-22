@@ -6,7 +6,7 @@ import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./f
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 
-const VERSION = "2026-09-22-jira.1";
+const VERSION = "2026-09-22-n7.2";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -98,15 +98,26 @@ const DEFAULT_BACKGROUND_MIRROR = {
 const DEFAULT_NEURON7_CASE = {
   product:"neuron7-case",
   environment:"production",
-  version:1,
-  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["neuron7-case-worker/"],allowed_workflows:["deploy-neuron7-case.yml"]},
-  dns:{allowed_names:["n7.clintware.com","n7case.clintware.com"]},
-  capabilities:["repo.read:clintware-site","repo.write:neuron7-case-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:neuron7-case","dns.ensure:n7.clintware.com","dns.ensure:n7case.clintware.com","analytics.write:neuron7-case","analytics.read:neuron7-case"],
-  deny:["research.invoke","secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
+  version:3,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["projects/n7-customer-value-os/"],allowed_workflows:["deploy-n7-customer-value-os.yml"]},
+  dns:{allowed_names:["n7crm.clintware.com","n7.clintware.com","n7case.clintware.com"]},
+  capabilities:[
+    "repo.read:clintware-site",
+    "repo.write:projects/n7-customer-value-os/**",
+    "repo.branch:create","repo.branch:read","repo.commit:status",
+    "repo.workflow:dispatch","repo.workflow:status",
+    "deployment.read","deployment.execute:neuron7-case",
+    "dns.ensure:n7crm.clintware.com",
+    "analytics.write:neuron7-case","analytics.read:neuron7-case",
+    "research.invoke","ai.invoke",
+    "state.read:neuron7-case","state.write:neuron7-case",
+    "jira.read:neuron7-case","jira.write:neuron7-case"
+  ],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"neuron7-case",
-  privacy:{public_viewer:true,indexing:false,customer_data:false,oauth_operator_mode:"optional",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
-  identity:{enabled:true,authority:"https://auth.clintware.com",first_party_client:"Clintware Web",client_id:"https://auth.clintware.com/client/clintware-web",client_model:"cimd",config_endpoint:"https://auth.clintware.com/client-config/neuron7-case",redirect_uri:"https://n7.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256"},
+  privacy:{public_viewer:false,indexing:false,customer_data:true,oauth_operator_mode:"required",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
+  identity:{enabled:true,authority:"https://auth.clintware.com",first_party_client:"Clintware Web",client_id:"https://auth.clintware.com/client/clintware-web",client_model:"cimd",config_endpoint:"https://auth.clintware.com/client-config/neuron7-case",redirect_uri:"https://n7crm.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256"},
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
@@ -257,13 +268,13 @@ const RISK_TIERS = {
   "repo.commit":0, "repo.commit.status":0, "repo.commit:status":0,
   "repo.workflow":0, "repo.workflow.status":0, "repo.workflow:status":0,
   "deployment.read":0, "telemetry.read":0,
-  "cache.read":0, "analytics.read":0, "flow.read":0, "local.read":0, "jira.read":0,
+  "cache.read":0, "analytics.read":0, "flow.read":0, "local.read":0, "jira.read":0, "state.read":0,
   // Tier 1 — LOW-RISK SCOPED MUTATION
   "repo.write":1, "repo.file.write":1, "repo.file.create":1,
   "repo.branch:create":1, "repo.branch.create":1,
   "repo.workflow.dispatch":1, "repo.workflow:dispatch":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
-  "research.invoke":1, "flow.write":1, "flow.run":1, "local.run":1, "jira.write":1,
+  "research.invoke":1, "ai.invoke":1, "state.write":1, "flow.write":1, "flow.run":1, "local.run":1, "jira.write":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
   "dns.ensure":2,
@@ -307,7 +318,8 @@ function capabilityForMatch(capability,resource,manifest){
   if(cap==="deployment.execute") return `deployment.execute:${resource?.product||"proofos"}`;
   if(cap==="deployment.read") return "deployment.read";
   if(cap==="dns.ensure") return resource?.name?`dns.ensure:${resource.name}`:"dns.ensure";
-  if(cap==="research.invoke") return "research.invoke";
+  if(cap==="research.invoke"||cap==="ai.invoke") return cap;
+  if(cap==="state.read"||cap==="state.write") return `${cap}:${resource?.product||manifest?.product||"unknown"}`;
   if(cap==="analytics.read") return `analytics.read:${resource?.product||"proofos"}`;
   if(cap==="analytics.write") return `analytics.write:${resource?.product||"proofos"}`;
   if(cap==="cache.read") return `cache.read:${resource?.product||"proofos"}`;
@@ -995,6 +1007,26 @@ export class ProductHub extends DurableObject {
   async events(){return await this.ctx.storage.get("events")||[];}
   async fetch(request){
     const url=new URL(request.url);
+    if(request.method==="GET"&&url.pathname==="/state"){
+      const state=await this.ctx.storage.get("shared_state")??null;
+      const revision=Number(await this.ctx.storage.get("shared_state_revision")||0);
+      const meta=await this.ctx.storage.get("shared_state_meta")||{};
+      return json({ok:true,state,revision,updated_at:meta.updated_at||null,updated_by:meta.updated_by||null});
+    }
+    if(request.method==="PUT"&&url.pathname==="/state"){
+      const body=await reqJson(request,2_000_000);
+      const currentRevision=Number(await this.ctx.storage.get("shared_state_revision")||0);
+      if(body.expected_revision!==undefined&&body.expected_revision!==null&&Number(body.expected_revision)!==currentRevision){
+        return json({ok:false,error:"revision_conflict",revision:currentRevision},409);
+      }
+      const revision=currentRevision+1;
+      const updated_at=nowIso();
+      const updated_by=clip(body.actor||"n7-team",240);
+      await this.ctx.storage.put("shared_state",body.state??null);
+      await this.ctx.storage.put("shared_state_revision",revision);
+      await this.ctx.storage.put("shared_state_meta",{updated_at,updated_by});
+      return json({ok:true,revision,updated_at,updated_by});
+    }
     if(request.method==="POST"&&url.pathname==="/event"){
       const body=await reqJson(request);
       const event={
@@ -1226,7 +1258,7 @@ async function verifyProductToken(request,env,product){
 // calling worker's name and no cf-connecting-ip, so the identity cannot be spoofed
 // from outside (public requests always arrive with cf-connecting-ip, which is
 // stripped/managed by the edge and absent on binding traffic).
-const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror"};
+const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os"};
 function serviceProduct(request){
   if(request.headers.get("cf-connecting-ip"))return null;
   const caller=(request.headers.get("cf-worker")||"").trim().toLowerCase();
@@ -1565,6 +1597,49 @@ async function invokeResearchProvider(env,body){
     }catch{}
   }
   return payload;
+}
+
+async function genericResearch(env,query){
+  const q=String(query||"").trim().slice(0,2000);
+  if(!q)return {available:false,citations:[],context:"",reason:"query_required"};
+  const auth=await exaApiKey(env);
+  if(!auth)return {available:false,citations:[],context:"",reason:"research_provider_not_configured"};
+  try{
+    const search=await exaRequest(auth.key,"/search",{query:q,numResults:6,type:"auto",contents:{text:{maxCharacters:1800},highlights:{maxCharacters:400}}});
+    const results=Array.isArray(search.results)?search.results:[];
+    return {
+      available:results.length>0,
+      citations:results.map(r=>({url:r.url,title:r.title||r.url,publishedDate:r.publishedDate||null})),
+      context:results.map((r,i)=>`[${i+1}] ${r.title||r.url} — ${r.url}\n${String(r.text||(r.highlights||[]).join(" ")||"").slice(0,1800)}`).join("\n\n"),
+      reason:results.length?"":"exa_no_results"
+    };
+  }catch(e){
+    return {available:false,citations:[],context:"",reason:String(e?.code||"research_provider_error")};
+  }
+}
+async function invokeAiProvider(env,body){
+  if(!env.AI)return {ok:true,available:false,provider:"clintware-workers-ai",reason:"workers_ai_not_configured"};
+  const task=clip(body.task||"general",120);
+  const prompt=clip(body.prompt||body.input||"",30000);
+  const context=clip(typeof body.context==="string"?body.context:JSON.stringify(body.context||{}),60000);
+  let research={available:false,citations:[],context:"",reason:"not_requested"};
+  if(body.research_query)research=await genericResearch(env,body.research_query);
+  const system=[
+    "You are the server-side reasoning service for the N7 Customer Value OS.",
+    "Use only supplied workspace context and cited research. Never invent customer facts, names, metrics, dates, systems, incidents, owners, or commitments.",
+    "Clearly separate supplied facts, user-entered data, generated proposals, and external research.",
+    "If asked for JSON, return valid JSON only with no markdown fence.",
+    "Do not autonomously send customer messages or make customer commitments."
+  ].join(" ");
+  const user=`Task: ${task}\n\nRequest:\n${prompt}\n\nWorkspace context:\n${context||"(none)"}\n\nExternal research:\n${research.context||"(not used)"}`;
+  try{
+    const result=await env.AI.run(SYNTHESIS_MODEL,{messages:[{role:"system",content:system},{role:"user",content:user}],max_tokens:1800});
+    const text=String((result&&(result.response||result.message||""))||"");
+    if(!text)return {ok:true,available:false,provider:"clintware-workers-ai",reason:"workers_ai_empty",citations:research.citations};
+    return {ok:true,available:true,provider:"clintware-workers-ai",model:SYNTHESIS_MODEL,text,citations:research.citations,research_used:research.available};
+  }catch(e){
+    return {ok:true,available:false,provider:"clintware-workers-ai",reason:String(e?.message||"workers_ai_error"),citations:research.citations};
+  }
 }
 
 function createMcpServer(env,mcpRequest,mcpAuth){
@@ -2467,6 +2542,54 @@ export default {
         const r=await registryHub(env).fetch(new Request("https://internal/client",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({product,token_hash,scopes:body.scopes})}));
         if(!r.ok)return r;
         return json({ok:true,product,token,warning:"Store this token securely; only its hash is retained by Clintware."});
+      }
+
+      if((request.method==="GET"||request.method==="PUT")&&url.pathname==="/api/v1/state"){
+        let body={};
+        if(request.method==="PUT")body=await reqJson(request,2_000_000);
+        const product=normalizeProduct(body.product||url.searchParams.get("product"))||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        const capability=request.method==="GET"?`state.read:${product}`:`state.write:${product}`;
+        if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
+        const internal=new Request("https://internal/state",{method:request.method,headers:{"content-type":"application/json"},body:request.method==="PUT"?JSON.stringify(body):undefined});
+        const r=await productHub(env,product).fetch(internal);
+        return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
+      }
+
+      if(request.method==="POST"&&url.pathname==="/api/v1/ai"){
+        const body=await reqJson(request,256_000);const product=normalizeProduct(body.product)||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        if(!capabilityMatches(auth.manifest,"ai.invoke"))return json({error:"capability_denied"},403);
+        const result=await invokeAiProvider(env,body);
+        await audit(env,product,"ai_invoke",body.request_id,{task:body.task||"",provider:result.provider||"",model:result.model||"",available:result.available,research_used:Boolean(result.research_used),source_count:(result.citations||[]).length},result.available,result.available?"":(result.reason||"unavailable"));
+        return json(result);
+      }
+
+      if(request.method==="POST"&&url.pathname==="/api/v1/jira/bridge"){
+        const body=await reqJson(request,128_000);const product=normalizeProduct(body.product)||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        const op=String(body.operation||"").toLowerCase();
+        const writeOps=new Set(["create","update","comment","transition"]);
+        const capability=`jira.${writeOps.has(op)?"write":"read"}:${product}`;
+        if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
+        const args=body.args&&typeof body.args==="object"?body.args:{};
+        let result;
+        if(op==="status")result=await jiraStatus(env);
+        else if(op==="sites")result=await jiraSites(env);
+        else if(op==="projects")result=await jiraProjects(env,args);
+        else if(op==="search")result=await jiraSearch(env,args);
+        else if(op==="get")result=await jiraGetIssue(env,args);
+        else if(op==="create")result=await jiraCreateIssue(env,args);
+        else if(op==="update")result=await jiraUpdateIssue(env,args);
+        else if(op==="comment")result=await jiraAddComment(env,args);
+        else if(op==="transitions")result=await jiraTransitions(env,args);
+        else if(op==="transition")result=await jiraTransitionIssue(env,args);
+        else return json({error:"unsupported_jira_operation"},400);
+        await audit(env,product,`jira_${op}`,body.request_id,{ok:Boolean(result?.ok),issue_key:args.issue_key||"",project_key:args.project_key||""},Boolean(result?.ok),result?.error||"");
+        return json(result,result?.ok===false?(result.status||400):200);
       }
 
       if(request.method==="POST"&&url.pathname==="/api/v1/events"){
