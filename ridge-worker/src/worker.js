@@ -1,3 +1,5 @@
+const APPLICATION_SUNSET_AT = Date.parse("2026-10-22T05:00:00Z");
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -8,6 +10,45 @@ export default {
       "X-Content-Type-Options": "nosniff",
       "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
     };
+    const isExpired = Date.now() >= APPLICATION_SUNSET_AT;
+
+    if (isExpired && url.pathname !== "/health" && url.pathname !== "/healthz") {
+      const expiredHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0f0f0f">
+<title>Application no longer active</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f0f0f;color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  main{width:min(720px,calc(100% - 40px));border:1px solid #30302e;background:#171717;padding:36px}
+  .k{font:700 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#ff6b2c}
+  h1{font-size:clamp(34px,6vw,58px);line-height:1;letter-spacing:-.045em;margin:14px 0 18px}
+  p{color:#b9b9b3;font-size:16px;line-height:1.6;margin:0 0 22px}
+  a{color:#ff8d55;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <div class="k">Clinton Kosh · Ridge CX application</div>
+  <h1>This role-specific application page is no longer active.</h1>
+  <p>The temporary Ridge application microsite has been retired after its planned availability window.</p>
+  <a href="https://www.clintware.com/">Visit Clintware™</a>
+</main>
+</body>
+</html>`;
+      return new Response(expiredHtml, {
+        status: 410,
+        headers: {
+          ...headers,
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=300"
+        }
+      });
+    }
+
     if (url.pathname === "/resume.pdf") {
       const upstream = await fetch("https://www.clintware.com/work/Clinton_Kosh_Resume.pdf", {
         headers: { "User-Agent": "Clintware-Ridge-Application/1.0" }
@@ -35,7 +76,9 @@ export default {
         ok: true,
         surface: "ridge-director-cx-application",
         canonicalUrl: "https://ridge.clintware.com",
-        release: "2026-09-21"
+        release: "2026-09-22",
+        sunsetAt: "2026-10-22T05:00:00Z",
+        expired: Date.now() >= APPLICATION_SUNSET_AT
       }), {status:200, headers:{...headers,"Content-Type":"application/json; charset=utf-8"}});
     }
     const response = await env.ASSETS.fetch(request);
