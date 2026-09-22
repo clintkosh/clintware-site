@@ -1,3 +1,4 @@
+import {SAMPLE_CUSTOMERS,SAMPLE_SEED_VERSION} from "./sample-customers.js";
 const GA4_ID="G-DCY144YM9P";
 const AUTH_ORIGIN="https://auth.clintware.com";
 const AUTH_CONFIG_URL=AUTH_ORIGIN+"/client-config/n7demo-crm";
@@ -8,6 +9,7 @@ const COMPANY_DOMAIN="neuron7.ai";
 const WORKSPACE_ID="n7demo-neuron7";
 const TX_COOKIE="__Host-n7demo-auth-tx";
 const SESSION_COOKIE="__Host-n7demo-session";
+const GUEST_COOKIE="__Host-n7demo-guest";
 const te=new TextEncoder();
 const H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow"};
 const j=(x,s=200,extra={})=>new Response(JSON.stringify(x),{status:s,headers:{...H,...extra}});
@@ -26,7 +28,7 @@ function loginPage(){return `<!doctype html><html><head><meta charset="utf-8"><m
 async function startLogin(){const cfg=await authConfig(),state=rand(24),verifier=rand(48),challenge=await pkce(verifier),u=new URL(cfg.authorization_endpoint);u.searchParams.set("response_type","code");u.searchParams.set("client_id",cfg.client_id);u.searchParams.set("redirect_uri",cfg.redirect_uri);u.searchParams.set("scope",(cfg.scopes||["identity","email","profile"]).join(" "));u.searchParams.set("state",state);u.searchParams.set("code_challenge",challenge);u.searchParams.set("code_challenge_method","S256");u.searchParams.set("resource",cfg.resource);const h=secureHeaders(new Headers({location:u.toString(),"set-cookie":setCookie(TX_COOKIE,state+"."+verifier,600)}));return new Response(null,{status:302,headers:h})}
 async function refreshTokens(session){if(!session.refreshToken)return null;const cfg=await authConfig();const r=await fetch(cfg.token_endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded",accept:"application/json"},body:new URLSearchParams({grant_type:"refresh_token",client_id:cfg.client_id,refresh_token:session.refreshToken})});const t=await r.json().catch(()=>({}));if(!r.ok||!t.access_token)return null;return {accessToken:t.access_token,refreshToken:t.refresh_token||session.refreshToken,expiresAt:Date.now()+Number(t.expires_in||900)*1000}}
 async function userInfo(accessToken){const cfg=await authConfig();const r=await fetch(cfg.userinfo_endpoint,{headers:{authorization:"Bearer "+accessToken,accept:"application/json"}});if(!r.ok)return null;return r.json()}
-const CUSTOMER={id:"healthcare-device-manufacturer",name:"Healthcare Device Manufacturer",nameStatus:"Name not provided",industry:"Healthcare device manufacturing",stage:"Implementation",week:1,provenance:"customer_provided",facts:{users:"500+ field technicians",product:"Neuron7 Intelligent Search",committedTimeline:"6–8 weeks from start to go-live",roiTarget:"Improve cycle time for resolution by 50% by end of Year 1",kickoff:"Week 1; kickoff and discovery calls completed",sap:"SAP connector not ready; Engineering initial estimate up to 8–10 weeks",sapRequirement:"Must-have for go-live because product manuals are maintained in SAP",sso:"Single sign-on included for N7 and SFDC/SAP"}};
+const CUSTOMER={id:"healthcare-device-manufacturer",name:"ACME MEDICAL",nameStatus:"Golden example customer",industry:"Healthcare device manufacturing",stage:"Implementation",week:1,provenance:"customer_provided",isGoldenExample:true,protected:true,defaultSample:true,sourceFile:"CS-Case Study[86][16].pdf",facts:{users:"500+ field technicians",product:"Neuron7 Intelligent Search",committedTimeline:"6–8 weeks from start to go-live",roiTarget:"Improve cycle time for resolution by 50% by end of Year 1",kickoff:"Week 1; kickoff and discovery calls completed",sap:"SAP connector not ready; Engineering initial estimate up to 8–10 weeks",sapRequirement:"Must-have for go-live because product manuals are maintained in SAP",sso:"Single sign-on included for N7 and SFDC/SAP"}};
 const SEED=[
 ["handoff","customer_provided",{title:"Contracted scope",value:"Neuron7 Intelligent Search licenses for search across multiple internal data-source platforms",validation:"Partially validated",note:"Salesforce connector is ready; SAP connector is not ready."}],
 ["handoff","customer_provided",{title:"Promised implementation timeline",value:"6–8 weeks from start to go-live",validation:"At risk",note:"SAP is required for go-live and its connector estimate is up to 8–10 weeks."}],
