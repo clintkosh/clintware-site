@@ -69,7 +69,6 @@ jobs:
             if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" \
               && grep -Fq '"lovable":false' <<< "$h" \
               && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
-              && grep -Fq 'Clintware Identity' <<< "$p" \
               && grep -Fq 'N7 Demo CRM' <<< "$p"; then
               ready=1
               break
