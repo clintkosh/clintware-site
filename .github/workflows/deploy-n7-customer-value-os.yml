@@ -52,13 +52,16 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm install --prefix projects/n7-customer-value-os --no-audit --no-fund
+      - name: Build production Worker bundle
+        run: npm run build --prefix projects/n7-customer-value-os
       - name: Deploy N7 Worker runtime
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4"
-          command: deploy --cwd projects/n7-customer-value-os
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          projects/n7-customer-value-os/node_modules/.bin/wrangler deploy \
+            --config projects/n7-customer-value-os/dist/server/wrangler.json
       - name: Attach N7 custom domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
