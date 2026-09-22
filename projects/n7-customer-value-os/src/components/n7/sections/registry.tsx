@@ -1,8 +1,9 @@
+import { MeetingPrepPage } from "@/components/n7/MeetingBrief";
 import type { CustomerWorkspace } from "@/lib/n7/types";
 import { AssumptionChange, ExecutiveSummary } from "./FrameSections";
 import { CriticalPath, Governance, Implementation, RisksDecisions } from "./PlanSections";
 import { ExecutiveQBR, KPIContract, ROIWorkshop } from "./ValueSections";
-import { AccuracyTriage, Documents, VirtualLiaison } from "./TechSections";
+import { AccuracyTriage, Documents } from "./TechSections";
 import { Evidence, Messaging, ReadinessGate } from "./SystemSections";
 import { EnvironmentMapper } from "./EnvironmentMapper";
 import { DeploymentBoard, EngineeringIssues, RolloutSprints } from "./OperationsSections";
@@ -24,7 +25,7 @@ export const SECTION_COMPONENTS: Record<string, (props: { ws: CustomerWorkspace 
   "accuracy-triage": AccuracyTriage,
   "executive-qbr": ExecutiveQBR,
   "readiness-gate": ReadinessGate,
-  "virtual-liaison": VirtualLiaison,
+  "meeting-prep": MeetingPrepPage,
   "assumption-change": AssumptionChange,
   evidence: Evidence,
 };
