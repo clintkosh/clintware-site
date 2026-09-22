@@ -125,40 +125,15 @@ function Show-QuillgeistSplash {
   Initialize-ClintwareTerminal
 
   try { [Console]::CursorVisible = $false } catch {}
-
-  $ring = @(
-    "                  .:-=+*#%@@@@@@@@@@@@@@@@@@%#*+=-:.",
-    "             .:=*%@@@#*+=-::::::::::::::::-=+*#@@@%*=:.",
-    "          .-#@@%+:.                              .:+%@@#-.",
-    "        :#@@=.                                      .=@@#:",
-    "      .%@*:                                            :*@%.",
-    "     +@#.                                                .#@+",
-    "    #@+                                                    +@#",
-    "   %@=                                                      =@%",
-    "  #@+                                                        +@#"
-  )
-
-  foreach ($line in $ring) { Write-ClintwareCentered $line Cyan }
-
-  Write-ClintwareSplitLine "  %@:        " "C L I N T W A R E  TM" "        :@%" White
-  Write-ClintwareSplitLine "  %@:          ..::** " "EST. 2026" " **::..          :@%" White
-
-  $lower = @(
-    "  #@+                                                        +@#",
-    "   %@=                                                      =@%",
-    "    #@+                                                    +@#",
-    "     +@#.                                                .#@+",
-    "      .%@*:                                            :*@%.",
-    "        :#@@=.                                      .=@@#:",
-    "          .-#@@%+:.                              .:+%@@#-.",
-    "             .:=*%@@@#*+=-::::::::::::::::-=+*#@@@%*=:.",
-    "                  .:-=+*#%@@@@@@@@@@@@@@@@@@%#*+=-:."
-  )
-
-  foreach ($line in $lower) { Write-ClintwareCentered $line Cyan }
+  try { Clear-Host } catch {}
 
   Write-Host ""
+  Write-ClintwareCentered "C L I N T W A R E  ™" White
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
+  Write-Host ""
+  Write-ClintwareCentered "GO FURTHEST. ™" Cyan
+  Write-ClintwareCentered "EST. 2026  //  ALL RIGHTS RESERVED" DarkGray
+  Write-Host ""
   Write-ClintwareCentered "LOCAL EXECUTION  //  CONTROL PLANE LINK" DarkCyan
   Write-ClintwareCentered "POWERSHELL  |  PYTHON  |  C" DarkCyan
   Write-Host ""
@@ -569,7 +544,7 @@ try {
 
       try {
         Show-QuillgeistSplash
-        Write-Log "ASCII splash initialized." "OK"
+        Write-Log "Glass terminal header initialized." "OK"
       } catch {
         Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
         Queue-RunnerDiagnostic "ERROR" ($_.Exception.ToString()) "splash"
