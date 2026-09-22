@@ -177,7 +177,7 @@ jobs:
           assert d.get('ok') is True,d
           assert d.get('storage',{}).get('storage') == 'sqlite',d
           assert d.get('slots',0) > 0,d
-          assert d.get('mailer') is True,d
+          assert d.get('calendarBridgeConfigured') is True,d
           print('Protected self-test passed:',d)
           PY
 
