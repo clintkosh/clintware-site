@@ -81,9 +81,13 @@ jobs:
           test "$ready" = "1"
           rm -f /tmp/n7demo.cookies
           curl -fsS -c /tmp/n7demo.cookies https://n7demo.clintware.com/ >/tmp/n7demo.html
-          state=$(curl -fsS -b /tmp/n7demo.cookies -c /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==11; assert d["customer"]["name"]=="ACME MEDICAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10; assert any(c.get("isGoldenExample") for c in d["customers"])' <<< "$state"
-          curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://n7demo.clintware.com/api/customers/bulk-import >/tmp/n7import.json
+          state_code=$(curl -sS -o /tmp/n7state.json -w '%{http_code}' -b /tmp/n7demo.cookies -c /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
+          echo "state HTTP $state_code"; cat /tmp/n7state.json
+          test "$state_code" = "200"
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==11; assert d["customer"]["name"]=="ACME MEDICAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/n7state.json
+          import_code=$(curl -sS -o /tmp/n7import.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://n7demo.clintware.com/api/customers/bulk-import)
+          echo "import HTTP $import_code"; cat /tmp/n7import.json
+          test "$import_code" = "201"
           after=$(curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert any(c["name"]=="CI Import Test" for c in d["customers"])' <<< "$after"
           curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://n7demo.clintware.com/api/customers/clear >/tmp/n7clear.json
