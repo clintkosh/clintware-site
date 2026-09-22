@@ -25,12 +25,12 @@ function applyTheme(){document.documentElement.dataset.theme=theme==='system'?(m
 async function moveCard(id,column){let r=S.records.find(x=>x.id===id);if(!r)return;await api('/records/'+id,{method:'PATCH',body:JSON.stringify({data:{column}})});await load(S.customer.id)}
 function render(){document.querySelector('#app').innerHTML='<div>'+top()+'<div class="layout">'+side()+'<main>'+body()+'</main></div></div>'+drawer();bind()}
 function bind(){
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(tab==='live_assistant'&&b.dataset.tab!=='live_assistant'&&typeof stopLiveAudio==='function'&&LIVE?.active)void stopLiveAudio();tab=b.dataset.tab;render()});
  document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>{tab=b.dataset.goto;render()});
  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>edit(b.dataset.add));
  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let r=S.records.find(x=>x.id===b.dataset.edit);edit(r.type,r)});
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm('Archive this record?')){await api('/records/'+b.dataset.del,{method:'DELETE'});load(S.customer.id)}});
- let cs=document.querySelector('#cust');if(cs)cs.onchange=x=>{if(x.target.value)load(x.target.value)};
+ let cs=document.querySelector('#cust');if(cs)cs.onchange=x=>{if(x.target.value){if(typeof stopLiveAudio==='function'&&LIVE?.active)void stopLiveAudio();load(x.target.value)}};
  let nc=document.querySelector('#newc');if(nc)nc.onclick=newCustomer;
  let nc2=document.querySelector('#newc2');if(nc2)nc2.onclick=newCustomer;
  let im=document.querySelector('#import');if(im)im.onclick=importCustomers;
