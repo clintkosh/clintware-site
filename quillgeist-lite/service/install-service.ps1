@@ -62,9 +62,15 @@ if ($existingService) {
 Start-Sleep -Milliseconds 800
 Remove-Item $ServiceExe -Force -ErrorAction SilentlyContinue
 
-$refs = @("System.ServiceProcess.dll","System.Runtime.Serialization.dll")
-$serviceSource = Get-Content $SourcePath -Raw
-Add-Type -TypeDefinition $serviceSource -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $ServiceExe -OutputType WindowsApplication
+$cscCandidates = @(
+  "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
+  "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+)
+$csc = $cscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $csc) { throw "The .NET Framework C# compiler (csc.exe) is required to install the Quillgeist Lite health service." }
+
+& $csc /nologo /target:winexe /optimize+ /out:$ServiceExe /reference:System.ServiceProcess.dll /reference:System.Runtime.Serialization.dll $SourcePath
+if ($LASTEXITCODE -ne 0) { throw "Health service C# compilation failed with exit code $LASTEXITCODE." }
 
 if (-not (Test-Path $ServiceExe)) { throw "Health service compilation did not produce $ServiceExe" }
 
