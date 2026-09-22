@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 
-type JsonValue = Record<string, unknown> | unknown[] | string | number | boolean | null;
+type JsonValue = unknown;
 
 async function controlPlane(path: string, init?: RequestInit) {
   const binding = (env as unknown as { CONTROL_PLANE?: { fetch: typeof fetch } }).CONTROL_PLANE;
@@ -31,7 +31,7 @@ export const loadSharedState = createServerFn({ method: "GET" }).handler(async (
 });
 
 export const saveSharedState = createServerFn({ method: "POST" })
-  .inputValidator((data: { state: JsonValue; expectedRevision?: number | null }) => data)
+  .validator((data: { state: JsonValue; expectedRevision?: number | null }) => data)
   .handler(async ({ data }) => {
     return controlPlane("/api/v1/state?product=neuron7-case", {
       method: "PUT",
@@ -61,7 +61,7 @@ export type JiraBridgeInput = {
 };
 
 export const jiraBridge = createServerFn({ method: "POST" })
-  .inputValidator((data: JiraBridgeInput) => data)
+  .validator((data: JiraBridgeInput) => data)
   .handler(async ({ data }) => {
     return controlPlane("/api/v1/jira/bridge", {
       method: "POST",
@@ -75,12 +75,12 @@ export const jiraBridge = createServerFn({ method: "POST" })
   });
 
 export const invokeN7AI = createServerFn({ method: "POST" })
-  .inputValidator(
+  .validator(
     (data: {
       task: string;
       prompt: string;
       context?: JsonValue;
-      researchQuery?: string;
+      researchQuery?: string | undefined;
     }) => data,
   )
   .handler(async ({ data }) => {
