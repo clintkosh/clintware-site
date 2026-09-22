@@ -13,6 +13,89 @@ $RepoRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
+function Show-QuillgeistSplash {
+  try { $Host.UI.RawUI.WindowTitle = "Clintware Quillgeist Lite" } catch {}
+  try { [Console]::CursorVisible = $false } catch {}
+
+  $frames = @(
+@'
+                         ______
+                      __/ ____/|
+                    _/  /___ / |
+                   /___/___//  |
+                   |  /   / |  |
+                   | /___/  | /
+                   |____/___|/
+'@,
+@'
+                      __________
+                   __/  _____  /|
+                 _/   / ___ / / |
+                /____/ /__/ / / |
+                |    \_____/ |  |
+                |   ____    /| /
+                |__/___/___/ |/
+                |___________/
+'@,
+@'
+                    ______________
+                 __/ __________  /|
+               _/  /  ______ /  / |
+              /___/  / ____//  /  |
+              |   \_/ /___ /  /   |
+              |      ____ /  /    |
+              |  ___/   //  /    /
+              |_/______/____/____/
+              |_______________ _/
+'@,
+@'
+                 __________________
+              __/  _____________  /|
+            _/   /  _________  / / |
+           /____/  /  _____ / / /  |
+           |    \_/  / ___// / /   |
+           |       _/ /___  / /    |
+           |   ___/  ____/ / /     |
+           |  /  /  /____/ /      /
+           |_/__/__________/______/
+           |_____________________/
+'@,
+@'
+              ______________________
+           __/  _________________  /|
+         _/   /  ______________ / / |
+        /____/  /  __________  / /  |
+        |    \_/  /  _______/ / /   |
+        |        /  / ______ / /    |
+        |   ____/  / /______/ /     |
+        |  /      /__________/      /
+        |_/________________________/
+        |_________________________/
+'@
+  )
+
+  try { Clear-Host } catch {}
+
+  foreach ($frame in $frames) {
+    try { [Console]::SetCursorPosition(0,0) } catch {}
+    Write-Host $frame -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
+    Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
+    Write-Host ""
+    Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
+    Start-Sleep -Milliseconds 115
+  }
+
+  Write-Host ""
+  Write-Host "  PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
+  Write-Host "  Event-driven. Allowlisted. Streaming evidence." -ForegroundColor DarkGray
+  Write-Host ""
+  try { [Console]::CursorVisible = $true } catch {}
+}
+
 function Write-Log {
   param([string]$Message,[string]$Level="INFO")
   $line = "{0} [{1}] {2}" -f (Get-Date).ToString("s"),$Level,$Message
@@ -123,11 +206,9 @@ function Receive-Json {
 
 function Find-Task {
   param([object]$Registry,[string]$TaskId)
-
   foreach ($p in $Registry.tasks.PSObject.Properties) {
     if ($p.Name -eq $TaskId) { return $p.Value }
   }
-
   return $null
 }
 
@@ -147,8 +228,100 @@ function Redact-LogLine {
     $s = [regex]::Replace($s,$pattern,'$1=[REDACTED]')
   }
 
-  if ($s.Length -gt 4000) { $s = $s.Substring(0,4000) + " …[truncated]" }
+  if ($s.Length -gt 4000) { $s = $s.Substring(0,4000) + " ...[truncated]" }
   return $s
+}
+
+function Emit-TaskLine {
+  param(
+    [System.Net.WebSockets.ClientWebSocket]$Socket,
+    [object]$Job,
+    [ref]$Sequence,
+    [System.Collections.Generic.List[string]]$Captured,
+    [string]$Line,
+    [string]$Phase
+  )
+
+  $safe = Redact-LogLine $Line
+  if (-not $safe) { return }
+
+  $Sequence.Value++
+  $Captured.Add("[$Phase] $safe")
+  Write-Host $safe
+
+  if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
+    Send-Json $Socket @{
+      type = "log"
+      job_id = [string]$Job.job_id
+      task_id = [string]$Job.task_id
+      seq = $Sequence.Value
+      phase = $Phase
+      line = $safe
+      timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    }
+  }
+}
+
+function Invoke-ExternalStreaming {
+  param(
+    [string]$FilePath,
+    [string[]]$Arguments,
+    [System.Net.WebSockets.ClientWebSocket]$Socket,
+    [object]$Job,
+    [ref]$Sequence,
+    [System.Collections.Generic.List[string]]$Captured,
+    [string]$Phase
+  )
+
+  $global:LASTEXITCODE = 0
+  & $FilePath @Arguments *>&1 | ForEach-Object {
+    Emit-TaskLine $Socket $Job $Sequence $Captured ([string]$_) $Phase
+  }
+
+  $code = $LASTEXITCODE
+  if ($null -eq $code) { $code = 0 }
+  return [int]$code
+}
+
+function Get-TaskArguments {
+  param([object]$Task,[object]$Job,[string]$Runtime)
+
+  $allowed = @($Task.parameters)
+  $args = New-Object System.Collections.Generic.List[string]
+
+  if ($Job.args) {
+    foreach ($p in $Job.args.PSObject.Properties) {
+      if ($allowed -notcontains $p.Name) {
+        throw "Argument '$($p.Name)' is not allowed for task '$($Job.task_id)'."
+      }
+
+      if ($Runtime -eq "powershell") {
+        $args.Add("-" + $p.Name)
+        $args.Add([string]$p.Value)
+      } else {
+        $args.Add("--" + $p.Name)
+        $args.Add([string]$p.Value)
+      }
+    }
+  }
+
+  return $args.ToArray()
+}
+
+function Resolve-Python {
+  foreach ($candidate in @("python","python3","py")) {
+    $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+  }
+  throw "Python runtime not found. Register/run an approved Python-runtime setup task, then retry."
+}
+
+function Resolve-CCompiler {
+  foreach ($candidate in @("clang","gcc","cl")) {
+    $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+    if ($cmd) { return @{Name=$candidate;Path=$cmd.Source} }
+  }
+  throw "C compiler not found. Run the approved ensure-c-runtime task, then retry the C task."
 }
 
 function Invoke-AllowlistedTask {
@@ -164,64 +337,72 @@ function Invoke-AllowlistedTask {
     throw "Task '$($Job.task_id)' is not in the local allowlist."
   }
 
-  $scriptPath = [string]$task.script
-
-  if (-not $scriptPath.EndsWith(".ps1",[StringComparison]::OrdinalIgnoreCase)) {
-    throw "Task script is not a PowerShell file."
+  $runtime = ([string]$task.runtime).ToLowerInvariant()
+  if (-not $runtime) { $runtime = "powershell" }
+  if (@("powershell","python","c") -notcontains $runtime) {
+    throw "Task runtime '$runtime' is not supported."
   }
 
+  $scriptPath = [string]$task.script
   if ($scriptPath.Contains("..") -or $scriptPath.StartsWith("/") -or $scriptPath.StartsWith("\")) {
     throw "Task script path is invalid."
   }
 
+  $requiredExtension = @{
+    powershell = ".ps1"
+    python = ".py"
+    c = ".c"
+  }[$runtime]
+
+  if (-not $scriptPath.EndsWith($requiredExtension,[StringComparison]::OrdinalIgnoreCase)) {
+    throw "Task '$($Job.task_id)' runtime '$runtime' requires a $requiredExtension source file."
+  }
+
   $safeName = ([string]$Job.task_id -replace '[^A-Za-z0-9._-]','_')
-  $localScript = Join-Path $CacheDir ($safeName + ".ps1")
+  $localSource = Join-Path $CacheDir ($safeName + $requiredExtension)
 
-  Invoke-WebRequest -Uri ($RepoRaw + "/" + $scriptPath) -OutFile $localScript -UseBasicParsing
-  if (-not (Test-Path $localScript)) {
-    throw "Could not download task script '$scriptPath'."
+  Invoke-WebRequest -Uri ($RepoRaw + "/" + $scriptPath) -OutFile $localSource -UseBasicParsing
+  if (-not (Test-Path $localSource)) {
+    throw "Could not download task source '$scriptPath'."
   }
 
-  $allowed = @($task.parameters)
-  $named = @{}
-
-  if ($Job.args) {
-    foreach ($p in $Job.args.PSObject.Properties) {
-      if ($allowed -notcontains $p.Name) {
-        throw "Argument '$($p.Name)' is not allowed for task '$($Job.task_id)'."
-      }
-      $named[$p.Name] = [string]$p.Value
-    }
-  }
-
-  Write-Log ("Running task {0} ({1})" -f $Job.task_id,$scriptPath)
+  $taskArgs = Get-TaskArguments $task $Job $runtime
+  Write-Log ("Running task {0} [{1}] ({2})" -f $Job.task_id,$runtime,$scriptPath)
 
   $started = Get-Date
-  $global:LASTEXITCODE = 0
   $captured = New-Object System.Collections.Generic.List[string]
   $seq = 0
+  $code = 1
 
-  & $localScript @named *>&1 | ForEach-Object {
-    $line = Redact-LogLine ([string]$_)
-    if ($line) {
-      $seq++
-      $captured.Add($line)
-      Write-Host $line
-      if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
-        Send-Json $Socket @{
-          type = "log"
-          job_id = [string]$Job.job_id
-          task_id = [string]$Job.task_id
-          seq = $seq
-          line = $line
-          timestamp = (Get-Date).ToUniversalTime().ToString("o")
-        }
-      }
+  if ($runtime -eq "powershell") {
+    $ps = (Get-Command pwsh -ErrorAction SilentlyContinue)
+    if (-not $ps) { $ps = Get-Command powershell -ErrorAction Stop }
+    $invokeArgs = @("-NoProfile","-ExecutionPolicy","Bypass","-File",$localSource) + $taskArgs
+    $code = Invoke-ExternalStreaming $ps.Source $invokeArgs $Socket $Job ([ref]$seq) $captured "run"
+  }
+  elseif ($runtime -eq "python") {
+    $python = Resolve-Python
+    $invokeArgs = @($localSource) + $taskArgs
+    $code = Invoke-ExternalStreaming $python $invokeArgs $Socket $Job ([ref]$seq) $captured "run"
+  }
+  elseif ($runtime -eq "c") {
+    $compiler = Resolve-CCompiler
+    $exePath = Join-Path $CacheDir ($safeName + ".exe")
+
+    if ($compiler.Name -eq "cl") {
+      $compileArgs = @("/nologo","/W3","/O2","/Fe:$exePath",$localSource)
+    } else {
+      $compileArgs = @("-std=c11","-Wall","-Wextra","-O2",$localSource,"-o",$exePath)
+    }
+
+    $compileCode = Invoke-ExternalStreaming $compiler.Path $compileArgs $Socket $Job ([ref]$seq) $captured "compile"
+    if ($compileCode -ne 0) {
+      $code = $compileCode
+    } else {
+      $code = Invoke-ExternalStreaming $exePath $taskArgs $Socket $Job ([ref]$seq) $captured "run"
     }
   }
 
-  $code = $LASTEXITCODE
-  if ($null -eq $code) { $code = 0 }
   $duration = [int]((Get-Date)-$started).TotalMilliseconds
   $output = ($captured -join [Environment]::NewLine)
 
@@ -233,6 +414,7 @@ function Invoke-AllowlistedTask {
     type = "result"
     job_id = [string]$Job.job_id
     task_id = [string]$Job.task_id
+    runtime = $runtime
     status = $(if($code -eq 0){"passed"}else{"failed"})
     exit_code = [int]$code
     duration_ms = $duration
@@ -244,7 +426,9 @@ function Invoke-AllowlistedTask {
 
 $completed = Get-Completed
 
+Show-QuillgeistSplash
 Write-Log "Clintware Quillgeist Lite starting."
+Write-Log "Runtimes enabled: PowerShell, Python, C."
 Write-Log "Event-driven mode: waiting on an outbound WebSocket, not polling."
 
 try {
@@ -267,7 +451,8 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.0.0"
+        version = "1.1.0"
+        runtimes = @("powershell","python","c")
       }
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
