@@ -77,6 +77,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/enable-admin-console.ps1",
       "parameters": []
+    },
+    "bootstrap-admin-console": {
+      "title": "Install or repair the qq service and reopen the supervised admin console",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/bootstrap-admin-console.ps1",
+      "parameters": []
     }
   }
 }
