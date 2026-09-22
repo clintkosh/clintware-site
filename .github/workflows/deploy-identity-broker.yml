@@ -158,7 +158,7 @@ jobs:
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
             if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' \
-              && echo "$body" | grep -Fq '"version":"2026-09-22.5"'; then
+              && echo "$body" | grep -Fq '"version":"2026-09-22.6"'; then
               echo "$body"
               ready=1
               break
@@ -171,8 +171,8 @@ jobs:
           echo "$body" | grep -Fq '"configured":true'
           echo "$body" | grep -Fq '"google_secret_required":false'
           echo "$body" | grep -Fq '"google_mode":"oidc-id-token-form-post"'
-          echo "$body" | grep -Fq '"version":"2026-09-22.5"'
-          echo "Live identity broker version 2026-09-22.5 verified."
+          echo "$body" | grep -Fq '"version":"2026-09-22.6"'
+          echo "Live identity broker version 2026-09-22.6 verified."
           echo "Clintware Google sign-in is ACTIVE without a Google client secret."
 
       - name: Verify central first-party Clintware client
@@ -190,6 +190,9 @@ jobs:
           assert mail["client_id"] == n7["client_id"] == admin["client_id"], (mail,n7,admin)
           assert mail["client_name"] == "Clintware Web", mail
           assert n7["client_name"] == "Clintware Web", n7
+          assert n7["allowed_email_domains"] == ["neuron7.ai"], n7
+          assert "neuron7-case:read" in n7["application_context"], n7
+          assert "neuron7-case:operator" in n7["application_context"], n7
           assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
           assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
           assert admin["redirect_uri"] == "https://mcp.clintware.com/admin/callback", admin
