@@ -408,6 +408,73 @@ export interface MeetingRecord {
   };
 }
 
+
+export type DeploymentWorkStatus =
+  | "backlog"
+  | "ready"
+  | "in-progress"
+  | "blocked"
+  | "review"
+  | "done";
+
+export interface DeploymentWorkItem {
+  id: ID;
+  customerId: ID;
+  title: string;
+  detail: string;
+  status: DeploymentWorkStatus;
+  owner: string;
+  week: string;
+  sprintId?: ID;
+  storyPoints?: number;
+  sourceMilestoneId?: ID;
+  jiraKey?: string;
+  provenance: Provenance;
+}
+
+export interface SprintPlan {
+  id: ID;
+  customerId: ID;
+  name: string;
+  weekStart: string;
+  weekEnd: string;
+  goal: string;
+  status: "planned" | "active" | "complete";
+  capacityPoints?: number;
+  provenance: Provenance;
+}
+
+export interface EngineeringIssueIntake {
+  id: ID;
+  customerId: ID;
+  summary: string;
+  reportedProblem: string;
+  expected: string;
+  actual: string;
+  reproSteps: string;
+  reproducible: boolean;
+  notReproducibleReason?: string;
+  environment: string;
+  evidence: string;
+  severity: "low" | "medium" | "high" | "critical";
+  customerImpact: string;
+  affectedUsers: string;
+  workaround: string;
+  source: string;
+  owner: string;
+  status: "intake" | "ready-for-engineering" | "in-jira" | "blocked" | "resolved";
+  jiraKey?: string;
+  createdAt: string;
+  provenance: Provenance;
+}
+
+export interface JiraWorkspaceConfig {
+  cloudId?: string;
+  projectKey?: string;
+  deploymentJql?: string;
+  issuesJql?: string;
+}
+
 export interface CustomerWorkspace {
   customer: Customer;
   stakeholders: Stakeholder[];
@@ -420,6 +487,11 @@ export interface CustomerWorkspace {
   raci: RACIEntry[];
   /** Generic governance-role cards the current user has marked as active work. */
   workingRaciOwners?: string[];
+  /** Operational execution records. Optional for backward-compatible saved workspaces. */
+  deploymentWork?: DeploymentWorkItem[];
+  sprints?: SprintPlan[];
+  engineeringIssues?: EngineeringIssueIntake[];
+  jira?: JiraWorkspaceConfig;
   nodes: EnvironmentNode[];
   edges: EnvironmentEdge[];
   integrations: Integration[];
