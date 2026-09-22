@@ -150,22 +150,34 @@ jobs:
               echo "$name not configured; leaving related feature inactive"
             fi
           }
+
+          sync_optional_secret() {
+            local name="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
+              echo "$name configured"
+            else
+              npx wrangler secret delete "$name" --config wrangler.generated.jsonc >/dev/null 2>&1 || true
+              echo "$name absent; any stale Worker secret was cleared"
+            fi
+          }
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
-          put_secret MICROSOFT_ENTRA_CLIENT_ID "$MICROSOFT_ENTRA_CLIENT_ID"
-          put_secret MICROSOFT_ENTRA_CLIENT_SECRET "$MICROSOFT_ENTRA_CLIENT_SECRET"
-          put_secret MICROSOFT_ENTRA_TENANT "$MICROSOFT_ENTRA_TENANT"
-          put_secret OKTA_OIDC_ISSUER "$OKTA_OIDC_ISSUER"
-          put_secret OKTA_OIDC_CLIENT_ID "$OKTA_OIDC_CLIENT_ID"
-          put_secret OKTA_OIDC_CLIENT_SECRET "$OKTA_OIDC_CLIENT_SECRET"
-          put_secret AUTH0_OIDC_ISSUER "$AUTH0_OIDC_ISSUER"
-          put_secret AUTH0_OIDC_CLIENT_ID "$AUTH0_OIDC_CLIENT_ID"
-          put_secret AUTH0_OIDC_CLIENT_SECRET "$AUTH0_OIDC_CLIENT_SECRET"
-          put_secret PINGONE_OIDC_ISSUER "$PINGONE_OIDC_ISSUER"
-          put_secret PINGONE_OIDC_CLIENT_ID "$PINGONE_OIDC_CLIENT_ID"
-          put_secret PINGONE_OIDC_CLIENT_SECRET "$PINGONE_OIDC_CLIENT_SECRET"
-          put_secret GENERIC_OIDC_ISSUER "$GENERIC_OIDC_ISSUER"
-          put_secret GENERIC_OIDC_CLIENT_ID "$GENERIC_OIDC_CLIENT_ID"
-          put_secret GENERIC_OIDC_CLIENT_SECRET "$GENERIC_OIDC_CLIENT_SECRET"
+          sync_optional_secret MICROSOFT_ENTRA_CLIENT_ID "$MICROSOFT_ENTRA_CLIENT_ID"
+          sync_optional_secret MICROSOFT_ENTRA_CLIENT_SECRET "$MICROSOFT_ENTRA_CLIENT_SECRET"
+          sync_optional_secret MICROSOFT_ENTRA_TENANT "$MICROSOFT_ENTRA_TENANT"
+          sync_optional_secret OKTA_OIDC_ISSUER "$OKTA_OIDC_ISSUER"
+          sync_optional_secret OKTA_OIDC_CLIENT_ID "$OKTA_OIDC_CLIENT_ID"
+          sync_optional_secret OKTA_OIDC_CLIENT_SECRET "$OKTA_OIDC_CLIENT_SECRET"
+          sync_optional_secret AUTH0_OIDC_ISSUER "$AUTH0_OIDC_ISSUER"
+          sync_optional_secret AUTH0_OIDC_CLIENT_ID "$AUTH0_OIDC_CLIENT_ID"
+          sync_optional_secret AUTH0_OIDC_CLIENT_SECRET "$AUTH0_OIDC_CLIENT_SECRET"
+          sync_optional_secret PINGONE_OIDC_ISSUER "$PINGONE_OIDC_ISSUER"
+          sync_optional_secret PINGONE_OIDC_CLIENT_ID "$PINGONE_OIDC_CLIENT_ID"
+          sync_optional_secret PINGONE_OIDC_CLIENT_SECRET "$PINGONE_OIDC_CLIENT_SECRET"
+          sync_optional_secret GENERIC_OIDC_ISSUER "$GENERIC_OIDC_ISSUER"
+          sync_optional_secret GENERIC_OIDC_CLIENT_ID "$GENERIC_OIDC_CLIENT_ID"
+          sync_optional_secret GENERIC_OIDC_CLIENT_SECRET "$GENERIC_OIDC_CLIENT_SECRET"
 
       - name: Verify Google recognizes upstream OAuth client
         shell: bash
