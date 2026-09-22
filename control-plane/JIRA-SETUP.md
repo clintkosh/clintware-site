@@ -43,15 +43,25 @@ offline_access
 
 The first three are the classic Jira scopes used by the adapter. `offline_access` is required for refresh tokens.
 
-Create these GitHub Actions secrets in `clintkosh/clintware-site`:
+The Control Plane uses these GitHub Actions secrets in `clintkosh/clintware-site`:
 
 - `ATLASSIAN_CLIENT_ID`
 - `ATLASSIAN_CLIENT_SECRET`
 - `JIRA_TOKEN_ENCRYPTION_KEY`
 
-`JIRA_TOKEN_ENCRYPTION_KEY` should be a separate high-entropy random value. It encrypts the stored Atlassian grant. If omitted, the adapter can derive its encryption key from an existing Control Plane secret, but a dedicated key is preferred.
+You normally do **not** need to create these manually. If Jira is not yet configured, qq's `connect-jira` task now:
 
-After the secrets exist, the normal `Deploy Clintware Control Plane` workflow syncs them into the Worker secret store. They are never committed to source.
+1. detects which secret names are missing;
+2. prompts locally for the Atlassian Client ID and Client Secret;
+3. sends those values directly from the local machine to GitHub Actions secrets through the authenticated `gh` CLI;
+4. generates a dedicated high-entropy `JIRA_TOKEN_ENCRYPTION_KEY` locally when needed;
+5. triggers `Deploy Clintware Control Plane`;
+6. waits until the public health check confirms the Jira adapter is configured;
+7. then opens the Atlassian OAuth consent flow.
+
+The Client Secret is entered with a secure PowerShell prompt. Neither the Client Secret nor the generated encryption key is written to source, sent through ChatGPT, included in the qq job payload, or printed in task logs.
+
+Advanced/manual setup is still supported by creating the three repository secrets yourself and running the normal deployment workflow.
 
 ## Connect from qq
 
@@ -61,14 +71,17 @@ The qq task registry contains:
 connect-jira
 ```
 
-Dispatch it through the existing `clintware_quillgeist_lite_run` MCP tool. The local task:
+Dispatch it through the existing `clintware_quillgeist_lite_run` MCP tool. It is intentionally a one-command bootstrap:
 
-1. uses the existing authenticated `clintkosh` GitHub CLI identity to request a short-lived authorization URL;
-2. opens Atlassian in the default browser;
-3. waits for the Control Plane callback to complete;
-4. confirms the connected Jira site(s).
+1. verifies the local GitHub CLI identity;
+2. self-configures the Control Plane's Jira provider secrets when they are not already active;
+3. triggers and waits for the Control Plane deployment when configuration changed;
+4. requests a short-lived Atlassian authorization URL;
+5. opens Atlassian in the default browser;
+6. waits for the Control Plane callback;
+7. confirms the connected Jira site(s).
 
-The Atlassian token never passes through the local task payload or qq logs.
+After the provider secrets are established, later `connect-jira` runs skip provisioning and go directly to OAuth authorization. The Atlassian access/refresh token never passes through the local task payload or qq logs.
 
 ## MCP tools
 
