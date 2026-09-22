@@ -2,15 +2,17 @@ import { OAuthProvider, AuthorizationError, getOAuthApi } from "@cloudflare/work
 import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import * as oauth from "oauth4webapi";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-22.3";
+const VERSION = "2026-09-22.4";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
 const GOOGLE_ISSUER = new URL("https://accounts.google.com");
 const GOOGLE_CALLBACK = `${AUTH_ORIGIN}/callback`;
+const GOOGLE_WEB_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
 const TX_TTL_SECONDS = 600;
 const BIND_COOKIE = "__Host-clintware-oauth-bind";
 const JSON_HEADERS = {
@@ -50,11 +52,11 @@ async function sha256(value) {
 }
 
 async function stateCryptoKey(env) {
-  const secret = String(env.GOOGLE_OAUTH_CLIENT_SECRET || "");
-  if (!secret) throw new Error("google_oauth_not_configured");
+  const secret = String(env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN || "");
+  if (!secret) throw new Error("oauth_state_secret_not_configured");
   const raw = await crypto.subtle.digest(
     "SHA-256",
-    te.encode(`clintware-oauth-transaction-v1\0${secret}`),
+    te.encode(`clintware-oauth-transaction-v2\0${secret}`),
   );
   return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
@@ -119,7 +121,7 @@ function html(body, status = 200, extra = {}) {
     "content-type": "text/html; charset=utf-8",
     "cache-control": "no-store",
     pragma: "no-cache",
-    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://accounts.google.com; base-uri 'none'; frame-ancestors 'none'",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
     "x-frame-options": "DENY",
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
@@ -134,8 +136,12 @@ function html(body, status = 200, extra = {}) {
   return new Response(body, { status, headers });
 }
 
+function googleClientId(_env) {
+  return GOOGLE_WEB_CLIENT_ID;
+}
+
 function oauthConfigured(env) {
-  return Boolean(env.OAUTH_KV && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET);
+  return Boolean(env.OAUTH_KV && googleClientId(env) && (env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN));
 }
 
 
@@ -145,7 +151,7 @@ async function googleAuthorizationServer() {
 }
 
 function googleClient(env) {
-  return { client_id: String(env.GOOGLE_OAUTH_CLIENT_ID) };
+  return { client_id: googleClientId(env) };
 }
 
 function redirectAuthorizationError(error) {
@@ -242,27 +248,23 @@ async function startGoogle(oauthRequest, binding, env) {
   const as = await googleAuthorizationServer();
   if (!as.authorization_endpoint) throw new Error("google_authorization_endpoint_missing");
   const nonce = oauth.generateRandomNonce();
-  const codeVerifier = oauth.generateRandomCodeVerifier();
-  const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
   const state = await seal(env, {
     kind: "google",
     oauthRequest,
     bindingHash: await sha256(binding),
-    codeVerifier,
     nonce,
     createdAt: Date.now(),
   });
 
   const url = new URL(as.authorization_endpoint);
-  url.searchParams.set("client_id", String(env.GOOGLE_OAUTH_CLIENT_ID));
+  url.searchParams.set("client_id", googleClientId(env));
   url.searchParams.set("redirect_uri", GOOGLE_CALLBACK);
-  url.searchParams.set("response_type", "code");
+  url.searchParams.set("response_type", "id_token");
+  url.searchParams.set("response_mode", "form_post");
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);
   url.searchParams.set("nonce", nonce);
-  url.searchParams.set("code_challenge", codeChallenge);
-  url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("include_granted_scopes", "true");
+  url.searchParams.set("prompt", "select_account");
   const headers = new Headers({
     location: url.href,
     "cache-control": "no-store",
@@ -300,9 +302,21 @@ async function finishConsent(request, env) {
 
 async function finishGoogle(request, env) {
   if (!oauthConfigured(env)) return json({ error: "identity_provider_not_configured" }, 503);
-  const currentUrl = new URL(request.url);
-  const state = currentUrl.searchParams.get("state") || "";
-  if (!state) return json({ error: "missing_state" }, 400);
+  const len = Number(request.headers.get("content-length") || 0);
+  if (len > 32_768) return json({ error: "request_too_large" }, 413);
+  const form = await request.formData();
+  const state = String(form.get("state") || "");
+  const idToken = String(form.get("id_token") || "");
+  const upstreamError = String(form.get("error") || "");
+  if (upstreamError) {
+    return json({
+      error: "google_authorization_failed",
+      google_error: upstreamError,
+      description: String(form.get("error_description") || ""),
+    }, 400, { "set-cookie": clearBindingCookie() });
+  }
+  if (!state || !idToken) return json({ error: "missing_google_identity_response" }, 400, { "set-cookie": clearBindingCookie() });
+
   let transaction = null;
   try {
     transaction = await unseal(env, state);
@@ -313,42 +327,21 @@ async function finishGoogle(request, env) {
       "set-cookie": clearBindingCookie(),
     });
   }
-  const binding = cookieValue(request, BIND_COOKIE);
-  if (!binding || (await sha256(binding)) !== transaction.bindingHash) {
-    return json({ error: "authorization_transaction_mismatch" }, 400, { "set-cookie": clearBindingCookie() });
-  }
 
   const as = await googleAuthorizationServer();
-  const client = googleClient(env);
-  const clientAuth = oauth.ClientSecretPost(String(env.GOOGLE_OAUTH_CLIENT_SECRET));
-  const params = oauth.validateAuthResponse(as, client, currentUrl, state);
-  const tokenResponse = await oauth.authorizationCodeGrantRequest(
-    as,
-    client,
-    clientAuth,
-    params,
-    GOOGLE_CALLBACK,
-    transaction.codeVerifier,
-  );
-  const tokenResult = await oauth.processAuthorizationCodeResponse(as, client, tokenResponse, {
-    expectedNonce: transaction.nonce,
-    requireIdToken: true,
+  if (!as.jwks_uri) throw new Error("google_jwks_uri_missing");
+  const jwks = createRemoteJWKSet(new URL(as.jwks_uri));
+  const verified = await jwtVerify(idToken, jwks, {
+    issuer: ["https://accounts.google.com", "accounts.google.com"],
+    audience: googleClientId(env),
+    clockTolerance: 10,
   });
-  const claims = oauth.getValidatedIdTokenClaims(tokenResult);
+  const claims = verified.payload;
   if (!claims?.sub) throw new Error("google_subject_missing");
+  if (claims.nonce !== transaction.nonce) return json({ error: "google_nonce_mismatch" }, 400, { "set-cookie": clearBindingCookie() });
 
-  let profile = claims;
-  if (tokenResult.access_token && as.userinfo_endpoint) {
-    try {
-      const userInfoResponse = await oauth.userInfoRequest(as, client, tokenResult.access_token);
-      profile = await oauth.processUserInfoResponse(as, client, String(claims.sub), userInfoResponse);
-    } catch {
-      profile = claims;
-    }
-  }
-
-  const email = typeof profile.email === "string" ? profile.email : typeof claims.email === "string" ? claims.email : "";
-  const emailVerified = profile.email_verified === true || claims.email_verified === true;
+  const email = typeof claims.email === "string" ? claims.email : "";
+  const emailVerified = claims.email_verified === true || claims.email_verified === "true";
   if (!email || !emailVerified) return json({ error: "verified_google_email_required" }, 403, { "set-cookie": clearBindingCookie() });
 
   const userId = `cw_${(await sha256(`google:${claims.sub}`)).slice(0, 40)}`;
@@ -356,7 +349,7 @@ async function finishGoogle(request, env) {
   const authResult = await env.OAUTH_PROVIDER.completeAuthorization({
     request: transaction.oauthRequest,
     userId,
-    metadata: { provider: "google" },
+    metadata: { provider: "google", upstream: "oidc-id-token-form-post" },
     scope: grantedScopes,
     props: {
       userId,
@@ -364,8 +357,8 @@ async function finishGoogle(request, env) {
       providerSubject: String(claims.sub),
       email,
       emailVerified: true,
-      name: typeof profile.name === "string" ? profile.name : typeof claims.name === "string" ? claims.name : "",
-      picture: typeof profile.picture === "string" ? profile.picture : typeof claims.picture === "string" ? claims.picture : "",
+      name: typeof claims.name === "string" ? claims.name : "",
+      picture: typeof claims.picture === "string" ? claims.picture : "",
       scopes: grantedScopes,
     },
   });
@@ -477,7 +470,9 @@ function createAdminMcpServer(env) {
         protected_resource_metadata: `${AUTH_ORIGIN}/.well-known/oauth-protected-resource/userinfo`,
       },
       scopes: SUPPORTED_SCOPES,
-      google_upstream: Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET),
+      google_upstream: Boolean(googleClientId(env)),
+      google_mode: "oidc-id-token-form-post",
+      google_secret_required: false,
       storage: Boolean(env.OAUTH_KV),
       policy: "Google proves identity; Clintware issues scoped rotating tokens; privileged Control Plane MCP remains separate.",
     }) }],
@@ -572,7 +567,10 @@ const defaultHandler = {
         service: "Clintware Identity Broker",
         version: VERSION,
         configured: oauthConfigured(env),
-        google_configured: Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET),
+        google_configured: Boolean(googleClientId(env)),
+        google_mode: "oidc-id-token-form-post",
+        google_secret_required: false,
+        google_client_id: googleClientId(env),
         oauth_storage: Boolean(env.OAUTH_KV),
         admin_mcp: Boolean(env.CONTROL_PLANE_MCP_TOKEN),
         first_party_client: FIRST_PARTY_CLIENT.clientName,
@@ -598,7 +596,7 @@ const defaultHandler = {
     }
     if (url.pathname === "/authorize" && request.method === "GET") return beginConsent(request, env);
     if (url.pathname === "/authorize" && request.method === "POST") return finishConsent(request, env);
-    if (url.pathname === "/callback" && request.method === "GET") return finishGoogle(request, env);
+    if (url.pathname === "/callback" && request.method === "POST") return finishGoogle(request, env);
     if (url.pathname === "/") {
       return json({
         service: "Clintware Identity Broker",
