@@ -58,6 +58,13 @@ def static_targets() -> list[tuple[str, str]]:
 
 def analytics_errors(name: str, text: str) -> list[str]:
     errors: list[str] = []
+    first_party = "CRM_ANALYTICS_MODE" in text and "first-party-control-plane" in text
+    if first_party:
+        if "/api/v1/events" not in text:
+            errors.append(f"{name}: first-party analytics declared but no Control Plane event path is present")
+        if "googletagmanager.com" in text or "google-analytics.com" in text:
+            errors.append(f"{name}: first-party analytics mode must not also load Google analytics")
+        return errors
     if MEASUREMENT_ID not in text:
         errors.append(f"{name}: missing GA4 measurement ID {MEASUREMENT_ID}")
     if "https://www.googletagmanager.com/gtag/js?id=" not in text:
