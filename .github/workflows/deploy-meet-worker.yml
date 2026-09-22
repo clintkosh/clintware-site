@@ -170,7 +170,11 @@ jobs:
         run: |
           set -euo pipefail
           scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          curl --fail-with-body -sS -X POST https://meet.clintware.com/api/admin/self-test             -H "x-clintware-admin-secret: $scheduler_admin_secret" >/tmp/selftest.json
+          selftest_code=$(curl -sS -o /tmp/selftest.json -w '%{http_code}' -X POST https://meet.clintware.com/api/admin/self-test             -H "x-clintware-admin-secret: $scheduler_admin_secret" || true)
+          echo "SELFTEST_HTTP=$selftest_code"
+          cat /tmp/selftest.json
+          echo
+          test "$selftest_code" = "200"
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/selftest.json'))
