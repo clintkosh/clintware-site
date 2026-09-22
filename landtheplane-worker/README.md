@@ -376,3 +376,22 @@ For each serious round, LandThePlane should reconstruct the scorecard, map verif
 A critical isolation rule applies: one interviewer's preferences do not automatically become the next interviewer's strategy. Company, interviewer, stage, and competency context must be re-established independently for every round.
 
 Canonical specification: `CRUCIBLE_STANDARD.md`.
+
+
+### Turbo Sprint application lifecycle
+
+High-fit application microsites are intended to be candidate-controlled and temporary when desired.
+
+The current generator supports:
+
+- public-safe evidence pages with explicit gaps instead of fabricated experience;
+- 14, 30, or 45-day client-side sunset options for exported standalone HTML;
+- a discreet temporary-availability notice;
+- a retired-state screen after the sunset;
+- an optional approved public portfolio/professional-home destination;
+- an optional redirect countdown, defaulting to 8 seconds;
+- noindex/nofollow output.
+
+For real subdomain deployments, server-side sunset enforcement is preferred over client-side expiry and should return HTTP 410 after the window while preserving health/status endpoints. Embedded public résumé PDFs should use a same-origin proxy when cross-origin frame headers would otherwise break the viewer; otherwise provide a normal external PDF link.
+
+The public `job-application-evidence-microsite` skill is the portable specification for these lifecycle and privacy rules.
