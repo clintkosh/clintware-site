@@ -1,14 +1,19 @@
 $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
+$ServiceDir = Join-Path $HomeDir "service"
+
+$BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
-$RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
-$StartupDir = [Environment]::GetFolderPath("Startup")
-$ShortcutPath = Join-Path $StartupDir "Clintware Quillgeist Lite.lnk"
+$LauncherPath = Join-Path $HomeDir "launcher.ps1"
+$ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
+$ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
+$BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 
 Write-Host ""
 Write-Host "=== INSTALL CLINTWARE QUILLGEIST LITE ===" -ForegroundColor Cyan
-Write-Host "Event-driven MCP -> local PowerShell / Python / C bridge" -ForegroundColor DarkGray
+Write-Host "Event-driven MCP -> local execution bridge + Windows health service" -ForegroundColor DarkGray
+Write-Host "Quality-first runtime selection: PowerShell / Python / C" -ForegroundColor DarkGray
 Write-Host ""
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
@@ -36,27 +41,109 @@ if ($LASTEXITCODE -ne 0 -or $login.ToLowerInvariant() -ne "clintkosh") {
   throw "Quillgeist Lite expects the Clintware GitHub identity 'clintkosh'. Current identity: $login"
 }
 
-New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
-Invoke-WebRequest -Uri $RunnerUrl -OutFile $RunnerPath -UseBasicParsing
-if (-not (Test-Path $RunnerPath)) { throw "Could not install the Quillgeist Lite runner." }
+New-Item -ItemType Directory -Force -Path $HomeDir,$ServiceDir | Out-Null
 
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $RunnerPath + '"'
-$Shortcut.WorkingDirectory = $HomeDir
-$Shortcut.WindowStyle = 1
-$Shortcut.Description = "Clintware Quillgeist Lite event-driven local runner"
-$Shortcut.Save()
+$downloads = @{
+  "$BaseRaw/runner.ps1" = $RunnerPath
+  "$BaseRaw/launcher.ps1" = $LauncherPath
+  "$BaseRaw/service/QuillgeistLiteHealthService.cs" = $ServiceSourcePath
+  "$BaseRaw/service/install-service.ps1" = $ServiceInstallerPath
+}
 
-Write-Host "Installed runner: $RunnerPath" -ForegroundColor Green
-Write-Host "Startup link:     $ShortcutPath" -ForegroundColor Green
+foreach ($entry in $downloads.GetEnumerator()) {
+  Invoke-WebRequest -Uri $entry.Key -OutFile $entry.Value -UseBasicParsing
+  if (-not (Test-Path $entry.Value)) { throw "Download failed: $($entry.Key)" }
+}
+
+Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
+foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
+  if ($errors.Count -gt 0) {
+    $errors | Format-List *
+    throw "PowerShell parse validation failed: $file"
+  }
+}
+
+Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
+
+$bytes = New-Object byte[] 48
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+
+$DeviceToken = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+","-").Replace("/","_")
+$sha = [Security.Cryptography.SHA256]::Create()
+try {
+  $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($DeviceToken))
+} finally {
+  $sha.Dispose()
+}
+$TokenHash = -join ($hashBytes | ForEach-Object { $_.ToString("x2") })
+
+$DeviceId = $env:COMPUTERNAME
+$UserName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+$ghToken = (gh auth token).Trim()
+if (-not $ghToken) { throw "GitHub CLI did not return an authentication token." }
+
+$registerBody = @{
+  device_id = $DeviceId
+  token_hash = $TokenHash
+  label = "$DeviceId / $env:USERNAME"
+} | ConvertTo-Json -Compress
+
+$registered = $false
+$lastRegistrationError = $null
+
+for ($i = 1; $i -le 18; $i++) {
+  try {
+    $response = Invoke-RestMethod -Method Post -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/devices/register" -Headers @{Authorization=("Bearer " + $ghToken)} -ContentType "application/json" -Body $registerBody
+    if ($response.ok) {
+      $registered = $true
+      break
+    }
+  } catch {
+    $lastRegistrationError = $_.Exception.Message
+  }
+
+  Write-Host "Waiting for Clintware Control Plane device endpoint ($i/18)..." -ForegroundColor DarkGray
+  Start-Sleep -Seconds 5
+}
+
+if (-not $registered) {
+  throw "Could not register the Quillgeist Lite health device. Last error: $lastRegistrationError"
+}
+
+$bootstrap = [ordered]@{
+  HomeDir = $HomeDir
+  DeviceId = $DeviceId
+  DeviceToken = $DeviceToken
+  Endpoint = "https://mcp.clintware.com"
+  UserName = $UserName
+}
+
+$bootstrap | ConvertTo-Json -Depth 5 | Set-Content -Path $BootstrapPath -Encoding UTF8
+
+try {
+  Write-Host ""
+  Write-Host "Windows will request one UAC approval to install the local health service." -ForegroundColor Yellow
+  & $ServiceInstallerPath -BootstrapPath $BootstrapPath
+  if ($LASTEXITCODE -ne 0) { throw "Health service installer returned exit code $LASTEXITCODE." }
+}
+finally {
+  Remove-Item $BootstrapPath -Force -ErrorAction SilentlyContinue
+  $DeviceToken = $null
+  $ghToken = $null
+}
+
 Write-Host ""
-Write-Host "Starting Quillgeist Lite now..." -ForegroundColor Cyan
-Start-Process -FilePath $Shortcut.TargetPath -ArgumentList $Shortcut.Arguments -WorkingDirectory $HomeDir -WindowStyle Normal
-
+Write-Host "==============================================" -ForegroundColor Green
+Write-Host " CLINTWARE QUILLGEIST LITE INSTALLED" -ForegroundColor Green
+Write-Host "==============================================" -ForegroundColor Green
+Write-Host "Health service : ClintwareQuillgeistLiteHealth"
+Write-Host "Runner task    : Clintware Quillgeist Lite Runner"
+Write-Host "Execution      : PowerShell / Python / C"
+Write-Host "Policy         : Best result first; efficiency after quality"
+Write-Host "Transport      : Event-driven outbound control channel"
+Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
 Write-Host ""
-Write-Host "SUCCESS" -ForegroundColor Green
-Write-Host "Quillgeist Lite will reconnect automatically after Windows sign-in." -ForegroundColor Green
-Write-Host "It uses an outbound WebSocket, not scheduled polling." -ForegroundColor Green
-Write-Host "The startup window stays visible so the animated Clintware splash and live task logs are available." -ForegroundColor Green
