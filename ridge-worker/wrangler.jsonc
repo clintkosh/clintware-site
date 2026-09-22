@@ -1,0 +1,16 @@
+{
+  "name": "clintware-ridge-application",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-21",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {"pattern": "ridge.clintware.com", "custom_domain": true}
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "observability": {"enabled": true}
+}
