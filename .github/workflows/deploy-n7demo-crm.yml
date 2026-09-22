@@ -41,6 +41,13 @@ jobs:
           grep -Fq "getDisplayMedia" public/app-ai.js
           grep -Fq "/api/ai/interpret-change" src/index.js
           grep -Fq "/api/audio/transcribe" src/index.js
+          grep -Fq "cross_site_mutation_blocked" src/index.js
+          grep -Fq "write_scope_required" src/index.js
+          grep -Fq "record_changed_since_interpretation" src/index.js
+          grep -Fq "script-src 'self'" src/index.js
+          ! grep -Fq "googletagmanager.com" public/index.html
+          grep -Fq "dedupeTranscriptChunk" public/app-ai.js
+          grep -Fq "NAV_GROUPS" public/app-config.js
 
       - name: Wrangler dry run
         run: |
