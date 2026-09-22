@@ -44,7 +44,7 @@ function WorkspaceSection() {
       <div className="mx-auto max-w-2xl px-5 py-20">
         <EmptyState
           title="Customer workspace not found"
-          body="This workspace may have been created in a different browser session. Customer workspaces added with the wizard are stored locally in your browser."
+          body="This customer workspace is not present in the shared N7 state. Return to the portfolio and choose an available customer."
         />
         <div className="mt-4 text-center">
           <Button asChild>
