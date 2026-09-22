@@ -120,5 +120,8 @@ export default {
     }
 
     return core.fetch(request,env,ctx);
+  },
+  async scheduled(controller,env,ctx){
+    if(typeof core.scheduled==="function")return core.scheduled(controller,env,ctx);
   }
 };
