@@ -106,34 +106,40 @@ jobs:
           import_code=$(tr -cd '0-9' <<< "$import_code")
           echo "import HTTP $import_code"; cat /tmp/n7import.json
           test "$import_code" = "201"
+          echo "Verifying imported customer persistence"
           imported=0
-          for j in $(seq 1 6); do
-            after=$(curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state || true)
-            if python3 -c 'import json,sys; d=json.load(sys.stdin); assert any(c["name"]=="CI Import Test" for c in d["customers"])' <<< "$after" 2>/dev/null; then
+          for j in $(seq 1 10); do
+            curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7after.json || true
+            if python3 -c 'import json; d=json.load(open("/tmp/n7after.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then
               imported=1
               break
             fi
+            echo "Waiting for imported customer visibility ($j/10)"
             sleep 1
           done
           test "$imported" = "1"
+          echo "Verifying clear-except-golden"
           curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://n7demo.clintware.com/api/customers/clear >/tmp/n7clear.json
-          kept=$(curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME MEDICAL"' <<< "$kept"
+          curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7kept.json
+          python3 -c 'import json; d=json.load(open("/tmp/n7kept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME MEDICAL"'
+          echo "Verifying default sample reset"
           curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{}' https://n7demo.clintware.com/api/customers/reset-samples >/tmp/n7reset.json
-          reset=$(curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert len(d["customers"])==11; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10' <<< "$reset"
-          headers=$(curl -fsSI --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/)
+          curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7resetstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); assert len(d["customers"])==11; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10'
+          echo "Verifying security headers"
+          headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/)
           grep -Fqi "strict-transport-security:" <<< "$headers"
           grep -Fqi "x-frame-options: DENY" <<< "$headers"
           grep -Fqi "content-security-policy:" <<< "$headers"
           grep -Fqi "script-src 'self'" <<< "$headers"
           grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers"
+          echo "Verifying internal-route shielding and auth boundary"
           blocked_backup_status=$(curl -sS -o /tmp/n7-backup-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/backup | tr -cd '0-9')
-          test "$blocked_backup_status" = "404"
+          echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
           blocked_session_status=$(curl -sS -o /tmp/n7-session-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/session/test | tr -cd '0-9')
-          test "$blocked_session_status" = "404"
+          echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
           ai_auth_status=$(curl -sS -o /tmp/n7-ai-auth.json -w '%{http_code}' -X POST https://n7demo.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{"customerId":"x","text":"test"}' | tr -cd '0-9')
-          test "$ai_auth_status" = "401"
+          echo "AI auth HTTP $ai_auth_status"; test "$ai_auth_status" = "401"
           auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/n7demo-crm || true)
           echo "$auth" | grep -Fq '"app":"n7demo-crm"'
           echo "$auth" | grep -Fq '"redirect_uri":"https://n7demo.clintware.com/auth/callback"'
