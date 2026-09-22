@@ -1,0 +1,82 @@
+name: Deploy N7 Customer Value OS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/n7-customer-value-os/**"
+      - ".github/workflows/deploy-n7-customer-value-os.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-n7-customer-value-os-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/n7-customer-value-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+      - name: Wrangler dry run
+        run: npx wrangler deploy --dry-run
+      - name: Verify portability guardrails
+        run: |
+          set -euo pipefail
+          ! grep -R "@lovable.dev" -n package.json vite.config.ts src || false
+          test -f EXIT.md
+          test -f .env.example
+          grep -Fq "Lovable is not required" EXIT.md
+          grep -Fq "G-DCY144YM9P" src/routes/__root.tsx
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --prefix projects/n7-customer-value-os --no-audit --no-fund
+      - name: Deploy N7 Worker runtime
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd projects/n7-customer-value-os
+      - name: Attach N7 custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --compressed -sS -X PUT             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             -H "Accept: application/json"             -H "Content-Type: application/json"             --data '{"hostname":"n7crm.clintware.com","service":"n7-customer-value-os","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d; r=d.get("result") or {}; assert r.get("hostname")=="n7crm.clintware.com",r; assert r.get("service")=="n7-customer-value-os",r' <<< "$response"
+      - name: Verify live N7 site
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 30); do
+            page=$(curl -sS --connect-timeout 5 --max-time 15 https://n7crm.clintware.com/ || true)
+            if grep -Fq 'N7 Customer Value OS' <<< "$page"; then
+              ready=1
+              break
+            fi
+            sleep 3
+          done
+          test "$ready" = 1
