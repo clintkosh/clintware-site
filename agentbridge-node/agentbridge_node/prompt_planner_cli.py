@@ -28,6 +28,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--file", help="Read prompt text from a UTF-8 file.")
     parser.add_argument("--project", default="", help="Optional project name used to select project-scoped operating rules.")
     parser.add_argument("--task-type", default="", help="Optional explicit task type; otherwise Quillgeist infers a conservative type.")
+    parser.add_argument("--state-scope", default="", help="Optional local context-state scope. Repeated context is delta-compacted within this scope.")
+    parser.add_argument("--no-state", action="store_true", help="Disable local persistent delta-state compaction for this planning call.")
     parser.add_argument("--force", action="store_true", help="Force decomposition even when automatic thresholds are not met.")
     parser.add_argument("--plain", action="store_true", help="Print only the compiled master prompt.")
     return parser
@@ -42,6 +44,12 @@ def main(argv=None):
         settings["project"] = args.project
     if args.task_type:
         settings["task_type"] = args.task_type
+    state_settings = dict(cfg.data.get("state_compactor", {}))
+    settings["state_compaction"] = state_settings
+    if not args.no_state:
+        state_scope = args.state_scope or (args.project if state_settings.get("auto_scope_from_project", True) else "")
+        if state_scope:
+            settings["state_scope"] = state_scope
     plan = plan_prompt(text, settings, force=args.force)
     if args.plain:
         print(plan.master_prompt)

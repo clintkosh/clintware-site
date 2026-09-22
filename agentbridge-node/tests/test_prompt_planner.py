@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 
 from agentbridge_node.prompt_planner import plan_prompt
@@ -69,6 +70,34 @@ class PromptPlannerTests(unittest.TestCase):
         self.assertEqual(plan.mode, "auto_continue")
         self.assertIn("deliberately vary pose, body angle, camera distance", plan.master_prompt)
         self.assertIn("do not clone the same portrait stance", plan.master_prompt)
+
+    def test_project_state_compacts_repeated_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = "\n".join(
+                ["Never change the exact name Quillgeist."]
+                + [f"Build component {i} and verify it." for i in range(1, 35)]
+            )
+            settings = {
+                "enabled": True,
+                "threshold_chars": 10000,
+                "complexity_threshold": 99,
+                "state_scope": "project-demo",
+                "state_compaction": {
+                    "enabled": True,
+                    "root": tmp,
+                    "max_active_chars": 6000,
+                    "working_limit": 12,
+                    "min_duplicate_ratio": 0.25,
+                    "min_reduction_pct": 8.0,
+                },
+            }
+            first = plan_prompt(raw, settings)
+            self.assertNotIn("delta_state", first.triggered_by)
+            second = plan_prompt(raw + "\nNext implement the deployment check for component 34.", settings)
+            self.assertIn("delta_state", second.triggered_by)
+            self.assertIn("QUILLGEIST DELTA-STATE CONTEXT", second.master_prompt)
+            self.assertIn("Never change the exact name Quillgeist.", second.master_prompt)
+            self.assertIn("deployment check", second.master_prompt)
 
 
 if __name__ == "__main__":

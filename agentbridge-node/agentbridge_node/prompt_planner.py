@@ -5,6 +5,7 @@ import re
 
 from .contextor import estimate_tokens
 from .preferences import PreferenceStore, infer_task_type, parse_preference_command, render_preference_context
+from .state_compactor import maybe_compact_with_state
 
 
 ACTION_RE = re.compile(r"\b(?:build|create|generate|make|update|edit|modify|fix|implement|add|remove|replace|assemble|combine|export|render|deploy|test|verify|check|review|research|search|compare|analyze|summarize|draft|send|save|upload|download|then|after|once|next|finally|before|proceed|continue)\b", re.I)
@@ -169,6 +170,15 @@ def plan_prompt(text: str, config: dict | None = None, *, force: bool = False) -
     if len(compacted) >= threshold: triggered.append("length")
     if score >= complexity_threshold: triggered.append("complexity")
     if force: triggered.append("forced")
+
+    state_scope = str(settings.get("state_scope", "") or "").strip()
+    state_settings = dict(settings.get("state_compaction") or {})
+    if state_scope and bool(state_settings.get("enabled", True)):
+        state_text, state_metrics = maybe_compact_with_state(compacted, scope=state_scope, config=state_settings)
+        if state_metrics.eligible_for_compaction:
+            compacted = state_text
+            triggered.append("delta_state")
+
     should_plan = enabled and bool(compacted) and bool(triggered); prefer_logical = "complexity" in triggered or "forced" in triggered
     steps_text = _chunk(compacted, target, max_steps, prefer_logical_boundaries=prefer_logical) if should_plan else [compacted]
     steps = [PromptStep(index=i, prompt=value) for i, value in enumerate(steps_text, 1)]; master = _master_prompt(compacted, steps_text, auto_continue) if should_plan else compacted
