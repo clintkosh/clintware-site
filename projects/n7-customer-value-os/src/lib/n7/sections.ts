@@ -88,6 +88,18 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Auto-updated call context, approved evidence, decisions, next milestones and pre-call PDF.",
   },
   {
+    slug: "live-prompt",
+    label: "Live Prompt",
+    group: "Communication",
+    blurb: "Interpret what changed, review proposed plan edits, approve them, and refresh the customer record from the approved change record.",
+  },
+  {
+    slug: "live-assist",
+    label: "Live Assist",
+    group: "Communication",
+    blurb: "Opt-in machine-audio transcription with customer-scoped live answer suggestions and approved account training context.",
+  },
+  {
     slug: "messaging",
     label: "Customer Messaging",
     group: "Communication",
@@ -143,6 +155,9 @@ export const SECTION_ALIASES: Record<string, string> = {
   "virtual-liaison": "meeting-prep",
   "call-brief": "meeting-prep",
   "meeting-brief": "meeting-prep",
+  "live-update": "live-prompt",
+  "live-interviewer": "live-assist",
+  "call-assist": "live-assist",
   "assumption-change": "assumption-change",
 };
 
