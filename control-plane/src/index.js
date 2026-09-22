@@ -99,7 +99,7 @@ const DEFAULT_BACKGROUND_MIRROR = {
 const DEFAULT_NEURON7_CASE = {
   product:"neuron7-case",
   environment:"production",
-  version:3,
+  version:4,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["projects/n7-customer-value-os/"],allowed_workflows:["deploy-n7-customer-value-os.yml"]},
   dns:{allowed_names:["n7crm.clintware.com","n7.clintware.com","n7case.clintware.com"]},
   capabilities:[
@@ -112,13 +112,14 @@ const DEFAULT_NEURON7_CASE = {
     "analytics.write:neuron7-case","analytics.read:neuron7-case",
     "research.invoke","ai.invoke",
     "state.read:neuron7-case","state.write:neuron7-case",
-    "jira.read:neuron7-case","jira.write:neuron7-case"
+    "jira.read:neuron7-case","jira.write:neuron7-case",
+    "audio.transcribe:neuron7-case"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"neuron7-case",
   privacy:{public_viewer:false,indexing:false,customer_data:true,oauth_operator_mode:"required",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
-  identity:{enabled:true,authority:"https://auth.clintware.com",first_party_client:"Clintware Web",client_id:"https://auth.clintware.com/client/clintware-web",client_model:"cimd",config_endpoint:"https://auth.clintware.com/client-config/neuron7-case",redirect_uri:"https://n7crm.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256"},
+  identity:{enabled:true,authority:"https://auth.clintware.com",first_party_client:"Clintware Web",client_id:"https://auth.clintware.com/client/clintware-web",client_model:"cimd",config_endpoint:"https://auth.clintware.com/client-config/neuron7-case",redirect_uri:"https://n7crm.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256",allowed_email_domains:["neuron7.ai"],owner_override:true,application_context:["neuron7-case:read","neuron7-case:operator"],cross_product_identity_access:false},
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
