@@ -52,7 +52,7 @@ const SEED=[
 ["sprint","internal_proposal",{name:"Sprint 4",weeks:"Weeks 7–8",goal:"UAT / readiness against the original commercial window",planned:4,completed:0}],
 ["sprint","internal_proposal",{name:"Sprint 5",weeks:"Weeks 9–10",goal:"SAP connector acceptance path and go-live decision",planned:3,completed:0}],
 ["sprint","internal_proposal",{name:"Sprint 6",weeks:"Weeks 11–12",goal:"Contingency stabilization / hypercare only if required",planned:2,completed:0}],
-["jira_config","internal_record",{siteUrl:"",deploymentBoardId:"",issueBoardId:"",projectKey:"",connection:"Not connected",mode:"Clintware Control Plane adapter"}]
+["jira_config","internal_record",{siteUrl:"",deploymentBoardId:"",issueBoardId:"",projectKey:"",deploymentIssueType:"",issueType:"",connection:"Not connected",mode:"Clintware Control Plane adapter"}]
 ];
 
 const KB_SEED=[
