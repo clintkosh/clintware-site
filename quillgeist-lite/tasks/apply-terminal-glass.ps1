@@ -1,7 +1,12 @@
+param(
+  [switch]$NoRestart
+)
+
 $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
+$LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Clintware"
 $FragmentPath = Join-Path $FragmentDir "quillgeist-lite.json"
 $LogoPath = Join-Path $FragmentDir "clintware-logo.png"
@@ -45,7 +50,7 @@ $bytes = [Convert]::FromBase64String(($raw -replace '\s',''))
 [IO.File]::WriteAllBytes($LogoPath,$bytes)
 
 $escapedRunner = $RunnerPath.Replace('"','\"')
-$commandLine = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $RunnerPath + '"'
+$commandLine = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
 
 $fragment = @{
   profiles = @(
@@ -133,6 +138,11 @@ $Shortcut.WorkingDirectory = $HomeDir
 $Shortcut.WindowStyle = 1
 $Shortcut.Description = "Clintware Quillgeist Lite acrylic control-plane terminal"
 $Shortcut.Save()
+
+if ($NoRestart) {
+  Write-Host "Glass profile installed. Restart deferred to the managed runner/service." -ForegroundColor Green
+  exit 0
+}
 
 $oldRunnerPid = 0
 try {
