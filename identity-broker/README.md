@@ -1,10 +1,10 @@
 # Clintware Identity Broker
 
-Central OAuth 2.1 identity service for Clintware products at `https://auth.clintware.com`.
+Central OAuth 2.1 / OIDC identity service for Clintware products at `https://auth.clintware.com`.
 
 ## Security model
 
-- Google is an **upstream identity provider only**. Clintware requests `openid email profile`, validates the Google OIDC response with PKCE S256 + nonce + state, reads the profile once, and discards the Google access token.
+- Upstream identity providers are **identity proof only**. Google uses signed OIDC ID-token form-post; enterprise providers use authorization-code + PKCE. Clintware validates issuer, audience, nonce/state, and the application/domain boundary before issuing its own token.
 - Clintware does **not** request Google offline access and does **not** retain a Google refresh token for sign-in.
 - Clintware issues its own short-lived access tokens and rotating refresh tokens through Cloudflare's `@cloudflare/workers-oauth-provider`.
 - A stable pseudonymous Clintware user ID is derived from Google's immutable `sub`, so the same Google account maps back to the same Clintware identity without making email the primary key.
@@ -12,6 +12,44 @@ Central OAuth 2.1 identity service for Clintware products at `https://auth.clint
 - Public user authorization is isolated from the privileged `mcp.clintware.com` Control Plane. A Google login never grants repository, deployment, DNS, or administrative MCP permissions.
 - Google is configured once for Clintware. First-party Clintware products share one central public OAuth client (`Clintware Web`) with exact per-product redirect allowlists and PKCE S256. Products do not create their own Google OAuth apps or carry Google client secrets.
 - External/service OAuth clients can still be admin-created when needed. Open Dynamic Client Registration is intentionally not enabled.
+
+## Federated upstream identity providers
+
+The broker is provider-agnostic at the Clintware boundary. First-party applications explicitly opt in to upstream providers; successful authentication is then rebound to that application's own context before a Clintware token is issued.
+
+Supported upstreams:
+
+- Google — active canonical first-party provider.
+- Microsoft Entra ID — OIDC authorization-code + PKCE; intended for Microsoft 365 / enterprise tenants.
+- Okta — OIDC authorization-code + PKCE.
+- Auth0 — OIDC authorization-code + PKCE.
+- PingOne — OIDC authorization-code + PKCE.
+- Generic OIDC — covers standards-compliant providers such as Keycloak, JumpCloud, OneLogin, or another company SSO broker when configured.
+
+The Neuron7 case application is allowed to use all configured upstreams, but identities from `@neuron7.ai` are still restricted to the `neuron7-case` application context. Clintware Mail and Control Plane Admin currently remain Google-only. This prevents a company-domain login from becoming a global Clintware identity grant.
+
+Enterprise providers are **supported but not considered active until their issuer/client configuration exists**. The broker only renders buttons for providers that are both configured and allowlisted for the requesting application.
+
+Provider callbacks:
+
+- Google: `https://auth.clintware.com/callback`
+- Microsoft: `https://auth.clintware.com/callback/microsoft`
+- Okta: `https://auth.clintware.com/callback/okta`
+- Auth0: `https://auth.clintware.com/callback/auth0`
+- PingOne: `https://auth.clintware.com/callback/pingone`
+- Generic OIDC: `https://auth.clintware.com/callback/oidc`
+
+Optional deployment settings:
+
+- `MICROSOFT_ENTRA_CLIENT_ID`
+- `MICROSOFT_ENTRA_CLIENT_SECRET` when the Entra application is confidential
+- `MICROSOFT_ENTRA_TENANT` (defaults to `organizations`)
+- `OKTA_OIDC_ISSUER`, `OKTA_OIDC_CLIENT_ID`, optional `OKTA_OIDC_CLIENT_SECRET`
+- `AUTH0_OIDC_ISSUER`, `AUTH0_OIDC_CLIENT_ID`, optional `AUTH0_OIDC_CLIENT_SECRET`
+- `PINGONE_OIDC_ISSUER`, `PINGONE_OIDC_CLIENT_ID`, optional `PINGONE_OIDC_CLIENT_SECRET`
+- `GENERIC_OIDC_ISSUER`, `GENERIC_OIDC_CLIENT_ID`, optional `GENERIC_OIDC_CLIENT_SECRET`
+
+Do not reuse an upstream client registration for a callback that is not explicitly allowlisted at that provider.
 
 ## Public endpoints
 
