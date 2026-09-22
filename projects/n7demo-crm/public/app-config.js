@@ -24,10 +24,10 @@ deployment_card:[["title","Card"],["column","Kanban column"],["stageOrder","Stag
 sprint:[["name","Sprint"],["weeks","Planned weeks"],["goal","Goal"],["planned","Planned cards"],["completed","Completed cards"],["notes","Notes"]],
 jira_config:[["siteUrl","Jira site URL"],["projectKey","Project key"],["deploymentBoardId","Deployment board ID"],["issueBoardId","Issue board ID"],["connection","Connection status"],["mode","Integration mode"]]
 };
-let S={customer:null,customers:[],records:[],workspace:null},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},tab="command",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
+let S={customer:null,customers:[],records:[],workspace:null},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},I={jira:null,controlPlane:null},tab="command",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
 document.documentElement.dataset.theme=theme;
 const e=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const R=t=>S.records.filter(r=>r.type===t);
 const P=p=>({customer_provided:"Customer-provided",internal_record:"Internal record",internal_proposal:"Internal proposed plan",derived_calculation:"Derived",ai_suggestion:"AI suggestion",template:"Template",scenario:"Scenario"}[p]||p);
-const api=async(p,o={})=>{let r=await fetch(API+p,{headers:{"content-type":"application/json"},...o});if(r.status===401){location.href="/";throw Error("Sign-in required")}if(!r.ok)throw Error((await r.json().catch(()=>({}))).error||r.statusText);return r.json()};
-async function load(id){[S,K]=await Promise.all([api("/state"+(id?"?customer="+encodeURIComponent(id):"")),api("/kb")]);render()}
+const api=async(p,o={})=>{let r=await fetch(API+p,{headers:{"content-type":"application/json"},...o});if(r.status===401){location.href="/";throw Error("Sign-in required")}if(!r.ok)throw Error((await r.json().catch(()=>({}))).error||r.statusText);return r.json()};const maybe=async(p,o={})=>{try{return await api(p,o)}catch{return null}};
+async function load(id){let q=id?"?customer="+encodeURIComponent(id):"";let out=await Promise.all([api("/state"+q),api("/kb"),maybe("/integrations/jira/status"),maybe("/control-plane/status")]);S=out[0];K=out[1];I={jira:out[2],controlPlane:out[3]};render()}
