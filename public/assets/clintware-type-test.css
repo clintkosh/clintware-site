@@ -1,0 +1,170 @@
+/* Clintware homepage typography prototype
+   Scope: homepage only via body.cw-type-test.
+   Remove this stylesheet link/body class to revert. */
+
+body.cw-type-test{
+  --cw-sans: Arial,"Helvetica Neue",Helvetica,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cw-display: "Arial Narrow","Helvetica Neue Condensed","Helvetica Neue",Arial,sans-serif;
+  --cw-code: "Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --cw-hand: "Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+  font-family:var(--cw-sans);
+  letter-spacing:-.012em;
+}
+
+/* Core reading face: familiar Arial/Helvetica DNA, slightly tighter and more technical. */
+body.cw-type-test p,
+body.cw-type-test .quiet,
+body.cw-type-test .path span{
+  font-family:var(--cw-sans);
+  letter-spacing:-.006em;
+}
+
+body.cw-type-test h1,
+body.cw-type-test h2,
+body.cw-type-test h3{
+  font-family:var(--cw-display);
+  font-weight:700;
+  letter-spacing:-.045em;
+  line-height:.98;
+}
+
+body.cw-type-test .hero h1{
+  font-size:clamp(2.4rem,6vw,4.7rem);
+  font-weight:700;
+  letter-spacing:-.062em;
+  position:relative;
+  width:max-content;
+  max-width:100%;
+}
+
+body.cw-type-test .hero h1::after{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:-8px;
+  width:min(76px,38%);
+  height:2px;
+  background:linear-gradient(90deg,var(--cyan),transparent);
+}
+
+/* Software-oriented microtype. */
+body.cw-type-test .site-nav a,
+body.cw-type-test .section-kicker,
+body.cw-type-test .path .label,
+body.cw-type-test .path > a,
+body.cw-type-test .status,
+body.cw-type-test .flow,
+body.cw-type-test .button{
+  font-family:var(--cw-code);
+}
+
+body.cw-type-test .site-nav a{
+  font-size:.78rem;
+  letter-spacing:.025em;
+}
+
+body.cw-type-test .section-kicker,
+body.cw-type-test .path .label,
+body.cw-type-test .status{
+  letter-spacing:.16em;
+}
+
+body.cw-type-test .path strong{
+  font-family:var(--cw-sans);
+  font-weight:700;
+  letter-spacing:-.015em;
+}
+
+/* Clintware mark: clean base with a subtle alien/technical alternate confined to WARE. */
+body.cw-type-test .brand{
+  font-family:var(--cw-display);
+  font-size:1.08rem;
+  font-weight:800;
+  letter-spacing:.015em;
+  text-transform:none;
+}
+
+body.cw-type-test .brand-accent{
+  position:relative;
+  display:inline-block;
+  margin-left:.03em;
+  color:transparent;
+  background:linear-gradient(112deg,#f4f7fb 0 46%,var(--cyan) 47% 59%,#f4f7fb 60% 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  transform:skewX(-2deg);
+  letter-spacing:.035em;
+}
+
+body.cw-type-test .brand-accent::after{
+  content:"";
+  position:absolute;
+  left:48%;
+  top:.08em;
+  width:1px;
+  height:.82em;
+  background:linear-gradient(var(--cyan),transparent);
+  transform:rotate(24deg);
+  opacity:.7;
+  pointer-events:none;
+}
+
+/* Tiny human irregularity: not used for headings or core UI. */
+body.cw-type-test .hero .section-kicker::after{
+  content:" / human-built";
+  margin-left:.7rem;
+  font-family:var(--cw-hand);
+  font-size:.78em;
+  font-weight:400;
+  letter-spacing:.01em;
+  text-transform:none;
+  color:#d7e0e8;
+  opacity:.58;
+  display:inline-block;
+  transform:rotate(-1deg) translateY(-1px);
+}
+
+/* Slightly sharper surfaces so typography feels native to software rather than a landing-page theme. */
+body.cw-type-test .button,
+body.cw-type-test .path{
+  border-radius:7px;
+}
+
+body.cw-type-test .button{
+  letter-spacing:.015em;
+  font-weight:650;
+}
+
+body.cw-type-test .button-cyan{
+  background:linear-gradient(112deg,#68e4f6,#bdf7ff 72%,#f4f7fb);
+}
+
+body.cw-type-test .paths{
+  border-top-color:#31414e;
+}
+
+body.cw-type-test .path{
+  position:relative;
+}
+
+body.cw-type-test .path::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:-1px;
+  width:28px;
+  height:1px;
+  background:var(--cyan);
+  opacity:.5;
+}
+
+@media(max-width:760px){
+  body.cw-type-test .hero h1{font-size:clamp(2.25rem,13vw,3.7rem)}
+  body.cw-type-test .hero .section-kicker::after{display:none}
+  body.cw-type-test .site-nav a{font-size:.82rem}
+}
+
+@media(prefers-reduced-motion:reduce){
+  body.cw-type-test .brand-accent,
+  body.cw-type-test .hero .section-kicker::after{transform:none}
+}
