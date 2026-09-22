@@ -62,8 +62,10 @@ jobs:
           set -euo pipefail
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config meet-worker/wrangler.jsonc
           printf '%s' "$scheduler_admin_secret" | npx --yes wrangler@4 secret put SCHEDULER_ADMIN_SECRET --config meet-worker/wrangler.jsonc
+          printf '%s' "$google_bridge_secret" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_BRIDGE_SECRET --config meet-worker/wrangler.jsonc
 
       - name: Check Google Calendar delegated-access prerequisites
         id: google_calendar_ready
