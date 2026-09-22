@@ -5,6 +5,8 @@ $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $CrashLog = Join-Path $HomeDir "runner-crash.log"
 $PidPath = Join-Path $HomeDir "runner.pid"
 $RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
+$GlassProfileName = "Clintware(TM) Quillgeist Lite"
+$GlassFragmentPath = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Clintware\quillgeist-lite.json"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -44,6 +46,26 @@ function Update-LocalRunner {
     Remove-Item $temp -Force -ErrorAction SilentlyContinue
     if (-not (Test-Path $RunnerPath)) { throw }
     return $false
+  }
+}
+
+if (-not $env:WT_SESSION -and (Test-Path $GlassFragmentPath)) {
+  $wt = Get-Command wt.exe -ErrorAction SilentlyContinue
+  if (-not $wt) {
+    $wtCandidate = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\wt.exe"
+    if (Test-Path $wtCandidate) { $wt = Get-Item $wtCandidate }
+  }
+
+  if ($wt) {
+    $wtPath = [string]$wt.Source
+    if (-not $wtPath) { $wtPath = [string]$wt.FullName }
+
+    try {
+      Start-Process -FilePath $wtPath -ArgumentList @("-w","new","-p",$GlassProfileName)
+      exit 0
+    } catch {
+      Add-Content -Path $CrashLog -Value ("{0} GLASS_HANDOFF_FAILED {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
+    }
   }
 }
 
