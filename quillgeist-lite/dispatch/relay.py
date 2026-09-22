@@ -19,6 +19,8 @@ ALLOWED = {
     "self-update": set(),
     "apply-terminal-glass": set(),
     "connect-jira": set(),
+    "enable-admin-console": set(),
+    "bootstrap-admin-console": set(),
 }
 
 def request_json(method, path, body=None):
