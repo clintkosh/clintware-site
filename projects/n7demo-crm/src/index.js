@@ -90,6 +90,5 @@ export default{
   if(u.pathname==="/"&&!session)return html(loginPage());
   if(u.pathname==="/me")return session?j({user:session.user,workspaceId:session.workspaceId}):j({error:"authentication_required"},401);
   const r=await env.ASSETS.fetch(req),h=secureHeaders(new Headers(r.headers));return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})
- },
- async scheduled(_controller,env){try{const r=await doStub(env).fetch("https://internal/backup",{headers:{"x-workspace-id":WORKSPACE_ID}});if(!r.ok)return;const body=await r.text();const day=new Date().toISOString().slice(0,10);await env.BACKUPS.put("daily/"+day+".json",body,{httpMetadata:{contentType:"application/json"}})}catch{}}
+ }
 };
