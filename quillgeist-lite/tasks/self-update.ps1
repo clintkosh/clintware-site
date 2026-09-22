@@ -30,10 +30,27 @@ if ($errors.Count -gt 0) {
 Move-Item ($RunnerPath + ".new") $RunnerPath -Force
 Write-Host "Runner file updated." -ForegroundColor Green
 
-$parentPid = 0
+$oldRunnerPid = 0
 try {
-  $parentPid = [int](Get-CimInstance Win32_Process -Filter "ProcessId=$PID").ParentProcessId
+  $current = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"
+  $currentCommand = [string]$current.CommandLine
+
+  if ($currentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
+    $oldRunnerPid = $PID
+  }
+  elseif ($current.ParentProcessId) {
+    $parent = Get-CimInstance Win32_Process -Filter ("ProcessId=" + [int]$current.ParentProcessId)
+    $parentCommand = [string]$parent.CommandLine
+    if ($parentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
+      $oldRunnerPid = [int]$current.ParentProcessId
+    }
+  }
 } catch {}
+
+if ($oldRunnerPid -le 0) {
+  Write-Warning "Runner process could not be identified safely. Files were updated, but automatic restart is being skipped."
+  exit 0
+}
 
 $helper = @'
 param(
@@ -60,7 +77,7 @@ Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $HomeDir -Win
 Set-Content -Path $RestartHelper -Value $helper -Encoding UTF8
 
 Write-Host "Scheduling runner restart after this result is returned..." -ForegroundColor Cyan
-$restartArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $RestartHelper + '" -OldRunnerPid ' + $parentPid + ' -RunnerPath "' + $RunnerPath + '" -HomeDir "' + $HomeDir + '"'
+$restartArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $RestartHelper + '" -OldRunnerPid ' + $oldRunnerPid + ' -RunnerPath "' + $RunnerPath + '" -HomeDir "' + $HomeDir + '"'
 Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $restartArgs -WindowStyle Hidden
 
 Write-Host "Quillgeist Lite self-update staged successfully." -ForegroundColor Green
