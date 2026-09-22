@@ -4,7 +4,11 @@ function calendarId(env) {
   return String(env.GOOGLE_CALENDAR_ID || "primary").trim() || "primary";
 }
 
-export function googleCalendarConfigured(env) {
+function brokerConfigured(env) {
+  return Boolean(env.AUTH_BROKER && env.GOOGLE_DELEGATED_BRIDGE_SECRET);
+}
+
+function directRefreshConfigured(env) {
   return Boolean(
     env.GOOGLE_OAUTH_CLIENT_ID &&
     env.GOOGLE_OAUTH_CLIENT_SECRET &&
@@ -12,13 +16,29 @@ export function googleCalendarConfigured(env) {
   );
 }
 
-async function accessToken(env) {
-  if (!googleCalendarConfigured(env)) {
-    const error = new Error("google_calendar_not_configured");
-    error.code = "google_calendar_not_configured";
+export function googleCalendarConfigured(env) {
+  return brokerConfigured(env) || directRefreshConfigured(env);
+}
+
+async function brokerAccessToken(env) {
+  const response = await env.AUTH_BROKER.fetch("https://auth.clintware.com/internal/google-access-token", {
+    method: "POST",
+    headers: {
+      "x-clintware-google-secret": env.GOOGLE_DELEGATED_BRIDGE_SECRET,
+      accept: "application/json",
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.access_token) {
+    const error = new Error(response.status === 404 ? "google_calendar_not_connected" : "google_calendar_broker_token_failed");
+    error.code = response.status === 404 ? "google_calendar_not_connected" : "google_calendar_broker_token_failed";
+    error.status = response.status;
     throw error;
   }
+  return data.access_token;
+}
 
+async function directAccessToken(env) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -37,6 +57,26 @@ async function accessToken(env) {
     throw error;
   }
   return data.access_token;
+}
+
+async function accessToken(env) {
+  if (brokerConfigured(env)) {
+    try {
+      return await brokerAccessToken(env);
+    } catch (error) {
+      if (!directRefreshConfigured(env)) throw error;
+      console.warn(JSON.stringify({
+        event: "google_calendar_broker_fallback",
+        code: error.code || "broker_error",
+        status: error.status || 0,
+      }));
+    }
+  }
+  if (directRefreshConfigured(env)) return directAccessToken(env);
+
+  const error = new Error("google_calendar_not_configured");
+  error.code = "google_calendar_not_configured";
+  throw error;
 }
 
 async function googleJson(env, url, init = {}) {
