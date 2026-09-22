@@ -473,9 +473,11 @@ async function beginConsent(request, env) {
   });
   const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
   const displayClient = app ? { ...client, clientName: app.name } : client;
-  return html(consentPage(displayClient, oauthRequest, transaction, csrf), 200, {
+  const providers = allowedProvidersForRequest(env, oauthRequest);
+  if (!providers.length) return json({ error: "no_identity_provider_configured_for_application" }, 503);
+  return html(consentPage(displayClient, oauthRequest, transaction, csrf, providers), 200, {
     "set-cookie": setBindingCookie(binding),
-  });
+  }, providerFormOrigins(providers));
 }
 
 async function startGoogle(oauthRequest, binding, env) {
@@ -532,8 +534,152 @@ async function finishConsent(request, env) {
       "set-cookie": clearBindingCookie(),
     });
   }
-  if (decision !== "approve") return denyAuthorization(transaction.oauthRequest);
-  return startGoogle(transaction.oauthRequest, binding, env);
+  if (decision === "deny") return denyAuthorization(transaction.oauthRequest);
+  const providerId = decision === "approve" ? "google" : decision.startsWith("approve:") ? decision.slice("approve:".length) : "";
+  const allowedProviders = allowedProvidersForRequest(env, transaction.oauthRequest);
+  const provider = allowedProviders.find((item) => item.id === providerId);
+  if (!provider) return json({
+    error: "identity_provider_not_allowed_for_application",
+    provider: providerId || "unknown",
+  }, 403, { "set-cookie": clearBindingCookie() });
+  if (provider.id === "google") return startGoogle(transaction.oauthRequest, binding, env);
+  return startEnterpriseOidc(provider, transaction.oauthRequest, binding, env);
+}
+
+async function startEnterpriseOidc(provider, oauthRequest, binding, env) {
+  if (!provider?.configured || provider.mode !== "code_pkce") {
+    return json({ error: "identity_provider_not_configured", provider: provider?.id || "unknown" }, 503);
+  }
+  const discovery = await oidcDiscovery(provider);
+  const nonce = randomToken(24);
+  const verifier = randomToken(48);
+  const challenge = await sha256(verifier);
+  const state = await seal(env, {
+    kind: "enterprise_oidc",
+    provider: provider.id,
+    oauthRequest,
+    bindingHash: await sha256(binding),
+    nonce,
+    verifier,
+    createdAt: Date.now(),
+  });
+  const url = new URL(discovery.authorization_endpoint);
+  url.searchParams.set("client_id", provider.clientId);
+  url.searchParams.set("redirect_uri", provider.callback);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("state", state);
+  url.searchParams.set("nonce", nonce);
+  url.searchParams.set("code_challenge", challenge);
+  url.searchParams.set("code_challenge_method", "S256");
+  if (provider.id === "microsoft") {
+    url.searchParams.set("prompt", "select_account");
+    const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
+    if (app?.allowedEmailDomains?.length === 1) url.searchParams.set("domain_hint", app.allowedEmailDomains[0]);
+  }
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: url.href,
+      "cache-control": "no-store",
+      "referrer-policy": "no-referrer",
+    },
+  });
+}
+
+function tokenRequestHeaders(provider) {
+  const headers = new Headers({ "content-type": "application/x-www-form-urlencoded", accept: "application/json" });
+  if (provider.clientSecret && provider.tokenAuthMethod === "client_secret_basic") {
+    headers.set("authorization", "Basic " + btoa(provider.clientId + ":" + provider.clientSecret));
+  }
+  return headers;
+}
+
+async function finishEnterpriseOidc(request, env, providerId) {
+  const provider = providerById(env, providerId);
+  if (!provider?.configured || provider.mode !== "code_pkce") {
+    return json({ error: "identity_provider_not_configured", provider: providerId }, 503);
+  }
+
+  let params;
+  if (request.method === "POST") {
+    const len = Number(request.headers.get("content-length") || 0);
+    if (len > 32_768) return json({ error: "request_too_large" }, 413);
+    params = await request.formData();
+  } else {
+    params = new URL(request.url).searchParams;
+  }
+
+  const code = String(params.get("code") || "");
+  const state = String(params.get("state") || "");
+  const upstreamError = String(params.get("error") || "");
+  if (upstreamError) {
+    return json({
+      error: "upstream_authorization_failed",
+      provider: provider.id,
+      upstream_error: upstreamError,
+      description: String(params.get("error_description") || ""),
+    }, 400, { "set-cookie": clearBindingCookie() });
+  }
+  if (!code || !state) return json({ error: "missing_upstream_authorization_response", provider: provider.id }, 400, { "set-cookie": clearBindingCookie() });
+
+  let transaction = null;
+  try { transaction = await unseal(env, state); } catch {}
+  const age = transaction ? Date.now() - Number(transaction.createdAt || 0) : Infinity;
+  if (!transaction || transaction.kind !== "enterprise_oidc" || transaction.provider !== provider.id || !Number.isFinite(age) || age < 0 || age > TX_TTL_SECONDS * 1000) {
+    return json({ error: "authorization_transaction_expired", provider: provider.id }, 400, {
+      "set-cookie": clearBindingCookie(),
+    });
+  }
+
+  const binding = cookieValue(request, BIND_COOKIE);
+  if (!binding || (await sha256(binding)) !== transaction.bindingHash) {
+    return json({ error: "authorization_transaction_mismatch", provider: provider.id }, 400, {
+      "set-cookie": clearBindingCookie(),
+    });
+  }
+
+  const discovery = await oidcDiscovery(provider);
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: provider.clientId,
+    code,
+    redirect_uri: provider.callback,
+    code_verifier: transaction.verifier,
+  });
+  if (provider.clientSecret && provider.tokenAuthMethod !== "client_secret_basic") {
+    body.set("client_secret", provider.clientSecret);
+  }
+
+  const tokenResponse = await fetch(discovery.token_endpoint, {
+    method: "POST",
+    headers: tokenRequestHeaders(provider),
+    body,
+  });
+  const tokens = await tokenResponse.json().catch(() => ({}));
+  if (!tokenResponse.ok || !tokens.id_token) {
+    return json({
+      error: "upstream_token_exchange_failed",
+      provider: provider.id,
+      status: tokenResponse.status,
+    }, 502, { "set-cookie": clearBindingCookie() });
+  }
+
+  const jwks = createRemoteJWKSet(new URL(discovery.jwks_uri));
+  const verified = await jwtVerify(tokens.id_token, jwks, {
+    audience: provider.clientId,
+    clockTolerance: 10,
+  });
+  const claims = verified.payload;
+  if (!validateEnterpriseIssuer(provider, claims, discovery)) {
+    return json({ error: "upstream_issuer_mismatch", provider: provider.id }, 403, { "set-cookie": clearBindingCookie() });
+  }
+  if (claims.nonce !== transaction.nonce) {
+    return json({ error: "upstream_nonce_mismatch", provider: provider.id }, 400, { "set-cookie": clearBindingCookie() });
+  }
+
+  const identity = extractUpstreamIdentity(provider, claims);
+  return completeUpstreamAuthorization(transaction, provider, identity, env);
 }
 
 async function finishGoogle(request, env) {
@@ -576,65 +722,14 @@ async function finishGoogle(request, env) {
   if (!claims?.sub) throw new Error("google_subject_missing");
   if (claims.nonce !== transaction.nonce) return json({ error: "google_nonce_mismatch" }, 400, { "set-cookie": clearBindingCookie() });
 
-  const email = typeof claims.email === "string" ? claims.email : "";
-  const emailVerified = claims.email_verified === true || claims.email_verified === "true";
-  if (!email || !emailVerified) return json({ error: "verified_google_email_required" }, 403, { "set-cookie": clearBindingCookie() });
-
-  const emailLower = email.trim().toLowerCase();
-  const emailDomain = emailLower.includes("@") ? emailLower.split("@").pop() : "";
-  const application = firstPartyAppForRedirectUri(transaction.oauthRequest.redirectUri);
-  const neuron7Domain = "neuron7.ai";
-
-  // Company-domain identities are application-scoped. A Neuron7 identity may
-  // authenticate only into the Neuron7 case application, never another
-  // Clintware first-party surface.
-  if (emailDomain === neuron7Domain && application?.product !== "neuron7-case") {
-    return json({
-      error: "application_not_allowed_for_identity_domain",
-      application: application?.product || "external",
-      allowed_application: "neuron7-case",
-    }, 403, { "set-cookie": clearBindingCookie() });
+  const provider = providerById(env, "google");
+  const identity = extractUpstreamIdentity(provider, claims);
+  if (!identity.email || claims.email_verified !== true && claims.email_verified !== "true") {
+    return json({ error: "verified_google_email_required" }, 403, { "set-cookie": clearBindingCookie() });
   }
-
-  if (application?.allowedEmailDomains?.length) {
-    const allowedDomains = application.allowedEmailDomains.map((value) => String(value).toLowerCase());
-    const allowedEmails = (application.allowedEmails || []).map((value) => String(value).toLowerCase());
-    if (!allowedDomains.includes(emailDomain) && !allowedEmails.includes(emailLower)) {
-      return json({
-        error: "identity_not_allowed_for_application",
-        application: application.product,
-      }, 403, { "set-cookie": clearBindingCookie() });
-    }
-  }
-
-  const userId = `cw_${(await sha256(`google:${claims.sub}`)).slice(0, 40)}`;
-  const grantedScopes = transaction.oauthRequest.scope.filter((scope) => SUPPORTED_SCOPES.includes(scope));
-  const authResult = await env.OAUTH_PROVIDER.completeAuthorization({
-    request: transaction.oauthRequest,
-    userId,
-    metadata: {
-      provider: "google",
-      upstream: "oidc-id-token-form-post",
-      application: application?.product || "external",
-    },
-    scope: grantedScopes,
-    props: {
-      userId,
-      provider: "google",
-      providerSubject: String(claims.sub),
-      email,
-      emailVerified: true,
-      name: typeof claims.name === "string" ? claims.name : "",
-      picture: typeof claims.picture === "string" ? claims.picture : "",
-      scopes: grantedScopes,
-      application: application?.product || "external",
-      applicationContext: application?.contextScopes ? [...application.contextScopes] : [],
-    },
-  });
-
-  const headers = new Headers({ location: authResult.redirectTo, "cache-control": "no-store" });
-  headers.append("set-cookie", clearBindingCookie());
-  return new Response(null, { status: 302, headers });
+  identity.emailVerified = true;
+  identity.verificationBasis = "email_verified_claim";
+  return completeUpstreamAuthorization(transaction, provider, identity, env);
 }
 
 const userInfoHandler = {
@@ -698,7 +793,7 @@ function publicClient(client) {
 }
 
 
-async function firstPartyClientConfig(_env, key) {
+async function firstPartyClientConfig(env, key) {
   const app = firstPartyApp(key);
   if (!app) return null;
   return {
@@ -715,6 +810,10 @@ async function firstPartyClientConfig(_env, key) {
     scopes: [...app.scopes],
     allowed_email_domains: [...(app.allowedEmailDomains || [])],
     application_context: [...(app.contextScopes || [])],
+    allowed_identity_providers: [...(app.identityProviders || ["google"])],
+    configured_identity_providers: upstreamProviders(env)
+      .filter((provider) => provider.configured && (app.identityProviders || ["google"]).includes(provider.id))
+      .map((provider) => ({ id: provider.id, label: provider.label, callback: provider.callback })),
     pkce: "S256",
     client_model: "central-first-party-cimd",
     client_metadata_document: FIRST_PARTY_CLIENT_ID,
