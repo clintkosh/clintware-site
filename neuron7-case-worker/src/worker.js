@@ -3,6 +3,10 @@ const LEGACY_HOST = "n7case.clintware.com";
 const CANONICAL_ORIGIN = `https://${CANONICAL_HOST}`;
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const AUTH_CONFIG_URL = `${AUTH_ORIGIN}/client-config/neuron7-case`;
+const APPLICATION_ID = "neuron7-case";
+const COMPANY_EMAIL_DOMAIN = "neuron7.ai";
+const OWNER_EMAILS = new Set(["clint.kosh@gmail.com"]);
+const REQUIRED_CONTEXT = "neuron7-case:read";
 const TX_COOKIE = "__Host-n7-auth-tx";
 const SESSION_COOKIE = "__Host-n7-session";
 const te = new TextEncoder();
@@ -79,6 +83,16 @@ async function authConfig() {
   return data;
 }
 
+function applicationUserAllowed(user) {
+  if (!user?.sub || user.email_verified !== true) return false;
+  if (user.application !== APPLICATION_ID) return false;
+  const context = Array.isArray(user.application_context) ? user.application_context : [];
+  if (!context.includes(REQUIRED_CONTEXT)) return false;
+  const email = String(user.email || "").trim().toLowerCase();
+  const domain = email.includes("@") ? email.split("@").pop() : "";
+  return domain === COMPANY_EMAIL_DOMAIN || OWNER_EMAILS.has(email);
+}
+
 async function currentUser(request) {
   const token = cookieValue(request, SESSION_COOKIE);
   if (!token) return null;
@@ -87,7 +101,7 @@ async function currentUser(request) {
   });
   if (!response.ok) return null;
   const user = await response.json().catch(() => null);
-  return user?.sub ? user : null;
+  return applicationUserAllowed(user) ? user : null;
 }
 
 async function startLogin() {
@@ -155,6 +169,11 @@ async function finishLogin(request) {
       "set-cookie": clearCookie(TX_COOKIE),
     });
   }
+  if (!applicationUserAllowed(user)) {
+    return html("<h1>Access is not authorized for this application</h1><p>This operator surface accepts verified Neuron7 company identities scoped specifically to the Neuron7 case application, plus the Clintware owner identity. It does not grant access to other Clintware products or infrastructure.</p>", 403, {
+      "set-cookie": clearCookie(TX_COOKIE),
+    });
+  }
 
   const headers = securityHeaders(new Headers({ location: "/operator" }));
   headers.append("set-cookie", setCookie(SESSION_COOKIE, tokens.access_token, 15 * 60));
@@ -168,10 +187,10 @@ function operatorPage(user, setupError = "") {
       ? `<p class="warn">Identity setup status: ${escapeHtml(setupError)}</p>`
       : "";
     return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>N7 Operator | Clintware</title>
-<style>body{margin:0;background:#070b12;color:#f5f7fb;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:720px;margin:8vh auto;padding:24px}.card{background:#0e1623;border:1px solid #26364c;border-radius:12px;padding:24px}a{display:inline-block;margin-top:12px;background:#f5f7fb;color:#07101a;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:700}.muted{color:#9fb0c6}.warn{color:#fbbf24}</style></head><body><main><div class="card"><div class="muted">CLINTWARE IDENTITY</div><h1>N7 operator mode</h1><p>The public Neuron7 case remains read-only. Operator mode uses the central Clintware OAuth authority and the same first-party Clintware client used by other products.</p>${detail}<a href="/auth/login">Continue with Google through Clintware</a></div></main></body></html>`;
+<style>body{margin:0;background:#070b12;color:#f5f7fb;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:720px;margin:8vh auto;padding:24px}.card{background:#0e1623;border:1px solid #26364c;border-radius:12px;padding:24px}a{display:inline-block;margin-top:12px;background:#f5f7fb;color:#07101a;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:700}.muted{color:#9fb0c6}.warn{color:#fbbf24}</style></head><body><main><div class="card"><div class="muted">CLINTWARE IDENTITY</div><h1>N7 operator mode</h1><p>The public Neuron7 case remains read-only. Operator mode accepts verified <strong>@neuron7.ai</strong> identities only for this application context, plus the Clintware owner identity. Authentication does not grant access to other Clintware products, MCP, or infrastructure.</p>${detail}<a href="/auth/login">Continue with Google through Clintware</a></div></main></body></html>`;
   }
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>N7 Operator | Clintware</title>
-<style>body{margin:0;background:#070b12;color:#f5f7fb;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:720px;margin:8vh auto;padding:24px}.card{background:#0e1623;border:1px solid #26364c;border-radius:12px;padding:24px}.muted{color:#9fb0c6}code{color:#4fd1e5}button{background:#f5f7fb;color:#07101a;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}</style></head><body><main><div class="card"><div class="muted">AUTHENTICATED THROUGH CLINTWARE</div><h1>N7 operator mode</h1><p><strong>${escapeHtml(user.name || user.email || "Clintware user")}</strong></p><p class="muted">${escapeHtml(user.email || "")}</p><p>Stable identity: <code>${escapeHtml(user.sub)}</code></p><p>Authority: <code>${AUTH_ORIGIN}</code></p><p>This short operator session uses the central Clintware identity layer. It does not grant MCP or infrastructure privileges.</p><form method="post" action="/auth/logout"><button type="submit">Sign out</button></form></div></main></body></html>`;
+<style>body{margin:0;background:#070b12;color:#f5f7fb;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:720px;margin:8vh auto;padding:24px}.card{background:#0e1623;border:1px solid #26364c;border-radius:12px;padding:24px}.muted{color:#9fb0c6}code{color:#4fd1e5}button{background:#f5f7fb;color:#07101a;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}</style></head><body><main><div class="card"><div class="muted">AUTHENTICATED THROUGH CLINTWARE</div><h1>N7 operator mode</h1><p><strong>${escapeHtml(user.name || user.email || "Clintware user")}</strong></p><p class="muted">${escapeHtml(user.email || "")}</p><p>Stable identity: <code>${escapeHtml(user.sub)}</code></p><p>Authority: <code>${AUTH_ORIGIN}</code></p><p>This short operator session is bound to <code>neuron7-case</code> context only. It does not grant access to other Clintware products, MCP, repository, deployment, DNS, or infrastructure privileges.</p><form method="post" action="/auth/logout"><button type="submit">Sign out</button></form></div></main></body></html>`;
 }
 
 export default {
@@ -200,6 +219,10 @@ export default {
         identityConfig: AUTH_CONFIG_URL,
         operatorMode: "/operator",
         oauthOperatorMode: "central-clintware-first-party-client",
+        applicationId: APPLICATION_ID,
+        allowedCompanyDomain: COMPANY_EMAIL_DOMAIN,
+        requiredApplicationContext: REQUIRED_CONTEXT,
+        crossProductIdentityAccess: false,
         noCustomerData: true
       }, {
         headers: securityHeaders(new Headers())
