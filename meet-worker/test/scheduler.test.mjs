@@ -8,6 +8,10 @@ import {
   zonedLocalToUtc,
   hostDateString,
 } from "../src/lib.js";
+import {
+  filterSlotsAgainstGoogleBusy,
+  requestedTimeIsGoogleBusy,
+} from "../src/google-calendar.js";
 
 test("zoned conversion handles Central time DST", () => {
   const ms = zonedLocalToUtc("2026-09-21", "09:00", "America/Chicago");
@@ -43,4 +47,18 @@ test("overlap test excludes separated events", () => {
 
 test("host date is stable", () => {
   assert.equal(hostDateString(Date.parse("2026-09-21T14:00:00Z")), "2026-09-21");
+});
+
+
+test("Google Calendar busy windows remove mirrored availability", () => {
+  const slots = [
+    { startMs: 1000, endMs: 2000 },
+    { startMs: 5000, endMs: 6000 },
+  ];
+  const busy = [{ startMs: 1500, endMs: 2500 }];
+  const config = { ...CONFIG, bufferBeforeMinutes: 0, bufferAfterMinutes: 0 };
+  const available = filterSlotsAgainstGoogleBusy(slots, busy, config);
+  assert.deepEqual(available, [slots[1]]);
+  assert.equal(requestedTimeIsGoogleBusy(1000, 2000, busy, config), true);
+  assert.equal(requestedTimeIsGoogleBusy(5000, 6000, busy, config), false);
 });
