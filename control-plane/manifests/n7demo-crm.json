@@ -1,0 +1,73 @@
+{
+  "product": "n7demo-crm",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": ["projects/n7demo-crm/"],
+    "allowed_workflows": ["deploy-n7demo-crm.yml"],
+    "identity": "clintkosh"
+  },
+  "dns": {"allowed_names": ["n7demo.clintware.com"]},
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:projects/n7demo-crm/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:n7demo-crm",
+    "dns.ensure:n7demo.clintware.com",
+    "analytics.write:n7demo-crm",
+    "analytics.read:n7demo-crm",
+    "research.invoke"
+  ],
+  "deny": [
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
+  "telemetry_namespace": "n7demo-crm",
+  "privacy": {
+    "public_viewer": false,
+    "indexing": false,
+    "customer_data": true,
+    "oauth_required": true,
+    "identity_boundary": "auth.clintware.com",
+    "infrastructure_boundary": "mcp.clintware.com"
+  },
+  "identity": {
+    "enabled": true,
+    "authority": "https://auth.clintware.com",
+    "config_endpoint": "https://auth.clintware.com/client-config/n7demo-crm",
+    "redirect_uri": "https://n7demo.clintware.com/auth/callback",
+    "scopes": ["identity","email","profile"],
+    "pkce": "S256",
+    "client_id": "https://auth.clintware.com/client/clintware-web",
+    "application_context": ["n7demo-crm:read","n7demo-crm:write"],
+    "cross_product_identity_access": false
+  },
+  "integrations": {
+    "jira": {
+      "mode": "control-plane",
+      "preferred_auth": "oauth2-3lo",
+      "rendering": "native-board-view",
+      "source_of_truth": "jira-when-connected",
+      "status": "authorization-required"
+    }
+  }
+}

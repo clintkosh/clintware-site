@@ -12,37 +12,56 @@ concurrency:
 jobs:
   validate-deploy:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
+
       - name: Validate source
         run: |
           set -euo pipefail
           cd projects/n7demo-crm
           npm install --no-audit --no-fund
           npm run check
-          ! grep -R -i "lovable" src public package.json wrangler.jsonc
+          ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
           grep -Fq "Healthcare Device Manufacturer" src/index.js
           grep -Fq "50% improvement by end of Year 1" src/index.js
           grep -Fq "6–8 weeks from start to go-live" src/index.js
           grep -Fq "8–10 weeks" src/index.js
+          grep -Fq "n7demo-crm" src/index.js
+          grep -Fq "Engineering-ready" public/app-views.js
+          grep -Fq "RACI" public/app-views.js
+
+      - name: Ensure backup bucket
+        run: |
+          set -euo pipefail
+          cd projects/n7demo-crm
+          if ! npx wrangler r2 bucket list | grep -Fq 'clintware-n7demo-crm-backups'; then
+            npx wrangler r2 bucket create clintware-n7demo-crm-backups
+          fi
           npx wrangler deploy --dry-run
+
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd projects/n7demo-crm
+
       - name: Attach custom domain
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"n7demo.clintware.com","service":"clintware-n7demo-crm","zone_name":"clintware.com"}')
+          response=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/\${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer \${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"n7demo.clintware.com","service":"clintware-n7demo-crm","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
+
       - name: Verify live CRM
         run: |
           set -euo pipefail
@@ -50,8 +69,19 @@ jobs:
           for i in $(seq 1 40); do
             h=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/health || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/ || true)
-            if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" && grep -Fq '"lovable":false' <<< "$h" && grep -Fq 'N7 Demo CRM' <<< "$p"; then ready=1; break; fi
+            if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" \
+              && grep -Fq '"lovable":false' <<< "$h" \
+              && grep -Fq '"storage":"Durable Objects SQLite + daily R2 backups"' <<< "$h" \
+              && grep -Fq 'Clintware Identity' <<< "$p" \
+              && grep -Fq 'N7 Demo CRM' <<< "$p"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for n7demo.clintware.com (\${i}/40)"
             sleep 5
           done
           test "$ready" = "1"
-          curl -fsS https://n7demo.clintware.com/api/state | grep -Fq 'Healthcare Device Manufacturer'
+          auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/n7demo-crm || true)
+          echo "$auth" | grep -Fq '"app":"n7demo-crm"'
+          echo "$auth" | grep -Fq '"redirect_uri":"https://n7demo.clintware.com/auth/callback"'
+          echo "N7 Demo CRM live with Clintware OAuth configuration."

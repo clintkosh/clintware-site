@@ -7,5 +7,8 @@
   "assets":{"directory":"./public","binding":"ASSETS"},
   "durable_objects":{"bindings":[{"name":"CRM","class_name":"N7CRM"}]},
   "migrations":[{"tag":"v1","new_sqlite_classes":["N7CRM"]}],
+  "r2_buckets":[{"binding":"BACKUPS","bucket_name":"clintware-n7demo-crm-backups"}],
+  "services":[{"binding":"CONTROL_PLANE","service":"clintware-control-plane"}],
+  "triggers":{"crons":["15 3 * * *"]},
   "observability":{"enabled":true}
 }
