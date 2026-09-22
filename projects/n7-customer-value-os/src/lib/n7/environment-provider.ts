@@ -6,6 +6,7 @@
  * seam; secrets and third-party calls never belong in this client module.
  */
 import type { EnvironmentEdge, EnvironmentNode, NodeKind, Provenance } from "./types";
+import { invokeN7AI } from "./server-api";
 
 export type ProviderMode = "demo" | "controlPlane";
 
@@ -302,14 +303,118 @@ export const demoProvider: EnvironmentProvider = {
 
 export const controlPlaneProvider: EnvironmentProvider = {
   mode: "controlPlane",
-  async generate() {
-    // TODO(secure-integration-boundary): call a server function that may use an
-    // approved research provider such as Exa AI. Credentials stay server-side.
-    throw new Error("External environment enrichment is not configured.");
+  async generate(req) {
+    // Start from deterministic local parsing so generation still works if AI is unavailable.
+    const local = await demoProvider.generate(req);
+    const unknownLabels = local.nodes
+      .filter((node) => /unknown named system|needs review/i.test(node.detail))
+      .map((node) => node.label)
+      .slice(0, 6);
+
+    const response: any = await invokeN7AI({
+      data: {
+        task: "environment_topology",
+        prompt: [
+          "Return JSON only.",
+          "Refine the proposed customer environment from the supplied notes.",
+          "Do not invent customer facts. Unknown details must remain unknown or be marked needsReview=true.",
+          "Keep only systems supported by the input or approved source text.",
+          "Allowed node kinds: saas, app-server, database, firewall, endpoint, integration, identity, boundary.",
+          "Return shape: {confidence:'low'|'medium'|'high', nodes:[{label,kind,detail,needsReview}], edges:[{fromLabel,toLabel,label,flow}], notes:[string]}.",
+          `User notes: ${req.freeText}`,
+          `Approved sources: ${req.approvedSourceTitles.join(", ") || "none"}`,
+        ].join("\n"),
+        context: {
+          approvedSourceText: req.approvedSourceText || "",
+          localProposal: local,
+        },
+        researchQuery: unknownLabels.length
+          ? `Identify only what these named technology products/systems are, without customer-specific assumptions: ${unknownLabels.join(", ")}`
+          : undefined,
+      },
+    });
+
+    if (!response?.available || !response?.text) return local;
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(String(response.text).replace(/^\`\`\`json\s*/i, "").replace(/\`\`\`\s*$/i, ""));
+    } catch {
+      return {
+        ...local,
+        notes: [...local.notes, "Clintware AI returned non-JSON output; deterministic local proposal retained."],
+      };
+    }
+
+    const rows = Array.isArray(parsed?.nodes) ? parsed.nodes : [];
+    if (!rows.length) return local;
+
+    const allowedKinds = new Set<NodeKind>(["saas","app-server","database","firewall","endpoint","integration","identity","boundary"]);
+    const nodes: EnvironmentNode[] = rows.slice(0, 40).map((row: any, index: number) => ({
+      id: `${req.customerId}-cp-${index}`,
+      customerId: req.customerId,
+      label: String(row?.label || `Component ${index + 1}`).slice(0, 120),
+      kind: allowedKinds.has(row?.kind) ? row.kind : "boundary",
+      x: 40 + (index % 4) * 210,
+      y: 40 + Math.floor(index / 4) * 105,
+      detail: String(row?.detail || "Needs review.").slice(0, 1200),
+      provenance: "generated-proposal",
+      sourceNote: row?.needsReview ? "Clintware AI proposal — needs review" : "Clintware AI proposal",
+    }));
+
+    const byLabel = new Map(nodes.map((node) => [node.label.toLowerCase(), node]));
+    const edges: EnvironmentEdge[] = (Array.isArray(parsed?.edges) ? parsed.edges : [])
+      .slice(0, 80)
+      .flatMap((row: any, index: number) => {
+        const from = byLabel.get(String(row?.fromLabel || "").toLowerCase());
+        const to = byLabel.get(String(row?.toLabel || "").toLowerCase());
+        if (!from || !to || from.id === to.id) return [];
+        const flow = ["data", "auth", "network"].includes(row?.flow) ? row.flow : "data";
+        return [{
+          id: `${req.customerId}-cpe-${index}`,
+          customerId: req.customerId,
+          from: from.id,
+          to: to.id,
+          label: String(row?.label || "related to").slice(0, 120),
+          flow,
+          provenance: "generated-proposal" as const,
+        }];
+      });
+
+    const confidence = ["low","medium","high"].includes(parsed?.confidence)
+      ? parsed.confidence as GenerationResult["confidence"]
+      : local.confidence;
+
+    return {
+      nodes,
+      edges,
+      confidence,
+      provenanceLabel: "Generated proposal from Clintware Control Plane",
+      notes: [
+        ...(Array.isArray(parsed?.notes) ? parsed.notes.map(String).slice(0, 8) : []),
+        response?.research_used
+          ? "Unknown technology names were optionally enriched through the Clintware research gateway; customer-specific notes were not used as the research query."
+          : "No external research was required.",
+        "Review and approve before this becomes the environment of record.",
+      ],
+    };
   },
-  async enrichUnknownTerms() {
-    // Same future server-side seam. Local parsing succeeds without enrichment.
-    throw new Error("External term enrichment is not configured.");
+  async enrichUnknownTerms(terms) {
+    if (!terms.length) return {};
+    const response: any = await invokeN7AI({
+      data: {
+        task: "technology_term_enrichment",
+        prompt: "Describe each named technology term in one factual sentence. Return JSON object keyed by the exact input term. Do not infer anything about the customer.",
+        context: { terms },
+        researchQuery: `Identify these technology products or systems: ${terms.slice(0, 8).join(", ")}`,
+      },
+    });
+    if (!response?.available || !response?.text) return {};
+    try {
+      return JSON.parse(String(response.text).replace(/^\`\`\`json\s*/i, "").replace(/\`\`\`\s*$/i, ""));
+    } catch {
+      return {};
+    }
   },
 };
 
