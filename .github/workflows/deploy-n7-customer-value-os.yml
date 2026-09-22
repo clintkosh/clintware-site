@@ -80,3 +80,34 @@ jobs:
             sleep 3
           done
           test "$ready" = 1
+      - name: Verify live N7 workspace routes
+        run: |
+          set -euo pipefail
+          sections=(
+            executive-summary
+            implementation
+            deployment-board
+            rollout-sprints
+            critical-path
+            risks-decisions
+            raci
+            environment
+            documents
+            engineering-issues
+            accuracy-triage
+            messaging
+            meeting-prep
+            roi-workshop
+            kpi-contract
+            executive-qbr
+            readiness-gate
+            assumption-change
+            evidence
+          )
+          for section in "${sections[@]}"; do
+            url="https://n7crm.clintware.com/customers/official-case/${section}"
+            body=$(curl --fail-with-body -sS -L --connect-timeout 5 --max-time 20 "$url")
+            grep -Fq 'N7 Customer Value OS' <<< "$body"
+          done
+          legacy=$(curl --fail-with-body -sS -L --connect-timeout 5 --max-time 20             https://n7crm.clintware.com/customers/official-case/virtual-liaison)
+          grep -Fq 'Meeting Prep' <<< "$legacy"
