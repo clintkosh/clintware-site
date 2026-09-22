@@ -17,6 +17,7 @@ ALLOWED = {
     "c-runtime-check": {"Message"},
     "ensure-c-runtime": set(),
     "self-update": set(),
+    "apply-terminal-glass": set(),
 }
 
 def request_json(method, path, body=None):
