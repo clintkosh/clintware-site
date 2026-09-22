@@ -6,7 +6,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyAppForRedirectUri, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-22.6";
+const VERSION = "2026-09-22.7";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -116,12 +116,16 @@ function htmlEscape(value) {
     .replace(/'/g, "&#39;");
 }
 
-function html(body, status = 200, extra = {}) {
+function html(body, status = 200, extra = {}, formOrigins = []) {
+  const safeOrigins = [...new Set(formOrigins.map((value) => {
+    try { return new URL(value).origin; } catch { return ""; }
+  }).filter(Boolean))];
+  const formAction = ["'self'", ...safeOrigins].join(" ");
   const headers = new Headers({
     "content-type": "text/html; charset=utf-8",
     "cache-control": "no-store",
     pragma: "no-cache",
-    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://accounts.google.com; base-uri 'none'; frame-ancestors 'none'",
+    "content-security-policy": `default-src 'none'; style-src 'unsafe-inline'; form-action ${formAction}; base-uri 'none'; frame-ancestors 'none'`,
     "x-frame-options": "DENY",
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
@@ -144,6 +148,231 @@ function oauthConfigured(env) {
   return Boolean(env.OAUTH_KV && googleClientId(env) && (env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN));
 }
 
+
+function cleanIssuer(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:") return "";
+    return url.href.replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function upstreamProviders(env) {
+  const microsoftTenant = String(env.MICROSOFT_ENTRA_TENANT || "organizations").trim() || "organizations";
+  const providers = [
+    {
+      id: "google",
+      label: "Google",
+      issuer: "https://accounts.google.com",
+      clientId: googleClientId(env),
+      callback: GOOGLE_CALLBACK,
+      configured: Boolean(googleClientId(env)),
+      mode: "id_token_form_post",
+    },
+    {
+      id: "microsoft",
+      label: "Microsoft",
+      issuer: `https://login.microsoftonline.com/${encodeURIComponent(microsoftTenant)}/v2.0`,
+      clientId: String(env.MICROSOFT_ENTRA_CLIENT_ID || "").trim(),
+      clientSecret: String(env.MICROSOFT_ENTRA_CLIENT_SECRET || "").trim(),
+      callback: `${AUTH_ORIGIN}/callback/microsoft`,
+      configured: Boolean(String(env.MICROSOFT_ENTRA_CLIENT_ID || "").trim()),
+      mode: "code_pkce",
+      tenant: microsoftTenant,
+      tokenAuthMethod: "client_secret_post",
+    },
+    {
+      id: "okta",
+      label: "Okta",
+      issuer: cleanIssuer(env.OKTA_OIDC_ISSUER),
+      clientId: String(env.OKTA_OIDC_CLIENT_ID || "").trim(),
+      clientSecret: String(env.OKTA_OIDC_CLIENT_SECRET || "").trim(),
+      callback: `${AUTH_ORIGIN}/callback/okta`,
+      configured: Boolean(cleanIssuer(env.OKTA_OIDC_ISSUER) && String(env.OKTA_OIDC_CLIENT_ID || "").trim()),
+      mode: "code_pkce",
+      tokenAuthMethod: String(env.OKTA_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+    },
+    {
+      id: "auth0",
+      label: "Auth0",
+      issuer: cleanIssuer(env.AUTH0_OIDC_ISSUER),
+      clientId: String(env.AUTH0_OIDC_CLIENT_ID || "").trim(),
+      clientSecret: String(env.AUTH0_OIDC_CLIENT_SECRET || "").trim(),
+      callback: `${AUTH_ORIGIN}/callback/auth0`,
+      configured: Boolean(cleanIssuer(env.AUTH0_OIDC_ISSUER) && String(env.AUTH0_OIDC_CLIENT_ID || "").trim()),
+      mode: "code_pkce",
+      tokenAuthMethod: String(env.AUTH0_OIDC_TOKEN_AUTH_METHOD || "client_secret_post"),
+    },
+    {
+      id: "pingone",
+      label: "PingOne",
+      issuer: cleanIssuer(env.PINGONE_OIDC_ISSUER),
+      clientId: String(env.PINGONE_OIDC_CLIENT_ID || "").trim(),
+      clientSecret: String(env.PINGONE_OIDC_CLIENT_SECRET || "").trim(),
+      callback: `${AUTH_ORIGIN}/callback/pingone`,
+      configured: Boolean(cleanIssuer(env.PINGONE_OIDC_ISSUER) && String(env.PINGONE_OIDC_CLIENT_ID || "").trim()),
+      mode: "code_pkce",
+      tokenAuthMethod: String(env.PINGONE_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+    },
+    {
+      id: "oidc",
+      label: "Company SSO",
+      issuer: cleanIssuer(env.GENERIC_OIDC_ISSUER),
+      clientId: String(env.GENERIC_OIDC_CLIENT_ID || "").trim(),
+      clientSecret: String(env.GENERIC_OIDC_CLIENT_SECRET || "").trim(),
+      callback: `${AUTH_ORIGIN}/callback/oidc`,
+      configured: Boolean(cleanIssuer(env.GENERIC_OIDC_ISSUER) && String(env.GENERIC_OIDC_CLIENT_ID || "").trim()),
+      mode: "code_pkce",
+      tokenAuthMethod: String(env.GENERIC_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+    },
+  ];
+  return providers;
+}
+
+function providerById(env, id) {
+  return upstreamProviders(env).find((provider) => provider.id === String(id || "").toLowerCase()) || null;
+}
+
+function allowedProvidersForRequest(env, oauthRequest) {
+  const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
+  const allowedIds = app?.identityProviders?.length ? [...app.identityProviders] : ["google"];
+  return upstreamProviders(env).filter((provider) => provider.configured && allowedIds.includes(provider.id));
+}
+
+function providerFormOrigins(providers) {
+  return providers.map((provider) => provider.issuer).filter(Boolean);
+}
+
+async function oidcDiscovery(provider) {
+  if (!provider?.issuer) throw new Error("oidc_issuer_missing");
+  const discoveryUrl = provider.issuer.replace(/\/$/, "") + "/.well-known/openid-configuration";
+  const response = await fetch(discoveryUrl, {
+    headers: { accept: "application/json" },
+    cf: { cacheTtl: 300, cacheEverything: true },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.authorization_endpoint || !data.token_endpoint || !data.jwks_uri) {
+    throw new Error("oidc_discovery_failed:" + provider.id);
+  }
+  return data;
+}
+
+function validateEnterpriseIssuer(provider, claims, discovery) {
+  const issuer = String(claims?.iss || "");
+  if (provider.id === "microsoft") {
+    const tid = String(claims?.tid || "");
+    if (!tid || !/^[0-9a-f-]{36}$/i.test(tid)) return false;
+    return issuer === `https://login.microsoftonline.com/${tid}/v2.0`;
+  }
+  return Boolean(discovery?.issuer && issuer === String(discovery.issuer));
+}
+
+function restrictedApplicationsForDomain(domain) {
+  const target = String(domain || "").toLowerCase();
+  if (!target) return [];
+  return Object.values(FIRST_PARTY_APPS).filter((app) =>
+    (app.allowedEmailDomains || []).map((value) => String(value).toLowerCase()).includes(target)
+  );
+}
+
+function extractUpstreamIdentity(provider, claims) {
+  const email = typeof claims.email === "string" && claims.email.includes("@")
+    ? claims.email
+    : provider.id === "microsoft" && typeof claims.preferred_username === "string" && claims.preferred_username.includes("@")
+      ? claims.preferred_username
+      : typeof claims.upn === "string" && claims.upn.includes("@")
+        ? claims.upn
+        : "";
+  const explicitVerified = claims.email_verified === true || claims.email_verified === "true";
+  const enterpriseAssertion = provider.id !== "google" && Boolean(email);
+  return {
+    subject: String(claims.sub || ""),
+    email,
+    emailVerified: explicitVerified || enterpriseAssertion,
+    verificationBasis: explicitVerified ? "email_verified_claim" : enterpriseAssertion ? "signed_enterprise_oidc_claim" : "unverified",
+    name: typeof claims.name === "string" ? claims.name : "",
+    picture: typeof claims.picture === "string" ? claims.picture : "",
+  };
+}
+
+async function completeUpstreamAuthorization(transaction, provider, identity, env) {
+  if (!identity.subject) throw new Error("upstream_subject_missing");
+  if (!identity.email || identity.emailVerified !== true) {
+    return json({ error: "verified_identity_email_required", provider: provider.id }, 403, {
+      "set-cookie": clearBindingCookie(),
+    });
+  }
+
+  const emailLower = identity.email.trim().toLowerCase();
+  const emailDomain = emailLower.includes("@") ? emailLower.split("@").pop() : "";
+  const application = firstPartyAppForRedirectUri(transaction.oauthRequest.redirectUri);
+  const restrictedApps = restrictedApplicationsForDomain(emailDomain);
+
+  if (restrictedApps.length && !restrictedApps.some((app) => app.product === application?.product)) {
+    return json({
+      error: "application_not_allowed_for_identity_domain",
+      application: application?.product || "external",
+      allowed_applications: restrictedApps.map((app) => app.product),
+    }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  if (application?.allowedEmailDomains?.length) {
+    const allowedDomains = application.allowedEmailDomains.map((value) => String(value).toLowerCase());
+    const allowedEmails = (application.allowedEmails || []).map((value) => String(value).toLowerCase());
+    if (!allowedDomains.includes(emailDomain) && !allowedEmails.includes(emailLower)) {
+      return json({
+        error: "identity_not_allowed_for_application",
+        application: application.product,
+      }, 403, { "set-cookie": clearBindingCookie() });
+    }
+  }
+
+  const providerAllowed = application?.identityProviders?.length
+    ? application.identityProviders.includes(provider.id)
+    : provider.id === "google";
+  if (!providerAllowed) {
+    return json({
+      error: "identity_provider_not_allowed_for_application",
+      provider: provider.id,
+      application: application?.product || "external",
+    }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  const userId = `cw_${(await sha256(`${provider.id}:${identity.subject}`)).slice(0, 40)}`;
+  const grantedScopes = transaction.oauthRequest.scope.filter((scope) => SUPPORTED_SCOPES.includes(scope));
+  const authResult = await env.OAUTH_PROVIDER.completeAuthorization({
+    request: transaction.oauthRequest,
+    userId,
+    metadata: {
+      provider: provider.id,
+      upstream: provider.mode,
+      application: application?.product || "external",
+      verification_basis: identity.verificationBasis,
+    },
+    scope: grantedScopes,
+    props: {
+      userId,
+      provider: provider.id,
+      providerSubject: identity.subject,
+      email: identity.email,
+      emailVerified: true,
+      emailVerificationBasis: identity.verificationBasis,
+      name: identity.name,
+      picture: identity.picture,
+      scopes: grantedScopes,
+      application: application?.product || "external",
+      applicationContext: application?.contextScopes ? [...application.contextScopes] : [],
+    },
+  });
+
+  const headers = new Headers({ location: authResult.redirectTo, "cache-control": "no-store" });
+  headers.append("set-cookie", clearBindingCookie());
+  return new Response(null, { status: 302, headers });
+}
 
 async function googleAuthorizationServer() {
   const response = await oauth.discoveryRequest(GOOGLE_ISSUER, { algorithm: "oidc" });
