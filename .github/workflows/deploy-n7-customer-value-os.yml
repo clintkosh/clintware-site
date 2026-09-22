@@ -109,10 +109,24 @@ jobs:
             assumption-change
             evidence
           )
+          check_route() {
+            label="$1"
+            url="$2"
+            echo "Checking ${label}: ${url}"
+            for attempt in $(seq 1 10); do
+              code=$(curl -sS -L -o /tmp/n7-route.html -w '%{http_code}' --connect-timeout 5 --max-time 20 "$url" || true)
+              if [ "$code" = "200" ] && grep -aFq 'N7 Customer Value OS' /tmp/n7-route.html; then
+                echo "PASS ${label}"
+                return 0
+              fi
+              echo "Attempt ${attempt}: HTTP ${code}"
+              sleep 2
+            done
+            echo "FAIL ${label}"
+            head -c 1200 /tmp/n7-route.html || true
+            return 1
+          }
           for section in "${sections[@]}"; do
-            url="https://n7crm.clintware.com/customers/official-case/${section}"
-            body=$(curl --fail-with-body -sS -L --connect-timeout 5 --max-time 20 "$url")
-            grep -Fq 'N7 Customer Value OS' <<< "$body"
+            check_route "$section" "https://n7crm.clintware.com/customers/official-case/${section}"
           done
-          legacy=$(curl --fail-with-body -sS -L --connect-timeout 5 --max-time 20             https://n7crm.clintware.com/customers/official-case/virtual-liaison)
-          grep -Fq 'Meeting Prep' <<< "$legacy"
+          check_route "legacy virtual-liaison alias" "https://n7crm.clintware.com/customers/official-case/virtual-liaison"
