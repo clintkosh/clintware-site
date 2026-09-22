@@ -97,16 +97,7 @@ export class N7CRM{
   ["document",p,{name:s.f||"Sample customer PDF",classification:"Synthetic sample seed source",binaryStatus:"Default sample pack",approvedForBriefs:"Yes"}],
   ["raci","template",{title:"Implementation RACI",rows:[],roles:["Customer","Customer Success / Implementation","Engineering","Product","Support","Sales"],note:"Synthetic sample. Assign responsibilities explicitly."}]
  ];for(const x of String(s.sys||"").split(";").map(v=>v.trim()).filter(Boolean))a.splice(3,0,["integration",p,{name:x,purpose:"Imported from synthetic sample profile",connectorStatus:s.cs||"Not validated",technicalValidation:s.dep||"Needs human review"}]);return a}
- async seed(){const t=ts();
-  if(![...this.sql.exec("SELECT id FROM workspaces WHERE id=?",WORKSPACE_ID)].length)this.sql.exec("INSERT INTO workspaces(id,name,created_at,updated_at) VALUES(?,?,?,?)",WORKSPACE_ID,"N7 Demo CRM Team",t,t);
-  const kbCfg={mode:"Clintware Control Plane",connection:"Not connected",siteUrl:"",cloudId:"",spaceId:"",spaceKey:"",parentPageId:"",homePageUrl:"",localSourceOfTruth:true,lastSyncAt:"",lastSyncStatus:"Never synced"};
-  this.sql.exec("INSERT OR IGNORE INTO kb_config(workspace_id,data,updated_at) VALUES(?,?,?)",WORKSPACE_ID,JSON.stringify(kbCfg),t);
-  for(const a of KB_SEED)this.sql.exec("INSERT OR IGNORE INTO kb_articles(id,workspace_id,slug,title,summary,body,category,tags,status,source,author_label,views,useful,confluence_page_id,confluence_url,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,0,0,'','',?,?)",a.id,WORKSPACE_ID,a.slug,a.title,a.summary,a.body,a.category,JSON.stringify(a.tags),a.status,a.source,a.authorLabel,t,t);
-  if(![...this.sql.exec("SELECT id FROM customers WHERE id=?",CUSTOMER.id)].length){
-    this.sql.exec("INSERT INTO customers(id,workspace_id,data,created_at,updated_at) VALUES(?,?,?,?,?)",CUSTOMER.id,WORKSPACE_ID,JSON.stringify(CUSTOMER),t,t);
-    for(const [type,p,data] of SEED)this.sql.exec("INSERT INTO records(id,workspace_id,customer_id,type,provenance,data,archived,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?)",crypto.randomUUID(),WORKSPACE_ID,CUSTOMER.id,type,p,JSON.stringify(data),t,t);
-  }
- }
+ async seed(){await this.ensureWorkspace(WORKSPACE_ID)}
 
  row(r){return{id:r.id,customerId:r.customer_id,type:r.type,provenance:r.provenance,data:JSON.parse(r.data),createdAt:r.created_at,updatedAt:r.updated_at}}
  kbRow(r){return{id:r.id,slug:r.slug,title:r.title,summary:r.summary,body:r.body,category:r.category,tags:JSON.parse(r.tags||"[]"),status:r.status,source:r.source,authorLabel:r.author_label,views:Number(r.views||0),useful:Number(r.useful||0),confluencePageId:r.confluence_page_id||"",confluenceUrl:r.confluence_url||"",createdAt:r.created_at,updatedAt:r.updated_at}}
