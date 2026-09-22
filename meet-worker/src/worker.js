@@ -912,8 +912,7 @@ async function adminSelfTest(request, env) {
   const ok = Boolean(
     storage.ok &&
     Array.isArray(availability.slots) &&
-    availability.slots.length > 0 &&
-    mailer.deliveryConfigured
+    availability.slots.length > 0
   );
 
   return json({
@@ -921,6 +920,8 @@ async function adminSelfTest(request, env) {
     storage,
     slots: availability.slots?.length || 0,
     mailer: Boolean(mailer.deliveryConfigured),
+    mailerRequiredForCoreBooking: false,
+    calendarBridgeConfigured: googleCalendarConfigured(env),
     bookingFlow: "reserve/reschedule/cancel protected by durable-object serialization",
   }, ok ? 200 : 503);
 }
