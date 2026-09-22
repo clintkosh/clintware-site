@@ -44,6 +44,8 @@ function bind(){
  let ra=document.querySelector('#raci-add');if(ra)ra.onclick=()=>raciEdit();
  document.querySelectorAll('[data-raci-edit]').forEach(b=>b.onclick=()=>raciEdit(Number(b.dataset.raciEdit)));
  document.querySelectorAll('[data-edit-jira]').forEach(b=>b.onclick=jiraSettings);
+ document.querySelectorAll('[data-jira-create]').forEach(b=>b.onclick=()=>jiraCreateEngineering(b.dataset.jiraCreate));
+ document.querySelectorAll('[data-jira-deploy]').forEach(b=>b.onclick=()=>jiraCreateDeployment(b.dataset.jiraDeploy));
  let ex=document.querySelector('#export');if(ex)ex.onclick=()=>location.href='/api/export';
  document.querySelectorAll('[data-card]').forEach(card=>card.ondragstart=ev=>ev.dataTransfer.setData('text/plain',card.dataset.card));
  document.querySelectorAll('[data-drop]').forEach(col=>{col.ondragover=ev=>{ev.preventDefault();col.classList.add('dragover')};col.ondragleave=()=>col.classList.remove('dragover');col.ondrop=ev=>{ev.preventDefault();col.classList.remove('dragover');moveCard(ev.dataTransfer.getData('text/plain'),col.dataset.drop)}});
