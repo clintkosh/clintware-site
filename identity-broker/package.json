@@ -13,7 +13,8 @@
     "@modelcontextprotocol/server": "2.0.0-beta.5",
     "agents": "0.20.0",
     "oauth4webapi": "3.8.8",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "jose": "^6.1.0"
   },
   "devDependencies": {
     "wrangler": "^4.105.0"
