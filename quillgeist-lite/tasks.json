@@ -53,6 +53,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/ensure-c-runtime.ps1",
       "parameters": []
+    },
+    "self-update": {
+      "title": "Update Quillgeist Lite runner from the maintained Clintware repository and restart it safely",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/self-update.ps1",
+      "parameters": []
     }
   }
 }
