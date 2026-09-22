@@ -114,6 +114,13 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         {/* Applies the stored theme before first paint so there is no flash. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});",
+          }}
+        />
       </head>
       <body>
         {children}
