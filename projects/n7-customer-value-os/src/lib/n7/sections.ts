@@ -103,10 +103,10 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Presales control that prevents the next repeat of this failure.",
   },
   {
-    slug: "virtual-liaison",
-    label: "Virtual Liaison",
-    group: "Technical",
-    blurb: "Call ramp-up brief from approved sources. Human-approved drafts only.",
+    slug: "meeting-prep",
+    label: "Meeting Prep",
+    group: "Communication",
+    blurb: "Auto-updated call context, approved evidence, decisions, next milestones and pre-call PDF.",
   },
   {
     slug: "assumption-change",
@@ -135,6 +135,9 @@ export const SECTION_ALIASES: Record<string, string> = {
   deployment: "deployment-board",
   sprints: "rollout-sprints",
   issues: "engineering-issues",
+  "virtual-liaison": "meeting-prep",
+  "call-brief": "meeting-prep",
+  "meeting-brief": "meeting-prep",
 };
 
 export function resolveSectionSlug(slug: string) {
