@@ -670,8 +670,11 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
     }
   }
 
-  async function refreshJira() {
-    if (!jira.projectKey) return toast.error("Set a Jira project key first.");
+  async function refreshJira(): Promise<void> {
+    if (!jira.projectKey) {
+      toast.error("Set a Jira project key first.");
+      return;
+    }
     setLoading(true);
     try {
       const jql = jira.issuesJql?.trim() ||
