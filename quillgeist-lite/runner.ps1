@@ -13,6 +13,53 @@ $RepoRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
+$script:RunnerSocket = $null
+$script:RunnerDiagSeq = 0
+$script:PendingDiagnostics = New-Object System.Collections.Generic.List[object]
+
+function Queue-RunnerDiagnostic {
+  param(
+    [string]$Level,
+    [string]$Message,
+    [string]$Phase = "runner"
+  )
+
+  $script:RunnerDiagSeq++
+  $entry = @{
+    type = "runner_log"
+    seq = $script:RunnerDiagSeq
+    level = $Level
+    phase = $Phase
+    line = [string]$Message
+    timestamp = (Get-Date).ToUniversalTime().ToString("o")
+  }
+
+  if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) {
+    try {
+      Send-Json $script:RunnerSocket $entry
+      return
+    } catch {}
+  }
+
+  $script:PendingDiagnostics.Add($entry)
+}
+
+function Flush-RunnerDiagnostics {
+  if (-not $script:RunnerSocket -or $script:RunnerSocket.State -ne [Net.WebSockets.WebSocketState]::Open) { return }
+
+  $pending = @($script:PendingDiagnostics)
+  $script:PendingDiagnostics.Clear()
+
+  foreach ($entry in $pending) {
+    try {
+      Send-Json $script:RunnerSocket $entry
+    } catch {
+      $script:PendingDiagnostics.Add($entry)
+      break
+    }
+  }
+}
+
 function Show-QuillgeistSplash {
   try { $Host.UI.RawUI.WindowTitle = "Clintware Quillgeist Lite" } catch {}
   try { [Console]::CursorVisible = $false } catch {}
@@ -148,6 +195,7 @@ function Write-Log {
   elseif ($Level -eq "WARN") { $color = "Yellow" }
   elseif ($Level -eq "OK") { $color = "Green" }
   Write-Host $line -ForegroundColor $color
+  try { Queue-RunnerDiagnostic $Level $Message "runner" } catch {}
 }
 
 $mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLite")
@@ -469,10 +517,9 @@ function Invoke-AllowlistedTask {
 
 $completed = Get-Completed
 
-Show-QuillgeistSplash
 Write-Log "Clintware Quillgeist Lite starting."
 Write-Log "Runtimes enabled: PowerShell, Python, C."
-Write-Log "Event-driven mode: waiting on an outbound WebSocket, not polling."
+Write-Log "Event-driven mode: connecting control channel before UI initialization."
 
 try {
   while ($true) {
@@ -489,14 +536,29 @@ try {
         [Threading.CancellationToken]::None
       ).GetAwaiter().GetResult()
 
-      Write-Log "Connected to Clintware Control Plane." "OK"
+      $script:RunnerSocket = $ws
 
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.1.0"
+        version = "1.2.0"
         runtimes = @("powershell","python","c")
       }
+
+      Flush-RunnerDiagnostics
+      Write-Log "Connected to Clintware Control Plane." "OK"
+
+      try {
+        Show-QuillgeistSplash
+        Write-Log "ASCII splash initialized." "OK"
+      } catch {
+        Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
+        Queue-RunnerDiagnostic "ERROR" ($_.Exception.ToString()) "splash"
+      }
+
+      Write-Host ""
+      Write-Host "  READY // CONTROL PLANE LINK ACTIVE" -ForegroundColor Green
+      Write-Host ""
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
         $msg = Receive-Json $ws
@@ -556,7 +618,9 @@ try {
       }
     } catch {
       Write-Log ("Connection error: " + $_.Exception.Message) "WARN"
+      Queue-RunnerDiagnostic "WARN" ($_.Exception.ToString()) "connection"
     } finally {
+      $script:RunnerSocket = $null
       if ($ws) {
         try { $ws.Dispose() } catch {}
       }
