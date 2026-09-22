@@ -20,7 +20,7 @@ jobs:
           ready=0
           for i in $(seq 1 60); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
-            if echo "$body" | grep -Fq '"version":"2026-09-22-qq.1"'; then
+            if echo "$body" | grep -Fq '"version":"2026-09-22-qq.2"'; then
               echo "$body"
               ready=1
               break
@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
 
-          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"enable-admin-console","args":{},"objective":"Ensure qq is a service-supervised interactive administrator console."}')
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"bootstrap-admin-console","args":{},"objective":"Ensure qq is a service-supervised interactive administrator console."}')
 
           echo "$response"
           echo "$response" | grep -Fq '"ok":true'
@@ -61,7 +61,7 @@ jobs:
 
           if [ -z "$final" ]; then final="queued_or_running"; fi
           echo "QQ_LOCAL_JOB_STATUS=$final"
-          echo "qq admin-console activation dispatched. If Windows requests UAC locally, approve it once."
+          echo "qq admin-service bootstrap dispatched. If Windows requests UAC locally, approve it once."
 
       - name: Report qq local service diagnostics
         if: always()
