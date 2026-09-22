@@ -14,6 +14,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     home: "https://mail.clintware.com",
     redirectUri: "https://mail.clintware.com/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
+    identityProviders: Object.freeze(["google"]),
   }),
   "neuron7-case": Object.freeze({
     product: "neuron7-case",
@@ -24,6 +25,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     allowedEmailDomains: Object.freeze(["neuron7.ai"]),
     allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
     contextScopes: Object.freeze(["neuron7-case:read", "neuron7-case:operator"]),
+    identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
   "control-plane-admin": Object.freeze({
     product: "control-plane-admin",
@@ -31,6 +33,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     home: "https://mcp.clintware.com/admin",
     redirectUri: "https://mcp.clintware.com/admin/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
+    identityProviders: Object.freeze(["google"]),
   }),
 });
 
