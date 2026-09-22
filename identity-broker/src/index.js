@@ -4,9 +4,9 @@ import { createMcpHandler } from "agents/mcp/server";
 import * as oauth from "oauth4webapi";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
-import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyClientMetadata } from "./first-party.js";
+import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyAppForRedirectUri, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-22.5";
+const VERSION = "2026-09-22.6";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -239,7 +239,9 @@ async function beginConsent(request, env) {
     bindingHash: await sha256(binding),
     createdAt: Date.now(),
   });
-  return html(consentPage(client, oauthRequest, transaction, csrf), 200, {
+  const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
+  const displayClient = app ? { ...client, clientName: app.name } : client;
+  return html(consentPage(displayClient, oauthRequest, transaction, csrf), 200, {
     "set-cookie": setBindingCookie(binding),
   });
 }
@@ -264,6 +266,8 @@ async function startGoogle(oauthRequest, binding, env) {
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);
   url.searchParams.set("nonce", nonce);
+  const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
+  if (app?.allowedEmailDomains?.length === 1) url.searchParams.set("hd", app.allowedEmailDomains[0]);
   url.searchParams.set("prompt", "select_account");
   const headers = new Headers({
     location: url.href,
@@ -344,12 +348,43 @@ async function finishGoogle(request, env) {
   const emailVerified = claims.email_verified === true || claims.email_verified === "true";
   if (!email || !emailVerified) return json({ error: "verified_google_email_required" }, 403, { "set-cookie": clearBindingCookie() });
 
+  const emailLower = email.trim().toLowerCase();
+  const emailDomain = emailLower.includes("@") ? emailLower.split("@").pop() : "";
+  const application = firstPartyAppForRedirectUri(transaction.oauthRequest.redirectUri);
+  const neuron7Domain = "neuron7.ai";
+
+  // Company-domain identities are application-scoped. A Neuron7 identity may
+  // authenticate only into the Neuron7 case application, never another
+  // Clintware first-party surface.
+  if (emailDomain === neuron7Domain && application?.product !== "neuron7-case") {
+    return json({
+      error: "application_not_allowed_for_identity_domain",
+      application: application?.product || "external",
+      allowed_application: "neuron7-case",
+    }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  if (application?.allowedEmailDomains?.length) {
+    const allowedDomains = application.allowedEmailDomains.map((value) => String(value).toLowerCase());
+    const allowedEmails = (application.allowedEmails || []).map((value) => String(value).toLowerCase());
+    if (!allowedDomains.includes(emailDomain) && !allowedEmails.includes(emailLower)) {
+      return json({
+        error: "identity_not_allowed_for_application",
+        application: application.product,
+      }, 403, { "set-cookie": clearBindingCookie() });
+    }
+  }
+
   const userId = `cw_${(await sha256(`google:${claims.sub}`)).slice(0, 40)}`;
   const grantedScopes = transaction.oauthRequest.scope.filter((scope) => SUPPORTED_SCOPES.includes(scope));
   const authResult = await env.OAUTH_PROVIDER.completeAuthorization({
     request: transaction.oauthRequest,
     userId,
-    metadata: { provider: "google", upstream: "oidc-id-token-form-post" },
+    metadata: {
+      provider: "google",
+      upstream: "oidc-id-token-form-post",
+      application: application?.product || "external",
+    },
     scope: grantedScopes,
     props: {
       userId,
@@ -360,6 +395,8 @@ async function finishGoogle(request, env) {
       name: typeof claims.name === "string" ? claims.name : "",
       picture: typeof claims.picture === "string" ? claims.picture : "",
       scopes: grantedScopes,
+      application: application?.product || "external",
+      applicationContext: application?.contextScopes ? [...application.contextScopes] : [],
     },
   });
 
@@ -373,7 +410,12 @@ const userInfoHandler = {
     const props = ctx.props || {};
     const scopes = Array.isArray(props.scopes) ? props.scopes : [];
     if (!props.userId || !scopes.includes("identity")) return json({ error: "insufficient_scope" }, 403);
-    const result = { sub: props.userId, provider: props.provider || "google" };
+    const result = {
+      sub: props.userId,
+      provider: props.provider || "google",
+      application: props.application || "external",
+      application_context: Array.isArray(props.applicationContext) ? props.applicationContext : [],
+    };
     if (scopes.includes("email")) {
       result.email = props.email || "";
       result.email_verified = props.emailVerified === true;
@@ -439,6 +481,8 @@ async function firstPartyClientConfig(_env, key) {
     userinfo_endpoint: USERINFO_RESOURCE,
     resource: USERINFO_RESOURCE,
     scopes: [...app.scopes],
+    allowed_email_domains: [...(app.allowedEmailDomains || [])],
+    application_context: [...(app.contextScopes || [])],
     pkce: "S256",
     client_model: "central-first-party-cimd",
     client_metadata_document: FIRST_PARTY_CLIENT_ID,
