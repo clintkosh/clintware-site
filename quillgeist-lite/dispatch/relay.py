@@ -13,6 +13,9 @@ ALLOWED = {
     "clintware-doctor": set(),
     "google-cloud-support-access": {"OwnerAccount", "SupportAccount", "ProjectName"},
     "finish-google-oauth": {"Repo"},
+    "python-runtime-check": {"Message"},
+    "c-runtime-check": {"Message"},
+    "ensure-c-runtime": set(),
 }
 
 def request_json(method, path, body=None):
