@@ -30,6 +30,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $files = @(
             "quillgeist-lite/runner.ps1",
+            "quillgeist-lite/launch-visible.ps1",
             "quillgeist-lite/launcher.ps1",
             "quillgeist-lite/install.ps1",
             "quillgeist-lite/uninstall.ps1",
