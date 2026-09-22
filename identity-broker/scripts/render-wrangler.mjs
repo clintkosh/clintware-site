@@ -11,5 +11,9 @@ if (!/^[a-fA-F0-9]{32}$/.test(namespaceId)) {
 }
 const base = JSON.parse(fs.readFileSync(path.join(root, "wrangler.jsonc"), "utf8"));
 base.kv_namespaces = [{ binding: "OAUTH_KV", id: namespaceId }];
+base.routes = [{ pattern: "auth.clintware.com", custom_domain: true }];
+if (!base.routes.some((route) => route.pattern === "auth.clintware.com" && route.custom_domain === true)) {
+  throw new Error("Production config must retain auth.clintware.com as a custom domain.");
+}
 fs.writeFileSync(path.join(root, "wrangler.generated.jsonc"), `${JSON.stringify(base, null, 2)}\n`);
-console.log("Rendered wrangler.generated.jsonc with OAUTH_KV binding.");
+console.log("Rendered wrangler.generated.jsonc with OAUTH_KV binding and auth.clintware.com custom domain.");
