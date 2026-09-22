@@ -2,7 +2,8 @@ let PROMPT_PLAN=null;
 const LIVE={
   active:false,display:null,mic:null,ctx:null,processor:null,sources:[],mute:null,
   buffers:[],samples:0,chunkSeconds:12,pending:Promise.resolve(),startedAt:null,
-  transcript:[],suggestions:[],gate:"Not started",source:"",lastError:"",processing:false
+  transcript:[],suggestions:[],gate:"Not started",source:"",lastError:"",processing:false,
+  participants:""
 };
 
 function authGate(feature){
@@ -29,14 +30,18 @@ function livePrompt(){
       (PROMPT_PLAN.researchUsed?'<div class="muted" style="margin-top:10px">External research was used as context only. Customer facts remain sourced from CRM/user input.</div>':'')+
       ((PROMPT_PLAN.citations||[]).length?'<div class="citations">'+PROMPT_PLAN.citations.map(x=>{let u=safeHttpUrl(x.url);return u?'<a href="'+e(u)+'" target="_blank" rel="noreferrer">'+e(x.title||u)+'</a>':''}).join('')+'</div>':'');
   }
-  return head('Natural-language operations','Live Update AI','Type what changed. The assistant interprets the update against the selected customer, proposes precise record/card changes, and waits for approval before writing anything.')+
-    authGate('Live Update AI')+
+  let history=R('plan_change').slice(-8).reverse();
+  return head('Natural-language operations','Live Prompt','Type what changed. Exa-backed context and the current CRM record are used to interpret the update, propose precise record/card changes, and wait for approval before writing anything.')+
+    authGate('Live Prompt')+
     '<div class="grid g2" style="margin-top:16px"><div class="card"><div class="eyebrow">Selected customer</div><h2>'+e(S.customer?.name||'No customer selected')+'</h2><p class="muted">Examples: “SAP connector moved to week 9, mark the integration blocked and move the dependent deployment card.” “Customer confirmed the baseline is 42 minutes.” “Research the latest public SAP connector requirements and tell me if our plan needs a review.”</p>'+
     '<div class="field"><label>What changed?</label><textarea id="prompt-change" class="textarea ai-big" placeholder="Type the update in plain language."></textarea></div>'+
-    '<div class="field"><label>External research</label><select id="prompt-research" class="select"><option value="auto">Auto: use Exa only when the request asks for public/external verification</option><option value="off">Off: use CRM context only</option></select></div>'+
+    '<div class="field"><label>Exa context</label><select id="prompt-research" class="select"><option value="on">On: use Exa implementation / best-practice context</option><option value="auto">Auto: use Exa when the wording calls for external verification</option><option value="off">Off: CRM context only</option></select></div>'+
     '<div class="callout"><strong>Write boundary</strong><span>No AI-proposed update is committed until you approve the interpreted plan below.</span></div>'+
     '<button class="btn primary" id="prompt-run" '+(!S?.access?.authenticated?'disabled':'')+'>Interpret update</button><div id="prompt-status" class="muted" style="margin-top:10px"></div></div>'+
-    '<div><div class="section" style="margin-top:0"><h2>Proposed changes</h2></div>'+(preview||'<div class="empty">No pending AI plan. The live CRM remains unchanged.</div>')+'</div></div>';
+    '<div><div class="section" style="margin-top:0"><h2>Proposed changes</h2></div>'+(preview||'<div class="empty">No pending AI plan. The live CRM remains unchanged.</div>')+
+    '<div class="section"><h2>Approved change records</h2></div>'+
+    (history.length?'<div class="ai-history">'+history.map(r=>'<article class="card"><div class="split"><strong>'+e(r.data.summary||r.data.title||'Approved change')+'</strong><span class="status good">Applied</span></div><div class="muted">'+e(r.data.approvedAt||r.updatedAt||'')+'</div><div class="muted" style="margin-top:6px">'+e((r.data.applied||[]).length+' persisted operation'+((r.data.applied||[]).length===1?'':'s'))+'</div></article>').join('')+'</div>':'<div class="empty">No approved Live Prompt change records yet.</div>')+
+    '</div></div>';
 }
 
 async function runLivePrompt(){
@@ -69,6 +74,7 @@ function suggestionHtml(s){
 }
 function liveAssistant(){
   let prof=assistantProfile(),saved=R('assistant_session').slice(-5).reverse();
+  if(!LIVE.participants) LIVE.participants=String(prof?.data?.participants||S.customer?.facts?.stakeholders||"");
   let transcript=LIVE.transcript.length?LIVE.transcript.map(x=>'<div class="transcript-line"><span>'+e(x.at)+'</span><b>'+e(x.source)+'</b><p>'+e(x.text)+'</p></div>').join(''):'<div class="empty">No transcript yet.</div>';
   let sugg=LIVE.suggestions.length?LIVE.suggestions.slice().reverse().map(suggestionHtml).join(''):'<div class="empty">Suggestions appear only after the customer/context gate passes or when you ask the assistant directly.</div>';
   let gateClass=LIVE.gate.includes('matched')?'good':LIVE.gate.includes('Ignoring')?'warn':'';
@@ -84,7 +90,7 @@ function liveAssistant(){
       '<div id="live-progress" class="muted" style="margin-top:10px">'+e(LIVE.lastError||'Chunk size: about '+LIVE.chunkSeconds+' seconds for live audio.')+'</div>'+
     '</div>'+
     '<div class="card"><h2>Ask directly</h2><p class="muted">Direct questions bypass the conversational gate, but answers remain grounded in the selected customer record and the assistant playbook.</p><div class="field"><textarea id="live-question" class="textarea" placeholder="What should I say next? What risk am I missing? What question should I ask?"></textarea></div><button class="btn primary" id="live-ask" '+(!S?.access?.authenticated?'disabled':'')+'>Ask assistant</button>'+
-      '<div class="section"><h2>Assistant playbook</h2></div><textarea id="assistant-playbook" class="textarea playbook" placeholder="Reusable guidance for this account assistant.">'+e(prof?.data?.playbook||'')+'</textarea><div class="actions"><button class="btn" id="assistant-profile-save">Save playbook</button><button class="btn" id="assistant-train" '+(!LIVE.transcript.length?'disabled':'')+'>Train from transcript</button></div>'+
+      '<div class="section"><h2>Assistant playbook</h2></div><div class="field"><label>Expected customer participants / identifiers</label><input id="assistant-participants" class="input" value="'+e(LIVE.participants)+'" placeholder="Names or roles, comma separated"><small>Used as conversational context only. No voice biometrics.</small></div><textarea id="assistant-playbook" class="textarea playbook" placeholder="Reusable guidance for this account assistant.">'+e(prof?.data?.playbook||'')+'</textarea><div class="actions"><button class="btn" id="assistant-profile-save">Save playbook</button><button class="btn" id="assistant-train" '+(!LIVE.transcript.length?'disabled':'')+'>Train from transcript</button></div>'+
     '</div></div>'+
     '<div class="grid g2" style="margin-top:14px"><div><div class="section"><h2>Transcript</h2><div class="actions"><button class="btn" id="live-clear">Clear local transcript</button><button class="btn" id="live-save-session" '+(!LIVE.transcript.length?'disabled':'')+'>Save session to CRM</button></div></div><div class="transcript-box">'+transcript+'</div></div>'+
     '<div><div class="section"><h2>Live suggestions</h2></div><div class="suggestion-list">'+sugg+'</div></div></div>'+
@@ -182,7 +188,7 @@ async function askLiveAssistant(direct=false,question=''){
   let recent=transcriptText().slice(-10000);
   if(!direct&&!recent)return;
   try{
-    let x=await api('/ai/live-assist',{method:'POST',body:JSON.stringify({customerId:S.customer.id,transcript:recent,direct,question})});
+    let participants=(document.querySelector('#assistant-participants')?.value||LIVE.participants||'').split(',').map(x=>x.trim()).filter(Boolean);LIVE.participants=participants.join(', ');let x=await api('/ai/live-assist',{method:'POST',body:JSON.stringify({customerId:S.customer.id,transcript:recent,direct,question,participants})});
     if(x.customer_match==='yes')LIVE.gate='Customer context matched';
     else if(x.customer_match==='no')LIVE.gate='Ignoring unrelated conversation';
     else LIVE.gate='Customer context uncertain';
@@ -201,7 +207,7 @@ async function directAsk(){
   b.disabled=false;document.querySelector('#live-question').value=''
 }
 async function saveAssistantProfile(){
-  let text=document.querySelector('#assistant-playbook')?.value||'',r=assistantProfile(),data={title:'Live Customer Assistant Playbook',playbook:text,updatedFrom:'Manual / approved training'};
+  let text=document.querySelector('#assistant-playbook')?.value||'',participants=document.querySelector('#assistant-participants')?.value||LIVE.participants||'',r=assistantProfile(),data={title:'Live Customer Assistant Playbook',playbook:text,participants,updatedFrom:'Manual / approved training'};LIVE.participants=participants;
   if(r)await api('/records/'+r.id,{method:'PATCH',body:JSON.stringify({data,provenance:'internal_record'})});
   else await api('/records',{method:'POST',body:JSON.stringify({customerId:S.customer.id,type:'assistant_profile',provenance:'internal_record',data})});
   await load(S.customer.id)
@@ -213,7 +219,7 @@ async function trainAssistant(){
     let x=await api('/ai/train-assistant',{method:'POST',body:JSON.stringify({customerId:S.customer.id,transcript:tr})}),t=x.training||{},html='<h2>Training proposal</h2><p class="muted">Nothing is added to the playbook until you approve it.</p><div class="card"><strong>Summary</strong><p>'+e(t.summary||'')+'</p></div>'+
       '<div class="grid g2" style="margin-top:10px"><div class="card"><h3>Reusable guidance</h3>'+(t.lessons||[]).map(z=>'<p>• '+e(z)+'</p>').join('')+'</div><div class="card"><h3>Avoid</h3>'+(t.avoid||[]).map(z=>'<p>• '+e(z)+'</p>').join('')+'</div></div>'+
       '<div class="card" style="margin-top:10px"><h3>Customer-specific notes</h3>'+(t.customer_specific_notes||[]).map(z=>'<p>• '+e(z)+'</p>').join('')+'</div><div class="actions" style="margin-top:12px"><button class="btn primary" id="training-approve">Approve into playbook</button><button class="btn" data-close>Discard</button></div>';
-    let o=modal(html);o.querySelector('#training-approve').onclick=async()=>{let current=assistantProfile()?.data?.playbook||'',stamp=new Date().toISOString().slice(0,10),addition='\n\nAPPROVED TRAINING · '+stamp+'\n'+(t.lessons||[]).map(z=>'• '+z).join('\n')+((t.avoid||[]).length?'\n\nAVOID\n'+t.avoid.map(z=>'• '+z).join('\n'):'');let r=assistantProfile(),data={title:'Live Customer Assistant Playbook',playbook:(current+addition).trim(),updatedFrom:'Approved transcript training'};if(r)await api('/records/'+r.id,{method:'PATCH',body:JSON.stringify({data,provenance:'internal_record'})});else await api('/records',{method:'POST',body:JSON.stringify({customerId:S.customer.id,type:'assistant_profile',provenance:'internal_record',data})});o.remove();await load(S.customer.id)}
+    let o=modal(html);o.querySelector('#training-approve').onclick=async()=>{let current=assistantProfile()?.data?.playbook||'',stamp=new Date().toISOString().slice(0,10),addition='\n\nAPPROVED TRAINING · '+stamp+'\n'+(t.lessons||[]).map(z=>'• '+z).join('\n')+((t.avoid||[]).length?'\n\nAVOID\n'+t.avoid.map(z=>'• '+z).join('\n'):'');let r=assistantProfile(),data={title:'Live Customer Assistant Playbook',playbook:(current+addition).trim(),participants:LIVE.participants||r?.data?.participants||'',updatedFrom:'Approved transcript training'};if(r)await api('/records/'+r.id,{method:'PATCH',body:JSON.stringify({data,provenance:'internal_record'})});else await api('/records',{method:'POST',body:JSON.stringify({customerId:S.customer.id,type:'assistant_profile',provenance:'internal_record',data})});o.remove();await load(S.customer.id)}
   }catch(err){alert('Training failed: '+err.message)}
   finally{let x=document.querySelector('#assistant-train');if(x){x.disabled=false;x.textContent='Train from transcript'}}
 }
