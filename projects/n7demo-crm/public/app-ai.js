@@ -3,7 +3,7 @@ const LIVE={
   active:false,display:null,mic:null,ctx:null,processor:null,sources:[],mute:null,
   buffers:[],samples:0,chunkSeconds:12,pending:Promise.resolve(),startedAt:null,
   transcript:[],suggestions:[],gate:"Not started",source:"",lastError:"",processing:false,
-  participants:""
+  participants:"",customerId:""
 };
 
 function authGate(feature){
@@ -73,6 +73,11 @@ function suggestionHtml(s){
   return '<article class="suggestion-card"><div class="split"><span class="status '+(s.customer_match==='yes'?'good':s.customer_match==='no'?'warn':'')+'">'+e(s.customer_match||'uncertain')+' customer match</span><span class="muted">'+e(s.at||'')+'</span></div><div class="eyebrow" style="margin-top:8px">'+e((s.speaker_role||'unknown')+' · '+(s.trigger||'none'))+'</div><div class="suggestion-text">'+e(s.suggestion||'')+'</div>'+(s.follow_up?'<div class="muted"><strong>Follow-up:</strong> '+e(s.follow_up)+'</div>':'')+'</article>'
 }
 function liveAssistant(){
+  if(LIVE.customerId&&LIVE.customerId!==S.customer?.id){
+    if(LIVE.active)void stopLiveAudio();
+    LIVE.transcript=[];LIVE.suggestions=[];LIVE.gate="Not started";LIVE.lastError="";LIVE.startedAt=null;LIVE.source="";LIVE.participants="";
+  }
+  LIVE.customerId=S.customer?.id||"";
   let prof=assistantProfile(),saved=R('assistant_session').slice(-5).reverse();
   if(!LIVE.participants) LIVE.participants=String(prof?.data?.participants||S.customer?.facts?.stakeholders||"");
   let transcript=LIVE.transcript.length?LIVE.transcript.map(x=>'<div class="transcript-line"><span>'+e(x.at)+'</span><b>'+e(x.source)+'</b><p>'+e(x.text)+'</p></div>').join(''):'<div class="empty">No transcript yet.</div>';
