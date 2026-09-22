@@ -73,10 +73,14 @@ jobs:
           for i in $(seq 1 40); do
             h=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/health || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/ || true)
+            a=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/app-ai.js || true)
             if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" \
               && grep -Fq '"lovable":false' <<< "$h" \
               && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
-              && grep -Fq 'N7 Demo CRM' <<< "$p"; then
+              && grep -Fq 'N7 Demo CRM' <<< "$p" \
+              && grep -Fq '/app-ai.js' <<< "$p" \
+              && grep -Fq 'getDisplayMedia' <<< "$a" \
+              && grep -Fq 'Interpret update' <<< "$a"; then
               ready=1
               break
             fi
