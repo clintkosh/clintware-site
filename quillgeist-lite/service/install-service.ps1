@@ -102,10 +102,14 @@ $taskArgs = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath
 
 $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserName
-$principal = New-ScheduledTaskPrincipal -UserId $UserName -LogonType Interactive -RunLevel Limited
+# The service cannot display UI from Session 0. It launches this interactive task
+# in the signed-in user's session instead. RunLevel Highest makes qq an admin
+# console after this one-time elevated installation while the remote MCP surface
+# remains constrained to the reviewed task allowlist.
+$principal = New-ScheduledTaskPrincipal -UserId $UserName -LogonType Interactive -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive Clintware Quillgeist Lite runner managed by the local health service." | Out-Null
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service." | Out-Null
 
 Write-Host "Registering Windows health service..." -ForegroundColor Cyan
 
