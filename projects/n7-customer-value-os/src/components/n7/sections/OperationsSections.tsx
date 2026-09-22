@@ -249,8 +249,11 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
     }
   }
 
-  async function refreshJira() {
-    if (!jira.projectKey) return toast.error("Set a Jira project key first.");
+  async function refreshJira(): Promise<void> {
+    if (!jira.projectKey) {
+      toast.error("Set a Jira project key first.");
+      return;
+    }
     setJiraLoading(true);
     try {
       const jql = jira.deploymentJql?.trim() ||
@@ -269,10 +272,10 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       const liveIssues = Array.isArray(result?.issues) ? result.issues : [];
       setJiraIssues(liveIssues);
 
-      const byKey = new Map(
+      const byKey = new Map<string, any>(
         liveIssues
           .filter((issue: any) => issue?.key)
-          .map((issue: any) => [String(issue.key), issue] as const),
+          .map((issue: any) => [String(issue.key), issue]),
       );
       const synced = items.map((item) => {
         if (!item.jiraKey) return item;
@@ -633,9 +636,15 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
     toast.success(ready ? "Issue intake saved and ready for engineering." : "Issue intake draft saved.");
   }
 
-  async function createJira(issue: EngineeringIssueIntake) {
-    if (!issueReady(issue)) { toast.error("Complete the engineering intake gate before creating a Jira issue."); return; }
-    if (!jira.projectKey) return toast.error("Set a Jira project key first.");
+  async function createJira(issue: EngineeringIssueIntake): Promise<void> {
+    if (!issueReady(issue)) {
+      toast.error("Complete the engineering intake gate before creating a Jira issue.");
+      return;
+    }
+    if (!jira.projectKey) {
+      toast.error("Set a Jira project key first.");
+      return;
+    }
     try {
       const result: any = await jiraBridge({
         data: {
