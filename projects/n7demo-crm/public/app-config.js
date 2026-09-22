@@ -2,6 +2,13 @@ const API="/api";
 const TABS=[
 ["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Prompt"],["live_assistant","Live Assist"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
 ];
+const NAV_GROUPS=[
+["Operate",["customers","command","live_prompt","live_assistant","implementation","deployment","risks"]],
+["Deliver",["handoff","raci","rollout","issues","triage"]],
+["Value",["roi","adoption","meetings","renewal"]],
+["Knowledge",["kb","documents"]],
+["Admin",["accounts"]]
+];
 const SCEN=[
 {id:"sap",label:"SAP connector slips beyond Week 10",impact:"Reassess full-scope go-live, escalation timing, and parallel work."},
 {id:"manuals",label:"SAP manuals are incomplete / stale / inaccessible",impact:"Content readiness becomes a separate blocker."},
@@ -29,6 +36,7 @@ assistant_session:[["title","Session"],["startedAt","Started"],["endedAt","Ended
 let S={customer:null,customers:[],records:[],workspace:null,access:{authenticated:false,mode:"guest"}},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},I={jira:null,confluence:null,controlPlane:null},tab="customers",scen=new Set(),theme=localStorage.getItem("n7theme")||"dark";
 document.documentElement.dataset.theme=theme;
 const e=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=x=>{try{let u=new URL(String(x||""),location.origin);return /^https?:$/.test(u.protocol)?u.href:""}catch{return""}};
 const R=t=>S.records.filter(r=>r.type===t);
 const P=p=>({customer_provided:"Customer-provided",internal_record:"Internal record",internal_proposal:"Internal proposed plan",derived_calculation:"Derived",ai_suggestion:"AI suggestion",template:"Template",scenario:"Scenario",synthetic_sample:"Synthetic sample"}[p]||p);
 const api=async(p,o={})=>{let r=await fetch(API+p,{headers:{"content-type":"application/json"},...o});if(!r.ok)throw Error((await r.json().catch(()=>({}))).error||r.statusText);return r.json()};const maybe=async(p,o={})=>{try{return await api(p,o)}catch{return null}};
