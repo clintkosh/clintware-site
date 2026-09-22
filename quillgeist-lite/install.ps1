@@ -8,7 +8,7 @@ $ShortcutPath = Join-Path $StartupDir "Clintware Quillgeist Lite.lnk"
 
 Write-Host ""
 Write-Host "=== INSTALL CLINTWARE QUILLGEIST LITE ===" -ForegroundColor Cyan
-Write-Host "Event-driven MCP -> local PowerShell bridge" -ForegroundColor DarkGray
+Write-Host "Event-driven MCP -> local PowerShell / Python / C bridge" -ForegroundColor DarkGray
 Write-Host ""
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
@@ -45,7 +45,7 @@ $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
 $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $RunnerPath + '"'
 $Shortcut.WorkingDirectory = $HomeDir
-$Shortcut.WindowStyle = 7
+$Shortcut.WindowStyle = 1
 $Shortcut.Description = "Clintware Quillgeist Lite event-driven local runner"
 $Shortcut.Save()
 
@@ -53,9 +53,10 @@ Write-Host "Installed runner: $RunnerPath" -ForegroundColor Green
 Write-Host "Startup link:     $ShortcutPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Starting Quillgeist Lite now..." -ForegroundColor Cyan
-Start-Process -FilePath $Shortcut.TargetPath -ArgumentList $Shortcut.Arguments -WorkingDirectory $HomeDir -WindowStyle Minimized
+Start-Process -FilePath $Shortcut.TargetPath -ArgumentList $Shortcut.Arguments -WorkingDirectory $HomeDir -WindowStyle Normal
 
 Write-Host ""
 Write-Host "SUCCESS" -ForegroundColor Green
 Write-Host "Quillgeist Lite will reconnect automatically after Windows sign-in." -ForegroundColor Green
 Write-Host "It uses an outbound WebSocket, not scheduled polling." -ForegroundColor Green
+Write-Host "The startup window stays visible so the animated Clintware splash and live task logs are available." -ForegroundColor Green
