@@ -17,7 +17,8 @@ outbound WebSocket
         v
 Clintware Quillgeist Lite
   local task allowlist
-  PowerShell execution
+  PowerShell / Python / C execution
+  continuous redacted logs
   result evidence
         |
         v
@@ -39,7 +40,8 @@ Quillgeist Lite is not an arbitrary remote shell.
 - MCP callers must be allowed to access the `quillgeist-lite` product.
 - The MCP may submit only task IDs present in the server allowlist.
 - The Windows runner independently checks the task ID against `quillgeist-lite/tasks.json`.
-- Each task points to a version-controlled PowerShell file in `clintkosh/clintware-site`.
+- Each task points to a version-controlled PowerShell (`.ps1`), Python (`.py`), or C (`.c`) source file in `clintkosh/clintware-site`.
+- C tasks compile locally with an approved detected compiler (`clang`, `gcc`, or `cl`) before execution.
 - Only parameters declared for that task are accepted.
 - Results are bounded before returning to the Control Plane.
 - Duplicate job IDs are not executed twice.
@@ -53,13 +55,17 @@ A new type of local work is added by committing a reviewed task script and regis
 irm https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/install.ps1 | iex
 ```
 
-After that, the local runner starts at Windows sign-in and waits on the event-driven WebSocket. There is no recurring polling task.
+After that, the local runner starts at Windows sign-in and waits on the event-driven WebSocket. There is no recurring polling task. The console opens with an animated retro ASCII interpretation of the Clintware mark and the `"GO FURTHEST.(TM)"` line, then remains available for live task logs.
 
 ## Initial tasks
 
 - `clintware-doctor`
 - `google-cloud-support-access`
 - `finish-google-oauth`
+- `python-runtime-check`
+- `c-runtime-check`
+- `ensure-c-runtime`
+- `self-update`
 
 The task registry can grow as new Clintware local automations are needed.
 
@@ -72,3 +78,15 @@ The Control Plane exposes:
 - `clintware_quillgeist_lite_job`
 
 The caller never receives the local GitHub token or provider credentials.
+
+## Runtime contract
+
+Each registry entry declares a `runtime`:
+
+- `powershell`: run a reviewed `.ps1` task with named parameters.
+- `python`: run a reviewed `.py` task with `--Name value` parameters.
+- `c`: download a reviewed `.c` source, compile it locally, stream compile logs, then run the resulting executable with `--Name value` parameters.
+
+The model does not send arbitrary source code directly to the runner. New source is first committed/reviewed in the repository and registered as an allowlisted task.
+
+The `self-update` task updates the maintained runner file and safely restarts it after the task result has had time to return.
