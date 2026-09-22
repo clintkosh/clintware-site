@@ -2,7 +2,7 @@ const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const API_ORIGIN = "https://api.atlassian.com";
 const CALLBACK_URL = "https://mcp.clintware.com/api/v1/jira/oauth/callback";
-const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "offline_access"];
+const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "offline_access"];
 const STATE_TTL_MS = 10 * 60 * 1000;
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -189,6 +189,8 @@ export async function jiraStatus(env) {
     connected:Boolean(grant?.refresh_token || grant?.access_token),
     callback_url:CALLBACK_URL,
     scopes:SCOPES,
+    granted_scope:String(grant?.scope||""),
+    confluence_scope_ready:Boolean(grant?.scope&&String(grant.scope).includes("read:confluence-content.all")&&String(grant.scope).includes("write:confluence-content")),
     sites:(grant?.sites || []).map(s => ({id:s.id,url:s.url,name:s.name,scopes:s.scopes||[]}))
   };
 }
@@ -322,4 +324,11 @@ export async function jiraTransitions(env,{cloud_id,issue_key}) {
 export async function jiraTransitionIssue(env,{cloud_id,issue_key,transition_id}) {
   const r = await callJira(env,{cloud_id,method:"POST",path:`issue/${encodeURIComponent(issue_key)}/transitions`,body:{transition:{id:String(transition_id)}}});
   return r.ok?{ok:true,site:r.site,issue_key,transition_id:String(transition_id),status:r.status}:r;
+}
+
+export async function atlassianAccessToken(env, forceRefresh = false) {
+  return freshAccessToken(env, forceRefresh);
+}
+export function atlassianRequiredScopes() {
+  return [...SCOPES];
 }
