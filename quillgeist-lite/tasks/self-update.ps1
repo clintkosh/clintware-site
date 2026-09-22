@@ -5,6 +5,7 @@ $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $BaseUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 $RestartHelper = Join-Path $HomeDir "restart-runner.ps1"
+$RunnerPidPath = Join-Path $HomeDir "runner.pid"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -45,21 +46,40 @@ foreach ($item in $updates) {
 }
 
 $oldRunnerPid = 0
-try {
-  $current = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"
-  $currentCommand = [string]$current.CommandLine
 
-  if ($currentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
-    $oldRunnerPid = $PID
-  }
-  elseif ($current.ParentProcessId) {
-    $parent = Get-CimInstance Win32_Process -Filter ("ProcessId=" + [int]$current.ParentProcessId)
-    $parentCommand = [string]$parent.CommandLine
-    if ($parentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
-      $oldRunnerPid = [int]$current.ParentProcessId
+# The managed runner publishes its PID for the health service. Prefer that
+# authoritative local marker over parent-process inference because Windows
+# Terminal / PowerShell process ancestry can vary between hosts.
+try {
+  if (Test-Path $RunnerPidPath) {
+    $rawPid = (Get-Content $RunnerPidPath -Raw).Trim()
+    $parsedPid = 0
+    if ([int]::TryParse($rawPid,[ref]$parsedPid) -and $parsedPid -gt 0) {
+      $probe = Get-Process -Id $parsedPid -ErrorAction Stop
+      if (-not $probe.HasExited) {
+        $oldRunnerPid = $parsedPid
+      }
     }
   }
 } catch {}
+
+if ($oldRunnerPid -le 0) {
+  try {
+    $current = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"
+    $currentCommand = [string]$current.CommandLine
+
+    if ($currentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
+      $oldRunnerPid = $PID
+    }
+    elseif ($current.ParentProcessId) {
+      $parent = Get-CimInstance Win32_Process -Filter ("ProcessId=" + [int]$current.ParentProcessId)
+      $parentCommand = [string]$parent.CommandLine
+      if ($parentCommand -match '(?i)quillgeistlite.*runner\.ps1|quillgeist-lite.*runner\.ps1|runner\.ps1') {
+        $oldRunnerPid = [int]$current.ParentProcessId
+      }
+    }
+  } catch {}
+}
 
 if ($oldRunnerPid -le 0) {
   Write-Host "WARN // files updated; runner PID could not be identified for automatic restart." -ForegroundColor DarkYellow
