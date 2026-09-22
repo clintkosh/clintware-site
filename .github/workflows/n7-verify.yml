@@ -1,0 +1,25 @@
+name: Verify N7 portable build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/n7-customer-value-os/**"
+      - ".github/workflows/n7-verify.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/n7-customer-value-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/n7-customer-value-os/package-lock.json
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
