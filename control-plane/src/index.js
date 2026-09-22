@@ -121,6 +121,33 @@ const DEFAULT_NEURON7_CASE = {
   created_at:"2026-09-18T00:00:00.000Z"
 };
 
+const DEFAULT_N7DEMO_CRM = {
+  product:"n7demo-crm",
+  environment:"production",
+  version:1,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["projects/n7demo-crm/"],allowed_workflows:["deploy-n7demo-crm.yml"]},
+  dns:{allowed_names:["n7demo.clintware.com"]},
+  capabilities:[
+    "repo.read:clintware-site",
+    "repo.write:projects/n7demo-crm/**",
+    "repo.branch:create","repo.branch:read","repo.commit:status",
+    "repo.workflow:dispatch","repo.workflow:status",
+    "deployment.read","deployment.execute:n7demo-crm",
+    "dns.ensure:n7demo.clintware.com",
+    "analytics.write:n7demo-crm","analytics.read:n7demo-crm",
+    "research.invoke",
+    "jira.read:n7demo-crm","jira.write:n7demo-crm"
+  ],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"n7demo-crm",
+  privacy:{public_viewer:false,indexing:false,customer_data:true,oauth_operator_mode:"required",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
+  identity:{enabled:true,authority:"https://auth.clintware.com",config_endpoint:"https://auth.clintware.com/client-config/n7demo-crm",redirect_uri:"https://n7demo.clintware.com/auth/callback",scopes:["identity","email","profile"],pkce:"S256"},
+  integrations:{jira:{mode:"control-plane",status:"authorization-required"},confluence:{mode:"control-plane",status:"adapter-ready-authorization-required"}},
+  created_at:"2026-09-22T00:00:00.000Z"
+};
+
+
 const DEFAULT_CODEFEDDY = {
   product:"codefeddy",
   environment:"production",
@@ -202,7 +229,7 @@ const QUILLGEIST_LITE_TASKS = {
   "connect-jira":{runtime:"powershell",parameters:[]}
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
 
 const DEFAULT_FLOW_DEFINITIONS = [
   {
@@ -1258,7 +1285,7 @@ async function verifyProductToken(request,env,product){
 // calling worker's name and no cf-connecting-ip, so the identity cannot be spoofed
 // from outside (public requests always arrive with cf-connecting-ip, which is
 // stripped/managed by the edge and absent on binding traffic).
-const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os"};
+const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os","n7demo-crm":"clintware-n7demo-crm"};
 function serviceProduct(request){
   if(request.headers.get("cf-connecting-ip"))return null;
   const caller=(request.headers.get("cf-worker")||"").trim().toLowerCase();
