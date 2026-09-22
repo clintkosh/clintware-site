@@ -1,0 +1,154 @@
+name: Deploy Ridge CX Application
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ridge-worker/**"
+      - "public/work/Clinton_Kosh_Resume.pdf"
+      - ".github/workflows/deploy-ridge-application.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-ridge-application
+  cancel-in-progress: true
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PDF validation tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Validate application and privacy
+        run: |
+          set -euo pipefail
+          node --check ridge-worker/src/worker.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import json,re
+
+          html=Path("ridge-worker/public/index.html").read_text(encoding="utf-8")
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.ids=[]; self.hrefs=[]; self.h1=0; self.iframes=[]
+              def handle_starttag(self,tag,attrs):
+                  d=dict(attrs)
+                  if d.get("id"): self.ids.append(d["id"])
+                  if d.get("href"): self.hrefs.append(d["href"])
+                  if tag=="h1": self.h1 += 1
+                  if tag=="iframe": self.iframes.append(d)
+          p=P(); p.feed(html)
+          assert p.h1==1
+          assert len(p.ids)==len(set(p.ids)), "duplicate IDs"
+          anchors=[x[1:] for x in p.hrefs if x.startswith("#")]
+          assert not [x for x in anchors if x and x not in p.ids], "broken anchors"
+          required=[
+            "Build the CX system that makes 80% automation feel more human, not less.",
+            "Automation should remove internal friction without exporting that friction to the customer.",
+            "I am not claiming a DTC career I have not had.",
+            "clint@clintware.com",
+            "RenewNudge",
+            "First 90 days",
+            "Hi Amit,"
+          ]
+          miss=[x for x in required if x not in html]
+          assert not miss, miss
+          forbidden=[
+            "clint.kosh@gmail.com",
+            "Clint.Kosh@gmail.com",
+            "+15129222324",
+            "512-922-2324",
+            "courtney",
+            "marykosh",
+            "CodeFEDDY",
+            "feddy"
+          ]
+          bad=[x for x in forbidden if x.lower() in html.lower()]
+          assert not bad, f"private/unrelated data found: {bad}"
+          assert html.count("clint@clintware.com") >= 3
+          assert all(f.get("title") for f in p.iframes)
+          json.load(open("ridge-worker/public/evidence-map.json"))
+          json.load(open("ridge-worker/public/privacy-check.json"))
+          print("HTML/evidence/privacy checks passed")
+          PY
+
+      - name: Quadruple-check public resume
+        run: |
+          set -euo pipefail
+          pdf="public/work/Clinton_Kosh_Resume.pdf"
+          test -f "$pdf"
+
+          # Check 1: PDF structure / page sanity.
+          pages=$(pdfinfo "$pdf" | awk -F: '/^Pages:/ {gsub(/ /,"",$2); print $2}')
+          test -n "$pages" && test "$pages" -ge 1 && test "$pages" -le 3
+
+          # Check 2: extracted visible text for private contact data.
+          pdftotext "$pdf" /tmp/resume.txt
+          if grep -Eiq 'clint[.]kosh@gmail[.]com|512[- .()]?922[- .]?2324|\+1[- .()]?512[- .()]?922[- .]?2324' /tmp/resume.txt; then
+            echo "Private contact data found in resume text" >&2; exit 1
+          fi
+          grep -Fiq 'clint@clintware.com' /tmp/resume.txt
+
+          # Check 3: raw PDF annotations/metadata for private contact data.
+          if strings "$pdf" | grep -Eiq 'clint[.]kosh@gmail[.]com|512[- .()]?922[- .]?2324|\+15129222324'; then
+            echo "Private contact data found in PDF metadata/annotations" >&2; exit 1
+          fi
+          strings "$pdf" | grep -Fiq 'clint@clintware.com'
+
+          # Check 4: professional-content sanity and unwanted-brand exclusion.
+          grep -Eiq 'Customer Success|Customer Experience|customer' /tmp/resume.txt
+          grep -Eiq 'Cofense|Check Point|Dedrone|IBM' /tmp/resume.txt
+          if grep -Eiq 'CodeFEDDY|feddy|cannabis|THCA' /tmp/resume.txt; then
+            echo "Unrelated personal/creator content found in resume" >&2; exit 1
+          fi
+          echo "Resume passed four validation layers across $pages page(s)."
+
+      - name: Wrangler dry run
+        run: npx --yes wrangler@4 deploy --dry-run --config ridge-worker/wrangler.jsonc
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd ridge-worker
+
+      - name: Verify custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          host=ridge.clintware.com
+          for i in $(seq 1 30); do
+            domains=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            if python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); raise SystemExit(0 if d.get("success") and any(x.get("hostname")=="ridge.clintware.com" and x.get("service")=="clintware-ridge-application" for x in r) else 1)' <<< "$domains"; then
+              echo "Worker domain ready"; break
+            fi
+            sleep 5
+          done
+
+      - name: Verify HTTPS and content
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 60); do
+            headers=$(mktemp); body=$(mktemp)
+            code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://ridge.clintware.com/?release=${GITHUB_SHA}" || true)
+            if [ "$code" = "200" ]               && grep -Fq 'Build the CX system that makes 80% automation feel more human, not less.' "$body"               && grep -Fq 'clint@clintware.com' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+              ready=1; rm -f "$headers" "$body"; break
+            fi
+            rm -f "$headers" "$body"; sleep 5
+          done
+          test "$ready" = "1"
+          curl --fail-with-body -sS https://ridge.clintware.com/health | grep -Fq '"ok":true'
+          curl --fail-with-body -sSI https://www.clintware.com/work/Clinton_Kosh_Resume.pdf | grep -Eiq '^HTTP/.* 2'
+          echo "Ridge application passed HTTPS, content, resume-link, header and health checks."
