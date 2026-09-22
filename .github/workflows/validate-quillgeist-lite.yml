@@ -38,6 +38,7 @@ jobs:
             "quillgeist-lite/tasks/clintware-doctor.ps1",
             "quillgeist-lite/tasks/ensure-c-runtime.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
+            "quillgeist-lite/tasks/apply-terminal-glass.ps1",
             "identity-broker/scripts/grant-google-cloud-support-access.ps1",
             "identity-broker/scripts/finish-google-oauth.ps1"
           )
