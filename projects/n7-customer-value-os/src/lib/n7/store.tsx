@@ -20,6 +20,7 @@ import type {
   GoldenQuery,
   ID,
   Incident,
+  CallPrepRecord,
   MeetingRecord,
   Milestone,
   TriageRecord,
@@ -164,6 +165,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
     readiness: [],
     messages: [],
     assumptions: [],
+    callPreps: [],
     meetings: [],
   };
 }
@@ -199,6 +201,8 @@ interface StoreValue extends AppState {
     patch: Partial<CollectionItem<K>>,
   ) => void;
   addMilestone: (customerId: ID, milestone: Milestone) => void;
+  recordCallPrep: (customerId: ID, record: CallPrepRecord) => void;
+  lastCallPrep: (customerId: ID) => CallPrepRecord | undefined;
   recordMeeting: (customerId: ID, record: MeetingRecord) => void;
   lastMeeting: (customerId: ID) => MeetingRecord | undefined;
   resetDemo: () => void;
@@ -247,6 +251,8 @@ function sanitizeOfficial(ws: CustomerWorkspace): CustomerWorkspace {
     messages: clean(ws.messages),
     assumptions: clean(ws.assumptions),
     triageRecords: (ws.triageRecords ?? []).filter((t) => !RETIRED_IDS.has(t.incidentId)),
+    callPreps: ws.callPreps ?? [],
+    meetings: ws.meetings ?? [],
   };
 }
 
@@ -434,6 +440,12 @@ export function N7Provider({ children }: { children: ReactNode }) {
         }),
       addMilestone: (customerId, milestone) =>
         mapWorkspace(customerId, (w) => ({ ...w, milestones: [...w.milestones, milestone] })),
+      recordCallPrep: (customerId, record) =>
+        mapWorkspace(customerId, (w) => ({ ...w, callPreps: [...(w.callPreps ?? []), record] })),
+      lastCallPrep: (customerId) => {
+        const list = state.workspaces.find((w) => w.customer.id === customerId)?.callPreps ?? [];
+        return list[list.length - 1];
+      },
       recordMeeting: (customerId, record) =>
         mapWorkspace(customerId, (w) => ({ ...w, meetings: [...(w.meetings ?? []), record] })),
       lastMeeting: (customerId) => {
