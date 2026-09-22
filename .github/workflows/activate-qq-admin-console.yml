@@ -1,0 +1,47 @@
+name: Activate qq Admin Console
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/activate-qq-admin-console.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for interactive qq Control Plane build
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 60); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
+            if echo "$body" | grep -Fq '"version":"2026-09-22-qq.1"'; then
+              echo "$body"
+              ready=1
+              break
+            fi
+            echo "Waiting for Control Plane qq build ($i/60)"
+            sleep 5
+          done
+          test "$ready" = "1"
+
+      - name: Dispatch local qq admin-console upgrade
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CONTROL_PLANE_MCP_TOKEN" ]; then
+            echo "CONTROL_PLANE_MCP_TOKEN is not configured" >&2
+            exit 1
+          fi
+
+          response=$(curl --fail-with-body -sS             -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data '{"task_id":"enable-admin-console","args":{},"objective":"Ensure qq is a service-supervised interactive administrator console."}')
+
+          echo "$response"
+          echo "$response" | grep -Fq '"ok":true'
+          echo "qq admin-console activation dispatched. If Windows requests UAC locally, approve it once."
