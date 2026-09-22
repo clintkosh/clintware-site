@@ -125,7 +125,7 @@ const DEFAULT_NEURON7_CASE = {
 const DEFAULT_N7DEMO_CRM = {
   product:"n7demo-crm",
   environment:"production",
-  version:1,
+  version:2,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["projects/n7demo-crm/"],allowed_workflows:["deploy-n7demo-crm.yml"]},
   dns:{allowed_names:["n7demo.clintware.com"]},
   capabilities:[
@@ -136,7 +136,7 @@ const DEFAULT_N7DEMO_CRM = {
     "deployment.read","deployment.execute:n7demo-crm",
     "dns.ensure:n7demo.clintware.com",
     "analytics.write:n7demo-crm","analytics.read:n7demo-crm",
-    "research.invoke",
+    "research.invoke","ai.invoke","audio.transcribe:n7demo-crm",
     "jira.read:n7demo-crm","jira.write:n7demo-crm","confluence.read:n7demo-crm","confluence.write:n7demo-crm"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
@@ -1708,6 +1708,22 @@ async function invokeAiProvider(env,body){
     return {ok:true,available:true,provider:"clintware-workers-ai",model:SYNTHESIS_MODEL,text,citations:research.citations,research_used:research.available};
   }catch(e){
     return {ok:true,available:false,provider:"clintware-workers-ai",reason:String(e?.message||"workers_ai_error"),citations:research.citations};
+  }
+}
+
+
+const AUDIO_TRANSCRIPTION_MODEL="@cf/openai/whisper-large-v3-turbo";
+async function invokeAudioTranscription(env,bytes,contentType="audio/wav"){
+  if(!env.AI)return {ok:true,available:false,provider:"clintware-workers-ai",reason:"workers_ai_not_configured"};
+  if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<44)return {ok:false,error:"audio_required",status:400};
+  if(bytes.byteLength>8_000_000)return {ok:false,error:"audio_chunk_too_large",status:413,max_bytes:8000000};
+  try{
+    const audio=[...new Uint8Array(bytes)];
+    const result=await env.AI.run(AUDIO_TRANSCRIPTION_MODEL,{audio});
+    const text=String(result?.text||result?.transcription||result?.result?.text||"").trim();
+    return {ok:true,available:Boolean(text),provider:"clintware-workers-ai",model:AUDIO_TRANSCRIPTION_MODEL,text,content_type:contentType,bytes:bytes.byteLength,reason:text?"":"empty_transcription"};
+  }catch(e){
+    return {ok:true,available:false,provider:"clintware-workers-ai",model:AUDIO_TRANSCRIPTION_MODEL,reason:String(e?.message||"audio_transcription_error")};
   }
 }
 
