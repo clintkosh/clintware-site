@@ -424,6 +424,11 @@ async function verifyGithubReceiver(request){
 async function authorizeJiraControlRequest(request,env){
   const mcp=await mcpAuthContext(request,env);
   if(mcp&&mcpProductAllowed(mcp,"quillgeist-lite"))return {ok:true,by:"mcp:"+String(mcp.client_id||"root")};
+  const service=serviceProduct(request);
+  if(service){
+    const manifest=await manifestFor(env,service);
+    if(capabilityMatches(manifest,"jira.read:"+service)||capabilityMatches(manifest,"confluence.read:"+service))return {ok:true,by:"service:"+service};
+  }
   if(await requireAdmin(request,env))return {ok:true,by:"admin"};
   const receiver=await verifyGithubReceiver(request);
   if(receiver.ok)return {ok:true,by:"github:"+receiver.login};
