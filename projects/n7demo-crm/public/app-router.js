@@ -2,6 +2,8 @@ function body(){
  if(tab==='customers')return customers();
  if(tab==='accounts')return accounts();
  if(tab==='command')return command();
+ if(tab==='live_prompt')return livePrompt();
+ if(tab==='live_assistant')return liveAssistant();
  if(tab==='kb')return kb();
  if(tab==='implementation')return implementation();
  if(tab==='raci')return raci();
@@ -57,5 +59,6 @@ function bind(){
  let ex=document.querySelector('#export');if(ex)ex.onclick=()=>location.href='/api/export';
  document.querySelectorAll('[data-card]').forEach(card=>card.ondragstart=ev=>ev.dataTransfer.setData('text/plain',card.dataset.card));
  document.querySelectorAll('[data-drop]').forEach(col=>{col.ondragover=ev=>{ev.preventDefault();col.classList.add('dragover')};col.ondragleave=()=>col.classList.remove('dragover');col.ondrop=ev=>{ev.preventDefault();col.classList.remove('dragover');moveCard(ev.dataTransfer.getData('text/plain'),col.dataset.drop)}});
+ if(typeof bindAiFeatures==='function')bindAiFeatures();
 }
 applyTheme();
