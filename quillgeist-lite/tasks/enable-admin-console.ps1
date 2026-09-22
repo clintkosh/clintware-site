@@ -43,6 +43,11 @@ if (-not $task) {
   throw "Managed qq scheduled task '$TaskName' was not found. Re-run the Quillgeist Lite installer."
 }
 
+if (([string]$task.Principal.RunLevel) -eq "Highest" -and (Test-Administrator)) {
+  Write-Host "READY // qq is already the supervised interactive ADMIN console." -ForegroundColor Green
+  exit 0
+}
+
 $user = $task.Principal.UserId
 if (-not $user) {
   $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
