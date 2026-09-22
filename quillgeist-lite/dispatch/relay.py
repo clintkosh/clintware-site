@@ -16,6 +16,7 @@ ALLOWED = {
     "python-runtime-check": {"Message"},
     "c-runtime-check": {"Message"},
     "ensure-c-runtime": set(),
+    "self-update": set(),
 }
 
 def request_json(method, path, body=None):
