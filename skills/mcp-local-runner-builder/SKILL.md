@@ -15,6 +15,16 @@ Use this skill when the user wants to connect an AI/LLM client to their own comp
 - one-time local installation followed by hands-free task dispatch;
 - a reusable pattern that can work with multiple MCP-capable AI clients.
 
+## Quality-first execution selection
+
+When the user does not explicitly require a language or runtime, choose by this order:
+
+1. Best fit for the requested outcome and highest output quality.
+2. Reliability and maintainability in the target environment.
+3. Only after those are satisfied, optimize setup cost, token/log volume, compute, latency, and operational overhead.
+
+Do not choose a cheaper runtime if doing so materially lowers the quality or fidelity of the result. PowerShell, Python, C, and other runtimes are implementation tools; the task outcome determines the best one.
+
 ## Core architecture
 
 Prefer this pattern:
@@ -259,6 +269,20 @@ The local runner should:
 11. persist recently completed job IDs locally;
 12. remain connected after success or failure;
 13. reconnect with backoff when the network drops.
+
+## Optional local watchdog service
+
+For long-running Windows installations, prefer a separate local health service when the main interactive runner needs crash recovery.
+
+Recommended split:
+
+- a Windows Service performs health monitoring, crash detection, restart requests, and bounded diagnostic uplink;
+- the interactive user-session runner owns the visible terminal and task execution;
+- use a separate revocable device credential for the service rather than exposing the user's provider or MCP credentials;
+- have the service restart the runner through an interactive scheduled task because Windows services run in Session 0 and should not own the user's visible UI;
+- send state changes, warnings, crashes, and bounded failure context rather than high-volume normal logs.
+
+A failed or crashed runner should not erase its diagnostic evidence. The watchdog should preserve enough context for the model to choose the next appropriate task or runtime.
 
 ## Windows one-line install pattern
 
