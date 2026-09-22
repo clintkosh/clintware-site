@@ -21,6 +21,15 @@ import {
   validateRequestedStart,
 } from "./lib.js";
 import { bookingPage, managePage, roomPage } from "./ui.js";
+import {
+  createGoogleCalendarEvent,
+  deleteGoogleCalendarEvent,
+  filterSlotsAgainstGoogleBusy,
+  googleBusyIntervals,
+  googleCalendarConfigured,
+  requestedTimeIsGoogleBusy,
+  updateGoogleCalendarEvent,
+} from "./google-calendar.js";
 
 function securityHeaders(extra = {}) {
   return {
@@ -84,6 +93,7 @@ function rowToBooking(row) {
     timezone: row.timezone || CONFIG.hostTimeZone,
     status: row.status,
     roomCode: row.room_code,
+    googleEventId: row.google_event_id || "",
     sequence: Number(row.sequence || 0),
     createdAt: Number(row.created_at || 0),
     updatedAt: Number(row.updated_at || 0),
@@ -256,6 +266,7 @@ export class SchedulerState extends DurableObject {
         timezone TEXT NOT NULL,
         status TEXT NOT NULL,
         room_code TEXT NOT NULL,
+        google_event_id TEXT,
         sequence INTEGER NOT NULL DEFAULT 0,
         reminder_120_sent INTEGER NOT NULL DEFAULT 0,
         reminder_5_sent INTEGER NOT NULL DEFAULT 0,
@@ -267,6 +278,9 @@ export class SchedulerState extends DurableObject {
       CREATE INDEX IF NOT EXISTS idx_bookings_time ON bookings(status, start_ms, end_ms);
       CREATE INDEX IF NOT EXISTS idx_bookings_hash ON bookings(manage_hash);
     `);
+    try {
+      this.sql.exec("ALTER TABLE bookings ADD COLUMN google_event_id TEXT");
+    } catch {}
   }
 
   async fetch(request) {
@@ -278,6 +292,7 @@ export class SchedulerState extends DurableObject {
     if (request.method === "GET" && url.pathname === "/availability") return this.availability();
     if (request.method === "GET" && url.pathname === "/lookup") return this.lookup(url.searchParams.get("hash") || "");
     if (request.method === "POST" && url.pathname === "/reserve") return this.reserve(await request.json());
+    if (request.method === "POST" && url.pathname === "/google-event") return this.setGoogleEvent(await request.json());
     if (request.method === "POST" && url.pathname === "/reschedule") return this.reschedule(await request.json());
     if (request.method === "POST" && url.pathname === "/cancel") return this.cancel(await request.json());
     if (request.method === "POST" && url.pathname === "/self-test") return this.selfTest();
@@ -415,6 +430,15 @@ export class SchedulerState extends DurableObject {
 
     await this.scheduleNextAlarm();
     return json({ booking }, 201);
+  }
+
+  async setGoogleEvent(input) {
+    const id = cleanText(input.id, 80);
+    const googleEventId = cleanText(input.googleEventId, 1024);
+    if (!id || !googleEventId) return json({ error: "invalid_google_event" }, 422);
+    this.sql.exec("UPDATE bookings SET google_event_id=?,updated_at=? WHERE id=?", googleEventId, Date.now(), id);
+    const row = this.sql.exec("SELECT * FROM bookings WHERE id=? LIMIT 1", id).toArray()[0];
+    return row ? json({ booking: rowToBooking(row) }) : json({ error: "booking_not_found" }, 404);
   }
 
   async reschedule(input) {
