@@ -96,3 +96,27 @@ export const invokeN7AI = createServerFn({ method: "POST" })
       }),
     });
   });
+
+
+export const transcribeN7Audio = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      audioBase64: string;
+      mimeType?: string;
+      language?: string;
+      initialPrompt?: string;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    return controlPlane("/api/v1/audio/transcribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        product: "neuron7-case",
+        audio_base64: data.audioBase64,
+        mime_type: data.mimeType || "audio/webm",
+        language: data.language || "en",
+        initial_prompt: data.initialPrompt || "",
+      }),
+    });
+  });
