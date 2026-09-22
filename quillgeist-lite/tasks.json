@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. Supported runtimes: PowerShell, Python, and C.",
   "runtimes": [
@@ -64,6 +64,12 @@
       "title": "Apply the Clintware acrylic Windows Terminal profile and restart Quillgeist Lite into it",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/apply-terminal-glass.ps1",
+      "parameters": []
+    },
+    "connect-jira": {
+      "title": "Connect Jira to the Clintware Control Plane with Atlassian OAuth",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/connect-jira.ps1",
       "parameters": []
     }
   }
