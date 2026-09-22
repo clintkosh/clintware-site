@@ -1,7 +1,7 @@
 param(
   [string]$Repo = "clintkosh/clintware-site",
   [int]$Port = 53682,
-  [string[]]$Scopes = @("https://www.googleapis.com/auth/gmail.send")
+  [string[]]$Scopes = @("https://www.googleapis.com/auth/gmail.send","https://www.googleapis.com/auth/calendar.events","https://www.googleapis.com/auth/calendar.freebusy")
 )
 
 $ErrorActionPreference = "Stop"
@@ -71,7 +71,7 @@ try {
   Write-Host ""
   Write-Host "Opening Google authorization in your browser..." -ForegroundColor Cyan
   Start-Process $AuthUrl
-  Write-Host "Approve Gmail send access for the Clintware mailbox." -ForegroundColor Yellow
+  Write-Host "Approve Gmail send plus Calendar event and availability access for the Clintware mailbox." -ForegroundColor Yellow
 
   $Client = $Listener.AcceptTcpClient()
   try {
