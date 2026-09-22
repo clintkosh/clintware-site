@@ -1,7 +1,21 @@
 {
   "mode": "public-safe",
+  "removed_phone_count": 1,
+  "removed_personal_email_count": 1,
+  "removed_street_address_count": 0,
+  "removed_secret_or_token_count": 0,
+  "private_source_sections_excluded": [
+    "recruiter/interviewer correspondence",
+    "private interview notes",
+    "compensation details",
+    "calendar links",
+    "family and health information"
+  ],
   "allowed_contact": ["clint@clintware.com"],
-  "blocked": ["personal email", "phone number", "street address", "private recruiter/interviewer data", "compensation details", "calendar links", "tokens/secrets", "family or health information"],
-  "public_professional_links": ["https://www.clintware.com/","https://renewnudge.clintware.com/","https://www.clintware.com/work/Clinton_Kosh_Resume.pdf"],
-  "manual_review_required": false
+  "public_links_retained": [
+    "https://www.clintware.com/",
+    "https://renewnudge.clintware.com/",
+    "https://www.clintware.com/work/Clinton_Kosh_Resume.pdf"
+  ],
+  "unresolved_items_requiring_candidate_review": []
 }
