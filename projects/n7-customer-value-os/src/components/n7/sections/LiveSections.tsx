@@ -8,6 +8,7 @@ import { invokeN7AI, transcribeN7Audio } from "@/lib/n7/server-api";
 import { useN7 } from "@/lib/n7/store";
 import type {
   CustomerWorkspace,
+  LiveAssistSession,
   LiveAssistTrainingSource,
   PlanChangeCollection,
   PlanChangeOperation,
@@ -86,7 +87,15 @@ function stripFence(text: string) {
 }
 
 function safeJson<T>(text: string): T {
-  return JSON.parse(stripFence(text)) as T;
+  const cleaned = stripFence(text);
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const first = cleaned.indexOf("{");
+    const last = cleaned.lastIndexOf("}");
+    if (first >= 0 && last > first) return JSON.parse(cleaned.slice(first, last + 1)) as T;
+    throw new Error("The AI response was not valid JSON.");
+  }
 }
 
 function cleanPatch(collection: string | undefined, patch: Record<string, unknown>) {
@@ -251,6 +260,60 @@ function recordSegment(stream: MediaStream, ms = 8000) {
       if (recorder.state !== "inactive") recorder.stop();
     }, ms);
   });
+}
+
+function writeAscii(view: DataView, offset: number, value: string) {
+  for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
+}
+
+function audioBufferChunkToWav(buffer: AudioBuffer, startFrame: number, endFrame: number) {
+  const frameCount = Math.max(0, endFrame - startFrame);
+  const bytesPerSample = 2;
+  const wav = new ArrayBuffer(44 + frameCount * bytesPerSample);
+  const view = new DataView(wav);
+  const sampleRate = buffer.sampleRate;
+
+  writeAscii(view, 0, "RIFF");
+  view.setUint32(4, 36 + frameCount * bytesPerSample, true);
+  writeAscii(view, 8, "WAVE");
+  writeAscii(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * bytesPerSample, true);
+  view.setUint16(32, bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, "data");
+  view.setUint32(40, frameCount * bytesPerSample, true);
+
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
+  let offset = 44;
+  for (let frame = startFrame; frame < endFrame; frame += 1) {
+    let sample = 0;
+    for (const channel of channels) sample += channel[frame] ?? 0;
+    sample /= Math.max(1, channels.length);
+    sample = Math.max(-1, Math.min(1, sample));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += bytesPerSample;
+  }
+
+  return new Blob([wav], { type: "audio/wav" });
+}
+
+async function chunkRecordedCall(file: File, secondsPerChunk = 45) {
+  const context = new AudioContext();
+  try {
+    const decoded = await context.decodeAudioData(await file.arrayBuffer());
+    const framesPerChunk = Math.max(1, Math.floor(decoded.sampleRate * secondsPerChunk));
+    const chunks: Blob[] = [];
+    for (let start = 0; start < decoded.length; start += framesPerChunk) {
+      chunks.push(audioBufferChunkToWav(decoded, start, Math.min(decoded.length, start + framesPerChunk)));
+    }
+    return chunks;
+  } finally {
+    await context.close();
+  }
 }
 
 export function LivePrompt({ ws }: { ws: CustomerWorkspace }) {
@@ -461,6 +524,9 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
   const [directAsk, setDirectAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(false);
+  const [progress, setProgress] = useState("");
+  const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(null);
+  const [lastSource, setLastSource] = useState<LiveAssistSession["source"]>("machine-audio");
   const streamRef = useRef<MediaStream | null>(null);
   const liveRef = useRef(false);
   const processingRef = useRef<Promise<void>>(Promise.resolve());
@@ -506,8 +572,8 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
     }
   }
 
-  async function processBlob(blob: Blob) {
-    if (!blob.size) return;
+  async function processBlob(blob: Blob, suggest = true) {
+    if (!blob.size) return "";
     try {
       const audioBase64 = await blobToBase64(blob);
       const result: any = await transcribeN7Audio({
@@ -518,13 +584,18 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
           initialPrompt: `Customer account: ${ws.customer.name}. Participant names: ${targetNames.join(", ")}.`,
         },
       });
-      if (!result?.available || !result?.text) return;
+      if (!result?.available || !result?.text) {
+        if (result?.reason) console.warn("N7 transcription unavailable:", result.reason);
+        return "";
+      }
       const text = String(result.text).trim();
-      if (!text) return;
+      if (!text) return "";
       setTranscript((current) => (current ? `${current}\n${text}` : text));
-      await suggestionFor(text);
+      if (suggest) await suggestionFor(text);
+      return text;
     } catch (error: any) {
       toast.error(error?.message || "Audio transcription failed.");
+      return "";
     }
   }
 
@@ -563,6 +634,8 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       }
       streamRef.current = stream;
       liveRef.current = true;
+      setLastSource("machine-audio");
+      setSessionStartedAt(new Date().toISOString());
       setLive(true);
       for (const track of stream.getTracks()) {
         track.addEventListener("ended", () => stopLive(), { once: true });
@@ -586,15 +659,41 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       toast.error("Confirm permission/opt-in before transcribing a recorded call.");
       return;
     }
-    if (file.size > 14 * 1024 * 1024) {
-      toast.error("For this live version, use a recording under 14 MB or split it into smaller files.");
-      return;
-    }
     setBusy(true);
+    setLastSource("uploaded-call");
+    setSessionStartedAt(new Date().toISOString());
+    setProgress("Preparing recording…");
     try {
-      await processBlob(file);
-      toast.success("Recorded call transcribed and evaluated for suggestions.");
+      let chunks: Blob[];
+      try {
+        chunks = await chunkRecordedCall(file, 45);
+      } catch (decodeError) {
+        if (file.size <= 6 * 1024 * 1024) {
+          chunks = [file];
+        } else {
+          throw new Error("This browser could not decode the recording for safe chunking. Export it as MP3, WAV, M4A, or another browser-decodable audio format and try again.");
+        }
+      }
+
+      const transcriptParts: string[] = [];
+      for (let index = 0; index < chunks.length; index += 1) {
+        setProgress(`Transcribing chunk ${index + 1} of ${chunks.length}…`);
+        const text = await processBlob(chunks[index]!, false);
+        if (text) transcriptParts.push(text);
+      }
+
+      const combined = transcriptParts.join("\n").trim();
+      if (combined) {
+        setProgress("Generating customer-scoped suggestions…");
+        await suggestionFor(combined.slice(-12000));
+        toast.success(`Recorded call processed in ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}.`);
+      } else {
+        toast.error("The recording produced no usable transcript.");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Recorded-call analysis failed.");
     } finally {
+      setProgress("");
       setBusy(false);
     }
   }
@@ -602,6 +701,8 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
   async function askDirectly() {
     if (!directAsk.trim()) return;
     setBusy(true);
+    if (!sessionStartedAt) setSessionStartedAt(new Date().toISOString());
+    if (!transcript.trim()) setLastSource("direct-ask");
     try {
       await suggestionFor(transcript.slice(-6000), directAsk.trim());
       setDirectAsk("");
@@ -632,6 +733,30 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       liveAssistTraining: [...(ws.liveAssistTraining ?? []), record],
     });
     toast.success("Approved assistant context saved to this customer only.");
+  }
+
+  function saveSession() {
+    if (!transcript.trim() && suggestions.length === 0) {
+      toast.error("There is no transcript or suggestion history to save.");
+      return;
+    }
+    const record: LiveAssistSession = {
+      id: `${ws.customer.id}-session-${Date.now().toString(36)}`,
+      customerId: ws.customer.id,
+      startedAt: sessionStartedAt ?? new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      source: lastSource,
+      consentConfirmed: consent,
+      targetParticipantNames: targetNames,
+      transcript: transcript.trim(),
+      suggestions: [...suggestions],
+      provenance: "human-decision",
+    };
+    patchWorkspace(ws.customer.id, {
+      liveAssistSessions: [...(ws.liveAssistSessions ?? []), record],
+    });
+    setSessionStartedAt(null);
+    toast.success("Call-assist session saved to this customer workspace.");
   }
 
   return (
@@ -695,6 +820,7 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
           </div>
           <div className="mt-3 text-xs text-muted-foreground">
             {live ? "Listening to the audio source you explicitly shared. Suggestions appear below." : "Live capture is off."}
+            {progress ? <span className="mt-1 block font-medium text-foreground">{progress}</span> : null}
           </div>
         </Panel>
       </div>
@@ -723,6 +849,7 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
               <Button variant="outline" onClick={() => saveTraining(live ? "live-call" : "uploaded-call", `${ws.customer.name} call transcript`, transcript)}>
                 Approve transcript as training context
               </Button>
+              <Button variant="outline" onClick={saveSession}>Save session</Button>
               <Button variant="outline" onClick={() => setTranscript("")}>Clear transcript</Button>
             </div>
           ) : null}
@@ -745,6 +872,28 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
           )}
         </Panel>
       </div>
+
+      <Panel title="Saved assist sessions" subtitle="Saved only when you choose to retain a customer-scoped transcript/suggestion record.">
+        {(ws.liveAssistSessions ?? []).length ? (
+          <div className="space-y-2">
+            {(ws.liveAssistSessions ?? []).slice().reverse().slice(0, 8).map((session) => (
+              <div key={session.id} className="rounded-md border border-border p-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-foreground">
+                    {new Date(session.startedAt).toLocaleString()} · {session.source}
+                  </span>
+                  <span className="text-muted-foreground">{session.suggestions.length} suggestion{session.suggestions.length === 1 ? "" : "s"}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-muted-foreground">
+                  {session.transcript || "Direct assistant question session"}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No call-assist sessions saved.</p>
+        )}
+      </Panel>
     </div>
   );
 }
