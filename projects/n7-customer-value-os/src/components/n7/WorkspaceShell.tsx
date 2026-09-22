@@ -1,60 +1,32 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/n7/AppHeader";
+import { MeetingBriefDialog } from "@/components/n7/MeetingBrief";
+
 import { Button } from "@/components/ui/button";
 import { SECTIONS, SECTION_GROUPS } from "@/lib/n7/sections";
 import { useN7 } from "@/lib/n7/store";
 import type { CustomerWorkspace } from "@/lib/n7/types";
 import { cn } from "@/lib/utils";
 
-const TOUR = [
-  "Executive Summary carries the position: thesis, situation, four moves, principles.",
-  "Critical Path shows the SAP dependency and the three recovery options with guardrails.",
-  "KPI Contract and ROI Workshop make the 50% outcome defensible before launch.",
-  "Accuracy Triage walks eight fault domains before anyone blames the model.",
-  "Panel Defense gives 30-second answers with the evidence to open if pressed.",
-];
+const TOUR_BY_SECTION: Record<string, string> = {
+  "executive-summary": "Review the customer outcome, current stage, blockers, risks, and operating priorities.",
+  implementation: "Track current milestones, owners, dependencies, confidence, and parallel work.",
+  "critical-path": "Review the SAP dependency, planning boundary, and evidence required for each recovery option.",
+  environment: "Map systems and flows, maintain approved source context, and review topology proposals.",
+  documents: "Maintain approved knowledge sources, owners, freshness, and system relevance.",
+  "assumption-change": "Use temporary scenario overlays to test plan impacts without changing the live plan.",
+};
 
-function GuidedTour() {
-  const { tourSeen, setTourSeen } = useN7();
-  const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!tourSeen) setVisible(true);
-  }, [tourSeen]);
-
-  if (!visible) return null;
-
+function GuidedTour({ activeSection, onClose }: { activeSection: string; onClose: () => void }) {
+  const section = SECTIONS.find((item) => item.slug === activeSection);
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-[340px] rounded-lg border border-border bg-card p-4 shadow-panel">
-      <div className="label-caps">
-        Guided tour · {step + 1} of {TOUR.length}
-      </div>
-      <p className="mt-1 text-sm leading-relaxed text-foreground/90">{TOUR[step]}</p>
-      <div className="mt-3 flex justify-between gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            setTourSeen(true);
-            setVisible(false);
-          }}
-        >
-          Skip
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => {
-            if (step === TOUR.length - 1) {
-              setTourSeen(true);
-              setVisible(false);
-            } else setStep((s) => s + 1);
-          }}
-        >
-          {step === TOUR.length - 1 ? "Done" : "Next"}
-        </Button>
-      </div>
+    <div className="fixed inset-x-3 top-20 z-40 rounded-lg border border-border bg-card p-4 shadow-panel sm:inset-x-auto sm:right-4 sm:w-[340px]">
+      <div className="label-caps">Workspace tour · {section?.label ?? "Current section"}</div>
+      <p className="mt-1 text-sm leading-relaxed text-foreground/90">
+        {TOUR_BY_SECTION[activeSection] ?? section?.blurb ?? "Use this section to keep the customer plan current and evidence-backed."}
+      </p>
+      <Button className="mt-3" size="sm" onClick={onClose}>Done</Button>
     </div>
   );
 }
@@ -68,52 +40,69 @@ export function WorkspaceShell({
   activeSection: string;
   children: React.ReactNode;
 }) {
-  const { presentationMode, setPresentationMode, activeOverrides } = useN7();
+  const { activeOverrides, clearOverrides } = useN7();
   const [navOpen, setNavOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const inScenarioPlanning = activeSection === "assumption-change";
+
+  useEffect(() => {
+    if (!inScenarioPlanning && activeOverrides.length) clearOverrides();
+  }, [activeOverrides.length, clearOverrides, inScenarioPlanning]);
 
   return (
     <div className="min-h-screen bg-background">
-      {presentationMode ? null : (
-        <AppHeader
-          right={
-            <div className="flex items-center gap-2">
-              <Button asChild size="sm" variant="outline">
-                <Link to="/present/$customerId" params={{ customerId: ws.customer.id }}>
-                  Presentation mode
-                </Link>
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setPresentationMode(true)}>
-                Hide chrome
-              </Button>
-            </div>
-          }
-        />
-      )}
-
-      {presentationMode ? (
-        <div className="flex items-center justify-between border-b border-border px-5 py-2 text-xs text-muted-foreground">
-          <span>Presentation mode — editing chrome hidden</span>
-          <Button size="sm" variant="ghost" onClick={() => setPresentationMode(false)}>
-            Exit presentation mode
+      <AppHeader
+        customerName={ws.customer.name}
+        onOpenTour={() => setTourOpen(true)}
+        right={
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/present/$customerId" params={{ customerId: ws.customer.id }}>
+              Presentation mode
+            </Link>
           </Button>
-        </div>
-      ) : null}
+        }
+      />
+
+      <div className="mx-auto max-w-[1500px] px-4 pt-4 lg:px-5">
+        <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <Link to="/" className="rounded hover:text-foreground hover:underline">
+            Portfolio
+          </Link>
+          <span aria-hidden>/</span>
+          <Link
+            to="/customers/$customerId/$section"
+            params={{ customerId: ws.customer.id, section: "executive-summary" }}
+            className="rounded hover:text-foreground hover:underline"
+          >
+            {ws.customer.name}
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-medium text-foreground">
+            {SECTIONS.find((s) => s.slug === activeSection)?.label ?? activeSection}
+          </span>
+        </nav>
+      </div>
 
       <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-6 lg:px-5">
         <aside className="hidden w-60 shrink-0 lg:block">
           <div className="sticky top-20 space-y-4">
+
             <div className="panel p-3">
               <div className="label-caps">Customer</div>
               <div className="mt-1 text-sm font-semibold leading-tight text-foreground">
                 {ws.customer.name}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">{ws.customer.industry}</div>
-              {activeOverrides.length ? (
+              {inScenarioPlanning ? (
                 <div className="mt-2 rounded bg-assumption px-2 py-1 text-[10px] font-semibold uppercase text-assumption-foreground">
-                  {activeOverrides.length} scenario override(s) active
+                  Scenario mode
                 </div>
               ) : null}
             </div>
+            <div className="print:hidden">
+              <MeetingBriefDialog ws={ws} />
+            </div>
+
             <nav aria-label="Workspace sections" className="space-y-4">
               {SECTION_GROUPS.map((group) => (
                 <div key={group}>
@@ -170,7 +159,7 @@ export function WorkspaceShell({
         </div>
       </div>
 
-      {presentationMode ? null : <GuidedTour />}
+      {tourOpen ? <GuidedTour activeSection={activeSection} onClose={() => setTourOpen(false)} /> : null}
     </div>
   );
 }

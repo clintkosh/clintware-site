@@ -91,12 +91,6 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Call ramp-up brief from approved sources. Human-approved drafts only.",
   },
   {
-    slug: "panel-defense",
-    label: "Panel Defense",
-    group: "Frame",
-    blurb: "Challenge cards with 30-second answers and red flags.",
-  },
-  {
     slug: "assumption-change",
     label: "Assumption Change",
     group: "Frame",

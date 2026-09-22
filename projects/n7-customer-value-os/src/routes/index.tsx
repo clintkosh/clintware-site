@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppHeader, PrototypeBadge } from "@/components/n7/AppHeader";
+import { AppHeader } from "@/components/n7/AppHeader";
 import { AddCustomerWizard } from "@/components/n7/AddCustomerWizard";
 import { Callout, KeyQuote, MetricCard, Panel, ProvenanceLegend, StatusPill } from "@/components/n7/primitives";
 import { Button } from "@/components/ui/button";
@@ -61,20 +61,12 @@ function Portfolio() {
                   to="/customers/$customerId/$section"
                   params={{ customerId: workspaces[0]!.customer.id, section: "executive-summary" }}
                 >
-                  Open the case customer
+                   Open customer workspace
                 </Link>
               </Button>
               <Button asChild variant="outline">
                 <Link to="/present/$customerId" params={{ customerId: workspaces[0]!.customer.id }}>
                   Presentation mode
-                </Link>
-              </Button>
-              <Button asChild variant="ghost">
-                <Link
-                  to="/customers/$customerId/$section"
-                  params={{ customerId: workspaces[0]!.customer.id, section: "panel-defense" }}
-                >
-                  Panel defense
                 </Link>
               </Button>
             </div>
@@ -99,7 +91,7 @@ function Portfolio() {
           <MetricCard
             label="Judgment hierarchy"
             value="Human first"
-            note="Judgment → operating model → evidence → automation → prototype"
+            note="Judgment → operating model → evidence → automation"
           />
         </div>
 
@@ -127,11 +119,6 @@ function Portfolio() {
                     <td className="py-3 pr-4">
                       <div className="font-medium text-foreground">{w.customer.name}</div>
                       <div className="text-xs text-muted-foreground">{w.customer.industry}</div>
-                      {w.customer.isOfficialCase ? (
-                        <span className="mt-1 inline-block rounded bg-fact px-1.5 py-0.5 text-[10px] font-semibold uppercase text-fact-foreground">
-                          Official case customer
-                        </span>
-                      ) : null}
                     </td>
                     <td className="py-3 pr-4 capitalize">{w.customer.stage}</td>
                     <td className={`py-3 pr-4 font-medium capitalize ${HEALTH_TONE[w.customer.health]}`}>
@@ -182,25 +169,10 @@ function Portfolio() {
           <Panel title="Positioning">
             <p className="text-sm leading-relaxed text-foreground/90">{FINAL_POSITIONING}</p>
           </Panel>
-          <Panel title="What this prototype is">
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                A candidate-built concept prototype for a Neuron7 Customer Success case study. Not an
-                official Neuron7 product.
-              </li>
-              <li>
-                No Neuron7 internal APIs, data, policies or product capabilities are represented.
-                Content is labelled case fact, working assumption, illustrative demo data, human
-                decision or automated signal.
-              </li>
-              <li>
-                All AI-style features run in deterministic local demo mode. No credentials are
-                required or stored.
-              </li>
-            </ul>
-            <div className="mt-4">
-              <PrototypeBadge />
-            </div>
+          <Panel title="Operating controls">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Provenance, human approval gates, and source freshness keep plans and customer-facing work evidence-backed.
+            </p>
           </Panel>
         </div>
       </main>

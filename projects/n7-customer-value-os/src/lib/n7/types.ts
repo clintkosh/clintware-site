@@ -5,9 +5,22 @@
  * customer) is seeded data, not a special type.
  */
 
-/** Provenance classification applied across the whole product. */
+/**
+ * Strict provenance classification.
+ *
+ * - `case-fact`          supplied in the official case materials
+ * - `user-entered`       typed or chosen by a person in this app
+ * - `generated-proposal` produced by generation; not a record until a person approves it
+ * - `template-helper`    generic guidance or a blank template, never a customer fact
+ *
+ * `working-assumption`, `illustrative`, `human-decision` and `automated-signal`
+ * remain readable so previously saved local records still load.
+ */
 export type Provenance =
   | "case-fact"
+  | "user-entered"
+  | "generated-proposal"
+  | "template-helper"
   | "working-assumption"
   | "illustrative"
   | "human-decision"
@@ -232,6 +245,40 @@ export interface Incident {
   status: "reported" | "triage" | "isolated" | "resolved";
   openedAt: string;
   segment: string;
+  reportedBy?: string;
+  severity?: "low" | "medium" | "high" | "critical";
+  sourceSystem?: string;
+  notes?: string;
+  provenance: Provenance;
+}
+
+export interface EscalationPacketFields {
+  repro: string;
+  expected: string;
+  actual: string;
+  contentVersion: string;
+  timestamps: string;
+  userRole: string;
+  blastRadius: string;
+  suspected: string;
+  evidence: string;
+}
+
+/** Incident-linked working record. Stored separately so the reported symptom remains immutable history. */
+export interface TriageRecord {
+  id: ID;
+  customerId: ID;
+  incidentId: ID;
+  currentLayer: number;
+  findings: Record<string, string>;
+  ruledOutLayers: number[];
+  startedAt: string;
+  updatedAt: string;
+  owner: string;
+  linkedGoldenQueryIds: ID[];
+  packetFields: EscalationPacketFields;
+  generatedPacket?: string;
+  packetGeneratedAt?: string;
   provenance: Provenance;
 }
 
@@ -264,10 +311,12 @@ export interface GoldenQuery {
   customerId: ID;
   query: string;
   expected: string;
-  sourceSystem: "SAP" | "Salesforce";
+  sourceSystem: string;
   productFamily: string;
   version: string;
   lastResult: "pass" | "fail" | "not-run";
+  notes?: string;
+  provenance?: Provenance;
 }
 
 export interface ReadinessGateField {
@@ -327,6 +376,35 @@ export interface Assumption {
   owner: string;
 }
 
+export type MeetingType =
+  | "weekly"
+  | "monthly"
+  | "qbr"
+  | "escalation"
+  | "technical"
+  | "checkpoint";
+
+/** A recorded checkpoint. The snapshot is what the delta engine compares against. */
+export interface MeetingRecord {
+  id: ID;
+  customerId: ID;
+  date: string;
+  type: MeetingType;
+  objective: string;
+  attendeeIds: ID[];
+  recordedAt: string;
+  snapshot: {
+    milestoneStatus: Record<ID, string>;
+    riskIds: ID[];
+    decisionIds: ID[];
+    documentIds: ID[];
+    integrationStatus: Record<ID, string>;
+    nodeCount: number;
+    kpiCurrent: Record<ID, string>;
+    stage: string;
+  };
+}
+
 export interface CustomerWorkspace {
   customer: Customer;
   stakeholders: Stakeholder[];
@@ -342,10 +420,14 @@ export interface CustomerWorkspace {
   integrations: Integration[];
   adoption: AdoptionSignal[];
   incidents: Incident[];
+  /** Optional so existing locally persisted workspaces migrate without data loss. */
+  triageRecords?: TriageRecord[];
   valueEvents: ValueEvent[];
   documents: DocumentSource[];
   goldenQueries: GoldenQuery[];
   readiness: ReadinessGateField[];
   messages: CustomerMessage[];
   assumptions: Assumption[];
+  /** Recorded meeting checkpoints. Optional so older persisted state still loads. */
+  meetings?: MeetingRecord[];
 }

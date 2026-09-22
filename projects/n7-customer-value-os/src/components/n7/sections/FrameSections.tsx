@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   Callout,
   KeyQuote,
@@ -13,16 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   ASSUMPTION_TOGGLES,
-  CHALLENGES,
   CORE_PRINCIPLES,
   EXECUTIVE_FRAMING,
   FINAL_POSITIONING,
   OPERATING_THESIS,
   PLANNING_BOUNDARY_TEXT,
-  RED_FLAG_PHRASES,
   SUCCESS_DEFINITION,
 } from "@/lib/n7/seed";
+import { EditableCustomerPanel } from "@/components/n7/EditableCustomerPanel";
 import { useN7 } from "@/lib/n7/store";
+
 import type { CustomerWorkspace } from "@/lib/n7/types";
 
 export function ExecutiveSummary({ ws }: { ws: CustomerWorkspace }) {
@@ -40,6 +38,9 @@ export function ExecutiveSummary({ ws }: { ws: CustomerWorkspace }) {
       />
 
       <KeyQuote>{OPERATING_THESIS}</KeyQuote>
+
+      <EditableCustomerPanel ws={ws} />
+
 
       <Panel title="30-second executive framing" right={<ProvenanceTag value="human-decision" />}>
         <p className="text-sm leading-relaxed text-foreground/90">
@@ -96,7 +97,7 @@ export function ExecutiveSummary({ ws }: { ws: CustomerWorkspace }) {
               ))}
             </ul>
           </Panel>
-          <Panel title="The four moves" subtitle="What I do about it, in order.">
+          <Panel title="The four moves" subtitle="What the team does next, in order.">
             <ol className="space-y-3 text-sm">
               {[
                 ["Make the SAP critical path explicit", "No hidden dependency, no optimistic date."],
@@ -135,7 +136,7 @@ export function ExecutiveSummary({ ws }: { ws: CustomerWorkspace }) {
       </Callout>
 
       {audience === "technical" ? (
-        <Panel title="Immediate technical posture" subtitle="What I would have running this week.">
+        <Panel title="Immediate technical posture" subtitle="What the team starts this week.">
           <ul className="space-y-2 text-sm text-foreground/90">
             <li>SAP design spike scoped with architecture, assumptions, test scope and confidence as deliverables.</li>
             <li>Salesforce connector configuration and content-quality validation started in parallel.</li>
@@ -164,80 +165,6 @@ export function ExecutiveSummary({ ws }: { ws: CustomerWorkspace }) {
   );
 }
 
-export function PanelDefense({ ws }: { ws: CustomerWorkspace }) {
-  const [openId, setOpenId] = useState<string | null>(null);
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        eyebrow="Fast mode"
-        title="Panel Defense"
-        description="Challenge cards for interview pressure. Each gives a 30-second answer, the deeper defense, the artifact to open, and the answer to avoid."
-      />
-
-      <Callout tone="info" title="Use it like this">
-        Read the challenge, give the 30-second answer, then open the evidence only if pressed.
-        The prototype is the last thing in the hierarchy, not the first.
-      </Callout>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {CHALLENGES.map((c) => {
-          const open = openId === c.id;
-          return (
-            <article key={c.id} className="panel p-5">
-              <header className="flex items-start justify-between gap-3">
-                <h3 className="text-sm font-semibold text-foreground">{c.prompt}</h3>
-                <Button variant="ghost" size="sm" onClick={() => setOpenId(open ? null : c.id)}>
-                  {open ? "Collapse" : "Expand"}
-                </Button>
-              </header>
-              <div className="mt-3 rounded-md bg-secondary/60 p-3">
-                <div className="label-caps">30-second response</div>
-                <p className="mt-1 text-sm leading-relaxed text-foreground/90">{c.thirtySecond}</p>
-              </div>
-              {open ? (
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <div className="label-caps">Deeper defense</div>
-                    <p className="mt-1 text-sm leading-relaxed text-foreground/90">{c.deeper}</p>
-                  </div>
-                  <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
-                    <div className="label-caps text-critical">Red-flag answer to avoid</div>
-                    <p className="mt-1 text-sm text-foreground/90">{c.redFlag}</p>
-                  </div>
-                </div>
-              ) : null}
-              <footer className="mt-3">
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    to="/customers/$customerId/$section"
-                    params={{ customerId: ws.customer.id, section: c.evidence.section }}
-                  >
-                    Open evidence: {c.evidence.label}
-                  </Link>
-                </Button>
-              </footer>
-            </article>
-          );
-        })}
-      </div>
-
-      <Panel title="Phrases I will not use" subtitle="Unless evidence supports the statement.">
-        <div className="flex flex-wrap gap-2">
-          {RED_FLAG_PHRASES.map((p) => (
-            <span
-              key={p}
-              className="rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs text-foreground/90"
-            >
-              “{p}”
-            </span>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
 export function AssumptionChange({ ws }: { ws: CustomerWorkspace }) {
   const { activeOverrides, toggleOverride, clearOverrides } = useN7();
   const active = ASSUMPTION_TOGGLES.filter((a) => activeOverrides.includes(a.id));
@@ -251,16 +178,16 @@ export function AssumptionChange({ ws }: { ws: CustomerWorkspace }) {
         actions={
           activeOverrides.length ? (
             <Button variant="outline" size="sm" onClick={clearOverrides}>
-              Reset to case facts
+              Return to live plan
             </Button>
           ) : null
         }
       />
 
-      <Callout tone={active.length ? "warning" : "info"} title={active.length ? "Scenario overlay active" : "Baseline: case facts"}>
+      <Callout tone={active.length ? "warning" : "info"} title={active.length ? "Scenario mode active" : "Live plan unchanged"}>
         {active.length
           ? `${active.length} scenario override(s) applied on top of the case. The underlying case facts are unchanged and still shown throughout the workspace.`
-          : "No overrides applied. Toggle a scenario below to see how the operating model responds."}
+          : "No temporary overrides are active. Changes here are not saved into the live customer plan."}
       </Callout>
 
       <div className="grid gap-4 lg:grid-cols-2">

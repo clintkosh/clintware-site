@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Callout, EmptyState, KeyQuote, Panel, SectionHeader } from "@/components/n7/primitives";
-import { PrototypeBadge } from "@/components/n7/AppHeader";
+import { ThemeToggle } from "@/components/n7/ThemeToggle";
+import { Callout, EmptyState, KeyQuote } from "@/components/n7/primitives";
 import { Button } from "@/components/ui/button";
 import {
   CADENCE,
-  CHALLENGES,
   CORE_PRINCIPLES,
-  DEFENSE_50_PERCENT,
   EXECUTIVE_FRAMING,
   FINAL_POSITIONING,
   GOVERNANCE,
   GO_LIVE_GATES,
   OPERATING_THESIS,
+  OUTCOME_MEASUREMENT_STANDARD,
   PLANNING_BOUNDARY_TEXT,
   READINESS_ROOT_CAUSE,
   RECOVERY_OPTIONS,
@@ -32,19 +31,19 @@ export const Route = createFileRoute("/present/$customerId")({
       {
         name: "description",
         content:
-          "30-second, 5-minute and full presentation paths through the Week-1 customer recovery case, plus direct-answer mode.",
+          "30-second, 5-minute and full operational briefings for the Week-1 customer recovery plan.",
       },
       { property: "og:title", content: "Presentation Mode — N7 Customer Value OS" },
       {
         property: "og:description",
-        content: "Executive framing, critical path, governance, value proof and defense, on one rail.",
+        content: "Executive framing, critical path, governance, value proof, and coordinated next actions on one rail.",
       },
     ],
   }),
   component: Present,
 });
 
-type Mode = "30s" | "5min" | "full" | "direct";
+type Mode = "30s" | "5min" | "full";
 
 interface Slide {
   title: string;
@@ -214,7 +213,7 @@ function buildSlides(ws: CustomerWorkspace): Slide[] {
       title: "9. KPI and ROI",
       body: (
         <div className="space-y-3">
-          <p className="text-base text-foreground/90">{DEFENSE_50_PERCENT}</p>
+          <p className="text-base text-foreground/90">{OUTCOME_MEASUREMENT_STANDARD}</p>
           <ul className="space-y-1 text-sm text-foreground/90">
             {ROI_METHOD.map((m) => (
               <li key={m}>• {m}</li>
@@ -278,17 +277,25 @@ function buildSlides(ws: CustomerWorkspace): Slide[] {
       ),
     },
     {
-      title: "14. Appendix / defense",
+      title: "14. Team handoff and next actions",
       body: (
         <div className="space-y-3">
           <p className="text-base leading-relaxed text-foreground/90">{FINAL_POSITIONING}</p>
           <ul className="grid gap-2 md:grid-cols-2">
-            {CHALLENGES.slice(0, 6).map((c) => (
-              <li key={c.id} className="rounded-md border border-border p-3">
-                <div className="text-sm font-medium text-foreground">{c.prompt}</div>
-                <p className="mt-1 text-xs text-muted-foreground">{c.thirtySecond}</p>
-              </li>
-            ))}
+            {ws.milestones
+              .filter((milestone) => milestone.status === "in-progress" || milestone.status === "planned")
+              .slice(0, 6)
+              .map((milestone) => (
+                <li key={milestone.id} className="rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-foreground">{milestone.title}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{milestone.week}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Owner: {milestone.owner} · {milestone.status.replace("-", " ")}
+                  </p>
+                </li>
+              ))}
           </ul>
         </div>
       ),
@@ -296,19 +303,37 @@ function buildSlides(ws: CustomerWorkspace): Slide[] {
   ];
 }
 
-const PATHS: Record<Exclude<Mode, "direct">, number[]> = {
+const PATHS: Record<Mode, number[]> = {
   "30s": [0],
   "5min": [0, 3, 4, 8, 12],
   full: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
 };
 
+// Extra depth shown only when the audience toggle is set to technical.
+const TECH_NOTES: string[] = [
+  "The dependency is binary: SAP product manuals are a must-have content source for formal production go-live, so no amount of Salesforce-side progress closes the gate.",
+  "Salesforce Service Cloud (knowledge, bulletins, job aids) and Field Service (work orders) are connector-ready. SAP manuals are not; SSO is in scope for identity and RBAC.",
+  "Principles are enforced operationally: Engineering owns the estimate, CS owns the dependency and the customer narrative, and neither role overrides the other.",
+  "W10 is a planning boundary used for sequencing, not a committed date. It is only reset after Engineering validates architecture, assumptions, milestones, test scope, dependencies and confidence.",
+  "Option A requires Engineering-validated safe parallelism or compression. Option C is pilot-only under Product, Security, Engineering and customer approval, and is never labelled production go-live.",
+  "Escalation triggers are pre-agreed at W2, W6, W8 and W10 so a slip surfaces as a decision, not as a surprise to the customer.",
+  "Acceptance gates are conjunctive: manuals ingested, Salesforce content validated, SSO and RBAC working, content current and permissioned, full-scope UAT passed, quality criteria agreed, no critical blockers, named owners signed.",
+  "Messages follow a five-part structure (discovered, impact, doing, decisions needed, next checkpoint) and are screened for unevidenced red-flag phrasing before sending.",
+  "Each KPI carries a metric contract: numerator, denominator, cohort, start and stop timestamps, baseline and comparison windows, exclusions, source system and owner, refresh cadence and a data-quality note. Median for typical, P75 for the tail.",
+  "Layer order matters: metric validity, blast radius, versioned golden-query reproduction, source data, connector and pipeline, configuration and access, user and query behaviour, and only then retrieval or model.",
+  "Cadence is role-scoped: twice-weekly internal SAP sync, weekly customer review, leadership by exception, weekly post-launch, monthly trend and an executive QBR on value.",
+  "The control is systemic: an unknown or custom connector blocks a customer-committed date until Solution or Engineering review, or a documented exception is recorded.",
+  "Success is measured on three levels: an acceptance-passing SAP-dependent launch, demonstrable movement toward the 50% Year-1 outcome, and a reusable readiness system for the next customer.",
+  "The handoff keeps each next action tied to an owner, milestone, dependency, and evidence source in the workspace.",
+];
+
 function Present() {
   const { customerId } = Route.useParams();
-  const { getWorkspace } = useN7();
+  const { getWorkspace, audience, setAudience } = useN7();
   const ws = getWorkspace(customerId);
   const [mode, setMode] = useState<Mode>("full");
   const [index, setIndex] = useState(0);
-  const [query, setQuery] = useState("");
+
 
   if (!ws) {
     return (
@@ -327,17 +352,8 @@ function Present() {
   }
 
   const slides = buildSlides(ws);
-  const path = mode === "direct" ? [] : PATHS[mode];
+  const path = PATHS[mode];
   const slide = path.length ? slides[path[Math.min(index, path.length - 1)]!] : null;
-
-  const matches = query.trim()
-    ? CHALLENGES.filter(
-        (c) =>
-          c.prompt.toLowerCase().includes(query.toLowerCase()) ||
-          c.thirtySecond.toLowerCase().includes(query.toLowerCase()) ||
-          c.deeper.toLowerCase().includes(query.toLowerCase()),
-      )
-    : CHALLENGES;
 
   return (
     <div className="min-h-screen bg-background">
@@ -345,14 +361,38 @@ function Present() {
         <Link to="/" className="text-sm font-semibold text-foreground">
           N7 Customer Value OS
         </Link>
-        <PrototypeBadge />
+        <span className="text-xs text-muted-foreground">{ws.customer.name} · Briefing</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <ThemeToggle />
+
+          <div
+            role="group"
+            aria-label="Audience"
+            className="flex items-center rounded-md border border-border p-0.5"
+          >
+            {(["executive", "technical"] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={audience === a}
+                onClick={() => setAudience(a)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                  audience === a
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+
           {(
             [
               ["30s", "30-second"],
               ["5min", "5-minute"],
               ["full", "Full 15–18 min"],
-              ["direct", "Direct answer"],
             ] as const
           ).map(([m, label]) => (
             <Button
@@ -379,36 +419,7 @@ function Present() {
       </header>
 
       <main className="mx-auto max-w-5xl px-5 py-10">
-        {mode === "direct" ? (
-          <div className="space-y-5">
-            <SectionHeader
-              eyebrow="Direct answer mode"
-              title="Ask the question, get the answer"
-              description="Type a keyword from the challenge. Each answer comes with the deeper defense and the phrase to avoid."
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. baseline, SAP, CFO, model, 8 weeks"
-              aria-label="Search challenges"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            {matches.length === 0 ? (
-              <EmptyState title="No matching challenge" body="Try a broader keyword such as SAP, ROI, accuracy or timeline." />
-            ) : (
-              <div className="space-y-3">
-                {matches.map((c) => (
-                  <article key={c.id} className="panel p-5">
-                    <h3 className="text-sm font-semibold text-foreground">{c.prompt}</h3>
-                    <p className="mt-2 text-base leading-relaxed text-foreground/90">{c.thirtySecond}</p>
-                    <p className="mt-2 text-sm text-muted-foreground">{c.deeper}</p>
-                    <p className="mt-2 text-xs text-critical">Avoid: {c.redFlag}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : slide ? (
+        {slide ? (
           <>
             <div className="mb-4 flex items-center gap-1">
               {path.map((p, i) => (
@@ -423,7 +434,16 @@ function Present() {
             <article className="panel min-h-[460px] p-8">
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">{slide.title}</h1>
               <div className="mt-6">{slide.body}</div>
+              {audience === "technical" && TECH_NOTES[path[index]!] ? (
+                <div className="mt-6 border-t border-border pt-4">
+                  <div className="label-caps">Technical depth</div>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {TECH_NOTES[path[index]!]}
+                  </p>
+                </div>
+              ) : null}
             </article>
+
             <div className="mt-4 flex items-center justify-between">
               <Button variant="outline" disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
                 Previous

@@ -34,7 +34,7 @@ const KIND_STYLE: Record<NodeKind, { fill: string; glyph: string; label: string 
   firewall: { fill: "var(--color-chart-5)", glyph: "▥", label: "Firewall / boundary" },
   endpoint: { fill: "var(--color-chart-3)", glyph: "◉", label: "Endpoint / user" },
   integration: { fill: "var(--color-primary)", glyph: "⇄", label: "Integration / connector" },
-  identity: { fill: "var(--color-chart-2)", glyph: "⚿", label: "Identity / SSO" },
+  identity: { fill: "var(--color-chart-2)", glyph: "◈", label: "Identity / SSO" },
   boundary: { fill: "var(--color-muted-foreground)", glyph: "▢", label: "Trust boundary" },
 };
 
@@ -42,7 +42,7 @@ const EXAMPLE_TEXT =
   "2 database servers behind a firewall, hardwired to application servers, with technicians on mobile tablets. Salesforce and SAP are reached through a connector, and SSO handles identity.";
 
 export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
-  const { updateNodes, updateEdges, providerMode, setProviderMode } = useN7();
+  const { updateNodes, updateEdges, providerMode } = useN7();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -57,6 +57,8 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
     notes: string[];
   } | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [generationNote, setGenerationNote] = useState<string | null>(null);
+  const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -102,6 +104,30 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
     panning.current = null;
   }
 
+  /** Scale and centre the view so every node is visible inside the canvas. */
+  const fitToView = useCallback(
+    (list: EnvironmentNode[]) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect || !list.length) return;
+      const minX = Math.min(...list.map((n) => n.x));
+      const minY = Math.min(...list.map((n) => n.y));
+      const maxX = Math.max(...list.map((n) => n.x)) + NODE_W;
+      const maxY = Math.max(...list.map((n) => n.y)) + NODE_H;
+      const pad = 24;
+      const z = Math.max(
+        0.5,
+        Math.min(1, (rect.width - pad * 2) / (maxX - minX), (rect.height - pad * 2) / (maxY - minY)),
+      );
+      setZoom(+z.toFixed(2));
+      setPan({
+        x: pad - minX * z + Math.max(0, (rect.width - pad * 2 - (maxX - minX) * z) / 2),
+        y: pad - minY * z,
+      });
+    },
+    [],
+  );
+
+
   function addNode() {
     const node: EnvironmentNode = {
       id: `${ws.customer.id}-manual-${Date.now().toString(36)}`,
@@ -126,7 +152,7 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
   }
 
   function deleteSelected() {
-    if (!selected || proposal) return;
+    if (!selected || proposal || selected.provenance === "case-fact") return;
     updateNodes(
       ws.customer.id,
       ws.nodes.filter((n) => n.id !== selected.id),
@@ -143,23 +169,33 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
     setBusy(true);
     setGenError(null);
     try {
-      const provider = getEnvironmentProvider(providerMode);
-      const res = await provider.generate({
+      const approvedDocs = ws.documents.filter((d) => useSources.includes(d.id) && d.approved);
+      const sourceText = approvedDocs.map((d) => d.content).filter(Boolean).join("\n");
+      const currentEnvironment = [
+        ...ws.nodes.map((node) => `${node.label}: ${node.detail}`),
+        ...ws.integrations.map((integration) => `${integration.system}: ${integration.purpose}`),
+      ].join("\n");
+      const request = {
         customerId: ws.customer.id,
-        freeText: freeText || EXAMPLE_TEXT,
-        approvedSourceTitles: ws.documents
-          .filter((d) => useSources.includes(d.id) && d.approved)
-          .map((d) => d.title),
-      });
-      if (!res.nodes.length) {
-        setGenError(
-          "Nothing recognisable in the description. Mention systems such as servers, databases, firewalls, endpoints, SSO or named SaaS platforms.",
-        );
-        setProposal(null);
-      } else {
-        setProposal({ nodes: res.nodes, edges: res.edges, confidence: res.confidence, notes: res.notes });
-        toast("Proposed environment generated", { description: "Review and approve before it replaces the map." });
+        freeText: freeText.trim() || currentEnvironment || EXAMPLE_TEXT,
+        approvedSourceTitles: approvedDocs.map((d) => d.title),
+        approvedSourceText: sourceText,
+      };
+      let fallbackUsed = false;
+      let provider = getEnvironmentProvider(providerMode);
+      let res;
+      try {
+        res = await provider.generate(request);
+      } catch {
+        provider = getEnvironmentProvider("demo");
+        res = await provider.generate(request);
+        fallbackUsed = true;
       }
+      setProposal({ nodes: res.nodes, edges: res.edges, confidence: res.confidence, notes: res.notes });
+      setLastGenerated(new Date().toLocaleString());
+      setGenerationNote(fallbackUsed ? "Generated locally; external provider unavailable." : null);
+      requestAnimationFrame(() => fitToView(res.nodes));
+      toast("Proposed environment generated", { description: "Review and approve before it replaces the map." });
     } catch (err) {
       setGenError(err instanceof Error ? err.message : "Generation failed.");
       setProposal(null);
@@ -170,10 +206,26 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
 
   function approveProposal() {
     if (!proposal) return;
-    updateNodes(ws.customer.id, proposal.nodes);
-    updateEdges(ws.customer.id, proposal.edges);
+    const protectedNodes = ws.nodes.filter((node) => node.provenance === "case-fact");
+    const protectedNodeIds = new Set(protectedNodes.map((node) => node.id));
+    const protectedEdges = ws.edges.filter(
+      (edge) =>
+        edge.provenance === "case-fact" ||
+        protectedNodeIds.has(edge.from) ||
+        protectedNodeIds.has(edge.to),
+    );
+    updateNodes(ws.customer.id, [
+      ...protectedNodes,
+      ...proposal.nodes.filter((node) => !protectedNodeIds.has(node.id)),
+    ]);
+    updateEdges(ws.customer.id, [
+      ...protectedEdges,
+      ...proposal.edges.filter((edge) => !protectedEdges.some((saved) => saved.id === edge.id)),
+    ]);
     setProposal(null);
-    toast.success("Proposal approved", { description: "It is now the environment of record for this customer." });
+    toast.success("Proposal approved", {
+      description: "The environment of record was updated without removing protected case facts.",
+    });
   }
 
   const usedKinds = Array.from(new Set(nodes.map((n) => n.kind)));
@@ -189,12 +241,23 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
             <Button size="sm" variant="outline" onClick={addNode}>
               Add node
             </Button>
+            <Button size="sm" variant="ghost" onClick={() => fitToView(nodes)}>
+              Fit to view
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>
               Reset view
             </Button>
           </div>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs">
+        <span><strong className="text-foreground">{useSources.length}</strong> approved source{useSources.length === 1 ? "" : "s"} selected</span>
+        <span>Last generated: <strong className="text-foreground">{lastGenerated ?? "Not yet"}</strong></span>
+        <span>Status: <strong className="text-foreground">{proposal ? "Proposed — review required" : "Approved environment of record"}</strong></span>
+      </div>
+
+      {generationNote ? <p className="text-xs text-muted-foreground">{generationNote}</p> : null}
 
       {proposal ? (
         <Callout tone="warning" title={`Proposed from approved sources · confidence ${proposal.confidence}`}>
@@ -351,13 +414,18 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
           <Panel title="Selected node">
             {selected ? (
               <div className="space-y-3">
-                <div className="grid gap-1.5">
+                 {selected.provenance === "case-fact" ? (
+                   <Callout tone="info" title="Protected source record">
+                     This node is a case fact. It can be moved for layout, but its source fields cannot be changed or removed.
+                   </Callout>
+                 ) : null}
+                 <div className="grid gap-1.5">
                   <Label htmlFor="nlabel">Label</Label>
-                  <Input id="nlabel" value={selected.label} onChange={(e) => patchSelected({ label: e.target.value })} />
+                   <Input id="nlabel" value={selected.label} disabled={selected.provenance === "case-fact"} onChange={(e) => patchSelected({ label: e.target.value })} />
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor="nkind">Type</Label>
-                  <Select value={selected.kind} onValueChange={(v) => patchSelected({ kind: v as NodeKind })}>
+                   <Select disabled={selected.provenance === "case-fact"} value={selected.kind} onValueChange={(v) => patchSelected({ kind: v as NodeKind })}>
                     <SelectTrigger id="nkind">
                       <SelectValue />
                     </SelectTrigger>
@@ -372,11 +440,11 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor="ndetail">Detail / evidence</Label>
-                  <Textarea id="ndetail" rows={3} value={selected.detail} onChange={(e) => patchSelected({ detail: e.target.value })} />
+                   <Textarea id="ndetail" rows={3} value={selected.detail} disabled={selected.provenance === "case-fact"} onChange={(e) => patchSelected({ detail: e.target.value })} />
                 </div>
                 <div className="flex items-center justify-between">
                   <ProvenanceTag value={selected.provenance} />
-                  <Button size="sm" variant="ghost" onClick={deleteSelected} disabled={!!proposal}>
+                   <Button size="sm" variant="ghost" onClick={deleteSelected} disabled={!!proposal || selected.provenance === "case-fact"}>
                     Remove
                   </Button>
                 </div>
@@ -391,10 +459,10 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
             )}
           </Panel>
 
-          <Panel title="Generate suggested environment" subtitle="Deterministic local generation. No credentials, no external calls.">
+           <Panel title="Generate suggested environment" subtitle="Build a reviewable proposal from approved sources or a pasted description.">
             <div className="space-y-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="gen">Paste an environment description</Label>
+                 <Label htmlFor="gen">Additional environment notes (optional)</Label>
                 <Textarea
                   id="gen"
                   rows={4}
@@ -403,7 +471,7 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
                   onChange={(e) => setFreeText(e.target.value)}
                 />
                 <Button variant="ghost" size="sm" className="justify-start px-0" onClick={() => setFreeText(EXAMPLE_TEXT)}>
-                  Use the example description
+                   Add an example description
                 </Button>
               </div>
 
@@ -438,25 +506,12 @@ export function EnvironmentMapper({ ws }: { ws: CustomerWorkspace }) {
                 </p>
               </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="provmode">Provider mode</Label>
-                <Select value={providerMode} onValueChange={(v) => setProviderMode(v as "demo" | "controlPlane")}>
-                  <SelectTrigger id="provmode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="demo">demo — deterministic local</SelectItem>
-                    <SelectItem value="controlPlane">controlPlane — future external execution</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={generate} disabled={busy} className="w-full">
+              <Button onClick={generate} disabled={busy} className="h-auto w-full whitespace-normal py-2 text-center leading-snug">
                 {busy ? "Generating…" : "Generate suggested environment"}
               </Button>
 
               {genError ? (
-                <Callout tone="critical" title="Generation unavailable">
+                <Callout tone="warning" title="Add more environment detail">
                   {genError}
                 </Callout>
               ) : null}

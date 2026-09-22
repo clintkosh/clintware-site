@@ -7,15 +7,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CUSTOMER_ONE } from "./seed";
+import { CUSTOMER_ONE, RETIRED_OFFICIAL_RECORD_IDS } from "./seed";
 import type {
+  Customer,
   CustomerWorkspace,
   Decision,
   DocumentSource,
   EnvironmentEdge,
   EnvironmentNode,
+  GoldenQuery,
   ID,
+  Incident,
+  MeetingRecord,
+  Milestone,
+  TriageRecord,
 } from "./types";
+
 
 const STORAGE_KEY = "n7-cvos-state-v1";
 
@@ -49,7 +56,7 @@ const initialState: AppState = {
   presentationMode: false,
   audience: "executive",
   providerMode: "demo",
-  tourSeen: false,
+  tourSeen: true,
 };
 
 export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
@@ -131,7 +138,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
       nextExecutiveTouch: "Week 2 sponsor review",
       headline: `Created in the Add Customer wizard. Target: ${input.implementationTarget || "to be agreed"}.`,
       createdAt: new Date().toISOString().slice(0, 10),
-      provenance: "illustrative",
+      provenance: "user-entered",
     },
     stakeholders: people.map((p, i) => ({
       id: `${id}-sh-${i}`,
@@ -140,7 +147,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
       role: "Captured during onboarding",
       side: "customer" as const,
       interest: "Interest to be confirmed in discovery.",
-      provenance: "illustrative" as const,
+      provenance: "user-entered" as const,
     })),
     outcomes: [
       {
@@ -149,7 +156,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         statement: input.businessOutcome,
         horizon: input.implementationTarget || "To be agreed",
         valueHypothesis: input.useCases || "Value hypothesis pending discovery.",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     kpis: [
@@ -180,7 +187,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
           refreshCadence: "Weekly",
           confidenceNote: "New customer. No approved baseline yet.",
         },
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     milestones: [
@@ -193,7 +200,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         track: "governance",
         owner: "CS / Implementation",
         status: "in-progress",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
       {
         id: `${id}-ms-2`,
@@ -204,7 +211,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         track: "parallel",
         owner: "CS / Implementation",
         status: "planned",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
       {
         id: `${id}-ms-3`,
@@ -215,7 +222,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         track: "critical-path",
         owner: "Engineering",
         status: "planned",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     dependencies: systems.map((sys, i) => ({
@@ -227,7 +234,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
       status: "not-started" as const,
       blocksGoLive: true,
       note: "Connector status must be verified before a date is committed.",
-      provenance: "illustrative" as const,
+      provenance: "user-entered" as const,
     })),
     risks: [
       {
@@ -241,7 +248,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         owner: "CS / Implementation",
         trigger: "Any source system marked unknown or custom.",
         status: "open",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
       {
         id: `${id}-risk-2`,
@@ -254,7 +261,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         owner: "CS / Implementation",
         trigger: "Baseline not approved before build completion.",
         status: "open",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     decisions: [
@@ -280,7 +287,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         accountable: "CSM / Implementation Lead",
         consulted: "Engineering, Customer PM",
         informed: "Leadership",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     nodes,
@@ -294,7 +301,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
       authModel: "TBD",
       owner: people[0] ?? "TBD",
       blocksGoLive: true,
-      provenance: "illustrative" as const,
+      provenance: "user-entered" as const,
     })),
     adoption: [],
     incidents: [],
@@ -305,7 +312,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         date: "W1",
         title: "Success criteria captured",
         detail: input.successCriteria || "Success criteria to be agreed.",
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     documents: [
@@ -321,7 +328,7 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
         lastSync: "Today",
         relevantSystems: systems,
         content: `Outcome: ${input.businessOutcome}. Baseline: ${input.baseline}. Target: ${input.target}. Users: ${input.users}. Use cases: ${input.useCases}. Systems: ${input.systems}. Success criteria: ${input.successCriteria}.`,
-        provenance: "illustrative",
+        provenance: "user-entered",
       },
     ],
     goldenQueries: [],
@@ -355,6 +362,8 @@ export function buildWorkspace(input: NewCustomerInput): CustomerWorkspace {
 interface StoreValue extends AppState {
   addCustomer: (input: NewCustomerInput) => string;
   getWorkspace: (id: ID) => CustomerWorkspace | undefined;
+  /** The untouched seeded case workspace, used to show what a case fact originally said. */
+  getBaseline: (id: ID) => CustomerWorkspace | undefined;
   toggleOverride: (id: ID) => void;
   clearOverrides: () => void;
   setPresentationMode: (v: boolean) => void;
@@ -365,10 +374,72 @@ interface StoreValue extends AppState {
   updateEdges: (customerId: ID, edges: EnvironmentEdge[]) => void;
   addDocument: (customerId: ID, doc: DocumentSource) => void;
   addDecision: (customerId: ID, decision: Decision) => void;
+  addIncident: (customerId: ID, incident: Incident) => void;
+  updateIncident: (customerId: ID, incidentId: ID, patch: Partial<Incident>) => void;
+  addGoldenQuery: (customerId: ID, query: GoldenQuery) => void;
+  updateGoldenQuery: (customerId: ID, queryId: ID, patch: Partial<GoldenQuery>) => void;
+  upsertTriageRecord: (customerId: ID, record: TriageRecord) => void;
+  /** Generic, typed workspace patch used by every inline edit surface. */
+  patchWorkspace: (customerId: ID, patch: Partial<CustomerWorkspace>) => void;
+  updateCustomer: (customerId: ID, patch: Partial<Customer>) => void;
+  /** Update one item inside any array-valued workspace collection, by id. */
+  updateItem: <K extends CollectionKey>(
+    customerId: ID,
+    collection: K,
+    itemId: ID,
+    patch: Partial<CollectionItem<K>>,
+  ) => void;
+  addMilestone: (customerId: ID, milestone: Milestone) => void;
+  recordMeeting: (customerId: ID, record: MeetingRecord) => void;
+  lastMeeting: (customerId: ID) => MeetingRecord | undefined;
   resetDemo: () => void;
 }
 
+type ArrayKeys<T> = {
+  [K in keyof T]: T[K] extends Array<{ id: ID }> | undefined ? K : never;
+}[keyof T];
+export type CollectionKey = Exclude<ArrayKeys<CustomerWorkspace>, undefined>;
+type CollectionItem<K extends CollectionKey> = NonNullable<CustomerWorkspace[K]> extends Array<
+  infer I
+>
+  ? I
+  : never;
+
 const StoreContext = createContext<StoreValue | null>(null);
+
+const RETIRED_IDS = new Set<string>(RETIRED_OFFICIAL_RECORD_IDS);
+
+/**
+ * Saved-data migration for the official case.
+ * Earlier versions persisted sample records that were not supplied in the case
+ * materials. Those exact ids are dropped on load. Anything a person created in
+ * the app has a different id and is preserved untouched.
+ */
+function sanitizeOfficial(ws: CustomerWorkspace): CustomerWorkspace {
+  const clean = <T extends { id: string }>(rows: T[] | undefined): T[] =>
+    (rows ?? []).filter((r) => !RETIRED_IDS.has(r.id));
+  return {
+    ...ws,
+    // The official case keeps its seed identity even if an older saved id differs.
+    customer: { ...ws.customer, id: CUSTOMER_ONE.customer.id },
+    stakeholders: clean(ws.stakeholders),
+    kpis: clean(ws.kpis),
+    milestones: clean(ws.milestones),
+    dependencies: clean(ws.dependencies),
+    risks: clean(ws.risks),
+    decisions: clean(ws.decisions),
+    raci: clean(ws.raci),
+    integrations: clean(ws.integrations),
+    adoption: clean(ws.adoption),
+    incidents: clean(ws.incidents),
+    valueEvents: clean(ws.valueEvents),
+    documents: clean(ws.documents),
+    goldenQueries: clean(ws.goldenQueries),
+    messages: clean(ws.messages),
+    assumptions: clean(ws.assumptions),
+    triageRecords: (ws.triageRecords ?? []).filter((t) => !RETIRED_IDS.has(t.incidentId)),
+  };
+}
 
 export function N7Provider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
@@ -380,9 +451,25 @@ export function N7Provider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
         if (parsed?.workspaces?.length) {
-          // Always keep the official case workspace authoritative from seed.
+          // Seed shape stays authoritative; persisted edits are layered on top so
+          // in-app edits survive a refresh. "Reset demo" restores the seed exactly.
+          const persistedOfficial = parsed.workspaces.find((w) => w.customer.isOfficialCase);
           const extras = parsed.workspaces.filter((w) => !w.customer.isOfficialCase);
-          setState({ ...initialState, ...parsed, workspaces: [CUSTOMER_ONE, ...extras] });
+          setState({
+            ...initialState,
+            ...parsed,
+            // Scenarios are temporary working overlays. They never reopen in the live plan.
+            activeOverrides: [],
+            presentationMode: false,
+            providerMode: "demo",
+            tourSeen: true,
+            workspaces: [
+              persistedOfficial
+                ? sanitizeOfficial({ ...CUSTOMER_ONE, ...persistedOfficial })
+                : CUSTOMER_ONE,
+              ...extras,
+            ],
+          });
         }
       }
     } catch {
@@ -394,7 +481,16 @@ export function N7Provider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          ...state,
+          activeOverrides: [],
+          presentationMode: false,
+          providerMode: "demo",
+          tourSeen: true,
+        }),
+      );
     } catch {
       /* storage unavailable */
     }
@@ -406,11 +502,21 @@ export function N7Provider({ children }: { children: ReactNode }) {
     return ws.customer.id;
   }, []);
 
+  const mapWorkspace = useCallback(
+    (customerId: ID, fn: (w: CustomerWorkspace) => CustomerWorkspace) =>
+      setState((s) => ({
+        ...s,
+        workspaces: s.workspaces.map((w) => (w.customer.id === customerId ? fn(w) : w)),
+      })),
+    [],
+  );
+
   const value = useMemo<StoreValue>(
     () => ({
       ...state,
       addCustomer,
       getWorkspace: (id) => state.workspaces.find((w) => w.customer.id === id),
+      getBaseline: (id) => (CUSTOMER_ONE.customer.id === id ? CUSTOMER_ONE : undefined),
       toggleOverride: (id) =>
         setState((s) => ({
           ...s,
@@ -423,37 +529,63 @@ export function N7Provider({ children }: { children: ReactNode }) {
       setAudience: (v) => setState((s) => ({ ...s, audience: v })),
       setProviderMode: (v) => setState((s) => ({ ...s, providerMode: v })),
       setTourSeen: (v) => setState((s) => ({ ...s, tourSeen: v })),
-      updateNodes: (customerId, nodes) =>
-        setState((s) => ({
-          ...s,
-          workspaces: s.workspaces.map((w) =>
-            w.customer.id === customerId ? { ...w, nodes } : w,
-          ),
-        })),
-      updateEdges: (customerId, edges) =>
-        setState((s) => ({
-          ...s,
-          workspaces: s.workspaces.map((w) =>
-            w.customer.id === customerId ? { ...w, edges } : w,
-          ),
-        })),
+      updateNodes: (customerId, nodes) => mapWorkspace(customerId, (w) => ({ ...w, nodes })),
+      updateEdges: (customerId, edges) => mapWorkspace(customerId, (w) => ({ ...w, edges })),
       addDocument: (customerId, doc) =>
-        setState((s) => ({
-          ...s,
-          workspaces: s.workspaces.map((w) =>
-            w.customer.id === customerId ? { ...w, documents: [...w.documents, doc] } : w,
-          ),
-        })),
+        mapWorkspace(customerId, (w) => ({ ...w, documents: [...w.documents, doc] })),
       addDecision: (customerId, decision) =>
-        setState((s) => ({
-          ...s,
-          workspaces: s.workspaces.map((w) =>
-            w.customer.id === customerId ? { ...w, decisions: [...w.decisions, decision] } : w,
+        mapWorkspace(customerId, (w) => ({ ...w, decisions: [...w.decisions, decision] })),
+      addIncident: (customerId, incident) =>
+        mapWorkspace(customerId, (w) => ({ ...w, incidents: [...w.incidents, incident] })),
+      updateIncident: (customerId, incidentId, patch) =>
+        mapWorkspace(customerId, (w) => ({
+          ...w,
+          incidents: w.incidents.map((incident) =>
+            incident.id === incidentId ? { ...incident, ...patch } : incident,
           ),
         })),
+      addGoldenQuery: (customerId, query) =>
+        mapWorkspace(customerId, (w) => ({ ...w, goldenQueries: [...w.goldenQueries, query] })),
+      updateGoldenQuery: (customerId, queryId, patch) =>
+        mapWorkspace(customerId, (w) => ({
+          ...w,
+          goldenQueries: w.goldenQueries.map((query) =>
+            query.id === queryId ? { ...query, ...patch } : query,
+          ),
+        })),
+      upsertTriageRecord: (customerId, record) =>
+        mapWorkspace(customerId, (w) => {
+          const records = w.triageRecords ?? [];
+          const exists = records.some((item) => item.incidentId === record.incidentId);
+          return {
+            ...w,
+            triageRecords: exists
+              ? records.map((item) => (item.incidentId === record.incidentId ? record : item))
+              : [...records, record],
+          };
+        }),
+      patchWorkspace: (customerId, patch) => mapWorkspace(customerId, (w) => ({ ...w, ...patch })),
+      updateCustomer: (customerId, patch) =>
+        mapWorkspace(customerId, (w) => ({ ...w, customer: { ...w.customer, ...patch } })),
+      updateItem: (customerId, collection, itemId, patch) =>
+        mapWorkspace(customerId, (w) => {
+          const list = (w[collection] ?? []) as { id: ID }[];
+          return {
+            ...w,
+            [collection]: list.map((i) => (i.id === itemId ? { ...i, ...patch } : i)),
+          } as CustomerWorkspace;
+        }),
+      addMilestone: (customerId, milestone) =>
+        mapWorkspace(customerId, (w) => ({ ...w, milestones: [...w.milestones, milestone] })),
+      recordMeeting: (customerId, record) =>
+        mapWorkspace(customerId, (w) => ({ ...w, meetings: [...(w.meetings ?? []), record] })),
+      lastMeeting: (customerId) => {
+        const list = state.workspaces.find((w) => w.customer.id === customerId)?.meetings ?? [];
+        return list[list.length - 1];
+      },
       resetDemo: () => setState(initialState),
     }),
-    [state, addCustomer],
+    [state, addCustomer, mapWorkspace],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

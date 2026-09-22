@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { WorkspaceShell } from "@/components/n7/WorkspaceShell";
 import { SECTION_COMPONENTS } from "@/components/n7/sections/registry";
 import { EmptyState } from "@/components/n7/primitives";
@@ -7,6 +7,15 @@ import { resolveSectionSlug, sectionBySlug } from "@/lib/n7/sections";
 import { useN7 } from "@/lib/n7/store";
 
 export const Route = createFileRoute("/customers/$customerId/$section")({
+  beforeLoad: ({ params }) => {
+    if (params.section === "panel-defense") {
+      throw redirect({
+        to: "/customers/$customerId/$section",
+        params: { customerId: params.customerId, section: "executive-summary" },
+        replace: true,
+      });
+    }
+  },
   head: ({ params }) => {
     const section = sectionBySlug(params.section);
     const title = section ? `${section.label} — N7 Customer Value OS` : "Customer workspace — N7 Customer Value OS";

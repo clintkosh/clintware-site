@@ -221,3 +221,55 @@
     linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* --------------------------------------------------------------------------
+ * Print / PDF export.
+ * "Export PDF" uses the browser's own print-to-PDF: no external service and no
+ * extra dependency. Only the generated brief is printed, always in a clean
+ * light print-safe palette regardless of the on-screen theme.
+ * ------------------------------------------------------------------------ */
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #brief-print,
+  #brief-print * {
+    visibility: visible !important;
+    color: #0f172a !important;
+    background: transparent !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  #brief-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    font-size: 10.5pt;
+  }
+
+  #brief-print section,
+  #brief-print header,
+  #brief-print li {
+    break-inside: avoid;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+}
+
+@utility focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-ring);
+}

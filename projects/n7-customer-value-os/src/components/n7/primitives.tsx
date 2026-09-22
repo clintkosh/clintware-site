@@ -4,14 +4,28 @@ import type { Provenance } from "@/lib/n7/types";
 
 const PROVENANCE_META: Record<Provenance, { label: string; className: string }> = {
   "case-fact": { label: "Case fact", className: "bg-fact text-fact-foreground" },
-  "working-assumption": {
-    label: "Working assumption",
+  "user-entered": { label: "User entered", className: "bg-human text-human-foreground" },
+  "generated-proposal": {
+    label: "Proposal (not approved)",
     className: "bg-assumption text-assumption-foreground",
   },
-  illustrative: { label: "Illustrative / demo", className: "bg-demo text-demo-foreground" },
-  "human-decision": { label: "Human decision", className: "bg-human text-human-foreground" },
+  "template-helper": { label: "Template", className: "bg-secondary text-secondary-foreground" },
+  "working-assumption": {
+    label: "Needs review",
+    className: "bg-assumption text-assumption-foreground",
+  },
+  illustrative: { label: "Needs review", className: "bg-demo text-demo-foreground" },
+  "human-decision": { label: "User entered", className: "bg-human text-human-foreground" },
   "automated-signal": { label: "Automated signal", className: "bg-auto text-auto-foreground" },
 };
+
+/** Badges shown in the legend. Legacy values are still rendered on old records. */
+const LEGEND_KEYS: Provenance[] = [
+  "case-fact",
+  "user-entered",
+  "generated-proposal",
+  "template-helper",
+];
 
 export function ProvenanceTag({
   value,
@@ -40,7 +54,7 @@ export function ProvenanceLegend({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="label-caps">Provenance</span>
-      {(Object.keys(PROVENANCE_META) as Provenance[]).map((p) => (
+      {LEGEND_KEYS.map((p) => (
         <ProvenanceTag key={p} value={p} />
       ))}
     </div>
@@ -193,8 +207,7 @@ export function StatusPill({
 export function DemoDataNote({ children }: { children?: ReactNode }) {
   return (
     <p className="mt-3 text-xs text-muted-foreground">
-      {children ??
-        "Values shown are illustrative demo data for this candidate concept prototype, not customer data."}
+      {children ?? "Values shown come from this workspace. Nothing here is pre-filled sample data."}
     </p>
   );
 }

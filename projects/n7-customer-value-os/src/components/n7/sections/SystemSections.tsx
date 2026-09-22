@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { copyText } from "@/lib/n7/clipboard";
 import {
   Callout,
   EmptyState,
@@ -94,7 +95,7 @@ export function Messaging({ ws }: { ws: CustomerWorkspace }) {
       ) : (
         <EmptyState
           title="No approved message yet"
-          body="Compose the first customer message using the five-part framework below. Nothing is sent from this prototype."
+          body="Compose the first customer message using the five-part framework below. Nothing is sent without human review."
         />
       )}
 
@@ -125,8 +126,7 @@ export function Messaging({ ws }: { ws: CustomerWorkspace }) {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  void navigator.clipboard?.writeText(composed);
-                  toast.success("Draft copied");
+                  void copyText(composed, "Draft copied");
                 }}
               >
                 Copy draft

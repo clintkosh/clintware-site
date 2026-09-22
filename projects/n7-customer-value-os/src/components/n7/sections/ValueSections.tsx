@@ -23,13 +23,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEFENSE_50_PERCENT, ROI_METHOD, SUCCESS_DEFINITION } from "@/lib/n7/seed";
+import { OUTCOME_MEASUREMENT_STANDARD, ROI_METHOD, SUCCESS_DEFINITION } from "@/lib/n7/seed";
 import type { CustomerWorkspace } from "@/lib/n7/types";
 
 export function ROIWorkshop({ ws }: { ws: CustomerWorkspace }) {
-  const [eligible, setEligible] = useState(2000);
-  const [deflection, setDeflection] = useState(30);
-  const [aht, setAht] = useState(18);
+  // No values are pre-filled. Every input is entered by the team.
+  const [eligible, setEligible] = useState(0);
+  const [deflection, setDeflection] = useState(0);
+  const [aht, setAht] = useState(0);
   const [rate, setRate] = useState(0);
 
   const avoided = Math.round((eligible * deflection) / 100);
@@ -45,7 +46,7 @@ export function ROIWorkshop({ ws }: { ws: CustomerWorkspace }) {
       />
 
       <Callout tone="info" title="How the 50% is defended">
-        {DEFENSE_50_PERCENT}
+        {OUTCOME_MEASUREMENT_STANDARD}
       </Callout>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -101,8 +102,8 @@ export function ROIWorkshop({ ws }: { ws: CustomerWorkspace }) {
           />
         </div>
         <DemoDataNote>
-          Inputs are illustrative. Every monetary assumption must be customer or Finance approved
-          before it appears in a business review.
+          Inputs start empty and are entered by your team. Every monetary assumption must be
+          customer or Finance approved before it appears in a business review.
         </DemoDataNote>
       </Panel>
 
@@ -254,26 +255,26 @@ export function ExecutiveQBR({ ws }: { ws: CustomerWorkspace }) {
           value={`${latest.medianCycleTimeMin} min`}
           note={`From ${first.medianCycleTimeMin} min at hypercare start`}
           tone="success"
-          provenance="illustrative"
+          provenance="user-entered"
         />
         <MetricCard
           label="P75 cycle time"
           value={`${latest.p75CycleTimeMin} min`}
           note="Tail metric — difficult cases stay visible"
-          provenance="illustrative"
+          provenance="user-entered"
         />
         <MetricCard
           label="Progress toward 50%"
           value={cycleDelta === null ? "—" : `${cycleDelta}%`}
           tone="warning"
           note="Against an unapproved interim baseline. Not a value claim."
-          provenance="illustrative"
+          provenance="user-entered"
         />
         <MetricCard
           label="Weekly active technicians"
           value={String(latest.activeTechnicians)}
           note="Leading signal. Not ROI."
-          provenance="illustrative"
+          provenance="user-entered"
         />
       </div>
 

@@ -18,7 +18,9 @@ import {
   RECOVERY_OPTIONS,
   AUTOMATION_CONCEPTS,
 } from "@/lib/n7/seed";
+import { WorkstreamBoard } from "@/components/n7/WorkstreamBoard";
 import type { CustomerWorkspace, Milestone } from "@/lib/n7/types";
+
 import { cn } from "@/lib/utils";
 
 const TRACK_META: Record<Milestone["track"], { label: string; cls: string }> = {
@@ -67,6 +69,9 @@ export function Implementation({ ws }: { ws: CustomerWorkspace }) {
       <Callout tone="warning" title="W10 is a planning boundary">
         {PLANNING_BOUNDARY_TEXT}
       </Callout>
+
+      <WorkstreamBoard ws={ws} />
+
 
       <div className="flex flex-wrap gap-2">
         {(["all", "critical-path", "parallel", "governance", "hypercare"] as const).map((t) => (
@@ -124,7 +129,7 @@ export function Implementation({ ws }: { ws: CustomerWorkspace }) {
         </div>
       </Panel>
 
-      <Panel title="Automation concepts" subtitle="Architecture and roadmap. None of these integrations are live in this prototype.">
+      <Panel title="Automation roadmap" subtitle="Planned capabilities remain inactive until their integrations are approved and configured.">
         <div className="grid gap-3 md:grid-cols-2">
           {AUTOMATION_CONCEPTS.map((a) => (
             <div key={a.id} className="rounded-md border border-border p-4">

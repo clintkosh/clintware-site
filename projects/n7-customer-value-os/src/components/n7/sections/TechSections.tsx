@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { copyText } from "@/lib/n7/clipboard";
 import {
   Callout,
   DemoDataNote,
@@ -21,9 +22,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MeetingBriefDialog } from "@/components/n7/MeetingBrief";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SKILL_PACKS, TRIAGE_KEY_DIAGNOSTIC, TRIAGE_LAYERS } from "@/lib/n7/seed";
+
 import { useN7 } from "@/lib/n7/store";
-import type { CustomerWorkspace, DocumentSource } from "@/lib/n7/types";
+import type {
+  CustomerWorkspace,
+  DocumentSource,
+  GoldenQuery,
+  Incident,
+  TriageRecord,
+} from "@/lib/n7/types";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -61,7 +77,7 @@ export function Documents({ ws }: { ws: CustomerWorkspace }) {
       lastSync: new Date().toISOString().slice(0, 10),
       relevantSystems: form.systems.split(",").map((s) => s.trim()).filter(Boolean),
       content: form.content,
-      provenance: "illustrative",
+      provenance: "user-entered",
     });
     toast.success("Source registered", {
       description: form.approved
@@ -86,7 +102,7 @@ export function Documents({ ws }: { ws: CustomerWorkspace }) {
       />
 
       {open ? (
-        <Panel title="Register a source" subtitle="Prototype capture: metadata plus a pasted content representation. No file is uploaded anywhere.">
+        <Panel title="Register a source" subtitle="Capture source metadata and approved text locally. No file is uploaded.">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="dtitle">Title</Label>
@@ -199,60 +215,131 @@ export function Documents({ ws }: { ws: CustomerWorkspace }) {
 /* ------------------------------------------------------------------ */
 
 export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
-  const [step, setStep] = useState(0);
-  const [findings, setFindings] = useState<Record<number, string>>({});
-  const [ruledOut, setRuledOut] = useState<number[]>([]);
-  const [packet, setPacket] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    repro: "Run golden query GQ-1 as a field technician in the launch cohort.",
-    queries: "GQ-1 (SAP, Infusion), GQ-3 (SAP, Imaging)",
-    expected: "Current-revision SAP manual section with torque spec table",
-    actual: "Returns a superseded revision; correct section not in top results",
-    source: "SAP product manuals",
-    contentVersion: "Rev 7 expected, Rev 5 returned (illustrative)",
-    timestamps: "Observed post-launch W16, 09:00–11:00 customer time",
-    userRole: "Field technician, launch cohort, permission-filtered",
-    blastRadius: "SAP content only. Salesforce golden queries still pass.",
-    suspected: "Source content versioning or ingestion, not retrieval",
+  const {
+    addIncident,
+    updateIncident,
+    addGoldenQuery,
+    updateGoldenQuery,
+    upsertTriageRecord,
+  } = useN7();
+  const [incidentOpen, setIncidentOpen] = useState(false);
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState(ws.incidents[0]?.id ?? "");
+  const [incidentForm, setIncidentForm] = useState({
+    title: "", reportedSymptom: "", openedAt: new Date().toISOString().slice(0, 16),
+    reportedBy: "", segment: "", severity: "medium" as NonNullable<Incident["severity"]>,
+    sourceSystem: "", status: "reported" as Incident["status"], notes: "",
+  });
+  const [queryForm, setQueryForm] = useState({
+    query: "", expected: "", sourceSystem: "", productFamily: "", version: "",
+    lastResult: "not-run" as GoldenQuery["lastResult"], notes: "",
   });
 
-  const incident = ws.incidents[0];
-  const sapQueries = ws.goldenQueries.filter((q) => q.sourceSystem === "SAP");
-  const sfdcQueries = ws.goldenQueries.filter((q) => q.sourceSystem === "Salesforce");
+  const incident = ws.incidents.find((item) => item.id === selectedIncidentId) ?? ws.incidents[0];
+  const existingRecord = incident
+    ? ws.triageRecords?.find((record) => record.incidentId === incident.id)
+    : undefined;
+  const emptyPacketFields = {
+    repro: "", expected: "", actual: "", contentVersion: "", timestamps: "",
+    userRole: "", blastRadius: "", suspected: "", evidence: "",
+  };
+  const record: TriageRecord | undefined = incident
+    ? existingRecord ?? {
+        id: `${incident.id}-triage`, customerId: ws.customer.id, incidentId: incident.id,
+        currentLayer: 0, findings: {}, ruledOutLayers: [], startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(), owner: "Unassigned", linkedGoldenQueryIds: [],
+        packetFields: emptyPacketFields, provenance: "human-decision",
+      }
+    : undefined;
+  const step = Math.min(record?.currentLayer ?? 0, TRIAGE_LAYERS.length - 1);
+  const findings = record?.findings ?? {};
+  const ruledOut = record?.ruledOutLayers ?? [];
+  const linkedQueries = ws.goldenQueries.filter((query) => record?.linkedGoldenQueryIds.includes(query.id));
+  const sapQueries = linkedQueries.filter((q) => q.sourceSystem.toLowerCase().includes("sap"));
+  const sfdcQueries = linkedQueries.filter((q) => q.sourceSystem.toLowerCase().includes("salesforce"));
 
   const asymmetry = useMemo(
     () => sapQueries.some((q) => q.lastResult !== "pass") && sfdcQueries.every((q) => q.lastResult !== "fail"),
     [sapQueries, sfdcQueries],
   );
 
+  function saveRecord(patch: Partial<TriageRecord>) {
+    if (!record) return;
+    upsertTriageRecord(ws.customer.id, { ...record, ...patch, updatedAt: new Date().toISOString() });
+  }
+
+  function createIncident() {
+    if (!incidentForm.title.trim() || !incidentForm.reportedSymptom.trim()) {
+      toast.error("Title and reported symptom are required");
+      return;
+    }
+    const id = `${ws.customer.id}-inc-${Date.now().toString(36)}`;
+    addIncident(ws.customer.id, {
+      id, customerId: ws.customer.id, ...incidentForm, provenance: "human-decision",
+    });
+    setSelectedIncidentId(id);
+    setIncidentOpen(false);
+    toast.success("Triage case created");
+  }
+
+  function createQuery() {
+    if (!queryForm.query.trim() || !queryForm.expected.trim()) {
+      toast.error("Query and expected result are required");
+      return;
+    }
+    if (editingQueryId) {
+      updateGoldenQuery(ws.customer.id, editingQueryId, queryForm);
+      setEditingQueryId(null);
+      setQueryOpen(false);
+      toast.success("Golden query updated");
+      return;
+    }
+    const id = `${ws.customer.id}-gq-${Date.now().toString(36)}`;
+    addGoldenQuery(ws.customer.id, {
+      id, customerId: ws.customer.id, ...queryForm, sourceSystem: queryForm.sourceSystem || "Unknown",
+      productFamily: queryForm.productFamily || "Unspecified", version: queryForm.version || "Unversioned",
+      provenance: "human-decision",
+    });
+    if (record) saveRecord({ linkedGoldenQueryIds: [...record.linkedGoldenQueryIds, id] });
+    setQueryOpen(false);
+    toast.success("Golden query added");
+  }
+
   function generatePacket() {
+    if (!incident || !record) return;
     const alreadyRuledOut = ruledOut
-      .map((i) => `${TRIAGE_LAYERS[i]!.step}. ${TRIAGE_LAYERS[i]!.title}${findings[i] ? ` — ${findings[i]}` : ""}`)
+      .map((i) => `${TRIAGE_LAYERS[i]!.step}. ${TRIAGE_LAYERS[i]!.title}${findings[String(i)] ? ` — ${findings[String(i)]}` : ""}`)
       .join("\n");
-    setPacket(
-      [
+    const fields = record.packetFields;
+    const generatedAt = new Date().toISOString();
+    const packet = [
         "ENGINEERING ESCALATION PACKET",
         `Customer: ${ws.customer.name}`,
-        `Reported symptom: ${incident?.reportedSymptom ?? "Reported accuracy degradation"}`,
+        `Incident: ${incident.title}`,
+        `Reported symptom: ${incident.reportedSymptom}`,
+        `Severity / status: ${incident.severity ?? "unknown"} / ${incident.status}`,
+        `Reported by: ${incident.reportedBy || "unknown"}`,
+        `Affected segment: ${incident.segment || "unknown"}`,
         "",
-        `Repro steps: ${form.repro}`,
-        `Affected queries: ${form.queries}`,
-        `Expected: ${form.expected}`,
-        `Actual: ${form.actual}`,
-        `Affected source: ${form.source}`,
-        `Content version: ${form.contentVersion}`,
-        "Screenshots / logs: [attach screenshot placeholder] [attach ingestion log placeholder]",
-        `Timestamps: ${form.timestamps}`,
-        `User / role / permissions: ${form.userRole}`,
-        `Blast radius: ${form.blastRadius}`,
-        `Suspected fault domain: ${form.suspected}`,
+        `Repro steps: ${fields.repro || "Unknown"}`,
+        `Linked queries: ${linkedQueries.map((q) => `${q.query} (${q.sourceSystem}, ${q.lastResult})`).join("; ") || "None linked"}`,
+        `Expected: ${fields.expected || "Unknown"}`,
+        `Actual: ${fields.actual || incident.reportedSymptom}`,
+        `Affected source: ${incident.sourceSystem || "Unknown"}`,
+        `Content version: ${fields.contentVersion || "Unknown"}`,
+        `Evidence / logs: ${fields.evidence || "Not attached"}`,
+        `Timestamps: ${fields.timestamps || incident.openedAt}`,
+        `User / role / permissions: ${fields.userRole || "Unknown"}`,
+        `Blast radius: ${fields.blastRadius || incident.segment || "Unknown"}`,
+        `Suspected fault domain: ${fields.suspected || "Not yet determined"}`,
         "",
         "What CS has already ruled out:",
         alreadyRuledOut || "(none marked yet)",
         "",
         "Note: reported symptom, not a proven model failure. Root-cause conclusion remains a human decision.",
-      ].join("\n"),
-    );
+      ].join("\n");
+    saveRecord({ generatedPacket: packet, packetGeneratedAt: generatedAt });
     toast.success("Escalation packet generated");
   }
 
@@ -261,8 +348,63 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
       <SectionHeader
         eyebrow={ws.customer.name}
         title="Accuracy Triage"
-        description="An accuracy complaint is a reported symptom, not a proven model failure. Eight layers, in order, before retrieval is even considered."
+        description="Persistent customer incident records, evidence, and eight-layer investigation before any root-cause conclusion."
+        actions={<><Button size="sm" variant="outline" onClick={() => { setEditingQueryId(null); setQueryOpen(true); }}>Add golden query</Button><Button size="sm" onClick={() => setIncidentOpen(true)}>New triage case</Button></>}
       />
+
+      <Dialog open={incidentOpen} onOpenChange={setIncidentOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create triage case</DialogTitle>
+            <DialogDescription>Record the reported symptom without assuming a root cause.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 md:grid-cols-2">
+            {([
+              ["title", "Title"], ["reportedBy", "Reported by"], ["openedAt", "Opened date / time"],
+              ["segment", "Affected segment"], ["sourceSystem", "Source / system"], ["notes", "Notes"],
+            ] as const).map(([key, label]) => (
+              <div key={key} className="grid gap-1.5">
+                <Label htmlFor={`inc-${key}`}>{label}</Label>
+                <Input id={`inc-${key}`} type={key === "openedAt" ? "datetime-local" : "text"} value={incidentForm[key]} onChange={(e) => setIncidentForm({ ...incidentForm, [key]: e.target.value })} />
+              </div>
+            ))}
+            <div className="grid gap-1.5 md:col-span-2">
+              <Label htmlFor="inc-symptom">Reported symptom</Label>
+              <Textarea id="inc-symptom" value={incidentForm.reportedSymptom} onChange={(e) => setIncidentForm({ ...incidentForm, reportedSymptom: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5"><Label>Severity / priority</Label><Select value={incidentForm.severity} onValueChange={(value) => setIncidentForm({ ...incidentForm, severity: value as NonNullable<Incident["severity"]> })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["low", "medium", "high", "critical"] as const).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+            <div className="grid gap-1.5"><Label>Status</Label><Select value={incidentForm.status} onValueChange={(value) => setIncidentForm({ ...incidentForm, status: value as Incident["status"] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["reported", "triage", "isolated", "resolved"] as const).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <Button onClick={createIncident}>Create triage case</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={queryOpen} onOpenChange={setQueryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{editingQueryId ? "Edit golden query" : "Add golden query"}</DialogTitle><DialogDescription>Add a reusable, versioned reproduction check. Linking to an incident is optional.</DialogDescription></DialogHeader>
+          <div className="grid gap-3 md:grid-cols-2">
+            {(["query", "expected", "sourceSystem", "productFamily", "version", "notes"] as const).map((key) => (
+              <div key={key} className={cn("grid gap-1.5", (key === "query" || key === "expected") && "md:col-span-2")}>
+                <Label htmlFor={`gq-${key}`}>{({ query: "Query", expected: "Expected result", sourceSystem: "Source system", productFamily: "Product family", version: "Version", notes: "Notes / evidence" })[key]}</Label>
+                <Input id={`gq-${key}`} value={queryForm[key]} onChange={(e) => setQueryForm({ ...queryForm, [key]: e.target.value })} />
+              </div>
+            ))}
+          </div>
+          <Button onClick={createQuery}>{editingQueryId ? "Save query" : "Add golden query"}</Button>
+        </DialogContent>
+      </Dialog>
+
+      {ws.incidents.length ? (
+        <Panel title="Triage cases" subtitle="Select an incident to continue its saved investigation.">
+          <div className="flex flex-wrap gap-2">
+            {ws.incidents.map((item) => (
+              <Button key={item.id} size="sm" variant={incident?.id === item.id ? "default" : "outline"} onClick={() => setSelectedIncidentId(item.id)}>
+                {item.title} · {item.status} · {item.openedAt}
+              </Button>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
 
       {incident ? (
         <Callout tone="warning" title={incident.title}>
@@ -272,19 +414,24 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
             <span>Opened: {incident.openedAt}</span>
             <span>Segment: {incident.segment}</span>
             <ProvenanceTag value={incident.provenance} short />
+            <span>Priority: {incident.severity ?? "not set"}</span>
+            <Select value={incident.status} onValueChange={(status) => updateIncident(ws.customer.id, incident.id, { status: status as Incident["status"] })}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{(["reported", "triage", "isolated", "resolved"] as const).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
           </div>
         </Callout>
       ) : (
-        <EmptyState title="No open accuracy incident" body="When a complaint arrives, this wizard walks the fault domains in order." />
+        <div className="space-y-3"><EmptyState title="No triage cases" body="Create a customer incident to begin an evidence-backed investigation. Golden queries are optional." /><Button onClick={() => setIncidentOpen(true)}>Create triage case</Button></div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {incident && record ? <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel title="Triage wizard" subtitle={`Layer ${step + 1} of ${TRIAGE_LAYERS.length}`}>
+          <div className="mb-4 grid gap-1.5"><Label htmlFor="triage-owner">Triage owner</Label><Input id="triage-owner" value={record.owner} onChange={(e) => saveRecord({ owner: e.target.value })} /></div>
           <ol className="mb-4 flex flex-wrap gap-1">
             {TRIAGE_LAYERS.map((l, i) => (
               <li key={l.step}>
-                <button
-                  onClick={() => setStep(i)}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => saveRecord({ currentLayer: i })}
                   className={cn(
                     "rounded-md px-2 py-1 text-xs font-medium transition-colors",
                     i === step
@@ -295,7 +442,7 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
                   )}
                 >
                   {l.step}
-                </button>
+                </Button>
               </li>
             ))}
           </ol>
@@ -314,8 +461,8 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
             <Textarea
               id="finding"
               rows={3}
-              value={findings[step] ?? ""}
-              onChange={(e) => setFindings({ ...findings, [step]: e.target.value })}
+              value={findings[String(step)] ?? ""}
+              onChange={(e) => saveRecord({ findings: { ...findings, [String(step)]: e.target.value } })}
               placeholder="What did you observe at this layer?"
             />
           </div>
@@ -324,20 +471,18 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
             <Button
               size="sm"
               variant={ruledOut.includes(step) ? "default" : "outline"}
-              onClick={() =>
-                setRuledOut((r) => (r.includes(step) ? r.filter((x) => x !== step) : [...r, step]))
-              }
+              onClick={() => saveRecord({ ruledOutLayers: ruledOut.includes(step) ? ruledOut.filter((x) => x !== step) : [...ruledOut, step] })}
             >
               {ruledOut.includes(step) ? "Marked ruled out" : "Mark ruled out"}
             </Button>
-            <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
+            <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => saveRecord({ currentLayer: step - 1 })}>
               Previous
             </Button>
             <Button
               size="sm"
               variant="ghost"
               disabled={step === TRIAGE_LAYERS.length - 1}
-              onClick={() => setStep((s) => s + 1)}
+              onClick={() => saveRecord({ currentLayer: step + 1 })}
             >
               Next layer
             </Button>
@@ -362,7 +507,7 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
             ) : null}
           </Panel>
 
-          <Panel title="Versioned golden queries" subtitle="Reproduction set per source system and product family.">
+          <Panel title="Versioned golden queries" subtitle="Add, link, and update reusable reproduction checks." right={<Button size="sm" onClick={() => { setEditingQueryId(null); setQueryOpen(true); }}>Add golden query</Button>}>
             {ws.goldenQueries.length === 0 ? (
               <EmptyState title="No golden queries yet" body="Build the representative query pack during the parallel UAT workstream." />
             ) : (
@@ -370,7 +515,7 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
                 <table className="w-full min-w-[520px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-border text-left">
-                      {["Query", "Source", "Family", "Version", "Last result"].map((h) => (
+                      {["Query", "Source", "Family", "Version", "Last result", "Link / edit"].map((h) => (
                         <th key={h} className="label-caps py-2 pr-3">
                           {h}
                         </th>
@@ -387,8 +532,13 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
                         <td className="py-2 pr-3">{q.sourceSystem}</td>
                         <td className="py-2 pr-3">{q.productFamily}</td>
                         <td className="py-2 pr-3 font-mono text-xs">{q.version}</td>
+                       <td className="py-2 pr-2">
+                          <Select value={q.lastResult} onValueChange={(value) => updateGoldenQuery(ws.customer.id, q.id, { lastResult: value as GoldenQuery["lastResult"] })}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent>{(["not-run", "pass", "fail"] as const).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select>
+                          <div className="mt-1"><ProvenanceTag value={q.provenance ?? "user-entered"} short /></div>
+                        </td>
                         <td className="py-2">
-                          <StatusPill status={q.lastResult} />
+                          <Checkbox aria-label={`Link ${q.query}`} checked={record.linkedGoldenQueryIds.includes(q.id)} onCheckedChange={(checked) => saveRecord({ linkedGoldenQueryIds: checked ? [...record.linkedGoldenQueryIds, q.id] : record.linkedGoldenQueryIds.filter((id) => id !== q.id) })} />
+                          <Button className="ml-2" size="sm" variant="ghost" onClick={() => { setEditingQueryId(q.id); setQueryForm({ query: q.query, expected: q.expected, sourceSystem: q.sourceSystem, productFamily: q.productFamily, version: q.version, lastResult: q.lastResult, notes: q.notes ?? "" }); setQueryOpen(true); }}>Edit</Button>
                         </td>
                       </tr>
                     ))}
@@ -399,9 +549,9 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
             <DemoDataNote />
           </Panel>
         </div>
-      </div>
+      </div> : null}
 
-      <Panel
+      {incident && record ? <Panel
         title="Engineering escalation packet generator"
         subtitle="Everything Engineering needs to start, including what CS already ruled out."
       >
@@ -409,43 +559,42 @@ export function AccuracyTriage({ ws }: { ws: CustomerWorkspace }) {
           {(
             [
               ["repro", "Repro steps"],
-              ["queries", "Affected queries"],
               ["expected", "Expected result"],
               ["actual", "Actual result"],
-              ["source", "Affected source"],
               ["contentVersion", "Content version"],
               ["timestamps", "Timestamps"],
               ["userRole", "User / role / permissions"],
               ["blastRadius", "Blast radius"],
               ["suspected", "Suspected fault domain"],
+              ["evidence", "Screenshots / logs / evidence"],
             ] as const
           ).map(([key, label]) => (
             <div key={key} className="grid gap-1.5">
               <Label htmlFor={key}>{label}</Label>
-              <Input id={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+               <Input id={key} value={record.packetFields[key]} onChange={(e) => saveRecord({ packetFields: { ...record.packetFields, [key]: e.target.value } })} />
             </div>
           ))}
         </div>
         <div className="mt-4 flex gap-2">
           <Button onClick={generatePacket}>Generate packet</Button>
-          {packet ? (
+           {record.generatedPacket ? (
             <Button
               variant="outline"
               onClick={() => {
-                void navigator.clipboard?.writeText(packet);
-                toast.success("Packet copied");
+                 void copyText(record.generatedPacket ?? "", "Packet copied");
               }}
             >
               Copy
             </Button>
           ) : null}
         </div>
-        {packet ? (
+         {record.packetGeneratedAt ? <span className="mt-3 block text-xs text-muted-foreground">Last generated: {new Date(record.packetGeneratedAt).toLocaleString()}</span> : null}
+         {record.generatedPacket ? (
           <pre className="mt-4 max-h-96 overflow-auto rounded-md border border-border bg-surface p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-foreground/90">
-            {packet}
+             {record.generatedPacket}
           </pre>
         ) : null}
-      </Panel>
+      </Panel> : null}
     </div>
   );
 }
@@ -474,6 +623,7 @@ const OBJECTIVE_PACKS: Record<string, string[]> = {
 
 export function VirtualLiaison({ ws }: { ws: CustomerWorkspace }) {
   const [objective, setObjective] = useState<string>(OBJECTIVES[0]!);
+
   const [attendees, setAttendees] = useState<string[]>(ws.stakeholders.slice(0, 2).map((s) => s.id));
   const [packs, setPacks] = useState<string[]>(OBJECTIVE_PACKS[OBJECTIVES[0]!]!);
   const [brief, setBrief] = useState<string[] | null>(null);
@@ -544,11 +694,35 @@ export function VirtualLiaison({ ws }: { ws: CustomerWorkspace }) {
         description="A customer-scoped assistant that augments the human on the call. It never speaks to the customer, never sends anything, and surfaces unknowns instead of inventing answers."
       />
 
-      <Callout tone="info" title="What it may and may not do">
-        It may assemble context from approved documents, the environment map, implementation state,
-        risks, incidents, KPI state and stakeholders. It may draft a message for human approval. It
-        may not contact the customer, act autonomously, or represent itself as a person.
-      </Callout>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Callout tone="info" title="What it may and may not do">
+          It may assemble context from approved documents, the environment map, implementation
+          state, risks, incidents, KPI state and stakeholders. It may draft a message for human
+          approval. It may not contact the customer, act autonomously, or represent itself as a
+          person.
+        </Callout>
+         <Panel title="Identity and safeguards">
+          <p className="text-xs leading-relaxed text-foreground/90">
+            <strong>Virtual Liaison — internal copilot, not an autonomous representative.</strong>{" "}
+            Every customer-facing output carries a named human approver.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+             <span className="size-2 rounded-full bg-success" />
+             <span className="text-xs font-medium text-foreground">Local workspace ready</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+             Briefs and drafts use approved workspace context. Customer-facing output always requires human review.
+          </p>
+          <div className="mt-3 print:hidden">
+            <MeetingBriefDialog ws={ws} />
+          </div>
+          <p className="mt-3 rounded-md border border-dashed border-border p-2 text-[11px] leading-relaxed text-muted-foreground">
+            Roadmap only: approved asynchronous handoff / message relay, gated on explicit human
+            approval and identity disclosure. Not implemented — no autonomous impersonation.
+          </p>
+        </Panel>
+      </div>
+
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="space-y-4">
@@ -680,8 +854,7 @@ export function VirtualLiaison({ ws }: { ws: CustomerWorkspace }) {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    void navigator.clipboard?.writeText(draft);
-                    toast.success("Draft copied for human review");
+                    void copyText(draft, "Draft copied for human review");
                   }}
                 >
                   Copy draft

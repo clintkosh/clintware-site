@@ -1,5 +1,5 @@
 import type { CustomerWorkspace } from "@/lib/n7/types";
-import { AssumptionChange, ExecutiveSummary, PanelDefense } from "./FrameSections";
+import { AssumptionChange, ExecutiveSummary } from "./FrameSections";
 import { CriticalPath, Governance, Implementation, RisksDecisions } from "./PlanSections";
 import { ExecutiveQBR, KPIContract, ROIWorkshop } from "./ValueSections";
 import { AccuracyTriage, Documents, VirtualLiaison } from "./TechSections";
@@ -21,7 +21,6 @@ export const SECTION_COMPONENTS: Record<string, (props: { ws: CustomerWorkspace 
   "executive-qbr": ExecutiveQBR,
   "readiness-gate": ReadinessGate,
   "virtual-liaison": VirtualLiaison,
-  "panel-defense": PanelDefense,
   "assumption-change": AssumptionChange,
   evidence: Evidence,
 };

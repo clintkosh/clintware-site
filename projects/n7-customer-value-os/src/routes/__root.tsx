@@ -7,11 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { N7Provider } from "../lib/n7/store";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "../lib/n7/theme";
 import { Toaster } from "../components/ui/sonner";
+
 
 function NotFoundComponent() {
   return (
@@ -79,13 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Neuron7 Case Operating Console — a candidate-built concept prototype for customer value operations.",
+          "Customer operations workspace for implementation, value, evidence, and readiness.",
       },
       { name: "author", content: "Clinton Kosh" },
       { property: "og:title", content: "N7 Customer Value OS" },
       {
         property: "og:description",
-        content: "Neuron7 Case Operating Console — candidate concept prototype.",
+        content: "Customer operations workspace for implementation, value, evidence, and readiness.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -107,16 +109,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});",
-          }}
-        />
+        {/* Applies the stored theme before first paint so there is no flash. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -131,11 +128,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <N7Provider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster />
-      </N7Provider>
+      <ThemeProvider>
+        <N7Provider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster />
+        </N7Provider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

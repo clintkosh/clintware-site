@@ -5,8 +5,8 @@ This is **not** an official Neuron7 product, and it does not use any Neuron7
 internal API, data, or policy. Planned demo hostname: `N7crm.clintware.com`.
 
 A reusable, multi-customer Customer Value Operating System: it turns what was
-sold into an implemented, adopted, measurable business outcome, and makes the
-operating judgement behind that visible and defensible under panel pressure.
+sold into an implemented, adopted, measurable business outcome, while keeping
+the operating plan, decisions, evidence, and ownership visible to the team.
 
 ## What is inside
 
@@ -17,9 +17,9 @@ operating judgement behind that visible and defensible under panel pressure.
   Summary, Implementation, Critical Path, Risks + Decisions, RACI / Governance,
   Environment, Documents / Knowledge, Customer Messaging, ROI Workshop, KPI
   Contract, Accuracy Triage, Executive QBR, Readiness Gate, Virtual Liaison,
-  Panel Defense, Assumption Change, Evidence / Artifacts.
+  Assumption Change, Evidence / Artifacts.
 - **Presentation mode** (`/present/:customerId`) — 30-second, 5-minute, full
-  15–18 minute and direct-answer modes, with an executive/technical audience
+  15–18 minute operational briefings, with an executive/technical audience
   toggle and editing chrome hidden.
 - **Architecture & Assumptions** (`/architecture`) — provenance model, data
   model, mock vs future integrations, credential boundaries, human approval
@@ -64,3 +64,15 @@ Lovable is an implementation tool only; it is **not required at runtime**.
 The production build targets Cloudflare Workers by default. See
 [EXIT.md](./EXIT.md) for independent clone → build → deploy instructions and
 for where future auth, database, and control-plane integrations belong.
+
+## Recent capabilities
+
+- Global light / dark / system theme, persisted and applied before first paint.
+- Breadcrumbs on every workspace section and a clean exit from presentation mode
+  back to the exact customer workspace.
+- Editable customer record driven by configuration (`src/lib/n7/field-config.ts`)
+  with case-fact protection and per-field "Restore case fact".
+- Meeting brief generator with delta / "nothing new" logic, pull-forward quick
+  wins, copy, and client-side PDF export via the browser print pipeline.
+- Now / next / later workstream board showing critical-path vs parallel work and
+  downstream impact when something is blocked.

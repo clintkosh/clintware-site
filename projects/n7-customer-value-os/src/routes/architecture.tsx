@@ -57,7 +57,7 @@ function Architecture() {
                 <span className="font-medium">Case fact</span> — supplied in the exercise brief and treated as authoritative.
               </li>
               <li>
-                <span className="font-medium">Working assumption</span> — my inference, with a validation path and an owner.
+                <span className="font-medium">Working assumption</span> — a team inference with a validation path and an owner.
               </li>
               <li>
                 <span className="font-medium">Illustrative / demo data</span> — invented for demonstration. Never presented as customer data.
@@ -94,10 +94,10 @@ function Architecture() {
             </ul>
           </Panel>
 
-          <Panel title="Provider abstraction: demo vs controlPlane">
+          <Panel title="Provider status and execution boundary">
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-md border border-border p-4">
-                <div className="label-caps">demo (active)</div>
+                <div className="label-caps">Local workspace · active</div>
                 <p className="mt-1 text-sm text-foreground/90">
                   Deterministic local behavior. Environment generation parses pasted text with fixed
                   rules, so the same input always produces the same proposal. No network calls, no
@@ -105,11 +105,14 @@ function Architecture() {
                 </p>
               </div>
               <div className="rounded-md border border-border p-4">
-                <div className="label-caps">controlPlane (future)</div>
+                <div className="label-caps">Clintware control plane · not configured</div>
                 <p className="mt-1 text-sm text-foreground/90">
                   Reserved for the operator's Clintware MCP / control plane. It is documented as an
-                  interface only; selecting it surfaces a clear "not configured" state rather than
-                  fabricating a result. No endpoints or credentials are invented here.
+                   interface only. Normal workflows use the local provider automatically; a future
+                   unavailable external call falls back locally without blocking the user. No endpoints or credentials are invented here.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Optional unknown-term research may use an approved server-side provider such as Exa AI once configured. Basic topology generation never depends on it.
                 </p>
               </div>
             </div>
