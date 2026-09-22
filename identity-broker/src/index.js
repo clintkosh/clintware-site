@@ -6,7 +6,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyAppForRedirectUri, firstPartyClientMetadata } from "./first-party.js";
 
-const VERSION = "2026-09-22.7";
+const VERSION = "2026-09-22.8";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -287,8 +287,9 @@ function extractUpstreamIdentity(provider, claims) {
       : typeof claims.upn === "string" && claims.upn.includes("@")
         ? claims.upn
         : "";
+  const hasExplicitVerification = claims.email_verified !== undefined && claims.email_verified !== null;
   const explicitVerified = claims.email_verified === true || claims.email_verified === "true";
-  const enterpriseAssertion = provider.id !== "google" && Boolean(email);
+  const enterpriseAssertion = provider.id !== "google" && Boolean(email) && !hasExplicitVerification;
   return {
     subject: String(claims.sub || ""),
     email,
