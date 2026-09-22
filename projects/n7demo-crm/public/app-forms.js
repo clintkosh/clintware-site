@@ -57,7 +57,7 @@ load().catch(err=>document.querySelector('#app').innerHTML='<div class="empty" s
 
 async function openKbArticle(id){
  let x=await api('/kb/articles/'+encodeURIComponent(id)),a=x.article;
- let con=a.confluenceUrl?'<a class="btn" target="_blank" rel="noreferrer" href="'+e(a.confluenceUrl)+'">Open in Confluence</a>':'';
+ let cu=safeUrl(a.confluenceUrl),con=cu?'<a class="btn" target="_blank" rel="noreferrer" href="'+e(cu)+'">Open in Confluence</a>':'';
  let canPublish=I.confluence?.writable===true&&Boolean(K.config?.spaceKey||K.config?.spaceId);
  let publish=canPublish?'<button class="btn" id="kb-publish">'+(a.confluencePageId?'Update Confluence':'Publish to Confluence')+'</button>':'';
  let o=modal('<div class="section" style="margin:0"><div><div class="eyebrow">'+e(a.category||'Implementation')+'</div><h2>'+e(a.title)+'</h2><div class="muted">Updated '+e(new Date(a.updatedAt).toLocaleString())+' · '+Number(a.views||0)+' views · '+Number(a.useful||0)+' useful</div></div><button class="btn" data-close>Close</button></div><p class="kb-summary">'+e(a.summary||'')+'</p><div class="kb-body">'+e(a.body||'')+'</div><div class="actions" style="margin-top:14px"><button class="btn primary" id="kb-useful">Useful</button><button class="btn" id="kb-edit">Edit</button>'+publish+con+'</div>');
