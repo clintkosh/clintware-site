@@ -124,10 +124,11 @@ function attachmentFor(booking, method = "REQUEST") {
   }];
 }
 
-async function sendBookingMail(env, booking, kind = "confirmed") {
+async function sendBookingMail(env, booking, kind = "confirmed", includeIcs = true) {
   const guest = guestConfirmationEmail(booking, kind === "rescheduled" ? "Your meeting was rescheduled." : "You’re booked.");
   const host = hostNotificationEmail(booking, kind === "rescheduled" ? "Booking rescheduled" : "New booking");
   const suffix = `${booking.id}-${booking.sequence}-${kind}`;
+  const attachments = includeIcs ? attachmentFor(booking) : [];
 
   if (booking.email === CONFIG.hostEmail) {
     const result = await Promise.allSettled([
@@ -135,7 +136,7 @@ async function sendBookingMail(env, booking, kind = "confirmed") {
         to: [booking.email],
         reply_to: CONFIG.hostEmail,
         ...guest,
-        attachments: attachmentFor(booking),
+        attachments,
         category: "scheduler_confirmation",
         idempotency_key: `meet-guest-${suffix}`,
       }),
@@ -148,7 +149,7 @@ async function sendBookingMail(env, booking, kind = "confirmed") {
       to: [booking.email],
       reply_to: CONFIG.hostEmail,
       ...guest,
-      attachments: attachmentFor(booking),
+      attachments,
       category: "scheduler_confirmation",
       idempotency_key: `meet-guest-${suffix}`,
     }),
@@ -156,7 +157,7 @@ async function sendBookingMail(env, booking, kind = "confirmed") {
       to: [CONFIG.hostEmail],
       reply_to: booking.email,
       ...host,
-      attachments: attachmentFor(booking),
+      attachments,
       category: "scheduler_host",
       idempotency_key: `meet-host-${suffix}`,
     }),
