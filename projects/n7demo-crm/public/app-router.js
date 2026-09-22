@@ -1,4 +1,6 @@
 function body(){
+ if(tab==='customers')return customers();
+ if(tab==='accounts')return accounts();
  if(tab==='command')return command();
  if(tab==='kb')return kb();
  if(tab==='implementation')return implementation();
@@ -26,10 +28,16 @@ function bind(){
  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>edit(b.dataset.add));
  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let r=S.records.find(x=>x.id===b.dataset.edit);edit(r.type,r)});
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm('Archive this record?')){await api('/records/'+b.dataset.del,{method:'DELETE'});load(S.customer.id)}});
- document.querySelector('#cust').onchange=x=>load(x.target.value);
- document.querySelector('#newc').onclick=newCustomer;
- document.querySelector('#import').onclick=importFiles;
- let i2=document.querySelector('#import2');if(i2)i2.onclick=importFiles;
+ let cs=document.querySelector('#cust');if(cs)cs.onchange=x=>{if(x.target.value)load(x.target.value)};
+ let nc=document.querySelector('#newc');if(nc)nc.onclick=newCustomer;
+ let nc2=document.querySelector('#newc2');if(nc2)nc2.onclick=newCustomer;
+ let im=document.querySelector('#import');if(im)im.onclick=importCustomers;
+ let i2=document.querySelector('#import2');if(i2)i2.onclick=importCustomers;
+ let ic=document.querySelector('#import-customers');if(ic)ic.onclick=importCustomers;
+ document.querySelectorAll('[data-customer-open]').forEach(x=>x.onclick=()=>{tab='command';load(x.dataset.customerOpen)});
+ let clr=document.querySelector('#clear-non-golden');if(clr)clr.onclick=async()=>{if(confirm('Remove every customer except ACME MEDICAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:false})});tab='customers';await load()}};
+ let ca=document.querySelector('#clear-all');if(ca)ca.onclick=async()=>{let ov=document.querySelector('#override-golden')?.checked===true;if(!ov){alert('Enable the golden-example override first to remove ACME MEDICAL.');return}if(confirm('Remove ALL customers, including ACME MEDICAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:true})});tab='customers';await load()}};
+ let rs=document.querySelector('#reset-samples');if(rs)rs.onclick=async()=>{if(confirm('Reset the workspace to ACME MEDICAL plus the 10 default synthetic sample customers?')){await api('/customers/reset-samples',{method:'POST',body:'{}'});tab='customers';await load()}};
  document.querySelector('#whatif').onclick=()=>document.querySelector('#drawer').classList.remove('hidden');
  document.querySelector('#close').onclick=()=>document.querySelector('#drawer').classList.add('hidden');
  document.querySelector('#reset').onclick=()=>{scen.clear();render()};
