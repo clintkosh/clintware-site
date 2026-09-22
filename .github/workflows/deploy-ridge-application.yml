@@ -149,7 +149,9 @@ jobs:
             rm -f "$headers" "$body"; sleep 5
           done
           test "$ready" = "1"
-          curl --fail-with-body -sS https://ridge.clintware.com/health | grep -Fq '"ok":true'
+          health=$(curl --fail-with-body -sS https://ridge.clintware.com/health)
+          grep -Fq '"ok":true' <<< "$health"
+          grep -Fq '"sunsetAt":"2026-10-22T05:00:00Z"' <<< "$health"
           curl --fail-with-body -sSI https://www.clintware.com/work/Clinton_Kosh_Resume.pdf | grep -Eiq '^HTTP/.* 2'
           resume_headers=$(mktemp)
           curl --fail-with-body -sS -D "$resume_headers" -o /tmp/ridge-resume.pdf https://ridge.clintware.com/resume.pdf
