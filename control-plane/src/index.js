@@ -715,7 +715,7 @@ export class RegistryHub extends DurableObject {
     for(const [key,defaults] of Object.entries(DEFAULT_PRODUCTS)){
       if(!products[key]){products[key]=defaults;changed=true;continue;}
       if(products[key].version!==defaults.version){
-        products[key]={...defaults,...products[key],version:defaults.version,repo:{...defaults.repo,...(products[key].repo||{})},dns:{...defaults.dns,...(products[key].dns||{})},capabilities:defaults.capabilities,deny:defaults.deny,protected_paths:defaults.protected_paths};
+        products[key]={...defaults,...products[key],version:defaults.version,repo:{...defaults.repo,...(products[key].repo||{})},dns:{...defaults.dns,...(products[key].dns||{})},privacy:{...(defaults.privacy||{}),...(products[key].privacy||{})},identity:{...(defaults.identity||{}),...(products[key].identity||{})},capabilities:defaults.capabilities,deny:defaults.deny,protected_paths:defaults.protected_paths};
         changed=true;
       }
     }
