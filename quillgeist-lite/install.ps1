@@ -124,11 +124,17 @@ $bootstrap = [ordered]@{
 
 $bootstrap | ConvertTo-Json -Depth 5 | Set-Content -Path $BootstrapPath -Encoding UTF8
 
+$ServiceInstallMarker = Join-Path $HomeDir "service-install.ok"
+Remove-Item $ServiceInstallMarker -Force -ErrorAction SilentlyContinue
+
 try {
   Write-Host ""
   Write-Host "Windows will request one UAC approval to install the local health service." -ForegroundColor Yellow
   & $ServiceInstallerPath -BootstrapPath $BootstrapPath
-  if ($LASTEXITCODE -ne 0) { throw "Health service installer returned exit code $LASTEXITCODE." }
+
+  if (-not (Test-Path $ServiceInstallMarker)) {
+    throw "Health service installation did not produce its success marker."
+  }
 }
 finally {
   Remove-Item $BootstrapPath -Force -ErrorAction SilentlyContinue
