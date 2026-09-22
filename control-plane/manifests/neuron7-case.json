@@ -1,7 +1,7 @@
 {
   "product": "neuron7-case",
   "environment": "production",
-  "version": 1,
+  "version": 2,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
@@ -72,6 +72,15 @@
     ],
     "pkce": "S256",
     "client_id": "https://auth.clintware.com/client/clintware-web",
-    "client_model": "cimd"
+    "client_model": "cimd",
+    "allowed_email_domains": [
+      "neuron7.ai"
+    ],
+    "owner_override": true,
+    "application_context": [
+      "neuron7-case:read",
+      "neuron7-case:operator"
+    ],
+    "cross_product_identity_access": false
   }
 }
