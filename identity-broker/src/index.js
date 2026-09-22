@@ -5,8 +5,14 @@ import * as oauth from "oauth4webapi";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
 import { FIRST_PARTY_CLIENT, FIRST_PARTY_APPS, FIRST_PARTY_CLIENT_ID, firstPartyApp, firstPartyAppForRedirectUri, firstPartyClientMetadata } from "./first-party.js";
+import {
+  beginDelegatedGoogle,
+  delegatedGoogleStatus,
+  finishDelegatedGoogle,
+  internalGoogleAccessToken,
+} from "./delegated-google.js";
 
-const VERSION = "2026-09-22.8";
+const VERSION = "2026-09-22.9";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -944,6 +950,18 @@ async function handleAdminMcp(request, env, ctx) {
 const defaultHandler = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/internal/google-access-token") {
+      return internalGoogleAccessToken(request, env);
+    }
+    if (request.method === "GET" && url.pathname === "/delegated/google/start") {
+      return beginDelegatedGoogle(request, env);
+    }
+    if (request.method === "GET" && url.pathname === "/delegated/google/status") {
+      return delegatedGoogleStatus(env);
+    }
+    if (request.method === "GET" && url.pathname === "/callback" && url.searchParams.get("code")) {
+      return finishDelegatedGoogle(request, env);
+    }
     if (url.pathname === "/health") {
       return json({
         ok: true,
