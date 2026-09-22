@@ -7,6 +7,7 @@ import { AccuracyTriage, Documents } from "./TechSections";
 import { Evidence, Messaging, ReadinessGate } from "./SystemSections";
 import { EnvironmentMapper } from "./EnvironmentMapper";
 import { DeploymentBoard, EngineeringIssues, RolloutSprints } from "./OperationsSections";
+import { LiveAssist, LivePrompt } from "./LiveSections";
 
 export const SECTION_COMPONENTS: Record<string, (props: { ws: CustomerWorkspace }) => React.ReactElement> = {
   "executive-summary": ExecutiveSummary,
@@ -26,6 +27,8 @@ export const SECTION_COMPONENTS: Record<string, (props: { ws: CustomerWorkspace 
   "executive-qbr": ExecutiveQBR,
   "readiness-gate": ReadinessGate,
   "meeting-prep": MeetingPrepPage,
+  "live-prompt": LivePrompt,
+  "live-assist": LiveAssist,
   "assumption-change": AssumptionChange,
   evidence: Evidence,
 };
