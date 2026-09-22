@@ -7,7 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceSpaces, confluenceStatus, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-22-qq.1";
+const VERSION = "2026-09-22-qq.2";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -228,7 +228,8 @@ const QUILLGEIST_LITE_TASKS = {
   "self-update":{runtime:"powershell",parameters:[]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
-  "enable-admin-console":{runtime:"powershell",parameters:[]}
+  "enable-admin-console":{runtime:"powershell",parameters:[]},
+  "bootstrap-admin-console":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
@@ -1802,7 +1803,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira","enable-admin-console"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira","enable-admin-console","bootstrap-admin-console"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
