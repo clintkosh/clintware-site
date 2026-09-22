@@ -4,8 +4,9 @@ import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
+import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 
-const VERSION = "2026-09-22";
+const VERSION = "2026-09-22-jira.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -151,7 +152,7 @@ const DEFAULT_ORGSYNAPSE = {
 const DEFAULT_QUILLGEIST_LITE = {
   product:"quillgeist-lite",
   environment:"production",
-  version:1,
+  version:2,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["quillgeist-lite/","identity-broker/scripts/"],delete_prefixes:[],allowed_workflows:["deploy-control-plane.yml"]},
   dns:{allowed_names:["mcp.clintware.com"]},
   capabilities:[
@@ -168,7 +169,9 @@ const DEFAULT_QUILLGEIST_LITE = {
     "analytics.write:quillgeist-lite",
     "analytics.read:quillgeist-lite",
     "local.read:quillgeist-lite",
-    "local.run:quillgeist-lite"
+    "local.run:quillgeist-lite",
+    "jira.read:quillgeist-lite",
+    "jira.write:quillgeist-lite"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete","infrastructure.admin:*","local.shell:raw"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
@@ -184,7 +187,8 @@ const QUILLGEIST_LITE_TASKS = {
   "c-runtime-check":{runtime:"c",parameters:["Message"]},
   "ensure-c-runtime":{runtime:"powershell",parameters:[]},
   "self-update":{runtime:"powershell",parameters:[]},
-  "apply-terminal-glass":{runtime:"powershell",parameters:[]}
+  "apply-terminal-glass":{runtime:"powershell",parameters:[]},
+  "connect-jira":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
@@ -253,13 +257,13 @@ const RISK_TIERS = {
   "repo.commit":0, "repo.commit.status":0, "repo.commit:status":0,
   "repo.workflow":0, "repo.workflow.status":0, "repo.workflow:status":0,
   "deployment.read":0, "telemetry.read":0,
-  "cache.read":0, "analytics.read":0, "flow.read":0, "local.read":0,
+  "cache.read":0, "analytics.read":0, "flow.read":0, "local.read":0, "jira.read":0,
   // Tier 1 — LOW-RISK SCOPED MUTATION
   "repo.write":1, "repo.file.write":1, "repo.file.create":1,
   "repo.branch:create":1, "repo.branch.create":1,
   "repo.workflow.dispatch":1, "repo.workflow:dispatch":1,
   "deployment.execute":1, "analytics.write":1, "cache.write":1,
-  "research.invoke":1, "flow.write":1, "flow.run":1, "local.run":1,
+  "research.invoke":1, "flow.write":1, "flow.run":1, "local.run":1, "jira.write":1,
   // Tier 2 — DESTRUCTIVE BUT SCOPED
   "repo.delete":2, "repo.file.delete":2, "repo.file.move":2, "repo.file.rename":2,
   "dns.ensure":2,
@@ -309,6 +313,7 @@ function capabilityForMatch(capability,resource,manifest){
   if(cap==="cache.read") return `cache.read:${resource?.product||"proofos"}`;
   if(cap==="cache.write") return `cache.write:${resource?.product||"proofos"}`;
   if(cap==="flow.read"||cap==="flow.write"||cap==="flow.run") return `${cap}:${resource?.product||manifest?.product||"unknown"}`;
+  if(cap==="jira.read"||cap==="jira.write") return `${cap}:${resource?.product||manifest?.product||"quillgeist-lite"}`;
   return cap;
 }
 
@@ -373,6 +378,15 @@ async function verifyGithubReceiver(request){
     const login=String(user?.login||"").toLowerCase();
     return login==="clintkosh"?{ok:true,login}:{ok:false,reason:"receiver_identity_not_allowed"};
   }catch{return {ok:false,reason:"github_auth_unavailable"};}
+}
+
+async function authorizeJiraControlRequest(request,env){
+  const mcp=await mcpAuthContext(request,env);
+  if(mcp&&mcpProductAllowed(mcp,"quillgeist-lite"))return {ok:true,by:"mcp:"+String(mcp.client_id||"root")};
+  if(await requireAdmin(request,env))return {ok:true,by:"admin"};
+  const receiver=await verifyGithubReceiver(request);
+  if(receiver.ok)return {ok:true,by:"github:"+receiver.login};
+  return {ok:false};
 }
 
 const HANDOFF_MAX_AGE_MS=7*24*60*60*1000;
@@ -867,6 +881,27 @@ export class RegistryHub extends DurableObject {
       await this.ctx.storage.put("mcp_clients",clients);
       return json({ok:true,client_id});
     }
+    if(request.method==="GET"&&url.pathname==="/jira-grant"){
+      const row=await this.ctx.storage.get("jira_grant");
+      return row?json({ok:true,...row}):json({error:"jira_grant_not_found"},404);
+    }
+    if(request.method==="POST"&&url.pathname==="/jira-grant"){
+      const body=await reqJson(request,256_000);
+      if(!body.sealed_grant)return json({error:"sealed_grant_required"},400);
+      const row={
+        sealed_grant:String(body.sealed_grant),
+        sites:Array.isArray(body.sites)?body.sites.slice(0,50):[],
+        scopes:clip(body.scopes||"",2000),
+        updated_at:nowIso()
+      };
+      await this.ctx.storage.put("jira_grant",row);
+      return json({ok:true,sites:row.sites,scopes:row.scopes,updated_at:row.updated_at});
+    }
+    if(request.method==="DELETE"&&url.pathname==="/jira-grant"){
+      await this.ctx.storage.delete("jira_grant");
+      return json({ok:true});
+    }
+
     // Research provider configuration (internal). The stored key is used only by
     // the research gateway and is never returned through public endpoints/MCP.
     if(request.method==="GET"&&url.pathname==="/research-config"){
@@ -1542,6 +1577,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   const scopedManifest=async(product)=>mcpProductAllowed(mcpAuth,product)?manifestFor(env,product):null;
   const scopedProductSummary=async(product,days,suffix="/summary")=>mcpProductAllowed(mcpAuth,product)?productSummary(env,product,days,suffix):{error:"product_not_allowed"};
   const scopedProductPath=async(product,suffix)=>mcpProductAllowed(mcpAuth,product)?productPath(env,product,suffix):{error:"product_not_allowed"};
+  const jiraAllowed=async(mode)=>{const manifest=await scopedManifest("quillgeist-lite");return Boolean(manifest&&capabilityMatches(manifest,`jira.${mode}:quillgeist-lite`));};
   const server=new McpServer({name:"Clintware Control Plane",version:VERSION});
   server.registerTool("clintware_control_plane_status",{
     title:"Get Clintware Control Plane status",
@@ -1657,7 +1693,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
@@ -1695,6 +1731,111 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     const r=await registryHub(env).fetch(`https://internal/quillgeist-lite-job/${encodeURIComponent(job_id)}`);
     const data=await r.json();
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_jira_status",{
+    title:"Get Jira connection status",
+    description:"Return safe Atlassian/Jira OAuth configuration and connected Jira sites. Tokens are never returned.",
+    inputSchema:{},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async()=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    return {content:[{type:"text",text:JSON.stringify(await jiraStatus(env))}]};
+  });
+  server.registerTool("clintware_jira_oauth_start",{
+    title:"Start Jira authorization",
+    description:"Create a short-lived Atlassian OAuth 2.0 authorization URL. The Jira grant is stored by Clintware, not returned to the client.",
+    inputSchema:{},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async()=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraBeginOAuth(env,mcpAuth?.client_id||"mcp");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_sites",{
+    title:"List authorized Jira sites",
+    description:"Refresh and list Atlassian Jira Cloud sites authorized to Clintware.",
+    inputSchema:{},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async()=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraSites(env);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_projects",{
+    title:"List Jira projects",
+    description:"List Jira projects visible through the authorized Atlassian grant.",
+    inputSchema:{cloud_id:z.string().optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraProjects(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_search",{
+    title:"Search Jira issues with JQL",
+    description:"Run bounded JQL search against an authorized Jira Cloud site.",
+    inputSchema:{cloud_id:z.string().optional(),jql:z.string().min(1).max(8000),max_results:z.number().int().min(1).max(100).optional(),fields:z.array(z.string()).max(50).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraSearch(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_get_issue",{
+    title:"Read a Jira issue",
+    description:"Read one Jira issue by key from an authorized Jira Cloud site.",
+    inputSchema:{cloud_id:z.string().optional(),issue_key:z.string().min(1).max(100),fields:z.array(z.string()).max(50).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraGetIssue(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_create_issue",{
+    title:"Create a Jira issue",
+    description:"Create one issue in an explicitly named Jira project and issue type.",
+    inputSchema:{cloud_id:z.string().optional(),project_key:z.string().min(1).max(100),summary:z.string().min(1).max(1000),issue_type:z.string().min(1).max(200),description:z.string().max(20000).optional(),labels:z.array(z.string()).max(50).optional(),assignee_account_id:z.string().max(200).optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_write_not_allowed"})}]};
+    const result=await jiraCreateIssue(env,args);await audit(env,"quillgeist-lite","jira_create_issue",crypto.randomUUID(),{project_key:args.project_key,issue_type:args.issue_type,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_update_issue",{
+    title:"Update a Jira issue",
+    description:"Update bounded common fields on one Jira issue. Status transitions use the dedicated transition tool.",
+    inputSchema:{cloud_id:z.string().optional(),issue_key:z.string().min(1).max(100),summary:z.string().max(1000).optional(),description:z.string().max(20000).optional(),labels:z.array(z.string()).max(50).optional(),assignee_account_id:z.string().max(200).nullable().optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_write_not_allowed"})}]};
+    const result=await jiraUpdateIssue(env,args);await audit(env,"quillgeist-lite","jira_update_issue",crypto.randomUUID(),{issue_key:args.issue_key,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_add_comment",{
+    title:"Add a Jira comment",
+    description:"Add a plain-text comment to one Jira issue through Clintware.",
+    inputSchema:{cloud_id:z.string().optional(),issue_key:z.string().min(1).max(100),comment:z.string().min(1).max(20000)},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_write_not_allowed"})}]};
+    const result=await jiraAddComment(env,args);await audit(env,"quillgeist-lite","jira_add_comment",crypto.randomUUID(),{issue_key:args.issue_key,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_transitions",{
+    title:"List Jira issue transitions",
+    description:"List transitions currently available for one Jira issue.",
+    inputSchema:{cloud_id:z.string().optional(),issue_key:z.string().min(1).max(100)},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_read_not_allowed"})}]};
+    const result=await jiraTransitions(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_jira_transition_issue",{
+    title:"Transition a Jira issue",
+    description:"Apply one explicitly selected Jira transition ID to an issue.",
+    inputSchema:{cloud_id:z.string().optional(),issue_key:z.string().min(1).max(100),transition_id:z.string().min(1).max(100)},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async(args)=>{
+    if(!await jiraAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_write_not_allowed"})}]};
+    const result=await jiraTransitionIssue(env,args);await audit(env,"quillgeist-lite","jira_transition_issue",crypto.randomUUID(),{issue_key:args.issue_key,transition_id:args.transition_id,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
 
   server.registerTool("clintware_product_manifest",{
@@ -2125,6 +2266,7 @@ function safeConfig(env){
     mcp_per_client_credentials:true,
     handoff_realtime_stream:true,
     quillgeist_lite_realtime:true,
+    jira_oauth_configured:jiraConfigured(env),
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN||env.CONTROL_PLANE_MCP_TOKEN),
     admin_auth_separate:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
   };
@@ -2142,6 +2284,7 @@ export default {
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
         const rconfig=await researchConfig(env);
+        const jstatus=await jiraStatus(env);
         const productList=products.products||[];
         const githubIdentities=[...new Map(productList.map(p=>{
           const auth=githubAuth(env,p);
@@ -2153,9 +2296,29 @@ export default {
           if(row&&p?.repo?.owner&&p?.repo?.name)row.repositories.push(`${p.repo.owner}/${p.repo.name}`);
         }
         const adapters={...safeConfig(env),github_write:githubIdentities.some(x=>x.configured),github_actions:githubIdentities.some(x=>x.configured)};
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
+        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,jira:jstatus,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
+
+      if(request.method==="GET"&&url.pathname==="/api/v1/jira/oauth/callback"){
+        return jiraFinishOAuth(request,env);
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/jira/oauth/start"){
+        const auth=await authorizeJiraControlRequest(request,env);
+        if(!auth.ok)return json({error:"unauthorized"},401);
+        const result=await jiraBeginOAuth(env,auth.by);
+        return json(result,result.ok?200:503);
+      }
+      if(request.method==="GET"&&url.pathname==="/api/v1/jira/status"){
+        const auth=await authorizeJiraControlRequest(request,env);
+        if(!auth.ok)return json({error:"unauthorized"},401);
+        return json(await jiraStatus(env));
+      }
+      if(request.method==="DELETE"&&url.pathname==="/api/v1/jira"){
+        const auth=await authorizeJiraControlRequest(request,env);
+        if(!auth.ok)return json({error:"unauthorized"},401);
+        return json(await jiraDisconnect(env));
+      }
 
       if(request.method==="GET"&&url.pathname==="/api/v1/handoff-stream"){
         if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
@@ -2175,7 +2338,7 @@ export default {
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/devices/register"){
         const receiver=await verifyGithubReceiver(request);
