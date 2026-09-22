@@ -825,7 +825,7 @@ function createAdminMcpServer(env) {
 
   server.registerTool("clintware_oauth_status", {
     title: "Get Clintware OAuth identity status",
-    description: "Return safe OAuth/Google identity broker configuration and canonical endpoints. Never returns secrets.",
+    description: "Return safe OAuth/OIDC identity broker configuration and canonical endpoints. Never returns secrets.",
     inputSchema: {},
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async () => ({
@@ -848,8 +848,15 @@ function createAdminMcpServer(env) {
       google_upstream: Boolean(googleClientId(env)),
       google_mode: "oidc-id-token-form-post",
       google_secret_required: false,
+      upstream_identity_providers: upstreamProviders(env).map((provider) => ({
+        id: provider.id,
+        label: provider.label,
+        configured: provider.configured,
+        mode: provider.mode,
+        callback: provider.callback,
+      })),
       storage: Boolean(env.OAUTH_KV),
-      policy: "Google proves identity; Clintware issues scoped rotating tokens; privileged Control Plane MCP remains separate.",
+      policy: "Upstream providers prove identity. Clintware binds that identity to the initiating application context and issues scoped rotating tokens; privileged Control Plane MCP remains separate.",
     }) }],
   }));
 
@@ -946,6 +953,13 @@ const defaultHandler = {
         google_mode: "oidc-id-token-form-post",
         google_secret_required: false,
         google_client_id: googleClientId(env),
+        upstream_identity_providers: upstreamProviders(env).map((provider) => ({
+          id: provider.id,
+          label: provider.label,
+          configured: provider.configured,
+          mode: provider.mode,
+          callback: provider.callback,
+        })),
         oauth_storage: Boolean(env.OAUTH_KV),
         admin_mcp: Boolean(env.CONTROL_PLANE_MCP_TOKEN),
         first_party_client: FIRST_PARTY_CLIENT.clientName,
@@ -972,6 +986,10 @@ const defaultHandler = {
     if (url.pathname === "/authorize" && request.method === "GET") return beginConsent(request, env);
     if (url.pathname === "/authorize" && request.method === "POST") return finishConsent(request, env);
     if (url.pathname === "/callback" && request.method === "POST") return finishGoogle(request, env);
+    const upstreamCallback = url.pathname.match(/^\/callback\/(microsoft|okta|auth0|pingone|oidc)$/);
+    if (upstreamCallback && (request.method === "GET" || request.method === "POST")) {
+      return finishEnterpriseOidc(request, env, upstreamCallback[1]);
+    }
     if (url.pathname === "/") {
       return json({
         service: "Clintware Identity Broker",
@@ -982,7 +1000,14 @@ const defaultHandler = {
         first_party_client_id: FIRST_PARTY_CLIENT_ID,
         first_party_client_model: "cimd",
         first_party_apps: Object.keys(FIRST_PARTY_APPS),
-        docs: "Clintware first-party products share one central public OAuth Client ID Metadata Document with exact redirect allowlists. External/service clients may still be managed through /admin-mcp.",
+        upstream_identity_providers: upstreamProviders(env).map((provider) => ({
+          id: provider.id,
+          label: provider.label,
+          configured: provider.configured,
+          callback: provider.callback,
+        })),
+        identity_boundary: "Upstream identity is always rebound to the initiating Clintware application context. Company-domain trust is never global.",
+        docs: "Clintware first-party products share one central public OAuth Client ID Metadata Document with exact redirect allowlists. Applications opt in to upstream identity providers individually. External/service clients may still be managed through /admin-mcp.",
       });
     }
     return json({ error: "not_found" }, 404);
