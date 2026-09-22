@@ -471,6 +471,8 @@ export interface EngineeringIssueIntake {
 export interface JiraWorkspaceConfig {
   cloudId?: string;
   projectKey?: string;
+  deploymentIssueType?: string;
+  engineeringIssueType?: string;
   deploymentJql?: string;
   issuesJql?: string;
 }
