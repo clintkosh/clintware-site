@@ -1,0 +1,11 @@
+{
+  "$schema":"./node_modules/wrangler/config-schema.json",
+  "name":"clintware-n7demo-crm",
+  "main":"src/index.js",
+  "compatibility_date":"2026-09-22",
+  "compatibility_flags":["nodejs_compat"],
+  "assets":{"directory":"./public","binding":"ASSETS"},
+  "durable_objects":{"bindings":[{"name":"CRM","class_name":"N7CRM"}]},
+  "migrations":[{"tag":"v1","new_sqlite_classes":["N7CRM"]}],
+  "observability":{"enabled":true}
+}
