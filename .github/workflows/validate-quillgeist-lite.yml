@@ -122,7 +122,8 @@ jobs:
           }
 
           $refs = @("System.ServiceProcess.dll","System.Runtime.Serialization.dll")
-          Add-Type -Path $source -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $output -OutputType WindowsApplication
+          $serviceSource = Get-Content $source -Raw
+          Add-Type -TypeDefinition $serviceSource -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $output -OutputType WindowsApplication
 
           if (-not (Test-Path $output)) {
             throw "Health service compilation did not produce an executable."
