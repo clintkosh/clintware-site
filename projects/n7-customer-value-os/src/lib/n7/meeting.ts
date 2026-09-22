@@ -534,7 +534,7 @@ export function briefToText(doc: BriefDoc) {
     `${doc.customerName} — ${doc.meetingLabel}`,
     `Objective: ${doc.objective}`,
     `Meeting date: ${doc.date}`,
-    `Generated: ${doc.generatedAt} (local demo generation, no external service)`,
+    `Generated: ${doc.generatedAt}`,
     "",
     "CUSTOMER-SAFE STATUS",
     doc.customerSafeStatus,
@@ -576,7 +576,5 @@ export function briefToText(doc: BriefDoc) {
   doc.questions.forEach((q) => lines.push(`- ${q}`));
   lines.push("", "ARTEFACTS TO HAVE OPEN");
   doc.artifacts.forEach((a) => lines.push(`- ${a}`));
-  lines.push("", "RECOMMENDED SKILL PACKS");
-  doc.skillPacks.forEach((s) => lines.push(`- ${s}`));
   return lines.join("\n");
 }
