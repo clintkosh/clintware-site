@@ -84,6 +84,7 @@ function Show-QuillgeistSplash {
     Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
     Write-Host ""
     Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+    Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
     Start-Sleep -Milliseconds 115
