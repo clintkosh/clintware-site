@@ -465,8 +465,63 @@ export class RegistryHub extends DurableObject {
     return {
       online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
       runner,
-      jobs:index.slice(0,50)
+      jobs:index.slice(0,50),
+      service_devices:(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20),
+      diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse()
     };
+  }
+  async putQuillgeistLiteDevice(device){
+    const device_id=clip(device.device_id||"",120);
+    const token_hash=String(device.token_hash||"").toLowerCase();
+    if(!device_id||!/^[a-f0-9]{64}$/.test(token_hash))return {ok:false,error:"invalid_device_registration"};
+    const row={
+      device_id,
+      token_hash,
+      label:clip(device.label||device_id,160),
+      registered_at:nowIso(),
+      updated_at:nowIso(),
+      last_seen:null,
+      service_version:null,
+      runner_alive:null
+    };
+    await this.ctx.storage.put(`quillgeist_lite_device:${device_id}`,row);
+    let index=await this.ctx.storage.get("quillgeist_lite_device_index")||[];
+    index=index.filter(x=>x.device_id!==device_id);
+    index.unshift({device_id,label:row.label,registered_at:row.registered_at});
+    await this.ctx.storage.put("quillgeist_lite_device_index",index.slice(0,20));
+    return {ok:true,device_id};
+  }
+  async verifyQuillgeistLiteDevice(device_id,token_hash){
+    const row=await this.ctx.storage.get(`quillgeist_lite_device:${clip(device_id||"",120)}`);
+    if(!row||!token_hash)return {ok:false};
+    return {ok:await safeEq(String(row.token_hash||""),String(token_hash||"")),device:row};
+  }
+  async appendQuillgeistLiteDiagnostic(row){
+    const item={
+      diagnostic_id:crypto.randomUUID(),
+      device_id:clip(row.device_id||"",120),
+      level:["INFO","WARN","ERROR"].includes(String(row.level||"").toUpperCase())?String(row.level).toUpperCase():"INFO",
+      phase:clip(row.phase||"service",80),
+      message:clip(row.message||"",8000),
+      runner_alive:typeof row.runner_alive==="boolean"?row.runner_alive:null,
+      service_version:clip(row.service_version||"",80),
+      timestamp:clip(row.timestamp||nowIso(),80),
+      received_at:nowIso()
+    };
+    let diagnostics=await this.ctx.storage.get("quillgeist_lite_diagnostics")||[];
+    diagnostics.push(item);
+    diagnostics=diagnostics.slice(-500);
+    await this.ctx.storage.put("quillgeist_lite_diagnostics",diagnostics);
+    const key=`quillgeist_lite_device:${item.device_id}`;
+    const device=await this.ctx.storage.get(key);
+    if(device){
+      await this.ctx.storage.put(key,{...device,last_seen:item.received_at,runner_alive:item.runner_alive,service_version:item.service_version,updated_at:item.received_at});
+    }
+    return {ok:true,diagnostic_id:item.diagnostic_id};
+  }
+  async quillgeistLiteDiagnostics(limit=100){
+    const diagnostics=await this.ctx.storage.get("quillgeist_lite_diagnostics")||[];
+    return diagnostics.slice(-Math.max(1,Math.min(200,Number(limit)||100))).reverse();
   }
   async putQuillgeistLiteJob(job){
     const task=QUILLGEIST_LITE_TASKS[job.task_id];
@@ -628,6 +683,21 @@ export class RegistryHub extends DurableObject {
         try{server.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job,backlog:true}));}catch{}
       }
       return new Response(null,{status:101,webSocket:client});
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-device"){
+      const body=await reqJson(request,64_000);
+      return json(await this.putQuillgeistLiteDevice(body));
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-device-verify"){
+      const body=await reqJson(request,64_000);
+      return json(await this.verifyQuillgeistLiteDevice(body.device_id,body.token_hash));
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-diagnostic"){
+      const body=await reqJson(request,64_000);
+      return json(await this.appendQuillgeistLiteDiagnostic(body));
+    }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-diagnostics"){
+      return json({ok:true,diagnostics:await this.quillgeistLiteDiagnostics(Number(url.searchParams.get("limit")||100))});
     }
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-job"){
       const body=await reqJson(request,64_000);
@@ -1570,6 +1640,18 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
 
+  server.registerTool("clintware_quillgeist_lite_diagnostics",{
+    title:"Read Quillgeist Lite local health diagnostics",
+    description:"Return bounded local watchdog/service diagnostics, startup failures, crash notices, restart attempts, and runner health state. Secrets are never returned.",
+    inputSchema:{limit:z.number().int().min(1).max(200).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({limit})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const r=await registryHub(env).fetch(`https://internal/quillgeist-lite-diagnostics?limit=${Math.max(1,Math.min(200,Number(limit)||100))}`);
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
   server.registerTool("clintware_quillgeist_lite_run",{
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
@@ -2094,6 +2176,42 @@ export default {
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/devices/register"){
+        const receiver=await verifyGithubReceiver(request);
+        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const body=await reqJson(request,64_000);
+        const token_hash=String(body.token_hash||"").toLowerCase();
+        const device_id=clip(body.device_id||"",120);
+        if(!device_id||!/^[a-f0-9]{64}$/.test(token_hash))return json({error:"invalid_device_registration"},400);
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash,label:body.label||device_id})}));
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/diagnostics"){
+        const token=bearer(request);
+        const body=await reqJson(request,64_000);
+        const device_id=clip(body.device_id||"",120);
+        if(!token||!device_id)return json({error:"unauthorized_device"},401);
+        const token_hash=await sha256(token);
+        const verifyResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash})}));
+        const verify=await verifyResp.json();
+        if(!verify.ok)return json({error:"unauthorized_device"},401);
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-diagnostic",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+          device_id,
+          level:body.level,
+          phase:body.phase,
+          message:body.message,
+          runner_alive:body.runner_alive,
+          service_version:body.service_version,
+          timestamp:body.timestamp
+        })}));
+      }
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/diagnostics"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const limit=Math.max(1,Math.min(200,Number(url.searchParams.get("limit")||100)));
+        return await registryHub(env).fetch(`https://internal/quillgeist-lite-diagnostics?limit=${limit}`);
+      }
+
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/jobs"){
         const mcpAuth=await mcpAuthContext(request,env);
         if(!mcpAuth)return json({error:"unauthorized"},401);
