@@ -78,6 +78,25 @@ Canonical sequence:
 
 `RAW REQUEST -> CONSERVATIVE COMPACTION -> COMPLEXITY/LIMIT CHECK -> DEPENDENCY-AWARE PLAN -> STEP -> QA/REPAIR -> AUTO-CONTINUE -> FINAL END-TO-END QA -> DELIVERY`
 
+### Delta-state default for repeated project context
+
+For repeated project-scoped work, prefer delta-state context over repeatedly summarizing the full history.
+
+1. Preserve exact anchors verbatim: exact names, counts, quotes, paths, URLs, permissions, negative constraints, privacy rules, and definition-of-done requirements.
+2. Fingerprint and ingest only newly introduced context when prior state already contains the rest.
+3. Keep failures, explicit decisions, the newest delta, and a bounded relevance-ranked set of open work in active context.
+4. Move lower-priority older material to local cold state instead of resending it on every step.
+5. Before each next step, rehydrate only cold-state items strongly relevant to that step.
+6. Prefer deterministic local extraction/deduplication before spending model tokens on semantic summarization.
+7. Use a state revision/hash when supported so active context can be inspected and traced.
+8. Substitute delta-state context only when measured duplicate ratio and context reduction make it materially smaller; otherwise pass the original context through.
+9. If exact anchors cannot fit safely, fail open to the original context rather than silently dropping them.
+10. Persistent project state must have an explicit inspection and reset path.
+
+Canonical delta-state sequence:
+
+`KNOWN STATE + NEW DELTA -> EXACT ANCHORS -> BOUNDED WORKING SET -> COLD HISTORY -> JIT REHYDRATION -> NEXT STEP -> STATE UPDATE`
+
 For generated visual/story work, identity or style continuity does not mean copy-pasting the same pose. Preserve recognizable subjects while deliberately varying pose, body angle, camera distance, framing, expression, interaction, environment, and composition when the task calls for multiple distinct scenes.
 
 ## Interview-prep runtime invariants
