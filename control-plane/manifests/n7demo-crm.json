@@ -1,7 +1,7 @@
 {
   "product": "n7demo-crm",
   "environment": "production",
-  "version": 1,
+  "version": 2,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
@@ -37,7 +37,9 @@
     "jira.read:n7demo-crm",
     "jira.write:n7demo-crm",
     "confluence.read:n7demo-crm",
-    "confluence.write:n7demo-crm"
+    "confluence.write:n7demo-crm",
+    "ai.invoke",
+    "audio.transcribe:n7demo-crm"
   ],
   "deny": [
     "secrets.read",
