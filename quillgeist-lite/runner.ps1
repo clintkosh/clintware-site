@@ -670,8 +670,8 @@ function Invoke-QQLocalCommand {
     "doctor" { Invoke-QQLocalTask "clintware-doctor"; return }
     "update" { Invoke-QQLocalTask "self-update"; return }
     "update qq" { Invoke-QQLocalTask "self-update"; return }
-    "admin" { Invoke-QQLocalTask "enable-admin-console"; return }
-    "admin qq" { Invoke-QQLocalTask "enable-admin-console"; return }
+    "admin" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
+    "admin qq" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
     "clear" {
       try { Clear-Host } catch {}
       Show-QuillgeistSplash
