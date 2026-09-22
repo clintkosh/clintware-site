@@ -48,7 +48,12 @@ function asciiPdfText(value: string) {
     .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
 }
 
-async function downloadBriefPdf(doc: BriefDoc) {
+function briefPdfFilename(doc: BriefDoc) {
+  const safeName = doc.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `${safeName || "customer"}-${doc.date}-pre-call-summary.pdf`;
+}
+
+async function createBriefPdfBlob(doc: BriefDoc) {
   const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ unit: "pt", format: "letter" });
   const margin = 44;
@@ -90,8 +95,19 @@ async function downloadBriefPdf(doc: BriefDoc) {
     if (!line) y += 3;
   }
 
-  const safeName = doc.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  pdf.save(`${safeName || "customer"}-${doc.date}-pre-call-summary.pdf`);
+  return pdf.output("blob");
+}
+
+async function downloadBriefPdf(doc: BriefDoc) {
+  const blob = await createBriefPdfBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = briefPdfFilename(doc);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function MeetingPrepComposer({
@@ -118,6 +134,7 @@ function MeetingPrepComposer({
   const [doc, setDoc] = useState<BriefDoc | null>(null);
   const [mode, setMode] = useState<GenerationMode>("local");
   const [busy, setBusy] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const last = useMemo(() => lastMeeting(ws.customer.id), [lastMeeting, ws.customer.id]);
   const previousPrep = useMemo(() => lastCallPrep(ws.customer.id), [lastCallPrep, ws.customer.id]);
@@ -189,6 +206,26 @@ function MeetingPrepComposer({
     void buildCurrent(false);
   }, [autoGenerate, buildCurrent]);
 
+  useEffect(() => {
+    if (!doc) {
+      setPdfUrl(null);
+      return;
+    }
+    let active = true;
+    let objectUrl = "";
+    void createBriefPdfBlob(doc)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPdfUrl(objectUrl);
+      })
+      .catch((error) => console.warn("Could not prepare automatic pre-call PDF.", error));
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [doc]);
+
   async function generate(withAI: boolean) {
     setBusy(true);
     try {
@@ -247,7 +284,7 @@ function MeetingPrepComposer({
     <div className="space-y-5">
       <Panel
         title="Call details"
-        subtitle="The preview updates automatically from current workspace state. Use Prepare call PDF for a fresh one-click call pack."
+        subtitle="The summary and a current PDF prepare automatically from workspace state. Use Prepare call PDF to refresh with Clintware AI and save the prep record."
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-1.5">
@@ -336,6 +373,13 @@ function MeetingPrepComposer({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 print:hidden">
+        {pdfUrl && doc ? (
+          <Button asChild variant="outline">
+            <a href={pdfUrl} download={briefPdfFilename(doc)}>
+              <FileDown className="mr-1.5 size-3.5" /> Download current PDF
+            </a>
+          </Button>
+        ) : null}
         <Button onClick={() => void preparePdf()} disabled={busy}>
           <FileDown className="mr-1.5 size-3.5" />
           {busy ? "Preparing..." : "Prepare call PDF"}
@@ -413,7 +457,7 @@ export function MeetingPrepPage({ ws }: { ws: CustomerWorkspace }) {
       <SectionHeader
         eyebrow={ws.customer.name}
         title="Meeting Prep"
-        description="Current call context, changes since the last checkpoint, decisions, next milestones, approved evidence, and a one-click pre-call PDF."
+        description="Current call context, changes since the last checkpoint, decisions, next milestones, approved evidence, and an automatically prepared pre-call PDF."
       />
       <MeetingPrepComposer ws={ws} autoGenerate />
     </div>
