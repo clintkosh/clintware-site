@@ -33,6 +33,17 @@ This is the default implementation pattern for new Clintware automation unless a
 
 The MCP endpoint is one interface into the broader control plane. The same Worker also exposes authenticated application/event APIs.
 
+## Admin operations dashboard
+
+The authenticated operations console is available at `https://mcp.clintware.com/admin`.
+
+- Sign-in uses the shared Clintware Identity authority at `auth.clintware.com`; no separate Google OAuth application is created.
+- By default, verified `@clintware.com` identities may enter the console. Set `CONTROL_PLANE_ADMIN_EMAILS` to a comma-separated allowlist to restrict this further.
+- The dashboard shows measured Control Plane telemetry, registered products, MCP clients/tools, adapters, Quillgeist Lite runner status, active site probes, observed latency, and 1/7/30/90-day trends.
+- A 15-minute Cron Trigger stores bounded 90-day health snapshots so observed uptime and service trends accumulate even when the dashboard is not open.
+- Provider quota/billing utilization is not fabricated. The panel displays only metrics available from Clintware telemetry and active probes; provider-specific quota sources can be added as optional adapters later.
+- Browser sessions are encrypted, host-bound, HttpOnly, Secure, SameSite=Lax cookies. Google user tokens are not infrastructure credentials and do not grant MCP provider authority.
+
 ## Primary endpoints
 
 - `GET /health` — safe health/configuration status
