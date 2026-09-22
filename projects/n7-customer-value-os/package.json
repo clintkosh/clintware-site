@@ -77,5 +77,6 @@
     "typescript": "^5.8.3",
     "vite": "8.1.5",
     "wrangler": "^4.0.0"
-  }
+  },
+  "version": "0.1.0"
 }
