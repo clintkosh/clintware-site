@@ -609,7 +609,28 @@ export class SchedulerState extends DurableObject {
 async function apiAvailability(env) {
   const response = await store(env).fetch("https://scheduler/availability");
   const data = await response.json();
-  return json(data, response.status, { "Cache-Control": "no-store" });
+  if (!response.ok) return json(data, response.status, { "Cache-Control": "no-store" });
+
+  let calendarSync = googleCalendarConfigured(env) ? "degraded" : "not_configured";
+  if (googleCalendarConfigured(env) && Array.isArray(data.slots) && data.slots.length) {
+    try {
+      const before = CONFIG.bufferBeforeMinutes * 60_000;
+      const after = CONFIG.bufferAfterMinutes * 60_000;
+      const fromMs = data.slots[0].startMs - before;
+      const toMs = data.slots.at(-1).endMs + after;
+      const busy = await googleBusyIntervals(env, fromMs, toMs);
+      data.slots = filterSlotsAgainstGoogleBusy(data.slots, busy, CONFIG);
+      calendarSync = "google";
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_availability_failed",
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
+  return json({ ...data, calendarSync }, response.status, { "Cache-Control": "no-store" });
 }
 
 async function apiBook(request, env) {
@@ -618,6 +639,24 @@ async function apiBook(request, env) {
     return json({
       error: "Enter a valid name, email, purpose, topic, timezone, and available time.",
     }, 422);
+  }
+
+  if (googleCalendarConfigured(env)) {
+    try {
+      const endMs = input.startMs + CONFIG.durationMinutes * 60_000;
+      const before = CONFIG.bufferBeforeMinutes * 60_000;
+      const after = CONFIG.bufferAfterMinutes * 60_000;
+      const busy = await googleBusyIntervals(env, input.startMs - before, endMs + after);
+      if (requestedTimeIsGoogleBusy(input.startMs, endMs, busy, CONFIG)) {
+        return json({ error: "slot_not_available" }, 409);
+      }
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_prebook_check_failed",
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
   }
 
   const manageToken = createToken(24);
@@ -639,9 +678,40 @@ async function apiBook(request, env) {
   if (!reserved.ok) return json(data, reserved.status);
 
   const booking = data.booking;
+  let calendar = {
+    configured: googleCalendarConfigured(env),
+    synced: false,
+    inviteSent: false,
+  };
+
+  if (calendar.configured) {
+    try {
+      const event = await createGoogleCalendarEvent(env, booking);
+      booking.googleEventId = event.id;
+      const linked = await store(env).fetch("https://scheduler/google-event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: booking.id, googleEventId: event.id }),
+      });
+      if (!linked.ok) throw new Error("google_event_link_failed");
+      calendar = {
+        configured: true,
+        synced: true,
+        inviteSent: true,
+      };
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_event_create_failed",
+        bookingId: booking.id,
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
   let delivery = { guest: false, host: false };
   try {
-    delivery = await sendBookingMail(env, booking, "confirmed");
+    delivery = await sendBookingMail(env, booking, "confirmed", !calendar.synced);
   } catch (error) {
     console.error(JSON.stringify({
       event: "booking_mail_failed",
@@ -650,7 +720,7 @@ async function apiBook(request, env) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking), delivery }, 201);
+  return json({ booking: publicBookingWithToken(booking), delivery, calendar }, 201);
 }
 
 async function apiManage(env, token) {
