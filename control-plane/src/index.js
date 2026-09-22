@@ -5,6 +5,7 @@ import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
+import { confluenceSpaces, confluenceStatus, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-22-qq.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
@@ -136,7 +137,7 @@ const DEFAULT_N7DEMO_CRM = {
     "dns.ensure:n7demo.clintware.com",
     "analytics.write:n7demo-crm","analytics.read:n7demo-crm",
     "research.invoke",
-    "jira.read:n7demo-crm","jira.write:n7demo-crm"
+    "jira.read:n7demo-crm","jira.write:n7demo-crm","confluence.read:n7demo-crm","confluence.write:n7demo-crm"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
@@ -2441,7 +2442,7 @@ export default {
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/devices/register"){
         const receiver=await verifyGithubReceiver(request);
@@ -2617,6 +2618,24 @@ export default {
         else if(op==="transition")result=await jiraTransitionIssue(env,args);
         else return json({error:"unsupported_jira_operation"},400);
         await audit(env,product,`jira_${op}`,body.request_id,{ok:Boolean(result?.ok),issue_key:args.issue_key||"",project_key:args.project_key||""},Boolean(result?.ok),result?.error||"");
+        return json(result,result?.ok===false?(result.status||400):200);
+      }
+
+      if(request.method==="POST"&&url.pathname==="/api/v1/confluence/bridge"){
+        const body=await reqJson(request,256_000);const product=normalizeProduct(body.product)||serviceProduct(request);
+        if(!product)return json({error:"product_required"},400);
+        const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
+        const op=String(body.operation||"").toLowerCase();
+        const writeOps=new Set(["upsert"]);
+        const capability="confluence."+(writeOps.has(op)?"write":"read")+":"+product;
+        if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
+        const args=body.args&&typeof body.args==="object"?body.args:{};
+        let result;
+        if(op==="status")result=await confluenceStatus(env);
+        else if(op==="spaces")result=await confluenceSpaces(env,args);
+        else if(op==="upsert")result=await confluenceUpsertPage(env,args);
+        else return json({error:"unsupported_confluence_operation"},400);
+        await audit(env,product,"confluence_"+op,body.request_id,{ok:Boolean(result?.ok),space_key:args.space_key||"",page_id:args.page_id||""},Boolean(result?.ok),result?.error||"");
         return json(result,result?.ok===false?(result.status||400):200);
       }
 
