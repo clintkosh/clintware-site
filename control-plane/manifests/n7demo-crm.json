@@ -7,11 +7,19 @@
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
-    "write_prefixes": ["projects/n7demo-crm/"],
-    "allowed_workflows": ["deploy-n7demo-crm.yml"],
+    "write_prefixes": [
+      "projects/n7demo-crm/"
+    ],
+    "allowed_workflows": [
+      "deploy-n7demo-crm.yml"
+    ],
     "identity": "clintkosh"
   },
-  "dns": {"allowed_names": ["n7demo.clintware.com"]},
+  "dns": {
+    "allowed_names": [
+      "n7demo.clintware.com"
+    ]
+  },
   "capabilities": [
     "repo.read:clintware-site",
     "repo.write:projects/n7demo-crm/**",
@@ -25,7 +33,9 @@
     "dns.ensure:n7demo.clintware.com",
     "analytics.write:n7demo-crm",
     "analytics.read:n7demo-crm",
-    "research.invoke"
+    "research.invoke",
+    "jira.read:n7demo-crm",
+    "jira.write:n7demo-crm"
   ],
   "deny": [
     "secrets.read",
@@ -55,10 +65,17 @@
     "authority": "https://auth.clintware.com",
     "config_endpoint": "https://auth.clintware.com/client-config/n7demo-crm",
     "redirect_uri": "https://n7demo.clintware.com/auth/callback",
-    "scopes": ["identity","email","profile"],
+    "scopes": [
+      "identity",
+      "email",
+      "profile"
+    ],
     "pkce": "S256",
     "client_id": "https://auth.clintware.com/client/clintware-web",
-    "application_context": ["n7demo-crm:read","n7demo-crm:write"],
+    "application_context": [
+      "n7demo-crm:read",
+      "n7demo-crm:write"
+    ],
     "cross_product_identity_access": false
   },
   "integrations": {
@@ -68,6 +85,19 @@
       "rendering": "native-board-view",
       "source_of_truth": "jira-when-connected",
       "status": "authorization-required"
+    },
+    "confluence": {
+      "mode": "control-plane",
+      "rendering": "workspace-global-kb-with-confluence-links",
+      "source_of_truth": "local-kb-until-connected",
+      "status": "adapter-ready-authorization-required",
+      "browser_credentials": false
     }
+  },
+  "knowledge_base": {
+    "scope": "workspace-global",
+    "persistence": "durable-sqlite",
+    "confluence_mapping": true,
+    "human_review_required_for_automation": true
   }
 }
