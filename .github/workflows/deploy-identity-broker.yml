@@ -65,8 +65,6 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
-      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
       CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -77,11 +75,8 @@ jobs:
           set -euo pipefail
           test -n "${CLOUDFLARE_API_TOKEN:-}"
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
-          if [ -n "${GOOGLE_OAUTH_CLIENT_ID:-}" ] && [ -n "${GOOGLE_OAUTH_CLIENT_SECRET:-}" ]; then
-            echo "Google OAuth credentials are present; sign-in can activate after deploy."
-          else
-            echo "Google OAuth credentials are not present yet. Deploying the broker in setup mode so auth.clintware.com can report exact readiness."
-          fi
+          echo "Google sign-in uses the canonical public Web client ID and signed OIDC ID tokens."
+          echo "No Google OAuth client secret is required."
 
       - name: Install identity broker dependencies
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
@@ -131,26 +126,20 @@ jobs:
               echo "$name not configured; leaving related feature inactive"
             fi
           }
-          put_secret GOOGLE_OAUTH_CLIENT_ID "$GOOGLE_OAUTH_CLIENT_ID"
-          put_secret GOOGLE_OAUTH_CLIENT_SECRET "$GOOGLE_OAUTH_CLIENT_SECRET"
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
 
       - name: Verify Google recognizes upstream OAuth client
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${GOOGLE_OAUTH_CLIENT_ID:-}"
-          if ! [[ "$GOOGLE_OAUTH_CLIENT_ID" =~ \.apps\.googleusercontent\.com$ ]]; then
-            echo "GOOGLE_OAUTH_CLIENT_ID is not a Google-issued OAuth client ID." >&2
-            exit 1
-          fi
-          probe_url="https://accounts.google.com/o/oauth2/v2/auth?client_id=$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["GOOGLE_OAUTH_CLIENT_ID"],safe=""))')&redirect_uri=https%3A%2F%2Fauth.clintware.com%2Fcallback&response_type=code&scope=openid%20email%20profile&state=clintware-ci-preflight&nonce=clintware-ci-preflight"
+          client_id='378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com'
+          probe_url="https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=https%3A%2F%2Fauth.clintware.com%2Fcallback&response_type=id_token&response_mode=form_post&scope=openid%20email%20profile&state=clintware-ci-preflight&nonce=clintware-ci-preflight"
           curl -LsS --connect-timeout 8 --max-time 30 "$probe_url" -o /tmp/google-oauth-preflight.html
           if grep -Eqi 'OAuth client was not found|invalid_client|deleted_client|disabled_client' /tmp/google-oauth-preflight.html; then
-            echo "Google rejected the configured upstream OAuth client. Create/select the Web application OAuth client in the existing Clintware Google Cloud project, then replace GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET." >&2
+            echo "Google rejected the canonical Clintware Web client ID." >&2
             exit 1
           fi
-          echo "Google upstream OAuth client preflight did not return invalid_client/deleted_client/disabled_client."
+          echo "Google recognizes the canonical Clintware Web client ID."
 
       - name: Verify identity broker
         shell: bash
@@ -169,11 +158,10 @@ jobs:
           done
           test "$ready" = "1"
           body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health)
-          if echo "$body" | grep -Fq '"configured":true'; then
-            echo "Clintware Google OAuth is ACTIVE."
-          else
-            echo "Clintware Identity Broker is LIVE in setup mode. Remaining blocker: GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET."
-          fi
+          echo "$body" | grep -Fq '"configured":true'
+          echo "$body" | grep -Fq '"google_secret_required":false'
+          echo "$body" | grep -Fq '"google_mode":"oidc-id-token-form-post"'
+          echo "Clintware Google sign-in is ACTIVE without a Google client secret."
 
       - name: Verify central first-party Clintware client
         shell: bash
@@ -221,7 +209,7 @@ jobs:
           rm -f /tmp/cw-cookies /tmp/cw-consent.html /tmp/cw-post-headers
           auth='https://auth.clintware.com/authorize?response_type=code&client_id=https%3A%2F%2Fauth.clintware.com%2Fclient%2Fclintware-web&redirect_uri=https%3A%2F%2Fn7.clintware.com%2Fauth%2Fcallback&scope=identity%20email%20profile&state=ci-smoke&code_challenge=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&code_challenge_method=S256&resource=https%3A%2F%2Fauth.clintware.com%2Fuserinfo'
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors -D /tmp/cw-consent-headers -c /tmp/cw-cookies "$auth" -o /tmp/cw-consent.html
-          grep -Eqi "^content-security-policy:.*form-action 'self' https://accounts\.google\.com" /tmp/cw-consent-headers
+          grep -Eqi "^content-security-policy:.*form-action 'self'" /tmp/cw-consent-headers
           grep -Fq 'class="eclipse"' /tmp/cw-consent.html
           grep -Fq 'Clintware Identity' /tmp/cw-consent.html
           grep -Fq 'Continue with Google' /tmp/cw-consent.html
@@ -246,4 +234,10 @@ jobs:
           location=$(awk 'BEGIN{IGNORECASE=1}/^location:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' /tmp/cw-post-headers)
           echo "$location" | grep -Eq '^https://accounts\.google\.com/'
           echo "$location" | grep -Fq 'state='
-          echo 'Branded stateless authorization handoff verified through Google redirect.'
+          echo "$location" | grep -Fq 'response_type=id_token'
+          echo "$location" | grep -Fq 'response_mode=form_post'
+          if echo "$location" | grep -Fq 'client_secret='; then
+            echo "Google client secret unexpectedly leaked into authorization URL." >&2
+            exit 1
+          fi
+          echo 'Branded stateless Google ID-token handoff verified without a client secret.'
