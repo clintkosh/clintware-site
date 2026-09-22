@@ -73,6 +73,26 @@ For repeated visual/story outputs, recognizable subject/style continuity must no
 
 The public compaction tool does not itself execute later steps. In ChatGPT, the assistant should use the returned compacted context to construct the dependency-aware continuation plan and continue through the plan with the tools actually available in the conversation. Never imply that the plugin independently performed later steps that the assistant did not execute.
 
+
+## Delta-state context mode
+
+For repeated project-scoped work, Quillgeist can maintain local delta-state context instead of repeatedly summarizing and resending the same history.
+
+The state model separates:
+
+- exact anchors that must remain verbatim;
+- failures, decisions, and a bounded active working set;
+- newly introduced context;
+- cold local history that is rehydrated only when the next step makes it relevant.
+
+The local planner only substitutes delta-state context when the repeated-context ratio and measured size reduction clear configured thresholds. Short or first-pass requests remain pass-through. If exact anchors consume too much of the active budget, Quillgeist fails open to the original context instead of silently dropping them.
+
+Project-scoped planner calls can use a persistent local state scope, and the standalone `quillgeist-state` CLI provides `ingest`, `show`, `status`, and explicit `reset` operations.
+
+This is separate from the public plugin's bounded remote compaction endpoint. The public plugin does not expose or read a user's local project-state files.
+
+Reusable infrastructure-neutral method: https://www.clintware.com/skills/delta-state-context-compaction/SKILL.md
+
 ## Privacy and restricted data
 
 The public Quillgeist API/MCP service processes only the task-specific text explicitly supplied to the tool. Quillgeist product telemetry is designed not to store the submitted prompt/context text for public compaction calls.
