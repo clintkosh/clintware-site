@@ -42,6 +42,10 @@ export function WorkspaceShell({
   const [navOpen, setNavOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const inScenarioPlanning = activeSection === "assumption-change";
+  const activeIndex = SECTIONS.findIndex((section) => section.slug === activeSection);
+  const previousSection = activeIndex > 0 ? SECTIONS[activeIndex - 1] : undefined;
+  const nextSection =
+    activeIndex >= 0 && activeIndex < SECTIONS.length - 1 ? SECTIONS[activeIndex + 1] : undefined;
 
   useEffect(() => {
     if (!inScenarioPlanning && activeOverrides.length) clearOverrides();
@@ -161,6 +165,40 @@ export function WorkspaceShell({
             ) : null}
           </div>
           {children}
+
+          <nav
+            aria-label="Workspace process navigation"
+            className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 print:hidden"
+          >
+            <div>
+              {previousSection ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link
+                    to="/customers/$customerId/$section"
+                    params={{ customerId: ws.customer.id, section: previousSection.slug }}
+                  >
+                    Previous: {previousSection.label}
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+            <div>
+              {nextSection ? (
+                <Button asChild size="sm">
+                  <Link
+                    to="/customers/$customerId/$section"
+                    params={{ customerId: ws.customer.id, section: nextSection.slug }}
+                  >
+                    Next: {nextSection.label}
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/" >Back to portfolio</Link>
+                </Button>
+              )}
+            </div>
+          </nav>
         </div>
       </div>
 
