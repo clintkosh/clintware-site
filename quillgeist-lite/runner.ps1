@@ -76,20 +76,46 @@ function Show-QuillgeistSplash {
 
   try { Clear-Host } catch {}
 
-  foreach ($frame in $frames) {
-    try { [Console]::SetCursorPosition(0,0) } catch {}
-    Write-Host $frame -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
-    Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
-    Write-Host ""
-    Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
-    Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-    Start-Sleep -Milliseconds 115
+  for ($spin = 0; $spin -lt 3; $spin++) {
+    foreach ($frame in $frames) {
+      try { [Console]::SetCursorPosition(0,0) } catch {}
+      Write-Host $frame -ForegroundColor DarkGray
+      Write-Host ""
+      Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
+      Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
+      Write-Host ""
+      Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+      Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
+      Write-Host ""
+      Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
+      Start-Sleep -Milliseconds 95
+    }
+
+    foreach ($frame in @($frames | Select-Object -Reverse)) {
+      try { [Console]::SetCursorPosition(0,0) } catch {}
+      Write-Host $frame -ForegroundColor DarkGray
+      Write-Host ""
+      Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
+      Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
+      Write-Host ""
+      Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+      Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
+      Write-Host ""
+      Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
+      Start-Sleep -Milliseconds 95
+    }
   }
 
+  try { [Console]::SetCursorPosition(0,0) } catch {}
+  Write-Host $frames[-1] -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "                 C L I N T W A R E (TM)" -ForegroundColor Gray
+  Write-Host "                 Q U I L L G E I S T   L I T E" -ForegroundColor White
+  Write-Host ""
+  Write-Host '                    "GO FURTHEST.(TM)"' -ForegroundColor Cyan
+  Write-Host "              EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "              MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
   Write-Host ""
   Write-Host "  PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
   Write-Host "  Event-driven. Allowlisted. Streaming evidence." -ForegroundColor DarkGray
