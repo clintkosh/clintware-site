@@ -36,8 +36,8 @@ jobs:
           grep -Fq "n7demo-crm" src/index.js
           grep -Fq "Engineering-ready" public/app-views.js
           grep -Fq "RACI" public/app-views.js
-          grep -Fq "Live Update AI" public/app-config.js
-          grep -Fq "Live Assistant" public/app-config.js
+          grep -Fq "\"live_prompt\",\"Live Prompt\"" public/app-config.js
+          grep -Fq "\"live_assistant\",\"Live Assist\"" public/app-config.js
           grep -Fq "getDisplayMedia" public/app-ai.js
           grep -Fq "/api/ai/interpret-change" src/index.js
           grep -Fq "/api/audio/transcribe" src/index.js
