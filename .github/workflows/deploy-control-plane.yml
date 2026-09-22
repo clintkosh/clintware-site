@@ -128,6 +128,19 @@ jobs:
           echo "$page" | grep -Fq 'The browser page is informational. The control surface is authenticated.'
           echo 'mcp.clintware.com public landing page is live.'
 
+      - name: Verify admin console boundary
+        run: |
+          set -euo pipefail
+          page=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/admin)
+          echo "$page" | grep -Fq 'Clintware Admin'
+          code=$(curl -sS --connect-timeout 5 --max-time 20 -o /tmp/admin-api.json -w '%{http_code}' https://mcp.clintware.com/admin/api/overview)
+          test "$code" = "401"
+          grep -Fq '"error":"unauthorized"' /tmp/admin-api.json
+          cfg=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/client-config/control-plane-admin)
+          echo "$cfg" | grep -Fq '"redirect_uri":"https://mcp.clintware.com/admin/callback"'
+          echo "$cfg" | grep -Fq '"client_id":"https://auth.clintware.com/client/clintware-web"'
+          echo 'Control Plane admin console boundary and central OAuth config verified.'
+
       - name: Verify research activation and ProofOS end-to-end
         run: |
           set -euo pipefail
