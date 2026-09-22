@@ -21,6 +21,9 @@ export const FIRST_PARTY_APPS = Object.freeze({
     home: "https://n7.clintware.com",
     redirectUri: "https://n7.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
+    allowedEmailDomains: Object.freeze(["neuron7.ai"]),
+    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    contextScopes: Object.freeze(["neuron7-case:read", "neuron7-case:operator"]),
   }),
   "control-plane-admin": Object.freeze({
     product: "control-plane-admin",
@@ -37,6 +40,11 @@ export function universalRedirectUris() {
 
 export function firstPartyApp(key) {
   return FIRST_PARTY_APPS[String(key || "").trim().toLowerCase()] || null;
+}
+
+export function firstPartyAppForRedirectUri(redirectUri) {
+  const target = String(redirectUri || "").trim();
+  return Object.values(FIRST_PARTY_APPS).find((app) => app.redirectUri === target) || null;
 }
 
 export function firstPartyClientMetadata() {
