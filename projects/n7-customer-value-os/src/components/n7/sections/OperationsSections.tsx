@@ -168,7 +168,10 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
 
   async function moveItem(id: string, status: DeploymentWorkStatus) {
     const item = items.find((row) => row.id === id);
-    if (!item) return;
+    if (!item || item.status === status) return;
+
+    // Once a card is linked to Jira, Jira is authoritative. Never allow N7 to
+    // show a different status merely because a local drag succeeded.
     if (item.jiraKey) {
       try {
         const transitions: any = await jiraBridge({
@@ -178,21 +181,33 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
           },
         });
         const available = Array.isArray(transitions?.transitions) ? transitions.transitions : [];
-        const target = available.find((t: any) => mapJiraStatus(String(t?.to?.name ?? t?.name ?? "")) === status);
-        if (target?.id) {
-          await jiraBridge({
-            data: {
-              operation: "transition",
-              args: { cloud_id: jira.cloudId || undefined, issue_key: item.jiraKey, transition_id: String(target.id) },
-            },
-          });
-        } else {
-          toast("Moved in N7; Jira has no direct transition to that column.");
+        const target = available.find(
+          (t: any) => mapJiraStatus(String(t?.to?.name ?? t?.name ?? "")) === status,
+        );
+        if (!target?.id) {
+          toast.error(`Jira does not currently allow a direct move to ${status}. Card left unchanged.`);
+          return;
         }
+        await jiraBridge({
+          data: {
+            operation: "transition",
+            args: {
+              cloud_id: jira.cloudId || undefined,
+              issue_key: item.jiraKey,
+              transition_id: String(target.id),
+            },
+          },
+        });
+        saveItems(items.map((row) => (row.id === id ? { ...row, status } : row)));
+        toast.success(`${item.jiraKey} moved in Jira.`);
+        return;
       } catch (error) {
-        toast("Jira transition unavailable; N7 card moved locally.");
+        toast.error("Jira transition failed. Card left unchanged to prevent status drift.");
+        return;
       }
     }
+
+    // Unsynced cards are local planning drafts and can move freely.
     saveItems(items.map((row) => (row.id === id ? { ...row, status } : row)));
   }
 
@@ -251,8 +266,24 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
           },
         },
       });
-      setJiraIssues(Array.isArray(result?.issues) ? result.issues : []);
-      toast.success("Jira deployment board refreshed.");
+      const liveIssues = Array.isArray(result?.issues) ? result.issues : [];
+      setJiraIssues(liveIssues);
+
+      const byKey = new Map(
+        liveIssues
+          .filter((issue: any) => issue?.key)
+          .map((issue: any) => [String(issue.key), issue] as const),
+      );
+      const synced = items.map((item) => {
+        if (!item.jiraKey) return item;
+        const issue = byKey.get(item.jiraKey);
+        if (!issue) return item;
+        const liveStatus = mapJiraStatus(String(issue?.fields?.status?.name ?? ""));
+        return liveStatus === item.status ? item : { ...item, status: liveStatus };
+      });
+      if (synced.some((item, index) => item.status !== items[index]?.status)) saveItems(synced);
+
+      toast.success("Jira deployment board refreshed and linked cards synchronized.");
       return;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Jira refresh failed.");
@@ -267,7 +298,7 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       <SectionHeader
         eyebrow={ws.customer.name}
         title="Deployment Board"
-        description="Move implementation work through a lightweight Kanban flow. Jira-backed cards keep their Jira key and transition when an equivalent Jira transition is available."
+        description="Plan locally, then send execution cards to Jira. Once linked, Jira becomes the authoritative status and N7 stays synchronized through the Clintware Control Plane."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={importMilestones}>Import milestones</Button>
@@ -320,11 +351,19 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <ProvenanceTag value={item.provenance} short />
                     {item.jiraKey ? (
-                      <span className="font-mono text-[11px]">{item.jiraKey}</span>
+                      <span
+                        className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] text-primary"
+                        title="Jira is the authoritative status for this card"
+                      >
+                        Jira · {item.jiraKey}
+                      </span>
                     ) : (
-                      <Button size="sm" variant="ghost" onClick={() => void sendToJira(item)}>
-                        Send to Jira
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Local draft</span>
+                        <Button size="sm" variant="ghost" onClick={() => void sendToJira(item)}>
+                          Send to Jira
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </article>
@@ -380,6 +419,25 @@ export function RolloutSprints({ ws }: { ws: CustomerWorkspace }) {
 
   const totalDone = work.filter((i) => i.status === "done").reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
   const totalCommitted = work.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+  const completedSprintVelocity = sprints
+    .filter((sprint) => sprint.status === "complete")
+    .map((sprint) =>
+      work
+        .filter((item) => item.sprintId === sprint.id && item.status === "done")
+        .reduce((sum, item) => sum + (item.storyPoints ?? 0), 0),
+    );
+  const rollingVelocity = completedSprintVelocity.length
+    ? Math.round(
+        completedSprintVelocity.reduce((sum, points) => sum + points, 0) /
+          completedSprintVelocity.length,
+      )
+    : 0;
+
+  function setSprintStatus(sprintId: string, status: SprintPlan["status"]) {
+    patchWorkspace(ws.customer.id, {
+      sprints: sprints.map((sprint) => (sprint.id === sprintId ? { ...sprint, status } : sprint)),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -388,10 +446,13 @@ export function RolloutSprints({ ws }: { ws: CustomerWorkspace }) {
         title="Rollout / Sprints"
         description="Organize planned weeks into execution sprints and track committed vs completed work. Velocity is calculated only from points the team enters."
       />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <Panel title="Committed points"><div className="text-3xl font-semibold">{totalCommitted}</div></Panel>
         <Panel title="Completed points"><div className="text-3xl font-semibold">{totalDone}</div></Panel>
         <Panel title="Overall completion"><div className="text-3xl font-semibold">{totalCommitted ? Math.round((totalDone / totalCommitted) * 100) : 0}%</div></Panel>
+        <Panel title="Rolling velocity" subtitle="Average completed points across completed sprints">
+          <div className="text-3xl font-semibold">{rollingVelocity}</div>
+        </Panel>
       </div>
 
       <Panel title="Add sprint">
@@ -420,11 +481,28 @@ export function RolloutSprints({ ws }: { ws: CustomerWorkspace }) {
                   title={sprint.name}
                   subtitle={[sprint.weekStart, sprint.weekEnd].filter(Boolean).join(" → ") || "Dates not provided"}
                 >
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className="label-caps">Sprint status</span>
+                    {(["planned", "active", "complete"] as const).map((status) => (
+                      <Button
+                        key={status}
+                        size="sm"
+                        variant={sprint.status === status ? "default" : "outline"}
+                        onClick={() => setSprintStatus(sprint.id, status)}
+                      >
+                        {status}
+                      </Button>
+                    ))}
+                  </div>
                   {sprint.goal ? <p className="mb-4 text-sm">{sprint.goal}</p> : null}
-                  <div className="mb-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mb-4 grid gap-3 sm:grid-cols-4">
                     <div><div className="label-caps">Committed</div><div className="text-xl font-semibold">{committed} pt</div></div>
                     <div><div className="label-caps">Done</div><div className="text-xl font-semibold">{done} pt</div></div>
-                    <div><div className="label-caps">Velocity / completion</div><div className="text-xl font-semibold">{committed ? Math.round((done / committed) * 100) : 0}%</div></div>
+                    <div><div className="label-caps">Completion</div><div className="text-xl font-semibold">{committed ? Math.round((done / committed) * 100) : 0}%</div></div>
+                    <div>
+                      <div className="label-caps">Velocity</div>
+                      <div className="text-xl font-semibold">{sprint.status === "complete" ? `${done} pt` : "Open"}</div>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     {assigned.length ? assigned.map((item) => (
@@ -634,7 +712,7 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
       <SectionHeader
         eyebrow={ws.customer.name}
         title="Engineering Issues"
-        description="Collect engineering-ready detail before creating Jira work. A draft can be saved early; Jira creation stays locked until the intake gate is complete."
+        description="Collect the evidence Engineering needs before creating Jira work. Capture reproducible steps whenever possible; if reproduction is not possible, document what was attempted and why."
         actions={<Button variant="outline" onClick={() => void refreshJira()} disabled={loading}>{loading ? "Refreshing…" : "Refresh Jira issues"}</Button>}
       />
 
