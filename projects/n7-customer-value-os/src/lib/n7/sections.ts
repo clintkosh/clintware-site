@@ -10,98 +10,77 @@ export const SECTIONS: SectionDef[] = [
     slug: "executive-summary",
     label: "Executive Summary",
     group: "Frame",
-    blurb: "The 30-second position, the situation, and the four moves.",
+    blurb: "Current customer outcome, stage, health, blockers and priorities.",
   },
+
   {
     slug: "implementation",
     label: "Implementation",
     group: "Plan",
-    blurb: "Week-by-week plan, parallel workstreams, decision triggers.",
+    blurb: "Milestones, owners, dependencies and the implementation plan.",
   },
   {
     slug: "deployment-board",
     label: "Deployment Board",
     group: "Plan",
-    blurb: "Kanban execution board with optional Jira-backed cards.",
+    blurb: "Kanban execution board with Jira-backed deployment cards.",
   },
   {
     slug: "rollout-sprints",
     label: "Rollout / Sprints",
     group: "Plan",
-    blurb: "Sprint goals, planned weeks, capacity and measured velocity.",
-  },
-  {
-    slug: "engineering-issues",
-    label: "Engineering Issues",
-    group: "Technical",
-    blurb: "Engineering-ready issue intake and Jira ticket board.",
+    blurb: "Planned rollout periods, capacity, completed points and velocity.",
   },
   {
     slug: "critical-path",
     label: "Critical Path",
     group: "Plan",
-    blurb: "SAP dependency chain and the three recovery options.",
+    blurb: "Blocking dependencies, sequencing and downstream impact.",
   },
   {
     slug: "risks-decisions",
     label: "Risks + Decisions",
     group: "Plan",
-    blurb: "RAID register and the decision log with rationale.",
+    blurb: "RAID register and decision log with owners and rationale.",
   },
   {
     slug: "raci",
     label: "RACI / Governance",
     group: "Plan",
-    blurb: "Who owns build, dependency, inputs and tradeoffs. Cadence.",
+    blurb: "Ownership, decision rights, governance cadence and current work focus.",
   },
+  {
+    slug: "assumption-change",
+    label: "Scenario Planning",
+    group: "Plan",
+    blurb: "Test temporary planning assumptions without changing the live customer plan.",
+  },
+
   {
     slug: "environment",
     label: "Environment",
     group: "Technical",
-    blurb: "Interactive customer architecture map with provenance.",
+    blurb: "Customer systems, integrations and approved topology.",
   },
   {
     slug: "documents",
     label: "Documents / Knowledge",
     group: "Technical",
-    blurb: "Source inventory with owner, freshness and approval state.",
+    blurb: "Approved source inventory, ownership, freshness and evidence.",
   },
   {
-    slug: "messaging",
-    label: "Customer Messaging",
-    group: "Communication",
-    blurb: "Five-part composer, approved example, red-flag phrases.",
-  },
-  {
-    slug: "roi-workshop",
-    label: "ROI Workshop",
-    group: "Value",
-    blurb: "Baseline construction, measure-first monetization model.",
-  },
-  {
-    slug: "kpi-contract",
-    label: "KPI Contract",
-    group: "Value",
-    blurb: "Full metric contracts for every leading and lagging KPI.",
+    slug: "engineering-issues",
+    label: "Engineering Issues",
+    group: "Technical",
+    blurb: "Engineering-ready issue intake and Jira execution board.",
   },
   {
     slug: "accuracy-triage",
     label: "Accuracy Triage",
     group: "Technical",
-    blurb: "Eight-layer wizard plus engineering escalation packet.",
+    blurb: "Persistent incident triage, evidence and escalation packets.",
   },
-  {
-    slug: "executive-qbr",
-    label: "Executive QBR",
-    group: "Value",
-    blurb: "Weekly, monthly and QBR value views for the sponsor.",
-  },
-  {
-    slug: "readiness-gate",
-    label: "Readiness Gate",
-    group: "System",
-    blurb: "Presales control that prevents the next repeat of this failure.",
-  },
+
   {
     slug: "meeting-prep",
     label: "Meeting Prep",
@@ -109,16 +88,42 @@ export const SECTIONS: SectionDef[] = [
     blurb: "Auto-updated call context, approved evidence, decisions, next milestones and pre-call PDF.",
   },
   {
-    slug: "assumption-change",
-    label: "Assumption Change",
-    group: "Frame",
-    blurb: "Change a condition and watch the plan, risk and decision adapt.",
+    slug: "messaging",
+    label: "Customer Messaging",
+    group: "Communication",
+    blurb: "Human-reviewed customer communication tied to confirmed workspace facts.",
+  },
+
+  {
+    slug: "roi-workshop",
+    label: "ROI Workshop",
+    group: "Value",
+    blurb: "Baseline construction and outcome measurement design.",
+  },
+  {
+    slug: "kpi-contract",
+    label: "KPI Contract",
+    group: "Value",
+    blurb: "Metric definitions, sources, ownership and targets.",
+  },
+  {
+    slug: "executive-qbr",
+    label: "Executive QBR",
+    group: "Value",
+    blurb: "Sponsor-ready value, progress, risk and decision view.",
+  },
+
+  {
+    slug: "readiness-gate",
+    label: "Readiness Gate",
+    group: "System",
+    blurb: "Validate required inputs before a customer-committed launch decision.",
   },
   {
     slug: "evidence",
     label: "Evidence / Artifacts",
     group: "System",
-    blurb: "Every artifact behind the position, in one index.",
+    blurb: "Evidence and operating artifacts behind the current plan.",
   },
 ];
 
@@ -138,6 +143,7 @@ export const SECTION_ALIASES: Record<string, string> = {
   "virtual-liaison": "meeting-prep",
   "call-brief": "meeting-prep",
   "meeting-brief": "meeting-prep",
+  "assumption-change": "assumption-change",
 };
 
 export function resolveSectionSlug(slug: string) {
