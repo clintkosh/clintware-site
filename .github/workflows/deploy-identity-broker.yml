@@ -158,7 +158,7 @@ jobs:
               printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
               echo "$name configured"
             else
-              npx wrangler secret delete "$name" --config wrangler.generated.jsonc >/dev/null 2>&1 || true
+              printf 'y\n' | npx wrangler secret delete "$name" --config wrangler.generated.jsonc >/dev/null 2>&1 || true
               echo "$name absent; any stale Worker secret was cleared"
             fi
           }
