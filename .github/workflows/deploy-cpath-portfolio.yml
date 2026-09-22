@@ -135,7 +135,9 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
-          curl --fail-with-body -sS https://cpath.clintware.com/health | grep -Fq '"ok":true'
+          health=$(curl --fail-with-body -sS https://cpath.clintware.com/health)
+          grep -Fq '"ok":true' <<< "$health"
+          grep -Fq '"sunsetAt":"2026-10-22T05:00:00Z"' <<< "$health"
 
           resume_headers=$(mktemp)
           curl --fail-with-body -sS -D "$resume_headers" -o /tmp/cpath-resume.pdf https://cpath.clintware.com/resume.pdf
