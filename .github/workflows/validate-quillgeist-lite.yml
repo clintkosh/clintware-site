@@ -121,9 +121,19 @@ jobs:
             throw "Missing health service source: $source"
           }
 
-          $refs = @("System.ServiceProcess.dll","System.Runtime.Serialization.dll")
-          $serviceSource = Get-Content $source -Raw
-          Add-Type -TypeDefinition $serviceSource -Language CSharp -ReferencedAssemblies $refs -OutputAssembly $output -OutputType WindowsApplication
+          $cscCandidates = @(
+            "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
+            "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+          )
+          $csc = $cscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $csc) {
+            throw "Windows .NET Framework csc.exe was not found."
+          }
+
+          & $csc /nologo /target:winexe /optimize+ /out:$output /reference:System.ServiceProcess.dll /reference:System.Runtime.Serialization.dll $source
+          if ($LASTEXITCODE -ne 0) {
+            throw "Health service compilation failed with exit code $LASTEXITCODE."
+          }
 
           if (-not (Test-Path $output)) {
             throw "Health service compilation did not produce an executable."
