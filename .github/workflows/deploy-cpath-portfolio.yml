@@ -136,7 +136,16 @@ jobs:
           done
           test "$ready" = "1"
           curl --fail-with-body -sS https://cpath.clintware.com/health | grep -Fq '"ok":true'
-          echo 'cpath.clintware.com passed HTTPS, content, header and health checks.'
+
+          resume_headers=$(mktemp)
+          curl --fail-with-body -sS -D "$resume_headers" -o /tmp/cpath-resume.pdf https://cpath.clintware.com/resume.pdf
+          grep -Eqi '^content-type: *application/pdf' "$resume_headers"
+          if grep -Eqi '^x-frame-options:' "$resume_headers"; then
+            echo "Embedded resume unexpectedly carries X-Frame-Options" >&2
+            exit 1
+          fi
+          file /tmp/cpath-resume.pdf | grep -Fqi 'PDF document'
+          echo 'cpath.clintware.com passed HTTPS, content, embedded resume, header and health checks.'
 
       - name: Verify first-party application links and assets
         run: |
