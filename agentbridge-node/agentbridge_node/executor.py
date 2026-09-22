@@ -18,6 +18,7 @@ from .dlp import evaluate as evaluate_dlp, sanitize as sanitize_dlp
 from .ledger import append as ledger_append
 from .pack import ExecutionPack, load_pack
 from .policy import evaluate, required_capabilities
+from .active_jobs import begin_job, update_job, finish_job, stop_requested
 
 class ExecutionError(RuntimeError):
     pass
@@ -38,7 +39,7 @@ def safe_path(workspace: Path, value: str) -> Path:
         raise ExecutionError(f"path escapes workspace: {value}")
     return p
 
-def _run(runtime: str, command, cwd: Path, timeout: int) -> dict:
+def _run(runtime: str, command, cwd: Path, timeout: int, run_id: str | None = None) -> dict:
     runtime = (runtime or "shell").lower()
     if isinstance(command, list):
         argv = [str(x) for x in command]
@@ -56,25 +57,51 @@ def _run(runtime: str, command, cwd: Path, timeout: int) -> dict:
     else:
         argv = ["cmd.exe", "/d", "/s", "/c", str(command)] if os.name == "nt" else ["/bin/sh", "-lc", str(command)]
     started = time.time()
+    proc = subprocess.Popen(argv, cwd=str(cwd), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if run_id:
+        update_job(run_id, current_pid=proc.pid, current_runtime=runtime)
+    timed_out = False
+    cancelled = False
     try:
-        proc = subprocess.run(argv, cwd=str(cwd), text=True, capture_output=True, timeout=timeout)
+        while proc.poll() is None:
+            if run_id and stop_requested(run_id):
+                cancelled = True
+                try:
+                    if os.name == "nt":
+                        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, text=True)
+                    else:
+                        proc.terminate()
+                except Exception:
+                    proc.kill()
+                break
+            if time.time() - started > timeout:
+                timed_out = True
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                break
+            time.sleep(0.1)
+        stdout, stderr = proc.communicate()
+        code = proc.returncode
+        if cancelled:
+            code = 130
+            stderr = (stderr or "") + "\nQuillgeist run stopped by user"
+        elif timed_out:
+            code = 124
+            stderr = (stderr or "") + f"\nQuillgeist timeout after {timeout}s"
         return {
             "runtime": runtime,
             "command": command,
-            "exit_code": proc.returncode,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "duration_ms": int((time.time() - started) * 1000)
+            "exit_code": code,
+            "stdout": stdout or "",
+            "stderr": stderr or "",
+            "duration_ms": int((time.time() - started) * 1000),
+            "cancelled": cancelled,
         }
-    except subprocess.TimeoutExpired as exc:
-        return {
-            "runtime": runtime,
-            "command": command,
-            "exit_code": 124,
-            "stdout": exc.stdout or "",
-            "stderr": (exc.stderr or "") + f"\nAgentBridge timeout after {timeout}s",
-            "duration_ms": int((time.time() - started) * 1000)
-        }
+    finally:
+        if run_id:
+            update_job(run_id, current_pid=None)
 
 def _mutated_paths(pack: ExecutionPack, workspace: Path) -> list[Path]:
     out = []
@@ -125,7 +152,7 @@ def rollback(run_id: str, workspace: str | Path) -> dict:
     ledger_append({"type": "rollback", "run_id": run_id, "workspace": str(workspace), "restored": restored})
     return {"run_id": run_id, "restored": restored}
 
-def _execute_step(step: dict, pack: ExecutionPack, workspace: Path, timeout: int) -> dict:
+def _execute_step(step: dict, pack: ExecutionPack, workspace: Path, timeout: int, run_id: str | None = None) -> dict:
     t = step.get("type")
     if t == "mkdir":
         p = safe_path(workspace, step["path"]); p.mkdir(parents=True, exist_ok=True)
@@ -165,7 +192,7 @@ def _execute_step(step: dict, pack: ExecutionPack, workspace: Path, timeout: int
         text = p.read_text(encoding=step.get("encoding", "utf-8"))
         return {"type": t, "path": step["path"], "ok": True, "content": text[:int(step.get("max_chars", 12000))]}
     if t == "run":
-        result = _run(step.get("runtime", "shell"), step.get("command", ""), workspace, int(step.get("timeout", timeout)))
+        result = _run(step.get("runtime", "shell"), step.get("command", ""), workspace, int(step.get("timeout", timeout)), run_id=run_id)
         result["type"] = t
         result["ok"] = result["exit_code"] == int(step.get("expect_exit", 0))
         if not result["ok"] and not step.get("continue_on_error", False):
@@ -233,6 +260,7 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
         }
 
     run_id = f"{pack.id}-{int(time.time())}"
+    begin_job(run_id, pack.id, manifest.get("title"))
     mutation_paths = _mutated_paths(pack, workspace)
     changed_before = {p.as_posix(): _sha256(p) for p in mutation_paths}
     _snapshot(run_id, workspace, mutation_paths)
@@ -242,7 +270,10 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
     timeout = int(manifest.get("max_runtime_seconds", 900))
     try:
         for idx, step in enumerate(manifest.get("steps", [])):
-            result = _execute_step(step, pack, workspace, timeout); result["index"] = idx; step_results.append(result)
+            if stop_requested(run_id):
+                raise ExecutionError("run stopped by user")
+            update_job(run_id, current_step=idx)
+            result = _execute_step(step, pack, workspace, timeout, run_id=run_id); result["index"] = idx; step_results.append(result)
     except Exception as exc:
         status, error = "failed", str(exc)
 
@@ -304,6 +335,7 @@ def execute(pack: ExecutionPack, config: Config | None = None, workspace_overrid
     run_dir = home_dir() / "runs" / run_id; run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "result.abresult").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     ledger_append({"type":"run","result":result})
+    finish_job(run_id, status)
     return result
 
 def execute_pack_path(path: str | Path, config: Config | None = None, workspace_override: str | Path | None = None, approved: bool = False) -> dict:
