@@ -38,6 +38,36 @@ def remove_schedule(schedule_id: str) -> bool:
     rows = load_schedules(); new = [x for x in rows if x["id"] != schedule_id]
     save_schedules(new); return len(new) != len(rows)
 
+def update_schedule(schedule_id: str, **changes) -> dict | None:
+    """Update an existing schedule in place and return the updated row."""
+    allowed = {"pack_path", "next_run_at", "every_seconds", "owner", "device_id", "enabled", "approved_local"}
+    rows = load_schedules()
+    updated = None
+    for row in rows:
+        if row.get("id") != schedule_id:
+            continue
+        for key, value in changes.items():
+            if key not in allowed:
+                continue
+            if key == "pack_path" and value:
+                value = str(Path(value).expanduser().resolve())
+            elif key == "next_run_at" and value is not None:
+                value = float(value)
+            elif key == "every_seconds":
+                value = int(value) if value else None
+            elif key in {"enabled", "approved_local"}:
+                value = bool(value)
+            row[key] = value
+        row["updated_at"] = datetime.now(timezone.utc).isoformat()
+        updated = dict(row)
+        break
+    if updated is not None:
+        save_schedules(rows)
+    return updated
+
+def set_schedule_enabled(schedule_id: str, enabled: bool) -> dict | None:
+    return update_schedule(schedule_id, enabled=enabled)
+
 class SchedulerEngine:
     def __init__(self, callback, interval: float = 2.0, after_run=None):
         self.callback, self.interval, self.after_run, self._stop = callback, interval, after_run, threading.Event()
