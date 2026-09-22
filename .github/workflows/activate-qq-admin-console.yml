@@ -10,6 +10,8 @@ on:
 permissions:
   contents: read
 
+# verification pass: supervised admin console
+
 jobs:
   activate:
     runs-on: ubuntu-latest
