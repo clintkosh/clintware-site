@@ -5,7 +5,7 @@ import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 
-const VERSION = "2026-09-21.2";
+const VERSION = "2026-09-22";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -664,6 +664,62 @@ export class RegistryHub extends DurableObject {
       const cutoff=Date.now()-requested*86400000;
       const snapshots=(await this.ctx.storage.get("admin_snapshots")||[]).filter(x=>Date.parse(x.timestamp||"")>=cutoff);
       return json({ok:true,days:requested,snapshots});
+    }
+    if(request.method==="POST"&&url.pathname==="/admin-incidents/reconcile"){
+      const body=await reqJson(request,64_000);
+      const now=String(body.timestamp||nowIso());
+      const findings=Array.isArray(body.findings)?body.findings:[];
+      let incidents=await this.ctx.storage.get("admin_incidents")||[];
+      const activeByFingerprint=new Map(incidents.filter(x=>x.status==="active").map(x=>[x.fingerprint,x]));
+      const seen=new Set();
+      for(const finding of findings){
+        const fingerprint=clip(finding.fingerprint||"",240);
+        if(!fingerprint)continue;
+        seen.add(fingerprint);
+        const current=activeByFingerprint.get(fingerprint);
+        if(current){
+          current.last_seen=now;
+          current.seen_count=Number(current.seen_count||1)+1;
+          current.message=clip(finding.message||current.message,1000);
+          current.severity=clip(finding.severity||current.severity||"warning",40);
+          current.type=clip(finding.type||current.type||"operational",120);
+          current.current=finding.current??current.current??null;
+          current.baseline=finding.baseline??current.baseline??null;
+          current.target=clip(finding.target||current.target||"",300);
+        }else{
+          incidents.push({
+            incident_id:crypto.randomUUID(),
+            fingerprint,
+            type:clip(finding.type||"operational",120),
+            severity:clip(finding.severity||"warning",40),
+            message:clip(finding.message||fingerprint,1000),
+            target:clip(finding.target||"",300),
+            current:finding.current??null,
+            baseline:finding.baseline??null,
+            status:"active",
+            opened_at:now,
+            last_seen:now,
+            resolved_at:null,
+            seen_count:1
+          });
+        }
+      }
+      for(const incident of incidents){
+        if(incident.status==="active"&&!seen.has(incident.fingerprint)){
+          incident.status="resolved";
+          incident.resolved_at=now;
+        }
+      }
+      const cutoff=Date.now()-90*86400000;
+      incidents=incidents.filter(x=>Date.parse(x.last_seen||x.opened_at||"")>=cutoff).slice(-2000);
+      await this.ctx.storage.put("admin_incidents",incidents);
+      return json({ok:true,active:incidents.filter(x=>x.status==="active").length,total:incidents.length});
+    }
+    if(request.method==="GET"&&url.pathname==="/admin-incidents"){
+      const requested=Math.max(1,Math.min(90,Number(url.searchParams.get("days"))||30));
+      const cutoff=Date.now()-requested*86400000;
+      const incidents=(await this.ctx.storage.get("admin_incidents")||[]).filter(x=>Date.parse(x.last_seen||x.opened_at||"")>=cutoff);
+      return json({ok:true,days:requested,incidents});
     }
     if(request.method==="GET"&&url.pathname==="/list") return json({products:Object.values(products)});
     if(request.method==="GET"&&url.pathname.startsWith("/get/")){
