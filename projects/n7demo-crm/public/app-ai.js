@@ -3,7 +3,7 @@ const LIVE={
   active:false,display:null,mic:null,ctx:null,processor:null,sources:[],mute:null,
   buffers:[],samples:0,chunkSeconds:12,overlapSeconds:.7,pending:Promise.resolve(),startedAt:null,
   transcript:[],suggestions:[],gate:"Not started",source:"",lastError:"",processing:false,
-  participants:"",customerId:""
+  participants:"",customerId:"",consentConfirmed:false
 };
 
 function authGate(feature){
@@ -64,7 +64,7 @@ async function approveLivePrompt(){
     tab='live_prompt';
     await load(S.customer.id);
     let st=document.querySelector('#prompt-status');if(st)st.textContent='Approved changes applied and customer record refreshed.';
-  }catch(err){if(b){b.disabled=false;b.textContent='Approve and apply'}alert('Apply failed: '+err.message)}
+  }catch(err){if(b){b.disabled=false;b.textContent='Approve and apply'}alert(err.message==='plan_stale'?'This customer record changed after the AI interpretation. Re-run Live Prompt so you review a fresh plan before applying it.':'Apply failed: '+err.message)}
 }
 
 function assistantProfile(){return R('assistant_profile')[0]||null}
@@ -75,7 +75,7 @@ function suggestionHtml(s){
 function liveAssistant(){
   if(LIVE.customerId&&LIVE.customerId!==S.customer?.id){
     if(LIVE.active)void stopLiveAudio();
-    LIVE.transcript=[];LIVE.suggestions=[];LIVE.gate="Not started";LIVE.lastError="";LIVE.startedAt=null;LIVE.source="";LIVE.participants="";
+    LIVE.transcript=[];LIVE.suggestions=[];LIVE.gate="Not started";LIVE.lastError="";LIVE.startedAt=null;LIVE.source="";LIVE.participants="";LIVE.consentConfirmed=false;
   }
   LIVE.customerId=S.customer?.id||"";
   let prof=assistantProfile(),saved=R('assistant_session').slice(-5).reverse();
@@ -136,7 +136,7 @@ function wavBlob(samples,sampleRate=16000){
 async function transcribeBlob(blob,source,analyze=true){
   LIVE.processing=true;updateLiveDom();
   try{
-    let r=await fetch('/api/audio/transcribe',{method:'POST',headers:{'content-type':'audio/wav','x-transcript-hint':transcriptText().slice(-800)},body:blob});
+    let r=await fetch('/api/audio/transcribe',{method:'POST',headers:{'content-type':'audio/wav','x-transcript-hint':transcriptText().slice(-800),'x-consent-confirmed':LIVE.consentConfirmed?'1':'0','x-customer-id':String(S.customer?.id||'')},body:blob});
     let x=await r.json().catch(()=>({}));
     if(!r.ok)throw Error(x.error||r.statusText);
     let text=dedupeTranscriptChunk(transcriptText(),String(x.text||'').trim());
@@ -162,6 +162,7 @@ function flushLiveChunk(force=false){
 }
 async function startLiveAudio(){
   if(!document.querySelector('#live-consent')?.checked){alert('Confirm participant consent before starting transcription.');return}
+  LIVE.consentConfirmed=true;
   if(!navigator.mediaDevices?.getDisplayMedia){alert('This browser does not support machine/tab audio capture. Use current Chrome or Edge.');return}
   let display=null,mic=null;
   try{
@@ -187,6 +188,7 @@ async function stopLiveAudio(){
 }
 async function transcribeRecordedFile(){
   if(!document.querySelector('#live-consent')?.checked){alert('Confirm participant consent before transcribing the recording.');return}
+  LIVE.consentConfirmed=true;
   let file=document.querySelector('#live-file')?.files?.[0];if(!file)return;
   let p=document.querySelector('#live-progress');LIVE.lastError='';LIVE.source='recorded call';LIVE.startedAt=LIVE.startedAt||new Date().toISOString();
   try{
@@ -241,21 +243,21 @@ async function trainAssistant(){
 }
 async function saveAssistantSession(){
   if(!LIVE.transcript.length)return;
-  let data={title:'Live assistant session · '+new Date().toLocaleString(),startedAt:LIVE.startedAt||new Date().toISOString(),endedAt:new Date().toISOString(),source:LIVE.source||'mixed',consentConfirmed:true,customerGate:LIVE.gate,transcript:transcriptText().slice(-60000),suggestions:LIVE.suggestions.slice(-30).map(x=>({at:x.at,trigger:x.trigger,suggestion:x.suggestion,follow_up:x.follow_up}))};
+  let data={title:'Live assistant session · '+new Date().toLocaleString(),startedAt:LIVE.startedAt||new Date().toISOString(),endedAt:new Date().toISOString(),source:LIVE.source||'mixed',consentConfirmed:Boolean(LIVE.consentConfirmed),customerGate:LIVE.gate,transcript:transcriptText().slice(-60000),suggestions:LIVE.suggestions.slice(-30).map(x=>({at:x.at,trigger:x.trigger,suggestion:x.suggestion,follow_up:x.follow_up}))};
   await api('/records',{method:'POST',body:JSON.stringify({customerId:S.customer.id,type:'assistant_session',provenance:'internal_record',data})});
   await load(S.customer.id)
 }
 function bindAiFeatures(){
   let pr=document.querySelector('#prompt-run');if(pr)pr.onclick=runLivePrompt;
   let pa=document.querySelector('#prompt-approve');if(pa)pa.onclick=approveLivePrompt;
-  let pd=document.querySelector('#prompt-discard');if(pd)pd.onclick=()=>{PROMPT_PLAN=null;render()};
+  let pd=document.querySelector('#prompt-discard');if(pd)pd.onclick=async()=>{let id=PROMPT_PLAN?.planId;PROMPT_PLAN=null;render();if(id)try{await api('/ai/plans/'+encodeURIComponent(id)+'/discard',{method:'POST',body:'{}'})}catch{}};
   let ls=document.querySelector('#live-start');if(ls)ls.onclick=startLiveAudio;
   let lp=document.querySelector('#live-stop');if(lp)lp.onclick=stopLiveAudio;
   let lf=document.querySelector('#live-file-run');if(lf)lf.onclick=transcribeRecordedFile;
   let la=document.querySelector('#live-ask');if(la)la.onclick=directAsk;
   let ps=document.querySelector('#assistant-profile-save');if(ps)ps.onclick=saveAssistantProfile;
   let tr=document.querySelector('#assistant-train');if(tr)tr.onclick=trainAssistant;
-  let lc=document.querySelector('#live-clear');if(lc)lc.onclick=()=>{LIVE.transcript=[];LIVE.suggestions=[];LIVE.gate='Not started';LIVE.lastError='';updateLiveDom()};
+  let lc=document.querySelector('#live-clear');if(lc)lc.onclick=()=>{LIVE.transcript=[];LIVE.suggestions=[];LIVE.gate='Not started';LIVE.lastError='';LIVE.consentConfirmed=false;updateLiveDom()};
   let sv=document.querySelector('#live-save-session');if(sv)sv.onclick=saveAssistantSession;
   updateLiveDom()
 }
