@@ -33,6 +33,22 @@ jobs:
       - name: Syntax check
         run: npm run check --prefix identity-broker
 
+      - name: PowerShell helper parse check
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "identity-broker/scripts/activate-google-signin.ps1",
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "activate-google-signin.ps1 parses cleanly."
+
       - name: Render validation config
         run: node identity-broker/scripts/render-wrangler.mjs 00000000000000000000000000000000
 
