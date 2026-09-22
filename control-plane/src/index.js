@@ -182,7 +182,8 @@ const QUILLGEIST_LITE_TASKS = {
   "finish-google-oauth":{runtime:"powershell",parameters:["Repo"]},
   "python-runtime-check":{runtime:"python",parameters:["Message"]},
   "c-runtime-check":{runtime:"c",parameters:["Message"]},
-  "ensure-c-runtime":{runtime:"powershell",parameters:[]}
+  "ensure-c-runtime":{runtime:"powershell",parameters:[]},
+  "self-update":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
@@ -1573,7 +1574,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
