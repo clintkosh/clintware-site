@@ -60,208 +60,107 @@ function Flush-RunnerDiagnostics {
   }
 }
 
-function Show-QuillgeistSplash {
-  try { $Host.UI.RawUI.WindowTitle = "Clintware Quillgeist Lite" } catch {}
-  try { [Console]::CursorVisible = $false } catch {}
+function Initialize-ClintwareTerminal {
+  try {
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    [Console]::BackgroundColor = [ConsoleColor]::Black
+    [Console]::ForegroundColor = [ConsoleColor]::White
+  } catch {}
 
-  $frames = @(
-@'
-                         .##~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~##~~~~~~~~.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~~~~~~~~~##.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       ##
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-            |                                        ##
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~##'
-'@,
-@'
-                         .-~~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         ##~~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-             /                                       \
-           ##                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@,
-@'
-                         .-~~~~~~~~~~~~~~-.
-                    .-~~'                 '~~-.
-                 .~~'                         '~~.
-               .~'                               '~.
-              /                                     \
-            ##                                       \
-            |                                         |
-            |          C L I N T W A R E  (TM)       |
-            |                                         |
-             \                                       /
-              \                                     /
-               '~.                               .~'
-                 '~~.                         .~~'
-                    '-~~.                 .~~-'
-                         '-~~~~~~~~~~~~~-'
-'@
-  )
+  try {
+    $raw = $Host.UI.RawUI
+    $raw.BackgroundColor = "Black"
+    $raw.ForegroundColor = "White"
+    $raw.WindowTitle = "Clintware Quillgeist Lite"
 
-  function Write-LogoLine {
-    param([string]$Line)
-
-    $wordStart = $Line.IndexOf("C L I N T W A R E")
-
-    for ($i = 0; $i -lt $Line.Length; $i++) {
-      if ($i + 1 -lt $Line.Length -and $Line.Substring($i,2) -eq "##") {
-        Write-Host "##" -ForegroundColor Cyan -NoNewline
-        $i++
-        continue
-      }
-
-      if ($wordStart -ge 0 -and $i -ge $wordStart) {
-        Write-Host $Line[$i] -ForegroundColor White -NoNewline
-      } else {
-        Write-Host $Line[$i] -ForegroundColor DarkCyan -NoNewline
-      }
+    $targetWidth = [Math]::Min(118,[Math]::Max(92,$raw.MaxPhysicalWindowSize.Width))
+    if ($raw.BufferSize.Width -lt $targetWidth) {
+      $buffer = $raw.BufferSize
+      $buffer.Width = $targetWidth
+      $raw.BufferSize = $buffer
     }
 
-    Write-Host ""
-  }
-
-  function Draw-SplashFrame {
-    param([string]$Frame)
-
-    try {
-      [Console]::SetCursorPosition(0,0)
-      [Console]::Write((" " * 88 + [Environment]::NewLine) * 27)
-      [Console]::SetCursorPosition(0,0)
-    } catch {
-      try { Clear-Host } catch {}
+    if ($raw.WindowSize.Width -lt $targetWidth) {
+      $window = $raw.WindowSize
+      $window.Width = [Math]::Min($targetWidth,$raw.MaxPhysicalWindowSize.Width)
+      $raw.WindowSize = $window
     }
-
-    foreach ($line in ($Frame -split '\r?\n')) {
-      Write-LogoLine $line
-    }
-
-    Write-Host ""
-    Write-Host "                    Q U I L L G E I S T   L I T E" -ForegroundColor White
-    Write-Host ""
-    Write-Host "                        GO FURTHEST. (TM)" -ForegroundColor Cyan
-    Write-Host "                  EST. 2026  //  ALL RIGHTS RESERVED" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "                 MCP  <->  LOCAL EXECUTION BRIDGE" -ForegroundColor DarkGray
-    Write-Host "                      PS1  |  PYTHON  |  C" -ForegroundColor DarkGray
-  }
+  } catch {}
 
   try { Clear-Host } catch {}
+}
 
-  for ($spin = 0; $spin -lt 2; $spin++) {
-    for ($i = 0; $i -lt $frames.Count; $i++) {
-      Draw-SplashFrame $frames[$i]
-      Start-Sleep -Milliseconds 85
-    }
-  }
+function Write-ClintwareCentered {
+  param(
+    [string]$Text,
+    [ConsoleColor]$Color = [ConsoleColor]::White
+  )
 
-  Draw-SplashFrame $frames[0]
+  $width = 100
+  try { $width = [Console]::WindowWidth } catch {}
+  $pad = [Math]::Max(0,[int](($width - $Text.Length) / 2))
+  Write-Host ((" " * $pad) + $Text) -ForegroundColor $Color
+}
+
+function Write-ClintwareSplitLine {
+  param(
+    [string]$Left,
+    [string]$Center,
+    [string]$Right,
+    [ConsoleColor]$CenterColor = [ConsoleColor]::White
+  )
+
+  $raw = $Left + $Center + $Right
+  $width = 100
+  try { $width = [Console]::WindowWidth } catch {}
+  $pad = [Math]::Max(0,[int](($width - $raw.Length) / 2))
+
+  Write-Host (" " * $pad) -NoNewline
+  Write-Host $Left -ForegroundColor Cyan -NoNewline
+  Write-Host $Center -ForegroundColor $CenterColor -NoNewline
+  Write-Host $Right -ForegroundColor Cyan
+}
+
+function Show-QuillgeistSplash {
+  Initialize-ClintwareTerminal
+
+  try { [Console]::CursorVisible = $false } catch {}
+
+  $ring = @(
+    "                  .:-=+*#%@@@@@@@@@@@@@@@@@@%#*+=-:.",
+    "             .:=*%@@@#*+=-::::::::::::::::-=+*#@@@%*=:.",
+    "          .-#@@%+:.                              .:+%@@#-.",
+    "        :#@@=.                                      .=@@#:",
+    "      .%@*:                                            :*@%.",
+    "     +@#.                                                .#@+",
+    "    #@+                                                    +@#",
+    "   %@=                                                      =@%",
+    "  #@+                                                        +@#"
+  )
+
+  foreach ($line in $ring) { Write-ClintwareCentered $line Cyan }
+
+  Write-ClintwareSplitLine "  %@:        " "C L I N T W A R E  TM" "        :@%" White
+  Write-ClintwareSplitLine "  %@:          ..::** " "EST. 2026" " **::..          :@%" White
+
+  $lower = @(
+    "  #@+                                                        +@#",
+    "   %@=                                                      =@%",
+    "    #@+                                                    +@#",
+    "     +@#.                                                .#@+",
+    "      .%@*:                                            :*@%.",
+    "        :#@@=.                                      .=@@#:",
+    "          .-#@@%+:.                              .:+%@@#-.",
+    "             .:=*%@@@#*+=-::::::::::::::::-=+*#@@@%*=:.",
+    "                  .:-=+*#%@@@@@@@@@@@@@@@@@@%#*+=-:."
+  )
+
+  foreach ($line in $lower) { Write-ClintwareCentered $line Cyan }
+
   Write-Host ""
-  Write-Host "                 EVENT-DRIVEN // STREAMING EVIDENCE" -ForegroundColor DarkGray
+  Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
+  Write-ClintwareCentered "LOCAL EXECUTION  //  CONTROL PLANE LINK" DarkCyan
+  Write-ClintwareCentered "POWERSHELL  |  PYTHON  |  C" DarkCyan
   Write-Host ""
 
   try { [Console]::CursorVisible = $true } catch {}
@@ -269,13 +168,37 @@ function Show-QuillgeistSplash {
 
 function Write-Log {
   param([string]$Message,[string]$Level="INFO")
-  $line = "{0} [{1}] {2}" -f (Get-Date).ToString("s"),$Level,$Message
+
+  $stamp = (Get-Date).ToString("s")
+  $line = "{0} [{1}] {2}" -f $stamp,$Level,$Message
   Add-Content -Path $LogPath -Value $line
-  $color = "Gray"
-  if ($Level -eq "ERROR") { $color = "Red" }
-  elseif ($Level -eq "WARN") { $color = "Yellow" }
-  elseif ($Level -eq "OK") { $color = "Green" }
-  Write-Host $line -ForegroundColor $color
+
+  $labelColor = "Cyan"
+  $messageColor = "Cyan"
+
+  switch ($Level.ToUpperInvariant()) {
+    "OK" {
+      $labelColor = "White"
+      $messageColor = "White"
+    }
+    "WARN" {
+      $labelColor = "DarkYellow"
+      $messageColor = "DarkYellow"
+    }
+    "ERROR" {
+      $labelColor = "Red"
+      $messageColor = "Red"
+    }
+    default {
+      $labelColor = "Cyan"
+      $messageColor = "Cyan"
+    }
+  }
+
+  Write-Host $stamp -ForegroundColor DarkGray -NoNewline
+  Write-Host (" [{0}] " -f $Level) -ForegroundColor $labelColor -NoNewline
+  Write-Host $Message -ForegroundColor $messageColor
+
   try { Queue-RunnerDiagnostic $Level $Message "runner" } catch {}
 }
 
@@ -419,7 +342,22 @@ function Emit-TaskLine {
 
   $Sequence.Value++
   $Captured.Add("[$Phase] $safe")
-  Write-Host $safe
+
+  $displayColor = "White"
+  if ($safe -match '(?i)\\b(error|failed|fatal|exception|denied)\\b') {
+    $displayColor = "Red"
+  }
+  elseif ($safe -match '(?i)\\b(warn|warning|retry|degraded)\\b') {
+    $displayColor = "DarkYellow"
+  }
+  elseif ($safe -match '(?i)\\b(ok|passed|success|ready|connected|complete|completed)\\b') {
+    $displayColor = "Cyan"
+  }
+  elseif ($Phase -eq "compile") {
+    $displayColor = "DarkCyan"
+  }
+
+  Write-Host $safe -ForegroundColor $displayColor
 
   if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
     Send-Json $Socket @{
@@ -622,7 +560,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.2.0"
+        version = "1.3.0"
         runtimes = @("powershell","python","c")
       }
 
@@ -638,7 +576,9 @@ try {
       }
 
       Write-Host ""
-      Write-Host "  READY // CONTROL PLANE LINK ACTIVE" -ForegroundColor Green
+      Write-Host "  " -NoNewline
+      Write-Host "READY" -ForegroundColor White -NoNewline
+      Write-Host " // CONTROL PLANE LINK ACTIVE" -ForegroundColor Cyan
       Write-Host ""
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
