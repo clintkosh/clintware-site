@@ -177,9 +177,12 @@ const DEFAULT_QUILLGEIST_LITE = {
 };
 
 const QUILLGEIST_LITE_TASKS = {
-  "clintware-doctor":{parameters:[]},
-  "google-cloud-support-access":{parameters:["OwnerAccount","SupportAccount","ProjectName"]},
-  "finish-google-oauth":{parameters:["Repo"]}
+  "clintware-doctor":{runtime:"powershell",parameters:[]},
+  "google-cloud-support-access":{runtime:"powershell",parameters:["OwnerAccount","SupportAccount","ProjectName"]},
+  "finish-google-oauth":{runtime:"powershell",parameters:["Repo"]},
+  "python-runtime-check":{runtime:"python",parameters:["Message"]},
+  "c-runtime-check":{runtime:"c",parameters:["Message"]},
+  "ensure-c-runtime":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
@@ -540,6 +543,7 @@ export class RegistryHub extends DurableObject {
             completed_at:clip(data.completed_at||nowIso(),80),
             result:{
               task_id:clip(data.task_id||"",120),
+              runtime:clip(data.runtime||"",40),
               status,
               exit_code:Number(data.exit_code||0),
               duration_ms:Number(data.duration_ms||0),
@@ -1569,7 +1573,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
