@@ -1,0 +1,57 @@
+name: Deploy N7 Demo CRM
+on:
+  push:
+    branches: [main]
+    paths: ["projects/n7demo-crm/**", ".github/workflows/deploy-n7demo-crm.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: clintware-n7demo-crm
+  cancel-in-progress: true
+jobs:
+  validate-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Validate source
+        run: |
+          set -euo pipefail
+          cd projects/n7demo-crm
+          npm install --no-audit --no-fund
+          npm run check
+          ! grep -R -i "lovable" src public package.json wrangler.jsonc
+          grep -Fq "Healthcare Device Manufacturer" src/index.js
+          grep -Fq "50% improvement by end of Year 1" src/index.js
+          grep -Fq "6–8 weeks from start to go-live" src/index.js
+          grep -Fq "8–10 weeks" src/index.js
+          npx wrangler deploy --dry-run
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd projects/n7demo-crm
+      - name: Attach custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"n7demo.clintware.com","service":"clintware-n7demo-crm","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
+      - name: Verify live CRM
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 40); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/health || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/ || true)
+            if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" && grep -Fq '"lovable":false' <<< "$h" && grep -Fq 'N7 Demo CRM' <<< "$p"; then ready=1; break; fi
+            sleep 5
+          done
+          test "$ready" = "1"
+          curl -fsS https://n7demo.clintware.com/api/state | grep -Fq 'Healthcare Device Manufacturer'
