@@ -69,7 +69,8 @@ export async function googleBusyIntervals(env, fromMs, toMs) {
       items: [{ id: calendarId(env) }],
     }),
   });
-  const entry = data.calendars?.[calendarId(env)] || data.calendars?.primary || {};
+  const calendars = data.calendars || {};
+  const entry = calendars[calendarId(env)] || calendars.primary || Object.values(calendars)[0] || {};
   if (Array.isArray(entry.errors) && entry.errors.length) {
     const error = new Error("google_calendar_freebusy_failed");
     error.code = "google_calendar_freebusy_failed";
