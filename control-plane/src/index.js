@@ -3,8 +3,9 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
+import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 
-const VERSION = "2026-09-19";
+const VERSION = "2026-09-21.2";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -648,6 +649,22 @@ export class RegistryHub extends DurableObject {
     }
     const products=await this.ensureDefaults();
     await this.ensureDefaultFlows();
+    if(request.method==="POST"&&url.pathname==="/admin-snapshot"){
+      const body=await reqJson(request,32_000);
+      const snapshot={...body,timestamp:String(body.timestamp||nowIso())};
+      let snapshots=await this.ctx.storage.get("admin_snapshots")||[];
+      snapshots.push(snapshot);
+      const cutoff=Date.now()-90*86400000;
+      snapshots=snapshots.filter(x=>Date.parse(x.timestamp||"")>=cutoff).slice(-10000);
+      await this.ctx.storage.put("admin_snapshots",snapshots);
+      return json({ok:true,count:snapshots.length});
+    }
+    if(request.method==="GET"&&url.pathname==="/admin-snapshots"){
+      const requested=Math.max(1,Math.min(90,Number(url.searchParams.get("days"))||30));
+      const cutoff=Date.now()-requested*86400000;
+      const snapshots=(await this.ctx.storage.get("admin_snapshots")||[]).filter(x=>Date.parse(x.timestamp||"")>=cutoff);
+      return json({ok:true,days:requested,snapshots});
+    }
     if(request.method==="GET"&&url.pathname==="/list") return json({products:Object.values(products)});
     if(request.method==="GET"&&url.pathname.startsWith("/get/")){
       const key=normalizeProduct(url.pathname.split("/").pop());
@@ -857,14 +874,17 @@ export class ProductHub extends DurableObject {
       const events=(await this.events()).filter(e=>withinDays(e,days));
       const sessions=new Set(events.map(e=>e.anonymous_session_id).filter(Boolean));
       const providers={},features={},routes={},errors={},costByProvider={};
-      let cost=0,avoided=0,cacheHits=0,fallbacks=0,successes=0,successfulResearchRuns=0;
+      let cost=0,avoided=0,cacheHits=0,fallbacks=0,successes=0,successfulResearchRuns=0,latencyTotal=0,toolCalls=0,inputSize=0,outputSize=0,errorCount=0;
       for(const e of events){
         inc(providers,e.provider||"local");inc(features,e.feature);inc(routes,e.route||"unspecified");
         if(e.error_class) inc(errors,e.error_class);
+        const failed=!e.success||Boolean(e.error_class);
+        if(failed)errorCount++;
         const c=Number(e.reported_api_cost||0);cost+=c;avoided+=Number(e.estimated_cost_avoided||0);inc(costByProvider,e.provider||"local",c);
+        latencyTotal+=Number(e.latency_ms||0);toolCalls+=Number(e.tool_calls||0);inputSize+=Number(e.input_size||0);outputSize+=Number(e.output_size||0);
         if(e.cache_status==="hit") cacheHits++;if(e.fallback_used)fallbacks++;if(e.success)successes++;if(e.success&&e.feature==="brief"&&e.action==="analyze")successfulResearchRuns++;
       }
-      return json({days,event_count:events.length,successful_research_runs:successfulResearchRuns,unique_sessions:sessions.size,success_rate:events.length?successes/events.length:1,total_reported_api_cost:cost,estimated_cost_avoided:avoided,cache_hits:cacheHits,cache_hit_rate:events.length?cacheHits/events.length:0,fallbacks,providers,provider_costs:costByProvider,features,routes,errors});
+      return json({days,event_count:events.length,error_count:errorCount,success_count:successes,successful_research_runs:successfulResearchRuns,unique_sessions:sessions.size,success_rate:events.length?successes/events.length:1,total_reported_api_cost:cost,estimated_cost_avoided:avoided,cache_hits:cacheHits,cache_hit_rate:events.length?cacheHits/events.length:0,fallbacks,latency_ms_total:latencyTotal,avg_latency_ms:events.length?latencyTotal/events.length:0,tool_calls:toolCalls,input_size:inputSize,output_size:outputSize,providers,provider_costs:costByProvider,features,routes,errors});
     }
     if(request.method==="GET"&&url.pathname==="/recent"){
       const limit=Math.max(1,Math.min(200,Number(url.searchParams.get("limit"))||50));
@@ -1970,6 +1990,10 @@ export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      if(url.pathname.startsWith("/admin")){
+        const adminResponse=await handleAdminRequest(request,env);
+        if(adminResponse)return adminResponse;
+      }
       if(request.method==="GET"&&url.pathname==="/")return controlPlaneLanding();
       if(request.method==="GET"&&url.pathname==="/health"){
         const products=await (await registryHub(env).fetch("https://internal/list")).json();
