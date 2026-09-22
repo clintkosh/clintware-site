@@ -35,7 +35,7 @@ function bind(){
  let i2=document.querySelector('#import2');if(i2)i2.onclick=importCustomers;
  let ic=document.querySelector('#import-customers');if(ic)ic.onclick=importCustomers;
  document.querySelectorAll('[data-customer-open]').forEach(x=>x.onclick=()=>{tab='command';load(x.dataset.customerOpen)});
- let clr=document.querySelector('#clear-non-golden');if(clr)clr.onclick=async()=>{if(confirm('Remove every customer except ACME MEDICAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:false})});tab='customers';await load()}};
+ let clr=document.querySelector('#clear-non-golden');if(clr)clr.onclick=async()=>{let g=S.customers.find(c=>c.isGoldenExample);if(confirm('Remove every customer except '+(g?.name||'the golden example')+'?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:false})});tab='customers';await load()}};
  let ca=document.querySelector('#clear-all');if(ca)ca.onclick=async()=>{let ov=document.querySelector('#override-golden')?.checked===true;if(!ov){alert('Enable the golden-example override first to remove ACME MEDICAL.');return}if(confirm('Remove ALL customers, including ACME MEDICAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:true})});tab='customers';await load()}};
  let rs=document.querySelector('#reset-samples');if(rs)rs.onclick=async()=>{if(confirm('Reset the workspace to ACME MEDICAL plus the 10 default synthetic sample customers?')){await api('/customers/reset-samples',{method:'POST',body:'{}'});tab='customers';await load()}};
  document.querySelector('#whatif').onclick=()=>document.querySelector('#drawer').classList.remove('hidden');
