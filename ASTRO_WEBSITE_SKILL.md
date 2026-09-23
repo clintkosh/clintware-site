@@ -20,15 +20,17 @@ Before changing a public site page:
 6. Remove generic template structure where it obscures the real job.
 7. Write from evidence and product truth, not marketing convention.
 8. Distinguish clearly between what works now, what is being tested, and what is roadmap.
-9. Validate links, page hierarchy, mobile readability, and deployment before calling the change complete.
+9. Validate links, page hierarchy, mobile readability, **typography-role consistency**, and deployment before calling the change complete.
+10. For any site-wide refresh, redesign, migration, generated page, or visual cleanup, verify that production typography still matches the canonical specimen at `/fonts/`. A generic framework font reset or terminal-only fallback is a regression.
 
 Canonical sequence:
 
-`READ ASTRO -> INSPECT LIVE/REPO STATE -> IDENTIFY PAGE JOB -> PRESERVE WORKING PARTS -> REMOVE TEMPLATE NOISE -> WRITE FROM EVIDENCE -> SEPARATE NOW/NEXT -> QA -> DEPLOY -> VERIFY`
+`READ ASTRO -> INSPECT LIVE/REPO STATE -> IDENTIFY PAGE JOB -> PRESERVE WORKING PARTS -> PRESERVE CLINTWARE TYPE SYSTEM -> REMOVE TEMPLATE NOISE -> WRITE FROM EVIDENCE -> SEPARATE NOW/NEXT -> QA -> DEPLOY -> VERIFY`
 
 ## Clintware visual / writing constraints
 
 - Use **Clintware™** and **GO FURTHEST.™** exactly where brand display is appropriate.
+- The canonical **Clintware Type System** is mandatory for Clintware-owned public pages unless a product has an explicitly approved independent identity. Use the production roles defined in `BRAND_STANDARDS.md` and `public/assets/typography-lock.css`: Clintware Sans for body copy, Clintware Display for headings, Clintware Mono for software/system language, and Hand/Alien only as bounded accents.
 - No oversized bubbly, loopy, comic, generic SaaS, or generic AI-marketing hero typography.
 - No giant headline simply because a marketing template expects one.
 - Prefer compact, high-contrast, direct, senior/professional layouts.
@@ -209,6 +211,8 @@ Before publishing, reject the draft if any of these are true:
 - roadmap items look shipped;
 - important caveats are hidden in tiny text;
 - the visitor has to infer what the product actually does;
-- the page feels like generic SaaS boilerplate instead of Clintware.
+- the page feels like generic SaaS boilerplate instead of Clintware;
+- body, headings, navigation, metadata, or brand text have drifted away from the Clintware Type System without an explicitly approved independent product identity;
+- `/fonts/` no longer matches the type roles actually used in production.
 
 If the draft fails, rewrite it before deployment.
