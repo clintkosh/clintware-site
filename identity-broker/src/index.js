@@ -12,7 +12,7 @@ import {
   internalGoogleAccessToken,
 } from "./delegated-google.js";
 
-const VERSION = "2026-09-23.10";
+const VERSION = "2026-09-23.11";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
@@ -21,6 +21,9 @@ const GOOGLE_CALLBACK = `${AUTH_ORIGIN}/callback`;
 const GOOGLE_WEB_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
 const TX_TTL_SECONDS = 600;
 const BIND_COOKIE = "__Host-clintware-oauth-bind";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MICROSOFT_CONSUMER_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad";
+const TOKEN_AUTH_METHODS = new Set(["none", "client_secret_basic", "client_secret_post"]);
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -160,16 +163,44 @@ function cleanIssuer(value) {
   if (!raw) return "";
   try {
     const url = new URL(raw);
-    if (url.protocol !== "https:") return "";
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) return "";
     return url.href.replace(/\/$/, "");
   } catch {
     return "";
   }
 }
 
+function normalizeTokenAuthMethod(value, fallback) {
+  const method = String(value || fallback || "").trim().toLowerCase();
+  return TOKEN_AUTH_METHODS.has(method) ? method : "";
+}
+
+function microsoftTenantPinned(value) {
+  const tenant = String(value || "").trim();
+  return UUID_RE.test(tenant) && tenant.toLowerCase() !== MICROSOFT_CONSUMER_TENANT_ID;
+}
+
+function clientAuthenticationConfigured(method, clientSecret) {
+  return method === "none" || Boolean(clientSecret);
+}
+
 function upstreamProviders(env) {
   const microsoftTenant = String(env.MICROSOFT_ENTRA_TENANT || "organizations").trim() || "organizations";
-  const providers = [
+  const microsoftClientId = String(env.MICROSOFT_ENTRA_CLIENT_ID || "").trim();
+  const microsoftClientSecret = String(env.MICROSOFT_ENTRA_CLIENT_SECRET || "").trim();
+  const microsoftTokenAuthMethod = normalizeTokenAuthMethod(
+    env.MICROSOFT_ENTRA_TOKEN_AUTH_METHOD,
+    microsoftClientSecret ? "client_secret_post" : "none",
+  );
+  const oktaIssuer = cleanIssuer(env.OKTA_OIDC_ISSUER);
+  const oktaClientId = String(env.OKTA_OIDC_CLIENT_ID || "").trim();
+  const oktaClientSecret = String(env.OKTA_OIDC_CLIENT_SECRET || "").trim();
+  const oktaTokenAuthMethod = normalizeTokenAuthMethod(
+    env.OKTA_OIDC_TOKEN_AUTH_METHOD,
+    oktaClientSecret ? "client_secret_basic" : "none",
+  );
+
+  return [
     {
       id: "google",
       label: "Google",
@@ -183,24 +214,35 @@ function upstreamProviders(env) {
       id: "microsoft",
       label: "Microsoft",
       issuer: `https://login.microsoftonline.com/${encodeURIComponent(microsoftTenant)}/v2.0`,
-      clientId: String(env.MICROSOFT_ENTRA_CLIENT_ID || "").trim(),
-      clientSecret: String(env.MICROSOFT_ENTRA_CLIENT_SECRET || "").trim(),
+      clientId: microsoftClientId,
+      clientSecret: microsoftClientSecret,
       callback: `${AUTH_ORIGIN}/callback/microsoft`,
-      configured: Boolean(String(env.MICROSOFT_ENTRA_CLIENT_ID || "").trim()),
+      configured: Boolean(
+        microsoftClientId &&
+        microsoftTokenAuthMethod &&
+        clientAuthenticationConfigured(microsoftTokenAuthMethod, microsoftClientSecret)
+      ),
       mode: "code_pkce",
       tenant: microsoftTenant,
-      tokenAuthMethod: "client_secret_post",
+      tenantPinned: microsoftTenantPinned(microsoftTenant),
+      tokenAuthMethod: microsoftTokenAuthMethod,
     },
     {
       id: "okta",
       label: "Okta",
-      issuer: cleanIssuer(env.OKTA_OIDC_ISSUER),
-      clientId: String(env.OKTA_OIDC_CLIENT_ID || "").trim(),
-      clientSecret: String(env.OKTA_OIDC_CLIENT_SECRET || "").trim(),
+      issuer: oktaIssuer,
+      clientId: oktaClientId,
+      clientSecret: oktaClientSecret,
       callback: `${AUTH_ORIGIN}/callback/okta`,
-      configured: Boolean(cleanIssuer(env.OKTA_OIDC_ISSUER) && String(env.OKTA_OIDC_CLIENT_ID || "").trim()),
+      configured: Boolean(
+        oktaIssuer &&
+        oktaClientId &&
+        oktaTokenAuthMethod &&
+        clientAuthenticationConfigured(oktaTokenAuthMethod, oktaClientSecret)
+      ),
       mode: "code_pkce",
-      tokenAuthMethod: String(env.OKTA_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+      issuerPinned: Boolean(oktaIssuer),
+      tokenAuthMethod: oktaTokenAuthMethod,
     },
     {
       id: "auth0",
@@ -211,7 +253,7 @@ function upstreamProviders(env) {
       callback: `${AUTH_ORIGIN}/callback/auth0`,
       configured: Boolean(cleanIssuer(env.AUTH0_OIDC_ISSUER) && String(env.AUTH0_OIDC_CLIENT_ID || "").trim()),
       mode: "code_pkce",
-      tokenAuthMethod: String(env.AUTH0_OIDC_TOKEN_AUTH_METHOD || "client_secret_post"),
+      tokenAuthMethod: normalizeTokenAuthMethod(env.AUTH0_OIDC_TOKEN_AUTH_METHOD, "client_secret_post"),
     },
     {
       id: "pingone",
@@ -222,7 +264,7 @@ function upstreamProviders(env) {
       callback: `${AUTH_ORIGIN}/callback/pingone`,
       configured: Boolean(cleanIssuer(env.PINGONE_OIDC_ISSUER) && String(env.PINGONE_OIDC_CLIENT_ID || "").trim()),
       mode: "code_pkce",
-      tokenAuthMethod: String(env.PINGONE_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+      tokenAuthMethod: normalizeTokenAuthMethod(env.PINGONE_OIDC_TOKEN_AUTH_METHOD, "client_secret_basic"),
     },
     {
       id: "oidc",
@@ -233,20 +275,25 @@ function upstreamProviders(env) {
       callback: `${AUTH_ORIGIN}/callback/oidc`,
       configured: Boolean(cleanIssuer(env.GENERIC_OIDC_ISSUER) && String(env.GENERIC_OIDC_CLIENT_ID || "").trim()),
       mode: "code_pkce",
-      tokenAuthMethod: String(env.GENERIC_OIDC_TOKEN_AUTH_METHOD || "client_secret_basic"),
+      tokenAuthMethod: normalizeTokenAuthMethod(env.GENERIC_OIDC_TOKEN_AUTH_METHOD, "client_secret_basic"),
     },
   ];
-  return providers;
 }
 
 function providerById(env, id) {
   return upstreamProviders(env).find((provider) => provider.id === String(id || "").toLowerCase()) || null;
 }
 
+function providerReadyForApp(provider, app) {
+  const allowedIds = app?.identityProviders?.length ? [...app.identityProviders] : ["google"];
+  if (!provider?.configured || !allowedIds.includes(provider.id)) return false;
+  if (provider.id === "microsoft" && app?.allowedEmailDomains?.length && !provider.tenantPinned) return false;
+  return true;
+}
+
 function allowedProvidersForRequest(env, oauthRequest) {
   const app = firstPartyAppForRedirectUri(oauthRequest.redirectUri);
-  const allowedIds = app?.identityProviders?.length ? [...app.identityProviders] : ["google"];
-  return upstreamProviders(env).filter((provider) => provider.configured && allowedIds.includes(provider.id));
+  return upstreamProviders(env).filter((provider) => providerReadyForApp(provider, app));
 }
 
 function providerFormOrigins(providers) {
@@ -264,6 +311,17 @@ async function oidcDiscovery(provider) {
   if (!response.ok || !data.authorization_endpoint || !data.token_endpoint || !data.jwks_uri) {
     throw new Error("oidc_discovery_failed:" + provider.id);
   }
+  for (const field of ["authorization_endpoint", "token_endpoint", "jwks_uri"]) {
+    let endpoint;
+    try { endpoint = new URL(data[field]); } catch { throw new Error("oidc_discovery_invalid_endpoint:" + provider.id); }
+    if (endpoint.protocol !== "https:") throw new Error("oidc_discovery_insecure_endpoint:" + provider.id);
+  }
+  if (provider.id !== "microsoft") {
+    const discoveredIssuer = cleanIssuer(data.issuer);
+    if (!discoveredIssuer || discoveredIssuer !== provider.issuer) {
+      throw new Error("oidc_discovery_issuer_mismatch:" + provider.id);
+    }
+  }
   return data;
 }
 
@@ -271,7 +329,9 @@ function validateEnterpriseIssuer(provider, claims, discovery) {
   const issuer = String(claims?.iss || "");
   if (provider.id === "microsoft") {
     const tid = String(claims?.tid || "");
-    if (!tid || !/^[0-9a-f-]{36}$/i.test(tid)) return false;
+    if (!UUID_RE.test(tid)) return false;
+    if (String(provider.tenant || "").toLowerCase() === "organizations" && tid.toLowerCase() === MICROSOFT_CONSUMER_TENANT_ID) return false;
+    if (provider.tenantPinned && tid.toLowerCase() !== String(provider.tenant).toLowerCase()) return false;
     return issuer === `https://login.microsoftonline.com/${tid}/v2.0`;
   }
   return Boolean(discovery?.issuer && issuer === String(discovery.issuer));
@@ -290,17 +350,21 @@ function extractUpstreamIdentity(provider, claims) {
     ? claims.email
     : provider.id === "microsoft" && typeof claims.preferred_username === "string" && claims.preferred_username.includes("@")
       ? claims.preferred_username
-      : typeof claims.upn === "string" && claims.upn.includes("@")
+      : provider.id === "microsoft" && typeof claims.upn === "string" && claims.upn.includes("@")
         ? claims.upn
         : "";
-  const hasExplicitVerification = claims.email_verified !== undefined && claims.email_verified !== null;
   const explicitVerified = claims.email_verified === true || claims.email_verified === "true";
-  const enterpriseAssertion = provider.id !== "google" && Boolean(email) && !hasExplicitVerification;
+  const tenantId = provider.id === "microsoft" ? String(claims.tid || "") : "";
   return {
     subject: String(claims.sub || ""),
     email,
-    emailVerified: explicitVerified || enterpriseAssertion,
-    verificationBasis: explicitVerified ? "email_verified_claim" : enterpriseAssertion ? "signed_enterprise_oidc_claim" : "unverified",
+    emailVerified: explicitVerified,
+    tenantId,
+    verificationBasis: explicitVerified
+      ? "email_verified_claim"
+      : provider.id === "microsoft" && provider.tenantPinned
+        ? "microsoft_tenant_subject"
+        : "signed_oidc_subject",
     name: typeof claims.name === "string" ? claims.name : "",
     picture: typeof claims.picture === "string" ? claims.picture : "",
   };
@@ -308,36 +372,11 @@ function extractUpstreamIdentity(provider, claims) {
 
 async function completeUpstreamAuthorization(transaction, provider, identity, env) {
   if (!identity.subject) throw new Error("upstream_subject_missing");
-  if (!identity.email || identity.emailVerified !== true) {
-    return json({ error: "verified_identity_email_required", provider: provider.id }, 403, {
-      "set-cookie": clearBindingCookie(),
-    });
+  if (!identity.email) {
+    return json({ error: "identity_email_required", provider: provider.id }, 403, { "set-cookie": clearBindingCookie() });
   }
 
-  const emailLower = identity.email.trim().toLowerCase();
-  const emailDomain = emailLower.includes("@") ? emailLower.split("@").pop() : "";
   const application = firstPartyAppForRedirectUri(transaction.oauthRequest.redirectUri);
-  const restrictedApps = restrictedApplicationsForDomain(emailDomain);
-
-  if (restrictedApps.length && !restrictedApps.some((app) => app.product === application?.product)) {
-    return json({
-      error: "application_not_allowed_for_identity_domain",
-      application: application?.product || "external",
-      allowed_applications: restrictedApps.map((app) => app.product),
-    }, 403, { "set-cookie": clearBindingCookie() });
-  }
-
-  if (application?.allowedEmailDomains?.length) {
-    const allowedDomains = application.allowedEmailDomains.map((value) => String(value).toLowerCase());
-    const allowedEmails = (application.allowedEmails || []).map((value) => String(value).toLowerCase());
-    if (!allowedDomains.includes(emailDomain) && !allowedEmails.includes(emailLower)) {
-      return json({
-        error: "identity_not_allowed_for_application",
-        application: application.product,
-      }, 403, { "set-cookie": clearBindingCookie() });
-    }
-  }
-
   const providerAllowed = application?.identityProviders?.length
     ? application.identityProviders.includes(provider.id)
     : provider.id === "google";
@@ -347,6 +386,45 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
       provider: provider.id,
       application: application?.product || "external",
     }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  const emailLower = identity.email.trim().toLowerCase();
+  const emailDomain = emailLower.includes("@") ? emailLower.split("@").pop() : "";
+  const microsoftTenantAuthorized = provider.id === "microsoft"
+    && provider.tenantPinned
+    && UUID_RE.test(identity.tenantId)
+    && identity.tenantId.toLowerCase() === String(provider.tenant).toLowerCase();
+
+  if (provider.id !== "microsoft" && identity.emailVerified !== true) {
+    return json({ error: "verified_identity_email_required", provider: provider.id }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  if (provider.id === "microsoft" && application?.allowedEmailDomains?.length && !microsoftTenantAuthorized) {
+    return json({
+      error: "microsoft_tenant_pin_required_for_restricted_application",
+      application: application.product,
+    }, 403, { "set-cookie": clearBindingCookie() });
+  }
+
+  if (provider.id !== "microsoft") {
+    const restrictedApps = restrictedApplicationsForDomain(emailDomain);
+    if (restrictedApps.length && !restrictedApps.some((app) => app.product === application?.product)) {
+      return json({
+        error: "application_not_allowed_for_identity_domain",
+        application: application?.product || "external",
+        allowed_applications: restrictedApps.map((app) => app.product),
+      }, 403, { "set-cookie": clearBindingCookie() });
+    }
+  }
+
+  if (application?.allowedEmailDomains?.length && provider.id !== "microsoft") {
+    const allowedDomains = application.allowedEmailDomains.map((value) => String(value).toLowerCase());
+    const allowedEmails = (application.allowedEmails || []).map((value) => String(value).toLowerCase());
+    if (!allowedDomains.includes(emailDomain) && !allowedEmails.includes(emailLower)) {
+      return json({ error: "identity_not_allowed_for_application", application: application.product }, 403, {
+        "set-cookie": clearBindingCookie(),
+      });
+    }
   }
 
   const userId = `cw_${(await sha256(`${provider.id}:${identity.subject}`)).slice(0, 40)}`;
@@ -359,6 +437,7 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
       upstream: provider.mode,
       application: application?.product || "external",
       verification_basis: identity.verificationBasis,
+      tenant_id: identity.tenantId || undefined,
     },
     scope: grantedScopes,
     props: {
@@ -366,8 +445,9 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
       provider: provider.id,
       providerSubject: identity.subject,
       email: identity.email,
-      emailVerified: true,
+      emailVerified: identity.emailVerified === true,
       emailVerificationBasis: identity.verificationBasis,
+      tenantId: identity.tenantId || "",
       name: identity.name,
       picture: identity.picture,
       scopes: grantedScopes,
@@ -753,6 +833,7 @@ const userInfoHandler = {
     if (scopes.includes("email")) {
       result.email = props.email || "";
       result.email_verified = props.emailVerified === true;
+      if (props.tenantId) result.tenant_id = props.tenantId;
     }
     if (scopes.includes("profile")) {
       result.name = props.name || "";
@@ -819,8 +900,14 @@ async function firstPartyClientConfig(env, key) {
     application_context: [...(app.contextScopes || [])],
     allowed_identity_providers: [...(app.identityProviders || ["google"])],
     configured_identity_providers: upstreamProviders(env)
-      .filter((provider) => provider.configured && (app.identityProviders || ["google"]).includes(provider.id))
-      .map((provider) => ({ id: provider.id, label: provider.label, callback: provider.callback })),
+      .filter((provider) => providerReadyForApp(provider, app))
+      .map((provider) => ({
+        id: provider.id,
+        label: provider.label,
+        callback: provider.callback,
+        token_auth_method: provider.tokenAuthMethod || null,
+        tenant_pinned: provider.id === "microsoft" ? provider.tenantPinned : undefined,
+      })),
     pkce: "S256",
     client_model: "central-first-party-cimd",
     client_metadata_document: FIRST_PARTY_CLIENT_ID,
@@ -861,6 +948,8 @@ function createAdminMcpServer(env) {
         configured: provider.configured,
         mode: provider.mode,
         callback: provider.callback,
+        token_auth_method: provider.tokenAuthMethod || null,
+        tenant_pinned: provider.id === "microsoft" ? provider.tenantPinned : undefined,
       })),
       storage: Boolean(env.OAUTH_KV),
       policy: "Upstream providers prove identity. Clintware binds that identity to the initiating application context and issues scoped rotating tokens; privileged Control Plane MCP remains separate.",
@@ -978,6 +1067,8 @@ const defaultHandler = {
           configured: provider.configured,
           mode: provider.mode,
           callback: provider.callback,
+          token_auth_method: provider.tokenAuthMethod || null,
+          tenant_pinned: provider.id === "microsoft" ? provider.tenantPinned : undefined,
         })),
         oauth_storage: Boolean(env.OAUTH_KV),
         admin_mcp: Boolean(env.CONTROL_PLANE_MCP_TOKEN),
@@ -1024,6 +1115,8 @@ const defaultHandler = {
           label: provider.label,
           configured: provider.configured,
           callback: provider.callback,
+          token_auth_method: provider.tokenAuthMethod || null,
+          tenant_pinned: provider.id === "microsoft" ? provider.tenantPinned : undefined,
         })),
         identity_boundary: "Upstream identity is always rebound to the initiating Clintware application context. Company-domain trust is never global.",
         docs: "Clintware first-party products share one central public OAuth Client ID Metadata Document with exact redirect allowlists. Applications opt in to upstream identity providers individually. External/service clients may still be managed through /admin-mcp.",
