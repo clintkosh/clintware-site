@@ -6,7 +6,13 @@ type JsonValue = unknown;
 async function controlPlane(path: string, init?: RequestInit) {
   const binding = (env as unknown as { CONTROL_PLANE?: { fetch: typeof fetch } }).CONTROL_PLANE;
   if (!binding) throw new Error("Clintware Control Plane binding is unavailable.");
-  const response = await binding.fetch(`https://mcp.clintware.internal${path}`, init);
+  const headers = new Headers(init?.headers);
+  headers.set("x-clintware-service-product", "neuron7-case");
+  headers.set("x-clintware-service-worker", "n7-customer-value-os");
+  const response = await binding.fetch(`https://mcp.clintware.internal${path}`, {
+    ...init,
+    headers,
+  });
   const text = await response.text();
   let data: any = {};
   try {
