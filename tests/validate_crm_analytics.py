@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MEASUREMENT_ID = "G-DCY144YM9P"
 CRM_CONFIG_MARKERS = re.compile(
-    r'"name"\s*:\s*"[^"]*(?:crm|customer-success|cs-command|cs-business|enterprise-customer-success)[^"]*"',
+    r'"name"\s*:\s*"[^"]*(?:crm|customer-value|customer-success|cs-command|cs-business|enterprise-customer-success)[^"]*"',
     re.IGNORECASE,
 )
 STATIC_CRM_MARKERS = re.compile(
@@ -40,7 +40,8 @@ def worker_targets() -> list[tuple[str, str]]:
         if not CRM_CONFIG_MARKERS.search(config):
             continue
         sources = [config]
-        sources.extend(read_text(path) for path in sorted((project / "src").rglob("*.js")))
+        for suffix in ("*.js", "*.ts", "*.tsx", "*.html"):
+            sources.extend(read_text(path) for path in sorted((project / "src").rglob(suffix)))
         combined = "\n".join(sources)
         targets.append((str(project.relative_to(ROOT)), combined))
     return targets
@@ -76,6 +77,35 @@ def analytics_errors(name: str, text: str) -> list[str]:
             errors.append(f"{name}: CSP blocks Google Tag Manager")
         if "google-analytics.com" not in text:
             errors.append(f"{name}: CSP blocks Google Analytics collection")
+    if "n7-customer-value-os" in name:
+        required = [
+            "send_page_view:false",
+            "trackN7PageView",
+            "live_prompt_proposal_approved",
+            "live_assist_started",
+            "live_assist_session_saved",
+            "meeting_prep_pdf_prepared",
+            "meeting_checkpoint_recorded",
+            "jira_deployment_issue_created",
+            "jira_engineering_issue_created",
+        ]
+        for marker in required:
+            if marker not in text:
+                errors.append(f"{name}: missing required N7 analytics marker {marker}")
+        forbidden_payload_terms = [
+            'customer_name:',
+            'transcript:',
+            'prompt:',
+            'issue_description:',
+            'document_content:',
+        ]
+        analytics_source = ""
+        analytics_path = ROOT / name / "src" / "lib" / "n7" / "analytics.ts"
+        if analytics_path.exists():
+            analytics_source = read_text(analytics_path).lower()
+        for marker in forbidden_payload_terms:
+            if marker in analytics_source:
+                errors.append(f"{name}: analytics helper appears to accept sensitive payload marker {marker}")
     return errors
 
 
