@@ -1,0 +1,27 @@
+{
+  "name": "Clintware Eclipse Logo",
+  "version": "1.0.0",
+  "rendering": "deterministic-gimp-native",
+  "reference_aspect_ratio": "256:219",
+  "normalized_geometry": {
+    "center_x": 0.5,
+    "center_y": 0.5,
+    "disc_radius_of_short_edge": 0.355,
+    "glow_span_of_short_edge": 0.132,
+    "main_text_target_width_of_canvas": 0.752,
+    "main_text_y_of_canvas": 0.442,
+    "main_text_left_bias_of_canvas": 0.045,
+    "tm_scale_of_main_font": 0.32
+  },
+  "palette": {
+    "background": "#080F19",
+    "disc_center": "#010204",
+    "disc_edge": "#0C141D",
+    "cyan": "#36E5FF",
+    "cyan_highlight": "#B1F9FF",
+    "white": "#F8FAFC"
+  },
+  "default_incremental_ring_steps": 96,
+  "source_bitmap_used_at_render_time": false,
+  "generative_model_used_at_render_time": false
+}

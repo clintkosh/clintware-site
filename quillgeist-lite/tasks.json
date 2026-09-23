@@ -89,6 +89,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/repair-local-service.ps1",
       "parameters": []
+    },
+    "gimp-clintware-eclipse": {
+      "title": "Install the deterministic Clintware eclipse GIMP plug-in, render a fresh editable logo, save XCF/PNG, and show it in GIMP",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/gimp-clintware-eclipse.ps1",
+      "parameters": []
     }
   }
 }
