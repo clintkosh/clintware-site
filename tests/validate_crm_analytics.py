@@ -88,6 +88,7 @@ def analytics_errors(name: str, text: str) -> list[str]:
             "meeting_checkpoint_recorded",
             "jira_deployment_issue_created",
             "jira_engineering_issue_created",
+            "jira_oauth_started",
         ]
         for marker in required:
             if marker not in text:
