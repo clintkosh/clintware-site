@@ -48,6 +48,9 @@ jobs:
           ! grep -Fq "googletagmanager.com" public/index.html
           grep -Fq "dedupeTranscriptChunk" public/app-ai.js
           grep -Fq "NAV_GROUPS" public/app-config.js
+          grep -Fq "stakeholder" public/app-config.js
+          grep -Fq "brief-add-stakeholder" public/app-forms.js
+          grep -Fq "\"stakeholder\"" src/index.js
 
       - name: Wrangler dry run
         run: |
@@ -126,6 +129,13 @@ jobs:
           curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{}' https://n7demo.clintware.com/api/customers/reset-samples >/tmp/n7reset.json
           curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7resetstate.json
           python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); assert len(d["customers"])==11; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10'
+          echo "Verifying stakeholder create from meeting prep data model"
+          customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); print(d["customer"]["id"])')
+          stakeholder_code=$(curl -sS -o /tmp/n7stakeholder.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://n7demo.clintware.com/api/records)
+          stakeholder_code=$(tr -cd '0-9' <<< "$stakeholder_code")
+          test "$stakeholder_code" = "201"
+          curl -fsS -b /tmp/n7demo.cookies "https://n7demo.clintware.com/api/state?customer=$customer_id" >/tmp/n7stakeholderstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/n7stakeholderstate.json")); assert any(r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="CI Stakeholder" for r in d["records"])'
           echo "Verifying security headers"
           headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/)
           echo "$headers"
