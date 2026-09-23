@@ -47,6 +47,10 @@ try {
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
   console.log("N7 browser smoke passed.");
+} catch (err) {
+  try { await page.screenshot({ path: "n7-home-smoke.png", fullPage: true }); } catch {}
+  console.error("N7 browser smoke failure:", err);
+  throw err;
 } finally {
   await browser.close();
 }
