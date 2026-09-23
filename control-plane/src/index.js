@@ -1296,10 +1296,24 @@ async function verifyProductToken(request,env,product){
 // stripped/managed by the edge and absent on binding traffic).
 const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os","n7demo-crm":"clintware-n7demo-crm"};
 function serviceProduct(request){
-  if(request.headers.get("cf-connecting-ip"))return null;
+  // Service-binding HTTP calls use a non-public internal hostname chosen by the
+  // caller. Pair it with an expected product/worker assertion so normal public
+  // requests cannot impersonate a first-party product by setting headers.
+  let host="";
+  try{host=new URL(request.url).hostname.toLowerCase();}catch{}
+  const assertedProduct=normalizeProduct(request.headers.get("x-clintware-service-product")||"");
+  const assertedWorker=String(request.headers.get("x-clintware-service-worker")||"").trim().toLowerCase();
+  if(host==="mcp.clintware.internal"&&assertedProduct&&SERVICE_WORKERS[assertedProduct]===assertedWorker){
+    return assertedProduct;
+  }
+
+  // Backward-compatible Worker-subrequest recognition. CF-Worker identifies
+  // the upstream zone, not reliably the Worker script name, so this is only a
+  // fallback for environments where the platform exposes the script name.
   const caller=(request.headers.get("cf-worker")||"").trim().toLowerCase();
-  if(!caller)return null;
-  for(const[product,name]of Object.entries(SERVICE_WORKERS))if(caller===name)return product;
+  if(caller){
+    for(const[product,name]of Object.entries(SERVICE_WORKERS))if(caller===name)return product;
+  }
   return null;
 }
 async function verifyProductRequest(request,env,product){
