@@ -21,7 +21,7 @@ const GOOGLE_CALLBACK = `${AUTH_ORIGIN}/callback`;
 const GOOGLE_WEB_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
 const TX_TTL_SECONDS = 600;
 const BIND_COOKIE = "__Host-clintware-oauth-bind";
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MICROSOFT_CONSUMER_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad";
 const TOKEN_AUTH_METHODS = new Set(["none", "client_secret_basic", "client_secret_post"]);
 const JSON_HEADERS = {
@@ -394,6 +394,11 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
     && provider.tenantPinned
     && UUID_RE.test(identity.tenantId)
     && identity.tenantId.toLowerCase() === String(provider.tenant).toLowerCase();
+  const identityAssurance = microsoftTenantAuthorized
+    ? "microsoft_tenant_id"
+    : identity.emailVerified === true
+      ? "verified_email"
+      : "oidc_subject";
 
   if (provider.id !== "microsoft" && identity.emailVerified !== true) {
     return json({ error: "verified_identity_email_required", provider: provider.id }, 403, { "set-cookie": clearBindingCookie() });
@@ -438,6 +443,7 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
       application: application?.product || "external",
       verification_basis: identity.verificationBasis,
       tenant_id: identity.tenantId || undefined,
+      identity_assurance: identityAssurance,
     },
     scope: grantedScopes,
     props: {
@@ -448,6 +454,7 @@ async function completeUpstreamAuthorization(transaction, provider, identity, en
       emailVerified: identity.emailVerified === true,
       emailVerificationBasis: identity.verificationBasis,
       tenantId: identity.tenantId || "",
+      identityAssurance,
       name: identity.name,
       picture: identity.picture,
       scopes: grantedScopes,
@@ -829,6 +836,7 @@ const userInfoHandler = {
       provider: props.provider || "google",
       application: props.application || "external",
       application_context: Array.isArray(props.applicationContext) ? props.applicationContext : [],
+      identity_assurance: props.identityAssurance || "oidc_subject",
     };
     if (scopes.includes("email")) {
       result.email = props.email || "";
