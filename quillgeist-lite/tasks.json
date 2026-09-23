@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. Supported runtimes: PowerShell, Python, and C.",
   "runtimes": [
@@ -88,6 +88,12 @@
       "title": "Repair the qq Windows health service and stale scheduled-task recovery",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/repair-local-service.ps1",
+      "parameters": []
+    },
+    "gimp-clintware-eclipse": {
+      "title": "Install the deterministic Clintware eclipse GIMP plug-in, render a fresh editable logo, save XCF/PNG, and show it in GIMP",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/gimp-clintware-eclipse.ps1",
       "parameters": []
     }
   }
