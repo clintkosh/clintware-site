@@ -1,6 +1,6 @@
 # Clintware™ Brand Standard
 
-Canonical professional brand treatment, updated 2026-09-09.
+Canonical professional brand treatment, updated 2026-09-23.
 
 ## Required wording
 
@@ -18,8 +18,13 @@ Clintware is a restrained technical brand, not a generic SaaS/AI marketing templ
 
 - Read and apply `ASTRO_WEBSITE_SKILL.md` before any public website, product-positioning, startup / YC, portfolio, homepage, navigation, or visual-copy change.
 - Use compact, uniform page titles rather than oversized hero typography.
-- Use Windows/Linux terminal-inspired digital/monospace typography for titles, labels, navigation accents, metadata, and brand treatments.
-- Keep headings legible, restrained, and consistent. No loopy, bubbly, comic, handwritten, decorative, or giant display headings.
+- Use the canonical **Clintware Type System** for every Clintware-owned public page and shared component. The implementation lives in `public/assets/typography-lock.css` and the public specimen/download surface lives at `/fonts/`.
+- **Clintware Sans** is the default reading/body face: `"Liberation Sans", Arial, "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`.
+- **Clintware Display** is the heading/display face: `"Arial Narrow", "Helvetica Neue Condensed", "Liberation Sans Narrow", "Liberation Sans", Arial, sans-serif`. Keep it compact, dense, and highly readable.
+- **Clintware Mono** is reserved for software/system language such as navigation labels, buttons, metadata, terminal text, code, process rails, statuses, and technical accents: `"Cascadia Code", "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace`.
+- **Clintware Hand** is annotation-only. It may be used sparingly for a small human-made note or specimen, never for paragraphs, navigation, controls, or primary headings.
+- **Clintware Alien** is a subtle CSS treatment for occasional display use and the restrained Clintware `WARE` brand accent. It must never reduce legibility or become the dominant page typography.
+- Keep headings legible, restrained, and consistent. No loopy, bubbly, comic, decorative, or giant display headings. Handwritten treatment is allowed only through the bounded Clintware Hand annotation rule above.
 - Avoid generic startup-template hero layouts whose main visual device is an enormous headline.
 - Avoid generic `hero -> three cards -> feature grid -> repeated CTA` page structure unless the actual content genuinely requires it.
 - Preserve the established dark technical palette: near-black backgrounds, restrained graphite surfaces/borders, white text, muted blue-gray secondary text, and controlled cyan/green/violet accents.
@@ -29,7 +34,26 @@ Clintware is a restrained technical brand, not a generic SaaS/AI marketing templ
 - Do not scatter random metrics or proof points without explaining what role, customer scope, decision, product, or operating change they demonstrate.
 - One clear primary action is preferred over repeated marketing CTAs.
 
-These are hard design constraints for future site changes. Do not replace them with framework/theme defaults during redesigns, migrations, or template generation.
+These are hard design constraints for future site changes. Do not replace them with framework/theme defaults during redesigns, migrations, template generation, migrations to another framework, or automated site refreshes.
+
+### Typography persistence rule
+
+Any site-wide refresh, redesign, migration, page generator, theme replacement, product-page rebuild, or automated visual cleanup must preserve the Clintware Type System before it is considered complete.
+
+Required checks:
+
+1. Shared pages must load the canonical typography layer or an exact compatible implementation of its variables and roles.
+2. Body copy must resolve through **Clintware Sans**.
+3. Headings must resolve through **Clintware Display**.
+4. Software/system microcopy must use **Clintware Mono** where appropriate.
+5. Handwritten and alien treatments remain optional accents only.
+6. The Clintware wordmark must retain the subtle futuristic `WARE` treatment unless an explicitly approved brand revision replaces it.
+7. A refresh that silently falls back to generic framework typography, terminal-only body copy, or unrelated web fonts fails brand QA and must be corrected before deployment.
+8. If typography files are reorganized, the new implementation must preserve these roles and update `/fonts/` so the public specimen remains accurate.
+
+Canonical typography QA:
+
+`SANS BODY -> DISPLAY HEADINGS -> MONO SYSTEM LANGUAGE -> OPTIONAL HUMAN/ALIEN ACCENTS -> MOBILE LEGIBILITY -> /FONTS/ MATCHES PRODUCTION`
 
 ## Usage
 
