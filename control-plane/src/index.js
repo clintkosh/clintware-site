@@ -7,7 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-23-atlassian.1";
+const VERSION = "2026-09-23-chatgpt-oauth.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -2460,9 +2460,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   return server;
 }
 
-async function handleMcp(request,env,ctx){
-  const mcpAuth=await mcpAuthContext(request,env);
-  if(!mcpAuth)return json({error:"unauthorized"},401,{"www-authenticate":"Bearer"});
+export async function handleMcpWithAuth(request,env,ctx,mcpAuth){
   const handler=createMcpHandler(()=>createMcpServer(env,request,mcpAuth),{
     route:"/mcp",
     allowedHostnames:["mcp.clintware.com"],
@@ -2470,6 +2468,12 @@ async function handleMcp(request,env,ctx){
     responseMode:"auto"
   });
   return handler(request,env,ctx);
+}
+
+async function handleMcp(request,env,ctx){
+  const mcpAuth=await mcpAuthContext(request,env);
+  if(!mcpAuth)return json({error:"unauthorized"},401,{"www-authenticate":"Bearer"});
+  return handleMcpWithAuth(request,env,ctx,mcpAuth);
 }
 
 function controlPlaneLanding(){
@@ -2579,7 +2583,7 @@ export default {
           if(row&&p?.repo?.owner&&p?.repo?.name)row.repositories.push(`${p.repo.owner}/${p.repo.name}`);
         }
         const adapters={...safeConfig(env),github_write:githubIdentities.some(x=>x.configured),github_actions:githubIdentities.some(x=>x.configured)};
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,jira:jstatus,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
+        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,mcp_oauth:{configured:Boolean(env.OAUTH_KV),resource:"https://mcp.clintware.com/mcp",issuer:"https://mcp.clintware.com"},jira:jstatus,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
