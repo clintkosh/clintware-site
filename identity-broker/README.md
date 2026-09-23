@@ -20,8 +20,8 @@ The broker is provider-agnostic at the Clintware boundary. First-party applicati
 Supported upstreams:
 
 - Google — active canonical first-party provider.
-- Microsoft Entra ID — OIDC authorization-code + PKCE; intended for Microsoft 365 / enterprise tenants.
-- Okta — OIDC authorization-code + PKCE.
+- Microsoft Entra ID — OIDC authorization-code + PKCE with tenant-ID authorization for restricted enterprise applications.
+- Okta — OIDC authorization-code + PKCE with exact issuer pinning.
 - Auth0 — OIDC authorization-code + PKCE.
 - PingOne — OIDC authorization-code + PKCE.
 - Generic OIDC — covers standards-compliant providers such as Keycloak, JumpCloud, OneLogin, or another company SSO broker when configured.
@@ -43,13 +43,39 @@ Optional deployment settings:
 
 - `MICROSOFT_ENTRA_CLIENT_ID`
 - `MICROSOFT_ENTRA_CLIENT_SECRET` when the Entra application is confidential
-- `MICROSOFT_ENTRA_TENANT` (defaults to `organizations`)
+- `MICROSOFT_ENTRA_TENANT` (defaults to `organizations`; use a tenant GUID for domain-restricted applications)
+- `MICROSOFT_ENTRA_TOKEN_AUTH_METHOD` (optional)
 - `OKTA_OIDC_ISSUER`, `OKTA_OIDC_CLIENT_ID`, optional `OKTA_OIDC_CLIENT_SECRET`
+- `OKTA_OIDC_TOKEN_AUTH_METHOD` (optional)
 - `AUTH0_OIDC_ISSUER`, `AUTH0_OIDC_CLIENT_ID`, optional `AUTH0_OIDC_CLIENT_SECRET`
 - `PINGONE_OIDC_ISSUER`, `PINGONE_OIDC_CLIENT_ID`, optional `PINGONE_OIDC_CLIENT_SECRET`
 - `GENERIC_OIDC_ISSUER`, `GENERIC_OIDC_CLIENT_ID`, optional `GENERIC_OIDC_CLIENT_SECRET`
 
 Do not reuse an upstream client registration for a callback that is not explicitly allowlisted at that provider.
+
+### Microsoft Entra ID setup
+
+Register a Microsoft Entra OIDC application with the exact callback `https://auth.clintware.com/callback/microsoft`. The broker uses authorization code + PKCE S256 and supports `client_secret_post`, `client_secret_basic`, or a public-client `none` token authentication mode.
+
+For any Clintware application restricted to a company domain, set `MICROSOFT_ENTRA_TENANT` to that organization's immutable tenant GUID. Multitenant aliases (`organizations`, `common`, `consumers`) are not treated as a sufficient authorization boundary for a domain-restricted Clintware application. Microsoft email/UPN/username-shaped claims remain display/contact data; the restricted Microsoft path is authorized against the validated tenant ID.
+
+Configuration:
+- Secret: `MICROSOFT_ENTRA_CLIENT_ID`
+- Secret when using a confidential client: `MICROSOFT_ENTRA_CLIENT_SECRET`
+- Repository variable: `MICROSOFT_ENTRA_TENANT`
+- Optional repository variable: `MICROSOFT_ENTRA_TOKEN_AUTH_METHOD` (`client_secret_post`, `client_secret_basic`, or `none`)
+
+### Okta setup
+
+Register an Okta OIDC application with the exact callback `https://auth.clintware.com/callback/okta`. Configure the exact HTTPS issuer for the intended Okta authorization server; discovery must return that same issuer and HTTPS authorization, token, and JWKS endpoints. The broker requests `openid email profile`, validates ID-token signature/audience/issuer/nonce, and requires an explicitly verified email claim before an email-domain restriction is used.
+
+Configuration:
+- Secret: `OKTA_OIDC_ISSUER`
+- Secret: `OKTA_OIDC_CLIENT_ID`
+- Secret when using a confidential client: `OKTA_OIDC_CLIENT_SECRET`
+- Optional repository variable: `OKTA_OIDC_TOKEN_AUTH_METHOD` (`client_secret_basic`, `client_secret_post`, or `none`)
+
+The deployment workflow preflights both providers when any of their settings are present, clears stale optional Worker configuration when settings are removed, and performs a live PKCE redirect smoke test for each provider that becomes active. Provider secrets are never returned by health, client-config, or admin-MCP surfaces.
 
 ## Public endpoints
 

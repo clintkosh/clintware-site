@@ -84,10 +84,15 @@ async function authConfig() {
 }
 
 function applicationUserAllowed(user) {
-  if (!user?.sub || user.email_verified !== true) return false;
+  if (!user?.sub) return false;
   if (user.application !== APPLICATION_ID) return false;
   const context = Array.isArray(user.application_context) ? user.application_context : [];
   if (!context.includes(REQUIRED_CONTEXT)) return false;
+  const microsoftTenantIdentity = user.provider === "microsoft"
+    && user.identity_assurance === "microsoft_tenant_id"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(user.tenant_id || ""));
+  if (microsoftTenantIdentity) return true;
+  if (user.email_verified !== true) return false;
   const email = String(user.email || "").trim().toLowerCase();
   const domain = email.includes("@") ? email.split("@").pop() : "";
   return domain === COMPANY_EMAIL_DOMAIN || OWNER_EMAILS.has(email);

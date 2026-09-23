@@ -70,9 +70,11 @@ jobs:
       MICROSOFT_ENTRA_CLIENT_ID: ${{ secrets.MICROSOFT_ENTRA_CLIENT_ID }}
       MICROSOFT_ENTRA_CLIENT_SECRET: ${{ secrets.MICROSOFT_ENTRA_CLIENT_SECRET }}
       MICROSOFT_ENTRA_TENANT: ${{ vars.MICROSOFT_ENTRA_TENANT }}
+      MICROSOFT_ENTRA_TOKEN_AUTH_METHOD: ${{ vars.MICROSOFT_ENTRA_TOKEN_AUTH_METHOD }}
       OKTA_OIDC_ISSUER: ${{ secrets.OKTA_OIDC_ISSUER }}
       OKTA_OIDC_CLIENT_ID: ${{ secrets.OKTA_OIDC_CLIENT_ID }}
       OKTA_OIDC_CLIENT_SECRET: ${{ secrets.OKTA_OIDC_CLIENT_SECRET }}
+      OKTA_OIDC_TOKEN_AUTH_METHOD: ${{ vars.OKTA_OIDC_TOKEN_AUTH_METHOD }}
       AUTH0_OIDC_ISSUER: ${{ secrets.AUTH0_OIDC_ISSUER }}
       AUTH0_OIDC_CLIENT_ID: ${{ secrets.AUTH0_OIDC_CLIENT_ID }}
       AUTH0_OIDC_CLIENT_SECRET: ${{ secrets.AUTH0_OIDC_CLIENT_SECRET }}
@@ -97,6 +99,9 @@ jobs:
 
       - name: Install identity broker dependencies
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
+
+      - name: Preflight Microsoft and Okta OIDC configuration
+        run: node identity-broker/scripts/provider-preflight.mjs
 
       - name: Ensure OAuth KV namespace
         id: kv
@@ -171,9 +176,11 @@ jobs:
           sync_optional_secret MICROSOFT_ENTRA_CLIENT_ID "$MICROSOFT_ENTRA_CLIENT_ID"
           sync_optional_secret MICROSOFT_ENTRA_CLIENT_SECRET "$MICROSOFT_ENTRA_CLIENT_SECRET"
           sync_optional_secret MICROSOFT_ENTRA_TENANT "$MICROSOFT_ENTRA_TENANT"
+          sync_optional_secret MICROSOFT_ENTRA_TOKEN_AUTH_METHOD "$MICROSOFT_ENTRA_TOKEN_AUTH_METHOD"
           sync_optional_secret OKTA_OIDC_ISSUER "$OKTA_OIDC_ISSUER"
           sync_optional_secret OKTA_OIDC_CLIENT_ID "$OKTA_OIDC_CLIENT_ID"
           sync_optional_secret OKTA_OIDC_CLIENT_SECRET "$OKTA_OIDC_CLIENT_SECRET"
+          sync_optional_secret OKTA_OIDC_TOKEN_AUTH_METHOD "$OKTA_OIDC_TOKEN_AUTH_METHOD"
           sync_optional_secret AUTH0_OIDC_ISSUER "$AUTH0_OIDC_ISSUER"
           sync_optional_secret AUTH0_OIDC_CLIENT_ID "$AUTH0_OIDC_CLIENT_ID"
           sync_optional_secret AUTH0_OIDC_CLIENT_SECRET "$AUTH0_OIDC_CLIENT_SECRET"
@@ -205,7 +212,7 @@ jobs:
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
             if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' \
-              && echo "$body" | grep -Fq '"version":"2026-09-23.10"'; then
+              && echo "$body" | grep -Fq '"version":"2026-09-23.11"'; then
               echo "$body"
               ready=1
               break
@@ -224,8 +231,8 @@ jobs:
           echo "$body" | grep -Fq '"id":"auth0"'
           echo "$body" | grep -Fq '"id":"pingone"'
           echo "$body" | grep -Fq '"id":"oidc"'
-          echo "$body" | grep -Fq '"version":"2026-09-23.10"'
-          echo "Live identity broker version 2026-09-23.10 verified."
+          echo "$body" | grep -Fq '"version":"2026-09-23.11"'
+          echo "Live identity broker version 2026-09-23.11 verified."
           echo "Clintware Google sign-in is ACTIVE without a Google client secret."
           delegated=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/delegated/google/status)
           echo "$delegated" | grep -Fq '"connected":'
@@ -334,3 +341,7 @@ jobs:
             exit 1
           fi
           echo 'Branded stateless Google ID-token handoff verified without a client secret.'
+
+      - name: Verify Microsoft and Okta authorization handoffs
+        run: node identity-broker/scripts/smoke-enterprise-handoff.mjs
+
