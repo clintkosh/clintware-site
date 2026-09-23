@@ -7,8 +7,12 @@ const LIVE={
 };
 
 function authGate(feature){
-  if(S?.access?.authenticated)return "";
-  return '<div class="callout warnbox"><strong>Sign-in required</strong><span>'+e(feature)+' uses the Clintware control plane and account-persistent customer data. <a href="/auth/login">Sign in with Clintware Identity</a> to use it.</span></div>';
+  if(S?.access?.authenticated)return '<div class="callout"><strong>AI workspace</strong><span>'+e(feature)+' is using your account-persistent CRM workspace.</span></div>';
+  return '<div class="callout"><strong>Guest AI enabled</strong><span>'+e(feature)+' works without login in this isolated guest workspace. <a href="/auth/login">Sign in only if you want the CRM data retained across sessions/devices.</a></span></div>';
+}
+function aiStatusBadge(){
+  let r=I?.ai?.research||{},ready=r.configured===true;
+  return '<div class="provider-strip"><span class="status '+(ready?'good':'warn')+'">'+(ready?'Exa ready':'Exa unavailable')+'</span><span class="muted"> · AI via Clintware Control Plane'+(r.synthesis&&r.synthesis!=='unknown'?' · '+e(r.synthesis):'')+'</span></div>'
 }
 function safeHttpUrl(v){
   try{let u=new URL(String(v||""));return /^https?:$/.test(u.protocol)?u.toString():""}catch{return""}
@@ -32,12 +36,12 @@ function livePrompt(){
   }
   let history=R('plan_change').slice(-8).reverse();
   return head('Natural-language operations','Live Prompt','Type what changed. Exa-backed context and the current CRM record are used to interpret the update, propose precise record/card changes, and wait for approval before writing anything.')+
-    authGate('Live Prompt')+
+    authGate('Live Prompt')+aiStatusBadge()+
     '<div class="grid g2" style="margin-top:16px"><div class="card"><div class="eyebrow">Selected customer</div><h2>'+e(S.customer?.name||'No customer selected')+'</h2><p class="muted">Examples: “SAP connector moved to week 9, mark the integration blocked and move the dependent deployment card.” “Customer confirmed the baseline is 42 minutes.” “Research the latest public SAP connector requirements and tell me if our plan needs a review.”</p>'+
     '<div class="field"><label>What changed?</label><textarea id="prompt-change" class="textarea ai-big" placeholder="Type the update in plain language."></textarea></div>'+
     '<div class="field"><label>Exa context</label><select id="prompt-research" class="select"><option value="auto">Auto: use Exa only when the wording calls for public/external verification</option><option value="on">On: always add public implementation / best-practice context</option><option value="off">Off: CRM context only</option></select><small>Before Exa is called, the control plane generates and scrubs a de-identified public search query. Raw customer CRM text is not sent directly to Exa.</small></div>'+
     '<div class="callout"><strong>Write boundary</strong><span>No AI-proposed update is committed until you approve the interpreted plan below.</span></div>'+
-    '<button class="btn primary" id="prompt-run" '+(!S?.access?.authenticated?'disabled':'')+'>Interpret update</button><div id="prompt-status" class="muted" style="margin-top:10px"></div></div>'+
+    '<button class="btn primary" id="prompt-run">Interpret update</button><div id="prompt-status" class="muted" style="margin-top:10px"></div></div>'+
     '<div><div class="section" style="margin-top:0"><h2>Proposed changes</h2></div>'+(preview||'<div class="empty">No pending AI plan. The live CRM remains unchanged.</div>')+
     '<div class="section"><h2>Approved change records</h2></div>'+
     (history.length?'<div class="ai-history">'+history.map(r=>'<article class="card"><div class="split"><strong>'+e(r.data.summary||r.data.title||'Approved change')+'</strong><span class="status good">Applied</span></div><div class="muted">'+e(r.data.approvedAt||r.updatedAt||'')+'</div><div class="muted" style="margin-top:6px">'+e((r.data.applied||[]).length+' persisted operation'+((r.data.applied||[]).length===1?'':'s'))+'</div></article>').join('')+'</div>':'<div class="empty">No approved Live Prompt change records yet.</div>')+
@@ -70,7 +74,7 @@ async function approveLivePrompt(){
 function assistantProfile(){return R('assistant_profile')[0]||null}
 function transcriptText(){return LIVE.transcript.map(x=>x.text).join('\n')}
 function suggestionHtml(s){
-  return '<article class="suggestion-card"><div class="split"><span class="status '+(s.customer_match==='yes'?'good':s.customer_match==='no'?'warn':'')+'">'+e(s.customer_match||'uncertain')+' customer match</span><span class="muted">'+e(s.at||'')+'</span></div><div class="eyebrow" style="margin-top:8px">'+e((s.speaker_role||'unknown')+' · '+(s.trigger||'none'))+'</div><div class="suggestion-text">'+e(s.suggestion||'')+'</div>'+(s.follow_up?'<div class="muted"><strong>Follow-up:</strong> '+e(s.follow_up)+'</div>':'')+'</article>'
+  return '<article class="suggestion-card"><div class="split"><span class="status '+(s.customer_match==='yes'?'good':s.customer_match==='no'?'warn':'')+'">'+e(s.customer_match||'uncertain')+' customer match</span><span class="muted">'+e(s.at||'')+'</span></div><div class="eyebrow" style="margin-top:8px">'+e((s.speaker_role||'unknown')+' · '+(s.trigger||'none'))+(s.researchUsed?' · Exa reference used':'')+'</div><div class="suggestion-text">'+e(s.suggestion||'')+'</div>'+(s.follow_up?'<div class="muted"><strong>Follow-up:</strong> '+e(s.follow_up)+'</div>':'')+((s.citations||[]).length?'<div class="citations">'+s.citations.map(x=>{let u=safeHttpUrl(x.url);return u?'<a href="'+e(u)+'" target="_blank" rel="noreferrer">'+e(x.title||u)+'</a>':''}).join('')+'</div>':'')+'</article>'
 }
 function liveAssistant(){
   if(LIVE.customerId&&LIVE.customerId!==S.customer?.id){
@@ -84,14 +88,14 @@ function liveAssistant(){
   let sugg=LIVE.suggestions.length?LIVE.suggestions.slice().reverse().map(suggestionHtml).join(''):'<div class="empty">Suggestions appear only after the customer/context gate passes or when you ask the assistant directly.</div>';
   let gateClass=LIVE.gate.includes('matched')?'good':LIVE.gate.includes('Ignoring')?'warn':'';
   return head('Consent-gated call support','Live Customer Assistant','White-label live call assistant for implementation work. It can transcribe opted-in live machine audio or past recordings, gate suggestions to the selected customer, and answer direct questions on demand.')+
-    authGate('Live Customer Assistant')+
+    authGate('Live Customer Assistant')+aiStatusBadge()+
     '<div class="assistant-lock"><div><div class="eyebrow">Customer lock</div><strong>'+e(S.customer?.name||'No customer selected')+'</strong><div class="muted">The assistant evaluates each transcript chunk against this account before suggesting a response.</div></div><span class="status '+gateClass+'">'+e(LIVE.gate)+'</span></div>'+
     '<div class="grid g2"><div class="card"><h2>Listen / transcribe</h2>'+
       '<label class="consent"><input type="checkbox" id="live-consent"> I confirm the customer/participants opted in to recording/transcription for this session.</label>'+
       '<label class="check"><input type="checkbox" id="live-mic" checked> Include my microphone with machine/tab audio.</label>'+
-      '<div class="actions"><button class="btn primary" id="live-start" '+(LIVE.active||!S?.access?.authenticated?'disabled':'')+'>Start machine audio</button><button class="btn" id="live-stop" '+(!LIVE.active?'disabled':'')+'>Stop</button></div>'+
+      '<div class="actions"><button class="btn primary" id="live-start" '+(LIVE.active?'disabled':'')+'>Start machine audio</button><button class="btn" id="live-stop" '+(!LIVE.active?'disabled':'')+'>Stop</button></div>'+
       '<div class="field"><label>Past recorded call</label><input id="live-file" type="file" class="input" accept="audio/*,video/webm,video/mp4"><small>Audio is decoded locally, chunked into PCM WAV segments, and only audio chunks are sent for transcription. Video is never uploaded.</small></div>'+
-      '<button class="btn" id="live-file-run" '+(!S?.access?.authenticated?'disabled':'')+'>Transcribe recording</button>'+
+      '<button class="btn" id="live-file-run">Transcribe recording</button>'+
       '<div id="live-progress" class="muted" style="margin-top:10px">'+e(LIVE.lastError||'Chunk size: about '+LIVE.chunkSeconds+' seconds for live audio.')+'</div>'+
     '</div>'+
     '<div class="card"><h2>Ask directly</h2><p class="muted">Direct questions bypass the conversational gate, but answers remain grounded in the selected customer record and the assistant playbook.</p><div class="field"><textarea id="live-question" class="textarea" placeholder="What should I say next? What risk am I missing? What question should I ask?"></textarea></div><button class="btn primary" id="live-ask" '+(!S?.access?.authenticated?'disabled':'')+'>Ask assistant</button>'+
@@ -108,7 +112,7 @@ function updateLiveDom(){
   let tb=document.querySelector('.transcript-box');if(tb)tb.innerHTML=LIVE.transcript.length?LIVE.transcript.map(x=>'<div class="transcript-line"><span>'+e(x.at)+'</span><b>'+e(x.source)+'</b><p>'+e(x.text)+'</p></div>').join(''):'<div class="empty">No transcript yet.</div>';
   let sb=document.querySelector('.suggestion-list');if(sb)sb.innerHTML=LIVE.suggestions.length?LIVE.suggestions.slice().reverse().map(suggestionHtml).join(''):'<div class="empty">Suggestions appear only after the customer/context gate passes or when you ask the assistant directly.</div>';
   let stop=document.querySelector('#live-stop');if(stop)stop.disabled=!LIVE.active;
-  let start=document.querySelector('#live-start');if(start)start.disabled=LIVE.active||!S?.access?.authenticated;
+  let start=document.querySelector('#live-start');if(start)start.disabled=LIVE.active;
   let train=document.querySelector('#assistant-train');if(train)train.disabled=!LIVE.transcript.length;
   let save=document.querySelector('#live-save-session');if(save)save.disabled=!LIVE.transcript.length;
 }
@@ -206,7 +210,7 @@ async function askLiveAssistant(direct=false,question=''){
   let recent=transcriptText().slice(-10000);
   if(!direct&&!recent)return;
   try{
-    let participants=(document.querySelector('#assistant-participants')?.value||LIVE.participants||'').split(',').map(x=>x.trim()).filter(Boolean);LIVE.participants=participants.join(', ');let x=await api('/ai/live-assist',{method:'POST',body:JSON.stringify({customerId:S.customer.id,transcript:recent,direct,question,participants})});
+    let participants=(document.querySelector('#assistant-participants')?.value||LIVE.participants||'').split(',').map(x=>x.trim()).filter(Boolean);LIVE.participants=participants.join(', ');let x=await api('/ai/live-assist',{method:'POST',body:JSON.stringify({customerId:S.customer.id,transcript:recent,direct,question,participants,researchMode:'auto'})});
     if(x.customer_match==='yes')LIVE.gate='Customer context matched';
     else if(x.customer_match==='no')LIVE.gate='Ignoring unrelated conversation';
     else LIVE.gate='Customer context uncertain';
