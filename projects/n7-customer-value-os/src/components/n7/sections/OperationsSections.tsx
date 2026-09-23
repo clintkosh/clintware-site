@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useN7 } from "@/lib/n7/store";
 import { jiraBridge } from "@/lib/n7/server-api";
+import { trackN7Event } from "@/lib/n7/analytics";
 import type {
   CustomerWorkspace,
   DeploymentWorkItem,
@@ -199,9 +200,11 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
           },
         });
         saveItems(items.map((row) => (row.id === id ? { ...row, status } : row)));
+        trackN7Event("jira_deployment_transition_succeeded", { target_status: status });
         toast.success(`${item.jiraKey} moved in Jira.`);
         return;
       } catch (error) {
+        trackN7Event("jira_deployment_transition_failed", { target_status: status });
         toast.error("Jira transition failed. Card left unchanged to prevent status drift.");
         return;
       }
@@ -209,6 +212,7 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
 
     // Unsynced cards are local planning drafts and can move freely.
     saveItems(items.map((row) => (row.id === id ? { ...row, status } : row)));
+    trackN7Event("deployment_card_moved_locally", { target_status: status });
   }
 
   function onDrop(status: DeploymentWorkStatus, event: DragEvent<HTMLDivElement>) {
@@ -241,9 +245,11 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       const key = result?.issue?.key;
       if (!key) throw new Error("Jira did not return an issue key.");
       saveItems(items.map((row) => (row.id === item.id ? { ...row, jiraKey: key } : row)));
+      trackN7Event("jira_deployment_issue_created");
       toast.success(`Created Jira issue ${key}.`);
       return;
     } catch (error) {
+      trackN7Event("jira_deployment_issue_create_failed");
       toast.error(error instanceof Error ? error.message : "Jira issue creation failed.");
       return;
     }
@@ -286,6 +292,7 @@ export function DeploymentBoard({ ws }: { ws: CustomerWorkspace }) {
       });
       if (synced.some((item, index) => item.status !== items[index]?.status)) saveItems(synced);
 
+      trackN7Event("jira_deployment_board_refreshed", { issue_count: liveIssues.length });
       toast.success("Jira deployment board refreshed and linked cards synchronized.");
       return;
     } catch (error) {
@@ -664,8 +671,10 @@ export function EngineeringIssues({ ws }: { ws: CustomerWorkspace }) {
       patchWorkspace(ws.customer.id, {
         engineeringIssues: issues.map((row) => row.id === issue.id ? { ...row, jiraKey: key, status: "in-jira" } : row),
       });
+      trackN7Event("jira_engineering_issue_created", { severity: issue.severity, reproducible: issue.reproducible });
       toast.success(`Created Jira issue ${key}.`);
     } catch (error) {
+      trackN7Event("jira_engineering_issue_create_failed");
       toast.error(error instanceof Error ? error.message : "Jira issue creation failed.");
     }
   }
