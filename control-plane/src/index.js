@@ -5,9 +5,9 @@ import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
-import { confluenceSpaces, confluenceStatus, confluenceUpsertPage } from "./confluence.js";
+import { confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-22-n7-live.1";
+const VERSION = "2026-09-23-atlassian.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -72,7 +72,7 @@ const DEFAULT_PROOFOS = {
 const DEFAULT_LANDTHEPLANE = {
   product:"landtheplane",
   environment:"production",
-  version:2,
+  version:3,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["landtheplane-worker/"],delete_prefixes:["landtheplane-worker/"],allowed_workflows:["deploy-landtheplane-worker.yml"]},
   dns:{allowed_names:["landtheplane.clintware.com"]},
   capabilities:["repo.read:clintware-site","repo.write:landtheplane-worker/**","repo.delete:landtheplane-worker/**","repo.branch:create","repo.branch:read","repo.commit:status","repo.workflow:dispatch","repo.workflow:status","deployment.read","deployment.execute:landtheplane","dns.ensure:landtheplane.clintware.com","analytics.write:landtheplane","analytics.read:landtheplane","flow.read:landtheplane","flow.write:landtheplane","flow.run:landtheplane"],
@@ -211,7 +211,9 @@ const DEFAULT_QUILLGEIST_LITE = {
     "local.read:quillgeist-lite",
     "local.run:quillgeist-lite",
     "jira.read:quillgeist-lite",
-    "jira.write:quillgeist-lite"
+    "jira.write:quillgeist-lite",
+    "confluence.read:quillgeist-lite",
+    "confluence.write:quillgeist-lite"
   ],
   deny:["secrets.read","secrets.export","billing.manage","repo.delete","infrastructure.admin:*","local.shell:raw"],
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
@@ -229,6 +231,7 @@ const QUILLGEIST_LITE_TASKS = {
   "self-update":{runtime:"powershell",parameters:[]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
+  "connect-confluence":{runtime:"powershell",parameters:[]},
   "enable-admin-console":{runtime:"powershell",parameters:[]},
   "bootstrap-admin-console":{runtime:"powershell",parameters:[]}
 };
@@ -357,6 +360,7 @@ function capabilityForMatch(capability,resource,manifest){
   if(cap==="cache.write") return `cache.write:${resource?.product||"proofos"}`;
   if(cap==="flow.read"||cap==="flow.write"||cap==="flow.run") return `${cap}:${resource?.product||manifest?.product||"unknown"}`;
   if(cap==="jira.read"||cap==="jira.write") return `${cap}:${resource?.product||manifest?.product||"quillgeist-lite"}`;
+  if(cap==="confluence.read"||cap==="confluence.write") return `${cap}:${resource?.product||manifest?.product||"quillgeist-lite"}`;
   return cap;
 }
 
@@ -1779,6 +1783,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   const scopedProductSummary=async(product,days,suffix="/summary")=>mcpProductAllowed(mcpAuth,product)?productSummary(env,product,days,suffix):{error:"product_not_allowed"};
   const scopedProductPath=async(product,suffix)=>mcpProductAllowed(mcpAuth,product)?productPath(env,product,suffix):{error:"product_not_allowed"};
   const jiraAllowed=async(mode)=>{const manifest=await scopedManifest("quillgeist-lite");return Boolean(manifest&&capabilityMatches(manifest,`jira.${mode}:quillgeist-lite`));};
+  const confluenceAllowed=async(mode)=>{const manifest=await scopedManifest("quillgeist-lite");return Boolean(manifest&&capabilityMatches(manifest,`confluence.${mode}:quillgeist-lite`));};
   const server=new McpServer({name:"Clintware Control Plane",version:VERSION});
   server.registerTool("clintware_control_plane_status",{
     title:"Get Clintware Control Plane status",
@@ -1894,7 +1899,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira","enable-admin-console","bootstrap-admin-console"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
@@ -2036,6 +2041,83 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   },async(args)=>{
     if(!await jiraAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"jira_write_not_allowed"})}]};
     const result=await jiraTransitionIssue(env,args);await audit(env,"quillgeist-lite","jira_transition_issue",crypto.randomUUID(),{issue_key:args.issue_key,transition_id:args.transition_id,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+
+  server.registerTool("clintware_confluence_status",{
+    title:"Get Confluence connection status",
+    description:"Return the safe Atlassian/Confluence authorization state and required scopes. Tokens are never returned.",
+    inputSchema:{},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async()=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await confluenceStatus(env);
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_oauth_start",{
+    title:"Start Confluence authorization",
+    description:"Create a short-lived Atlassian OAuth 2.0 authorization URL using the shared Clintware Atlassian grant. Jira and Confluence provider credentials remain server-side.",
+    inputSchema:{},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async()=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await jiraBeginOAuth(env,mcpAuth?.client_id||"mcp");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_spaces",{
+    title:"List Confluence spaces",
+    description:"List Confluence spaces visible through the authorized Atlassian grant.",
+    inputSchema:{cloud_id:z.string().optional(),limit:z.number().int().min(1).max(100).optional(),cursor:z.string().max(2000).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await confluenceSpaces(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_pages",{
+    title:"List Confluence pages",
+    description:"List bounded Confluence pages, optionally scoped to a space, title, status, and cursor.",
+    inputSchema:{cloud_id:z.string().optional(),space_id:z.string().optional(),title:z.string().max(500).optional(),status:z.string().max(50).optional(),limit:z.number().int().min(1).max(100).optional(),cursor:z.string().max(2000).optional(),body_format:z.enum(["storage","atlas_doc_format","view"]).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await confluencePages(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_get_page",{
+    title:"Read a Confluence page",
+    description:"Read one Confluence page by ID, including its current version and requested body representation.",
+    inputSchema:{cloud_id:z.string().optional(),page_id:z.string().min(1).max(200),body_format:z.enum(["storage","atlas_doc_format","view"]).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await confluenceGetPage(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_search",{
+    title:"Search Confluence with CQL",
+    description:"Run a bounded read-only CQL search against an authorized Confluence Cloud site.",
+    inputSchema:{cloud_id:z.string().optional(),cql:z.string().min(1).max(8000),limit:z.number().int().min(1).max(100).optional(),start:z.number().int().min(0).max(1000000).optional(),expand:z.array(z.string()).max(20).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
+    const result=await confluenceSearch(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_create_page",{
+    title:"Create a Confluence page",
+    description:"Create one Confluence page in an explicitly selected space. Plain text is converted to safe Confluence storage markup.",
+    inputSchema:{cloud_id:z.string().optional(),space_id:z.string().optional(),space_key:z.string().optional(),parent_id:z.string().optional(),title:z.string().min(1).max(500),body:z.string().max(100000).default("")},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_write_not_allowed"})}]};
+    const result=await confluenceCreatePage(env,args);await audit(env,"quillgeist-lite","confluence_create_page",crypto.randomUUID(),{space_key:args.space_key||"",space_id:args.space_id||"",ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
+  server.registerTool("clintware_confluence_update_page",{
+    title:"Update a Confluence page",
+    description:"Update one explicitly identified Confluence page using optimistic version advancement handled by the Control Plane.",
+    inputSchema:{cloud_id:z.string().optional(),page_id:z.string().min(1).max(200),space_id:z.string().optional(),space_key:z.string().optional(),parent_id:z.string().optional(),title:z.string().min(1).max(500),body:z.string().max(100000).default(""),version_message:z.string().max(250).optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_write_not_allowed"})}]};
+    const result=await confluenceUpdatePage(env,args);await audit(env,"quillgeist-lite","confluence_update_page",crypto.randomUUID(),{page_id:args.page_id,ok:result.ok},result.ok,result.error||"");
     return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
 
@@ -2510,6 +2592,17 @@ export default {
         const result=await jiraBeginOAuth(env,auth.by);
         return json(result,result.ok?200:503);
       }
+      if(request.method==="POST"&&url.pathname==="/api/v1/confluence/oauth/start"){
+        const auth=await authorizeJiraControlRequest(request,env);
+        if(!auth.ok)return json({error:"unauthorized"},401);
+        const result=await jiraBeginOAuth(env,auth.by);
+        return json(result,result.ok?200:503);
+      }
+      if(request.method==="GET"&&url.pathname==="/api/v1/confluence/status"){
+        const auth=await authorizeJiraControlRequest(request,env);
+        if(!auth.ok)return json({error:"unauthorized"},401);
+        return json(await confluenceStatus(env));
+      }
       if(request.method==="GET"&&url.pathname==="/api/v1/jira/status"){
         const auth=await authorizeJiraControlRequest(request,env);
         if(!auth.ok)return json({error:"unauthorized"},401);
@@ -2539,7 +2632,7 @@ export default {
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/devices/register"){
         const receiver=await verifyGithubReceiver(request);
@@ -2733,14 +2826,19 @@ export default {
         if(!product)return json({error:"product_required"},400);
         const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
         const op=String(body.operation||"").toLowerCase();
-        const writeOps=new Set(["upsert"]);
+        const writeOps=new Set(["upsert","create","update"]);
         const capability="confluence."+(writeOps.has(op)?"write":"read")+":"+product;
         if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
         const args=body.args&&typeof body.args==="object"?body.args:{};
         let result;
         if(op==="status")result=await confluenceStatus(env);
         else if(op==="spaces")result=await confluenceSpaces(env,args);
+        else if(op==="pages")result=await confluencePages(env,args);
+        else if(op==="get")result=await confluenceGetPage(env,args);
+        else if(op==="search")result=await confluenceSearch(env,args);
         else if(op==="upsert")result=await confluenceUpsertPage(env,args);
+        else if(op==="create")result=await confluenceCreatePage(env,args);
+        else if(op==="update")result=await confluenceUpdatePage(env,args);
         else return json({error:"unsupported_confluence_operation"},400);
         await audit(env,product,"confluence_"+op,body.request_id,{ok:Boolean(result?.ok),space_key:args.space_key||"",page_id:args.page_id||""},Boolean(result?.ok),result?.error||"");
         return json(result,result?.ok===false?(result.status||400):200);
