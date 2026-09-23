@@ -299,7 +299,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f /tmp/cw-cookies /tmp/cw-consent.html /tmp/cw-post-headers
-          auth='https://auth.clintware.com/authorize?response_type=code&client_id=https%3A%2F%2Fauth.clintware.com%2Fclient%2Fclintware-web&redirect_uri=https%3A%2F%2Fn7.clintware.com%2Fauth%2Fcallback&scope=identity%20email%20profile&state=ci-smoke&code_challenge=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&code_challenge_method=S256&resource=https%3A%2F%2Fauth.clintware.com%2Fuserinfo'
+          auth='https://auth.clintware.com/authorize?response_type=code&client_id=https%3A%2F%2Fauth.clintware.com%2Fclient%2Fclintware-web&redirect_uri=https%3A%2F%2Fn7crm.clintware.com%2Fauth%2Fcallback&scope=identity%20email%20profile&state=ci-smoke&code_challenge=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&code_challenge_method=S256&resource=https%3A%2F%2Fauth.clintware.com%2Fuserinfo'
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors -D /tmp/cw-consent-headers -c /tmp/cw-cookies "$auth" -o /tmp/cw-consent.html
           grep -Eqi "^content-security-policy:.*form-action 'self' https://accounts\\.google\\.com" /tmp/cw-consent-headers
           grep -Fq 'class="eclipse"' /tmp/cw-consent.html
