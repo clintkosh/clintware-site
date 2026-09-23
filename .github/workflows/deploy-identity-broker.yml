@@ -205,7 +205,7 @@ jobs:
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
             if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' \
-              && echo "$body" | grep -Fq '"version":"2026-09-22.9"'; then
+              && echo "$body" | grep -Fq '"version":"2026-09-23.10"'; then
               echo "$body"
               ready=1
               break
@@ -224,8 +224,8 @@ jobs:
           echo "$body" | grep -Fq '"id":"auth0"'
           echo "$body" | grep -Fq '"id":"pingone"'
           echo "$body" | grep -Fq '"id":"oidc"'
-          echo "$body" | grep -Fq '"version":"2026-09-22.9"'
-          echo "Live identity broker version 2026-09-22.9 verified."
+          echo "$body" | grep -Fq '"version":"2026-09-23.10"'
+          echo "Live identity broker version 2026-09-23.10 verified."
           echo "Clintware Google sign-in is ACTIVE without a Google client secret."
           delegated=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/delegated/google/status)
           echo "$delegated" | grep -Fq '"connected":'
@@ -248,12 +248,14 @@ jobs:
           mail=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/mail)
           n7=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/neuron7-case)
           admin=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-admin)
-          MAIL_JSON="$mail" N7_JSON="$n7" ADMIN_JSON="$admin" python3 - <<'PY'
+          mcp=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-mcp)
+          MAIL_JSON="$mail" N7_JSON="$n7" ADMIN_JSON="$admin" MCP_JSON="$mcp" python3 - <<'PY'
           import json, os
           mail=json.loads(os.environ["MAIL_JSON"])
           n7=json.loads(os.environ["N7_JSON"])
           admin=json.loads(os.environ["ADMIN_JSON"])
-          assert mail["client_id"] == n7["client_id"] == admin["client_id"], (mail,n7,admin)
+          mcp=json.loads(os.environ["MCP_JSON"])
+          assert mail["client_id"] == n7["client_id"] == admin["client_id"] == mcp["client_id"], (mail,n7,admin,mcp)
           assert mail["client_name"] == "Clintware Web", mail
           assert n7["client_name"] == "Clintware Web", n7
           assert n7["allowed_email_domains"] == ["neuron7.ai"], n7
@@ -268,7 +270,9 @@ jobs:
           assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
           assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
           assert admin["redirect_uri"] == "https://mcp.clintware.com/admin/callback", admin
-          assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256"
+          assert mcp["redirect_uri"] == "https://mcp.clintware.com/oauth/callback", mcp
+          assert mcp["allowed_identity_providers"] == ["google"], mcp
+          assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256" and mcp["pkce"] == "S256"
           assert mail["client_model"] == "central-first-party-cimd"
           assert n7["client_model"] == "central-first-party-cimd"
           assert admin["client_model"] == "central-first-party-cimd"
@@ -286,7 +290,8 @@ jobs:
           assert "https://mail.clintware.com/callback" in m["redirect_uris"], m
           assert "https://n7.clintware.com/auth/callback" in m["redirect_uris"], m
           assert "https://mcp.clintware.com/admin/callback" in m["redirect_uris"], m
-          print("CIMD metadata document verified.")
+          assert "https://mcp.clintware.com/oauth/callback" in m["redirect_uris"], m
+          print("CIMD metadata document verified, including ChatGPT MCP callback.")
           PY
 
       - name: Verify branded stateless authorization handoff
