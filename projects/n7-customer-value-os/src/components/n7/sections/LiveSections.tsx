@@ -317,6 +317,85 @@ async function chunkRecordedCall(file: File, secondsPerChunk = 45) {
   }
 }
 
+function speechRecognitionCtor(): any {
+  if (typeof window === "undefined") return null;
+  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
+}
+
+async function recognizeBlobWithBrowser(blob: Blob): Promise<string> {
+  const Recognition = speechRecognitionCtor();
+  if (!Recognition || typeof AudioContext === "undefined") return "";
+
+  const context = new AudioContext();
+  let source: AudioBufferSourceNode | null = null;
+  let recognition: any = null;
+  let timeout = 0;
+  try {
+    const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+    source = context.createBufferSource();
+    source.buffer = decoded;
+    const destination = context.createMediaStreamDestination();
+    source.connect(destination);
+    const track = destination.stream.getAudioTracks()[0];
+    if (!track) return "";
+
+    return await new Promise<string>((resolve, reject) => {
+      const parts: string[] = [];
+      let settled = false;
+      const finish = (value: string, error?: Error) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        try { recognition?.abort?.(); } catch {}
+        try { source?.stop(); } catch {}
+        track.stop();
+        if (error) reject(error);
+        else resolve(value.trim());
+      };
+
+      recognition = new Recognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.onresult = (event: any) => {
+        for (let index = event.resultIndex ?? 0; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          if (result?.isFinal !== false && result?.[0]?.transcript) parts.push(String(result[0].transcript).trim());
+        }
+      };
+      recognition.onerror = (event: any) => {
+        const code = String(event?.error || "speech_recognition_error");
+        if (code === "no-speech") return;
+        finish(parts.join(" "), new Error(`Browser speech recognition failed: ${code}`));
+      };
+      recognition.onend = () => {
+        if (parts.length) finish(parts.join(" "));
+      };
+      source!.onended = () => {
+        window.setTimeout(() => {
+          try { recognition?.stop?.(); } catch {}
+          window.setTimeout(() => finish(parts.join(" ")), 500);
+        }, 250);
+      };
+
+      timeout = window.setTimeout(
+        () => finish(parts.join(" "), parts.length ? undefined : new Error("Browser speech recognition timed out.")),
+        Math.max(15000, Math.ceil(decoded.duration * 1000) + 12000),
+      );
+
+      try {
+        recognition.start(track);
+        source!.start();
+      } catch (error) {
+        finish("", error instanceof Error ? error : new Error("Browser speech track input is unavailable."));
+      }
+    });
+  } finally {
+    window.clearTimeout(timeout);
+    await context.close().catch(() => {});
+  }
+}
+
 export function LivePrompt({ ws }: { ws: CustomerWorkspace }) {
   const { patchWorkspace } = useN7();
   const [input, setInput] = useState("");
@@ -549,6 +628,9 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
   const liveRef = useRef(false);
   const processingRef = useRef<Promise<void>>(Promise.resolve());
   const meterStopRef = useRef<(() => void) | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
+  const serverLoopStartedRef = useRef(false);
+  const [transcriptionEngine, setTranscriptionEngine] = useState<"browser" | "control-plane" | "idle">("idle");
 
   const approvedTraining = (ws.liveAssistTraining ?? []).filter((item) => item.approved);
   const targetNames = targets.split(",").map((v) => v.trim()).filter(Boolean);
@@ -575,6 +657,10 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       streamRef.current = null;
       meterStopRef.current?.();
       meterStopRef.current = null;
+      try { speechRecognitionRef.current?.abort?.(); } catch {}
+      speechRecognitionRef.current = null;
+      serverLoopStartedRef.current = false;
+      setTranscriptionEngine("idle");
     };
   }, [ws.customer.id]);
 
@@ -603,6 +689,83 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       void context.close();
       setAudioLevel(0);
     };
+  }
+
+  function startServerTranscriptionLoop(stream: MediaStream) {
+    if (serverLoopStartedRef.current || !liveRef.current) return;
+    serverLoopStartedRef.current = true;
+    setTranscriptionEngine("control-plane");
+    void liveLoop(stream).finally(() => {
+      serverLoopStartedRef.current = false;
+    });
+  }
+
+  function startBrowserTrackRecognition(track: MediaStreamTrack) {
+    const Recognition = speechRecognitionCtor();
+    if (!Recognition) return false;
+
+    let recognition: any;
+    try {
+      recognition = new Recognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+    } catch {
+      return false;
+    }
+
+    recognition.onresult = (event: any) => {
+      let finalText = "";
+      let interimText = "";
+      for (let index = event.resultIndex ?? 0; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const value = String(result?.[0]?.transcript || "").trim();
+        if (!value) continue;
+        if (result.isFinal) finalText += (finalText ? " " : "") + value;
+        else interimText += (interimText ? " " : "") + value;
+      }
+      if (interimText) setProgress(`Hearing: ${interimText.slice(0, 160)}`);
+      else if (!busy) setProgress("");
+
+      if (finalText) {
+        setLiveError("");
+        setLastTranscriptAt(new Date().toISOString());
+        setTranscript((current) => (current ? `${current}\n${finalText}` : finalText));
+        processingRef.current = processingRef.current.then(async () => {
+          await suggestionFor(finalText);
+        });
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      const reason = String(event?.error || "speech_recognition_error");
+      if (!liveRef.current) return;
+      setLiveError(`Browser speech recognition unavailable (${reason}). Continuing through Clintware transcription.`);
+      speechRecognitionRef.current = null;
+      const stream = streamRef.current;
+      if (stream) startServerTranscriptionLoop(stream);
+    };
+
+    recognition.onend = () => {
+      if (!liveRef.current || speechRecognitionRef.current !== recognition) return;
+      try {
+        recognition.start(track);
+      } catch {
+        speechRecognitionRef.current = null;
+        const stream = streamRef.current;
+        if (stream) startServerTranscriptionLoop(stream);
+      }
+    };
+
+    try {
+      recognition.start(track);
+      speechRecognitionRef.current = recognition;
+      setTranscriptionEngine("browser");
+      return true;
+    } catch {
+      speechRecognitionRef.current = null;
+      return false;
+    }
   }
 
   async function suggestionFor(text: string, directQuestion = "") {
@@ -655,11 +818,23 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
           initialPrompt: `Customer account: ${ws.customer.name}. Participant names: ${targetNames.join(", ")}.`,
         },
       });
-      if (!result?.available || !result?.text) {
-        if (result?.reason) console.warn("N7 transcription unavailable:", result.reason);
-        return "";
+      let text = "";
+      if (result?.available && result?.text) {
+        text = String(result.text).trim();
+      } else {
+        const reason = String(result?.reason || "control_plane_transcription_unavailable");
+        console.warn("N7 transcription unavailable, trying browser speech track fallback:", reason);
+        try {
+          text = await recognizeBlobWithBrowser(blob);
+          if (text) setTranscriptionEngine("browser");
+        } catch (fallbackError) {
+          console.warn("Browser speech fallback unavailable:", fallbackError);
+        }
+        if (!text) {
+          if (liveRef.current) setLiveError(`Transcription unavailable: ${reason}`);
+          return "";
+        }
       }
-      const text = String(result.text).trim();
       if (!text) return "";
       setLiveError("");
       setLastTranscriptAt(new Date().toISOString());
@@ -723,14 +898,16 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       setSessionStartedAt(new Date().toISOString());
       startAudioMeter(stream);
       setLive(true);
+      const browserSpeechStarted = startBrowserTrackRecognition(audioTrack);
+      if (!browserSpeechStarted) startServerTranscriptionLoop(stream);
       trackN7Event("live_assist_started", {
         source: "shared-audio",
         target_count: targetNames.length,
+        transcription_engine: browserSpeechStarted ? "browser" : "control-plane",
       });
       for (const track of stream.getTracks()) {
         track.addEventListener("ended", () => stopLive(), { once: true });
       }
-      void liveLoop(stream);
     } catch (error: any) {
       toast.error(error?.message || "Machine audio sharing was cancelled.");
     }
@@ -742,6 +919,10 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
     streamRef.current = null;
     meterStopRef.current?.();
     meterStopRef.current = null;
+    try { speechRecognitionRef.current?.abort?.(); } catch {}
+    speechRecognitionRef.current = null;
+    serverLoopStartedRef.current = false;
+    setTranscriptionEngine("idle");
     setAudioSourceLabel("");
     setLive(false);
     trackN7Event("live_assist_stopped", {
@@ -964,7 +1145,13 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
                 <span>{chunksCaptured} audio chunk{chunksCaptured === 1 ? "" : "s"} captured</span>
                 <span>{lastTranscriptAt ? `Last transcript ${new Date(lastTranscriptAt).toLocaleTimeString()}` : "Waiting for first transcript…"}</span>
-                <span>8-second rolling chunks</span>
+                <span>
+                  {transcriptionEngine === "browser"
+                    ? "Browser speech track recognition"
+                    : transcriptionEngine === "control-plane"
+                      ? "Clintware 8-second transcription chunks"
+                      : "Transcription initializing"}
+                </span>
               </div>
             </div>
           ) : (
