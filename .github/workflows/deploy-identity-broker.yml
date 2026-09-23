@@ -268,7 +268,7 @@ jobs:
           assert admin["allowed_identity_providers"] == ["google"], admin
           print("Federated provider policy verified for Neuron7. Configured providers:", configured)
           assert mail["redirect_uri"] == "https://mail.clintware.com/callback", mail
-          assert n7["redirect_uri"] == "https://n7.clintware.com/auth/callback", n7
+          assert n7["redirect_uri"] == "https://n7crm.clintware.com/auth/callback", n7
           assert admin["redirect_uri"] == "https://mcp.clintware.com/admin/callback", admin
           assert mcp["redirect_uri"] == "https://mcp.clintware.com/oauth/callback", mcp
           assert mcp["allowed_identity_providers"] == ["google"], mcp
@@ -288,7 +288,7 @@ jobs:
           assert m["client_name"] == "Clintware Web", m
           assert m["token_endpoint_auth_method"] == "none", m
           assert "https://mail.clintware.com/callback" in m["redirect_uris"], m
-          assert "https://n7.clintware.com/auth/callback" in m["redirect_uris"], m
+          assert "https://n7crm.clintware.com/auth/callback" in m["redirect_uris"], m
           assert "https://mcp.clintware.com/admin/callback" in m["redirect_uris"], m
           assert "https://mcp.clintware.com/oauth/callback" in m["redirect_uris"], m
           print("CIMD metadata document verified, including ChatGPT MCP callback.")
