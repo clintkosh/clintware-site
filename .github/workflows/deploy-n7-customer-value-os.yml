@@ -83,6 +83,40 @@ jobs:
             sleep 3
           done
           test "$ready" = 1
+      - name: Verify live N7 analytics bundle
+        run: |
+          set -euo pipefail
+          curl --fail-with-body -sS -L https://n7crm.clintware.com/ -o /tmp/n7-home.html
+          grep -Fq 'G-DCY144YM9P' /tmp/n7-home.html
+          grep -Fq 'send_page_view:false' /tmp/n7-home.html
+          python3 - <<'PY'
+          import re, urllib.request
+          html=open('/tmp/n7-home.html',encoding='utf-8',errors='ignore').read()
+          srcs=re.findall(r'<script[^>]+src="([^"]+)"',html)
+          assets=[]
+          for src in srcs:
+              if src.startswith('/'):
+                  src='https://n7crm.clintware.com'+src
+              if 'n7crm.clintware.com' in src:
+                  try:
+                      assets.append(urllib.request.urlopen(src, timeout=20).read().decode('utf-8','ignore'))
+                  except Exception:
+                      pass
+          bundle='\n'.join(assets)
+          required=[
+              'live_prompt_proposal_approved',
+              'live_assist_started',
+              'live_assist_session_saved',
+              'meeting_prep_pdf_prepared',
+              'meeting_checkpoint_recorded',
+              'jira_deployment_issue_created',
+              'jira_engineering_issue_created',
+          ]
+          missing=[x for x in required if x not in bundle]
+          if missing:
+              raise SystemExit('Missing live analytics event markers: '+', '.join(missing))
+          print('Live analytics markers present:', ', '.join(required))
+          PY
       - name: Verify N7 Control Plane service binding
         run: |
           set -euo pipefail
