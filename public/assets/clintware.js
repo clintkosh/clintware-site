@@ -244,6 +244,16 @@
   const year = document.querySelector("[data-year]");
   if (year) year.textContent = new Date().getFullYear();
 
+  /* Public design-system resource belongs in the footer on every Clintware page. */
+  document.querySelectorAll(".footer-links").forEach((footerLinks) => {
+    if (!footerLinks.querySelector('a[href="/fonts/"]')) {
+      const fontsLink = document.createElement("a");
+      fontsLink.href = "/fonts/";
+      fontsLink.textContent = "Fonts";
+      footerLinks.appendChild(fontsLink);
+    }
+  });
+
   const nav = document.querySelector("[data-site-nav]");
   const currentPath = location.pathname;
   if (nav) {
@@ -253,6 +263,7 @@
       ["Services", "https://consulting.clintware.com/", false],
       ["Skills", "/skills/", currentPath.startsWith("/skills/")],
       ["Build Notes", "/blog/", currentPath.startsWith("/blog/")],
+      ["Fonts", "/fonts/", currentPath.startsWith("/fonts/")],
       ["Contact", "/contact/", currentPath.startsWith("/contact/")],
     ];
     nav.innerHTML = routes.map(([label, href, active]) => `<a href="${href}"${active ? ' aria-current="page"' : ""}>${label}</a>`).join("");
