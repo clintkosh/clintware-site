@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 3,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. Supported runtimes: PowerShell, Python, and C.",
   "runtimes": [
