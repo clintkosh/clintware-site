@@ -62,3 +62,14 @@ function bind(){
  if(typeof bindAiFeatures==='function')bindAiFeatures();
 }
 applyTheme();
+async function bootstrap(){
+  const root=document.querySelector('#app');
+  if(root)root.innerHTML='<main class="startup-shell"><section class="startup-card"><div class="eyebrow">N7 DEMO CRM</div><h1>Loading workspace…</h1><p class="sub">No login required. A guest workspace is being prepared in this browser.</p></section></main>';
+  try{await load()}
+  catch(err){
+    console.error('N7 CRM startup failed',err);
+    if(root)root.innerHTML='<main class="startup-shell"><section class="startup-card startup-error"><div class="eyebrow">WORKSPACE LOAD ERROR</div><h1>The CRM could not load.</h1><p class="sub">'+e(err?.message||'Unknown startup error')+'</p><button class="btn primary" id="startup-retry">Retry</button></section></main>';
+    let retry=document.querySelector('#startup-retry');if(retry)retry.onclick=()=>void bootstrap()
+  }
+}
+void bootstrap();
