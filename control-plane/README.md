@@ -244,6 +244,31 @@ Authenticated REST equivalents:
 See `UNIVERSAL-LLM-ROUTING.md` for the reusable prompt and packet schema.
 
 
+## ChatGPT OAuth connection
+
+The production MCP endpoint is `https://mcp.clintware.com/mcp`.
+
+ChatGPT/custom OpenAI MCP clients should use the OAuth 2.1 discovery flow exposed by the Control Plane rather than receiving `CONTROL_PLANE_MCP_TOKEN` or a GitHub credential directly.
+
+- Protected resource metadata: `https://mcp.clintware.com/.well-known/oauth-protected-resource/mcp`
+- Authorization server metadata: `https://mcp.clintware.com/.well-known/oauth-authorization-server`
+- Authorization endpoint: `https://mcp.clintware.com/oauth/authorize`
+- Token endpoint: `https://mcp.clintware.com/oauth/token`
+- Upstream owner identity: `auth.clintware.com` via the dedicated `control-plane-mcp` first-party callback
+- PKCE: S256
+- ChatGPT client identification: CIMD
+- Provider credentials: remain server-side behind the Control Plane
+
+Existing root/per-client bearer credentials remain supported for current non-OAuth consumers. OAuth is an additional front door; it does not replace or rotate existing MCP, GitHub, Cloudflare, Jira, Confluence, or product credentials.
+
+The intended default route for ChatGPT is:
+
+```text
+ChatGPT -> mcp.clintware.com/mcp -> scoped Control Plane tools -> qq when local Windows execution is required
+```
+
+Do not fall back to direct GitHub writes merely to trigger qq when the Clintware MCP connection is available.
+
 ## Per-client MCP credentials
 
 External LLMs do not need to share the root `CONTROL_PLANE_MCP_TOKEN`. The Control Plane can issue a separate revocable credential for each client while retaining only its SHA-256 hash.
