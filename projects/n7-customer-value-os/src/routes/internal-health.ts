@@ -11,8 +11,11 @@ export const Route = createFileRoute("/internal-health")({
             ok: true,
             service: "n7-customer-value-os",
             controlPlane: "ready",
-            audioTranscribe: result.audioTranscribe,
             revision: result.revision,
+            state: result.state,
+            ai: result.ai,
+            audio: result.audio,
+            jira: result.jira,
           });
         } catch (error) {
           return Response.json(
