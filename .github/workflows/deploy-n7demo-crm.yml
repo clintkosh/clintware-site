@@ -149,8 +149,11 @@ jobs:
           echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
           blocked_session_status=$(curl -sS -o /tmp/n7-session-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/session/test | tr -cd '0-9')
           echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
-          ai_auth_status=$(curl -sS -o /tmp/n7-ai-auth.json -w '%{http_code}' -X POST https://n7demo.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{"customerId":"x","text":"test"}' | tr -cd '0-9')
-          echo "AI auth HTTP $ai_auth_status"; test "$ai_auth_status" = "401"
+          ai_status=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/api/ai/status)
+          echo "$ai_status" | grep -Fq '"guestAvailable":true'
+          ai_guest_contract_status=$(curl -sS -o /tmp/n7-ai-guest-contract.json -w '%{http_code}' -X POST https://n7demo.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
+          echo "AI guest contract HTTP $ai_guest_contract_status"; test "$ai_guest_contract_status" = "400"
+          grep -Fq '"error":"text_and_customer_required"' /tmp/n7-ai-guest-contract.json
           auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/n7demo-crm || true)
           echo "$auth" | grep -Fq '"app":"n7demo-crm"'
           echo "$auth" | grep -Fq '"redirect_uri":"https://n7demo.clintware.com/auth/callback"'
