@@ -1,4 +1,5 @@
 import core, { RegistryHub, ProductHub } from "./index.js";
+import { isMcpOAuthRoute, mcpOAuthProvider } from "./mcp-oauth.js";
 
 export { RegistryHub, ProductHub };
 
@@ -104,6 +105,17 @@ export default {
     request=normalizeApiKeyAuth(request);
     request=await bootstrapVidcrmService(request,env);
     const url=new URL(request.url);
+
+    // Keep existing static MCP credentials fully backward compatible. If the
+    // core rejects /mcp as unauthenticated, hand the same request to the
+    // standards-compliant OAuth provider used by ChatGPT/custom MCP clients.
+    if(isMcpOAuthRoute(url)){
+      if(url.pathname==="/mcp"){
+        const legacy=await core.fetch(request,env,ctx);
+        if(legacy.status!==401)return legacy;
+      }
+      return mcpOAuthProvider.fetch(request,env,ctx);
+    }
 
     // Product runtime tokens are deliberately limited to telemetry/query APIs.
     // Infrastructure mutations are available to trusted MCP clients through the
