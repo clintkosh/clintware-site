@@ -2,7 +2,7 @@ const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const API_ORIGIN = "https://api.atlassian.com";
 const CALLBACK_URL = "https://mcp.clintware.com/api/v1/jira/oauth/callback";
-const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "offline_access"];
+const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "write:confluence-space", "offline_access"];
 const STATE_TTL_MS = 10 * 60 * 1000;
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -190,7 +190,7 @@ export async function jiraStatus(env) {
     callback_url:CALLBACK_URL,
     scopes:SCOPES,
     granted_scope:String(grant?.scope||""),
-    confluence_scope_ready:Boolean(grant?.scope&&String(grant.scope).includes("read:confluence-content.all")&&String(grant.scope).includes("write:confluence-content")),
+    confluence_scope_ready:["read:confluence-content.all","read:confluence-space.summary","write:confluence-content","write:confluence-space"].every(scope=>new Set(String(grant?.scope||"").split(/\s+/)).has(scope)),
     sites:(grant?.sites || []).map(s => ({id:s.id,url:s.url,name:s.name,scopes:s.scopes||[]}))
   };
 }

@@ -3,6 +3,7 @@ import { atlassianAccessToken } from "./jira.js";
 const API_ORIGIN = "https://api.atlassian.com";
 const REQUIRED_READ = ["read:confluence-content.all","read:confluence-space.summary"];
 const REQUIRED_WRITE = ["write:confluence-content"];
+const REQUIRED_SPACE_WRITE = ["write:confluence-space"];
 
 function scopeSet(grant){
   return new Set(String(grant?.scope||"").split(/\s+/).filter(Boolean));
@@ -86,7 +87,7 @@ function boundedLimit(value, fallback=50, max=100){
 
 export async function confluenceStatus(env){
   const auth=await atlassianAccessToken(env,false);
-  if(!auth.ok)return{ok:true,configured:true,connected:false,writable:false,error:auth.error||"atlassian_not_connected",required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE]};
+  if(!auth.ok)return{ok:true,configured:true,connected:false,writable:false,error:auth.error||"atlassian_not_connected",required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE,...REQUIRED_SPACE_WRITE]};
   const readReady=hasScopes(auth.grant,REQUIRED_READ);
   const writeReady=hasScopes(auth.grant,[...REQUIRED_READ,...REQUIRED_WRITE]);
   return{
@@ -94,9 +95,10 @@ export async function confluenceStatus(env){
     configured:true,
     connected:readReady,
     writable:writeReady,
-    reauthorization_required:!writeReady,
+    space_creation_ready:hasScopes(auth.grant,[...REQUIRED_READ,...REQUIRED_SPACE_WRITE]),
+    reauthorization_required:!hasScopes(auth.grant,[...REQUIRED_READ,...REQUIRED_WRITE,...REQUIRED_SPACE_WRITE]),
     granted_scope:String(auth.grant?.scope||""),
-    required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE],
+    required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE,...REQUIRED_SPACE_WRITE],
     sites:(auth.grant?.sites||[]).map(s=>({id:s.id,name:s.name,url:s.url,scopes:s.scopes||[]}))
   };
 }
@@ -197,4 +199,17 @@ export async function confluenceCreatePage(env,args={}){
 export async function confluenceUpdatePage(env,args={}){
   if(!args.page_id)return{ok:false,error:"confluence_page_id_required"};
   return confluenceUpsertPage(env,args);
+}
+
+export async function confluenceCreateSpace(env,{cloud_id,key,name,description=""}){
+  key=String(key||"").trim();name=String(name||"").trim();
+  if(!/^[A-Za-z0-9]+$/.test(key))return{ok:false,error:"confluence_space_key_invalid"};
+  if(!name||name.length>255)return{ok:false,error:"confluence_space_name_invalid"};
+  const auth=await atlassianAccessToken(env,false);
+  if(!auth.ok)return auth;
+  const required=[...REQUIRED_READ,...REQUIRED_SPACE_WRITE];
+  const missing=required.filter(x=>!scopeSet(auth.grant).has(x));
+  if(missing.length)return{ok:false,error:"confluence_reauthorization_required",missing_scopes:missing};
+  const r=await callConfluence(env,{cloud_id,api_version:"v1",method:"POST",path:"space",body:{key,name,description:{plain:{value:String(description),representation:"plain"}}}});
+  return r.ok?{ok:true,site:r.site,space:r.data,operation:"created"}:r;
 }

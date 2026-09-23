@@ -5,9 +5,9 @@ import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
-import { confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
+import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-23-chatgpt-oauth.1";
+const VERSION = "2026-09-23-confluence-spaces.1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -2100,6 +2100,17 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     if(!await confluenceAllowed("read"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_read_not_allowed"})}]};
     const result=await confluenceSearch(env,args);return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
   });
+  server.registerTool("clintware_confluence_create_space",{
+    title:"Create a Confluence space",
+    description:"Create a Confluence space through the existing Atlassian grant. Requires space-creation permission.",
+    inputSchema:{cloud_id:z.string().optional(),key:z.string(),name:z.string(),description:z.string().optional()},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async(args)=>{
+    if(!await confluenceAllowed("write"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"confluence_write_not_allowed"})}]};
+    const result=await confluenceCreateSpace(env,args);
+    await audit(env,"quillgeist-lite","confluence_create_space",crypto.randomUUID(),{key:args.key,ok:result.ok},result.ok,result.error||"");
+    return {isError:!result.ok,content:[{type:"text",text:JSON.stringify(result)}]};
+  });
   server.registerTool("clintware_confluence_create_page",{
     title:"Create a Confluence page",
     description:"Create one Confluence page in an explicitly selected space. Plain text is converted to safe Confluence storage markup.",
@@ -2830,13 +2841,14 @@ export default {
         if(!product)return json({error:"product_required"},400);
         const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
         const op=String(body.operation||"").toLowerCase();
-        const writeOps=new Set(["upsert","create","update"]);
+        const writeOps=new Set(["upsert","create","update","create_space"]);
         const capability="confluence."+(writeOps.has(op)?"write":"read")+":"+product;
         if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
         const args=body.args&&typeof body.args==="object"?body.args:{};
         let result;
         if(op==="status")result=await confluenceStatus(env);
         else if(op==="spaces")result=await confluenceSpaces(env,args);
+        else if(op==="create_space")result=await confluenceCreateSpace(env,args);
         else if(op==="pages")result=await confluencePages(env,args);
         else if(op==="get")result=await confluenceGetPage(env,args);
         else if(op==="search")result=await confluenceSearch(env,args);
