@@ -229,6 +229,7 @@ const QUILLGEIST_LITE_TASKS = {
   "c-runtime-check":{runtime:"c",parameters:["Message"]},
   "ensure-c-runtime":{runtime:"powershell",parameters:[]},
   "self-update":{runtime:"powershell",parameters:[]},
+  "repair-local-service":{runtime:"powershell",parameters:[]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
   "connect-confluence":{runtime:"powershell",parameters:[]},
@@ -1899,7 +1900,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console"]),
+      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
