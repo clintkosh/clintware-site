@@ -17,6 +17,7 @@ ALLOWED = {
     "c-runtime-check": {"Message"},
     "ensure-c-runtime": set(),
     "self-update": set(),
+    "repair-local-service": set(),
     "apply-terminal-glass": set(),
     "connect-jira": set(),
     "enable-admin-console": set(),
