@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
+$ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $BaseUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 $RestartHelper = Join-Path $HomeDir "restart-runner.ps1"
 $RunnerPidPath = Join-Path $HomeDir "runner.pid"
@@ -11,7 +12,8 @@ New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
 $updates = @(
   @{ Name = "runner";   Url = "$BaseUrl/runner.ps1";   Target = $RunnerPath },
-  @{ Name = "launcher"; Url = "$BaseUrl/launcher.ps1"; Target = $LauncherPath }
+  @{ Name = "launcher"; Url = "$BaseUrl/launcher.ps1"; Target = $LauncherPath },
+  @{ Name = "service-repair"; Url = "$BaseUrl/tasks/repair-local-service.ps1"; Target = $ServiceRepairPath }
 )
 
 Write-Host "SYNC" -ForegroundColor White -NoNewline
@@ -43,6 +45,20 @@ foreach ($item in $updates) {
 foreach ($item in $updates) {
   Move-Item ($item.Target + ".new") $item.Target -Force
   Write-Host ("UPDATED // " + $item.Name) -ForegroundColor Cyan
+}
+
+# Keep the service credential and device registration intact while refreshing the
+# watchdog binary + scheduled-task recovery policy. When qq is already elevated
+# this is silent; older standard installs may request one UAC approval.
+$healthService = Get-Service -Name "ClintwareQuillgeistLiteHealth" -ErrorAction SilentlyContinue
+if ($healthService) {
+  Write-Host "SERVICE // repairing supervised runner recovery" -ForegroundColor Cyan
+  $repairArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $ServiceRepairPath + '"'
+  $repair = Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $repairArgs -Wait -PassThru
+  if ($repair.ExitCode -ne 0) {
+    throw "qq health-service repair failed with exit code $($repair.ExitCode)."
+  }
+  Write-Host "UPDATED // health-service watchdog + stale-task policy" -ForegroundColor Cyan
 }
 
 $oldRunnerPid = 0
