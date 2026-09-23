@@ -12,7 +12,7 @@ import {
   internalGoogleAccessToken,
 } from "./delegated-google.js";
 
-const VERSION = "2026-09-22.9";
+const VERSION = "2026-09-23.10";
 const AUTH_ORIGIN = "https://auth.clintware.com";
 const USERINFO_RESOURCE = `${AUTH_ORIGIN}/userinfo`;
 const SUPPORTED_SCOPES = ["identity", "email", "profile"];
