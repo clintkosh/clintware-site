@@ -36,6 +36,14 @@ export const loadSharedState = createServerFn({ method: "GET" }).handler(async (
   return controlPlane("/api/v1/state?product=neuron7-case", { method: "GET" });
 });
 
+export async function probeN7ControlPlane() {
+  const result = await controlPlane("/api/v1/state?product=neuron7-case", { method: "GET" });
+  return {
+    ok: true,
+    revision: Number((result as { revision?: number })?.revision ?? 0),
+  };
+}
+
 export const saveSharedState = createServerFn({ method: "POST" })
   .validator((data: { state: JsonValue; expectedRevision?: number | null }) => data)
   .handler(async ({ data }) => {
