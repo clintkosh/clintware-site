@@ -31,11 +31,14 @@ jobs:
       - name: Syntax check
         run: npm run check --prefix control-plane
 
+      - name: Render validation config
+        run: node control-plane/scripts/render-wrangler.mjs 00000000000000000000000000000000
+
       - name: Wrangler dry run
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx --prefix control-plane wrangler deploy --dry-run --config control-plane/wrangler.jsonc
+        run: npx --prefix control-plane wrangler deploy --dry-run --config control-plane/wrangler.generated.jsonc
 
   deploy:
     if: github.event_name != 'pull_request'
@@ -47,13 +50,36 @@ jobs:
       - name: Install control-plane dependencies
         run: npm install --prefix control-plane --ignore-scripts --no-audit --no-fund
 
+      - name: Ensure Control Plane OAuth KV namespace
+        id: oauth_kv
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="clintware-control-plane-oauth"
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces"
+          list=$(curl --fail-with-body -sS "$api?per_page=100&order=title&direction=asc"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); title=sys.argv[1]; print(next((x.get("id","") for x in d.get("result",[]) if x.get("title")==title),""))' "$title" <<< "$list")
+          if [ -z "$id" ]; then
+            created=$(curl --fail-with-body -sS -X POST "$api"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"               -H 'Content-Type: application/json'               --data "{\"title\":\"${title}\"}")
+            id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("result",{}).get("id",""))' <<< "$created")
+          fi
+          if ! [[ "$id" =~ ^[A-Fa-f0-9]{32}$ ]]; then
+            echo "Could not resolve/create Control Plane OAuth KV namespace." >&2
+            exit 1
+          fi
+          echo "namespace_id=$id" >> "$GITHUB_OUTPUT"
+          echo "Control Plane OAuth KV ready: $title"
+
+      - name: Render production config
+        run: node control-plane/scripts/render-wrangler.mjs "${{ steps.oauth_kv.outputs.namespace_id }}"
+
       - name: Deploy control plane
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd control-plane
+          command: deploy --cwd control-plane --config wrangler.generated.jsonc
 
       - name: Sync central Control Plane secrets
         env:
@@ -75,7 +101,7 @@ jobs:
             local name="$1"
             local value="$2"
             if [ -n "$value" ]; then
-              printf '%s' "$value" | npx wrangler secret put "$name" >/dev/null
+              printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.generated.jsonc >/dev/null
               echo "$name configured"
             else
               echo "$name not present in repository secrets; leaving adapter disabled"
@@ -124,6 +150,37 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
+          echo "$body" | grep -Fq '"mcp_oauth":{"configured":true'
+
+      - name: Verify ChatGPT MCP OAuth discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          resource=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://mcp.clintware.com/.well-known/oauth-protected-resource/mcp)
+          authmeta=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://mcp.clintware.com/.well-known/oauth-authorization-server)
+          identity=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-mcp)
+          RESOURCE_JSON="$resource" AUTH_JSON="$authmeta" IDENTITY_JSON="$identity" python3 - <<'PY'
+          import json, os
+          resource=json.loads(os.environ["RESOURCE_JSON"])
+          auth=json.loads(os.environ["AUTH_JSON"])
+          identity=json.loads(os.environ["IDENTITY_JSON"])
+          assert resource["resource"] == "https://mcp.clintware.com/mcp", resource
+          assert "https://mcp.clintware.com" in resource["authorization_servers"], resource
+          assert auth["issuer"] == "https://mcp.clintware.com", auth
+          assert auth["authorization_endpoint"] == "https://mcp.clintware.com/oauth/authorize", auth
+          assert auth["token_endpoint"] == "https://mcp.clintware.com/oauth/token", auth
+          assert auth.get("client_id_metadata_document_supported") is True, auth
+          assert "S256" in auth.get("code_challenge_methods_supported", []), auth
+          assert identity["redirect_uri"] == "https://mcp.clintware.com/oauth/callback", identity
+          assert identity["pkce"] == "S256", identity
+          print("ChatGPT MCP OAuth discovery and upstream Clintware identity callback verified.")
+          PY
+
+          curl -sS -o /tmp/mcp-oauth-unauth.json -D /tmp/mcp-oauth-unauth.headers             -X POST https://mcp.clintware.com/mcp             -H 'content-type: application/json'             --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"oauth-smoke","version":"1"}}}'
+          status=$(awk 'NR==1{print $2}' /tmp/mcp-oauth-unauth.headers)
+          test "$status" = "401"
+          grep -Eqi '^www-authenticate:.*resource_metadata=.*oauth-protected-resource/mcp' /tmp/mcp-oauth-unauth.headers
+          echo "Unauthenticated MCP request correctly advertises OAuth linking."
 
       - name: Verify public Control Plane landing page
         run: |
