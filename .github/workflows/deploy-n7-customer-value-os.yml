@@ -90,8 +90,23 @@ jobs:
           grep -Fq 'G-DCY144YM9P' /tmp/n7-home.html
           grep -Fq 'send_page_view:false' /tmp/n7-home.html
           python3 - <<'PY'
-          import re, urllib.request
+          import re, time, urllib.request, urllib.error
           base='https://n7crm.clintware.com'
+          ua={'User-Agent':'Mozilla/5.0 N7-Deploy-Check'}
+          def fetch_text(url, attempts=10):
+              last=None
+              for attempt in range(attempts):
+                  try:
+                      req=urllib.request.Request(url, headers=ua)
+                      return urllib.request.urlopen(req, timeout=20).read().decode('utf-8','ignore')
+                  except urllib.error.HTTPError as exc:
+                      last=exc
+                      if exc.code not in (404, 429, 502, 503, 504):
+                          raise
+                  except Exception as exc:
+                      last=exc
+                  time.sleep(2)
+              raise last
           pages=[
               '/',
               '/customers/official-case/live-prompt',
@@ -100,10 +115,7 @@ jobs:
               '/customers/official-case/deployment-board',
               '/customers/official-case/engineering-issues',
           ]
-          htmls=[]
-          for page in pages:
-              req=urllib.request.Request(base+page, headers={'User-Agent':'Mozilla/5.0 N7-Deploy-Check'})
-              htmls.append(urllib.request.urlopen(req, timeout=20).read().decode('utf-8','ignore'))
+          htmls=[fetch_text(base+page) for page in pages]
           refs=set()
           for html in htmls:
               for ref in re.findall(r'(?:src|href)="([^"]+\.js(?:\?[^"]*)?)"', html):
@@ -111,10 +123,7 @@ jobs:
                       ref=base+ref
                   if ref.startswith(base):
                       refs.add(ref)
-          assets=[]
-          for ref in sorted(refs):
-              req=urllib.request.Request(ref, headers={'User-Agent':'Mozilla/5.0 N7-Deploy-Check'})
-              assets.append(urllib.request.urlopen(req, timeout=20).read().decode('utf-8','ignore'))
+          assets=[fetch_text(ref) for ref in sorted(refs)]
           bundle='\n'.join(assets)
           required=[
               'live_prompt_proposal_approved',
