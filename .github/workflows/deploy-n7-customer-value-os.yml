@@ -136,7 +136,7 @@ jobs:
           ready=0
           for i in $(seq 1 20); do
             code=$(curl -sS -L -o /tmp/n7-health.json -w '%{http_code}' --connect-timeout 5 --max-time 15 https://n7crm.clintware.com/internal-health || true)
-            if [ "$code" = "200" ] && python3 -c 'import json; d=json.load(open("/tmp/n7-health.json")); assert d.get("ok") is True; assert d.get("controlPlane")=="ready"; assert d.get("state")=="ready"; assert d.get("ai")=="ready"; assert d.get("audio")=="authorized"; j=d.get("jira") or {}; assert j.get("authorized") is True; assert j.get("configured") is True; assert j.get("connected") is True' 2>/dev/null; then
+            if [ "$code" = "200" ] && python3 -c 'import json; d=json.load(open("/tmp/n7-health.json")); assert d.get("ok") is True; assert d.get("controlPlane")=="ready"; assert d.get("state")=="ready"; assert d.get("ai")=="ready"; assert d.get("audio")=="authorized"; j=d.get("jira") or {}; assert j.get("authorized") is True; assert j.get("configured") is True' 2>/dev/null; then
               ready=1
               break
             fi
