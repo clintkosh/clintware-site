@@ -68,6 +68,11 @@ def _defaults() -> dict:
             "send_redacted_errors": True,
             "queue_when_offline": True
         },
+        "updates": {
+            "enabled": True,
+            "channel": "public-alpha",
+            "auto_install": False
+        },
         "desktop": {
             "local_only": False,
             "launch_minimized": False,
@@ -96,6 +101,7 @@ class Config:
             base["prompt_planner"] = {**_defaults()["prompt_planner"], **incoming.get("prompt_planner", {})}
             base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
+            base["updates"] = {**_defaults()["updates"], **incoming.get("updates", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
             if incoming.get("cloud_url") == "https://agentbridge.clintware.com":

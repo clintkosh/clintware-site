@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "product": "Quillgeist",
+  "channel": "public-alpha",
+  "latest_version": "0.3.2a1",
+  "display_version": "0.3.2 Alpha",
+  "published_at": "2026-09-07T06:10:23Z",
+  "release_url": "https://github.com/clintkosh/clintware-site/releases/tag/quillgeist-v0.3.2-alpha",
+  "install_policy": "explicit",
+  "auto_install": false,
+  "notes": "Local execution remains authoritative. Cloud only advertises release metadata; the user decides when to install an update.",
+  "downloads": {
+    "windows_x64": {
+      "url": "https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-Setup-Windows-x64.exe",
+      "sha256": "ec247afcecef3d74d41a6ba1f73d245534f59cfc797afc294f735a60a88048b4"
+    },
+    "macos_arm64": {
+      "url": "https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-macOS-arm64",
+      "sha256": "1e92c31afc9c790f95e30955ca38ad5aebe47b388abb7f9399f2b09a16633cb0"
+    },
+    "linux_x64": {
+      "url": "https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.3.2-alpha/Quillgeist-Linux-x64",
+      "sha256": "f4a25ec59f63d24cf2c35cf4c71b42eeeacc998326d19cc75f7152057c1b715e"
+    }
+  }
+}
