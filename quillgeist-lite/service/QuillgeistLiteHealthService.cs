@@ -34,6 +34,8 @@ namespace Clintware.QuillgeistLite
         private bool? previousRunnerAlive;
         private DateTime lastHeartbeat = DateTime.MinValue;
         private DateTime lastSuppressedNotice = DateTime.MinValue;
+        private DateTime serviceStartedUtc = DateTime.MinValue;
+        private DateTime lastRestartAttemptUtc = DateTime.MinValue;
 
         public QuillgeistLiteHealthService()
         {
@@ -46,6 +48,7 @@ namespace Clintware.QuillgeistLite
         protected override void OnStart(string[] args)
         {
             config = LoadConfig();
+            serviceStartedUtc = DateTime.UtcNow;
             LocalLog("service_started");
             TryPost("INFO", "service", "health_service_started", null);
             timer = new Timer(Tick, null, 1000, 5000);
@@ -101,7 +104,7 @@ namespace Clintware.QuillgeistLite
                 TailFile(config.CrashLogPath, "runner-crash", false);
                 TailFile(config.RunnerLogPath, "runner-log", true);
 
-                if (!alive)
+                if (!alive && (DateTime.UtcNow - serviceStartedUtc).TotalSeconds >= 8)
                 {
                     EnsureRunner();
                 }
@@ -142,23 +145,51 @@ namespace Clintware.QuillgeistLite
 
         private void EnsureRunner()
         {
-            DateTime cutoff = DateTime.UtcNow.AddMinutes(-10);
+            DateTime now = DateTime.UtcNow;
+            if ((now - lastRestartAttemptUtc).TotalSeconds < 15) return;
+
+            DateTime cutoff = now.AddMinutes(-10);
             while (restarts.Count > 0 && restarts.Peek() < cutoff) restarts.Dequeue();
 
             if (restarts.Count >= 5)
             {
-                if ((DateTime.UtcNow - lastSuppressedNotice).TotalMinutes >= 5)
+                if ((now - lastSuppressedNotice).TotalMinutes >= 5)
                 {
                     string msg = "restart_suppressed_after_5_attempts_in_10_minutes";
                     LocalLog(msg);
                     TryPost("ERROR", "health", msg, false);
-                    lastSuppressedNotice = DateTime.UtcNow;
+                    lastSuppressedNotice = now;
                 }
                 return;
             }
 
             try
             {
+                // A Task Scheduler instance can remain marked Running after the real
+                // runner process has died. With IgnoreNew, /Run then reports success
+                // while doing nothing. End the stale wrapper first; a non-running task
+                // simply returns a harmless non-zero code.
+                ProcessStartInfo endPsi = new ProcessStartInfo("schtasks.exe",
+                    "/End /TN \"" + config.TaskName.Replace("\"", "\\\"") + "\"");
+                endPsi.CreateNoWindow = true;
+                endPsi.UseShellExecute = false;
+                endPsi.RedirectStandardOutput = true;
+                endPsi.RedirectStandardError = true;
+
+                using (Process end = Process.Start(endPsi))
+                {
+                    end.WaitForExit(10000);
+                    string endOut = end.StandardOutput.ReadToEnd();
+                    if (end.ExitCode == 0)
+                    {
+                        string ended = "stale_runner_task_ended";
+                        if (!String.IsNullOrWhiteSpace(endOut)) ended += " output=" + Redact(endOut);
+                        LocalLog(ended);
+                        TryPost("WARN", "health", ended, false);
+                        Thread.Sleep(750);
+                    }
+                }
+
                 ProcessStartInfo psi = new ProcessStartInfo("schtasks.exe",
                     "/Run /TN \"" + config.TaskName.Replace("\"", "\\\"") + "\"");
                 psi.CreateNoWindow = true;
@@ -171,7 +202,8 @@ namespace Clintware.QuillgeistLite
                     p.WaitForExit(15000);
                     string stdout = p.StandardOutput.ReadToEnd();
                     string stderr = p.StandardError.ReadToEnd();
-                    restarts.Enqueue(DateTime.UtcNow);
+                    lastRestartAttemptUtc = DateTime.UtcNow;
+                    restarts.Enqueue(lastRestartAttemptUtc);
 
                     string msg = "runner_restart_requested exit=" + p.ExitCode;
                     if (!String.IsNullOrWhiteSpace(stderr)) msg += " stderr=" + Redact(stderr);
@@ -183,7 +215,8 @@ namespace Clintware.QuillgeistLite
             }
             catch (Exception ex)
             {
-                restarts.Enqueue(DateTime.UtcNow);
+                lastRestartAttemptUtc = DateTime.UtcNow;
+                restarts.Enqueue(lastRestartAttemptUtc);
                 string msg = "runner_restart_exception: " + Redact(ex.ToString());
                 LocalLog(msg);
                 TryPost("ERROR", "health", msg, false);
