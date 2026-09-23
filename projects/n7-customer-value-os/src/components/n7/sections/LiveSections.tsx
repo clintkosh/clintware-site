@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -527,12 +527,70 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
   const [progress, setProgress] = useState("");
   const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(null);
   const [lastSource, setLastSource] = useState<LiveAssistSession["source"]>("machine-audio");
+  const [audioSourceLabel, setAudioSourceLabel] = useState("");
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [chunksCaptured, setChunksCaptured] = useState(0);
+  const [lastTranscriptAt, setLastTranscriptAt] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState("");
   const streamRef = useRef<MediaStream | null>(null);
   const liveRef = useRef(false);
   const processingRef = useRef<Promise<void>>(Promise.resolve());
+  const meterStopRef = useRef<(() => void) | null>(null);
 
   const approvedTraining = (ws.liveAssistTraining ?? []).filter((item) => item.approved);
   const targetNames = targets.split(",").map((v) => v.trim()).filter(Boolean);
+
+  useEffect(() => {
+    setTargets(defaultTargets.join(", "));
+    setConsent(false);
+    setTrainingNotes("");
+    setTranscript("");
+    setSuggestions([]);
+    setDirectAsk("");
+    setBusy(false);
+    setProgress("");
+    setSessionStartedAt(null);
+    setLastSource("machine-audio");
+    setAudioSourceLabel("");
+    setAudioLevel(0);
+    setChunksCaptured(0);
+    setLastTranscriptAt(null);
+    setLiveError("");
+    return () => {
+      liveRef.current = false;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      meterStopRef.current?.();
+      meterStopRef.current = null;
+    };
+  }, [ws.customer.id]);
+
+  function startAudioMeter(stream: MediaStream) {
+    meterStopRef.current?.();
+    const context = new AudioContext();
+    const source = context.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.fftSize);
+    const timer = window.setInterval(() => {
+      analyser.getByteTimeDomainData(data);
+      let total = 0;
+      for (const value of data) {
+        const normalized = (value - 128) / 128;
+        total += normalized * normalized;
+      }
+      const rms = Math.sqrt(total / Math.max(1, data.length));
+      setAudioLevel(Math.min(100, Math.round(rms * 420)));
+    }, 180);
+    meterStopRef.current = () => {
+      window.clearInterval(timer);
+      try { source.disconnect(); } catch {}
+      try { analyser.disconnect(); } catch {}
+      void context.close();
+      setAudioLevel(0);
+    };
+  }
 
   async function suggestionFor(text: string, directQuestion = "") {
     const response: any = await invokeN7AI({
@@ -590,11 +648,15 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       }
       const text = String(result.text).trim();
       if (!text) return "";
+      setLiveError("");
+      setLastTranscriptAt(new Date().toISOString());
       setTranscript((current) => (current ? `${current}\n${text}` : text));
       if (suggest) await suggestionFor(text);
       return text;
     } catch (error: any) {
-      toast.error(error?.message || "Audio transcription failed.");
+      const message = error?.message || "Audio transcription failed.";
+      if (liveRef.current) setLiveError(message);
+      else toast.error(message);
       return "";
     }
   }
@@ -604,6 +666,7 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       try {
         const blob = await recordSegment(stream, 8000);
         if (!liveRef.current && !blob.size) break;
+        setChunksCaptured((count) => count + 1);
         processingRef.current = processingRef.current.then(async () => {
           await processBlob(blob);
         });
@@ -634,10 +697,18 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
         toast.error("No shared audio track was provided. Share a tab/window/screen and enable its audio.");
         return;
       }
+      const audioTrack = stream.getAudioTracks()[0]!;
       streamRef.current = stream;
       liveRef.current = true;
+      setTranscript("");
+      setSuggestions([]);
+      setLiveError("");
+      setChunksCaptured(0);
+      setLastTranscriptAt(null);
+      setAudioSourceLabel(audioTrack.label || "Shared tab / system audio");
       setLastSource("machine-audio");
       setSessionStartedAt(new Date().toISOString());
+      startAudioMeter(stream);
       setLive(true);
       for (const track of stream.getTracks()) {
         track.addEventListener("ended", () => stopLive(), { once: true });
@@ -652,6 +723,9 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
     liveRef.current = false;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    meterStopRef.current?.();
+    meterStopRef.current = null;
+    setAudioSourceLabel("");
     setLive(false);
   }
 
@@ -794,16 +868,27 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
           </div>
         </Panel>
 
-        <Panel title="Consent + machine audio" subtitle="Browser capture requires you to choose a tab/window/screen and explicitly share its audio. Raw audio is not stored by this workspace.">
+        <Panel
+          title="Listen to call audio"
+          subtitle="Choose the meeting tab or window and enable its audio. Once the browser says it is sharing that source to this tab, N7 keeps listening until you stop it."
+        >
           <label className="flex items-start gap-2 text-sm text-foreground/90">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
             <span>I confirm the customer/participants have opted in or I otherwise have permission to capture/transcribe this call.</span>
           </label>
+
+          <div className="mt-4 rounded-md border border-border bg-secondary/40 p-3 text-xs">
+            <div className="font-medium text-foreground">How to listen to Read AI / Meet / Zoom / Teams web audio</div>
+            <div className="mt-1 text-muted-foreground">
+              Click <strong>Listen to shared call</strong>, choose the call tab/window, and turn on <strong>Share tab audio</strong> or system audio. The browser sharing bar is the confirmation that N7 has the source.
+            </div>
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
             {!live ? (
-              <Button onClick={startLive} disabled={!consent}>Start machine-audio assist</Button>
+              <Button onClick={startLive} disabled={!consent}>Listen to shared call</Button>
             ) : (
-              <Button variant="outline" onClick={stopLive}>Stop live assist</Button>
+              <Button variant="outline" onClick={stopLive}>Stop listening</Button>
             )}
             <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent">
               {busy ? "Processing…" : "Analyze recorded call"}
@@ -820,10 +905,50 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
               />
             </label>
           </div>
-          <div className="mt-3 text-xs text-muted-foreground">
-            {live ? "Listening to the audio source you explicitly shared. Suggestions appear below." : "Live capture is off."}
-            {progress ? <span className="mt-1 block font-medium text-foreground">{progress}</span> : null}
-          </div>
+
+          {live ? (
+            <div className="mt-4 rounded-md border border-border bg-background p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <span className="relative flex size-2.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+                  </span>
+                  Listening continuously
+                </div>
+                <StatusPill status="in-progress" />
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Source: <span className="font-medium text-foreground">{audioSourceLabel || "Shared tab / system audio"}</span>
+              </div>
+              <div className="mt-3">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Incoming audio signal</span>
+                  <span>{audioLevel}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-150" style={{ width: `${audioLevel}%` }} />
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                <span>{chunksCaptured} audio chunk{chunksCaptured === 1 ? "" : "s"} captured</span>
+                <span>{lastTranscriptAt ? `Last transcript ${new Date(lastTranscriptAt).toLocaleTimeString()}` : "Waiting for first transcript…"}</span>
+                <span>8-second rolling chunks</span>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 text-xs text-muted-foreground">Not listening. Start a shared-call session when the customer call begins.</div>
+          )}
+
+          {liveError ? (
+            <div className="mt-3">
+              <Callout tone="critical" title="Live transcription error">
+                {liveError}
+              </Callout>
+            </div>
+          ) : null}
+
+          {progress ? <div className="mt-3 text-xs font-medium text-foreground">{progress}</div> : null}
         </Panel>
       </div>
 
@@ -842,7 +967,7 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Live transcript" subtitle="Transcribed from the explicitly shared machine-audio source or uploaded recording.">
+        <Panel title="Live transcript" subtitle={live ? "Updating continuously from the shared call audio." : "Transcribed from the explicitly shared machine-audio source or uploaded recording."}>
           <div className="max-h-[430px] overflow-y-auto whitespace-pre-wrap rounded-md bg-secondary/50 p-3 text-sm leading-relaxed text-foreground/90">
             {transcript || "No transcript yet."}
           </div>
