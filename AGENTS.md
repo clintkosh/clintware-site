@@ -11,13 +11,14 @@ Required order:
 1. Read `ASTRO_WEBSITE_SKILL.md`.
 2. Read `BRAND_STANDARDS.md` when branding, typography, layout, navigation, slogan, or visual hierarchy is involved.
 3. Inspect the actual current repository/page state before editing.
-4. Preserve approved working functionality and accepted prior work.
-5. Reject generic AI/SaaS template structure and marketing boilerplate.
-6. Write from product truth and evidence, with current capability separated from roadmap.
-7. For Quillgeist, preserve the adaptive-intent-compiler thesis and `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` progression.
-8. For LandThePlane, preserve the candidate-owned evidence / career-system thesis rather than reducing it to generic interview-question generation.
-9. QA the finished page against ASTRO's rejection checklist before deployment.
-10. Never call the page complete until the deployment and public behavior are actually verified.
+4. Preserve the canonical Clintware Type System defined in `BRAND_STANDARDS.md` and `public/assets/typography-lock.css`: Clintware Sans for body copy, Clintware Display for headings, Clintware Mono for software/system language, with Hand/Alien restricted to bounded accents. Site-wide refreshes must preserve these roles and keep `/fonts/` consistent with production.
+5. Preserve approved working functionality and accepted prior work.
+6. Reject generic AI/SaaS template structure and marketing boilerplate.
+7. Write from product truth and evidence, with current capability separated from roadmap.
+8. For Quillgeist, preserve the adaptive-intent-compiler thesis and `TYPE -> UNDERSTAND -> IMPROVE -> EXECUTE -> LEARN` progression.
+9. For LandThePlane, preserve the candidate-owned evidence / career-system thesis rather than reducing it to generic interview-question generation.
+10. QA the finished page against ASTRO's rejection checklist before deployment.
+11. Never call the page complete until the deployment and public behavior are actually verified.
 
 ## YC venture canonical-domain invariant
 
