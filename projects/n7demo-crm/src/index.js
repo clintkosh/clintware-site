@@ -177,6 +177,18 @@ function scrubPublicResearchQuery(query,state){
   for(const term of privateTerms){const t=String(term||"").trim();if(!t||t.length>80)continue;q=q.split(t).join(" ")}
   return q.replace(/\s+/g," ").trim().slice(0,700)
 }
+const N7_ASSIST_MODES={
+ environment:"Analyze the current customer environment, systems, integrations, dependencies, and technical validation gaps. Distinguish CRM facts from public vendor documentation. Give concise operational next steps; do not invent topology.",
+ critical_path:"Identify the actual critical path from current milestones, deployment cards, integrations, risks, and engineering issues. Separate blockers from parallel work and state downstream impact without inventing dates.",
+ messaging:"Draft concise customer-safe communication using only confirmed CRM facts. Clearly flag unknowns and internal-only assumptions. Do not make new commitments or send anything.",
+ qbr:"Create an executive review from current CRM evidence: business outcomes, implementation progress, adoption, KPI/ROI progress, material risks, decisions needed, and next milestones. Do not manufacture metrics.",
+ readiness:"Evaluate launch/readiness using only recorded integrations, milestones, engineering evidence, RACI, risks, KPIs, and customer acceptance information. Return what is ready, what is missing, and the next evidence needed.",
+ evidence:"Review current evidence and identify gaps, stale items, missing source ownership, or public vendor documentation that would be useful. Public research is reference material, never customer truth.",
+ scenario:"Analyze the selected temporary scenario against the current plan. Explain likely affected records, dependencies, risks, mitigations, and decisions. Treat the scenario as hypothetical and do not mutate live records.",
+ meeting_prep:"Prepare a concise meeting briefing from current CRM records: objective, current state, changes since known records, blockers, decisions, actions, stakeholder questions, and value/adoption signals.",
+ general:"Answer the operator's question using the selected customer's CRM record as the primary source. Clearly distinguish facts, suggestions, and any public research."
+};
+function wantsPublicResearch(mode,input,researchMode){if(researchMode==="off")return false;if(researchMode==="on")return true;const text=String(input||"");if(["environment","evidence"].includes(mode)&&/\b(connector|integration|api|sso|oauth|sap|salesforce|servicenow|jira|confluence|aws|azure|platform|vendor|documentation|docs)\b/i.test(text))return true;return /\b(research|look up|lookup|verify public|latest|recent|external|exa|web|public source|benchmark|documentation|vendor docs)\b/i.test(text)}
 function compactState(state){return JSON.stringify({customer:state.customer,records:(state.records||[]).slice(0,120).map(r=>({id:r.id,type:r.type,provenance:r.provenance,data:r.data,updatedAt:r.updatedAt}))}).slice(0,60000)}
 
 export default{
