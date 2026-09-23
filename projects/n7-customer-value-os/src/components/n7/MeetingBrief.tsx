@@ -23,6 +23,7 @@ import {
   type MeetingBriefInput,
 } from "@/lib/n7/meeting";
 import { invokeN7AI } from "@/lib/n7/server-api";
+import { trackN7Event } from "@/lib/n7/analytics";
 import { useN7 } from "@/lib/n7/store";
 import type { CustomerWorkspace, MeetingType } from "@/lib/n7/types";
 import { cn } from "@/lib/utils";
@@ -230,6 +231,12 @@ function MeetingPrepComposer({
     setBusy(true);
     try {
       const result = await buildCurrent(withAI);
+      trackN7Event("meeting_prep_refreshed", {
+        ai_requested: withAI,
+        generation_mode: result.generationMode,
+        meeting_type: meetingType,
+        source_count: sourceIds.length,
+      });
       toast.success(withAI && result.generationMode === "control-plane" ? "Meeting prep refreshed with Clintware AI" : "Meeting prep refreshed");
       return result;
     } finally {
@@ -254,10 +261,17 @@ function MeetingPrepComposer({
         generationMode,
         briefText: briefToText(built),
       });
+      trackN7Event("meeting_prep_pdf_prepared", {
+        generation_mode: generationMode,
+        meeting_type: meetingType,
+        attendee_count: attendeeIds.length,
+        source_count: sourceIds.length,
+      });
       toast.success("Pre-call PDF prepared", {
         description: "The call pack was generated from current workspace data and approved sources, then saved to prep history.",
       });
     } catch (error) {
+      trackN7Event("meeting_prep_pdf_failed");
       toast.error(error instanceof Error ? error.message : "Could not generate the pre-call PDF.");
     } finally {
       setBusy(false);
@@ -275,6 +289,7 @@ function MeetingPrepComposer({
       recordedAt: new Date().toISOString(),
       snapshot: snapshotOf(ws),
     });
+    trackN7Event("meeting_checkpoint_recorded", { meeting_type: meetingType });
     toast.success("Meeting checkpoint recorded", {
       description: "The next pre-call brief will compare current state with this checkpoint.",
     });
@@ -375,7 +390,11 @@ function MeetingPrepComposer({
       <div className="flex flex-wrap items-center gap-2 print:hidden">
         {pdfUrl && doc ? (
           <Button asChild variant="outline">
-            <a href={pdfUrl} download={briefPdfFilename(doc)}>
+            <a
+              href={pdfUrl}
+              download={briefPdfFilename(doc)}
+              onClick={() => trackN7Event("meeting_prep_pdf_downloaded", { meeting_type: meetingType })}
+            >
               <FileDown className="mr-1.5 size-3.5" /> Download current PDF
             </a>
           </Button>
