@@ -91,17 +91,28 @@ jobs:
           grep -Fq 'send_page_view:false' /tmp/n7-home.html
           python3 - <<'PY'
           import re, urllib.request
-          html=open('/tmp/n7-home.html',encoding='utf-8',errors='ignore').read()
-          srcs=re.findall(r'<script[^>]+src="([^"]+)"',html)
+          base='https://n7crm.clintware.com'
+          pages=[
+              '/',
+              '/customers/official-case/live-prompt',
+              '/customers/official-case/live-assist',
+              '/customers/official-case/meeting-prep',
+              '/customers/official-case/deployment-board',
+              '/customers/official-case/engineering-issues',
+          ]
+          htmls=[]
+          for page in pages:
+              htmls.append(urllib.request.urlopen(base+page, timeout=20).read().decode('utf-8','ignore'))
+          refs=set()
+          for html in htmls:
+              for ref in re.findall(r'(?:src|href)="([^"]+\.js(?:\?[^"]*)?)"', html):
+                  if ref.startswith('/'):
+                      ref=base+ref
+                  if ref.startswith(base):
+                      refs.add(ref)
           assets=[]
-          for src in srcs:
-              if src.startswith('/'):
-                  src='https://n7crm.clintware.com'+src
-              if 'n7crm.clintware.com' in src:
-                  try:
-                      assets.append(urllib.request.urlopen(src, timeout=20).read().decode('utf-8','ignore'))
-                  except Exception:
-                      pass
+          for ref in sorted(refs):
+              assets.append(urllib.request.urlopen(ref, timeout=20).read().decode('utf-8','ignore'))
           bundle='\n'.join(assets)
           required=[
               'live_prompt_proposal_approved',
@@ -123,7 +134,7 @@ jobs:
           ready=0
           for i in $(seq 1 20); do
             code=$(curl -sS -L -o /tmp/n7-health.json -w '%{http_code}' --connect-timeout 5 --max-time 15 https://n7crm.clintware.com/internal-health || true)
-            if [ "$code" = "200" ] && python3 -c 'import json; d=json.load(open("/tmp/n7-health.json")); assert d.get("ok") is True and d.get("controlPlane")=="ready" and d.get("audioTranscribe")=="ready"' 2>/dev/null; then
+            if [ "$code" = "200" ] && python3 -c 'import json; d=json.load(open("/tmp/n7-health.json")); assert d.get("ok") is True; assert d.get("controlPlane")=="ready"; assert d.get("state")=="ready"; assert d.get("ai")=="ready"; assert d.get("audio")=="authorized"; j=d.get("jira") or {}; assert j.get("authorized") is True; assert j.get("configured") is True; assert j.get("connected") is True' 2>/dev/null; then
               ready=1
               break
             fi
