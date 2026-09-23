@@ -21,13 +21,16 @@ function selectSite(grant, cloudId){
   if(!sites.length)return{ok:false,error:"confluence_no_accessible_sites",sites:[]};
   return{ok:false,error:"confluence_cloud_id_required",sites};
 }
-async function callConfluence(env,{cloud_id,method="GET",path,body}){
+async function callConfluence(env,{cloud_id,method="GET",path,body,api_version="v2"}){
   let auth=await atlassianAccessToken(env,false);
   if(!auth.ok)return auth;
   if(!hasScopes(auth.grant,REQUIRED_READ))return{ok:false,error:"confluence_reauthorization_required",missing_scopes:REQUIRED_READ.filter(x=>!scopeSet(auth.grant).has(x))};
   const selected=selectSite(auth.grant,cloud_id);
   if(!selected.ok)return selected;
-  const apiUrl=API_ORIGIN+"/ex/confluence/"+encodeURIComponent(selected.site.id)+"/wiki/api/v2/"+String(path||"").replace(/^\/+/, "");
+  const base=api_version==="v1"
+    ? API_ORIGIN+"/ex/confluence/"+encodeURIComponent(selected.site.id)+"/wiki/rest/api/"
+    : API_ORIGIN+"/ex/confluence/"+encodeURIComponent(selected.site.id)+"/wiki/api/v2/";
+  const apiUrl=base+String(path||"").replace(/^\/+/, "");
   const doFetch=token=>fetch(apiUrl,{
     method,
     headers:{
@@ -58,9 +61,9 @@ function storageBody(value){
   for(const raw of lines){
     const line=raw.trimEnd();
     if(!line.trim()){closeList();continue;}
-    if(/^•\s+/.test(line)){
+    if(/^[-*•]\s+/.test(line)){
       if(!inList){html+="<ul>";inList=true;}
-      html+="<li>"+escapeHtml(line.replace(/^•\s+/,""))+"</li>";
+      html+="<li>"+escapeHtml(line.replace(/^[-*•]\s+/,""))+"</li>";
       continue;
     }
     closeList();
@@ -77,10 +80,13 @@ async function resolveSpace(env,{cloud_id,space_id,space_key}){
   const target=spaces.spaces.find(s=>String(s.key||"").toLowerCase()===String(space_key||"").toLowerCase());
   return target?{ok:true,space:target}:{ok:false,error:"confluence_space_not_found",space_key:String(space_key||"")};
 }
+function boundedLimit(value, fallback=50, max=100){
+  return Math.max(1,Math.min(max,Number(value)||fallback));
+}
 
 export async function confluenceStatus(env){
   const auth=await atlassianAccessToken(env,false);
-  if(!auth.ok)return{ok:true,configured:true,connected:false,error:auth.error||"atlassian_not_connected",required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE]};
+  if(!auth.ok)return{ok:true,configured:true,connected:false,writable:false,error:auth.error||"atlassian_not_connected",required_scopes:[...REQUIRED_READ,...REQUIRED_WRITE]};
   const readReady=hasScopes(auth.grant,REQUIRED_READ);
   const writeReady=hasScopes(auth.grant,[...REQUIRED_READ,...REQUIRED_WRITE]);
   return{
@@ -94,11 +100,64 @@ export async function confluenceStatus(env){
     sites:(auth.grant?.sites||[]).map(s=>({id:s.id,name:s.name,url:s.url,scopes:s.scopes||[]}))
   };
 }
-export async function confluenceSpaces(env,{cloud_id}={}){
-  const r=await callConfluence(env,{cloud_id,path:"spaces?limit=100"});
+
+export async function confluenceSpaces(env,{cloud_id,limit=100,cursor}={}){
+  const q=new URLSearchParams();
+  q.set("limit",String(boundedLimit(limit,100,100)));
+  if(cursor)q.set("cursor",String(cursor).slice(0,2000));
+  const r=await callConfluence(env,{cloud_id,path:"spaces?"+q.toString()});
   if(!r.ok)return r;
-  return{ok:true,site:r.site,spaces:(r.data?.results||[]).map(s=>({id:s.id,key:s.key,name:s.name,type:s.type,status:s.status,_links:s._links||{}}))};
+  return{ok:true,site:r.site,spaces:(r.data?.results||[]).map(s=>({id:s.id,key:s.key,name:s.name,type:s.type,status:s.status,homepageId:s.homepageId,_links:s._links||{}})),next:r.data?._links?.next||null};
 }
+
+export async function confluencePages(env,{cloud_id,space_id,title,status="current",limit=50,cursor,body_format}={}){
+  const q=new URLSearchParams();
+  q.set("limit",String(boundedLimit(limit,50,100)));
+  if(space_id)q.append("space-id",String(space_id));
+  if(title)q.set("title",String(title).slice(0,500));
+  if(status)q.set("status",String(status).slice(0,50));
+  if(cursor)q.set("cursor",String(cursor).slice(0,2000));
+  if(body_format)q.set("body-format",String(body_format).slice(0,50));
+  const r=await callConfluence(env,{cloud_id,path:"pages?"+q.toString()});
+  if(!r.ok)return r;
+  const pages=(r.data?.results||[]).map(p=>({
+    id:p.id,
+    status:p.status,
+    title:p.title,
+    spaceId:p.spaceId,
+    parentId:p.parentId||null,
+    authorId:p.authorId||null,
+    createdAt:p.createdAt||null,
+    version:p.version||null,
+    body:p.body||undefined,
+    _links:p._links||{}
+  }));
+  return{ok:true,site:r.site,pages,next:r.data?._links?.next||null};
+}
+
+export async function confluenceGetPage(env,{cloud_id,page_id,body_format="storage"}={}){
+  if(!page_id)return{ok:false,error:"confluence_page_id_required"};
+  const q=new URLSearchParams();
+  if(body_format)q.set("body-format",String(body_format).slice(0,50));
+  q.set("include-version","true");
+  const r=await callConfluence(env,{cloud_id,path:"pages/"+encodeURIComponent(page_id)+"?"+q.toString()});
+  return r.ok?{ok:true,site:r.site,page:r.data}:r;
+}
+
+export async function confluenceSearch(env,{cloud_id,cql,limit=25,start=0,expand}={}){
+  const query=String(cql||"").trim();
+  if(!query)return{ok:false,error:"confluence_cql_required"};
+  const q=new URLSearchParams();
+  q.set("cql",query.slice(0,8000));
+  q.set("limit",String(boundedLimit(limit,25,100)));
+  q.set("start",String(Math.max(0,Number(start)||0)));
+  const safeExpand=Array.isArray(expand)?expand.slice(0,20).map(String).filter(Boolean):[];
+  if(safeExpand.length)q.set("expand",safeExpand.join(","));
+  const r=await callConfluence(env,{cloud_id,api_version:"v1",path:"content/search?"+q.toString()});
+  if(!r.ok)return r;
+  return{ok:true,site:r.site,results:r.data?.results||[],start:r.data?.start||0,limit:r.data?.limit||boundedLimit(limit,25,100),size:r.data?.size||0,_links:r.data?._links||{}};
+}
+
 export async function confluenceUpsertPage(env,args={}){
   const auth=await atlassianAccessToken(env,false);
   if(!auth.ok)return auth;
@@ -118,7 +177,7 @@ export async function confluenceUpsertPage(env,args={}){
       title,
       spaceId,
       body,
-      version:{number:Number(current.data?.version?.number||1)+1,message:String(args.version_message||"Updated from N7 Demo CRM Implementation Best Practice KB").slice(0,250)}
+      version:{number:Number(current.data?.version?.number||1)+1,message:String(args.version_message||"Updated through Clintware Control Plane").slice(0,250)}
     };
     if(args.parent_id)payload.parentId=String(args.parent_id);
     const updated=await callConfluence(env,{cloud_id:args.cloud_id,method:"PUT",path:"pages/"+encodeURIComponent(args.page_id),body:payload});
@@ -128,4 +187,14 @@ export async function confluenceUpsertPage(env,args={}){
   if(args.parent_id)payload.parentId=String(args.parent_id);
   const created=await callConfluence(env,{cloud_id:args.cloud_id,method:"POST",path:"pages",body:payload});
   return created.ok?{ok:true,site:created.site,page:created.data,operation:"created"}:created;
+}
+
+export async function confluenceCreatePage(env,args={}){
+  if(args.page_id)return{ok:false,error:"confluence_create_does_not_accept_page_id"};
+  return confluenceUpsertPage(env,args);
+}
+
+export async function confluenceUpdatePage(env,args={}){
+  if(!args.page_id)return{ok:false,error:"confluence_page_id_required"};
+  return confluenceUpsertPage(env,args);
 }
