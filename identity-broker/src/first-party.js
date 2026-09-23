@@ -46,6 +46,14 @@ export const FIRST_PARTY_APPS = Object.freeze({
     scopes: Object.freeze(["identity", "email", "profile"]),
     identityProviders: Object.freeze(["google"]),
   }),
+  "control-plane-mcp": Object.freeze({
+    product: "control-plane-mcp",
+    name: "Clintware MCP for ChatGPT",
+    home: "https://mcp.clintware.com",
+    redirectUri: "https://mcp.clintware.com/oauth/callback",
+    scopes: Object.freeze(["identity", "email", "profile"]),
+    identityProviders: Object.freeze(["google"]),
+  }),
 });
 
 export function universalRedirectUris() {
