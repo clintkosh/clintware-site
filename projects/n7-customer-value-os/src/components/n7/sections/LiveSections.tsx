@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Callout, Panel, SectionHeader, StatusPill } from "@/components/n7/primitives";
 import { invokeN7AI, transcribeN7Audio } from "@/lib/n7/server-api";
+import { trackN7Event } from "@/lib/n7/analytics";
 import { useN7 } from "@/lib/n7/store";
 import type {
   CustomerWorkspace,
@@ -326,6 +327,7 @@ export function LivePrompt({ ws }: { ws: CustomerWorkspace }) {
 
   async function interpret() {
     if (!input.trim()) return;
+    trackN7Event("live_prompt_interpret_requested", { research_enabled: useResearch });
     setBusy(true);
     setProposal(null);
     try {
@@ -358,9 +360,16 @@ export function LivePrompt({ ws }: { ws: CustomerWorkspace }) {
         if (op.action === "update-customer") return true;
         return Boolean(op.collection && COLLECTIONS.includes(op.collection));
       });
+      const responseCitations = Array.isArray(response.citations) ? response.citations : [];
       setProposal(parsed);
-      setCitations(Array.isArray(response.citations) ? response.citations : []);
+      setCitations(responseCitations);
+      trackN7Event("live_prompt_proposal_ready", {
+        confidence: parsed.confidence,
+        operation_count: parsed.operations.length,
+        citation_count: responseCitations.length,
+      });
     } catch (error: any) {
+      trackN7Event("live_prompt_interpret_failed");
       toast.error(error?.message || "Could not interpret the update.");
     } finally {
       setBusy(false);
@@ -388,6 +397,10 @@ export function LivePrompt({ ws }: { ws: CustomerWorkspace }) {
       provenance: "human-decision",
     };
     patchWorkspace(ws.customer.id, applyApprovedRecord(ws, record));
+    trackN7Event("live_prompt_proposal_approved", {
+      operation_count: record.operations.length,
+      research_used: Boolean(citations.length),
+    });
     setProposal(null);
     setInput("");
     setCitations([]);
@@ -710,6 +723,10 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       setSessionStartedAt(new Date().toISOString());
       startAudioMeter(stream);
       setLive(true);
+      trackN7Event("live_assist_started", {
+        source: "shared-audio",
+        target_count: targetNames.length,
+      });
       for (const track of stream.getTracks()) {
         track.addEventListener("ended", () => stopLive(), { once: true });
       }
@@ -727,6 +744,10 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
     meterStopRef.current = null;
     setAudioSourceLabel("");
     setLive(false);
+    trackN7Event("live_assist_stopped", {
+      transcript_present: Boolean(transcript.trim()),
+      suggestion_count: suggestions.length,
+    });
   }
 
   async function uploadCall(file: File | undefined) {
@@ -762,6 +783,10 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       if (combined) {
         setProgress("Generating customer-scoped suggestions…");
         await suggestionFor(combined.slice(-12000));
+        trackN7Event("live_assist_recording_analyzed", {
+          chunk_count: chunks.length,
+          transcript_present: true,
+        });
         toast.success(`Recorded call processed in ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}.`);
       } else {
         toast.error("The recording produced no usable transcript.");
@@ -776,6 +801,7 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
 
   async function askDirectly() {
     if (!directAsk.trim()) return;
+    trackN7Event("live_assist_direct_ask", { live_session: live });
     setBusy(true);
     if (!sessionStartedAt) setSessionStartedAt(new Date().toISOString());
     if (!transcript.trim()) setLastSource("direct-ask");
@@ -832,6 +858,11 @@ export function LiveAssist({ ws }: { ws: CustomerWorkspace }) {
       liveAssistSessions: [...(ws.liveAssistSessions ?? []), record],
     });
     setSessionStartedAt(null);
+    trackN7Event("live_assist_session_saved", {
+      source: lastSource,
+      transcript_present: Boolean(record.transcript),
+      suggestion_count: record.suggestions.length,
+    });
     toast.success("Call-assist session saved to this customer workspace.");
   }
 
