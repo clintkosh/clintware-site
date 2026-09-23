@@ -23,7 +23,7 @@ function body(){
 function drawer(){return '<aside id="drawer" class="drawer hidden"><div class="section" style="margin:0"><h2>What if?</h2><button class="btn" id="close">Close</button></div><p class="muted">Scenario overlays never change live records.</p>'+SCEN.map(s=>'<label class="scenario"><input type="checkbox" data-s="'+s.id+'" '+(scen.has(s.id)?'checked':'')+'><span><strong>'+e(s.label)+'</strong><br><span class="muted">'+e(s.impact)+'</span></span></label>').join('')+'<button class="btn" id="reset">Reset</button></aside>'}
 function applyTheme(){document.documentElement.dataset.theme=theme==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):theme}
 async function moveCard(id,column){let r=S.records.find(x=>x.id===id);if(!r)return;await api('/records/'+id,{method:'PATCH',body:JSON.stringify({data:{column}})});await load(S.customer.id)}
-function render(){document.querySelector('#app').innerHTML='<div>'+top()+'<div class="layout">'+side()+'<main>'+body()+'</main></div></div>'+drawer();bind()}
+function render(){document.querySelector('#app').innerHTML='<div>'+topbar()+'<div class="layout">'+side()+'<main>'+body()+'</main></div></div>'+drawer();bind()}
 function bind(){
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(tab==='live_assistant'&&b.dataset.tab!=='live_assistant'&&typeof stopLiveAudio==='function'&&LIVE?.active)void stopLiveAudio();tab=b.dataset.tab;render()});
  document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>{tab=b.dataset.goto;render()});
