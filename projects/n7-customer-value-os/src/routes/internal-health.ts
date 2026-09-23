@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { probeN7ControlPlane } from "@/lib/n7/server-api";
+import { probeN7ControlPlane } from "@/lib/n7/backend-health.server";
 
 export const Route = createFileRoute("/internal-health")({
   server: {
