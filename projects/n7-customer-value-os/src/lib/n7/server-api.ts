@@ -126,3 +126,15 @@ export const transcribeN7Audio = createServerFn({ method: "POST" })
       }),
     });
   });
+
+export const jiraConnectionStatus = createServerFn({ method: "GET" }).handler(async () => {
+  return controlPlane("/api/v1/jira/status", { method: "GET" });
+});
+
+export const beginJiraOAuth = createServerFn({ method: "POST" }).handler(async () => {
+  return controlPlane("/api/v1/jira/oauth/start", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ product: "neuron7-case" }),
+  });
+});
