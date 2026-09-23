@@ -296,4 +296,5 @@ class ClintwareEclipseLogoPlugin(Gimp.PlugIn):
         return procedure
 
 
-Gimp.main(ClintwareEclipseLogoPlugin.__gtype__, sys.argv)
+if __name__ == "__main__":
+    Gimp.main(ClintwareEclipseLogoPlugin.__gtype__, sys.argv)
