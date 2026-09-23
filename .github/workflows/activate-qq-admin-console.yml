@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# capability-based readiness: supervised admin console v5
+# capability-based readiness: supervised admin console v6
 
 jobs:
   activate:
