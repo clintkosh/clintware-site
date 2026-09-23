@@ -75,11 +75,30 @@ export async function probeN7ControlPlane() {
     );
   }
 
+  const jiraResponse = await call("/api/v1/jira/bridge", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      product: "neuron7-case",
+      operation: "status",
+      args: {},
+    }),
+  });
+  const jira = await json(jiraResponse);
+  if (!jiraResponse.ok) {
+    throw new Error(jira?.error || `Jira bridge probe failed (${jiraResponse.status})`);
+  }
+
   return {
     ok: true,
     revision: Number(state?.revision ?? 0),
     state: "ready",
     ai: ai?.available ? "ready" : ai?.reason || "reachable",
     audio: "authorized",
+    jira: {
+      authorized: true,
+      configured: Boolean(jira?.configured),
+      connected: Boolean(jira?.connected),
+    },
   };
 }
