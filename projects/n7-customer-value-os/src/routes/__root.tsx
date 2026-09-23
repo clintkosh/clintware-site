@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,6 +14,7 @@ import appCss from "../styles.css?url";
 import { N7Provider } from "../lib/n7/store";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../lib/n7/theme";
 import { Toaster } from "../components/ui/sonner";
+import { trackN7PageView } from "../lib/n7/analytics";
 
 
 function NotFoundComponent() {
@@ -132,6 +134,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const location = useLocation();
+
+  useEffect(() => {
+    trackN7PageView(location.pathname);
+  }, [location.pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
