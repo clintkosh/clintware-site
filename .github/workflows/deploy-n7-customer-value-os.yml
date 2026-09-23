@@ -102,7 +102,8 @@ jobs:
           ]
           htmls=[]
           for page in pages:
-              htmls.append(urllib.request.urlopen(base+page, timeout=20).read().decode('utf-8','ignore'))
+              req=urllib.request.Request(base+page, headers={'User-Agent':'Mozilla/5.0 N7-Deploy-Check'})
+              htmls.append(urllib.request.urlopen(req, timeout=20).read().decode('utf-8','ignore'))
           refs=set()
           for html in htmls:
               for ref in re.findall(r'(?:src|href)="([^"]+\.js(?:\?[^"]*)?)"', html):
@@ -112,7 +113,8 @@ jobs:
                       refs.add(ref)
           assets=[]
           for ref in sorted(refs):
-              assets.append(urllib.request.urlopen(ref, timeout=20).read().decode('utf-8','ignore'))
+              req=urllib.request.Request(ref, headers={'User-Agent':'Mozilla/5.0 N7-Deploy-Check'})
+              assets.append(urllib.request.urlopen(req, timeout=20).read().decode('utf-8','ignore'))
           bundle='\n'.join(assets)
           required=[
               'live_prompt_proposal_approved',
