@@ -1,4 +1,4 @@
-import { useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { SectionHeader, Panel, EmptyState, ProvenanceTag } from "@/components/n7/primitives";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useN7 } from "@/lib/n7/store";
-import { jiraBridge } from "@/lib/n7/server-api";
+import { beginJiraOAuth, jiraBridge, jiraConnectionStatus } from "@/lib/n7/server-api";
 import { trackN7Event } from "@/lib/n7/analytics";
 import type {
   CustomerWorkspace,
@@ -32,8 +32,67 @@ const slug = (value: string) =>
 function JiraConfig({ ws }: { ws: CustomerWorkspace }) {
   const { patchWorkspace } = useN7();
   const jira = ws.jira ?? {};
+  const [connection, setConnection] = useState<any>(null);
+  const [connectionBusy, setConnectionBusy] = useState(false);
+
+  async function refreshConnection() {
+    setConnectionBusy(true);
+    try {
+      const status: any = await jiraConnectionStatus();
+      setConnection(status);
+      if (status?.connected && Array.isArray(status?.sites) && status.sites.length === 1 && !jira.cloudId) {
+        patchWorkspace(ws.customer.id, { jira: { ...jira, cloudId: String(status.sites[0]?.id || "") } });
+      }
+    } catch (error) {
+      setConnection({ configured: false, connected: false, error: error instanceof Error ? error.message : "Jira status unavailable" });
+    } finally {
+      setConnectionBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshConnection();
+  }, []);
+
+  async function connectJira() {
+    setConnectionBusy(true);
+    try {
+      const result: any = await beginJiraOAuth();
+      if (!result?.authorize_url) throw new Error(result?.error || "Jira authorization URL unavailable.");
+      trackN7Event("jira_oauth_started");
+      window.open(String(result.authorize_url), "_blank", "noopener,noreferrer");
+      toast("Authorize Jira in the new tab, then return here and click Refresh connection.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not start Jira authorization.");
+    } finally {
+      setConnectionBusy(false);
+    }
+  }
+
+  const connected = Boolean(connection?.connected);
+  const configured = connection?.configured !== false;
+
   return (
-    <Panel title="Jira connection" subtitle="N7 renders Jira data through the Clintware Control Plane. Jira remains the engineering execution system of record.">
+    <Panel title="Jira connection" subtitle="N7 renders Jira through the Clintware Control Plane. Jira remains the engineering execution system of record.">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-secondary/35 p-3">
+        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${connected ? "bg-human/60 text-human-foreground" : "bg-assumption/70 text-assumption-foreground"}`}>
+          {connected ? "Jira connected" : configured ? "Jira authorization required" : "Jira OAuth not configured"}
+        </span>
+        {!connected && configured ? (
+          <Button size="sm" onClick={() => void connectJira()} disabled={connectionBusy}>
+            Connect Jira
+          </Button>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={() => void refreshConnection()} disabled={connectionBusy}>
+          {connectionBusy ? "Checking…" : "Refresh connection"}
+        </Button>
+        {connected && Array.isArray(connection?.sites) ? (
+          <span className="text-xs text-muted-foreground">
+            {connection.sites.length} authorized site{connection.sites.length === 1 ? "" : "s"}
+          </span>
+        ) : null}
+      </div>
+
       <div className="grid gap-3 md:grid-cols-4">
         <div>
           <Label>Project key</Label>
@@ -69,7 +128,7 @@ function JiraConfig({ ws }: { ws: CustomerWorkspace }) {
         </div>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        N7 does not iframe Jira. Jira Cloud commonly restricts framing; the safer integration is API-backed rendering through Clintware with Jira links/keys preserved.
+        N7 does not iframe Jira. Authorization is stored server-side in Clintware; N7 receives Jira capabilities, not Jira credentials.
       </p>
     </Panel>
   );
