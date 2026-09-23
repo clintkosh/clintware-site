@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-22",
+  "generated_at": "2026-09-23",
   "counting_rule": "Count only implemented skills with SKILL.md and implemented plugin packages with a plugin manifest. Planned concepts and generator tools are excluded.",
   "totals": {
-    "skills_total": 21,
-    "skills_published_on_clintware": 20,
+    "skills_total": 22,
+    "skills_published_on_clintware": 21,
     "skills_personal_internal": 1,
     "plugin_packages_total": 1,
     "plugin_packages_published_on_clintware": 1,
@@ -92,6 +92,13 @@
       "status": "published_on_clintware",
       "category": "Customer Success systems",
       "clintware_path": "/skills/customer-success-command-center-builder/SKILL.md"
+    },
+    {
+      "name": "Advanced Customer Success CRM Builder",
+      "slug": "advanced-customer-success-crm-builder",
+      "status": "published_on_clintware",
+      "category": "Customer Success systems / MCP architecture",
+      "clintware_path": "/skills/advanced-customer-success-crm-builder/SKILL.md"
     },
     {
       "name": "LLM Usage Auditor",
