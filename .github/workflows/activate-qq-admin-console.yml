@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# verification pass: supervised admin console v4
+# capability-based readiness: supervised admin console v5
 
 jobs:
   activate:
@@ -22,7 +22,18 @@ jobs:
           ready=0
           for i in $(seq 1 60); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
-            if echo "$body" | grep -Fq '"version":"2026-09-22-qq.2"'; then
+            if BODY="$body" python3 - <<'PY'
+import json, os, sys
+try:
+    d=json.loads(os.environ.get("BODY","{}"))
+except Exception:
+    sys.exit(1)
+ok=(d.get("ok") is True
+    and d.get("service")=="Clintware Control Plane"
+    and "quillgeist-lite" in (d.get("products") or []))
+sys.exit(0 if ok else 1)
+PY
+            then
               echo "$body"
               ready=1
               break
