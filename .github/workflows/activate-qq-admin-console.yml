@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# verification pass: supervised admin console v3
+# verification pass: supervised admin console v4
 
 jobs:
   activate:
@@ -73,7 +73,6 @@ jobs:
           set +e
           curl -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=20" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"
           echo
-
 
       - name: Refresh and reopen qq interactive window
         env:
