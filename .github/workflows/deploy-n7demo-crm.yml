@@ -155,3 +155,19 @@ jobs:
           echo "$auth" | grep -Fq '"app":"n7demo-crm"'
           echo "$auth" | grep -Fq '"redirect_uri":"https://n7demo.clintware.com/auth/callback"'
           echo "N7 Demo CRM live with Clintware OAuth configuration."
+
+
+      - name: Real browser smoke
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node tests/n7_browser_smoke.mjs
+
+      - name: Upload browser smoke screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n7-browser-smoke
+          path: n7-home-smoke.png
+          if-no-files-found: ignore
