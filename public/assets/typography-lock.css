@@ -1,8 +1,12 @@
-/* Clintware terminal design lock.
-   Shared visual layer for all public pages that load /assets/clintware.js.
-   Design rule: headings stay compact, uniform, technical, and terminal-like. */
+/* Clintware typography + terminal surface lock.
+   Global public-page layer loaded by /assets/clintware.js.
+   Production type system: humanist sans body, compact software display, mono UI accents,
+   handwritten annotations only when explicitly requested, subtle alien treatment on the brand mark. */
 :root{
-  --cw-terminal-font:"Cascadia Code","Cascadia Mono","Segoe UI Mono","SFMono-Regular",Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;
+  --cw-sans:"Liberation Sans",Arial,"Helvetica Neue",Helvetica,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cw-display:"Arial Narrow","Helvetica Neue Condensed","Liberation Sans Narrow","Liberation Sans",Arial,sans-serif;
+  --cw-mono:"Cascadia Code","Cascadia Mono","SFMono-Regular",Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;
+  --cw-hand:"Segoe Print","Bradley Hand",cursive;
   --radius-sm:3px!important;
   --radius:4px!important;
   --radius-lg:5px!important;
@@ -22,74 +26,101 @@
 
 html{font-size:16px}
 body{
-  font-family:var(--cw-terminal-font)!important;
-  font-size:14px!important;
-  line-height:1.55!important;
+  font-family:var(--cw-sans)!important;
+  font-size:14.5px!important;
+  line-height:1.58!important;
+  letter-spacing:-.008em!important;
   background-color:var(--bg)!important;
 }
-button,input,textarea,select,code,pre,kbd{font-family:var(--cw-terminal-font)!important}
+button,input,textarea,select{font-family:var(--cw-sans)!important}
+code,pre,kbd,samp{font-family:var(--cw-mono)!important}
 
-/* Site-wide title system. No billboard typography, mixed-size words, script faces, or ad-style emphasis. */
+/* Clintware display face: compact, highly readable, software-oriented. */
 h1,h2,h3,h4,h5,h6,
 .cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{
-  font-family:var(--cw-terminal-font)!important;
-  letter-spacing:-.02em!important;
+  font-family:var(--cw-display)!important;
+  letter-spacing:-.035em!important;
   text-transform:none!important;
   color:var(--text)!important;
   font-style:normal!important;
   text-shadow:none!important;
 }
 h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{
-  font-size:24px!important;
-  line-height:1.28!important;
-  font-weight:600!important;
-  max-width:48ch!important;
+  font-size:30px!important;
+  line-height:1.12!important;
+  font-weight:700!important;
+  max-width:34ch!important;
   margin-bottom:16px!important;
 }
 h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{
-  font-size:18px!important;
-  line-height:1.34!important;
-  font-weight:600!important;
-  letter-spacing:-.015em!important;
+  font-size:21px!important;
+  line-height:1.2!important;
+  font-weight:700!important;
+  letter-spacing:-.028em!important;
 }
-h3,.cw-home h3,.card h3{font-size:15px!important;line-height:1.38!important;font-weight:600!important}
-.lede,.article-dek,.extension-hero .lede{font-size:14.5px!important;line-height:1.62!important}
-.post-card h2{font-size:17px!important}.utility-panel h2{font-size:16px!important}
+h3,.cw-home h3,.card h3{font-size:16px!important;line-height:1.3!important;font-weight:700!important}
+.lede,.article-dek,.extension-hero .lede{font-size:15px!important;line-height:1.62!important}
+.post-card h2{font-size:19px!important}.utility-panel h2{font-size:17px!important}
+.article-body,.article-body p,.article-closing{font-family:var(--cw-sans)!important}
 
-/* Force every word inside a title to use the same title scale and face. */
-h1 span,h1 strong,h1 em,h1 b,h2 span,h2 strong,h2 em,h2 b,.gradient-word,.brand-accent{
-  font-family:inherit!important;
-  font-size:inherit!important;
-  line-height:inherit!important;
-  font-weight:inherit!important;
-  letter-spacing:inherit!important;
-  font-style:inherit!important;
-  text-transform:inherit!important;
-  text-shadow:none!important;
-  transform:none!important;
-  animation:none!important;
+/* Microtype stays mono so the site still reads like software, not generic marketing. */
+.site-nav a,.button,.chip,.filter-button,.statusline span,.cw-route-tools,
+.eyebrow,.section-kicker,.card-label,.tool-category,.status,.flow,.mono{
+  font-family:var(--cw-mono)!important;
 }
-.gradient-word{
-  color:inherit!important;
-  background:none!important;
-  -webkit-background-clip:initial!important;
-  background-clip:initial!important;
-  -webkit-text-fill-color:currentColor!important;
+.site-nav a,.button{letter-spacing:.015em!important}
+.eyebrow,.section-kicker,.card-label,.tool-category,.status{letter-spacing:.12em!important}
+
+/* Brand mark: readable first, slightly alien second. */
+.brand{
+  font-family:var(--cw-display)!important;
+  letter-spacing:.02em!important;
+  font-weight:800!important;
+  text-transform:none!important;
+}
+.brand-accent{
+  position:relative!important;
+  display:inline-block!important;
+  color:transparent!important;
+  background:linear-gradient(112deg,#edf5fa 0 46%,var(--cyan) 47% 59%,#edf5fa 60% 100%)!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+  transform:skewX(-2deg)!important;
+  letter-spacing:.035em!important;
+}
+.brand-accent::after{
+  content:""!important;
+  position:absolute!important;
+  left:48%!important;
+  top:.08em!important;
+  width:1px!important;
+  height:.82em!important;
+  background:linear-gradient(var(--cyan),transparent)!important;
+  transform:rotate(24deg)!important;
+  opacity:.7!important;
+  pointer-events:none!important;
 }
 
-/* Terminal surface language: square, quiet, readable. */
+/* Optional human/alien utilities for specimens and occasional annotations only. */
+.cw-hand{font-family:var(--cw-hand)!important;font-weight:400!important;letter-spacing:.01em!important}
+.cw-alien{
+  font-family:var(--cw-display)!important;
+  letter-spacing:.16em!important;
+  text-transform:uppercase!important;
+  transform:skewX(-5deg)!important;
+  display:inline-block!important;
+}
+
+/* Terminal surface language remains compact and technical. */
 .site-header{background:rgba(4,7,10,.9)!important;border-bottom:1px solid #182a35!important;backdrop-filter:blur(14px)!important}
-.brand,.site-nav a,.button,.chip,.filter-button,.statusline span,.cw-route-tools,
-.eyebrow,.section-kicker,.card-label,.tool-category{font-family:var(--cw-terminal-font)!important}
-.brand{letter-spacing:.035em!important;font-weight:650!important}.brand-accent{color:var(--cyan)!important}
 .site-nav a{border-radius:2px!important}.nav-toggle{border-radius:3px!important}
-.button{border-radius:3px!important;box-shadow:none!important;font-weight:600!important}
+.button{border-radius:3px!important;box-shadow:none!important;font-weight:650!important}
 .button:hover{transform:none!important}.button-cyan{background:#63e8f3!important;color:#031014!important;box-shadow:none!important}
 .button-ghost{background:#080d13!important}
 
-/* Global route navigation. clintware.js injects this on every non-home page, so it must remain readable everywhere. */
-.cw-route-tools,
-.cw-route-tools.container{
+/* Global route navigation. */
+.cw-route-tools,.cw-route-tools.container{
   width:min(calc(100% - 32px),var(--max))!important;
   margin:14px auto 0!important;
   padding:0!important;
@@ -98,73 +129,33 @@ h1 span,h1 strong,h1 em,h1 b,h2 span,h2 strong,h2 em,h2 b,.gradient-word,.brand-
   flex-wrap:wrap!important;
   gap:8px!important;
   color:#7f93a2!important;
-  font:600 11px/1 var(--cw-terminal-font)!important;
+  font:600 11px/1 var(--cw-mono)!important;
   letter-spacing:.015em!important;
 }
-.page-hero .cw-route-tools{
-  width:100%!important;
-  margin:0 0 16px!important;
-}
-.cw-route-tools button,
-.cw-route-tools a{
-  min-height:34px!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  padding:0 12px!important;
-  border:1px solid #315163!important;
-  border-radius:3px!important;
-  background:#0b131b!important;
-  box-shadow:none!important;
-  font:650 11px/1 var(--cw-terminal-font)!important;
-  text-decoration:none!important;
-  opacity:1!important;
+.page-hero .cw-route-tools{width:100%!important;margin:0 0 16px!important}
+.cw-route-tools button,.cw-route-tools a{
+  min-height:34px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  padding:0 12px!important;border:1px solid #315163!important;border-radius:3px!important;background:#0b131b!important;
+  box-shadow:none!important;font:650 11px/1 var(--cw-mono)!important;text-decoration:none!important;opacity:1!important;
   transition:background .15s ease,border-color .15s ease,color .15s ease!important;
 }
-.cw-route-tools button{
-  appearance:none!important;
-  -webkit-appearance:none!important;
-  color:#edf5fa!important;
-  cursor:pointer!important;
-}
-.cw-route-tools a{
-  color:#b8f7fb!important;
-  border-color:#2c6570!important;
-  background:#08161b!important;
-}
-.cw-route-tools button:hover,
-.cw-route-tools button:focus-visible{
-  background:#101d27!important;
-  border-color:#567587!important;
-  color:#fff!important;
-}
-.cw-route-tools a:hover,
-.cw-route-tools a:focus-visible{
-  background:#0b2229!important;
-  border-color:#62e9f5!important;
-  color:#fff!important;
-}
-.cw-route-tools>span[aria-hidden="true"]{
-  color:#58707e!important;
-  opacity:1!important;
-}
+.cw-route-tools button{appearance:none!important;-webkit-appearance:none!important;color:#edf5fa!important;cursor:pointer!important}
+.cw-route-tools a{color:#b8f7fb!important;border-color:#2c6570!important;background:#08161b!important}
+.cw-route-tools button:hover,.cw-route-tools button:focus-visible{background:#101d27!important;border-color:#567587!important;color:#fff!important}
+.cw-route-tools a:hover,.cw-route-tools a:focus-visible{background:#0b2229!important;border-color:#62e9f5!important;color:#fff!important}
+.cw-route-tools>span[aria-hidden="true"]{color:#58707e!important;opacity:1!important}
 
-/* Keep the public company presentation product-first. Historical consulting pages may remain addressable, but they are not primary navigation or calls to action. */
 .site-nav a[href="https://consulting.clintware.com/"],
 .nav-cta[href*="Clintware%20project%20inquiry"]{display:none!important}
 
 .panel,.card,.metric,.process-step,.planned-item,.utility-panel,.article-closing,
 .ab-panel,.alpha-card,.flow div,.security,.extension-grid .card,.cta-band{
-  border-radius:4px!important;
-  background:rgba(7,12,18,.88)!important;
-  border-color:#1c303d!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
+  border-radius:4px!important;background:rgba(7,12,18,.88)!important;border-color:#1c303d!important;
+  box-shadow:none!important;backdrop-filter:none!important;
 }
 .card:hover,a.card:hover,a.card:focus-visible{transform:none!important;background:#0a1119!important;border-color:#345566!important}
 .chip,.filter-button,.statusline span{border-radius:3px!important;background:#080f16!important}
 
-/* Subtle terminal grid. Ambient pointer canvas remains above this background. */
 body::before{
   opacity:.15!important;
   background-image:linear-gradient(rgba(98,233,245,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(98,233,245,.035) 1px,transparent 1px)!important;
@@ -173,23 +164,23 @@ body::before{
 }
 .cw-ambient-flow{opacity:.48!important}
 
-/* Keep hierarchy compact on mobile rather than turning headings into billboards. */
 @media (max-width:900px){
-  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:22px!important}
-  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:17px!important}
+  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:27px!important}
+  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:19px!important}
 }
 @media (max-width:640px){
-  body{font-size:13.5px!important}
-  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:20px!important;line-height:1.3!important}
-  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:16px!important}
-  h3,.cw-home h3,.card h3{font-size:14.5px!important}
-  .lede,.article-dek,.extension-hero .lede{font-size:14px!important}
-  .post-card h2{font-size:16px!important}
+  body{font-size:14px!important}
+  h1,.cw-home h1,.page-hero h1,.article-header h1,.utility-shell h1,.extension-hero h1{font-size:24px!important;line-height:1.16!important}
+  h2,.cw-home h2,.section-heading h2,.cw-section-intro h2,.cw-centered-heading h2,.article-body h2,.cta-band h2{font-size:18px!important}
+  h3,.cw-home h3,.card h3{font-size:15.5px!important}
+  .lede,.article-dek,.extension-hero .lede{font-size:14.5px!important}
+  .post-card h2{font-size:17px!important}
   .cw-route-tools,.cw-route-tools.container{margin-top:12px!important;gap:7px!important}
   .page-hero .cw-route-tools{margin:0 0 14px!important}
   .cw-route-tools button,.cw-route-tools a{min-height:36px!important;padding:0 13px!important}
 }
 
 @media (prefers-reduced-motion:reduce){
+  .brand-accent,.brand-accent::after,.cw-alien{transform:none!important}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
