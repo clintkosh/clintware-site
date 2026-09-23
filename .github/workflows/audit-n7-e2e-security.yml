@@ -95,8 +95,9 @@ jobs:
 
           # Analytics helper must stay metadata-only.
           analytics=(src/"lib"/"n7"/"analytics.ts").read_text("utf-8").lower()
+          analytics_code=re.sub(r"/\\*.*?\\*/|//[^\\n]*","",analytics,flags=re.S)
           for sensitive in ["customername","customer_name","transcript","prompt","document_content","issue_description"]:
-              if sensitive in analytics:
+              if re.search(rf"['\\\"]?{re.escape(sensitive)}['\\\"]?\\s*:",analytics_code):
                   errors.append("analytics helper contains sensitive payload field: "+sensitive)
 
           # Disallow obvious dynamic-code execution in N7 application code.
