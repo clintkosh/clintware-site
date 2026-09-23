@@ -1,0 +1,448 @@
+name: Audit N7 End-to-End and Security
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/n7-customer-value-os/**"
+      - "control-plane/**"
+      - ".github/workflows/audit-n7-e2e-security.yml"
+      - ".github/workflows/deploy-n7-customer-value-os.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-n7-e2e-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install and build N7
+        run: |
+          set -euo pipefail
+          npm install --prefix projects/n7-customer-value-os --no-audit --no-fund
+          npm run build --prefix projects/n7-customer-value-os
+
+      - name: Security - production dependency audit
+        working-directory: projects/n7-customer-value-os
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --audit-level=high
+
+      - name: Security - browser bundle and source boundary
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,sys
+          root=pathlib.Path("projects/n7-customer-value-os")
+          src=root/"src"
+          client=root/"dist"/"client"
+
+          forbidden_client_names=[
+              "EXA_API_KEY","OPENAI_API_KEY","ANTHROPIC_API_KEY",
+              "ATLASSIAN_CLIENT_SECRET","ATLASSIAN_REFRESH_TOKEN",
+              "CLOUDFLARE_API_TOKEN","CONTROL_PLANE_ADMIN_TOKEN",
+          ]
+          forbidden_direct_urls=[
+              "api.exa.ai","api.atlassian.com","api.openai.com",
+              "api.anthropic.com",
+          ]
+          secret_value_patterns=[
+              re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+              re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
+              re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
+              re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
+          ]
+
+          client_text="\n".join(
+              p.read_text("utf-8",errors="ignore")
+              for p in client.rglob("*") if p.is_file() and p.suffix in {".js",".html",".css"}
+          )
+          source_text="\n".join(
+              p.read_text("utf-8",errors="ignore")
+              for p in src.rglob("*") if p.is_file() and p.suffix in {".ts",".tsx",".js",".jsx"}
+          )
+
+          errors=[]
+          for marker in forbidden_client_names:
+              if marker in client_text:
+                  errors.append("client bundle exposes secret/config marker: "+marker)
+          for url in forbidden_direct_urls:
+              if url in client_text:
+                  errors.append("client bundle calls external provider directly: "+url)
+          for pattern in secret_value_patterns:
+              if pattern.search(source_text) or pattern.search(client_text):
+                  errors.append("secret-like value matched: "+pattern.pattern)
+
+          server_api=(src/"lib"/"n7"/"server-api.ts").read_text("utf-8")
+          if "CONTROL_PLANE" not in server_api:
+              errors.append("N7 server API no longer uses the Control Plane binding")
+          if "x-clintware-service-product" not in server_api or "x-clintware-service-worker" not in server_api:
+              errors.append("N7 service-binding identity headers missing")
+          if "api.exa.ai" in server_api or "api.atlassian.com" in server_api:
+              errors.append("N7 app server bypasses Control Plane for provider APIs")
+
+          # Analytics helper must stay metadata-only.
+          analytics=(src/"lib"/"n7"/"analytics.ts").read_text("utf-8").lower()
+          for sensitive in ["customername","customer_name","transcript","prompt","document_content","issue_description"]:
+              if sensitive in analytics:
+                  errors.append("analytics helper contains sensitive payload field: "+sensitive)
+
+          # Disallow obvious dynamic-code execution in N7 application code.
+          for marker in ["eval(", "new Function("]:
+              if marker in source_text:
+                  errors.append("dynamic code execution found: "+marker)
+
+          if errors:
+              raise SystemExit("SECURITY_BOUNDARY_FAIL\n- "+"\n- ".join(errors))
+          print("SECURITY_BOUNDARY_PASS")
+          PY
+
+      - name: Start isolated local N7 Worker
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          p=pathlib.Path("projects/n7-customer-value-os/dist/server/wrangler.json")
+          d=json.loads(p.read_text())
+          d.pop("services",None)
+          for env in (d.get("env") or {}).values():
+              if isinstance(env,dict):
+                  env.pop("services",None)
+          p.write_text(json.dumps(d))
+          PY
+          nohup projects/n7-customer-value-os/node_modules/.bin/wrangler dev             --config projects/n7-customer-value-os/dist/server/wrangler.json             --port 4173 --local >/tmp/n7-local.log 2>&1 &
+          echo $! >/tmp/n7-local.pid
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ | grep -aq 'N7 Customer Value OS'; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != "1" ]; then
+            cat /tmp/n7-local.log
+            exit 1
+          fi
+
+      - name: Browser audit - isolated interactive workflows
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/n7-browser && cd /tmp/n7-browser
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > audit-local.mjs <<'NODE'
+          import { chromium } from "playwright-core";
+          const base="http://127.0.0.1:4173";
+          const browser=await chromium.launch({
+            headless:true,
+            executablePath:process.env.CHROME,
+            args:["--no-sandbox","--disable-dev-shm-usage"],
+          });
+          const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:1000}});
+          const page=await context.newPage();
+          page.setDefaultTimeout(12000);
+
+          const pageErrors=[];
+          const consoleErrors=[];
+          page.on("pageerror",e=>pageErrors.push(e.message));
+          page.on("console",m=>{
+            if(m.type()!=="error")return;
+            const t=m.text();
+            if(/shared state unavailable|control plane binding is unavailable|500 \(Internal Server Error\)/i.test(t)) return;
+            consoleErrors.push(t);
+          });
+
+          const sections=[
+            ["executive-summary","Executive Summary"],
+            ["implementation","Implementation"],
+            ["deployment-board","Deployment Board"],
+            ["rollout-sprints","Rollout / Sprints"],
+            ["critical-path","Critical Path"],
+            ["risks-decisions","Risks + Decisions"],
+            ["raci","RACI / Governance"],
+            ["assumption-change","Assumption Change"],
+            ["environment","Environment"],
+            ["documents","Documents / Knowledge"],
+            ["engineering-issues","Engineering Issues"],
+            ["accuracy-triage","Accuracy Triage"],
+            ["meeting-prep","Meeting Prep"],
+            ["live-prompt","Live Prompt"],
+            ["live-assist","Live Assist"],
+            ["messaging","Customer Messaging"],
+            ["roi-workshop","ROI Workshop"],
+            ["kpi-contract","KPI Contract"],
+            ["executive-qbr","Executive QBR"],
+            ["readiness-gate","Readiness Gate"],
+            ["evidence","Evidence / Artifacts"],
+          ];
+
+          async function healthy(scope){
+            const body=await page.locator("body").innerText();
+            if(body.includes("This view didn't load")||body.includes("Page not found")) throw new Error(scope+" rendered an error view");
+            const emptyButtons=await page.locator("button:visible").evaluateAll(ns=>ns.filter(n=>!(n.textContent||"").trim()&&!n.getAttribute("aria-label")&&!n.getAttribute("title")).length);
+            if(emptyButtons) throw new Error(scope+" has unlabeled visible buttons: "+emptyButtons);
+          }
+
+          // Portfolio + full Add Customer wizard.
+          await page.goto(base+"/",{waitUntil:"domcontentloaded"});
+          await page.getByRole("button",{name:"Add customer"}).click();
+          await page.getByRole("button",{name:"Fill example"}).click();
+          for(let i=0;i<9;i++) await page.getByRole("button",{name:"Next"}).click();
+          await page.getByRole("button",{name:"Create workspace"}).click();
+          await page.waitForURL(/\/customers\/cust-[^/]+\/executive-summary/);
+          const createdId=page.url().match(/\/customers\/([^/]+)\//)?.[1];
+          if(!createdId) throw new Error("Add Customer wizard did not create/navigate to a workspace");
+          await healthy("add-customer");
+
+          // Route every module for the rich seeded official case.
+          for(let i=0;i<sections.length;i++){
+            const [slug,label]=sections[i];
+            await page.goto(base+"/customers/official-case/"+slug,{waitUntil:"domcontentloaded"});
+            await page.getByText(label,{exact:true}).first().waitFor();
+            await healthy(slug);
+            if(i>0 && !(await page.getByRole("link",{name:/^Previous:/}).count())) throw new Error(slug+" missing Previous navigation");
+            if(i<sections.length-1 && !(await page.getByRole("link",{name:/^Next:/}).count())) throw new Error(slug+" missing Next navigation");
+          }
+
+          // Executive customer record edit/save/cancel.
+          await page.goto(base+"/customers/official-case/executive-summary");
+          await page.getByRole("button",{name:"Edit"}).click();
+          const headline=page.locator("#cf-headline");
+          if(await headline.count()){
+            const before=await headline.inputValue();
+            await headline.fill(before+" [audit]");
+            await page.getByRole("button",{name:"Save"}).click();
+            await page.getByRole("button",{name:"Edit"}).click();
+            if(!(await headline.inputValue()).includes("[audit]")) throw new Error("Executive Summary edit did not persist");
+            await page.getByRole("button",{name:"Cancel"}).click();
+          }
+
+          // Implementation filters.
+          await page.goto(base+"/customers/official-case/implementation");
+          await page.getByRole("button",{name:"Critical path"}).click();
+          await page.getByRole("button",{name:"All tracks"}).click();
+
+          // Deployment board local card creation + local movement.
+          await page.goto(base+"/customers/official-case/deployment-board");
+          await page.getByPlaceholder("Work item").fill("E2E audit deployment item");
+          await page.getByPlaceholder("Owner").first().fill("E2E");
+          await page.getByPlaceholder("Week / sprint").fill("Audit");
+          await page.getByPlaceholder("Points").fill("3");
+          await page.getByRole("button",{name:"Add",exact:true}).click();
+          await page.getByText("E2E audit deployment item",{exact:true}).waitFor();
+
+          // Sprint creation.
+          await page.goto(base+"/customers/official-case/rollout-sprints");
+          await page.getByPlaceholder("Sprint name").fill("E2E Audit Sprint");
+          await page.getByPlaceholder("Start / week").fill("W1");
+          await page.getByPlaceholder("End / week").fill("W2");
+          await page.getByPlaceholder("Capacity points").fill("8");
+          await page.getByPlaceholder("Sprint goal").fill("Exercise sprint workflow");
+          await page.getByRole("button",{name:"Add sprint"}).click();
+          await page.getByText("E2E Audit Sprint",{exact:true}).first().waitFor();
+          await page.getByRole("button",{name:"active",exact:true}).first().click();
+
+          // Critical-path option selector.
+          await page.goto(base+"/customers/official-case/critical-path");
+          const optionA=page.getByRole("button").filter({hasText:"Option A"}).first();
+          if(await optionA.count()) await optionA.click();
+
+          // RACI personal working marker round-trip.
+          await page.goto(base+"/customers/official-case/raci");
+          const working=page.getByRole("button",{name:"Working here"}).first();
+          if(!(await working.count())) throw new Error("RACI Working here control missing");
+          await working.click();
+          const here=page.getByRole("button",{name:"You are here"}).first();
+          await here.waitFor();
+          if((await here.getAttribute("aria-pressed"))!=="true") throw new Error("RACI working marker did not activate");
+          await here.click();
+
+          // Scenario planning is temporary/reversible.
+          await page.goto(base+"/customers/official-case/assumption-change");
+          const scenarioSwitch=page.getByRole("switch").first();
+          if(!(await scenarioSwitch.count())) throw new Error("Scenario switch missing");
+          await scenarioSwitch.click();
+          await page.getByText("Scenario mode active",{exact:true}).waitFor();
+          await page.getByRole("button",{name:"Return to live plan"}).click();
+          await page.getByText("Live plan unchanged",{exact:true}).waitFor();
+
+          // Environment manual node + local fallback generation.
+          await page.goto(base+"/customers/official-case/environment");
+          await page.getByRole("button",{name:"Add node"}).click();
+          await page.getByDisplayValue("New node").waitFor();
+          await page.locator("#gen").fill("one server running windows 98");
+          await page.getByRole("button",{name:"Generate suggested environment"}).click();
+          await page.getByText(/Proposed from approved sources/i).waitFor();
+          await page.getByRole("button",{name:"Discard proposal"}).click();
+
+          // Document registration and approval.
+          await page.goto(base+"/customers/official-case/documents");
+          await page.getByRole("button",{name:"Register source"}).first().click();
+          await page.locator("#dtitle").fill("E2E approved source");
+          await page.locator("#downer").fill("E2E");
+          await page.locator("#dfresh").fill("Current");
+          await page.locator("#dsys").fill("Salesforce");
+          await page.locator("#dcontent").fill("E2E source content for isolated browser testing.");
+          await page.locator("#dappr").click();
+          await page.getByRole("button",{name:"Register source"}).last().click();
+          await page.getByText("E2E approved source",{exact:true}).waitFor();
+
+          // Engineering issue intake saves locally even before Jira.
+          await page.goto(base+"/customers/official-case/engineering-issues");
+          await page.getByPlaceholder("Short issue summary").fill("E2E issue intake");
+          await page.getByPlaceholder(/What was the user trying/i).fill("E2E reported problem");
+          await page.getByRole("button",{name:"Save intake"}).click();
+          await page.getByText("E2E issue intake",{exact:true}).waitFor();
+
+          // Accuracy triage creation.
+          await page.goto(base+"/customers/official-case/accuracy-triage");
+          await page.getByRole("button",{name:"New triage case"}).click();
+          const dialog=page.getByRole("dialog");
+          const inputs=dialog.locator("input");
+          if(await inputs.count()) await inputs.first().fill("E2E triage case");
+          const textareas=dialog.locator("textarea");
+          if(await textareas.count()) await textareas.first().fill("E2E symptom");
+          const createCase=dialog.getByRole("button",{name:/Create|Save/i}).last();
+          if(await createCase.count()) await createCase.click();
+
+          // Meeting Prep local refresh, automatic PDF, completed checkpoint.
+          await page.goto(base+"/customers/official-case/meeting-prep");
+          await page.getByRole("button",{name:"Refresh locally"}).click();
+          await page.getByRole("link",{name:"Download current PDF"}).waitFor();
+          const dlPromise=page.waitForEvent("download");
+          await page.getByRole("link",{name:"Download current PDF"}).click();
+          await dlPromise;
+          await page.getByRole("button",{name:"Mark call completed"}).click();
+
+          // Live Assist UI state without requesting a real capture device locally.
+          await page.goto(base+"/customers/official-case/live-assist");
+          const consent=page.getByText(/I confirm the customer\/participants/i).locator("..").locator('input[type="checkbox"]');
+          if(await consent.count()) await consent.check();
+          const listen=page.getByRole("button",{name:"Listen to shared call"});
+          if(!(await listen.count())) throw new Error("Live Assist shared-call control missing");
+
+          // ROI deterministic math.
+          await page.goto(base+"/customers/official-case/roi-workshop");
+          await page.locator("#eligible").fill("100");
+          await page.locator("#deflect").fill("20");
+          await page.locator("#aht").fill("30");
+          await page.locator("#rate").fill("100");
+          await page.getByText("$1,000 / month",{exact:true}).waitFor();
+
+          // KPI and QBR selectors.
+          await page.goto(base+"/customers/official-case/kpi-contract");
+          const metricButton=page.locator("button").filter({hasText:/Baseline:/}).first();
+          if(await metricButton.count()) await metricButton.click();
+          await page.goto(base+"/customers/official-case/executive-qbr");
+          for(const v of ["monthly","qbr","weekly"]){
+            const b=page.getByRole("button",{name:v,exact:true});
+            if(await b.count()) await b.click();
+          }
+
+          // Evidence links must navigate.
+          await page.goto(base+"/customers/official-case/evidence");
+          const artifact=page.getByRole("link",{name:/Implementation/i}).first();
+          if(!(await artifact.count())) throw new Error("Evidence artifact links missing");
+          await artifact.click();
+          await page.waitForURL(/\/implementation$/);
+
+          if(pageErrors.length) throw new Error("Browser page errors: "+pageErrors.join(" | "));
+          if(consoleErrors.length) throw new Error("Unexpected browser console errors: "+consoleErrors.join(" | "));
+
+          console.log("LOCAL_E2E_PASS",JSON.stringify({
+            sections:sections.length,
+            created_customer:createdId,
+            page_errors:pageErrors.length,
+            console_errors:consoleErrors.length,
+          }));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node audit-local.mjs
+
+      - name: Browser audit - live production routes and SPA analytics
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/n7-live-browser && cd /tmp/n7-live-browser
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save playwright-core >/dev/null 2>&1
+          chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          cat > audit-live.mjs <<'NODE'
+          import { chromium } from "playwright-core";
+          const base="https://n7crm.clintware.com";
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:["--no-sandbox","--disable-dev-shm-usage"]});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          page.setDefaultTimeout(15000);
+          const errors=[];
+          page.on("pageerror",e=>errors.push(e.message));
+          await page.goto(base+"/customers/official-case/executive-summary?e2e="+Date.now(),{waitUntil:"domcontentloaded",timeout:30000});
+          await page.getByText("Executive Summary",{exact:true}).first().waitFor();
+
+          // SPA navigation must work and emit GA page_view events.
+          for(const label of ["Meeting Prep","Live Prompt","Live Assist","Engineering Issues","Evidence / Artifacts"]){
+            await page.getByRole("link",{name:label,exact:true}).first().click();
+            await page.getByText(label,{exact:true}).first().waitFor();
+          }
+          const dl=await page.evaluate(()=> (window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch{return x}}));
+          if(!dl.some(x=>Array.isArray(x)&&x[0]==="config"&&x[1]==="G-DCY144YM9P")) throw new Error("GA4 config missing in live browser");
+          const views=dl.filter(x=>Array.isArray(x)&&x[0]==="event"&&x[1]==="page_view");
+          if(views.length<5) throw new Error("Expected SPA page_view events; observed "+views.length);
+          if(errors.length) throw new Error("Live browser page errors: "+errors.join(" | "));
+          console.log("LIVE_BROWSER_PASS",JSON.stringify({page_views:views.length}));
+          await browser.close();
+          NODE
+          CHROME="$chrome" node audit-live.mjs
+
+      - name: Live backend integration and security probes
+        run: |
+          set -euo pipefail
+
+          # Health route executes N7 -> service binding -> Control Plane for
+          # shared state, AI, audio authorization, and Jira authorization.
+          curl --fail-with-body -sS https://n7crm.clintware.com/internal-health -o /tmp/n7-health.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/n7-health.json"))
+          assert d.get("ok") is True,d
+          assert d.get("controlPlane")=="ready",d
+          assert d.get("state")=="ready",d
+          assert d.get("ai")=="ready",d
+          assert d.get("audio")=="authorized",d
+          jira=d.get("jira") or {}
+          assert jira.get("authorized") is True,d
+          assert jira.get("configured") is True,d
+          print("LIVE_BACKEND_PASS",json.dumps(d,sort_keys=True))
+          PY
+
+          # A public caller must not be able to forge the internal product/worker
+          # headers that the service binding uses.
+          code=$(curl -sS -o /tmp/n7-forge.json -w '%{http_code}'             -H 'x-clintware-service-product: neuron7-case'             -H 'x-clintware-service-worker: n7-customer-value-os'             'https://mcp.clintware.com/api/v1/state?product=neuron7-case')
+          if [ "$code" != "401" ]; then
+            echo "Public forged service identity was not rejected: HTTP $code"
+            cat /tmp/n7-forge.json
+            exit 1
+          fi
+
+          # Health endpoint must expose status only, not shared state/customer data.
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/n7-health.json"))
+          raw=json.dumps(d).lower()
+          forbidden=["workspaces","stakeholders","transcript","prompt","documents","customername"]
+          leaked=[x for x in forbidden if x in raw]
+          assert not leaked, leaked
+          print("HEALTH_DISCLOSURE_PASS")
+          PY
