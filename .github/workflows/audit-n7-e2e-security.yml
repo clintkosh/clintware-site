@@ -286,7 +286,8 @@ jobs:
           // Environment manual node + local fallback generation.
           await page.goto(base+"/customers/official-case/environment");
           await page.getByRole("button",{name:"Add node"}).click();
-          await page.getByDisplayValue("New node").waitFor();
+          await page.locator("#nlabel").waitFor();
+          if((await page.locator("#nlabel").inputValue())!=="New node") throw new Error("Environment Add node did not create/select the new node");
           await page.locator("#gen").fill("one server running windows 98");
           await page.getByRole("button",{name:"Generate suggested environment"}).click();
           await page.getByText(/Proposed from approved sources/i).waitFor();
