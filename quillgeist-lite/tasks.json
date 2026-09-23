@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. Supported runtimes: PowerShell, Python, and C.",
   "runtimes": [
@@ -82,6 +82,12 @@
       "title": "Install or repair the qq service and reopen the supervised admin console",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/bootstrap-admin-console.ps1",
+      "parameters": []
+    },
+    "repair-local-service": {
+      "title": "Repair the qq Windows health service and stale scheduled-task recovery",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/repair-local-service.ps1",
       "parameters": []
     }
   }
