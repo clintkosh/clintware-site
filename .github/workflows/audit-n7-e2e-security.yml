@@ -195,7 +195,7 @@ jobs:
             const body=await page.locator("body").innerText();
             if(body.includes("This view didn't load")||body.includes("Page not found")) throw new Error(scope+" rendered an error view");
             const emptyButtons=await page.locator("button:visible").evaluateAll(ns=>ns
-              .filter(n=>!(n.textContent||"").trim()&&!n.getAttribute("aria-label")&&!n.getAttribute("title"))
+              .filter(n=>!(n.textContent||"").trim()&&!n.getAttribute("aria-label")&&!n.getAttribute("title")&&!(n.labels&&n.labels.length))
               .map(n=>n.outerHTML.slice(0,700)));
             if(emptyButtons.length) throw new Error(scope+" has unlabeled visible buttons: "+JSON.stringify(emptyButtons));
           }
