@@ -1,6 +1,14 @@
 {
-  "request_id": "chatgpt-quillgeist-web-browser-setup-20260924-1704",
-  "task_id": "browser-setup",
-  "args": {},
-  "objective": "Verify and repair the local Quillgeist Web Playwright runtime before live search and page-read smoke tests."
+  "request_id": "chatgpt-quillgeist-web-search-smoke-20260924-1706",
+  "task_id": "browser-work",
+  "args": {
+    "Action": "search",
+    "Query": "OpenAI ChatGPT",
+    "Engine": "auto",
+    "MaxResults": "5",
+    "Headless": "true",
+    "AllowPrivate": "false",
+    "Approved": "false"
+  },
+  "objective": "Smoke-test Quillgeist Web live public-web search through the paired qq browser and return five structured results."
 }
