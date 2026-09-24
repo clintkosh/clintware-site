@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Clintware.AudioFeedbackFix</AssemblyName>
+    <RootNamespace>Clintware.AudioFeedbackFix</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Version>1.0.0</Version>
+    <Company>Clintware</Company>
+    <Product>Clintware Audio Feedback Fix</Product>
+    <Description>Diagnoses and repairs common Windows microphone feedback and echo routing problems.</Description>
+    <Copyright>Copyright © 2026 Clintware</Copyright>
+  </PropertyGroup>
+</Project>
