@@ -456,7 +456,7 @@ namespace Clintware.QuillgeistLite
                     if (!p.WaitForExit(120000))
                     {
                         try { p.Kill(); } catch { }
-                        throw new TimeoutException("auto_repair_timeout");
+                        throw new System.TimeoutException("auto_repair_timeout");
                     }
 
                     string stdout = p.StandardOutput.ReadToEnd();
