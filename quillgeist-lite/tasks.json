@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. PowerShell is retained for Windows-only operations; terminal/profile recovery uses Python for deterministic JSON, image generation, validation, and rollback.",
   "runtimes": [
@@ -124,6 +124,12 @@
       "title": "Refresh the installed private PowerChatBridge module and restart detected bridge instances",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/update-powerchatbridge.ps1",
+      "parameters": []
+    },
+    "restart-window": {
+      "title": "Restart the visible Quillgeist Lite window and rerun the maintained launcher splash",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/restart-window.ps1",
       "parameters": []
     }
   }
