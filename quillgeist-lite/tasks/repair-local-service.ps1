@@ -14,7 +14,7 @@ $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.24.3"
+$RepairVersion = "2026.09.24.4"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
@@ -179,6 +179,13 @@ try {
   Write-Host ("WARN // could not persist auto-repair path: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
 
+try {
+  Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
+  Write-Host "TASK // runner task enabled" -ForegroundColor Cyan
+} catch {
+  Write-Host ("WARN // runner task could not be enabled: " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+
 Write-Host "TASK // automatic runner recovery is configured" -ForegroundColor Cyan
 
 Set-Service -Name $ServiceName -StartupType Automatic
@@ -192,7 +199,8 @@ Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
 
 if (-not $SkipRunnerRestart) {
   try {
-    Start-ScheduledTask -TaskName $TaskName
+    Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
+    Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     Write-Host "TASK // runner start requested immediately" -ForegroundColor Cyan
   } catch {
     Write-Host ("WARN // runner task could not be started immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
