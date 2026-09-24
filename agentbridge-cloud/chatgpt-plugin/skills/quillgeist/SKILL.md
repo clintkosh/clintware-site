@@ -158,3 +158,10 @@ Those capabilities are outside the public plugin v1 tool surface.
 - Terms: https://quillgeist.clintware.com/terms.html
 - Support: https://quillgeist.clintware.com/support.html
 - Product: https://quillgeist.clintware.com/
+
+
+## Authenticated Quillgeist Web
+
+The public Quillgeist plugin remains intentionally context-only. Live web search, public-page reading, and governed local browser automation are provided by the separate authenticated **Quillgeist Web** surface at `https://mcp.clintware.com/mcp`.
+
+That endpoint uses Clintware OAuth/PKCE and the paired local qq browser. It does not require users to paste a Control Plane API key. Current access is owner/admin scoped. Use the Quillgeist Web skill for browser work rather than weakening the public plugin's execution boundary.
