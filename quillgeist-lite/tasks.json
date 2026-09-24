@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. PowerShell is retained for Windows-only operations; terminal/profile recovery uses Python for deterministic JSON, image generation, validation, and rollback.",
   "runtimes": [
@@ -112,6 +112,12 @@
       "title": "Stop a qq restart loop, refresh canonical local files, rebuild the terminal profile, and verify a live runner",
       "runtime": "python",
       "script": "quillgeist-lite/tools/emergency_recover.py",
+      "parameters": []
+    },
+    "ensure-powershell": {
+      "title": "Install or upgrade PowerShell 7 and return the current pwsh runtime",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/ensure-powershell.ps1",
       "parameters": []
     }
   }
