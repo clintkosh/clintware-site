@@ -327,6 +327,27 @@ namespace Clintware.QuillgeistLite
 
             try
             {
+                // Disabled tasks cannot be recovered by /Run. Re-enable first so
+                // watchdog recovery is resilient to accidental/manual disablement.
+                ProcessStartInfo enablePsi = new ProcessStartInfo("schtasks.exe",
+                    "/Change /TN \"" + config.TaskName.Replace("\"", "\\\"") + "\" /ENABLE");
+                enablePsi.CreateNoWindow = true;
+                enablePsi.UseShellExecute = false;
+                enablePsi.RedirectStandardOutput = true;
+                enablePsi.RedirectStandardError = true;
+
+                using (Process enable = Process.Start(enablePsi))
+                {
+                    enable.WaitForExit(10000);
+                    string enableOut = enable.StandardOutput.ReadToEnd();
+                    string enableErr = enable.StandardError.ReadToEnd();
+                    string enableMsg = "runner_task_enable exit=" + enable.ExitCode;
+                    if (!String.IsNullOrWhiteSpace(enableErr)) enableMsg += " stderr=" + Redact(enableErr);
+                    else if (!String.IsNullOrWhiteSpace(enableOut)) enableMsg += " output=" + Redact(enableOut);
+                    LocalLog(enableMsg);
+                    TryPost(enable.ExitCode == 0 ? "INFO" : "WARN", "health", enableMsg, false);
+                }
+
                 // A Task Scheduler instance can remain marked Running after the real
                 // runner process has died. With IgnoreNew, /Run then reports success
                 // while doing nothing. End the stale wrapper first; a non-running task
@@ -553,7 +574,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.2.0\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"1.2.1\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
