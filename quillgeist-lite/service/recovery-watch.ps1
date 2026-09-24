@@ -177,6 +177,12 @@ if ($serviceHealthy) {
 $runnerAlive = Test-RunnerAlive $runnerPidPath
 if (-not $runnerAlive) {
   try {
+    $enableOutput = & schtasks.exe /Change /TN $RunnerTaskName /ENABLE 2>&1 | Out-String
+    Write-RecoveryLog ("runner_enable_requested " + ($enableOutput.Trim() -replace '[\r\n]+',' '))
+  } catch {
+    Write-RecoveryLog ("runner_enable_exception " + $_.Exception.Message)
+  }
+  try {
     & schtasks.exe /End /TN $RunnerTaskName 1>$null 2>$null
   } catch {}
   Start-Sleep -Milliseconds 750
