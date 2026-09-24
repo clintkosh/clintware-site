@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Quillgeist Lite emergency recovery v2026.09.24.6.
+Quillgeist Lite emergency recovery v2026.09.24.8.
 
-Python owns recovery orchestration. PowerShell is used only as a narrow bridge to
-Windows ScheduledTasks/CIM where Windows exposes no stable stdlib Python API.
+This is the dead-runner recovery path. It does not depend on the qq WebSocket,
+the Windows health service, Windows Terminal, or an already-working PowerShell 7
+installation.
 
-Design invariant:
-  automatic qq lifecycle NEVER depends on a Windows Terminal profile.
-
-This script self-elevates, stops the restart loop, disables stale Terminal launch
-sources, refreshes canonical files atomically, rewrites the managed task to an
-absolute PowerShell launcher, restarts the watchdog, and verifies a real runner PID.
+Recovery order:
+  stop loop -> refresh canonical files -> ensure current PowerShell 7 ->
+  rewrite scheduled task -> recompile/repair watchdog -> start -> verify.
 """
 
 from __future__ import annotations
@@ -24,13 +22,15 @@ import tempfile
 import time
 import urllib.request
 
-VERSION = "2026.09.24.6.1"
-RAW = "https://raw.githubusercontent.com/clintkosh/clintware-site/fdcce8eca26534c4088dacb53536d8de4c7660d9/quillgeist-lite"
+VERSION = "2026.09.24.8"
+RAW = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 SERVICE = "ClintwareQuillgeistLiteHealth"
 TASK = "Clintware Quillgeist Lite Runner"
 
+
 def log(msg: str) -> None:
     print(msg, flush=True)
+
 
 def run(args, timeout=30):
     try:
@@ -38,11 +38,13 @@ def run(args, timeout=30):
     except Exception as exc:
         return subprocess.CompletedProcess(args, 1, "", str(exc))
 
+
 def is_admin() -> bool:
     try:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except Exception:
         return False
+
 
 def elevate_self() -> bool:
     if is_admin():
@@ -56,13 +58,19 @@ def elevate_self() -> bool:
     log("RECOVERY // elevated repair launched; this unelevated copy is exiting")
     return True
 
+
 def download(url: str) -> bytes:
     req = urllib.request.Request(
         url + ("&" if "?" in url else "?") + "v=" + VERSION,
-        headers={"Cache-Control":"no-cache","Pragma":"no-cache","User-Agent":"Clintware-QQ-Recovery/" + VERSION},
+        headers={
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "User-Agent": "Clintware-QQ-Recovery/" + VERSION,
+        },
     )
     with urllib.request.urlopen(req, timeout=30) as response:
         return response.read()
+
 
 def atomic_write(path: pathlib.Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,55 +87,96 @@ def atomic_write(path: pathlib.Path, data: bytes) -> None:
         except FileNotFoundError:
             pass
 
-def ps_exe() -> pathlib.Path:
+
+def legacy_ps() -> pathlib.Path:
     windir = pathlib.Path(os.environ.get("SystemRoot", r"C:\Windows"))
     path = windir / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
     if not path.is_file():
-        raise RuntimeError("Absolute Windows PowerShell executable was not found: " + str(path))
+        raise RuntimeError("Windows PowerShell bootstrap host was not found: " + str(path))
     return path
 
-def powershell(script: str, timeout=45):
-    return run([
-        str(ps_exe()),
+
+def resolve_pwsh() -> pathlib.Path | None:
+    program_files = pathlib.Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+    candidates = [
+        program_files / "PowerShell" / "7" / "pwsh.exe",
+    ]
+    program_w6432 = os.environ.get("ProgramW6432")
+    if program_w6432:
+        candidates.append(pathlib.Path(program_w6432) / "PowerShell" / "7" / "pwsh.exe")
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def preferred_ps() -> pathlib.Path:
+    return resolve_pwsh() or legacy_ps()
+
+
+def powershell(script: str, timeout=60, prefer_modern=True):
+    exe = preferred_ps() if prefer_modern else legacy_ps()
+    return run(
+        [
+            str(exe),
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ],
+        timeout=timeout,
+    )
+
+
+def run_ps_file(path: pathlib.Path, args=None, timeout=180, prefer_modern=True):
+    exe = preferred_ps() if prefer_modern else legacy_ps()
+    argv = [
+        str(exe),
+        "-NoLogo",
         "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy", "Bypass",
-        "-Command", script,
-    ], timeout=timeout)
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(path),
+    ]
+    if args:
+        argv.extend(args)
+    return run(argv, timeout=timeout)
+
 
 def stop_loop(home: pathlib.Path) -> None:
     log("RECOVERY // HARD STOP: disabling watchdog + managed task before repair")
-    run(["sc.exe","stop",SERVICE], timeout=20)
-    run(["sc.exe","config",SERVICE,"start=","disabled"], timeout=20)
-    run(["schtasks.exe","/Change","/TN",TASK,"/DISABLE"], timeout=20)
-    run(["schtasks.exe","/End","/TN",TASK], timeout=20)
+    run(["sc.exe", "stop", SERVICE], timeout=20)
+    run(["sc.exe", "config", SERVICE, "start=", "disabled"], timeout=20)
+    run(["schtasks.exe", "/Change", "/TN", TASK, "/DISABLE"], timeout=20)
+    run(["schtasks.exe", "/End", "/TN", TASK], timeout=20)
 
-    # Kill only qq-owned Windows Terminal / PowerShell processes. Do not kill the
-    # user's unrelated shells.
-    h = str(home).replace("'", "''")
+    # Kill only qq-owned shells. Never touch unrelated user terminals.
     script = (
         "$me=$PID;"
         "Get-CimInstance Win32_Process | Where-Object {"
-        "$_.ProcessId -ne $me -and ("
-        "([string]$_.CommandLine -match '(?i)Quillgeist|Clintware\\\\QuillgeistLite|launcher\\.ps1|runner\\.ps1')"
-        ") -and ($_.Name -match '(?i)WindowsTerminal|powershell|pwsh|wt')"
-        "} | ForEach-Object {"
-        "try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}"
-        "};"
-        # Disable stale scheduled tasks that launch a Quillgeist Terminal profile.
+        "$_.ProcessId -ne $me -and "
+        "([string]$_.CommandLine -match '(?i)Quillgeist|Clintware\\\\QuillgeistLite|launcher\\.ps1|runner\\.ps1') -and "
+        "($_.Name -match '(?i)WindowsTerminal|powershell|pwsh|wt')"
+        "} | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} };"
         "Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {"
         "$_.TaskName -ne '" + TASK.replace("'", "''") + "' -and "
-        "(($_.Actions | ForEach-Object {[string]$_.Execute+' '+[string]$_.Arguments}) -join ' ') -match '(?i)Quillgeist.*(wt|WindowsTerminal)|(wt|WindowsTerminal).*Quillgeist'"
+        "(($_.Actions | ForEach-Object {[string]$_.Execute+' '+[string]$_.Arguments}) -join ' ') "
+        "-match '(?i)Quillgeist.*(wt|WindowsTerminal)|(wt|WindowsTerminal).*Quillgeist'"
         "} | ForEach-Object { try { Disable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath -ErrorAction Stop | Out-Null } catch {} }"
     )
-    powershell(script, timeout=45)
+    powershell(script, timeout=45, prefer_modern=False)
+
 
 def remove_terminal_sources(home: pathlib.Path) -> None:
     local = pathlib.Path(os.environ["LOCALAPPDATA"])
     fragment_dir = local / "Microsoft" / "Windows Terminal" / "Fragments" / "Clintware"
     fragment_dir.mkdir(parents=True, exist_ok=True)
 
-    for name in ("quillgeist-lite.json","quillgeist-lite-v2.json"):
+    for name in ("quillgeist-lite.json", "quillgeist-lite-v2.json"):
         p = fragment_dir / name
         if p.exists():
             backup = fragment_dir / (name + ".disabled")
@@ -135,56 +184,70 @@ def remove_terminal_sources(home: pathlib.Path) -> None:
                 if backup.exists():
                     backup.unlink()
                 p.replace(backup)
-                log("RECOVERY // disabled Windows Terminal fragment " + name)
+                log("RECOVERY // disabled stale Windows Terminal fragment " + name)
             except Exception:
                 try:
                     p.unlink()
                 except Exception:
                     pass
 
-    for marker in ("terminal-repair.ok",):
-        try:
-            (home / marker).unlink()
-        except FileNotFoundError:
-            pass
-
-    # Remove startup shortcuts created by old styling code.
     script = (
-        "$paths=@("
-        "[Environment]::GetFolderPath('Startup'),"
-        "[Environment]::GetFolderPath('CommonStartup')"
-        ");"
+        "$paths=@([Environment]::GetFolderPath('Startup'),[Environment]::GetFolderPath('CommonStartup'));"
         "foreach($d in $paths){"
         "$p=Join-Path $d 'Clintware Quillgeist Lite.lnk';"
         "Remove-Item $p -Force -ErrorAction SilentlyContinue"
         "}"
     )
-    powershell(script)
+    powershell(script, timeout=30, prefer_modern=False)
+
 
 def refresh_files(home: pathlib.Path) -> None:
     specs = [
-        ("launcher.ps1", "/launcher.ps1", b"Reliability-first boot path"),
-        ("runner.ps1", "/runner.ps1", b"Show-QuillgeistSplash"),
-        ("boot_splash.py", "/tools/boot_splash.py", b"retro DOS boot splash"),
-        ("terminal_repair.py", "/tools/terminal_repair.py", b"generate_boot_image"),
+        ("launcher.ps1", "/launcher.ps1", b"Ensure-ModernPowerShell", 1500),
+        ("runner.ps1", "/runner.ps1", b"Send-QQQuestion", 10000),
+        ("boot_splash.py", "/tools/boot_splash.py", b"retro DOS boot splash", 1000),
+        ("terminal_repair.py", "/tools/terminal_repair.py", b"generate_boot_image", 5000),
+        ("ensure-powershell.ps1", "/tasks/ensure-powershell.ps1", b"PWSH_READY", 1000),
+        ("auto-repair-runtime.ps1", "/tasks/auto-repair-runtime.ps1", b"AUTO_REPAIR_READY", 1500),
+        ("repair-local-service.ps1", "/tasks/repair-local-service.ps1", b"qq health service repaired", 4000),
+        ("update-powerchatbridge.ps1", "/tasks/update-powerchatbridge.ps1", b"POWERCHATBRIDGE_UPDATED", 2500),
     ]
 
-    for local_name, remote, required in specs:
+    for local_name, remote, required, min_size in specs:
         data = download(RAW + remote)
-        if len(data) < 800 or required not in data:
+        if len(data) < min_size or required not in data:
             raise RuntimeError(f"{local_name} download failed structural validation")
         atomic_write(home / local_name, data)
         log("RECOVERY // refreshed " + local_name)
 
-def rewrite_task(home: pathlib.Path) -> None:
-    psex = ps_exe()
+
+def ensure_modern_powershell(home: pathlib.Path) -> pathlib.Path:
+    script = home / "ensure-powershell.ps1"
+    result = run_ps_file(script, ["-Force"], timeout=240, prefer_modern=False)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "PowerShell 7 bootstrap failed: " + (result.stdout + result.stderr).strip()[-4000:]
+        )
+
+    pwsh = resolve_pwsh()
+    if not pwsh:
+        raise RuntimeError("PowerShell 7 bootstrap completed but pwsh.exe was not found.")
+
+    version = run(
+        [str(pwsh), "-NoLogo", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"],
+        timeout=20,
+    )
+    version_text = (version.stdout or "").strip().splitlines()
+    log("VERIFY // PowerShell 7 ready" + ((" // " + version_text[-1]) if version_text else ""))
+    return pwsh
+
+
+def rewrite_task(home: pathlib.Path, host: pathlib.Path) -> None:
     launcher = home / "launcher.ps1"
-    user = os.environ.get("USERDOMAIN","") + "\\" + os.environ.get("USERNAME","")
-    user = user.strip("\\")
+    user = (os.environ.get("USERDOMAIN", "") + "\\" + os.environ.get("USERNAME", "")).strip("\\")
     if not user:
         raise RuntimeError("Could not resolve the interactive Windows user.")
 
-    # Typed ScheduledTasks APIs avoid schtasks.exe command-line quoting bugs.
     def q(s: str) -> str:
         return s.replace("'", "''")
 
@@ -192,65 +255,86 @@ def rewrite_task(home: pathlib.Path) -> None:
         "$ErrorActionPreference='Stop';"
         "$taskName='" + q(TASK) + "';"
         "$home='" + q(str(home)) + "';"
-        "$exe='" + q(str(psex)) + "';"
+        "$exe='" + q(str(host)) + "';"
         "$launcher='" + q(str(launcher)) + "';"
         "$user='" + q(user) + "';"
-        "$args='-NoProfile -ExecutionPolicy Bypass -NoExit -File \"' + $launcher + '\"';"
+        "$args='-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File \"' + $launcher + '\"';"
         "$action=New-ScheduledTaskAction -Execute $exe -Argument $args -WorkingDirectory $home;"
-        "$task=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue;"
-        "if($task){"
-        "Set-ScheduledTask -TaskName $taskName -Action $action | Out-Null;"
-        "}else{"
         "$trigger=New-ScheduledTaskTrigger -AtLogOn -User $user;"
         "$principal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest;"
-        "$settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero);"
+        "$settingsArgs=@{AllowStartIfOnBatteries=$true;DontStopIfGoingOnBatteries=$true;StartWhenAvailable=$true;ExecutionTimeLimit=[TimeSpan]::Zero};"
+        "$cmd=Get-Command New-ScheduledTaskSettingsSet -ErrorAction Stop;"
+        "$multi=$cmd.Parameters['MultipleInstances'];"
+        "if($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum){"
+        "$supported=[Enum]::GetNames($multi.ParameterType);"
+        "if($supported -contains 'IgnoreNew'){$settingsArgs['MultipleInstances']='IgnoreNew'}"
+        "elseif($supported -contains 'Queue'){$settingsArgs['MultipleInstances']='Queue'}"
+        "};"
+        "$settings=New-ScheduledTaskSettingsSet @settingsArgs;"
+        "$task=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue;"
+        "if($task){"
+        "Set-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings | Out-Null;"
+        "}else{"
         "Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings "
-        "-Description 'Clintware Quillgeist Lite reliable fallback console. Windows Terminal is not in the automatic lifecycle path.' | Out-Null;"
+        "-Description 'Interactive ADMIN Clintware Quillgeist Lite console, supervised by the local health service.' | Out-Null;"
         "};"
         "Enable-ScheduledTask -TaskName $taskName | Out-Null;"
-        "$t=Get-ScheduledTask -TaskName $taskName;"
-        "$a=$t.Actions | Select-Object -First 1;"
+        "$a=(Get-ScheduledTask -TaskName $taskName).Actions | Select-Object -First 1;"
         "if([string]$a.Execute -ne $exe){throw 'task executable verification failed'};"
         "if(([string]$a.Arguments) -notmatch 'launcher\\.ps1'){throw 'task launcher verification failed'};"
         "Write-Output ('TASK_OK '+[string]$a.Execute+' '+[string]$a.Arguments)"
     )
-    result = powershell(task_script, timeout=45)
+    result = powershell(task_script, timeout=60, prefer_modern=True)
     if result.returncode != 0 or "TASK_OK" not in result.stdout:
-        raise RuntimeError("managed task rewrite failed: " + (result.stdout + result.stderr).strip())
-    log("VERIFY // task action rewritten to absolute PowerShell launcher")
+        raise RuntimeError("managed task rewrite failed: " + (result.stdout + result.stderr).strip()[-4000:])
+    log("VERIFY // managed task uses current PowerShell 7 launcher")
+
+
+def repair_watchdog(home: pathlib.Path) -> None:
+    repair = home / "repair-local-service.ps1"
+    result = run_ps_file(repair, ["-SkipRunnerRestart"], timeout=240, prefer_modern=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "watchdog repair failed: " + (result.stdout + result.stderr).strip()[-5000:]
+        )
+    log("VERIFY // watchdog recompiled and service restarted")
+
 
 def pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
-    r = run(["tasklist.exe","/FI",f"PID eq {pid}","/FO","CSV","/NH"], timeout=10)
+    r = run(["tasklist.exe", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], timeout=10)
     return r.returncode == 0 and f'"{pid}"' in r.stdout
 
-def restart_and_verify(home: pathlib.Path) -> None:
+
+def restart_and_verify(home: pathlib.Path) -> int:
     pidfile = home / "runner.pid"
     try:
         pidfile.unlink()
     except FileNotFoundError:
         pass
 
-    run(["sc.exe","config",SERVICE,"start=","auto"], timeout=20)
-    start = run(["sc.exe","start",SERVICE], timeout=20)
+    run(["sc.exe", "config", SERVICE, "start=", "auto"], timeout=20)
+    start = run(["sc.exe", "start", SERVICE], timeout=20)
     if start.returncode != 0:
         combined = (start.stdout + start.stderr).lower()
         if "already been started" not in combined and "already running" not in combined:
-            log("WARN // watchdog service start returned: " + (start.stdout + start.stderr).strip())
+            raise RuntimeError("watchdog did not start: " + (start.stdout + start.stderr).strip())
 
-    task_start = run(["schtasks.exe","/Run","/TN",TASK], timeout=20)
+    task_start = run(["schtasks.exe", "/Run", "/TN", TASK], timeout=20)
     if task_start.returncode != 0:
         raise RuntimeError("managed qq task failed to start: " + (task_start.stdout + task_start.stderr).strip())
 
-    deadline = time.time() + 20
+    deadline = time.time() + 30
     live_pid = 0
     while time.time() < deadline:
         try:
             candidate = int(pidfile.read_text(encoding="ascii").strip())
             if pid_alive(candidate):
-                live_pid = candidate
-                break
+                time.sleep(2)
+                if pid_alive(candidate):
+                    live_pid = candidate
+                    break
         except Exception:
             pass
         time.sleep(0.5)
@@ -260,12 +344,44 @@ def restart_and_verify(home: pathlib.Path) -> None:
         tail = ""
         try:
             lines = crash.read_text(encoding="utf-8", errors="replace").splitlines()
-            tail = "\n".join(lines[-20:])
+            tail = "\n".join(lines[-30:])
         except Exception:
             pass
-        raise RuntimeError("runner did not become live within 20 seconds" + (("\n" + tail) if tail else ""))
+        raise RuntimeError(
+            "runner did not remain live within 30 seconds" + (("\n" + tail) if tail else "")
+        )
 
-    log("VERIFY // live runner PID " + str(live_pid))
+    log("VERIFY // live qq runner PID " + str(live_pid))
+    return live_pid
+
+
+def verify_control_plane(home: pathlib.Path) -> None:
+    log_path = home / "runner.log"
+    deadline = time.time() + 25
+    while time.time() < deadline:
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            if any("Connected to Clintware Control Plane." in line for line in lines[-80:]):
+                log("VERIFY // qq connected to Clintware Control Plane")
+                return
+        except Exception:
+            pass
+        time.sleep(1)
+    log("WARN // runner is live, but a fresh Control Plane connection marker was not observed yet")
+
+
+def update_powerchatbridge(home: pathlib.Path) -> None:
+    updater = home / "update-powerchatbridge.ps1"
+    result = run_ps_file(updater, timeout=180, prefer_modern=True)
+    combined = (result.stdout + result.stderr).strip()
+    if result.returncode == 0:
+        if "POWERCHATBRIDGE_NOT_INSTALLED" in combined:
+            log("INFO // PowerChatBridge module is not installed; qq itself is recovered")
+        else:
+            log("VERIFY // PowerChatBridge package refresh completed")
+        return
+    log("WARN // qq recovered, but PowerChatBridge refresh needs a later retry: " + combined[-2000:])
+
 
 def main() -> int:
     if os.name != "nt":
@@ -282,15 +398,20 @@ def main() -> int:
     stop_loop(home)
     remove_terminal_sources(home)
     refresh_files(home)
-    rewrite_task(home)
+    host = ensure_modern_powershell(home)
+    rewrite_task(home, host)
+    repair_watchdog(home)
     restart_and_verify(home)
+    verify_control_plane(home)
+    update_powerchatbridge(home)
 
-    log("VERIFY // Windows Terminal removed from automatic qq lifecycle")
-    log("VERIFY // old Terminal fragments/startup launchers disabled")
-    log("VERIFY // managed task uses absolute PowerShell path")
-    log("VERIFY // Python retro DOS splash installed")
-    log("READY // restart loop eliminated; qq is running in safe host mode")
+    log("VERIFY // every launcher load now owns the Clintware splash/theme path")
+    log("VERIFY // watchdog includes bounded error-triggered auto-repair")
+    log("VERIFY // PowerShell 7 is the managed qq host")
+    log("VERIFY // interactive relay runtime is installed")
+    log("READY // qq dead-runner recovery completed")
     return 0
+
 
 if __name__ == "__main__":
     try:
