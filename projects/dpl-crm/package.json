@@ -1,11 +1,12 @@
 {
   "name": "dpl-crm",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
-    "check": "node --check src/index.js && node --check src/sample-customers.js && node --check public/app-config.js && node --check public/app-views.js && node --check public/app-ai.js && node --check public/app-router.js && node --check public/app-forms.js && node --check public/import-utils.js",
-    "deploy": "wrangler deploy"
+    "prepare:prod": "node prepare-production.mjs",
+    "check": "npm run prepare:prod && node --check src/index.js && node --check src/sample-customers.js && node --check public/app-config.js && node --check public/app-views.js && node --check public/app-ai.js && node --check public/app-router.js && node --check public/app-forms.js && node --check public/import-utils.js && node --check public/doppel-polish.js",
+    "deploy": "npm run prepare:prod && wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.40.0"
