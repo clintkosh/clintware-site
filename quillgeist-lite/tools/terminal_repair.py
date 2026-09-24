@@ -24,7 +24,7 @@ import urllib.request
 import uuid
 import zlib
 
-VERSION = "2026.09.24.4"
+VERSION = "2026.09.24.5"
 PROFILE_GUID = "{4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
 PROFILE_NAME = "Quillgeist Lite"
 LEGACY_PROFILE_GUID = "{5c7d2c59-4989-4f24-9f07-cbd0a38acb6d}"
@@ -253,28 +253,18 @@ def resolve_powershell() -> pathlib.Path:
             return candidate
     raise RuntimeError("Windows PowerShell executable could not be resolved.")
 
-def build_boot_command(ps_exe: pathlib.Path) -> str:
-    script = (
-        "$ErrorActionPreference='Stop';"
-        "$h=Join-Path $env:LOCALAPPDATA 'Clintware\\QuillgeistLite';"
-        "$l=Join-Path $h 'launcher.ps1';"
-        "New-Item -ItemType Directory -Force -Path $h|Out-Null;"
-        "if(-not(Test-Path -LiteralPath $l)){"
-        "$u='" + LAUNCHER_URL.replace("'", "''") + "';"
-        "$t=$l+'.new';"
-        "Invoke-WebRequest -Uri $u -OutFile $t -UseBasicParsing -Headers @{'Cache-Control'='no-cache'};"
-        "$tokens=$null;$errs=$null;"
-        "[System.Management.Automation.Language.Parser]::ParseFile($t,[ref]$tokens,[ref]$errs)|Out-Null;"
-        "if($errs.Count -gt 0){Remove-Item $t -Force -ErrorAction SilentlyContinue;throw 'launcher recovery validation failed'};"
-        "Move-Item $t $l -Force};"
-        "& $l"
-    )
+def build_boot_command(ps_exe: pathlib.Path, launcher_path: pathlib.Path) -> str:
+    # Keep the Windows Terminal command line intentionally boring. The scheduled
+    # task is the recovery layer; the profile only launches an absolute, verified
+    # executable and absolute launcher path. This avoids nested -Command quoting
+    # and PATH/AppExecutionAlias failures that surface as 0x80070002.
     return subprocess.list2cmdline([
         str(ps_exe),
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
         "-NoExit",
-        "-Command", script,
+        "-File", str(launcher_path),
+        "-TerminalHost",
     ])
 
 def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: pathlib.Path, commandline: str) -> None:
@@ -387,7 +377,7 @@ def main() -> int:
         refresh_launcher(launcher_path)
         generate_boot_image(image_path)
         log("PYTHON // deterministic 70s/DOS boot image generated")
-        commandline = build_boot_command(ps_exe)
+        commandline = build_boot_command(ps_exe, launcher_path)
         write_fragment(fragment_path, home, image_path, commandline)
         log("PYTHON // Windows Terminal profile written atomically")
 
