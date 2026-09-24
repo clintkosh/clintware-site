@@ -1,3 +1,7 @@
+param(
+  [switch]$SkipRunnerRestart
+)
+
 $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
@@ -98,11 +102,15 @@ Set-Service -Name $ServiceName -StartupType Automatic
 Start-Service -Name $ServiceName
 (Get-Service -Name $ServiceName).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(20))
 
-try {
-  Start-ScheduledTask -TaskName $TaskName
-  Write-Host "TASK // runner start requested immediately" -ForegroundColor Cyan
-} catch {
-  Write-Host ("WARN // runner task could not be started immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
+if (-not $SkipRunnerRestart) {
+  try {
+    Start-ScheduledTask -TaskName $TaskName
+    Write-Host "TASK // runner start requested immediately" -ForegroundColor Cyan
+  } catch {
+    Write-Host ("WARN // runner task could not be started immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+} else {
+  Write-Host "TASK // runner restart deferred because an active qq job is using this session" -ForegroundColor DarkGray
 }
 
 Remove-Item $backup -Force -ErrorAction SilentlyContinue
