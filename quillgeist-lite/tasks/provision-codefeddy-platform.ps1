@@ -13,6 +13,19 @@ function Write-Step([string]$Text) {
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI is required." }
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "Git is required." }
 
+Write-Step "upgrading qq watchdog before CodeFEDDY provisioning"
+$repairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
+$repairPath = Join-Path $env:TEMP ("qq-repair-" + [Guid]::NewGuid().ToString("n") + ".ps1")
+try {
+  Invoke-WebRequest -Uri $repairUrl -OutFile $repairPath -UseBasicParsing
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $repairPath -SkipRunnerRestart
+  if ($LASTEXITCODE -ne 0) { throw "qq watchdog upgrade failed with exit code $LASTEXITCODE." }
+  Write-Step "qq watchdog upgraded to event-driven wake recovery"
+}
+finally {
+  Remove-Item $repairPath -Force -ErrorAction SilentlyContinue
+}
+
 Write-Step "resolving local codeFEDDY GitHub identity"
 $codeFeddyToken = ""
 try { $codeFeddyToken = (gh auth token --hostname github.com --user codeFEDDY 2>$null).Trim() } catch {}
