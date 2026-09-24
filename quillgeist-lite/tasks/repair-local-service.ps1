@@ -14,7 +14,7 @@ $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.24.7"
+$RepairVersion = "2026.09.24.8"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
@@ -22,6 +22,7 @@ $MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
 $RecoveryWatchPath = Join-Path $ServiceDir "recovery-watch.ps1"
 $RecoveryWatchUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/recovery-watch.ps1"
 $FallbackTaskName = "Clintware Quillgeist Lite Fallback Recovery"
+$RecoveryConfigPath = Join-Path $ProgramDir "recovery.json"
 
 Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
@@ -175,6 +176,19 @@ function Show-ServiceStartDiagnostics {
 function Install-FallbackRecovery {
   try {
     Write-Host "FALLBACK // installing scheduled qq recovery watchdog" -ForegroundColor DarkYellow
+
+    $recoveryConfig = [ordered]@{
+      ServiceRepairPath = $LocalRepairPath
+      AutoRepairPath = $AutoRepairPath
+      RecoveryWatchPath = $RecoveryWatchPath
+      UpdatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    }
+    [IO.File]::WriteAllText(
+      $RecoveryConfigPath,
+      ($recoveryConfig | ConvertTo-Json -Depth 6),
+      (New-Object Text.UTF8Encoding($false))
+    )
+    Write-Host "RECOVERY // fallback repair paths persisted" -ForegroundColor DarkCyan
 
     Get-ClintwareRepoFile -RepoPath "quillgeist-lite/service/recovery-watch.ps1" -Destination $RecoveryWatchPath
     if (-not (Test-Path $RecoveryWatchPath)) { throw "recovery watchdog download failed" }
