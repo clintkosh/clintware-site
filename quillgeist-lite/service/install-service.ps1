@@ -43,6 +43,7 @@ $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $RunnerPidPath = Join-Path $HomeDir "runner.pid"
 $RunnerLogPath = Join-Path $HomeDir "runner.log"
 $CrashLogPath = Join-Path $HomeDir "runner-crash.log"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 
 $ServiceName = "ClintwareQuillgeistLiteHealth"
 $TaskName = "Clintware Quillgeist Lite Runner"
@@ -83,6 +84,7 @@ $config = [ordered]@{
   RunnerLogPath = $RunnerLogPath
   CrashLogPath = $CrashLogPath
   LocalServiceLogPath = $ServiceLog
+  AutoRepairPath = $AutoRepairPath
 }
 
 $config | ConvertTo-Json -Depth 6 | Set-Content -Path $ConfigPath -Encoding UTF8
@@ -97,8 +99,13 @@ if ($oldTask) {
   Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
-$psExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$taskArgs = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+$pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+if (-not $pwsh) {
+  $pwshCandidate = Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+  if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
+}
+$psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+$taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
 
 $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserName
