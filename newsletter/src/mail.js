@@ -68,13 +68,40 @@ function mimeMessage(payload, from) {
 export function mailProvider(env) {
   return String(env.MAIL_PROVIDER || "gmail").toLowerCase();
 }
+function brokerConfigured(env) {
+  return Boolean(env.AUTH_BROKER && env.GOOGLE_DELEGATED_BRIDGE_SECRET);
+}
+function directGoogleConfigured(env) {
+  return Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_DELEGATED_REFRESH_TOKEN);
+}
 export function mailConfigured(env) {
   const provider = mailProvider(env);
-  if (provider === "gmail") return Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_DELEGATED_REFRESH_TOKEN && env.FROM_EMAIL);
+  if (provider === "gmail") return Boolean(env.FROM_EMAIL && (brokerConfigured(env) || directGoogleConfigured(env)));
   if (provider === "smtp") return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USERNAME && env.SMTP_PASSWORD && env.FROM_EMAIL);
   return false;
 }
 async function gmailAccessToken(env) {
+  if (brokerConfigured(env)) {
+    const response = await env.AUTH_BROKER.fetch("https://identity.internal/internal/google-access-token", {
+      method: "POST",
+      headers: { "x-clintware-google-secret": env.GOOGLE_DELEGATED_BRIDGE_SECRET },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.access_token) {
+      const error = new Error("gmail_broker_token_failed");
+      error.code = "gmail_broker_token_failed";
+      error.status = response.status;
+      throw error;
+    }
+    return data.access_token;
+  }
+
+  if (!directGoogleConfigured(env)) {
+    const error = new Error("gmail_oauth_not_configured");
+    error.code = "gmail_oauth_not_configured";
+    throw error;
+  }
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
