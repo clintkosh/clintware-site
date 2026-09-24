@@ -1,0 +1,103 @@
+name: Record Google OAuth Verification Demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/record-google-oauth-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wait for updated Clintware Control Plane
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 15 https://mcp.clintware.com/health || true)
+            if [ -n "$body" ]; then
+              echo "$body"
+              break
+            fi
+            echo "Waiting for control plane ($i/60)"
+            sleep 5
+          done
+
+      - name: Refresh qq recording runtime
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          submit() {
+            curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs               -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"               -H "Content-Type: application/json"               --data "$1"
+          }
+          response=$(submit '{"task_id":"self-update","args":{},"objective":"Refresh qq before the Google OAuth verification recording."}')
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+          for i in $(seq 1 90); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then echo "$state"; break; fi
+            if [ "$status" = "failed" ]; then echo "$state"; exit 1; fi
+            sleep 3
+          done
+
+      - name: Ensure recording dependencies
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data '{"task_id":"browser-setup","args":{},"objective":"Install the Playwright and full-screen recording dependencies needed for the OAuth verification video."}')
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+          for i in $(seq 1 180); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then echo "$state"; break; fi
+            if [ "$status" = "failed" ]; then echo "$state"; exit 1; fi
+            sleep 5
+          done
+
+      - name: Launch and record live OAuth verification flow
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          response=""
+          for i in $(seq 1 60); do
+            set +e
+            response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs               -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"               -H "Content-Type: application/json"               --data '{"task_id":"record-google-oauth-verification","args":{},"objective":"Record the live Google OAuth consent and Clintware Calendar/Gmail scope usage demo. Save the finished MP4 in the user Downloads folder."}' 2>&1)
+            code=$?
+            set -e
+            if [ "$code" = "0" ]; then break; fi
+            echo "$response"
+            echo "Waiting for updated local-task allowlist ($i/60)"
+            sleep 5
+          done
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+          echo "The browser is opening on the Clintware PC. Complete the Google sign-in and consent screen there."
+
+          for i in $(seq 1 240); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then
+              echo "$state"
+              echo "READY: C:\Users\batman\Downloads\Clintware-Google-OAuth-Verification-Demo.mp4"
+              exit 0
+            fi
+            if [ "$status" = "failed" ]; then
+              echo "$state"
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for the interactive OAuth recording." >&2
+          exit 1
