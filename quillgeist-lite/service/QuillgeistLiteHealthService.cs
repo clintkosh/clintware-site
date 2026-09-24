@@ -553,7 +553,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.1.0\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"1.2.0\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
