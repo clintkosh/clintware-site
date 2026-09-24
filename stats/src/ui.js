@@ -145,7 +145,7 @@ export function dashboardHtml(nonce, options = {}) {
         <div><h2>CRM tracking coverage</h2><div class="panel-sub">One measurement ID, distinct namespaces, live availability</div></div>
         <div class="status-pill">Source verified</div>
       </div>
-      <div class="table-head" aria-hidden="true"><span>CRM property</span><span>GA4 namespace</span><span>Audited surface</span><span>Live status</span><span class="align-right">Traffic</span></div>
+      <div class="table-head" aria-hidden="true"><span>CRM property</span><span>Analytics source</span><span>Audited surface</span><span>Live status</span><span class="align-right">Traffic</span></div>
       <div id="portfolio-rows" aria-live="polite"></div>
     </section>
   </main>
