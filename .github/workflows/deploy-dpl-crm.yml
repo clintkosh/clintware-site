@@ -28,7 +28,10 @@ jobs:
           npm run check
           ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
           grep -Fq "ACME GLOBAL" src/index.js
-          grep -Fq "Atlas Financial Group" src/sample-customers.js
+          grep -Fq "Advance" src/sample-customers.js
+          grep -Fq "ARK Invest" src/sample-customers.js
+          grep -Fq "REA Group" src/sample-customers.js
+          grep -Fq "public_research" src/index.js
           grep -Fq "Technical Customer Engineering" src/index.js
           grep -Fq "Okta SSO" src/index.js
           grep -Fq "Splunk" src/index.js
@@ -41,6 +44,7 @@ jobs:
           grep -Fq "getDisplayMedia" public/app-ai.js
           grep -Fq "/api/ai/interpret-change" src/index.js
           grep -Fq "/api/audio/transcribe" src/index.js
+          grep -Fq "dpl_public_research_query" src/index.js
           grep -Fq "cross_site_mutation_blocked" src/index.js
           grep -Fq "write_scope_required" src/index.js
           grep -Fq "record_changed_since_interpretation" src/index.js
@@ -51,6 +55,10 @@ jobs:
           grep -Fq "stakeholder" public/app-config.js
           grep -Fq "brief-add-stakeholder" public/app-forms.js
           grep -Fq "\"stakeholder\"" src/index.js
+          grep -Fq "doppel-brand.css" public/index.html
+          grep -Fq "doppel-polish.js" public/index.html
+          grep -Fq "AI + Exa research" public/doppel-polish.js
+          grep -Fq "Clear all data" public/doppel-polish.js
 
       - name: Wrangler dry run
         run: |
@@ -84,13 +92,16 @@ jobs:
             h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/health || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/ || true)
             a=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/app-ai.js || true)
+            b=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/doppel-polish.js || true)
             if grep -Fq '"service":"clintware-dpl-crm"' <<< "$h" \
               && grep -Fq '"lovable":false' <<< "$h" \
               && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
               && grep -Fq 'Doppel Technical Customer Engineering CRM' <<< "$p" \
               && grep -Fq '/app-ai.js' <<< "$p" \
+              && grep -Fq '/doppel-brand.css' <<< "$p" \
               && grep -Fq 'getDisplayMedia' <<< "$a" \
-              && grep -Fq 'Interpret update' <<< "$a"; then
+              && grep -Fq 'Interpret update' <<< "$a" \
+              && grep -Fq 'AI + Exa research' <<< "$b"; then
               ready=1
               break
             fi
@@ -104,7 +115,7 @@ jobs:
           state_code=$(tr -cd '0-9' <<< "$state_code")
           echo "state HTTP $state_code"; cat /tmp/dplstate.json
           test "$state_code" = "200"
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==7; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==7; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==3; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
           import_code=$(curl -sS -o /tmp/dplimport.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dpl.clintware.com/api/customers/bulk-import)
           import_code=$(tr -cd '0-9' <<< "$import_code")
           echo "import HTTP $import_code"; cat /tmp/dplimport.json
@@ -113,22 +124,18 @@ jobs:
           imported=0
           for j in $(seq 1 10); do
             curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplafter.json || true
-            if python3 -c 'import json; d=json.load(open("/tmp/dplafter.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then
-              imported=1
-              break
-            fi
-            echo "Waiting for imported customer visibility ($j/10)"
-            sleep 1
+            if python3 -c 'import json; d=json.load(open("/tmp/dplafter.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then imported=1; break; fi
+            echo "Waiting for imported customer visibility ($j/10)"; sleep 1
           done
           test "$imported" = "1"
           echo "Verifying clear-except-golden"
           curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dpl.clintware.com/api/customers/clear >/tmp/dplclear.json
           curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplkept.json
           python3 -c 'import json; d=json.load(open("/tmp/dplkept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME GLOBAL"'
-          echo "Verifying default sample reset"
+          echo "Verifying hybrid demo reset"
           curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{}' https://dpl.clintware.com/api/customers/reset-samples >/tmp/dplreset.json
           curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplresetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6'
+          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==3; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
           echo "Verifying stakeholder create from meeting prep data model"
           customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); print(d["customer"]["id"])')
           stakeholder_code=$(curl -sS -o /tmp/dplstakeholder.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dpl.clintware.com/api/records)
@@ -151,14 +158,14 @@ jobs:
           echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
           ai_status=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/api/ai/status)
           echo "$ai_status" | grep -Fq '"guestAvailable":true'
+          echo "$ai_status" | grep -Fq '"provider":"exa"'
           ai_guest_contract_status=$(curl -sS -o /tmp/dpl-ai-guest-contract.json -w '%{http_code}' -X POST https://dpl.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
           echo "AI guest contract HTTP $ai_guest_contract_status"; test "$ai_guest_contract_status" = "400"
           grep -Fq '"error":"text_and_customer_required"' /tmp/dpl-ai-guest-contract.json
           auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/dpl-crm || true)
           echo "$auth" | grep -Fq '"app":"dpl-crm"'
           echo "$auth" | grep -Fq '"redirect_uri":"https://dpl.clintware.com/auth/callback"'
-          echo "Doppel Technical Customer Engineering CRM live with Clintware OAuth configuration."
-
+          echo "Doppel Technical Customer Engineering CRM live with guest access, SSO persistence, hybrid sample data, and MCP-backed Exa contract."
 
       - name: Real browser smoke
         run: |
