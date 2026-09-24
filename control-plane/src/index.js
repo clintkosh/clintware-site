@@ -223,6 +223,7 @@ const DEFAULT_QUILLGEIST_LITE = {
 
 const QUILLGEIST_LITE_TASKS = {
   "clintware-doctor":{runtime:"powershell",parameters:[]},
+  "ensure-powershell":{runtime:"powershell",parameters:[]},
   "google-cloud-support-access":{runtime:"powershell",parameters:["OwnerAccount","SupportAccount","ProjectName"]},
   "finish-google-oauth":{runtime:"powershell",parameters:["Repo"]},
   "python-runtime-check":{runtime:"python",parameters:["Message"]},
@@ -480,7 +481,7 @@ function productHub(env, product){return env.PRODUCT_HUB.getByName(`product:${no
 function registryHub(env){return env.REGISTRY_HUB.getByName("registry:v1");}
 
 export class RegistryHub extends DurableObject {
-  constructor(ctx,env){super(ctx,env);}
+  constructor(ctx,env){super(ctx,env);this.env=env;}
   async pendingChatgptHandoffs(){
     const index=await this.ctx.storage.get("handoff_index")||[];
     const acked=await this.ctx.storage.get("handoff_ack_chatgpt")||{};
@@ -518,6 +519,126 @@ export class RegistryHub extends DurableObject {
     }
     return jobs.reverse();
   }
+  async quillgeistLiteQuestions(status="pending",limit=50){
+    const index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
+    const cutoff=Date.now()-HANDOFF_MAX_AGE_MS;
+    const rows=[];
+    for(const item of index){
+      if(Date.parse(item.created_at||"")<cutoff)continue;
+      const row=await this.ctx.storage.get(`quillgeist_lite_question:${item.question_id}`);
+      if(!row)continue;
+      if(status&&status!=="all"&&String(row.status)!==status)continue;
+      rows.push(row);
+      if(rows.length>=Math.max(1,Math.min(200,Number(limit)||50)))break;
+    }
+    return rows;
+  }
+  async pendingQuillgeistLiteAnswers(runnerId=""){
+    const rows=await this.quillgeistLiteQuestions("answered",100);
+    return rows.filter(row=>!row.delivered_at&&(!runnerId||!row.runner_id||row.runner_id===runnerId)).reverse();
+  }
+  async putQuillgeistLiteQuestion(body={}){
+    const question_id=clip(body.question_id||crypto.randomUUID(),120);
+    const now=nowIso();
+    const row={
+      question_id,
+      protocol:"clintware-quillgeist-lite-interactive/v1",
+      runner_id:clip(body.runner_id||"unknown",120),
+      text:clip(body.text||"",12000),
+      cwd:clip(body.cwd||"",1000),
+      shell:clip(body.shell||"",200),
+      status:"pending",
+      created_at:clip(body.timestamp||now,80),
+      updated_at:now,
+      answered_at:null,
+      answered_by:null,
+      answer:null,
+      delivered_at:null,
+      handoff_id:"qq-"+question_id
+    };
+    if(!row.text)return {ok:false,error:"question_text_required"};
+    await this.ctx.storage.put(`quillgeist_lite_question:${question_id}`,row);
+    let index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
+    index=index.filter(x=>x.question_id!==question_id);
+    index.unshift({question_id,runner_id:row.runner_id,status:row.status,created_at:row.created_at,updated_at:row.updated_at});
+    index=index.filter(x=>Date.parse(x.created_at||"")>=Date.now()-HANDOFF_MAX_AGE_MS).slice(0,200);
+    await this.ctx.storage.put("quillgeist_lite_question_index",index);
+    return {ok:true,question:row};
+  }
+  async relayQuillgeistLiteQuestion(question){
+    const packet=normalizeHandoff({
+      handoff_id:question.handoff_id,
+      from_client:"qq",
+      target_client:"chatgpt",
+      product:"quillgeist-lite",
+      project:"quillgeist-lite",
+      objective:question.text,
+      context_summary:`Interactive Quillgeist Lite request from runner ${question.runner_id}. Working directory: ${question.cwd||"(not supplied)"}. Shell: ${question.shell||"(not supplied)"}.`,
+      constraints:[
+        "Keep provider credentials and secrets behind the Clintware Control Plane.",
+        "Use allowlisted Quillgeist Lite tasks for local execution; do not send raw remote shell commands.",
+        "Return the user-facing response through clintware_quillgeist_lite_answer using the supplied question_id."
+      ],
+      next_actions:[`Answer question_id ${question.question_id} through clintware_quillgeist_lite_answer.`],
+      notes:`question_id=${question.question_id}; runner_id=${question.runner_id}`
+    });
+    await this.fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
+    const realtime=await this.broadcastHandoff(packet);
+    let mirror={ok:true,mirrored:false};
+    try{mirror=await mirrorHandoffToPowerChatBridge(this.env,packet);}catch(e){mirror={ok:false,mirrored:false,error:clip(e?.message||e,1000)};}
+    return {realtime_receivers:realtime,private_mirror:mirror};
+  }
+  async broadcastQuillgeistLiteAnswer(question){
+    let delivered=0;
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
+      try{
+        if(ws.readyState===1){
+          ws.send(JSON.stringify({
+            type:"answer",
+            protocol:"clintware-quillgeist-lite-interactive/v1",
+            question_id:question.question_id,
+            answer:question.answer,
+            answered_by:question.answered_by,
+            answered_at:question.answered_at
+          }));
+          delivered++;
+        }
+      }catch{}
+    }
+    return delivered;
+  }
+  async answerQuillgeistLiteQuestion(questionId,answer,answeredBy="mcp"){
+    const id=clip(questionId,120);
+    const key=`quillgeist_lite_question:${id}`;
+    const current=await this.ctx.storage.get(key);
+    if(!current)return {ok:false,error:"question_not_found"};
+    const next={
+      ...current,
+      status:"answered",
+      answer:clip(answer||"",24000),
+      answered_by:clip(answeredBy||"mcp",120),
+      answered_at:nowIso(),
+      delivered_at:null,
+      updated_at:nowIso()
+    };
+    if(!next.answer)return {ok:false,error:"answer_required"};
+    await this.ctx.storage.put(key,next);
+    let index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
+    index=index.map(x=>x.question_id===id?{...x,status:"answered",updated_at:next.updated_at}:x);
+    await this.ctx.storage.put("quillgeist_lite_question_index",index);
+    const delivered=await this.broadcastQuillgeistLiteAnswer(next);
+    return {ok:true,question:next,delivered};
+  }
+  async markQuillgeistLiteAnswerDelivered(questionId,runnerId=""){
+    const id=clip(questionId,120);
+    const key=`quillgeist_lite_question:${id}`;
+    const current=await this.ctx.storage.get(key);
+    if(!current)return {ok:false,error:"question_not_found"};
+    if(runnerId&&current.runner_id&&current.runner_id!==runnerId)return {ok:false,error:"runner_mismatch"};
+    const next={...current,delivered_at:nowIso(),updated_at:nowIso()};
+    await this.ctx.storage.put(key,next);
+    return {ok:true};
+  }
   async broadcastQuillgeistLite(job){
     let delivered=0;
     for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
@@ -549,6 +670,7 @@ export class RegistryHub extends DurableObject {
       online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
       runner,
       jobs:index.slice(0,50),
+      questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
       service_devices:(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20),
       diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse()
     };
@@ -653,9 +775,33 @@ export class RegistryHub extends DurableObject {
       const attachment=ws.deserializeAttachment()||{};
       if(attachment.receiver==="quillgeist-lite"){
         if(data?.type==="hello"){
-          const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
+          const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),capabilities:clipList(data.capabilities,20,120),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
           await this.ctx.storage.put("quillgeist_lite_runner",runner);
           ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite/v1",time:nowIso()}));
+          const pendingAnswers=await this.pendingQuillgeistLiteAnswers(runner.runner_id);
+          for(const question of pendingAnswers){
+            try{ws.send(JSON.stringify({type:"answer",protocol:"clintware-quillgeist-lite-interactive/v1",question_id:question.question_id,answer:question.answer,answered_by:question.answered_by,answered_at:question.answered_at,backlog:true}));}catch{}
+          }
+          return;
+        }
+        if(data?.type==="question"){
+          const created=await this.putQuillgeistLiteQuestion(data);
+          if(!created.ok){ws.send(JSON.stringify({type:"question_ack",ok:false,question_id:clip(data.question_id||"",120),error:created.error}));return;}
+          const delivery=await this.relayQuillgeistLiteQuestion(created.question);
+          ws.send(JSON.stringify({type:"question_ack",ok:true,question_id:created.question.question_id,handoff_id:created.question.handoff_id,delivery,time:nowIso()}));
+          return;
+        }
+        if(data?.type==="question_poll"){
+          const runnerId=clip(data.runner_id||"unknown",120);
+          const pendingAnswers=await this.pendingQuillgeistLiteAnswers(runnerId);
+          for(const question of pendingAnswers){
+            try{ws.send(JSON.stringify({type:"answer",protocol:"clintware-quillgeist-lite-interactive/v1",question_id:question.question_id,answer:question.answer,answered_by:question.answered_by,answered_at:question.answered_at,poll:true}));}catch{}
+          }
+          ws.send(JSON.stringify({type:"question_status",pending_answers:pendingAnswers.length,time:nowIso()}));
+          return;
+        }
+        if(data?.type==="answer_ack"&&data.question_id){
+          await this.markQuillgeistLiteAnswerDelivered(data.question_id,clip(data.runner_id||"",120));
           return;
         }
         if(data?.type==="ack"&&data.job_id){
@@ -797,6 +943,13 @@ export class RegistryHub extends DurableObject {
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-job"){
       const body=await reqJson(request,64_000);
       return json(await this.putQuillgeistLiteJob(body));
+    }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-questions"){
+      return json({ok:true,questions:await this.quillgeistLiteQuestions(clip(url.searchParams.get("status")||"pending",20),Number(url.searchParams.get("limit")||50))});
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-question-answer"){
+      const body=await reqJson(request,64_000);
+      return json(await this.answerQuillgeistLiteQuestion(body.question_id,body.answer,body.answered_by||"mcp"));
     }
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-broadcast"){
       const body=await reqJson(request,64_000);
@@ -1928,7 +2081,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","codefeddy-access-check","provision-codefeddy-platform"]),
+      task_id:z.enum(["clintware-doctor","ensure-powershell","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","codefeddy-access-check","provision-codefeddy-platform"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
@@ -1966,6 +2119,31 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     const r=await registryHub(env).fetch(`https://internal/quillgeist-lite-job/${encodeURIComponent(job_id)}`);
     const data=await r.json();
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_lite_questions",{
+    title:"Read interactive questions relayed from qq",
+    description:"Return bounded pending or answered natural-language requests typed into the Quillgeist Lite local console.",
+    inputSchema:{status:z.enum(["pending","answered","all"]).optional(),limit:z.number().int().min(1).max(200).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({status,limit})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const r=await registryHub(env).fetch(`https://internal/quillgeist-lite-questions?status=${encodeURIComponent(status||"pending")}&limit=${Math.max(1,Math.min(200,Number(limit)||50))}`);
+    const data=await r.json();
+    return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_lite_answer",{
+    title:"Answer an interactive qq question",
+    description:"Return a user-facing answer to the originating Quillgeist Lite console. The answer is stored durably until the local runner acknowledges delivery.",
+    inputSchema:{question_id:z.string().min(1).max(120),answer:z.string().min(1).max(24000)},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({question_id,answer})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const r=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-question-answer",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question_id,answer,answered_by:mcpAuth?.client_id||"mcp"})}));
+    const data=await r.json();
+    await audit(env,"quillgeist-lite","interactive_answer",question_id,{delivered:Number(data.delivered||0)},r.ok&&data.ok,data.error||"");
+    return {isError:!r.ok||!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
 
   server.registerTool("clintware_jira_status",{
@@ -2726,6 +2904,27 @@ export default {
         if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
         const limit=Math.max(1,Math.min(200,Number(url.searchParams.get("limit")||100)));
         return await registryHub(env).fetch(`https://internal/quillgeist-lite-diagnostics?limit=${limit}`);
+      }
+
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/questions"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const status=["pending","answered","all"].includes(String(url.searchParams.get("status")||"pending"))?String(url.searchParams.get("status")||"pending"):"pending";
+        const limit=Math.max(1,Math.min(200,Number(url.searchParams.get("limit")||50)));
+        return await registryHub(env).fetch(`https://internal/quillgeist-lite-questions?status=${encodeURIComponent(status)}&limit=${limit}`);
+      }
+      const quillgeistLiteAnswerMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/questions\/([^/]+)\/answer$/);
+      if(request.method==="POST"&&quillgeistLiteAnswerMatch){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const body=await reqJson(request,64_000);
+        const question_id=clip(decodeURIComponent(quillgeistLiteAnswerMatch[1]),120);
+        const r=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-question-answer",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question_id,answer:body.answer,answered_by:mcpAuth.client_id||"rest-mcp"})}));
+        const data=await r.json();
+        await audit(env,"quillgeist-lite","interactive_answer",question_id,{delivered:Number(data.delivered||0)},r.ok&&data.ok,data.error||"");
+        return json(data,r.ok&&data.ok?200:404);
       }
 
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/jobs"){
