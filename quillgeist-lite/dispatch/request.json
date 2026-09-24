@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-force-wake-reconnect-20260924-1106",
+  "request_id": "chatgpt-quillgeist-web-self-update-20260924-1647",
   "task_id": "self-update",
   "args": {},
-  "objective": "Force a fresh watchdog wake/reconnect on DRIZNET, then apply the validated current qq build: runner 1.5.1, compact Clintware eclipse popup, small inline Clintware logo first above welcome text, cache-proof startup, service recovery hardening, and independent fallback watchdog."
+  "objective": "Refresh qq from canonical Clintware source so Quillgeist Web search, page reading, governed browser automation, new console commands, and safety policy are installed locally."
 }
