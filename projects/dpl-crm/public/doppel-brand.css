@@ -1,0 +1,47 @@
+/* Doppel-inspired candidate-demo visual layer. Not an official Doppel stylesheet. */
+:root{
+  --bg:#08090b;--panel:#101215;--panel2:#171a1f;--line:#2a2e35;--text:#f7f7f2;--muted:#a4a8ae;
+  --blue:#315cff;--cyan:#5fe5ff;--green:#c8ff4d;--amber:#ffd45f;--red:#ff667f;--shadow:0 18px 55px rgba(0,0,0,.36);
+  --dpl-grid:rgba(255,255,255,.045);--dpl-glow:rgba(49,92,255,.18);--dpl-lime:#c8ff4d;
+}
+:root[data-theme=light]{
+  --bg:#f5f5f1;--panel:#ffffff;--panel2:#eceee9;--line:#d8dcd4;--text:#101114;--muted:#62686f;
+  --blue:#244cff;--cyan:#006e8a;--green:#4d7600;--amber:#9a6b00;--red:#c93650;--shadow:0 14px 40px rgba(16,20,28,.10);
+  --dpl-grid:rgba(10,12,18,.055);--dpl-glow:rgba(49,92,255,.11);--dpl-lime:#a8df25;
+}
+html{background:var(--bg)}
+body{position:relative;min-height:100vh;background:
+ linear-gradient(var(--dpl-grid) 1px,transparent 1px),
+ linear-gradient(90deg,var(--dpl-grid) 1px,transparent 1px),
+ radial-gradient(circle at 84% 8%,var(--dpl-glow),transparent 26%),
+ radial-gradient(circle at 10% 70%,color-mix(in srgb,var(--dpl-lime) 8%,transparent),transparent 28%),
+ var(--bg);background-size:34px 34px,34px 34px,auto,auto,auto;background-attachment:fixed}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(115deg,transparent 0 62%,color-mix(in srgb,var(--blue) 10%,transparent) 62% 69%,transparent 69%)}
+.top{backdrop-filter:blur(18px);background:color-mix(in srgb,var(--bg) 88%,transparent);border-color:color-mix(in srgb,var(--line) 78%,transparent)}
+.brand{font-size:17px;letter-spacing:-.025em}.brand:before{content:"Doppel";display:inline-block;margin-right:9px;font-size:19px;font-weight:950;letter-spacing:-.055em;color:var(--text)}.brand small{margin-top:2px;letter-spacing:.02em}
+.side{background:color-mix(in srgb,var(--bg) 83%,transparent);backdrop-filter:blur(14px)}
+.nav button{border:1px solid transparent}.nav button.active,.nav button:hover{border-color:var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 13%,var(--panel2)),var(--panel2));color:var(--text)}
+.nav button.active:before{content:"";display:inline-block;width:6px;height:6px;margin-right:8px;border-radius:50%;background:var(--dpl-lime);box-shadow:0 0 14px color-mix(in srgb,var(--dpl-lime) 75%,transparent)}
+.page-head{position:relative;padding:2px 0 14px;border-bottom:1px solid color-mix(in srgb,var(--line) 75%,transparent)}
+.page-head h1{font-size:clamp(26px,3vw,40px);letter-spacing:-.045em;line-height:1.04;max-width:880px}.page-head .sub{font-size:14px;max-width:930px}
+.eyebrow{color:var(--dpl-lime);letter-spacing:.15em}.prov{color:var(--cyan)}
+.card,.cust,.customer-card,.stakeholder-card,.kb-card,.modal,.top-menu{background:linear-gradient(160deg,color-mix(in srgb,var(--panel) 96%,var(--blue)),var(--panel));border-color:color-mix(in srgb,var(--line) 88%,transparent)}
+.card:hover,.customer-card:hover,.kb-card:hover{border-color:color-mix(in srgb,var(--blue) 62%,var(--line))}
+.btn{border-radius:999px;padding:8px 13px;background:color-mix(in srgb,var(--panel) 92%,var(--blue));transition:transform .12s ease,border-color .12s ease,background .12s ease}.btn:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--blue) 65%,var(--line))}.btn.primary{background:var(--dpl-lime);color:#11140b;border:1px solid color-mix(in srgb,var(--dpl-lime) 85%,#fff);box-shadow:0 7px 26px color-mix(in srgb,var(--dpl-lime) 16%,transparent)}
+.btn.danger{border-color:color-mix(in srgb,var(--red) 70%,var(--line));background:color-mix(in srgb,var(--red) 10%,var(--panel));color:var(--red)}
+.access-pill.saved{color:var(--dpl-lime);border-color:color-mix(in srgb,var(--dpl-lime) 35%,var(--line))}.access-pill.guest{color:var(--amber)}
+.metric{letter-spacing:-.035em}.accent{border-color:color-mix(in srgb,var(--blue) 68%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--blue) 15%,var(--panel)),var(--panel))}
+.progress span{background:linear-gradient(90deg,var(--blue),var(--cyan),var(--dpl-lime))}
+.role-strip>div{position:relative;overflow:hidden}.role-strip>div:after{content:"";position:absolute;width:55px;height:55px;border-radius:50%;right:-18px;top:-20px;background:linear-gradient(135deg,var(--blue),var(--dpl-lime));opacity:.22}
+.callout{border-left-color:var(--dpl-lime)}.callout strong{color:var(--dpl-lime)}
+.public-ref{border-color:color-mix(in srgb,var(--blue) 55%,var(--line));background:linear-gradient(155deg,color-mix(in srgb,var(--blue) 11%,var(--panel)),var(--panel))}.public-ref .prov{color:var(--dpl-lime)}
+.public-source{display:inline-flex;align-items:center;gap:5px;margin-top:9px;color:var(--cyan);font-weight:800;font-size:11px;text-decoration:none}.public-source:hover{text-decoration:underline}
+.view-theme{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--panel2)}.view-theme button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:850;padding:5px 8px;border-radius:999px;cursor:pointer}.view-theme button.active{background:var(--text);color:var(--bg)}
+.view-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.head-actions{width:100%;align-items:center}.head-actions .view-tools{margin-left:auto}
+.dataset-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}.dataset-strip .card{box-shadow:none}.dataset-strip .metric{font-size:21px}
+.source-chip{display:inline-flex;padding:3px 7px;border:1px solid var(--line);border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}.source-chip.public{color:var(--dpl-lime)}.source-chip.synthetic{color:var(--amber)}
+.persistence.saved{border-color:color-mix(in srgb,var(--dpl-lime) 45%,var(--line));background:linear-gradient(130deg,color-mix(in srgb,var(--dpl-lime) 5%,var(--panel)),var(--panel))}
+.persistence.guest{background:linear-gradient(130deg,color-mix(in srgb,var(--amber) 5%,var(--panel)),var(--panel))}
+.theme-dot{width:8px;height:8px;border-radius:50%;background:var(--dpl-lime);box-shadow:0 0 12px color-mix(in srgb,var(--dpl-lime) 65%,transparent)}
+@media(max-width:1000px){.dataset-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.head-actions .view-tools{margin-left:0}}
+@media(max-width:680px){body{background-size:26px 26px,26px 26px,auto,auto,auto}.brand:before{font-size:17px}.dataset-strip{grid-template-columns:1fr}.view-theme{margin-left:0}.head-actions{align-items:flex-start}.page-head h1{font-size:28px}}
