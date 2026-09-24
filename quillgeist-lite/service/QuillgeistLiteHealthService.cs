@@ -42,6 +42,7 @@ namespace Clintware.QuillgeistLite
         private DateTime serviceStartedUtc = DateTime.MinValue;
         private DateTime lastRestartAttemptUtc = DateTime.MinValue;
         private DateTime lastAutoRepairAttemptUtc = DateTime.MinValue;
+        private bool shuttingDown = false;
 
         public QuillgeistLiteHealthService()
         {
@@ -72,10 +73,16 @@ namespace Clintware.QuillgeistLite
             try { if (wakeThread != null && wakeThread.IsAlive) wakeThread.Join(3000); } catch { }
             TryPost("INFO", "service", "health_service_stopped", previousRunnerAlive);
             LocalLog("service_stopped");
+
+            if (!shuttingDown && !MaintenanceModeActive())
+            {
+                ScheduleServiceRestart();
+            }
         }
 
         protected override void OnShutdown()
         {
+            shuttingDown = true;
             OnStop();
             base.OnShutdown();
         }
@@ -236,6 +243,47 @@ namespace Clintware.QuillgeistLite
             finally
             {
                 Monitor.Exit(gate);
+            }
+        }
+
+        private bool MaintenanceModeActive()
+        {
+            try
+            {
+                string marker = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "Clintware", "QuillgeistLite", "maintenance.lock");
+                if (!File.Exists(marker)) return false;
+
+                DateTime ageBase = File.GetLastWriteTimeUtc(marker);
+                if ((DateTime.UtcNow - ageBase).TotalMinutes <= 10) return true;
+
+                try { File.Delete(marker); } catch { }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void ScheduleServiceRestart()
+        {
+            try
+            {
+                string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+                string cmd = Path.Combine(system, "cmd.exe");
+                string args = "/c ping 127.0.0.1 -n 9 >nul & sc.exe start \"" +
+                    ServiceName.Replace("\"", "") + "\" >nul 2>&1";
+                ProcessStartInfo psi = new ProcessStartInfo(cmd, args);
+                psi.CreateNoWindow = true;
+                psi.UseShellExecute = false;
+                Process.Start(psi);
+                LocalLog("service_restart_deadman_armed");
+            }
+            catch (Exception ex)
+            {
+                LocalLog("service_restart_deadman_failed " + Redact(ex.Message));
             }
         }
 
