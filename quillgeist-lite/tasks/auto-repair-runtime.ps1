@@ -67,7 +67,9 @@ try {
   $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
   $action = New-ScheduledTaskAction -Execute $hostExe -Argument $taskArgs -WorkingDirectory $HomeDir
   Set-ScheduledTask -TaskName $TaskName -Action $action | Out-Null
+  Enable-ScheduledTask -TaskName $TaskName | Out-Null
   Write-RepairLog ("AUTO_REPAIR // task host set to " + $hostExe)
+  Write-RepairLog "AUTO_REPAIR // runner task enabled"
 } catch {
   Write-RepairLog ("AUTO_REPAIR WARN // task rewrite failed: " + $_.Exception.Message)
 }
@@ -83,7 +85,11 @@ try {
   Write-RepairLog ("AUTO_REPAIR WARN // health service restart failed: " + $_.Exception.Message)
 }
 
+try { Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null } catch {
+  Write-RepairLog ("AUTO_REPAIR WARN // could not enable runner task: " + $_.Exception.Message)
+}
 try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch {}
 Start-Sleep -Milliseconds 700
-Start-ScheduledTask -TaskName $TaskName
+Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
+Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 Write-RepairLog "AUTO_REPAIR_READY // qq restart requested"
