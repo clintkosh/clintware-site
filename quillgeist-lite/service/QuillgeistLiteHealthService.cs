@@ -23,12 +23,14 @@ namespace Clintware.QuillgeistLite
         [DataMember] public string RunnerLogPath;
         [DataMember] public string CrashLogPath;
         [DataMember] public string LocalServiceLogPath;
+        [DataMember] public string AutoRepairPath;
     }
 
     public sealed class QuillgeistLiteHealthService : ServiceBase
     {
         private readonly object gate = new object();
         private readonly Queue<DateTime> restarts = new Queue<DateTime>();
+        private readonly Queue<DateTime> errorSignals = new Queue<DateTime>();
         private readonly Dictionary<string, long> offsets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         private Timer timer;
         private HealthConfig config;
@@ -39,6 +41,7 @@ namespace Clintware.QuillgeistLite
         private DateTime lastSuppressedNotice = DateTime.MinValue;
         private DateTime serviceStartedUtc = DateTime.MinValue;
         private DateTime lastRestartAttemptUtc = DateTime.MinValue;
+        private DateTime lastAutoRepairAttemptUtc = DateTime.MinValue;
 
         public QuillgeistLiteHealthService()
         {
@@ -228,6 +231,7 @@ namespace Clintware.QuillgeistLite
             {
                 LocalLog("tick_error " + ex);
                 TryPost("ERROR", "service", "watchdog_exception: " + Redact(ex.ToString()), previousRunnerAlive);
+                RegisterErrorSignal("service_tick", ex.ToString());
             }
             finally
             {
@@ -269,6 +273,7 @@ namespace Clintware.QuillgeistLite
                     TryPost("ERROR", "health", msg, false);
                     lastSuppressedNotice = now;
                 }
+                TryAutoRepair("restart_limit");
                 return;
             }
 
@@ -368,6 +373,102 @@ namespace Clintware.QuillgeistLite
             string message = String.Join("\n", selected.ToArray());
             string level = phase == "runner-crash" ? "ERROR" : InferLevel(message);
             TryPost(level, phase, message, previousRunnerAlive);
+            if (level == "ERROR") RegisterErrorSignal(phase, message);
+        }
+
+        private void RegisterErrorSignal(string source, string message)
+        {
+            DateTime now = DateTime.UtcNow;
+            DateTime cutoff = now.AddMinutes(-2);
+            while (errorSignals.Count > 0 && errorSignals.Peek() < cutoff) errorSignals.Dequeue();
+            errorSignals.Enqueue(now);
+
+            LocalLog("error_signal source=" + Redact(source) + " count_2m=" + errorSignals.Count);
+            if (errorSignals.Count >= 3)
+            {
+                TryAutoRepair("error_burst:" + source);
+                errorSignals.Clear();
+            }
+        }
+
+        private string ResolvePowerShellHost()
+        {
+            try
+            {
+                string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                string pwsh = Path.Combine(programFiles, "PowerShell", "7", "pwsh.exe");
+                if (File.Exists(pwsh)) return pwsh;
+            }
+            catch { }
+
+            string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            return Path.Combine(system, "WindowsPowerShell", "v1.0", "powershell.exe");
+        }
+
+        private void TryAutoRepair(string reason)
+        {
+            DateTime now = DateTime.UtcNow;
+            if ((now - lastAutoRepairAttemptUtc).TotalMinutes < 30) return;
+
+            if (config == null || String.IsNullOrWhiteSpace(config.AutoRepairPath) || !File.Exists(config.AutoRepairPath))
+            {
+                string unavailable = "auto_repair_unavailable reason=" + Redact(reason);
+                LocalLog(unavailable);
+                TryPost("WARN", "auto-repair", unavailable, previousRunnerAlive);
+                lastAutoRepairAttemptUtc = now;
+                return;
+            }
+
+            string home = "";
+            try { home = Path.GetDirectoryName(config.RunnerPidPath) ?? ""; } catch { }
+            if (String.IsNullOrWhiteSpace(home))
+            {
+                LocalLog("auto_repair_home_unavailable");
+                return;
+            }
+
+            lastAutoRepairAttemptUtc = now;
+            string startMessage = "auto_repair_started reason=" + Redact(reason);
+            LocalLog(startMessage);
+            TryPost("WARN", "auto-repair", startMessage, previousRunnerAlive);
+
+            try
+            {
+                string host = ResolvePowerShellHost();
+                ProcessStartInfo psi = new ProcessStartInfo(
+                    host,
+                    "-NoProfile -ExecutionPolicy Bypass -File \"" +
+                    config.AutoRepairPath.Replace("\"", "\\\"") +
+                    "\" -HomeDir \"" + home.Replace("\"", "\\\"") + "\"");
+                psi.CreateNoWindow = true;
+                psi.UseShellExecute = false;
+                psi.RedirectStandardOutput = true;
+                psi.RedirectStandardError = true;
+
+                using (Process p = Process.Start(psi))
+                {
+                    if (!p.WaitForExit(120000))
+                    {
+                        try { p.Kill(); } catch { }
+                        throw new TimeoutException("auto_repair_timeout");
+                    }
+
+                    string stdout = p.StandardOutput.ReadToEnd();
+                    string stderr = p.StandardError.ReadToEnd();
+                    string detail = "auto_repair_complete exit=" + p.ExitCode;
+                    if (!String.IsNullOrWhiteSpace(stdout)) detail += " output=" + Redact(stdout);
+                    if (!String.IsNullOrWhiteSpace(stderr)) detail += " stderr=" + Redact(stderr);
+
+                    LocalLog(detail);
+                    TryPost(p.ExitCode == 0 ? "INFO" : "ERROR", "auto-repair", detail, RunnerAlive());
+                }
+            }
+            catch (Exception ex)
+            {
+                string failed = "auto_repair_failed: " + Redact(ex.ToString());
+                LocalLog(failed);
+                TryPost("ERROR", "auto-repair", failed, RunnerAlive());
+            }
         }
 
         private bool IsImportantRunnerLine(string line)
@@ -398,7 +499,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.0.0\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"1.1.0\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
