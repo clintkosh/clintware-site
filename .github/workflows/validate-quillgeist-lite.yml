@@ -42,6 +42,7 @@ jobs:
             "quillgeist-lite/tasks/start-qq-window.ps1",
             "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
             "quillgeist-lite/tasks/browser-work.ps1",
+            "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
             "quillgeist-lite/tasks/repair-local-service.ps1",
@@ -82,7 +83,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 7) {
+          if ($registry.version -ne 8) {
             throw "Unexpected task registry version."
           }
 
@@ -120,7 +121,8 @@ jobs:
             "quillgeist-lite/tasks/runtime-python-check.py",
             "quillgeist-lite/tools/boot_splash.py",
             "quillgeist-lite/tools/terminal_repair.py",
-            "quillgeist-lite/tools/browser_agent.py"
+            "quillgeist-lite/tools/browser_agent.py",
+            "quillgeist-lite/tools/oauth_verification_capture.py"
           )
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
