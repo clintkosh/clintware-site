@@ -112,17 +112,24 @@ function Show-WindowLoadSplash {
     Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
     Move-Item ($SplashPath + ".new") $SplashPath -Force
 
-    $python = Get-Command py.exe -ErrorAction SilentlyContinue
-    if ($python) {
-      # Do not hide the splash process. This is the visible boot artwork for
-      # every qq window load and must appear in the interactive user session.
-      & $python.Source -3 $SplashPath
+    $pyw = Get-Command pyw.exe -ErrorAction SilentlyContinue
+    if ($pyw) {
+      Start-Process -FilePath $pyw.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null
       return
     }
-
+    $pythonw = Get-Command pythonw.exe -ErrorAction SilentlyContinue
+    if ($pythonw) {
+      Start-Process -FilePath $pythonw.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null
+      return
+    }
+    $python = Get-Command py.exe -ErrorAction SilentlyContinue
+    if ($python) {
+      Start-Process -FilePath $python.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null
+      return
+    }
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($python) {
-      & $python.Source $SplashPath
+      Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null
     }
   } catch {
     Remove-Item ($SplashPath + ".new") -Force -ErrorAction SilentlyContinue
