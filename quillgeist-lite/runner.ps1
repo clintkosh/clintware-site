@@ -277,9 +277,21 @@ function Write-Log {
   Show-QQPrompt
 }
 
-$mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLiteV2")
-if (-not $mutex.WaitOne(0,$false)) {
-  Write-Log "Another current-generation Quillgeist Lite runner is already active." "WARN"
+# V3 deliberately moves off the legacy V2 mutex. Older qq builds could leave a
+# live-but-disconnected PowerShell process holding V2 after runner.pid vanished,
+# which caused the health service to restart an endless series of runners that
+# immediately exited. V3 breaks that stale generation once, then uses the normal
+# OS-owned mutex lifecycle for single-instance enforcement.
+$mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLiteV3")
+$ownsMutex = $false
+try {
+  $ownsMutex = $mutex.WaitOne(0,$false)
+} catch [System.Threading.AbandonedMutexException] {
+  $ownsMutex = $true
+  Write-Log "Recovered an abandoned Quillgeist Lite single-instance mutex." "WARN"
+}
+if (-not $ownsMutex) {
+  Write-Log "Another Quillgeist Lite V3 runner is already active." "WARN"
   exit 0
 }
 
