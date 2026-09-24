@@ -29,10 +29,10 @@ jobs:
           ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
           grep -Fq "ACME GLOBAL" src/index.js
           grep -Fq "Atlas Financial Group" src/sample-customers.js
+          grep -Fq "Technical Customer Engineering" src/index.js
+          grep -Fq "Okta SSO" src/index.js
+          grep -Fq "Splunk" src/index.js
           grep -Fq "customersFromFile" public/import-utils.js
-          grep -Fq "50% improvement by end of Year 1" src/index.js
-          grep -Fq "6–8 weeks from start to go-live" src/index.js
-          grep -Fq "8–10 weeks" src/index.js
           grep -Fq "dpl-crm" src/index.js
           grep -Fq "Engineering-ready" public/app-views.js
           grep -Fq "RACI" public/app-views.js
@@ -98,22 +98,22 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
-          rm -f /tmp/n7demo.cookies
-          curl -fsS -c /tmp/n7demo.cookies https://dpl.clintware.com/ >/tmp/n7demo.html
-          state_code=$(curl -sS -o /tmp/n7state.json -w '%{http_code}' -b /tmp/n7demo.cookies -c /tmp/n7demo.cookies https://dpl.clintware.com/api/state)
+          rm -f /tmp/dpl.cookies
+          curl -fsS -c /tmp/dpl.cookies https://dpl.clintware.com/ >/tmp/dpl.html
+          state_code=$(curl -sS -o /tmp/dplstate.json -w '%{http_code}' -b /tmp/dpl.cookies -c /tmp/dpl.cookies https://dpl.clintware.com/api/state)
           state_code=$(tr -cd '0-9' <<< "$state_code")
-          echo "state HTTP $state_code"; cat /tmp/n7state.json
+          echo "state HTTP $state_code"; cat /tmp/dplstate.json
           test "$state_code" = "200"
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==7; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/n7state.json
-          import_code=$(curl -sS -o /tmp/n7import.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dpl.clintware.com/api/customers/bulk-import)
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==7; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
+          import_code=$(curl -sS -o /tmp/dplimport.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dpl.clintware.com/api/customers/bulk-import)
           import_code=$(tr -cd '0-9' <<< "$import_code")
-          echo "import HTTP $import_code"; cat /tmp/n7import.json
+          echo "import HTTP $import_code"; cat /tmp/dplimport.json
           test "$import_code" = "201"
           echo "Verifying imported customer persistence"
           imported=0
           for j in $(seq 1 10); do
-            curl -fsS -b /tmp/n7demo.cookies https://dpl.clintware.com/api/state >/tmp/n7after.json || true
-            if python3 -c 'import json; d=json.load(open("/tmp/n7after.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then
+            curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplafter.json || true
+            if python3 -c 'import json; d=json.load(open("/tmp/dplafter.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then
               imported=1
               break
             fi
@@ -122,20 +122,20 @@ jobs:
           done
           test "$imported" = "1"
           echo "Verifying clear-except-golden"
-          curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dpl.clintware.com/api/customers/clear >/tmp/n7clear.json
-          curl -fsS -b /tmp/n7demo.cookies https://dpl.clintware.com/api/state >/tmp/n7kept.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7kept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME GLOBAL"'
+          curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dpl.clintware.com/api/customers/clear >/tmp/dplclear.json
+          curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplkept.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplkept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME GLOBAL"'
           echo "Verifying default sample reset"
-          curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{}' https://dpl.clintware.com/api/customers/reset-samples >/tmp/n7reset.json
-          curl -fsS -b /tmp/n7demo.cookies https://dpl.clintware.com/api/state >/tmp/n7resetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6'
+          curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{}' https://dpl.clintware.com/api/customers/reset-samples >/tmp/dplreset.json
+          curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplresetstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6'
           echo "Verifying stakeholder create from meeting prep data model"
-          customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); print(d["customer"]["id"])')
-          stakeholder_code=$(curl -sS -o /tmp/n7stakeholder.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dpl.clintware.com/api/records)
+          customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); print(d["customer"]["id"])')
+          stakeholder_code=$(curl -sS -o /tmp/dplstakeholder.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dpl.clintware.com/api/records)
           stakeholder_code=$(tr -cd '0-9' <<< "$stakeholder_code")
           test "$stakeholder_code" = "201"
-          curl -fsS -b /tmp/n7demo.cookies "https://dpl.clintware.com/api/state?customer=$customer_id" >/tmp/n7stakeholderstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7stakeholderstate.json")); assert any(r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="CI Stakeholder" for r in d["records"])'
+          curl -fsS -b /tmp/dpl.cookies "https://dpl.clintware.com/api/state?customer=$customer_id" >/tmp/dplstakeholderstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplstakeholderstate.json")); assert any(r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="CI Stakeholder" for r in d["records"])'
           echo "Verifying security headers"
           headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://dpl.clintware.com/)
           echo "$headers"
@@ -145,15 +145,15 @@ jobs:
           grep -Fqi "script-src 'self'" <<< "$headers" || { echo "CSP is not self-only for scripts" >&2; exit 1; }
           grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers" || { echo "Missing COOP same-origin" >&2; exit 1; }
           echo "Verifying internal-route shielding and auth boundary"
-          blocked_backup_status=$(curl -sS -o /tmp/n7-backup-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/backup | tr -cd '0-9')
+          blocked_backup_status=$(curl -sS -o /tmp/dpl-backup-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/backup | tr -cd '0-9')
           echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
-          blocked_session_status=$(curl -sS -o /tmp/n7-session-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/session/test | tr -cd '0-9')
+          blocked_session_status=$(curl -sS -o /tmp/dpl-session-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/session/test | tr -cd '0-9')
           echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
           ai_status=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/api/ai/status)
           echo "$ai_status" | grep -Fq '"guestAvailable":true'
-          ai_guest_contract_status=$(curl -sS -o /tmp/n7-ai-guest-contract.json -w '%{http_code}' -X POST https://dpl.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
+          ai_guest_contract_status=$(curl -sS -o /tmp/dpl-ai-guest-contract.json -w '%{http_code}' -X POST https://dpl.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
           echo "AI guest contract HTTP $ai_guest_contract_status"; test "$ai_guest_contract_status" = "400"
-          grep -Fq '"error":"text_and_customer_required"' /tmp/n7-ai-guest-contract.json
+          grep -Fq '"error":"text_and_customer_required"' /tmp/dpl-ai-guest-contract.json
           auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/dpl-crm || true)
           echo "$auth" | grep -Fq '"app":"dpl-crm"'
           echo "$auth" | grep -Fq '"redirect_uri":"https://dpl.clintware.com/auth/callback"'
@@ -165,12 +165,12 @@ jobs:
           set -euo pipefail
           npm install --no-save --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
-          node tests/n7_browser_smoke.mjs
+          node tests/dpl_browser_smoke.mjs
 
       - name: Upload browser smoke screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: n7-browser-smoke
-          path: n7-home-smoke.png
+          name: dpl-browser-smoke
+          path: dpl-home-smoke.png
           if-no-files-found: ignore
