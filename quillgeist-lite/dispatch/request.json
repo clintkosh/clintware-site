@@ -1,14 +1,13 @@
 {
-  "request_id": "chatgpt-quillgeist-web-search-smoke-20260924-1706",
+  "request_id": "chatgpt-quillgeist-web-read-bing-debug-20260924-1708",
   "task_id": "browser-work",
   "args": {
-    "Action": "search",
-    "Query": "OpenAI ChatGPT",
-    "Engine": "auto",
-    "MaxResults": "5",
+    "Action": "read",
+    "Url": "https://www.bing.com/search?q=OpenAI+ChatGPT",
+    "MaxChars": "12000",
     "Headless": "true",
     "AllowPrivate": "false",
     "Approved": "false"
   },
-  "objective": "Smoke-test Quillgeist Web live public-web search through the paired qq browser and return five structured results."
+  "objective": "Read the current live Bing search page through qq to validate page extraction and capture markup-visible result text/links for parser hardening."
 }
