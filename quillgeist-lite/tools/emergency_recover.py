@@ -24,8 +24,8 @@ import tempfile
 import time
 import urllib.request
 
-VERSION = "2026.09.24.6"
-RAW = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
+VERSION = "2026.09.24.6.1"
+RAW = "https://raw.githubusercontent.com/clintkosh/clintware-site/fdcce8eca26534c4088dacb53536d8de4c7660d9/quillgeist-lite"
 SERVICE = "ClintwareQuillgeistLiteHealth"
 TASK = "Clintware Quillgeist Lite Runner"
 
