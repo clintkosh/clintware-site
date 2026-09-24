@@ -2927,6 +2927,20 @@ export default {
         return json(data,r.ok&&data.ok?200:404);
       }
 
+      const quillgeistLiteReceiverAnswerMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/questions\/([^/]+)\/answer-receiver$/);
+      if(request.method==="POST"&&quillgeistLiteReceiverAnswerMatch){
+        const receiver=await verifyGithubReceiver(request);
+        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const body=await reqJson(request,64_000);
+        const question_id=clip(decodeURIComponent(quillgeistLiteReceiverAnswerMatch[1]),120);
+        const answer=clip(body.answer||"",24000);
+        if(!answer)return json({error:"answer_required"},400);
+        const r=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-question-answer",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question_id,answer,answered_by:"powerchatbridge:"+receiver.login})}));
+        const data=await r.json();
+        await audit(env,"quillgeist-lite","interactive_receiver_answer",question_id,{receiver:receiver.login,delivered:Number(data.delivered||0)},r.ok&&data.ok,data.error||"");
+        return json(data,r.ok&&data.ok?200:404);
+      }
+
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/jobs"){
         const mcpAuth=await mcpAuthContext(request,env);
         if(!mcpAuth)return json({error:"unauthorized"},401);
