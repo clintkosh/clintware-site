@@ -1,0 +1,63 @@
+name: Build Clintware Audio Feedback Fix
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/audio-feedback-fix/**'
+      - '.github/workflows/build-audio-feedback-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj
+
+      - name: Publish single-file Windows executable
+        shell: pwsh
+        run: >
+          dotnet publish tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o artifacts/audio-feedback-fix
+
+      - name: Verify executable and run self-test
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe"
+          if (-not (Test-Path $exe)) { throw "EXE was not produced" }
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "Not a valid PE/MZ executable" }
+          & $exe --selftest
+          if ($LASTEXITCODE -ne 0) { throw "Self-test failed with exit code $LASTEXITCODE" }
+          $hash = Get-FileHash $exe -Algorithm SHA256
+          $size = (Get-Item $exe).Length
+          "SHA256=$($hash.Hash)" | Tee-Object -FilePath "artifacts/audio-feedback-fix/SHA256.txt"
+          "SIZE=$size" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
+          "VERSION=1.0.0" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
+
+      - name: Upload tested executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Clintware-AudioFeedbackFix-win-x64
+          path: artifacts/audio-feedback-fix/
+          if-no-files-found: error
+          retention-days: 30
