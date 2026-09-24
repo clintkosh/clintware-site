@@ -38,6 +38,17 @@ export const FIRST_PARTY_APPS = Object.freeze({
     contextScopes: Object.freeze(["n7demo-crm:read", "n7demo-crm:write"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
+  "dpl-crm": Object.freeze({
+    product: "dpl-crm",
+    name: "Doppel Technical Customer Engineering CRM",
+    home: "https://dpl.clintware.com",
+    redirectUri: "https://dpl.clintware.com/auth/callback",
+    scopes: Object.freeze(["identity", "email", "profile"]),
+    allowedEmailDomains: Object.freeze(["doppel.com"]),
+    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    contextScopes: Object.freeze(["dpl-crm:read", "dpl-crm:write"]),
+    identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
+  }),
   "control-plane-admin": Object.freeze({
     product: "control-plane-admin",
     name: "Clintware Control Plane Admin",
