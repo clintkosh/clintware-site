@@ -18,6 +18,7 @@ $RepairVersion = "2026.09.24.3"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
+$MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
 
 Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
@@ -107,8 +108,9 @@ $serviceWasRunning = ($service.Status -eq [System.ServiceProcess.ServiceControll
 # If this repair process is terminated or crashes after Stop-Service, the
 # helper restores the health service instead of leaving qq unsupervised.
 $deadman = @'
-param([string]$ServiceName)
+param([string]$ServiceName,[string]$MaintenanceMarker)
 Start-Sleep -Seconds 75
+try { Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue } catch {}
 try {
   $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($svc -and $svc.Status -ne "Running") {
@@ -117,7 +119,8 @@ try {
 } catch {}
 '@
 [IO.File]::WriteAllText($DeadmanPath,$deadman,(New-Object Text.UTF8Encoding($false)))
-$deadmanArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $DeadmanPath + '" -ServiceName "' + $ServiceName + '"'
+Set-Content -Path $MaintenanceMarker -Value ((Get-Date).ToUniversalTime().ToString("o")) -Encoding ASCII
+$deadmanArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $DeadmanPath + '" -ServiceName "' + $ServiceName + '" -MaintenanceMarker "' + $MaintenanceMarker + '"'
 Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $deadmanArgs -WindowStyle Hidden
 Write-Host "SERVICE // arming restart dead-man" -ForegroundColor DarkCyan
 
@@ -184,6 +187,7 @@ Set-Service -Name $ServiceName -StartupType Automatic
 & sc.exe failureflag $ServiceName 1 | Out-Null
 
 Start-Service -Name $ServiceName
+Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
 (Get-Service -Name $ServiceName).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(20))
 
 if (-not $SkipRunnerRestart) {
@@ -234,6 +238,7 @@ if (-not $SkipRunnerRestart) {
       Write-Host "SELF-HEAL // previous watchdog binary restored" -ForegroundColor DarkYellow
     }
     Set-Service -Name $ServiceName -StartupType Automatic -ErrorAction SilentlyContinue
+    Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
     Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
     $recovered = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($recovered -and $recovered.Status -eq "Running") {
