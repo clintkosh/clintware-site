@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-logo-final-wake-20260924-1052",
+  "request_id": "chatgpt-qq-logo-recovery-20260924-1100",
   "task_id": "self-update",
   "args": {},
-  "objective": "Wake Quillgeist Lite after the stale legacy mutex fix. Pull runner 1.5.1 plus the compact Clintware eclipse popup and inline logo-first welcome, apply them, and restart through the supervised self-update path."
+  "objective": "Apply the validated current Quillgeist Lite recovery build now: runner 1.5.1 stale-mutex takeover, cache-proof launcher/self-update, compact Clintware eclipse boot splash, small inline Clintware logo first above welcome text, health service 1.2.3 recovery policy, and independent fallback watchdog. Restart through the supervised path after update."
 }
