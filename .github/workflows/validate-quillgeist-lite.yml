@@ -43,6 +43,7 @@ jobs:
             "quillgeist-lite/tasks/connect-jira.ps1",
             "quillgeist-lite/tasks/enable-admin-console.ps1",
             "quillgeist-lite/tasks/bootstrap-admin-console.ps1",
+            "quillgeist-lite/tasks/codefeddy-access-check.ps1",
             "identity-broker/scripts/grant-google-cloud-support-access.ps1",
             "identity-broker/scripts/finish-google-oauth.ps1"
           )
