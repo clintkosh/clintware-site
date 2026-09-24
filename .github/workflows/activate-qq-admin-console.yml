@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/activate-qq-admin-console.yml"
+      - "quillgeist-lite/**"
   workflow_dispatch:
 
 permissions:
@@ -74,12 +75,12 @@ jobs:
           curl -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=20" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"
           echo
 
-      - name: Refresh and reopen qq interactive window
+      - name: Refresh qq runtime in place
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"self-update","args":{},"objective":"Refresh qq and reopen the interactive administrator console now."}')
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"self-update","args":{},"objective":"Refresh qq from canonical source in place without stealing focus or opening a duplicate window."}')
           echo "$response"
           job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
 
@@ -88,7 +89,7 @@ jobs:
             echo "$state"
             status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
             if [ "$status" = "passed" ]; then
-              echo "qq refresh accepted; the local admin console will reopen."
+              echo "qq refresh accepted; the current local console remains in place."
               exit 0
             fi
             if [ "$status" = "failed" ]; then
