@@ -38,6 +38,7 @@ $SourcePath = Join-Path $HomeDir "service\QuillgeistLiteHealthService.cs"
 $ServiceExe = Join-Path $ProgramDir "QuillgeistLiteHealthService.exe"
 $ConfigPath = Join-Path $ProgramDir "service.json"
 $ServiceLog = Join-Path $ProgramDir "service-local.log"
+$MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
 
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $RunnerPidPath = Join-Path $HomeDir "runner.pid"
@@ -57,6 +58,7 @@ Write-Host "Compiling Clintware Quillgeist Lite health service..." -ForegroundCo
 
 $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($existingService) {
+  Set-Content -Path $MaintenanceMarker -Value ((Get-Date).ToUniversalTime().ToString("o")) -Encoding ASCII
   try { Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue } catch {}
 }
 
@@ -153,6 +155,7 @@ Remove-Item $startupShortcut -Force -ErrorAction SilentlyContinue
 Remove-Item $userStartupShortcut -Force -ErrorAction SilentlyContinue
 
 Start-Service -Name $ServiceName
+Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
 Start-ScheduledTask -TaskName $TaskName
 
 Start-Sleep -Seconds 2
