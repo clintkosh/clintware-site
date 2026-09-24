@@ -88,3 +88,10 @@ Prepared in the repository:
 7. Submit for OpenAI review and publish the approved version when review completes.
 
 See `SUBMISSION.md` for the copy-ready submission fields and reviewer fixtures.
+
+
+## Authenticated Quillgeist Web
+
+The public Quillgeist plugin remains intentionally context-only. Live web search, public-page reading, and governed local browser automation are provided by the separate authenticated **Quillgeist Web** surface at `https://mcp.clintware.com/mcp`.
+
+That endpoint uses Clintware OAuth/PKCE and the paired local qq browser. It does not require users to paste a Control Plane API key. Current access is owner/admin scoped. Use the Quillgeist Web skill for browser work rather than weakening the public plugin's execution boundary.
