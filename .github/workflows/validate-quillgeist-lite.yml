@@ -39,6 +39,9 @@ jobs:
             "quillgeist-lite/tasks/ensure-c-runtime.ps1",
             "quillgeist-lite/tasks/ensure-powershell.ps1",
             "quillgeist-lite/tasks/auto-repair-runtime.ps1",
+            "quillgeist-lite/tasks/start-qq-window.ps1",
+            "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
+            "quillgeist-lite/tasks/browser-work.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
             "quillgeist-lite/tasks/repair-local-service.ps1",
@@ -79,7 +82,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 6) {
+          if ($registry.version -ne 7) {
             throw "Unexpected task registry version."
           }
 
@@ -113,12 +116,19 @@ jobs:
             Write-Host "TASK_OK $($property.Name) [$runtime] -> $($task.script)"
           }
 
-          python -m py_compile quillgeist-lite/tasks/runtime-python-check.py
-          if ($LASTEXITCODE -ne 0) {
-            throw "Python runtime check source failed py_compile."
+          $pythonFiles = @(
+            "quillgeist-lite/tasks/runtime-python-check.py",
+            "quillgeist-lite/tools/boot_splash.py",
+            "quillgeist-lite/tools/terminal_repair.py",
+            "quillgeist-lite/tools/browser_agent.py"
+          )
+          foreach ($pyFile in $pythonFiles) {
+            python -m py_compile $pyFile
+            if ($LASTEXITCODE -ne 0) {
+              throw "Python source failed py_compile: $pyFile"
+            }
+            Write-Host "PYTHON_PARSE_OK $pyFile"
           }
-
-          Write-Host "PYTHON_PARSE_OK quillgeist-lite/tasks/runtime-python-check.py"
 
 
       - name: Compile Windows health service
