@@ -708,6 +708,7 @@ export class RegistryHub extends DurableObject {
     const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
     return {
       online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
+      wake_online:this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1).length,
       runner,
       jobs:index.slice(0,50),
       questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
