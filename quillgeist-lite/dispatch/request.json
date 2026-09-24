@@ -1,14 +1,13 @@
 {
-  "request_id": "chatgpt-quillgeist-web-search-smoke-v2-20260924-1710",
+  "request_id": "chatgpt-quillgeist-web-multistep-smoke-20260924-1712",
   "task_id": "browser-work",
   "args": {
-    "Action": "search",
-    "Query": "OpenAI ChatGPT",
-    "Engine": "auto",
-    "MaxResults": "5",
+    "Action": "run",
+    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://example.com\"},{\"op\":\"read\",\"max_chars\":4000},{\"op\":\"click\",\"text\":\"More information\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"read\",\"max_chars\":5000}]",
+    "MaxChars": "5000",
     "Headless": "true",
     "AllowPrivate": "false",
     "Approved": "false"
   },
-  "objective": "Re-run the Quillgeist Web live search smoke test using the hardened current provider fallbacks and DOM snapshot parser."
+  "objective": "Verify governed multi-step Quillgeist Web automation by navigating example.com, reading it, following its public information link, and reading the destination without consequential actions."
 }
