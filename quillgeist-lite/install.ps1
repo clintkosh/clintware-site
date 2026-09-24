@@ -4,13 +4,17 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ServiceDir = Join-Path $HomeDir "service"
 
 $BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
-$CacheBust = "?v=20260924-qq-recovery-5"
+$CacheBust = "?v=20260924-qq-glass-browser-10"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
 $ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
 $TerminalRepairPath = Join-Path $HomeDir "terminal_repair.py"
 $BootSplashPath = Join-Path $HomeDir "boot_splash.py"
+$WindowHostPath = Join-Path $HomeDir "start-qq-window.ps1"
+$BrowserAgentPath = Join-Path $HomeDir "browser_agent.py"
+$BrowserSetupPath = Join-Path $HomeDir "ensure-browser-runtime.ps1"
+$BrowserWorkPath = Join-Path $HomeDir "browser-work.ps1"
 $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
@@ -57,6 +61,10 @@ $downloads = @{
   "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
   "$BaseRaw/tools/terminal_repair.py$CacheBust" = $TerminalRepairPath
   "$BaseRaw/tools/boot_splash.py$CacheBust" = $BootSplashPath
+  "$BaseRaw/tasks/start-qq-window.ps1$CacheBust" = $WindowHostPath
+  "$BaseRaw/tools/browser_agent.py$CacheBust" = $BrowserAgentPath
+  "$BaseRaw/tasks/ensure-browser-runtime.ps1$CacheBust" = $BrowserSetupPath
+  "$BaseRaw/tasks/browser-work.ps1$CacheBust" = $BrowserWorkPath
   "$BaseRaw/tasks/ensure-powershell.ps1$CacheBust" = $EnsurePwshPath
   "$BaseRaw/tasks/auto-repair-runtime.ps1$CacheBust" = $AutoRepairPath
   "$BaseRaw/tasks/repair-local-service.ps1$CacheBust" = $ServiceRepairPath
@@ -69,7 +77,7 @@ foreach ($entry in $downloads.GetEnumerator()) {
 }
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
-foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath)) {
+foreach ($file in @($RunnerPath,$LauncherPath,$WindowHostPath,$BrowserSetupPath,$BrowserWorkPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath)) {
   $tokens = $null
   $errors = $null
   [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
@@ -86,8 +94,18 @@ try {
   Write-Host ("PWSH WARN // bootstrap will continue and launcher will retry: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
 
-Write-Host "Installing Python retro DOS boot renderer..." -ForegroundColor Cyan
-Write-Host "SAFE HOST // Windows Terminal is intentionally excluded from the automatic qq lifecycle." -ForegroundColor DarkYellow
+Write-Host "Building the Clintware acrylic terminal profile and no-focus HUD..." -ForegroundColor Cyan
+try {
+  $py = Get-Command py.exe -ErrorAction SilentlyContinue
+  if ($py) { & $py.Source -3 $TerminalRepairPath }
+  else {
+    $python = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($python) { & $python.Source $TerminalRepairPath }
+  }
+} catch {
+  Write-Host ("GLASS WARN // terminal profile will self-repair on first qq recovery: " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+Write-Host "SAFE HOST // background qq recovery restores the previously focused application." -ForegroundColor Cyan
 
 Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
 
@@ -171,9 +189,9 @@ Write-Host " CLINTWARE QUILLGEIST LITE INSTALLED" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Green
 Write-Host "Health service : ClintwareQuillgeistLiteHealth"
 Write-Host "Runner task    : Clintware Quillgeist Lite Runner"
-Write-Host "Execution      : PowerShell 7 preferred/self-updating / Python / C"
+Write-Host "Execution      : PowerShell 7 / Python / C / local Playwright browser"
 Write-Host "Policy         : Best result first; efficiency after quality"
 Write-Host "Transport      : Event-driven outbound control channel"
 Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
-Write-Host "Terminal       : Safe PowerShell host + Python retro DOS boot splash"
+Write-Host "Terminal       : Acrylic Clintware glass + no-focus Python HUD"
 Write-Host ""
