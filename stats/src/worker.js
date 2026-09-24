@@ -200,18 +200,19 @@ function portfolioCsv(payload) {
   const analytics = payload.analytics || {};
   const views = analytics.crmViews || {};
   const rows = [
-    ["CRM", "Hostname", "GA4 path namespace", "Tracking coverage", "Live", "HTTP status", "30-day views"],
+    ["CRM", "Hostname", "Analytics source", "GA4 path namespace", "Tracking coverage", "Live", "HTTP status", "30-day views"],
   ];
   for (const crm of payload.portfolio) {
     const health = payload.health.find((item) => item.id === crm.id) || {};
     rows.push([
       crm.name,
       crm.hostname,
+      crm.analyticsMode || "ga4",
       crm.pathPrefix,
       crm.coverage,
       health.ok ? "Yes" : "No",
       health.status || "",
-      analytics.status === "connected" ? views[crm.id] || 0 : "Reporting not connected",
+      (crm.analyticsMode || "ga4") === "ga4" ? (analytics.status === "connected" ? views[crm.id] || 0 : "Reporting not connected") : "Use source-specific telemetry",
     ]);
   }
   return rows.map((row) => row.map(csvCell).join(",")).join("\n");
