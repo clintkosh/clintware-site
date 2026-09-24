@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.WebSockets;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.ServiceProcess;
@@ -31,6 +32,8 @@ namespace Clintware.QuillgeistLite
         private readonly Dictionary<string, long> offsets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         private Timer timer;
         private HealthConfig config;
+        private Thread wakeThread;
+        private CancellationTokenSource wakeCancellation;
         private bool? previousRunnerAlive;
         private DateTime lastHeartbeat = DateTime.MinValue;
         private DateTime lastSuppressedNotice = DateTime.MinValue;
@@ -52,11 +55,18 @@ namespace Clintware.QuillgeistLite
             LocalLog("service_started");
             TryPost("INFO", "service", "health_service_started", null);
             timer = new Timer(Tick, null, 1000, 5000);
+            wakeCancellation = new CancellationTokenSource();
+            wakeThread = new Thread(WakeLoop);
+            wakeThread.IsBackground = true;
+            wakeThread.Name = "QuillgeistLiteWake";
+            wakeThread.Start();
         }
 
         protected override void OnStop()
         {
             if (timer != null) timer.Dispose();
+            try { if (wakeCancellation != null) wakeCancellation.Cancel(); } catch { }
+            try { if (wakeThread != null && wakeThread.IsAlive) wakeThread.Join(3000); } catch { }
             TryPost("INFO", "service", "health_service_stopped", previousRunnerAlive);
             LocalLog("service_stopped");
         }
@@ -84,6 +94,105 @@ namespace Clintware.QuillgeistLite
                 }
                 return loaded;
             }
+        }
+
+        private void WakeLoop()
+        {
+            int backoffSeconds = 2;
+
+            while (wakeCancellation != null && !wakeCancellation.IsCancellationRequested)
+            {
+                ClientWebSocket socket = null;
+                try
+                {
+                    string baseEndpoint = config.Endpoint.TrimEnd('/');
+                    Uri httpUri = new Uri(baseEndpoint);
+                    string scheme = httpUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
+                    string wakeUrl = scheme + "://" + httpUri.Authority +
+                        "/api/v1/quillgeist-lite/wake-stream?device_id=" + Uri.EscapeDataString(config.DeviceId);
+
+                    socket = new ClientWebSocket();
+                    socket.Options.SetRequestHeader("Authorization", "Bearer " + config.Token);
+
+                    LocalLog("wake_channel_connecting");
+                    socket.ConnectAsync(new Uri(wakeUrl), wakeCancellation.Token).GetAwaiter().GetResult();
+                    LocalLog("wake_channel_connected");
+                    TryPost("INFO", "wake", "wake_channel_connected", RunnerAlive());
+                    backoffSeconds = 2;
+
+                    byte[] buffer = new byte[8192];
+                    ArraySegment<byte> segment = new ArraySegment<byte>(buffer);
+
+                    while (!wakeCancellation.IsCancellationRequested &&
+                           socket.State == WebSocketState.Open)
+                    {
+                        using (MemoryStream message = new MemoryStream())
+                        {
+                            WebSocketReceiveResult result;
+                            do
+                            {
+                                result = socket.ReceiveAsync(segment, wakeCancellation.Token).GetAwaiter().GetResult();
+                                if (result.MessageType == WebSocketMessageType.Close)
+                                {
+                                    try
+                                    {
+                                        socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "service_reconnect",
+                                            CancellationToken.None).GetAwaiter().GetResult();
+                                    }
+                                    catch { }
+                                    break;
+                                }
+                                message.Write(buffer, 0, result.Count);
+                                if (message.Length > 65536) throw new InvalidOperationException("wake_message_too_large");
+                            }
+                            while (!result.EndOfMessage);
+
+                            if (result.MessageType == WebSocketMessageType.Close) break;
+
+                            string payload = Encoding.UTF8.GetString(message.ToArray());
+                            if (payload.IndexOf("\"type\":\"wake\"", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                LocalLog("wake_received " + Redact(payload));
+                                bool alive = RunnerAlive();
+                                if (!alive)
+                                {
+                                    // A queued job can now wake qq even when its interactive
+                                    // runner is not already connected.
+                                    EnsureRunner();
+                                }
+                                else
+                                {
+                                    TryPost("INFO", "wake", "wake_received_runner_already_alive", true);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    LocalLog("wake_channel_error " + Redact(ex.Message));
+                }
+                finally
+                {
+                    try { if (socket != null) socket.Dispose(); } catch { }
+                }
+
+                if (wakeCancellation == null || wakeCancellation.IsCancellationRequested) break;
+
+                int delay = Math.Max(2, Math.Min(60, backoffSeconds));
+                try
+                {
+                    if (wakeCancellation.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(delay))) break;
+                }
+                catch { }
+                backoffSeconds = Math.Min(60, backoffSeconds * 2);
+            }
+
+            LocalLog("wake_channel_stopped");
         }
 
         private void Tick(object state)
