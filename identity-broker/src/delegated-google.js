@@ -115,11 +115,14 @@ function clearCookie() {
   return `${BIND_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
+const DEFAULT_DELEGATED_GOOGLE_EMAILS = Object.freeze(["clint.kosh@gmail.com", "fedfromchat@gmail.com", "clint@clintware.com", "clint.kosh@clintware.com", "clinton@clintware.com", "hello@clintware.com", "support@clintware.com", "sales@clintware.com", "billing@clintware.com", "abuse@clintware.com", "bb@clintware.com", "studio@clintware.com"]);
+
 function allowedEmails(env) {
-  return String(env.GOOGLE_DELEGATED_ALLOWED_EMAILS || "clint.kosh@gmail.com")
+  const configured = String(env.GOOGLE_DELEGATED_ALLOWED_EMAILS || "")
     .split(",")
     .map((x) => x.trim().toLowerCase())
     .filter(Boolean);
+  return [...new Set([...DEFAULT_DELEGATED_GOOGLE_EMAILS, ...configured])];
 }
 
 async function codeChallenge(verifier) {
