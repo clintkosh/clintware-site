@@ -14,7 +14,7 @@ $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.24.5"
+$RepairVersion = "2026.09.24.6"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
@@ -43,9 +43,40 @@ if (-not (Test-Administrator)) {
 
 New-Item -ItemType Directory -Force -Path $ServiceDir,$ProgramDir | Out-Null
 
+function Get-ClintwareRepoFile {
+  param(
+    [Parameter(Mandatory=$true)][string]$RepoPath,
+    [Parameter(Mandatory=$true)][string]$Destination
+  )
+
+  $gh = Get-Command gh.exe -ErrorAction SilentlyContinue
+  if (-not $gh) { $gh = Get-Command gh -ErrorAction SilentlyContinue }
+
+  if ($gh) {
+    try {
+      $apiPath = "repos/clintkosh/clintware-site/contents/" + $RepoPath + "?ref=main"
+      $metaRaw = (& $gh.Source api $apiPath 2>$null | Out-String).Trim()
+      if ($LASTEXITCODE -eq 0 -and $metaRaw) {
+        $meta = $metaRaw | ConvertFrom-Json
+        if ($meta.content) {
+          $base64 = ([string]$meta.content) -replace '\s',''
+          $bytes = [Convert]::FromBase64String($base64)
+          [IO.File]::WriteAllBytes($Destination,$bytes)
+          return
+        }
+      }
+    } catch {}
+  }
+
+  $raw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/" + $RepoPath
+  Invoke-WebRequest -Uri ($raw + "?cb=" + [Guid]::NewGuid().ToString("n")) -Headers @{"Cache-Control"="no-cache"} -OutFile $Destination -UseBasicParsing
+}
+
+
+
 Write-Host "SERVICE // refreshing stale-task recovery watchdog" -ForegroundColor Cyan
 $tempSource = $SourcePath + ".new"
-Invoke-WebRequest -Uri $SourceUrl -OutFile $tempSource -UseBasicParsing
+Get-ClintwareRepoFile -RepoPath "quillgeist-lite/service/QuillgeistLiteHealthService.cs" -Destination $tempSource
 if (-not (Test-Path $tempSource)) { throw "Could not download maintained qq health-service source." }
 Move-Item $tempSource $SourcePath -Force
 
@@ -145,7 +176,7 @@ function Install-FallbackRecovery {
   try {
     Write-Host "FALLBACK // installing scheduled qq recovery watchdog" -ForegroundColor DarkYellow
 
-    Invoke-WebRequest -Uri ($RecoveryWatchUrl + "?v=" + [Uri]::EscapeDataString($RepairVersion)) -OutFile $RecoveryWatchPath -UseBasicParsing
+    Get-ClintwareRepoFile -RepoPath "quillgeist-lite/service/recovery-watch.ps1" -Destination $RecoveryWatchPath
     if (-not (Test-Path $RecoveryWatchPath)) { throw "recovery watchdog download failed" }
 
     $tokens = $null
@@ -337,7 +368,7 @@ if (-not $SkipRunnerRestart) {
   # recovery does not depend on an older cached copy.
   try {
     $localRepairTemp = $LocalRepairPath + ".new"
-    Invoke-WebRequest -Uri ($SelfUrl + "?v=" + [Uri]::EscapeDataString($RepairVersion)) -OutFile $localRepairTemp -UseBasicParsing
+    Get-ClintwareRepoFile -RepoPath "quillgeist-lite/tasks/repair-local-service.ps1" -Destination $localRepairTemp
     $tokens = $null
     $parseErrors = $null
     [System.Management.Automation.Language.Parser]::ParseFile(
