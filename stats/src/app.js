@@ -108,14 +108,16 @@ export const APP_JS = String.raw`
     var crmViews = analytics.crmViews || {};
     return data.portfolio.map(function (crm) {
       var health = data.health.find(function (item) { return item.id === crm.id; }) || {};
-      var views = analytics.status === 'connected' ? formatNumber(crmViews[crm.id] || 0) : '—';
+      var isGa4 = (crm.analyticsMode || 'ga4') === 'ga4';
+      var views = isGa4 && analytics.status === 'connected' ? formatNumber(crmViews[crm.id] || 0) : '—';
+      var trafficLabel = isGa4 ? '30d views' : (crm.analyticsMode === 'control-plane' ? 'Control Plane' : 'Worker telemetry');
       var statusText = health.ok ? 'Live' : health.status ? 'Issue ' + health.status : 'Unavailable';
       return '<div class="crm-row">' +
         '<div class="crm-identity"><div class="crm-mark crm-' + escapeHtml(crm.id) + '">' + escapeHtml(crm.shortName) + '</div><div><div class="crm-name">' + escapeHtml(crm.name) + '</div><div class="crm-host">' + escapeHtml(crm.hostname) + '</div></div></div>' +
-        '<div class="namespace"><code>' + escapeHtml(crm.pathPrefix) + '</code></div>' +
+        '<div class="namespace"><code>' + escapeHtml(isGa4 ? crm.pathPrefix : (crm.analyticsMode === 'control-plane' ? 'first-party' : 'worker')) + '</code></div>' +
         '<div class="coverage"><b>Verified</b>' + escapeHtml(crm.coverage) + '</div>' +
         '<div class="live ' + (health.ok ? 'up' : 'down') + '">' + escapeHtml(statusText) + '</div>' +
-        '<div class="views">' + views + '<small>30d views</small></div>' +
+        '<div class="views">' + views + '<small>' + escapeHtml(trafficLabel) + '</small></div>' +
       '</div>';
     }).join('');
   }
