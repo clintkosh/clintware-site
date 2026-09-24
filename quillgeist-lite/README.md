@@ -163,3 +163,17 @@ The interactive runner remains responsible for task execution and the visible te
 The installer registers the service credential by sending only its SHA-256 hash to the Control Plane. The plaintext device credential is stored only in the protected local service configuration.
 
 The Control Plane exposes the bounded health stream through `clintware_quillgeist_lite_diagnostics`.
+
+## Interactive qq runtime
+
+Quillgeist Lite now treats the local qq window as an interactive local-agent terminal, not only a task runner.
+
+- Every launcher window load refreshes the maintained runner, PowerShell 7 bootstrap, auto-repair asset, and boot splash.
+- qq prefers the current PowerShell 7 runtime and can install or upgrade `Microsoft.PowerShell` through winget when needed.
+- Plain natural-language input is relayed through the Clintware Control Plane as a durable interactive question. `ask <text>` is the explicit equivalent.
+- Replies are pushed over the existing qq WebSocket and polled every five seconds as a recovery path until the local runner acknowledges delivery.
+- Obvious credential/token assignments are redacted before natural-language relay leaves Windows.
+- `! <PowerShell>` remains a local-only shell escape. Remote MCP callers still execute only reviewed allowlisted tasks.
+- The Windows health service watches bounded runner/crash diagnostics. Repeated errors or a restart loop trigger the canonical runtime repair path with cooldown/rate limits rather than restarting indefinitely.
+- The design remains local-first: Windows owns the interactive runtime and execution boundary; Clintware routes scoped intent, handoffs, diagnostics, and replies.
+
