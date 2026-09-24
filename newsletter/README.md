@@ -13,13 +13,14 @@ This service turns the Clintware Blog into a confirmed-email mailing list.
 
 ## One-time production setup
 
-1. Create the canonical Clintware Google Cloud Web OAuth client.
-2. Add both authorized redirect URIs: `https://auth.clintware.com/callback` and `http://127.0.0.1:53682/`.
-3. Enable Gmail API for the project.
-4. Run `newsletter/scripts/setup-gmail-oauth.ps1`. It stores `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and the separate `GOOGLE_DELEGATED_REFRESH_TOKEN` as repository secrets, then deploys the Identity Broker, mail Worker, and ClintCal.
-5. Keep `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` available as existing repository Actions secrets.
+1. Create the canonical Clintware Google Cloud Web OAuth client and keep `https://auth.clintware.com/callback` registered.
+2. Enable Gmail API for the project.
+3. Deploy the Clintware Identity Broker with its canonical Google client secret.
+4. Open `https://auth.clintware.com/delegated/google/start` and approve the delegated Gmail/Calendar scopes once, or run `newsletter/scripts/setup-gmail-oauth.ps1`.
+5. The Identity Broker stores the delegated refresh grant encrypted in its KV namespace. The newsletter Worker receives only a derived bridge credential and requests short-lived Google access tokens through the `AUTH_BROKER` service binding.
+6. Keep `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` available as existing repository Actions secrets.
 
-The Google OAuth client credentials are shared across Clintware first-party integrations. The delegated refresh token is not a login credential and never authenticates to the privileged MCP Control Plane.
+The delegated Google refresh grant no longer needs to be copied into a GitHub Actions secret for the newsletter. Product Workers never receive the long-lived Google refresh token; they receive only short-lived access through the broker boundary.
 
 ## Publishing a post
 
@@ -35,7 +36,7 @@ npm test
 npm run check
 ```
 
-The integration tests mock Google OAuth/Gmail endpoints and local storage. They never send external email.
+The integration tests mock the delegated Google broker, Gmail delivery, and local storage. They never send external email.
 
 ## Shared mail service
 
