@@ -10,6 +10,7 @@ $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
 $ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
 $TerminalRepairPath = Join-Path $HomeDir "terminal_repair.py"
+$BootSplashPath = Join-Path $HomeDir "boot_splash.py"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 
 Write-Host ""
@@ -51,6 +52,7 @@ $downloads = @{
   "$BaseRaw/service/QuillgeistLiteHealthService.cs$CacheBust" = $ServiceSourcePath
   "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
   "$BaseRaw/tools/terminal_repair.py$CacheBust" = $TerminalRepairPath
+  "$BaseRaw/tools/boot_splash.py$CacheBust" = $BootSplashPath
 }
 
 foreach ($entry in $downloads.GetEnumerator()) {
@@ -69,20 +71,8 @@ foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
   }
 }
 
-Write-Host "Applying self-verifying Quillgeist Lite Windows Terminal profile with Python..." -ForegroundColor Cyan
-$python = Get-Command py -ErrorAction SilentlyContinue
-$pythonArgs = @("-3",$TerminalRepairPath)
-if (-not $python) {
-  $python = Get-Command python -ErrorAction SilentlyContinue
-  $pythonArgs = @($TerminalRepairPath)
-}
-if (-not $python) {
-  throw "Python 3 is required for deterministic Quillgeist Lite terminal/profile recovery."
-}
-& $python.Source @pythonArgs
-if ($LASTEXITCODE -ne 0) {
-  throw "Python Quillgeist Lite terminal self-repair failed with exit code $LASTEXITCODE."
-}
+Write-Host "Installing Python retro DOS boot renderer..." -ForegroundColor Cyan
+Write-Host "SAFE HOST // Windows Terminal is intentionally excluded from the automatic qq lifecycle." -ForegroundColor DarkYellow
 
 Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
 
@@ -170,5 +160,5 @@ Write-Host "Execution      : PowerShell / Python / C"
 Write-Host "Policy         : Best result first; efficiency after quality"
 Write-Host "Transport      : Event-driven outbound control channel"
 Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
-Write-Host "Terminal       : Windows Terminal acrylic glass, 20% opacity"
+Write-Host "Terminal       : Safe PowerShell host + Python retro DOS boot splash"
 Write-Host ""
