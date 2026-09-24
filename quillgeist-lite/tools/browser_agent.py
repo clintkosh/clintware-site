@@ -10,7 +10,7 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.24.3"
+VERSION="2026.09.24.4"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
@@ -113,6 +113,9 @@ def clean_result_href(href):
     if "duckduckgo.com" in host and parsed.path.startswith("/l/"):
         uddg=parse_qs(parsed.query).get("uddg",[""])[0]
         if uddg: return unquote(uddg)
+    if host.endswith("google.com") and parsed.path=="/url":
+        target=parse_qs(parsed.query).get("q",[""])[0]
+        if target.startswith(("http://","https://")): return target
     if host.endswith("bing.com") and parsed.path.startswith("/ck/a"):
         token=parse_qs(parsed.query.replace("!&&","")).get("u",[""])[0]
         if token.startswith("a1"):
@@ -136,7 +139,9 @@ def extract_search_results(page,engine,limit):
         if len(title)<3 or not href or href in seen: continue
         parsed=urlparse(href); host=(parsed.hostname or "").lower()
         if parsed.scheme not in {"http","https"}: continue
-        if host.endswith("bing.com") or host.endswith("duckduckgo.com"): continue
+        provider_hosts={"google":("google.com","googleusercontent.com"),"brave":("search.brave.com",),"bing":("bing.com",),"duckduckgo":("duckduckgo.com",)}
+        if any(host==h or host.endswith("."+h) for h in provider_hosts.get(engine,())): continue
+        if title.lower() in {"privacy","terms","learn more","sign in","settings","feedback","accessibility feedback","all","web","search","images","videos","maps","news","shopping","flights"}: continue
         context=re.sub(r"\\s+"," ",str(row.get("context") or "")).strip()
         snippet=context[len(title):].strip(" -|:") if context.startswith(title) else context
         results.append({"title":clip(title,500),"url":href,"snippet":clip(snippet,1000)})
@@ -148,13 +153,18 @@ def search_web(page,query,engine,limit,policy):
     q=str(query or "").strip()
     if not q: raise ValueError("query is required for search")
     limit=max(1,min(int(limit or DEFAULT_SEARCH_RESULTS),20)); requested=str(engine or "auto").strip().lower()
-    engines=["bing","duckduckgo"] if requested=="auto" else [requested]
-    if any(x not in {"bing","duckduckgo"} for x in engines): raise ValueError("engine must be auto, bing, or duckduckgo")
+    engines=["google","brave","bing","duckduckgo"] if requested=="auto" else [requested]
+    if any(x not in {"google","brave","bing","duckduckgo"} for x in engines): raise ValueError("engine must be auto, google, brave, bing, or duckduckgo")
+    urls={
+        "google":"https://www.google.com/search?hl=en&num=20&q="+quote_plus(q),
+        "brave":"https://search.brave.com/search?source=web&q="+quote_plus(q),
+        "bing":"https://www.bing.com/search?q="+quote_plus(q)+"&setlang=en-us&cc=us",
+        "duckduckgo":"https://html.duckduckgo.com/html/?q="+quote_plus(q),
+    }
     errors=[]
     for name in engines:
         try:
-            url=("https://www.bing.com/search?q="+quote_plus(q)) if name=="bing" else ("https://html.duckduckgo.com/html/?q="+quote_plus(q))
-            safe_goto(page,url,policy); page.wait_for_timeout(700); results=extract_search_results(page,name,limit)
+            safe_goto(page,urls[name],policy); page.wait_for_timeout(700); results=extract_search_results(page,name,limit)
             if results: return {"query":q,"engine":name,"count":len(results),"results":results}
             errors.append(f"{name}: no results parsed")
         except Exception as exc: errors.append(f"{name}: {clip(exc,300)}")
