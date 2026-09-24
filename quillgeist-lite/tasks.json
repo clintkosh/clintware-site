@@ -101,6 +101,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/codefeddy-access-check.ps1",
       "parameters": []
+    },
+    "provision-codefeddy-platform": {
+      "title": "Provision the isolated CodeFEDDY control plane and dedicated qq in codeFEDDY/codeFEDDY.github.io",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/provision-codefeddy-platform.ps1",
+      "parameters": []
     }
   }
 }
