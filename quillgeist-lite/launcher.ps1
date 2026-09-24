@@ -11,6 +11,8 @@ $PidPath = Join-Path $HomeDir "runner.pid"
 $RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
 $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
 $EnsurePwshUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/ensure-powershell.ps1"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
+$AutoRepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/auto-repair-runtime.ps1"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -57,15 +59,20 @@ function Ensure-ModernPowerShell {
   if ($env:QUILLGEIST_PWSH_BOOTSTRAPPED -eq "1") { return }
 
   try {
-    $temp = $EnsurePwshPath + ".new"
-    Invoke-WebRequest -Uri ($EnsurePwshUrl + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    foreach ($asset in @(
+      @{ Url = $EnsurePwshUrl; Path = $EnsurePwshPath },
+      @{ Url = $AutoRepairUrl; Path = $AutoRepairPath }
+    )) {
+      $temp = $asset.Path + ".new"
+      Invoke-WebRequest -Uri ($asset.Url + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
-    $tokens = $null
-    $errors = $null
-    [System.Management.Automation.Language.Parser]::ParseFile($temp,[ref]$tokens,[ref]$errors) | Out-Null
-    if ($errors.Count -gt 0) { throw "PowerShell 7 bootstrap script failed parse validation." }
+      $tokens = $null
+      $errors = $null
+      [System.Management.Automation.Language.Parser]::ParseFile($temp,[ref]$tokens,[ref]$errors) | Out-Null
+      if ($errors.Count -gt 0) { throw ("qq runtime asset failed parse validation: " + $asset.Path) }
 
-    Move-Item $temp $EnsurePwshPath -Force
+      Move-Item $temp $asset.Path -Force
+    }
 
     $resolved = @(& $EnsurePwshPath) | Select-Object -Last 1
     $resolved = [string]$resolved
