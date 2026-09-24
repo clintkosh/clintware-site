@@ -550,6 +550,11 @@ function Show-QQHelp {
   Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
   Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
   Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
+  Write-Host "  heal                         Self-repair qq in place without stealing focus." -ForegroundColor Cyan
+  Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan
+  Write-Host "  web open <url>               Open a persistent local browser session." -ForegroundColor Cyan
+  Write-Host "  web inspect <url>            Return interactive fields/buttons/links from a page." -ForegroundColor Cyan
+  Write-Host "  web run <json>               Execute a bounded local browser action plan." -ForegroundColor Cyan
   Write-Host "  reconnect                    Reconnect the Control Plane channel." -ForegroundColor Cyan
   Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
   Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
@@ -757,6 +762,10 @@ function Invoke-QQLocalCommand {
     "update qq" { Invoke-QQLocalTask "self-update"; return }
     "admin" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
     "admin qq" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
+    "heal" { Invoke-QQLocalTask "self-heal"; return }
+    "self-heal" { Invoke-QQLocalTask "self-heal"; return }
+    "web setup" { Invoke-QQLocalTask "browser-setup"; return }
+    "browser setup" { Invoke-QQLocalTask "browser-setup"; return }
     "clear" {
       try { Clear-Host } catch {}
       Show-QuillgeistSplash
@@ -768,6 +777,21 @@ function Invoke-QQLocalCommand {
       try { if ($script:RunnerSocket) { $script:RunnerSocket.Abort() } } catch {}
       return
     }
+  }
+
+  if ($lower.StartsWith("web open ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="open";Url=$line.Substring(9).Trim();Headless="false"}
+    return
+  }
+
+  if ($lower.StartsWith("web inspect ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="inspect";Url=$line.Substring(12).Trim();Headless="true"}
+    return
+  }
+
+  if ($lower.StartsWith("web run ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="run";StepsJson=$line.Substring(8).Trim();Headless="true"}
+    return
   }
 
   if ($lower.StartsWith("run ")) {
