@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
+$WindowHostPath = Join-Path $HomeDir "start-qq-window.ps1"
 $BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
@@ -10,8 +11,9 @@ New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 Write-Host "Refreshing Clintware Quillgeist Lite launcher..." -ForegroundColor Cyan
 
 $downloads = @(
-  @{ Url = "$BaseRaw/launcher.ps1?v=2026.09.24.8"; Target = $LauncherPath },
-  @{ Url = "$BaseRaw/tasks/ensure-powershell.ps1?v=2026.09.24.8"; Target = $EnsurePwshPath }
+  @{ Url = "$BaseRaw/launcher.ps1?v=2026.09.24.10"; Target = $LauncherPath },
+  @{ Url = "$BaseRaw/tasks/ensure-powershell.ps1?v=2026.09.24.10"; Target = $EnsurePwshPath },
+  @{ Url = "$BaseRaw/tasks/start-qq-window.ps1?v=2026.09.24.10"; Target = $WindowHostPath }
 )
 
 foreach ($item in $downloads) {
@@ -46,7 +48,7 @@ if (-not $pwshPath -or -not (Test-Path $pwshPath)) {
   $pwshPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
 }
 
-Write-Host ("Opening visible Quillgeist Lite window with " + $pwshPath) -ForegroundColor Green
-Start-Process -FilePath $pwshPath -ArgumentList @("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$LauncherPath) -WorkingDirectory $HomeDir -WindowStyle Normal
+Write-Host "Opening the managed Quillgeist Lite glass console without stealing focus..." -ForegroundColor Green
+Start-Process -FilePath $pwshPath -ArgumentList @("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-WindowStyle","Hidden","-File",$WindowHostPath,"-LauncherPath",$LauncherPath,"-HomeDir",$HomeDir) -WorkingDirectory $HomeDir -WindowStyle Hidden | Out-Null
 
-Write-Host "Launch requested. Look for a window titled: Clintware Quillgeist Lite" -ForegroundColor Green
+Write-Host "Launch requested. Existing healthy qq windows are reused rather than duplicated." -ForegroundColor Green
