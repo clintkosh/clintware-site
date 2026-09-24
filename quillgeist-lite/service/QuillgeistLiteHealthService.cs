@@ -410,20 +410,26 @@ namespace Clintware.QuillgeistLite
             DateTime now = DateTime.UtcNow;
             if ((now - lastAutoRepairAttemptUtc).TotalMinutes < 30) return;
 
-            if (config == null || String.IsNullOrWhiteSpace(config.AutoRepairPath) || !File.Exists(config.AutoRepairPath))
-            {
-                string unavailable = "auto_repair_unavailable reason=" + Redact(reason);
-                LocalLog(unavailable);
-                TryPost("WARN", "auto-repair", unavailable, previousRunnerAlive);
-                lastAutoRepairAttemptUtc = now;
-                return;
-            }
-
             string home = "";
             try { home = Path.GetDirectoryName(config.RunnerPidPath) ?? ""; } catch { }
             if (String.IsNullOrWhiteSpace(home))
             {
                 LocalLog("auto_repair_home_unavailable");
+                return;
+            }
+
+            string repairPath = config == null ? "" : (config.AutoRepairPath ?? "");
+            if (String.IsNullOrWhiteSpace(repairPath))
+            {
+                repairPath = Path.Combine(home, "auto-repair-runtime.ps1");
+            }
+
+            if (!File.Exists(repairPath))
+            {
+                string unavailable = "auto_repair_unavailable reason=" + Redact(reason) + " path=" + Redact(repairPath);
+                LocalLog(unavailable);
+                TryPost("WARN", "auto-repair", unavailable, previousRunnerAlive);
+                lastAutoRepairAttemptUtc = now;
                 return;
             }
 
@@ -438,7 +444,7 @@ namespace Clintware.QuillgeistLite
                 ProcessStartInfo psi = new ProcessStartInfo(
                     host,
                     "-NoProfile -ExecutionPolicy Bypass -File \"" +
-                    config.AutoRepairPath.Replace("\"", "\\\"") +
+                    repairPath.Replace("\"", "\\\"") +
                     "\" -HomeDir \"" + home.Replace("\"", "\\\"") + "\"");
                 psi.CreateNoWindow = true;
                 psi.UseShellExecute = false;
