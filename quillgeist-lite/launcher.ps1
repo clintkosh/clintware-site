@@ -106,7 +106,7 @@ function Ensure-ModernPowerShell {
 
 function Show-WindowLoadSplash {
   $SplashPath = Join-Path $HomeDir "boot_splash.py"
-  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?v=2026.09.24.9"
+  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?cb=$([Guid]::NewGuid().ToString('n'))"
 
   try {
     Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
