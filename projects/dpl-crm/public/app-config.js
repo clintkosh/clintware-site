@@ -1,18 +1,19 @@
 const API="/api";
 const TABS=[
-["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Prompt"],["live_assistant","Live Assist"],["kb","Team KB"],["handoff","Handoff"],["implementation","Implementation"],["raci","RACI"],["deployment","Deployment Board"],["rollout","Rollout / Sprints"],["risks","Risks"],["roi","ROI"],["adoption","Adoption"],["issues","Engineering Issues"],["triage","Issue Triage"],["meetings","Meetings"],["renewal","Renewal"],["documents","Documents"]
+["customers","Customers"],["accounts","Accounts"],["command","Command Center"],["live_prompt","Live Prompt"],["live_assistant","Live Assist"],["kb","Technical Playbooks"],["handoff","Technical Handoff"],["implementation","Technical Services"],["raci","RACI"],["deployment","Service Projects"],["rollout","Work Queue / Sprints"],["risks","Risks"],["roi","Value / KPIs"],["adoption","Support Scale"],["issues","Engineering Handoffs"],["triage","Advanced Investigations"],["meetings","Customer Reviews"],["renewal","Account Health"],["documents","Evidence / Documents"]
 ];
 const NAV_GROUPS=[
-["Operate",["customers","command","live_prompt","live_assistant","implementation","deployment","risks"]],
-["Deliver",["handoff","raci","rollout","issues","triage"]],
-["Value",["roi","adoption","meetings","renewal"]],
-["Knowledge",["kb","documents"]],
+["Operate",["customers","command","live_prompt","live_assistant","triage","risks"]],
+["Deliver",["handoff","implementation","deployment","issues","raci","rollout"]],
+["Scale",["adoption","kb"]],
+["Customer",["roi","meetings","renewal"]],
+["Evidence",["documents"]],
 ["Admin",["accounts"]]
 ];
 const SCEN=[
-{id:"sap",label:"SAP connector slips beyond Week 10",impact:"Reassess full-scope go-live, escalation timing, and parallel work."},
-{id:"manuals",label:"SAP manuals are incomplete / stale / inaccessible",impact:"Content readiness becomes a separate blocker."},
-{id:"roi",label:"ROI baseline cannot be defended",impact:"Define an approved baseline method before claiming realized ROI."}
+{id:"sso",label:"Production SSO fails for one customer role",impact:"Validate identity mapping, isolate tenant/configuration behavior, and preserve a safe rollback path before escalation."},
+{id:"alert",label:"API alert severity differs from platform UI",impact:"Reproduce on the same alert ID, remove downstream transforms, gather evidence, and determine the correct technical owner."},
+{id:"report",label:"Customer requests a recurring executive report",impact:"Define metric contracts, build a reusable delivery pattern, and decide what can shift to Support or self-service."}
 ];
 const SCHEMA={
 handoff:[["title","Item"],["value","Value"],["validation","Validation"],["note","Notes"]],
