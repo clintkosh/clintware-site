@@ -510,15 +510,22 @@ export class RegistryHub extends DurableObject {
     return delivered;
   }
 
-  async pendingQuillgeistLiteJobs(){
+  async pendingQuillgeistLiteJobs(limit=50){
     const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     const cutoff=Date.now()-7*24*60*60*1000;
     const jobs=[];
+    const max=Math.max(1,Math.min(100,Number(limit)||50));
     for(const item of index){
       if(Date.parse(item.created_at||"")<cutoff)continue;
       const job=await this.ctx.storage.get(`quillgeist_lite_job:${item.job_id}`);
-      if(job&&["queued","running"].includes(String(job.status||"queued")))jobs.push(job);
+      if(job&&["queued","running"].includes(String(job.status||"queued"))){
+        jobs.push(job);
+        if(jobs.length>=max)break;
+      }
     }
+    // Index is newest-first; replay this bounded recent set oldest-first so
+    // recovery remains deterministic without making WebSocket upgrade depend
+    // on an unbounded Durable Object backlog.
     return jobs.reverse();
   }
   async quillgeistLiteQuestions(status="pending",limit=50){
@@ -909,10 +916,22 @@ export class RegistryHub extends DurableObject {
       const [client,server]=Object.values(pair);
       this.ctx.acceptWebSocket(server,["quillgeist-lite"]);
       server.serializeAttachment({receiver:"quillgeist-lite",connected_at:nowIso()});
-      const pending=await this.pendingQuillgeistLiteJobs();
-      for(const job of pending){
-        try{server.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job,backlog:true}));}catch{}
-      }
+
+      // Return the 101 upgrade immediately. Loading/replaying a large durable
+      // backlog before returning can make reconnects fail as HTTP 500 even
+      // though the socket itself is healthy.
+      const replay=async()=>{
+        try{
+          const pending=await this.pendingQuillgeistLiteJobs(50);
+          for(const job of pending){
+            if(server.readyState!==1)break;
+            try{server.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job,backlog:true}));}catch{}
+          }
+        }catch(e){
+          console.error(JSON.stringify({event:"quillgeist_backlog_replay_error",message:String(e?.message||e)}));
+        }
+      };
+      try{this.ctx.waitUntil(replay());}catch{replay().catch(()=>{});}
       return new Response(null,{status:101,webSocket:client});
     }
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-wake-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
