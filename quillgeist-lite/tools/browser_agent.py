@@ -4,6 +4,14 @@ from __future__ import annotations
 import argparse, json, os, pathlib, re, time
 from typing import Any
 
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+except Exception:
+    pass
+
 VERSION = "2026.09.24.1"
 def as_bool(v:str)->bool: return str(v).strip().lower() not in {"0","false","no","off"}
 def clip(v:Any,n:int=500)->str:
