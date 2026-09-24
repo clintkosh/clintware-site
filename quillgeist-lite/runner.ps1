@@ -564,9 +564,12 @@ function Show-QQHelp {
   Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
   Write-Host "  heal                         Self-repair qq in place without stealing focus." -ForegroundColor Cyan
   Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan
-  Write-Host "  web open <url>               Open a persistent local browser session." -ForegroundColor Cyan
+  Write-Host "  web search <query>           Search the live public web without a search API key." -ForegroundColor Cyan
+  Write-Host "  web read <url>               Read a public page into structured text/links." -ForegroundColor Cyan
+  Write-Host "  web login <url>              Open the persistent browser for manual local sign-in." -ForegroundColor Cyan
+  Write-Host "  web open <url>               Open a governed persistent local browser session." -ForegroundColor Cyan
   Write-Host "  web inspect <url>            Return interactive fields/buttons/links from a page." -ForegroundColor Cyan
-  Write-Host "  web run <json>               Execute a bounded local browser action plan." -ForegroundColor Cyan
+  Write-Host "  web run <json>               Execute a bounded governed browser action plan." -ForegroundColor Cyan
   Write-Host "  reconnect                    Reconnect the Control Plane channel." -ForegroundColor Cyan
   Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
   Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
@@ -791,6 +794,21 @@ function Invoke-QQLocalCommand {
     }
   }
 
+  if ($lower.StartsWith("web search ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="search";Query=$line.Substring(11).Trim();Engine="auto";MaxResults="8";Headless="true";AllowPrivate="false"}
+    return
+  }
+
+  if ($lower.StartsWith("web read ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="read";Url=$line.Substring(9).Trim();MaxChars="20000";Headless="true";AllowPrivate="false"}
+    return
+  }
+
+  if ($lower.StartsWith("web login ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="login";Url=$line.Substring(10).Trim();Headless="false";AllowPrivate="false"}
+    return
+  }
+
   if ($lower.StartsWith("web open ")) {
     Invoke-QQLocalTask "browser-work" @{Action="open";Url=$line.Substring(9).Trim();Headless="false"}
     return
@@ -976,9 +994,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.5.1"
+        version = "1.6.0"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login")
       }
 
       Flush-RunnerDiagnostics
