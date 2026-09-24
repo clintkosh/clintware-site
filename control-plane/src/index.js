@@ -2907,6 +2907,13 @@ export default {
         return await registryHub(env).fetch(`https://internal/quillgeist-lite-diagnostics?limit=${limit}`);
       }
 
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/status"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        return await registryHub(env).fetch("https://internal/quillgeist-lite-status");
+      }
+
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/questions"){
         const mcpAuth=await mcpAuthContext(request,env);
         if(!mcpAuth)return json({error:"unauthorized"},401);
