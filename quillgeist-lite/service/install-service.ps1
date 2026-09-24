@@ -135,6 +135,7 @@ if ($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum) {
 $settings = New-ScheduledTaskSettingsSet @settingsArgs
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service; stale instances are replaced." | Out-Null
+Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
 
 Write-Host "Registering Windows health service..." -ForegroundColor Cyan
 
@@ -156,7 +157,8 @@ Remove-Item $userStartupShortcut -Force -ErrorAction SilentlyContinue
 
 Start-Service -Name $ServiceName
 Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
-Start-ScheduledTask -TaskName $TaskName
+Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
+Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 
 Start-Sleep -Seconds 2
 
