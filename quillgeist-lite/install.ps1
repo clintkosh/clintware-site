@@ -4,7 +4,7 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ServiceDir = Join-Path $HomeDir "service"
 
 $BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
-$CacheBust = "?v=20260923-qq-recovery-1"
+$CacheBust = "?v=20260924-qq-recovery-5"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
