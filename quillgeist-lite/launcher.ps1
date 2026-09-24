@@ -16,6 +16,21 @@ $AutoRepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/mai
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
+
+function Ensure-QuillgeistHealthService {
+  $serviceName = "ClintwareQuillgeistLiteHealth"
+  try {
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if ($service -and $service.Status -ne "Running") {
+      Start-Service -Name $serviceName -ErrorAction Stop
+      $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(15))
+      Write-Host "SELF-HEAL // health service restored" -ForegroundColor Cyan
+    }
+  } catch {
+    Add-Content -Path $CrashLog -Value ("{0} HEALTH_SERVICE_START_WARN {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
+  }
+}
+
 function Set-ClintwareBaseTheme {
   try {
     [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
@@ -116,6 +131,7 @@ function Show-WindowLoadSplash {
 }
 
 Set-ClintwareBaseTheme
+Ensure-QuillgeistHealthService
 Ensure-ModernPowerShell
 Show-WindowLoadSplash
 
