@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-interactive-self-update-20260924",
+  "request_id": "chatgpt-qq-interactive-self-update-20260924-2",
   "task_id": "self-update",
   "args": {},
-  "objective": "Upgrade the installed Clintware Quillgeist Lite runtime to the merged interactive qq release: refresh runner and launcher, rebuild the health-service watchdog with bounded auto-repair, restart through the launcher so every window load shows the maintained splash, and allow the launcher to install or upgrade PowerShell 7 before continuing."
+  "objective": "Upgrade the installed Clintware Quillgeist Lite runtime to the current interactive qq release: refresh runner/launcher, ensure PowerShell 7 is installed or upgraded and preferred for task/runtime execution, preserve 5-second question polling plus durable bidirectional answer relay, show the maintained splash on every qq window load, refresh the health watchdog, and enable bounded error-burst auto-repair."
 }
