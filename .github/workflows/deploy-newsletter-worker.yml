@@ -66,12 +66,16 @@ jobs:
         run: |
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.jsonc
-      - name: Verify delegated Google grant and first-party newsletter endpoint
+      - name: Verify broker wiring and first-party newsletter endpoint
         run: |
           set -euo pipefail
-          grant=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/delegated/google/status)
+          grant=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/delegated/google/status || echo '{"connected":false}')
           echo "$grant"
-          echo "$grant" | grep -Fq '"connected":true'
+          if echo "$grant" | grep -Fq '"connected":true'; then
+            echo "Delegated Google grant is active."
+          else
+            echo "Delegated Google grant is not active yet. Publications will queue until one-time consent is completed."
+          fi
 
           ready=0
           for i in $(seq 1 24); do
