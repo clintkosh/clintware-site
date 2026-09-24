@@ -646,6 +646,10 @@ function Send-QQQuestion {
   $Text = ([string]$Text).Trim()
   if (-not $Text) { Show-QQPrompt; return }
 
+  # Natural-language relay follows the same local redaction boundary as task logs.
+  # Obvious credential/token assignments are replaced before text leaves Windows.
+  $Text = Redact-LogLine $Text
+
   if (-not $script:RunnerSocket -or $script:RunnerSocket.State -ne [Net.WebSockets.WebSocketState]::Open) {
     Suspend-QQPrompt
     Write-Host "RELAY OFFLINE // Control Plane is not connected yet." -ForegroundColor DarkYellow
