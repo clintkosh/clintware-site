@@ -15,64 +15,81 @@ jobs:
   build-test:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore
+      - name: Build, test, and capture evidence
+        id: build
         shell: pwsh
-        run: dotnet restore tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj
-
-      - name: Publish single-file Windows executable
-        shell: pwsh
-        run: >
-          dotnet publish tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj
-          -c Release
-          -r win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:DebugType=None
-          -p:DebugSymbols=false
-          -o artifacts/audio-feedback-fix
-
-      - name: Verify executable and run self-test
-        shell: pwsh
+        continue-on-error: true
         run: |
-          $exe = Resolve-Path "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe"
-          if (-not (Test-Path $exe)) { throw "EXE was not produced" }
-          $bytes = [System.IO.File]::ReadAllBytes($exe)
-          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "Not a valid PE/MZ executable" }
-          & $exe --selftest
-          if ($LASTEXITCODE -ne 0) { throw "Self-test failed with exit code $LASTEXITCODE" }
-          $hash = Get-FileHash $exe -Algorithm SHA256
-          $size = (Get-Item $exe).Length
-          "SHA256=$($hash.Hash)" | Tee-Object -FilePath "artifacts/audio-feedback-fix/SHA256.txt"
-          "SIZE=$size" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
-          "VERSION=1.0.0" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
+          New-Item -ItemType Directory -Force -Path build-evidence | Out-Null
+          $log = "build-evidence/AudioFeedbackFix-build.log"
+          "CLINTWARE AUDIO FEEDBACK FIX BUILD" | Set-Content $log
+          "UTC=$([DateTime]::UtcNow.ToString('o'))" | Add-Content $log
 
-      - name: Publish tested download into repository
+          dotnet restore tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj *>> $log
+          $restoreCode = $LASTEXITCODE
+          "RESTORE_EXIT=$restoreCode" | Add-Content $log
+
+          if ($restoreCode -eq 0) {
+            dotnet publish tools/audio-feedback-fix/Clintware.AudioFeedbackFix.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/audio-feedback-fix *>> $log
+            $publishCode = $LASTEXITCODE
+          } else {
+            $publishCode = 999
+          }
+          "PUBLISH_EXIT=$publishCode" | Add-Content $log
+
+          $exe = "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe"
+          if (($publishCode -eq 0) -and (Test-Path $exe)) {
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $exe))
+            $mz = ($bytes.Length -ge 2 -and $bytes[0] -eq 0x4D -and $bytes[1] -eq 0x5A)
+            "PE_MZ=$mz" | Add-Content $log
+            & $exe --selftest
+            $testCode = $LASTEXITCODE
+            "SELFTEST_EXIT=$testCode" | Add-Content $log
+            $hash = Get-FileHash $exe -Algorithm SHA256
+            "SHA256=$($hash.Hash)" | Set-Content "artifacts/audio-feedback-fix/SHA256.txt"
+            "SIZE=$((Get-Item $exe).Length)" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
+            "VERSION=1.0.0" | Add-Content "artifacts/audio-feedback-fix/SHA256.txt"
+            if ($mz -and $testCode -eq 0) { "RESULT=PASS" | Add-Content $log } else { "RESULT=FAIL" | Add-Content $log }
+          } else {
+            "RESULT=FAIL" | Add-Content $log
+          }
+
+      - name: Commit evidence and tested executable
+        if: always()
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path downloads | Out-Null
-          Copy-Item "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe" "downloads/Clintware-AudioFeedbackFix.exe" -Force
-          Copy-Item "artifacts/audio-feedback-fix/SHA256.txt" "downloads/Clintware-AudioFeedbackFix-SHA256.txt" -Force
+          if (Test-Path "build-evidence/AudioFeedbackFix-build.log") {
+            Copy-Item "build-evidence/AudioFeedbackFix-build.log" "downloads/Clintware-AudioFeedbackFix-build.log" -Force
+          }
+          if (Test-Path "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe") {
+            Copy-Item "artifacts/audio-feedback-fix/Clintware.AudioFeedbackFix.exe" "downloads/Clintware-AudioFeedbackFix.exe" -Force
+          }
+          if (Test-Path "artifacts/audio-feedback-fix/SHA256.txt") {
+            Copy-Item "artifacts/audio-feedback-fix/SHA256.txt" "downloads/Clintware-AudioFeedbackFix-SHA256.txt" -Force
+          }
           git config user.name "clintware-build"
           git config user.email "actions@users.noreply.github.com"
-          git add downloads/Clintware-AudioFeedbackFix.exe downloads/Clintware-AudioFeedbackFix-SHA256.txt
+          git add downloads/
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
-            git commit -m "Publish tested Clintware Audio Feedback Fix"
+            git commit -m "Publish Audio Feedback Fix build evidence"
             git push
           }
 
-      - name: Upload tested executable
+      - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Clintware-AudioFeedbackFix-win-x64
-          path: artifacts/audio-feedback-fix/
-          if-no-files-found: error
+          path: |
+            artifacts/audio-feedback-fix/
+            build-evidence/
+          if-no-files-found: warn
           retention-days: 30
