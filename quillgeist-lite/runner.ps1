@@ -219,12 +219,18 @@ function Show-QuillgeistSplash {
   try { [Console]::CursorVisible = $false } catch {}
   try { Clear-Host } catch {}
 
+  # The compact Clintware eclipse is deliberately the first visible content.
+  # Keep it small enough to sit above the welcome text on ordinary terminal sizes.
   Write-Host ""
-  Write-ClintwareCentered "C L I N T W A R E  ™" White
+  Write-ClintwareCentered "        · · · · · · ·        " DarkCyan
+  Write-ClintwareCentered "     · ·             · ·     " Cyan
+  Write-ClintwareCentered "   ·      CLINTWARE™      ·   " White
+  Write-ClintwareCentered "   ·       EST. 2026       ·   " DarkGray
+  Write-ClintwareCentered "     · ·             · ·     " Cyan
+  Write-ClintwareCentered "        · · · · · · ·        " DarkCyan
+  Write-Host ""
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
-  Write-Host ""
   Write-ClintwareCentered "GO FURTHEST. ™" Cyan
-  Write-ClintwareCentered "EST. 2026  //  ALL RIGHTS RESERVED" DarkGray
   Write-Host ""
   Write-ClintwareCentered "LOCAL EXECUTION  //  CONTROL PLANE LINK" DarkCyan
   Write-ClintwareCentered "POWERSHELL  |  PYTHON  |  C" DarkCyan
