@@ -22,7 +22,7 @@ import tempfile
 import time
 import urllib.request
 
-VERSION = "2026.09.24.4"
+VERSION = "2026.09.24.5"
 RAW = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 SERVICE = "ClintwareQuillgeistLiteHealth"
 TASK = "Clintware Quillgeist Lite Runner"
@@ -149,7 +149,16 @@ def main() -> int:
 
     task_start = run(["schtasks.exe","/Run","/TN",TASK])
     if task_start.returncode != 0:
-        raise RuntimeError("scheduled task failed to start: " + (task_start.stdout + task_start.stderr).strip())
+        # Lack of elevation should not make recovery fail. Start the same verified
+        # launcher directly; the managed service/task can be repaired later.
+        if not ps.is_file():
+            raise RuntimeError("scheduled task failed and PowerShell fallback is unavailable: " + (task_start.stdout + task_start.stderr).strip())
+        log("WARN // scheduled task start failed; using direct verified launcher fallback")
+        subprocess.Popen(
+            [str(ps),"-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",str(launcher)],
+            cwd=str(home),
+            creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+        )
 
     deadline = time.time() + 15
     live_pid = 0
