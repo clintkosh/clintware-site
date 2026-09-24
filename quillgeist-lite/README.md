@@ -177,3 +177,17 @@ Quillgeist Lite now treats the local qq window as an interactive local-agent ter
 - The Windows health service watches bounded runner/crash diagnostics. Repeated errors or a restart loop trigger the canonical runtime repair path with cooldown/rate limits rather than restarting indefinitely.
 - The design remains local-first: Windows owns the interactive runtime and execution boundary; Clintware routes scoped intent, handoffs, diagnostics, and replies.
 
+
+
+## Quillgeist Web
+
+qq now provides a TinyFish-class live-web surface using the existing local Playwright runtime rather than a third-party browser-automation API:
+
+- `web search <query>` — live public-web search through the local browser, with Bing-first and DuckDuckGo fallback.
+- `web read <url>` — structured page text, headings, and links.
+- `web run <json>` — bounded multi-step navigation, form, click, wait, inspect, extraction, search, and read actions.
+- `web login <url>` — visible local authentication into the persistent browser profile; credentials stay on the Windows device.
+
+The authenticated plugin/MCP endpoint is `https://mcp.clintware.com/mcp`. It uses the existing Clintware OAuth/PKCE flow, so a compatible client can connect through browser authorization without asking the user to paste a Control Plane API key. The current OAuth policy remains owner/admin scoped; this is not a general public remote-control grant.
+
+The plugin bundle and curated skill live under `control-plane/chatgpt-plugin/`. Search and read queue allowlisted qq browser jobs, and multi-step automation uses the same task with an explicit approval bit for consequential actions. Results return through the existing durable Quillgeist Lite job record.
