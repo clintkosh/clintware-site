@@ -21,6 +21,8 @@ $script:QQInputBuffer = New-Object Text.StringBuilder
 $script:QQReceiveBuffer = New-Object byte[] 65536
 $script:QQReceiveStream = New-Object IO.MemoryStream
 $script:QQReceiveTask = $null
+$script:PendingQuestions = @{}
+$script:LastQuestionPoll = [DateTime]::MinValue
 
 function Queue-RunnerDiagnostic {
   param(
@@ -535,6 +537,8 @@ function Show-QQHelp {
   Write-Host "  help                         Show this command reference." -ForegroundColor Cyan
   Write-Host "  status                       Show local runner, service, and admin state." -ForegroundColor Cyan
   Write-Host "  tasks                        List reviewed qq tasks." -ForegroundColor Cyan
+  Write-Host "  <natural language>           Relay a question/instruction to Clintware for an LLM response." -ForegroundColor Cyan
+  Write-Host "  ask <text>                   Explicitly relay a question/instruction." -ForegroundColor Cyan
   Write-Host "  run <task> [Name=Value ...]  Run an allowlisted task locally." -ForegroundColor Cyan
   Write-Host "  jira                         Connect/reconnect Jira." -ForegroundColor Cyan
   Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
@@ -544,7 +548,7 @@ function Show-QQHelp {
   Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
   Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
   Write-Host ""
-  Write-Host "Remote MCP callers still cannot send arbitrary shell commands. The ! escape exists only for text physically entered in this local console." -ForegroundColor DarkGray
+  Write-Host "Natural-language input is relayed through the Clintware Control Plane. Remote MCP callers still cannot send arbitrary shell commands; the ! escape exists only for text physically entered in this local console." -ForegroundColor DarkGray
   Write-Host ""
   Show-QQPrompt
 }
@@ -561,6 +565,7 @@ function Show-QQStatus {
   Write-Host ("  Control Plane : " + $socketState) -ForegroundColor Cyan
   Write-Host ("  Health service: " + $(if($service){$service.Status}else{"not installed"})) -ForegroundColor Cyan
   Write-Host ("  Machine       : " + $env:COMPUTERNAME) -ForegroundColor DarkGray
+  Write-Host ("  PowerShell    : " + $PSVersionTable.PSVersion.ToString() + " / " + $PSVersionTable.PSEdition) -ForegroundColor DarkGray
   Write-Host ("  User          : " + [Security.Principal.WindowsIdentity]::GetCurrent().Name) -ForegroundColor DarkGray
   Write-Host ""
   Show-QQPrompt
@@ -635,6 +640,70 @@ function Invoke-QQLocalShell {
   Show-QQPrompt
 }
 
+function Send-QQQuestion {
+  param([string]$Text)
+
+  $Text = ([string]$Text).Trim()
+  if (-not $Text) { Show-QQPrompt; return }
+
+  if (-not $script:RunnerSocket -or $script:RunnerSocket.State -ne [Net.WebSockets.WebSocketState]::Open) {
+    Suspend-QQPrompt
+    Write-Host "RELAY OFFLINE // Control Plane is not connected yet." -ForegroundColor DarkYellow
+    Show-QQPrompt
+    return
+  }
+
+  $questionId = [Guid]::NewGuid().ToString("n")
+  $script:PendingQuestions[$questionId] = @{
+    text = $Text
+    created_at = (Get-Date).ToUniversalTime().ToString("o")
+  }
+
+  Send-Json $script:RunnerSocket @{
+    type = "question"
+    protocol = "clintware-quillgeist-lite-interactive/v1"
+    question_id = $questionId
+    runner_id = $env:COMPUTERNAME
+    text = $Text
+    cwd = $(try { (Get-Location).Path } catch { "" })
+    shell = ("PowerShell " + $PSVersionTable.PSVersion.ToString())
+    timestamp = (Get-Date).ToUniversalTime().ToString("o")
+  }
+
+  Suspend-QQPrompt
+  Write-Host "RELAY" -ForegroundColor White -NoNewline
+  Write-Host (" // " + $questionId.Substring(0,8) + " -> Clintware") -ForegroundColor Cyan
+  Show-QQPrompt
+}
+
+function Show-QQAnswer {
+  param([object]$Message)
+
+  $questionId = [string]$Message.question_id
+  $answer = [string]$Message.answer
+
+  Suspend-QQPrompt
+  Write-Host ""
+  Write-Host "QUILLGEIST" -ForegroundColor White -NoNewline
+  Write-Host (" // " + $(if($questionId.Length -ge 8){$questionId.Substring(0,8)}else{$questionId})) -ForegroundColor Cyan
+  Write-Host $answer -ForegroundColor White
+  Write-Host ""
+
+  if ($questionId) {
+    $script:PendingQuestions.Remove($questionId)
+    try {
+      Send-Json $script:RunnerSocket @{
+        type = "answer_ack"
+        question_id = $questionId
+        runner_id = $env:COMPUTERNAME
+        timestamp = (Get-Date).ToUniversalTime().ToString("o")
+      }
+    } catch {}
+  }
+
+  Show-QQPrompt
+}
+
 function Invoke-QQLocalCommand {
   param([string]$Line)
 
@@ -647,6 +716,12 @@ function Invoke-QQLocalCommand {
   }
 
   $lower = $line.ToLowerInvariant()
+
+  if ($lower.StartsWith("ask ")) {
+    Send-QQQuestion ($line.Substring(4).Trim())
+    return
+  }
+
   switch ($lower) {
     "help" { Show-QQHelp; return }
     "?" { Show-QQHelp; return }
@@ -719,10 +794,7 @@ function Invoke-QQLocalCommand {
     }
   } catch {}
 
-  Suspend-QQPrompt
-  Write-Host ("Unknown qq command: " + $line) -ForegroundColor DarkYellow
-  Write-Host "Type help for local commands, tasks for the reviewed task list, or prefix a local PowerShell command with !." -ForegroundColor DarkGray
-  Show-QQPrompt
+  Send-QQQuestion $line
 }
 
 function Invoke-AllowlistedTask {
@@ -827,9 +899,16 @@ function Invoke-AllowlistedTask {
 
 $completed = Get-Completed
 
+try {
+  Show-QuillgeistSplash
+} catch {
+  Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
+}
+
 Write-Log "Clintware Quillgeist Lite starting."
+Write-Log ("Runtime host: PowerShell " + $PSVersionTable.PSVersion.ToString() + " / " + $PSVersionTable.PSEdition + ".")
 Write-Log "Runtimes enabled: PowerShell, Python, C."
-Write-Log "Event-driven mode: connecting control channel before UI initialization."
+Write-Log "Interactive relay mode: local questions route through the Clintware Control Plane."
 
 try {
   while ($true) {
@@ -851,20 +930,15 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.4.0"
+        version = "1.5.0"
         runtimes = @("powershell","python","c")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape")
       }
 
       Flush-RunnerDiagnostics
       Write-Log "Connected to Clintware Control Plane." "OK"
 
-      try {
-        Show-QuillgeistSplash
-        Write-Log "Glass terminal header initialized." "OK"
-      } catch {
-        Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
-        Queue-RunnerDiagnostic "ERROR" ($_.Exception.ToString()) "splash"
-      }
+      Write-Log "Interactive relay channel initialized." "OK"
 
       Write-Host ""
       Write-Host "  " -NoNewline
@@ -885,6 +959,17 @@ try {
           Invoke-QQLocalCommand ([string]$localInput.Line)
         }
 
+        if (((Get-Date) - $script:LastQuestionPoll).TotalSeconds -ge 5) {
+          try {
+            Send-Json $ws @{
+              type = "question_poll"
+              runner_id = $env:COMPUTERNAME
+              timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            }
+            $script:LastQuestionPoll = Get-Date
+          } catch {}
+        }
+
         $incoming = Poll-ReceiveJson $ws
         if ($incoming.State -eq "pending") {
           Start-Sleep -Milliseconds 35
@@ -902,6 +987,24 @@ try {
             type = "pong"
             time = (Get-Date).ToUniversalTime().ToString("o")
           }
+          continue
+        }
+
+        if ($msg.type -eq "question_ack") {
+          Suspend-QQPrompt
+          $qid = [string]$msg.question_id
+          Write-Host "RELAY QUEUED" -ForegroundColor DarkCyan -NoNewline
+          Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+          Show-QQPrompt
+          continue
+        }
+
+        if ($msg.type -eq "answer") {
+          Show-QQAnswer $msg
+          continue
+        }
+
+        if ($msg.type -eq "question_status") {
           continue
         }
 
