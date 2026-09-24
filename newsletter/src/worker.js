@@ -406,6 +406,11 @@ export class SubscriberRegistry extends DurableObject {
     ).toArray();
   }
 
+  async pendingPublicationCount() {
+    const row = this.sql.exec("SELECT COUNT(*) AS count FROM publications WHERE status = 'pending_auth'").toArray()[0];
+    return Number(row?.count || 0);
+  }
+
   async failPublication(url) {
     this.sql.exec("UPDATE publications SET status = 'failed' WHERE url = ?", url);
   }
@@ -419,7 +424,28 @@ export default {
         const origin = approvedOrigin(request, env);
         return origin ? new Response(null, { status: 204, headers: corsHeaders(origin) }) : plain("Forbidden", 403);
       }
-      if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, deliveryConfigured: mailConfigured(env), provider: mailProvider(env) });
+      if (request.method === "GET" && url.pathname === "/health") {
+        const wired = mailConfigured(env);
+        let grantConnected = false;
+        if (env.AUTH_BROKER) {
+          try {
+            const statusResponse = await env.AUTH_BROKER.fetch("https://identity.internal/delegated/google/status");
+            const status = await statusResponse.json().catch(() => ({}));
+            grantConnected = Boolean(status.connected);
+          } catch {}
+        } else {
+          grantConnected = Boolean(env.GOOGLE_DELEGATED_REFRESH_TOKEN);
+        }
+        const pendingPublications = await registry(env).pendingPublicationCount();
+        return json({
+          ok: true,
+          deliveryConfigured: wired,
+          deliveryReady: wired && grantConnected,
+          googleDelegatedConnected: grantConnected,
+          pendingPublications,
+          provider: mailProvider(env),
+        });
+      }
       if (request.method === "POST" && url.pathname === "/subscribe") return subscribe(request, env);
       if (request.method === "GET" && url.pathname === "/confirm") return confirm(url, env);
       if (request.method === "GET" && url.pathname === "/unsubscribe") return unsubscribeForm(url, env);
