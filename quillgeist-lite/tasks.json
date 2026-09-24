@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, uses a no-focus acrylic Windows host, and provides a persistent local Playwright browser for bounded form/page automation without exporting browser credentials.",
   "runtimes": [
@@ -157,6 +157,12 @@
         "Headless",
         "WaitMs"
       ]
+    },
+    "record-google-oauth-verification": {
+      "title": "Record a full-screen Google OAuth verification demo using the hidden delegated-access test route; user completes only the live Google consent step",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
+      "parameters": []
     }
   }
 }
