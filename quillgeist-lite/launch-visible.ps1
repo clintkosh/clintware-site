@@ -1,54 +1,52 @@
 $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
-$RunnerPath = Join-Path $HomeDir "runner.ps1"
-$RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
+$LauncherPath = Join-Path $HomeDir "launcher.ps1"
+$EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
+$BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
-Write-Host "Refreshing Clintware Quillgeist Lite..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $RunnerUrl -OutFile ($RunnerPath + ".new") -UseBasicParsing
+Write-Host "Refreshing Clintware Quillgeist Lite launcher..." -ForegroundColor Cyan
 
-$tokens = $null
-$errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile(
-  (Resolve-Path ($RunnerPath + ".new")),
-  [ref]$tokens,
-  [ref]$errors
-) | Out-Null
+$downloads = @(
+  @{ Url = "$BaseRaw/launcher.ps1?v=2026.09.24.8"; Target = $LauncherPath },
+  @{ Url = "$BaseRaw/tasks/ensure-powershell.ps1?v=2026.09.24.8"; Target = $EnsurePwshPath }
+)
 
-if ($errors.Count -gt 0) {
-  $errors | Format-List *
-  Remove-Item ($RunnerPath + ".new") -Force -ErrorAction SilentlyContinue
-  throw "Downloaded runner failed PowerShell validation."
+foreach ($item in $downloads) {
+  $temp = $item.Target + ".new"
+  Invoke-WebRequest -Uri $item.Url -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $temp),[ref]$tokens,[ref]$errors) | Out-Null
+  if ($errors.Count -gt 0) {
+    Remove-Item $temp -Force -ErrorAction SilentlyContinue
+    throw "Downloaded qq launcher component failed PowerShell validation: $($item.Target)"
+  }
+
+  Move-Item $temp $item.Target -Force
 }
 
-Move-Item ($RunnerPath + ".new") $RunnerPath -Force
-
-# Stop stale Quillgeist Lite runner processes only.
+$pwshPath = $null
 try {
-  Get-CimInstance Win32_Process |
-    Where-Object {
-      $_.ProcessId -ne $PID -and
-      [string]$_.CommandLine -match '(?i)Clintware\\QuillgeistLite\\runner\.ps1|quillgeist-lite\\runner\.ps1'
-    } |
-    ForEach-Object {
-      try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
-    }
-} catch {}
-
-Start-Sleep -Milliseconds 500
-
-$psExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$psArgs = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $RunnerPath + '"'
-
-$wt = Get-Command wt.exe -ErrorAction SilentlyContinue
-if ($wt) {
-  Write-Host "Opening visible Quillgeist Lite window in Windows Terminal..." -ForegroundColor Green
-  Start-Process -FilePath $wt.Source -ArgumentList @("-w","new","new-tab",$psExe,"-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$RunnerPath)
-} else {
-  Write-Host "Opening visible Quillgeist Lite PowerShell window..." -ForegroundColor Green
-  Start-Process -FilePath $psExe -ArgumentList $psArgs -WorkingDirectory $HomeDir -WindowStyle Normal
+  $pwshPath = @(& $EnsurePwshPath) | Select-Object -Last 1
+  $pwshPath = [string]$pwshPath
+} catch {
+  Write-Host ("PWSH WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
+
+if (-not $pwshPath -or -not (Test-Path $pwshPath)) {
+  $pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  if ($pwsh) { $pwshPath = $pwsh.Source }
+}
+
+if (-not $pwshPath -or -not (Test-Path $pwshPath)) {
+  $pwshPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+}
+
+Write-Host ("Opening visible Quillgeist Lite window with " + $pwshPath) -ForegroundColor Green
+Start-Process -FilePath $pwshPath -ArgumentList @("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$LauncherPath) -WorkingDirectory $HomeDir -WindowStyle Normal
 
 Write-Host "Launch requested. Look for a window titled: Clintware Quillgeist Lite" -ForegroundColor Green

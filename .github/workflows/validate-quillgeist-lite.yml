@@ -37,6 +37,8 @@ jobs:
             "quillgeist-lite/service/install-service.ps1",
             "quillgeist-lite/tasks/clintware-doctor.ps1",
             "quillgeist-lite/tasks/ensure-c-runtime.ps1",
+            "quillgeist-lite/tasks/ensure-powershell.ps1",
+            "quillgeist-lite/tasks/auto-repair-runtime.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
             "quillgeist-lite/tasks/repair-local-service.ps1",
             "quillgeist-lite/tasks/apply-terminal-glass.ps1",
@@ -76,7 +78,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 3) {
+          if ($registry.version -ne 5) {
             throw "Unexpected task registry version."
           }
 

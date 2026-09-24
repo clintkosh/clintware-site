@@ -9,6 +9,10 @@ $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $CrashLog = Join-Path $HomeDir "runner-crash.log"
 $PidPath = Join-Path $HomeDir "runner.pid"
 $RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
+$EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
+$EnsurePwshUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/ensure-powershell.ps1"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
+$AutoRepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/auto-repair-runtime.ps1"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -32,7 +36,7 @@ function Update-LocalRunner {
   $temp = Join-Path $HomeDir "runner.next.ps1"
 
   try {
-    Invoke-WebRequest -Uri $RunnerUrl -OutFile $temp -UseBasicParsing
+    Invoke-WebRequest -Uri ($RunnerUrl + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
     $tokens = $null
     $errors = $null
@@ -51,43 +55,76 @@ function Update-LocalRunner {
   }
 }
 
-Set-ClintwareBaseTheme
+function Ensure-ModernPowerShell {
+  if ($env:QUILLGEIST_PWSH_BOOTSTRAPPED -eq "1") { return }
 
-try {
-  $updated = Update-LocalRunner
-
-  # Reliability-first boot path:
-  # qq no longer hands lifecycle control to Windows Terminal. The managed task
-  # stays in the verified PowerShell host; Python renders the retro boot splash.
-  # This removes the Windows Terminal profile from the automatic restart path,
-  # eliminating 0x80070002 profile-launch loops.
-  $SplashPath = Join-Path $HomeDir "boot_splash.py"
-  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?v=2026.09.24.6"
   try {
-    if (-not (Test-Path $SplashPath)) {
-      Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-      Move-Item ($SplashPath + ".new") $SplashPath -Force
+    foreach ($asset in @(
+      @{ Url = $EnsurePwshUrl; Path = $EnsurePwshPath },
+      @{ Url = $AutoRepairUrl; Path = $AutoRepairPath }
+    )) {
+      $temp = $asset.Path + ".new"
+      Invoke-WebRequest -Uri ($asset.Url + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+
+      $tokens = $null
+      $errors = $null
+      [System.Management.Automation.Language.Parser]::ParseFile($temp,[ref]$tokens,[ref]$errors) | Out-Null
+      if ($errors.Count -gt 0) { throw ("qq runtime asset failed parse validation: " + $asset.Path) }
+
+      Move-Item $temp $asset.Path -Force
     }
+
+    $resolved = @(& $EnsurePwshPath) | Select-Object -Last 1
+    $resolved = [string]$resolved
+
+    if ($resolved -and (Test-Path $resolved) -and $PSVersionTable.PSEdition -ne "Core") {
+      Write-Host "PWSH // switching qq runtime to PowerShell 7" -ForegroundColor Cyan
+      $env:QUILLGEIST_PWSH_BOOTSTRAPPED = "1"
+      & $resolved -NoLogo -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+      exit $LASTEXITCODE
+    }
+  } catch {
+    Add-Content -Path $CrashLog -Value ("{0} PWSH_BOOTSTRAP_WARN {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
+    Write-Host ("PWSH WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+}
+
+function Show-WindowLoadSplash {
+  $SplashPath = Join-Path $HomeDir "boot_splash.py"
+  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?v=2026.09.24.8"
+
+  try {
+    Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    Move-Item ($SplashPath + ".new") $SplashPath -Force
 
     $python = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($python) {
       Start-Process -FilePath $python.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden -Wait
-    } else {
-      $python = Get-Command python.exe -ErrorAction SilentlyContinue
-      if ($python) {
-        Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden -Wait
-      }
+      return
+    }
+
+    $python = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($python) {
+      Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden -Wait
     }
   } catch {
+    Remove-Item ($SplashPath + ".new") -Force -ErrorAction SilentlyContinue
     Add-Content -Path $CrashLog -Value ("{0} SPLASH_FAILED {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
   }
+}
 
+Set-ClintwareBaseTheme
+Ensure-ModernPowerShell
+Show-WindowLoadSplash
+
+try {
+  $updated = Update-LocalRunner
   Set-Content -Path $PidPath -Value $PID -Encoding ASCII
 
   if ($updated) {
     Write-Host "SYNC" -ForegroundColor White -NoNewline
     Write-Host " // latest Quillgeist Lite runner loaded" -ForegroundColor Cyan
-    Start-Sleep -Milliseconds 250
+    Start-Sleep -Milliseconds 200
   }
 
   & $RunnerPath
