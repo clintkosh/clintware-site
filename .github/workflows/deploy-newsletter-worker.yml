@@ -86,3 +86,18 @@ jobs:
         run: |
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.jsonc
+      - name: Verify first-party newsletter endpoint
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 24); do
+            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://newsletter.clintware.com/health || true)
+            if echo "$body" | grep -Fq '"ok":true' && echo "$body" | grep -Fq '"deliveryConfigured":true'; then
+              ready=1
+              echo "$body"
+              break
+            fi
+            echo "Waiting for newsletter.clintware.com ($i/24)"
+            sleep 5
+          done
+          test "$ready" = "1"
