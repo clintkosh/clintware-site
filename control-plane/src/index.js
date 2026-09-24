@@ -192,7 +192,7 @@ const DEFAULT_ORGSYNAPSE = {
 const DEFAULT_QUILLGEIST_LITE = {
   product:"quillgeist-lite",
   environment:"production",
-  version:2,
+  version:3,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["quillgeist-lite/","identity-broker/scripts/"],delete_prefixes:[],allowed_workflows:["deploy-control-plane.yml"]},
   dns:{allowed_names:["mcp.clintware.com"]},
   capabilities:[
@@ -211,6 +211,8 @@ const DEFAULT_QUILLGEIST_LITE = {
     "local.read:quillgeist-lite",
     "local.run:quillgeist-lite",
     "browser.run:quillgeist-lite",
+    "web.search:quillgeist-lite",
+    "web.read:quillgeist-lite",
     "jira.read:quillgeist-lite",
     "jira.write:quillgeist-lite",
     "confluence.read:quillgeist-lite",
@@ -244,7 +246,7 @@ const QUILLGEIST_LITE_TASKS = {
   "provision-codefeddy-platform":{runtime:"powershell",parameters:[]},
   "self-heal":{runtime:"powershell",parameters:[]},
   "browser-setup":{runtime:"powershell",parameters:[]},
-  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Headless","WaitMs"]},
+  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","AllowPrivate","Headless","WaitMs"]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
@@ -781,7 +783,8 @@ export class RegistryHub extends DurableObject {
     const args={};
     for(const [key,value] of Object.entries(job.args||{})){
       if(!allowed.has(key))return {ok:false,error:"argument_not_allowed",argument:key};
-      args[key]=clip(value,2000);
+      const argLimit=job.task_id==="browser-work"?(key==="StepsJson"?50000:(key==="Query"||key==="Url"?8000:4000)):2000;
+      args[key]=clip(value,argLimit);
     }
     const normalized={
       job_id:clip(job.job_id||crypto.randomUUID(),120),
@@ -2119,6 +2122,67 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     if(r.ok&&!data.packet?.product&&!mcpAuth?.root)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     return {isError:!r.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
+  const queueQuillgeistLiteMcpTask=async(task_id,args,objective)=>{
+    const task=QUILLGEIST_LITE_TASKS[task_id];
+    if(!task)return {ok:false,error:"task_not_allowed"};
+    const allowed=new Set(task.parameters||[]);
+    for(const key of Object.keys(args||{})){
+      if(!allowed.has(key))return {ok:false,error:"argument_not_allowed",argument:key};
+    }
+    const createdResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      job_id:crypto.randomUUID(),task_id,args:args||{},objective:objective||"",requested_by:mcpAuth?.client_id||"mcp"
+    })}));
+    const created=await createdResp.json();
+    if(!createdResp.ok||!created.ok)return created;
+    const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
+    const delivery=await broadcastResp.json();
+    await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
+    return {ok:true,job_id:created.job.job_id,task_id,status:"queued",delivery,continuation:"Read this job with clintware_quillgeist_lite_job until status is passed or failed."};
+  };
+
+  server.registerTool("clintware_quillgeist_web_search",{
+    title:"Search the live web with Quillgeist Web",
+    description:"Queue a live public-web search on the paired qq browser. No search API key is required. Private/loopback network destinations are blocked and browser credentials remain local.",
+    inputSchema:{query:z.string().min(1).max(8000),engine:z.enum(["auto","bing","duckduckgo"]).optional(),max_results:z.number().int().min(1).max(20).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async({query,engine,max_results})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const data=await queueQuillgeistLiteMcpTask("browser-work",{Action:"search",Query:query,Engine:engine||"auto",MaxResults:String(max_results||8),Headless:"true",AllowPrivate:"false",Approved:"false"},"Search the live public web and return structured result titles, URLs, and snippets.");
+    return {isError:!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_web_read",{
+    title:"Read a live web page with Quillgeist Web",
+    description:"Queue a governed public-page read on the paired qq browser and return structured text, headings, and links through the durable job result. Private/loopback destinations are blocked.",
+    inputSchema:{url:z.string().url().max(8000),max_chars:z.number().int().min(1000).max(100000).optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:true}
+  },async({url,max_chars})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const data=await queueQuillgeistLiteMcpTask("browser-work",{Action:"read",Url:url,MaxChars:String(max_chars||20000),Headless:"true",AllowPrivate:"false",Approved:"false"},"Read a live public page and return bounded structured page content.");
+    return {isError:!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_browser_run",{
+    title:"Run governed multi-step browser automation with Quillgeist Web",
+    description:"Queue a bounded Playwright action plan on the paired qq browser. Password/OTP/payment/token fields are never remotely typed. Consequential actions require approved=true. Private/loopback destinations remain blocked.",
+    inputSchema:{
+      steps_json:z.string().min(2).max(50000).describe("JSON array or {steps:[...]} using reviewed qq browser operations."),
+      approved:z.boolean().optional().describe("Set true only when the user explicitly authorized consequential final actions in this run."),
+      headless:z.boolean().optional(),
+      max_chars:z.number().int().min(1000).max(100000).optional()
+    },
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async({steps_json,approved,headless,max_chars})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    try{
+      const parsed=JSON.parse(steps_json);
+      const steps=Array.isArray(parsed)?parsed:parsed?.steps;
+      if(!Array.isArray(steps)||steps.length>100)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"invalid_steps",message:"Provide at most 100 browser steps."})}]};
+    }catch{return {isError:true,content:[{type:"text",text:JSON.stringify({error:"invalid_steps_json"})}]};}
+    const data=await queueQuillgeistLiteMcpTask("browser-work",{Action:"run",StepsJson:steps_json,Approved:approved?"true":"false",Headless:headless===false?"false":"true",MaxChars:String(max_chars||20000),AllowPrivate:"false"},"Execute a governed multi-step browser plan in the user's persistent qq browser.");
+    return {isError:!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
   server.registerTool("clintware_quillgeist_lite_status",{
     title:"Get Clintware Quillgeist Lite status",
     description:"Return whether the local event-driven Windows runner is connected plus recent bounded job metadata. Does not expose provider credentials.",
@@ -2147,7 +2211,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","codefeddy-access-check","provision-codefeddy-platform"]),
+      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","codefeddy-access-check","provision-codefeddy-platform","self-heal","browser-setup","browser-work","record-google-oauth-verification"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
@@ -2837,6 +2901,9 @@ function safeConfig(env){
     mcp_per_client_credentials:true,
     handoff_realtime_stream:true,
     quillgeist_lite_realtime:true,
+    quillgeist_web_search:true,
+    quillgeist_web_read:true,
+    quillgeist_browser_automation:true,
     jira_oauth_configured:jiraConfigured(env),
     admin_auth:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN||env.CONTROL_PLANE_MCP_TOKEN),
     admin_auth_separate:Boolean(env.CONTROL_PLANE_ADMIN_TOKEN)
