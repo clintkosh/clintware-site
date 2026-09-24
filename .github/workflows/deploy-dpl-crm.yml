@@ -2,7 +2,7 @@ name: Deploy Doppel TCE CRM
 on:
   push:
     branches: [main]
-    paths: ["projects/dpl-crm/**", ".github/workflows/deploy-dpl-crm.yml"]
+    paths: ["projects/dpl-crm/**", "tests/dpl_browser_smoke.mjs", ".github/workflows/deploy-dpl-crm.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -59,6 +59,8 @@ jobs:
           grep -Fq "doppel-polish.js" public/index.html
           grep -Fq "AI + Exa research" public/doppel-polish.js
           grep -Fq "Clear all data" public/doppel-polish.js
+          grep -Fq "Internal team contract" public/doppel-polish.js
+          grep -Fq "operating_model" public/doppel-polish.js
 
       - name: Wrangler dry run
         run: |
@@ -101,7 +103,8 @@ jobs:
               && grep -Fq '/doppel-brand.css' <<< "$p" \
               && grep -Fq 'getDisplayMedia' <<< "$a" \
               && grep -Fq 'Interpret update' <<< "$a" \
-              && grep -Fq 'AI + Exa research' <<< "$b"; then
+              && grep -Fq 'AI + Exa research' <<< "$b" \
+              && grep -Fq 'Internal team contract' <<< "$b"; then
               ready=1
               break
             fi
