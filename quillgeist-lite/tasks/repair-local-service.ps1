@@ -57,32 +57,55 @@ if (-not $service) {
   throw "The qq health service is not installed; run the maintained qq installer instead."
 }
 
-# Windows' ScheduledTasks module does not expose StopExisting on every build.
-# Resolve task settings before stopping the service so an unsupported enum cannot
-# leave the watchdog offline halfway through a repair.
-try {
-  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting -ErrorAction Stop
-} catch {
-  if ($_.Exception.Message -notmatch "MultipleInstances|StopExisting") { throw }
-  Write-Host "TASK // StopExisting is unavailable on this Windows build; using IgnoreNew compatibility mode" -ForegroundColor DarkYellow
-  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew -ErrorAction Stop
+function New-CompatibleTaskSettings {
+  $common = @{
+    AllowStartIfOnBatteries = $true
+    DontStopIfGoingOnBatteries = $true
+    StartWhenAvailable = $true
+    ExecutionTimeLimit = [TimeSpan]::Zero
+    ErrorAction = "Stop"
+  }
+
+  # The health service explicitly ends stale Task Scheduler wrappers before /Run,
+  # so IgnoreNew is the desired policy. Resolve it from the local cmdlet metadata
+  # instead of ever passing an enum value that this Windows build does not expose.
+  try {
+    $command = Get-Command New-ScheduledTaskSettingsSet -ErrorAction Stop
+    $multi = $command.Parameters["MultipleInstances"]
+    if ($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum) {
+      $supported = [Enum]::GetNames($multi.ParameterType)
+      if ($supported -contains "IgnoreNew") {
+        $common["MultipleInstances"] = "IgnoreNew"
+      } elseif ($supported -contains "Queue") {
+        Write-Host "TASK // IgnoreNew unavailable; using Queue compatibility policy" -ForegroundColor DarkYellow
+        $common["MultipleInstances"] = "Queue"
+      } elseif ($supported -contains "Parallel") {
+        Write-Host "TASK // only Parallel is available; watchdog will still end stale wrappers explicitly" -ForegroundColor DarkYellow
+        $common["MultipleInstances"] = "Parallel"
+      }
+    }
+  } catch {
+    Write-Host ("WARN // could not inspect MultipleInstances support; using ScheduledTasks default: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+
+  return New-ScheduledTaskSettingsSet @common
 }
 
+$settings = New-CompatibleTaskSettings
+
 Write-Host "SERVICE // replacing watchdog binary" -ForegroundColor Cyan
+$serviceWasRunning = ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running)
 Stop-Service -Name $ServiceName -Force -ErrorAction Stop
 $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(20))
 
 $backup = $ServiceExe + ".previous"
 Remove-Item $backup -Force -ErrorAction SilentlyContinue
 if (Test-Path $ServiceExe) { Move-Item $ServiceExe $backup -Force }
+
 try {
   Move-Item $tempExe $ServiceExe -Force
-} catch {
-  if (Test-Path $backup) { Move-Item $backup $ServiceExe -Force }
-  throw
-}
 
-$task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 
 if (-not $task) {
   if (-not (Test-Path $LauncherPath)) {
@@ -123,5 +146,29 @@ if (-not $SkipRunnerRestart) {
   Write-Host "TASK // runner restart deferred because an active qq job is using this session" -ForegroundColor DarkGray
 }
 
-Remove-Item $backup -Force -ErrorAction SilentlyContinue
-Write-Host "READY // qq health service repaired; wake channel, credentials, and Control Plane registration preserved." -ForegroundColor Green
+  Remove-Item $backup -Force -ErrorAction SilentlyContinue
+  Write-Host "READY // qq health service repaired; wake channel, credentials, and Control Plane registration preserved." -ForegroundColor Green
+} catch {
+  $repairError = $_
+  Write-Host ("SELF-HEAL // repair step failed: " + $repairError.Exception.Message) -ForegroundColor Red
+
+  try {
+    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+    if (Test-Path $backup) {
+      Remove-Item $ServiceExe -Force -ErrorAction SilentlyContinue
+      Move-Item $backup $ServiceExe -Force
+      Write-Host "SELF-HEAL // previous watchdog binary restored" -ForegroundColor DarkYellow
+    }
+    Set-Service -Name $ServiceName -StartupType Automatic -ErrorAction SilentlyContinue
+    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    $recovered = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($recovered -and $recovered.Status -eq "Running") {
+      Write-Host "SELF-HEAL // watchdog returned to Running state" -ForegroundColor Green
+    }
+  } catch {
+    Write-Host ("SELF-HEAL WARN // rollback encountered: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+
+  Remove-Item $tempExe -Force -ErrorAction SilentlyContinue
+  throw $repairError
+}
