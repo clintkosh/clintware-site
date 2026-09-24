@@ -54,16 +54,28 @@ namespace Clintware.QuillgeistLite
 
         protected override void OnStart(string[] args)
         {
-            config = LoadConfig();
-            serviceStartedUtc = DateTime.UtcNow;
-            LocalLog("service_started");
-            TryPost("INFO", "service", "health_service_started", null);
-            timer = new Timer(Tick, null, 1000, 5000);
-            wakeCancellation = new CancellationTokenSource();
-            wakeThread = new Thread(WakeLoop);
-            wakeThread.IsBackground = true;
-            wakeThread.Name = "QuillgeistLiteWake";
-            wakeThread.Start();
+            try
+            {
+                config = LoadConfig();
+                serviceStartedUtc = DateTime.UtcNow;
+                LocalLog("service_started");
+                timer = new Timer(Tick, null, 1000, 5000);
+                wakeCancellation = new CancellationTokenSource();
+                wakeThread = new Thread(WakeLoop);
+                wakeThread.IsBackground = true;
+                wakeThread.Name = "QuillgeistLiteWake";
+                wakeThread.Start();
+
+                // Diagnostics uplink is useful but must never block SCM service startup.
+                ThreadPool.QueueUserWorkItem(delegate {
+                    try { TryPost("INFO", "service", "health_service_started", null); } catch { }
+                });
+            }
+            catch (Exception ex)
+            {
+                StartupFailureLog(ex);
+                throw;
+            }
         }
 
         protected override void OnStop()
@@ -85,6 +97,21 @@ namespace Clintware.QuillgeistLite
             shuttingDown = true;
             OnStop();
             base.OnShutdown();
+        }
+
+        private void StartupFailureLog(Exception ex)
+        {
+            try
+            {
+                string root = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "Clintware", "QuillgeistLite");
+                Directory.CreateDirectory(root);
+                string path = Path.Combine(root, "service-startup-error.log");
+                File.AppendAllText(path,
+                    DateTime.UtcNow.ToString("o") + " " + ex.ToString() + Environment.NewLine);
+            }
+            catch { }
         }
 
         private HealthConfig LoadConfig()
@@ -574,7 +601,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.2.1\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"1.2.2\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
