@@ -12,6 +12,7 @@ $ServiceExe = Join-Path $ProgramDir "QuillgeistLiteHealthService.exe"
 $ServiceName = "ClintwareQuillgeistLiteHealth"
 $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
+$WindowHostPath = Join-Path $HomeDir "start-qq-window.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
 $RepairVersion = "2026.09.24.8"
@@ -253,6 +254,9 @@ function New-CompatibleTaskSettings {
 }
 
 $validatedConfig = Test-ServiceConfiguration
+if (-not (Test-Path $WindowHostPath)) {
+  Get-ClintwareRepoFile -RepoPath "quillgeist-lite/tasks/start-qq-window.ps1" -Destination $WindowHostPath
+}
 $settings = New-CompatibleTaskSettings
 
 Write-Host "SERVICE // replacing watchdog binary" -ForegroundColor Cyan
@@ -302,13 +306,13 @@ if (-not $task) {
     if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
   }
   $psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
-  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $WindowHostPath + '" -LauncherPath "' + $LauncherPath + '" -HomeDir "' + $HomeDir + '"'
   $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
   $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
   $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userName
   $principal = New-ScheduledTaskPrincipal -UserId $userName -LogonType Interactive -RunLevel Highest
 
-  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service." | Out-Null
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite glass console. Automatically supervised without stealing foreground focus." | Out-Null
   $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 } else {
   $pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
@@ -317,7 +321,7 @@ if (-not $task) {
     if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
   }
   $psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
-  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $WindowHostPath + '" -LauncherPath "' + $LauncherPath + '" -HomeDir "' + $HomeDir + '"'
   $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
   Set-ScheduledTask -TaskName $TaskName -Action $action -Settings $settings | Out-Null
 }
