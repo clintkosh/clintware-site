@@ -17,7 +17,7 @@ function Resolve-SystemPython {
 $healthy = $false
 if (-not $Force -and (Test-Path $PythonPath) -and (Test-Path $MarkerPath)) {
   try {
-    & $PythonPath -c "import playwright; print('PLAYWRIGHT_READY')" | Out-Null
+    & $PythonPath -c "import playwright, mss, cv2; print('PLAYWRIGHT_RECORDING_READY')" | Out-Null
     if ($LASTEXITCODE -eq 0) { $healthy = $true }
   } catch {}
 }
@@ -36,12 +36,12 @@ if (-not (Test-Path $PythonPath)) {
 }
 & $PythonPath -m pip install --disable-pip-version-check --no-input --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed." }
-& $PythonPath -m pip install --disable-pip-version-check --no-input "playwright>=1.50,<2"
-if ($LASTEXITCODE -ne 0) { throw "Playwright installation failed." }
+& $PythonPath -m pip install --disable-pip-version-check --no-input "playwright>=1.50,<2" "mss>=10,<11" "opencv-python-headless>=4.12,<5"
+if ($LASTEXITCODE -ne 0) { throw "Playwright/screen-recording dependency installation failed." }
 & $PythonPath -m playwright install chromium
 if ($LASTEXITCODE -ne 0) { throw "Chromium installation failed." }
 
 @{ready=$true;python=$PythonPath;updated_at=(Get-Date).ToUniversalTime().ToString("o")} |
   ConvertTo-Json | Set-Content -Path $MarkerPath -Encoding UTF8
-Write-Host "READY // qq local browser automation runtime installed" -ForegroundColor Green
+Write-Host "READY // qq local browser + screen-recording runtime installed" -ForegroundColor Green
 Write-Output $PythonPath
