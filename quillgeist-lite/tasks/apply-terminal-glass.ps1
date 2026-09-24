@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RepairPath = Join-Path $HomeDir "terminal_repair.py"
-$RepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/terminal_repair.py?v=2026.09.24.4"
+$RepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/terminal_repair.py?v=2026.09.24.5"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
