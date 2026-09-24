@@ -24,7 +24,7 @@ import urllib.request
 import uuid
 import zlib
 
-VERSION = "2026.09.24.5"
+VERSION = "2026.09.24.10"
 PROFILE_GUID = "{4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
 PROFILE_NAME = "Quillgeist Lite"
 LEGACY_PROFILE_GUID = "{5c7d2c59-4989-4f24-9f07-cbd0a38acb6d}"
@@ -277,28 +277,31 @@ def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: 
             "tabTitle": "Quillgeist Lite",
             "suppressApplicationTitle": True,
             "colorScheme": "Clintware Glass",
-            "opacity": 92,
+            "opacity": 82,
             "useAcrylic": True,
-            "background": "#000000",
+            "background": "#02060A",
             "foreground": "#EAF7FF",
             "selectionBackground": "#244A66",
             "cursorColor": "#57C7FF",
             "cursorShape": "vintage",
             "cursorHeight": 22,
-            "padding": "16, 12, 16, 12",
+            "padding": "18, 14, 18, 14",
+            "closeOnExit": "always",
+            "bellStyle": "none",
+            "antialiasingMode": "cleartype",
             "scrollbarState": "hidden",
             "intenseTextStyle": "bright",
             "adjustIndistinguishableColors": "never",
             "backgroundImage": str(image_path),
             "backgroundImageAlignment": "center",
-            "backgroundImageOpacity": 0.22,
+            "backgroundImageOpacity": 0.16,
             "backgroundImageStretchMode": "uniform",
             "experimental.retroTerminalEffect": False,
             "font": {"face": "Cascadia Mono", "size": 11, "weight": "normal"},
             "unfocusedAppearance": {
-                "opacity": 92,
+                "opacity": 84,
                 "useAcrylic": True,
-                "backgroundImageOpacity": 0.14,
+                "backgroundImageOpacity": 0.10,
             },
         }],
         "schemes": [{
