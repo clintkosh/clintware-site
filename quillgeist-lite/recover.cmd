@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-set "QQ_VERSION=2026.09.24.5"
+set "QQ_VERSION=2026.09.24.6"
 set "RECOVER=%TEMP%\quillgeist-lite-emergency-recover.py"
 set "URL=https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/emergency_recover.py?v=%QQ_VERSION%"
 
