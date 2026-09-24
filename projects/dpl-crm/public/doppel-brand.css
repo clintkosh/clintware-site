@@ -18,7 +18,7 @@ body{position:relative;min-height:100vh;background:
  var(--bg);background-size:34px 34px,34px 34px,auto,auto,auto;background-attachment:fixed}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(115deg,transparent 0 62%,color-mix(in srgb,var(--blue) 10%,transparent) 62% 69%,transparent 69%)}
 .top{backdrop-filter:blur(18px);background:color-mix(in srgb,var(--bg) 88%,transparent);border-color:color-mix(in srgb,var(--line) 78%,transparent)}
-.brand{font-size:17px;letter-spacing:-.025em}.brand:before{content:"Doppel";display:inline-block;margin-right:9px;font-size:19px;font-weight:950;letter-spacing:-.055em;color:var(--text)}.brand small{margin-top:2px;letter-spacing:.02em}
+.brand{font-size:17px;letter-spacing:-.025em;max-width:330px}.brand small{margin-top:2px;letter-spacing:.02em}
 .side{background:color-mix(in srgb,var(--bg) 83%,transparent);backdrop-filter:blur(14px)}
 .nav button{border:1px solid transparent}.nav button.active,.nav button:hover{border-color:var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 13%,var(--panel2)),var(--panel2));color:var(--text)}
 .nav button.active:before{content:"";display:inline-block;width:6px;height:6px;margin-right:8px;border-radius:50%;background:var(--dpl-lime);box-shadow:0 0 14px color-mix(in srgb,var(--dpl-lime) 75%,transparent)}
@@ -39,9 +39,9 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 .view-theme{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--panel2)}.view-theme button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:850;padding:5px 8px;border-radius:999px;cursor:pointer}.view-theme button.active{background:var(--text);color:var(--bg)}
 .view-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.head-actions{width:100%;align-items:center}.head-actions .view-tools{margin-left:auto}
 .dataset-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}.dataset-strip .card{box-shadow:none}.dataset-strip .metric{font-size:21px}
-.source-chip{display:inline-flex;padding:3px 7px;border:1px solid var(--line);border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}.source-chip.public{color:var(--dpl-lime)}.source-chip.synthetic{color:var(--amber)}
+.source-row{align-items:flex-start;flex-wrap:wrap}.source-chip{display:inline-flex;max-width:100%;padding:3px 7px;border:1px solid var(--line);border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.source-chip.public{color:var(--dpl-lime)}.source-chip.synthetic{color:var(--amber)}.source-row .status{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .persistence.saved{border-color:color-mix(in srgb,var(--dpl-lime) 45%,var(--line));background:linear-gradient(130deg,color-mix(in srgb,var(--dpl-lime) 5%,var(--panel)),var(--panel))}
 .persistence.guest{background:linear-gradient(130deg,color-mix(in srgb,var(--amber) 5%,var(--panel)),var(--panel))}
 .theme-dot{width:8px;height:8px;border-radius:50%;background:var(--dpl-lime);box-shadow:0 0 12px color-mix(in srgb,var(--dpl-lime) 65%,transparent)}
-@media(max-width:1000px){.dataset-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.head-actions .view-tools{margin-left:0}}
-@media(max-width:680px){body{background-size:26px 26px,26px 26px,auto,auto,auto}.brand:before{font-size:17px}.dataset-strip{grid-template-columns:1fr}.view-theme{margin-left:0}.head-actions{align-items:flex-start}.page-head h1{font-size:28px}}
+@media(max-width:1000px){.dataset-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.head-actions .view-tools{margin-left:0}.brand{max-width:none}}
+@media(max-width:680px){body{background-size:26px 26px,26px 26px,auto,auto,auto}.dataset-strip{grid-template-columns:1fr}.view-theme{margin-left:0}.head-actions{align-items:flex-start}.page-head h1{font-size:28px}.source-chip{font-size:8.5px}}
