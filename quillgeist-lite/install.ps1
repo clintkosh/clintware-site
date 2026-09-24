@@ -9,7 +9,7 @@ $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
 $ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
-$GlassInstallerPath = Join-Path $HomeDir "apply-terminal-glass.ps1"
+$TerminalRepairPath = Join-Path $HomeDir "terminal_repair.py"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 
 Write-Host ""
@@ -50,7 +50,7 @@ $downloads = @{
   "$BaseRaw/launcher.ps1$CacheBust" = $LauncherPath
   "$BaseRaw/service/QuillgeistLiteHealthService.cs$CacheBust" = $ServiceSourcePath
   "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
-  "$BaseRaw/tasks/apply-terminal-glass.ps1$CacheBust" = $GlassInstallerPath
+  "$BaseRaw/tools/terminal_repair.py$CacheBust" = $TerminalRepairPath
 }
 
 foreach ($entry in $downloads.GetEnumerator()) {
@@ -59,7 +59,7 @@ foreach ($entry in $downloads.GetEnumerator()) {
 }
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
-foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath,$GlassInstallerPath)) {
+foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
   $tokens = $null
   $errors = $null
   [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
@@ -69,10 +69,19 @@ foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath,$GlassInstal
   }
 }
 
-Write-Host "Applying Clintware acrylic Windows Terminal profile..." -ForegroundColor Cyan
-& $GlassInstallerPath -NoRestart
+Write-Host "Applying self-verifying Quillgeist Lite Windows Terminal profile with Python..." -ForegroundColor Cyan
+$python = Get-Command py -ErrorAction SilentlyContinue
+$pythonArgs = @("-3",$TerminalRepairPath)
+if (-not $python) {
+  $python = Get-Command python -ErrorAction SilentlyContinue
+  $pythonArgs = @($TerminalRepairPath)
+}
+if (-not $python) {
+  throw "Python 3 is required for deterministic Quillgeist Lite terminal/profile recovery."
+}
+& $python.Source @pythonArgs
 if ($LASTEXITCODE -ne 0) {
-  throw "Quillgeist Lite glass terminal configuration failed."
+  throw "Python Quillgeist Lite terminal self-repair failed with exit code $LASTEXITCODE."
 }
 
 Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
