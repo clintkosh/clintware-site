@@ -2,6 +2,42 @@ export const GA_MEASUREMENT_ID = "G-DCY144YM9P";
 
 export const CRM_PORTFOLIO = Object.freeze([
   {
+    id: "n7crm",
+    name: "Neuron7 Customer Value OS",
+    shortName: "N7",
+    hostname: "n7crm.clintware.com",
+    url: "https://n7crm.clintware.com/",
+    pathPrefix: "/n7crm/",
+    coverage: "Portfolio + all 21 customer workspace modules",
+    platform: "Cloudflare Worker",
+    analyticsMode: "ga4",
+    color: "#7dd3fc",
+  },
+  {
+    id: "n7case",
+    name: "Neuron7 Case + ROI",
+    shortName: "N7R",
+    hostname: "n7.clintware.com",
+    url: "https://n7.clintware.com/",
+    pathPrefix: "/n7case/",
+    coverage: "Case-study overview, ROI console, and scoped operator surface",
+    platform: "Cloudflare Worker",
+    analyticsMode: "worker-observability",
+    color: "#67e8f9",
+  },
+  {
+    id: "n7demo",
+    name: "Neuron7 Demo CRM",
+    shortName: "N7D",
+    hostname: "n7demo.clintware.com",
+    url: "https://n7demo.clintware.com/",
+    pathPrefix: "/n7demo/",
+    coverage: "Guest + account CRM, AI, Live Assist, Jira, Confluence, and KB",
+    platform: "Cloudflare Worker",
+    analyticsMode: "control-plane",
+    color: "#a5b4fc",
+  },
+  {
     id: "abnormal",
     name: "Abnormal",
     shortName: "AN",
@@ -10,6 +46,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/an/",
     coverage: "Primary routes + every account tab",
     platform: "Cloudflare Worker",
+    analyticsMode: "ga4",
     color: "#ff4f8b",
   },
   {
@@ -21,6 +58,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/zsc/",
     coverage: "Primary routes + every account tab",
     platform: "Cloudflare Worker",
+    analyticsMode: "ga4",
     color: "#45c4ff",
   },
   {
@@ -32,6 +70,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/dtex/",
     coverage: "All 9 workspace views",
     platform: "Cloudflare Pages",
+    analyticsMode: "ga4",
     color: "#34d6a4",
   },
   {
@@ -43,6 +82,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/nv/",
     coverage: "All 6 workspaces",
     platform: "ChatGPT Sites",
+    analyticsMode: "ga4",
     color: "#8de047",
   },
   {
@@ -54,6 +94,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/pp/",
     coverage: "All 4 workspaces",
     platform: "ChatGPT Sites",
+    analyticsMode: "ga4",
     color: "#f2a93b",
   },
   {
@@ -65,6 +106,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/cg/",
     coverage: "Every view + all 6 account tabs",
     platform: "ChatGPT Sites",
+    analyticsMode: "ga4",
     color: "#a78bfa",
   },
   {
@@ -76,6 +118,7 @@ export const CRM_PORTFOLIO = Object.freeze([
     pathPrefix: "/renewnudge/",
     coverage: "Every public, auth, app, and account route",
     platform: "Lovable",
+    analyticsMode: "ga4",
     color: "#ff6b6b",
   },
 ]);
