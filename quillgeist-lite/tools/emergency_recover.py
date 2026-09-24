@@ -195,7 +195,7 @@ def rewrite_task(home: pathlib.Path) -> None:
         "$exe='" + q(str(psex)) + "';"
         "$launcher='" + q(str(launcher)) + "';"
         "$user='" + q(user) + "';"
-        "$args='-NoProfile -ExecutionPolicy Bypass -NoExit -File "'+$launcher+'"';"
+        "$args='-NoProfile -ExecutionPolicy Bypass -NoExit -File \"' + $launcher + '\"';"
         "$action=New-ScheduledTaskAction -Execute $exe -Argument $args -WorkingDirectory $home;"
         "$task=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue;"
         "if($task){"
