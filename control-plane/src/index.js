@@ -530,6 +530,18 @@ export class RegistryHub extends DurableObject {
     }
     return delivered;
   }
+  async broadcastQuillgeistLiteWake(job){
+    let delivered=0;
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite-wake")){
+      try{
+        if(ws.readyState===1){
+          ws.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",job_id:job?.job_id||"",task_id:job?.task_id||"",reason:"job_queued",time:nowIso()}));
+          delivered++;
+        }
+      }catch{}
+    }
+    return delivered;
+  }
   async quillgeistLiteStatus(){
     const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
@@ -755,6 +767,18 @@ export class RegistryHub extends DurableObject {
       }
       return new Response(null,{status:101,webSocket:client});
     }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-wake-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
+      const pair=new WebSocketPair();
+      const [client,server]=Object.values(pair);
+      const deviceId=clip(request.headers.get("x-quillgeist-device")||"unknown",120);
+      this.ctx.acceptWebSocket(server,["quillgeist-lite-wake"]);
+      server.serializeAttachment({receiver:"quillgeist-lite-wake",device_id:deviceId,connected_at:nowIso()});
+      const pending=await this.pendingQuillgeistLiteJobs();
+      if(pending.length){
+        try{server.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",pending_count:pending.length,reason:"backlog",time:nowIso()}));}catch{}
+      }
+      return new Response(null,{status:101,webSocket:client});
+    }
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-device"){
       const body=await reqJson(request,64_000);
       return json(await this.putQuillgeistLiteDevice(body));
@@ -778,7 +802,8 @@ export class RegistryHub extends DurableObject {
       const body=await reqJson(request,64_000);
       const job=body.job||body;
       const delivered=await this.broadcastQuillgeistLite(job);
-      return json({ok:true,delivered});
+      const wake_delivered=await this.broadcastQuillgeistLiteWake(job);
+      return json({ok:true,delivered,wake_delivered});
     }
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-status"){
       return json({ok:true,...await this.quillgeistLiteStatus()});
@@ -2649,6 +2674,20 @@ export default {
         const headers=new Headers();
         headers.set("upgrade","websocket");
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
+      }
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/wake-stream"){
+        if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
+        const token=bearer(request);
+        const device_id=clip(url.searchParams.get("device_id")||"",120);
+        if(!token||!device_id)return json({error:"unauthorized_device"},401);
+        const token_hash=await sha256(token);
+        const verifyResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash})}));
+        const verify=await verifyResp.json();
+        if(!verify.ok)return json({error:"unauthorized_device"},401);
+        const headers=new Headers();
+        headers.set("upgrade","websocket");
+        headers.set("x-quillgeist-device",device_id);
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-wake-stream",{method:"GET",headers}));
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
