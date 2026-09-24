@@ -107,7 +107,23 @@ $trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserName
 # console after this one-time elevated installation while the remote MCP surface
 # remains constrained to the reviewed task allowlist.
 $principal = New-ScheduledTaskPrincipal -UserId $UserName -LogonType Interactive -RunLevel Highest
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting
+# Use a policy actually supported by this machine. The watchdog itself ends stale
+# wrappers before restarting the task, so StopExisting is neither required nor portable.
+$settingsArgs = @{
+  AllowStartIfOnBatteries = $true
+  DontStopIfGoingOnBatteries = $true
+  StartWhenAvailable = $true
+  ExecutionTimeLimit = [TimeSpan]::Zero
+  ErrorAction = "Stop"
+}
+$multi = (Get-Command New-ScheduledTaskSettingsSet -ErrorAction Stop).Parameters["MultipleInstances"]
+if ($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum) {
+  $supported = [Enum]::GetNames($multi.ParameterType)
+  if ($supported -contains "IgnoreNew") { $settingsArgs["MultipleInstances"] = "IgnoreNew" }
+  elseif ($supported -contains "Queue") { $settingsArgs["MultipleInstances"] = "Queue" }
+  elseif ($supported -contains "Parallel") { $settingsArgs["MultipleInstances"] = "Parallel" }
+}
+$settings = New-ScheduledTaskSettingsSet @settingsArgs
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service; stale instances are replaced." | Out-Null
 
