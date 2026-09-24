@@ -389,6 +389,8 @@ jobs:
           const base="https://n7crm.clintware.com";
           const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:["--no-sandbox","--disable-dev-shm-usage"]});
           const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          // Preserve analytics assertions without allowing CI to transmit test traffic to GA4.
+          await page.route(/https:\/\/(?:www\.)?(?:googletagmanager\.com|google-analytics\.com)\/.*/, route=>route.abort());
           page.setDefaultTimeout(15000);
           const errors=[];
           page.on("pageerror",e=>errors.push(e.message));
