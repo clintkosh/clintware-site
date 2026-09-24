@@ -18,7 +18,12 @@ try {
   const bodyText = await page.locator("body").innerText();
   assert(bodyText.includes("No login required") || bodyText.includes("Guest"), "Guest/no-login state is not visible");
   assert(await page.locator('a[href="/auth/login"]').count() >= 1, "Optional OAuth sign-in link is missing");
-  const tabs = ["customers","command","implementation","deployment","risks","handoff","raci","rollout","issues","triage","roi","adoption","meetings","renewal","kb","documents","accounts","live_prompt","live_assistant"];
+  assert(await page.locator('[data-view-theme="light"]').count() >= 1, "Per-view light theme control is missing");
+  await page.locator('[data-view-theme="light"]').first().click();
+  assert(await page.locator('html').getAttribute('data-theme') === 'light', "Light theme toggle failed");
+  await page.locator('[data-view-theme="dark"]').first().click();
+  assert(await page.locator('html').getAttribute('data-theme') === 'dark', "Dark theme toggle failed");
+  const tabs = ["customers","command","implementation","deployment","risks","handoff","raci","rollout","issues","triage","operating_model","roi","adoption","meetings","renewal","kb","documents","accounts","live_prompt","live_assistant"];
   for (const tab of tabs) {
     const btn = page.locator('[data-tab="' + tab + '"]').first();
     assert(await btn.count() === 1, "Missing tab " + tab);
@@ -27,9 +32,14 @@ try {
     assert(await page.locator("main").count() === 1, "Main content missing after " + tab);
     const text = (await page.locator("main").innerText()).trim();
     assert(text.length > 20, "Tab " + tab + " rendered empty content");
+    assert(await page.locator('[data-view-theme="light"]').count() >= 1, "Per-view theme control missing on " + tab);
     assert(await page.locator(".startup-error").count() === 0, "Startup error appeared while visiting " + tab);
   }
+  await page.locator('[data-tab="operating_model"]').click();
+  assert((await page.locator('main').innerText()).includes('Internal team contract'), "Operating model team contract missing");
   await page.locator('[data-tab="customers"]').click();
+  const publicRefs = await page.locator('.source-chip.public').count();
+  assert(publicRefs >= 3, "Expected public Doppel customer reference cards");
   const before = await page.locator("[data-customer-open]").count();
   await page.locator("#newc").click();
   await page.waitForSelector(".overlay .modal");
