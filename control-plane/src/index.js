@@ -231,6 +231,7 @@ const QUILLGEIST_LITE_TASKS = {
   "c-runtime-check":{runtime:"c",parameters:["Message"]},
   "ensure-c-runtime":{runtime:"powershell",parameters:[]},
   "self-update":{runtime:"powershell",parameters:[]},
+  "restart-window":{runtime:"powershell",parameters:[]},
   "repair-local-service":{runtime:"powershell",parameters:[]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
