@@ -515,18 +515,42 @@ export class RegistryHub extends DurableObject {
     const cutoff=Date.now()-7*24*60*60*1000;
     const jobs=[];
     const max=Math.max(1,Math.min(100,Number(limit)||50));
+    const singletonMaintenance=new Set(["self-update","repair-local-service","restart-window","bootstrap-admin-console"]);
+    const seenSingleton=new Set();
+
+    // The index is newest-first. For singleton maintenance tasks, only the
+    // newest request is ever replayed; stale duplicates remain historical but
+    // cannot repeatedly run after a recovery.
     for(const item of index){
       if(Date.parse(item.created_at||"")<cutoff)continue;
       const job=await this.ctx.storage.get(`quillgeist_lite_job:${item.job_id}`);
-      if(job&&["queued","running"].includes(String(job.status||"queued"))){
-        jobs.push(job);
-        if(jobs.length>=max)break;
+      if(!job||!["queued","running"].includes(String(job.status||"queued")))continue;
+
+      const taskId=String(job.task_id||"");
+      if(singletonMaintenance.has(taskId)){
+        if(seenSingleton.has(taskId))continue;
+        seenSingleton.add(taskId);
       }
+      jobs.push(job);
+      if(jobs.length>=max)break;
     }
-    // Index is newest-first; replay this bounded recent set oldest-first so
-    // recovery remains deterministic without making WebSocket upgrade depend
-    // on an unbounded Durable Object backlog.
-    return jobs.reverse();
+
+    const priority=(job)=>{
+      switch(String(job.task_id||"")){
+        case "self-update": return 100;
+        case "repair-local-service": return 90;
+        case "bootstrap-admin-console": return 80;
+        case "restart-window": return 70;
+        default: return 0;
+      }
+    };
+
+    jobs.sort((a,b)=>{
+      const p=priority(b)-priority(a);
+      if(p!==0)return p;
+      return Date.parse(a.created_at||"")-Date.parse(b.created_at||"");
+    });
+    return jobs;
   }
   async quillgeistLiteQuestions(status="pending",limit=50){
     const index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
