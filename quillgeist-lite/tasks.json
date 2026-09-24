@@ -1,7 +1,7 @@
 {
   "version": 8,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, uses a no-focus acrylic Windows host, and provides a persistent local Playwright browser for bounded form/page automation without exporting browser credentials.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files and provides governed persistent Playwright web search, page reading, and bounded multi-step browser automation without exporting browser credentials.",
   "runtimes": [
     "powershell",
     "python",
@@ -145,7 +145,7 @@
       "parameters": []
     },
     "browser-work": {
-      "title": "Inspect or operate a local persistent browser session for form filling, clicking, content editing, and bounded multi-step page work",
+      "title": "Search the live web, read public pages, or operate a governed persistent browser session with bounded multi-step automation",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/browser-work.ps1",
       "parameters": [
@@ -154,6 +154,12 @@
         "Selector",
         "Value",
         "StepsJson",
+        "Query",
+        "Engine",
+        "MaxResults",
+        "MaxChars",
+        "Approved",
+        "AllowPrivate",
         "Headless",
         "WaitMs"
       ]
