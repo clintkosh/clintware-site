@@ -7,6 +7,7 @@ $ProgramDir = Join-Path $env:ProgramData "Clintware\QuillgeistLite"
 $ServiceExe = Join-Path $ProgramDir "QuillgeistLiteHealthService.exe"
 $ServiceName = "ClintwareQuillgeistLiteHealth"
 $TaskName = "Clintware Quillgeist Lite Runner"
+$LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 
 function Test-Administrator {
@@ -67,14 +68,42 @@ try {
 }
 
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($task) {
-  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting
+
+if (-not $task) {
+  if (-not (Test-Path $LauncherPath)) {
+    throw "The qq launcher is missing: $LauncherPath"
+  }
+
+  Write-Host "TASK // runner task missing; recreating automatically" -ForegroundColor DarkYellow
+  $psExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+  $taskArgs = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+  $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
+  $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+  $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userName
+  $principal = New-ScheduledTaskPrincipal -UserId $userName -LogonType Interactive -RunLevel Highest
+
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service." | Out-Null
+  $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+} else {
   Set-ScheduledTask -TaskName $TaskName -Settings $settings | Out-Null
-  Write-Host "TASK // stale instances will now be replaced instead of ignored" -ForegroundColor Cyan
 }
+
+Write-Host "TASK // automatic runner recovery is configured" -ForegroundColor Cyan
+
+Set-Service -Name $ServiceName -StartupType Automatic
+& sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
+& sc.exe failureflag $ServiceName 1 | Out-Null
 
 Start-Service -Name $ServiceName
 (Get-Service -Name $ServiceName).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(20))
 
+try {
+  Start-ScheduledTask -TaskName $TaskName
+  Write-Host "TASK // runner start requested immediately" -ForegroundColor Cyan
+} catch {
+  Write-Host ("WARN // runner task could not be started immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+
 Remove-Item $backup -Force -ErrorAction SilentlyContinue
-Write-Host "READY // qq health service repaired; credentials and Control Plane registration preserved." -ForegroundColor Green
+Write-Host "READY // qq health service repaired; wake channel, credentials, and Control Plane registration preserved." -ForegroundColor Green
