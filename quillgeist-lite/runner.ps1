@@ -277,9 +277,9 @@ function Write-Log {
   Show-QQPrompt
 }
 
-$mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLite")
+$mutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLiteV2")
 if (-not $mutex.WaitOne(0,$false)) {
-  Write-Log "Another Quillgeist Lite runner is already active." "WARN"
+  Write-Log "Another current-generation Quillgeist Lite runner is already active." "WARN"
   exit 0
 }
 
@@ -940,7 +940,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.5.0"
+        version = "1.5.1"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape")
       }
