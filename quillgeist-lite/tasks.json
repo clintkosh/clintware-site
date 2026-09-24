@@ -95,6 +95,12 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/gimp-clintware-eclipse.ps1",
       "parameters": []
+    },
+    "codefeddy-access-check": {
+      "title": "Check local CodeFEDDY GitHub write access and Cloudflare/Wrangler authentication",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/codefeddy-access-check.ps1",
+      "parameters": []
     }
   }
 }
