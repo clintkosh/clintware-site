@@ -1,3 +1,5 @@
+const CLINTWARE_OWNER_EMAILS = Object.freeze(["clint.kosh@gmail.com", "fedfromchat@gmail.com", "clint@clintware.com", "clint.kosh@clintware.com", "clinton@clintware.com", "hello@clintware.com", "support@clintware.com", "sales@clintware.com", "billing@clintware.com", "abuse@clintware.com", "bb@clintware.com", "studio@clintware.com"]);
+
 export const FIRST_PARTY_CLIENT_ID = "https://auth.clintware.com/client/clintware-web";
 
 export const FIRST_PARTY_CLIENT = Object.freeze({
@@ -23,7 +25,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     redirectUri: "https://n7crm.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
     allowedEmailDomains: Object.freeze(["neuron7.ai"]),
-    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    allowedEmails: CLINTWARE_OWNER_EMAILS,
     contextScopes: Object.freeze(["neuron7-case:read", "neuron7-case:operator"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
@@ -34,7 +36,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     redirectUri: "https://n7demo.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
     allowedEmailDomains: Object.freeze(["neuron7.ai"]),
-    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    allowedEmails: CLINTWARE_OWNER_EMAILS,
     contextScopes: Object.freeze(["n7demo-crm:read", "n7demo-crm:write"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
@@ -45,7 +47,7 @@ export const FIRST_PARTY_APPS = Object.freeze({
     redirectUri: "https://dpl.clintware.com/auth/callback",
     scopes: Object.freeze(["identity", "email", "profile"]),
     allowedEmailDomains: Object.freeze(["doppel.com"]),
-    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    allowedEmails: CLINTWARE_OWNER_EMAILS,
     contextScopes: Object.freeze(["dpl-crm:read", "dpl-crm:write"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
