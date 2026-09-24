@@ -13,6 +13,11 @@ $ServiceName = "ClintwareQuillgeistLiteHealth"
 $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
+$SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
+$RepairVersion = "2026.09.24.3"
+$LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+
+Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
 function Test-Administrator {
   $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -147,6 +152,29 @@ if (-not $SkipRunnerRestart) {
 }
 
   Remove-Item $backup -Force -ErrorAction SilentlyContinue
+
+  # Persist the known-good repair logic locally so future self-update/control-plane
+  # recovery does not depend on an older cached copy.
+  try {
+    $localRepairTemp = $LocalRepairPath + ".new"
+    Invoke-WebRequest -Uri ($SelfUrl + "?v=" + [Uri]::EscapeDataString($RepairVersion)) -OutFile $localRepairTemp -UseBasicParsing
+    $tokens = $null
+    $parseErrors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile(
+      (Resolve-Path $localRepairTemp),
+      [ref]$tokens,
+      [ref]$parseErrors
+    ) | Out-Null
+    if ($parseErrors.Count -gt 0) {
+      Remove-Item $localRepairTemp -Force -ErrorAction SilentlyContinue
+      throw "downloaded repair script failed parser validation"
+    }
+    Move-Item $localRepairTemp $LocalRepairPath -Force
+    Write-Host "SELF-HEAL // canonical repair logic cached locally" -ForegroundColor Cyan
+  } catch {
+    Write-Host ("WARN // service is repaired, but local repair-script refresh failed: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+
   Write-Host "READY // qq health service repaired; wake channel, credentials, and Control Plane registration preserved." -ForegroundColor Green
 } catch {
   $repairError = $_
