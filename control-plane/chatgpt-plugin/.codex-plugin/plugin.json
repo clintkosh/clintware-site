@@ -1,0 +1,42 @@
+{
+  "name": "quillgeist-web",
+  "version": "0.1.0",
+  "description": "Give an authorized AI assistant live web search, page reading, and governed multi-step browser automation through Clintware and a paired local qq browser.",
+  "author": {
+    "name": "Clintware",
+    "url": "https://clintware.com"
+  },
+  "homepage": "https://mcp.clintware.com/",
+  "repository": "https://github.com/clintkosh/clintware-site",
+  "keywords": [
+    "web",
+    "browser",
+    "automation",
+    "search",
+    "oauth",
+    "playwright",
+    "local-first",
+    "agent-tools"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Quillgeist Web",
+    "shortDescription": "Live web search, page reading, and governed qq browser automation.",
+    "longDescription": "Quillgeist Web combines the authenticated Clintware MCP control plane with the paired local qq Playwright browser. It provides semantic web search and page-reading tools plus bounded multi-step browser automation, curated safety rules, durable job evidence, manual local authentication, and OAuth/PKCE connection without asking the user to paste a Control Plane API key. The current alpha OAuth policy is owner/admin scoped.",
+    "developerName": "Clintware",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://mcp.clintware.com/",
+    "privacyPolicyURL": "https://quillgeist.clintware.com/privacy.html",
+    "termsOfServiceURL": "https://quillgeist.clintware.com/terms.html",
+    "defaultPrompt": [
+      "Search the live web for this and return the strongest sources.",
+      "Read this page and extract the relevant facts and links.",
+      "Use my paired qq browser to complete these browser steps, stopping before any consequential action unless I explicitly approved it."
+    ],
+    "brandColor": "#4EE9FF"
+  }
+}
