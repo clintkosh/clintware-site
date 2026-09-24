@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-quillgeist-web-self-update-20260924-1647",
-  "task_id": "self-update",
+  "request_id": "chatgpt-quillgeist-web-browser-setup-20260924-1704",
+  "task_id": "browser-setup",
   "args": {},
-  "objective": "Refresh qq from canonical Clintware source so Quillgeist Web search, page reading, governed browser automation, new console commands, and safety policy are installed locally."
+  "objective": "Verify and repair the local Quillgeist Web Playwright runtime before live search and page-read smoke tests."
 }
