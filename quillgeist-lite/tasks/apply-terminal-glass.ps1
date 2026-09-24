@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RepairPath = Join-Path $HomeDir "terminal_repair.py"
-$RepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/terminal_repair.py?v=2026.09.24.5"
+$RepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/terminal_repair.py?v=2026.09.24.10"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -34,4 +34,4 @@ if ($LASTEXITCODE -ne 0) {
   throw "Python terminal repair failed with exit code $LASTEXITCODE."
 }
 
-Write-Host "READY // terminal profile and retro boot art verified by Python." -ForegroundColor Green
+Write-Host "READY // terminal glass profile verified by Python." -ForegroundColor Green
