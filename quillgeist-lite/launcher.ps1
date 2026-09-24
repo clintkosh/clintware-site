@@ -36,7 +36,7 @@ function Update-LocalRunner {
   $temp = Join-Path $HomeDir "runner.next.ps1"
 
   try {
-    Invoke-WebRequest -Uri ($RunnerUrl + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    Invoke-WebRequest -Uri ($RunnerUrl + "?v=2026.09.24.9") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
     $tokens = $null
     $errors = $null
@@ -64,7 +64,7 @@ function Ensure-ModernPowerShell {
       @{ Url = $AutoRepairUrl; Path = $AutoRepairPath }
     )) {
       $temp = $asset.Path + ".new"
-      Invoke-WebRequest -Uri ($asset.Url + "?v=2026.09.24.8") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+      Invoke-WebRequest -Uri ($asset.Url + "?v=2026.09.24.9") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
       $tokens = $null
       $errors = $null
@@ -91,7 +91,7 @@ function Ensure-ModernPowerShell {
 
 function Show-WindowLoadSplash {
   $SplashPath = Join-Path $HomeDir "boot_splash.py"
-  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?v=2026.09.24.8"
+  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?v=2026.09.24.9"
 
   try {
     Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
@@ -99,13 +99,15 @@ function Show-WindowLoadSplash {
 
     $python = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($python) {
-      Start-Process -FilePath $python.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden -Wait
+      # Do not hide the splash process. This is the visible boot artwork for
+      # every qq window load and must appear in the interactive user session.
+      & $python.Source -3 $SplashPath
       return
     }
 
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($python) {
-      Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden -Wait
+      & $python.Source $SplashPath
     }
   } catch {
     Remove-Item ($SplashPath + ".new") -Force -ErrorAction SilentlyContinue
