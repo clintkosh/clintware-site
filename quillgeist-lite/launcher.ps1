@@ -51,7 +51,7 @@ function Update-LocalRunner {
   $temp = Join-Path $HomeDir "runner.next.ps1"
 
   try {
-    Invoke-WebRequest -Uri ($RunnerUrl + "?v=2026.09.24.9") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    Invoke-WebRequest -Uri ($RunnerUrl + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
     $tokens = $null
     $errors = $null
@@ -79,7 +79,7 @@ function Ensure-ModernPowerShell {
       @{ Url = $AutoRepairUrl; Path = $AutoRepairPath }
     )) {
       $temp = $asset.Path + ".new"
-      Invoke-WebRequest -Uri ($asset.Url + "?v=2026.09.24.9") -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+      Invoke-WebRequest -Uri ($asset.Url + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
       $tokens = $null
       $errors = $null
