@@ -11,6 +11,10 @@ $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
 $ServiceInstallerPath = Join-Path $ServiceDir "install-service.ps1"
 $TerminalRepairPath = Join-Path $HomeDir "terminal_repair.py"
 $BootSplashPath = Join-Path $HomeDir "boot_splash.py"
+$EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
+$ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+$RecoveryWatchPath = Join-Path $ServiceDir "recovery-watch.ps1"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 
 Write-Host ""
@@ -53,6 +57,10 @@ $downloads = @{
   "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
   "$BaseRaw/tools/terminal_repair.py$CacheBust" = $TerminalRepairPath
   "$BaseRaw/tools/boot_splash.py$CacheBust" = $BootSplashPath
+  "$BaseRaw/tasks/ensure-powershell.ps1$CacheBust" = $EnsurePwshPath
+  "$BaseRaw/tasks/auto-repair-runtime.ps1$CacheBust" = $AutoRepairPath
+  "$BaseRaw/tasks/repair-local-service.ps1$CacheBust" = $ServiceRepairPath
+  "$BaseRaw/service/recovery-watch.ps1$CacheBust" = $RecoveryWatchPath
 }
 
 foreach ($entry in $downloads.GetEnumerator()) {
@@ -61,7 +69,7 @@ foreach ($entry in $downloads.GetEnumerator()) {
 }
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
-foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
+foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath)) {
   $tokens = $null
   $errors = $null
   [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
@@ -69,6 +77,13 @@ foreach ($file in @($RunnerPath,$LauncherPath,$ServiceInstallerPath)) {
     $errors | Format-List *
     throw "PowerShell parse validation failed: $file"
   }
+}
+
+Write-Host "Ensuring current PowerShell 7 runtime..." -ForegroundColor Cyan
+try {
+  & $EnsurePwshPath | Out-Host
+} catch {
+  Write-Host ("PWSH WARN // bootstrap will continue and launcher will retry: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
 
 Write-Host "Installing Python retro DOS boot renderer..." -ForegroundColor Cyan
@@ -156,7 +171,7 @@ Write-Host " CLINTWARE QUILLGEIST LITE INSTALLED" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Green
 Write-Host "Health service : ClintwareQuillgeistLiteHealth"
 Write-Host "Runner task    : Clintware Quillgeist Lite Runner"
-Write-Host "Execution      : PowerShell / Python / C"
+Write-Host "Execution      : PowerShell 7 preferred/self-updating / Python / C"
 Write-Host "Policy         : Best result first; efficiency after quality"
 Write-Host "Transport      : Event-driven outbound control channel"
 Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
