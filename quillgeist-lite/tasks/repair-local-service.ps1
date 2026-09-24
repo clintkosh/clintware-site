@@ -57,6 +57,17 @@ if (-not $service) {
   throw "The qq health service is not installed; run the maintained qq installer instead."
 }
 
+# Windows' ScheduledTasks module does not expose StopExisting on every build.
+# Resolve task settings before stopping the service so an unsupported enum cannot
+# leave the watchdog offline halfway through a repair.
+try {
+  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting -ErrorAction Stop
+} catch {
+  if ($_.Exception.Message -notmatch "MultipleInstances|StopExisting") { throw }
+  Write-Host "TASK // StopExisting is unavailable on this Windows build; using IgnoreNew compatibility mode" -ForegroundColor DarkYellow
+  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew -ErrorAction Stop
+}
+
 Write-Host "SERVICE // replacing watchdog binary" -ForegroundColor Cyan
 Stop-Service -Name $ServiceName -Force -ErrorAction Stop
 $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(20))
@@ -72,7 +83,6 @@ try {
 }
 
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances StopExisting
 
 if (-not $task) {
   if (-not (Test-Path $LauncherPath)) {
