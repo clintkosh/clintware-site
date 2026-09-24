@@ -4,6 +4,8 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+$EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $BaseUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 $RestartHelper = Join-Path $HomeDir "restart-runner.ps1"
 $RunnerPidPath = Join-Path $HomeDir "runner.pid"
@@ -13,7 +15,9 @@ New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 $updates = @(
   @{ Name = "runner";   Url = "$BaseUrl/runner.ps1";   Target = $RunnerPath },
   @{ Name = "launcher"; Url = "$BaseUrl/launcher.ps1"; Target = $LauncherPath },
-  @{ Name = "service-repair"; Url = "$BaseUrl/tasks/repair-local-service.ps1"; Target = $ServiceRepairPath }
+  @{ Name = "service-repair"; Url = "$BaseUrl/tasks/repair-local-service.ps1"; Target = $ServiceRepairPath },
+  @{ Name = "ensure-powershell"; Url = "$BaseUrl/tasks/ensure-powershell.ps1"; Target = $EnsurePwshPath },
+  @{ Name = "auto-repair"; Url = "$BaseUrl/tasks/auto-repair-runtime.ps1"; Target = $AutoRepairPath }
 )
 
 Write-Host "SYNC" -ForegroundColor White -NoNewline
@@ -53,8 +57,10 @@ foreach ($item in $updates) {
 $healthService = Get-Service -Name "ClintwareQuillgeistLiteHealth" -ErrorAction SilentlyContinue
 if ($healthService) {
   Write-Host "SERVICE // repairing supervised runner recovery" -ForegroundColor Cyan
-  $repairArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $ServiceRepairPath + '"'
-  $repair = Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $repairArgs -Wait -PassThru
+  $repairArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $ServiceRepairPath + '"'
+  $repairHost = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  $repairExe = if ($repairHost) { $repairHost.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+  $repair = Start-Process -FilePath $repairExe -ArgumentList $repairArgs -Wait -PassThru
   if ($repair.ExitCode -ne 0) {
     throw "qq health-service repair failed with exit code $($repair.ExitCode)."
   }
@@ -119,15 +125,22 @@ if ($OldRunnerPid -gt 0) {
 
 Start-Sleep -Milliseconds 700
 
-$exe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$args = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+$pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+if (-not $pwsh) {
+  $candidate = Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+  if (Test-Path $candidate) { $pwsh = Get-Item $candidate }
+}
+$exe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+$args = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
 Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $HomeDir -WindowStyle Normal
 '@
 
 Set-Content -Path $RestartHelper -Value $helper -Encoding UTF8
 
 Write-Host "RESTART // applying Clintware terminal theme after result return" -ForegroundColor Cyan
-$restartArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $RestartHelper + '" -OldRunnerPid ' + $oldRunnerPid + ' -LauncherPath "' + $LauncherPath + '" -HomeDir "' + $HomeDir + '"'
-Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $restartArgs -WindowStyle Hidden
+$restartArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $RestartHelper + '" -OldRunnerPid ' + $oldRunnerPid + ' -LauncherPath "' + $LauncherPath + '" -HomeDir "' + $HomeDir + '"'
+$restartHost = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+$restartExe = if ($restartHost) { $restartHost.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+Start-Process -FilePath $restartExe -ArgumentList $restartArgs -WindowStyle Hidden
 
 Write-Host "READY // Quillgeist Lite self-update staged successfully." -ForegroundColor White
