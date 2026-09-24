@@ -69,33 +69,5 @@ $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -Ru
 Set-ScheduledTask -TaskName $TaskName -Principal $principal | Out-Null
 
 Write-Host "ADMIN // managed qq task now runs at highest privileges." -ForegroundColor Cyan
-Write-Host "SERVICE // the Windows health service can reopen this interactive admin window whenever the runner is absent." -ForegroundColor Cyan
-
-$runnerPid = Get-RunnerPid
-$helper = Join-Path $HomeDir "restart-as-admin.ps1"
-$helperContent = @'
-param(
-  [int]$RunnerPid,
-  [string]$TaskName
-)
-
-Start-Sleep -Seconds 4
-
-if ($RunnerPid -gt 0) {
-  try { Stop-Process -Id $RunnerPid -Force -ErrorAction Stop } catch {}
-}
-
-Start-Sleep -Seconds 1
-try {
-  Start-ScheduledTask -TaskName $TaskName
-} catch {
-  schtasks.exe /Run /TN $TaskName | Out-Null
-}
-'@
-
-[IO.File]::WriteAllText($helper,$helperContent,(New-Object Text.UTF8Encoding($false)))
-
-$helperArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $helper + '" -RunnerPid ' + $runnerPid + ' -TaskName "' + $TaskName + '"'
-Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $helperArgs -WindowStyle Hidden
-
-Write-Host "READY // qq will reopen as an interactive ADMIN console after this task returns." -ForegroundColor Green
+Write-Host "SERVICE // existing qq window remains in place; supervised recovery will use the no-focus host only if the runner later exits." -ForegroundColor Cyan
+Write-Host "READY // qq admin-console policy updated without reopening the window." -ForegroundColor Green
