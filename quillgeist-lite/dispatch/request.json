@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-codefeddy-access-20260923",
-  "task_id": "codefeddy-access-check",
+  "request_id": "chatgpt-codefeddy-platform-20260923",
+  "task_id": "provision-codefeddy-platform",
   "args": {},
-  "objective": "Verify whether this Windows machine has authenticated codeFEDDY GitHub push access and usable Cloudflare/Wrangler authentication for building the dedicated createcodefeddy.com control plane. Do not reveal credentials."
+  "objective": "Provision the isolated CodeFEDDY platform entirely in codeFEDDY/codeFEDDY.github.io: add the CodeFEDDY control plane, identity-broker source, dedicated CodeFEDDY qq runner, CodeFEDDY-only manifests/workflows/docs; deploy mcp.codefeddy.com if local Cloudflare auth permits; then install the separate CodeFEDDY qq. Do not host CodeFEDDY pages or production app code in Clintware."
 }
