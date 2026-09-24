@@ -9,7 +9,10 @@ def as_bool(v:str)->bool: return str(v).strip().lower() not in {"0","false","no"
 def clip(v:Any,n:int=500)->str:
     s="" if v is None else str(v)
     return s if len(s)<=n else s[:n]+"…"
-def emit(v:dict[str,Any])->None: print(json.dumps(v,ensure_ascii=False,separators=(",",":")),flush=True)
+def emit(v:dict[str,Any])->None:
+    # Keep the control-plane stream ASCII-safe even when a page contains symbols
+    # outside the active Windows console code page.
+    print(json.dumps(v,ensure_ascii=True,separators=(",",":")),flush=True)
 def esc(v:str)->str: return v.replace("\\","\\\\").replace('"','\\"')
 def candidate(item):
     ident=str(item.get("id") or "")
