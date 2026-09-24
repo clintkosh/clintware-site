@@ -17,6 +17,7 @@ $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quil
 $RepairVersion = "2026.09.24.3"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
+$DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
 
 Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
@@ -101,6 +102,25 @@ $settings = New-CompatibleTaskSettings
 
 Write-Host "SERVICE // replacing watchdog binary" -ForegroundColor Cyan
 $serviceWasRunning = ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running)
+
+# Arm an independent one-shot recovery process before stopping the service.
+# If this repair process is terminated or crashes after Stop-Service, the
+# helper restores the health service instead of leaving qq unsupervised.
+$deadman = @'
+param([string]$ServiceName)
+Start-Sleep -Seconds 75
+try {
+  $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  if ($svc -and $svc.Status -ne "Running") {
+    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  }
+} catch {}
+'@
+[IO.File]::WriteAllText($DeadmanPath,$deadman,(New-Object Text.UTF8Encoding($false)))
+$deadmanArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $DeadmanPath + '" -ServiceName "' + $ServiceName + '"'
+Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $deadmanArgs -WindowStyle Hidden
+Write-Host "SERVICE // arming restart dead-man" -ForegroundColor DarkCyan
+
 Stop-Service -Name $ServiceName -Force -ErrorAction Stop
 $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(20))
 
@@ -159,6 +179,7 @@ try {
 Write-Host "TASK // automatic runner recovery is configured" -ForegroundColor Cyan
 
 Set-Service -Name $ServiceName -StartupType Automatic
+& sc.exe config $ServiceName start= delayed-auto | Out-Null
 & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
 & sc.exe failureflag $ServiceName 1 | Out-Null
 
