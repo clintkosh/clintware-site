@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. Supported runtimes: PowerShell, Python, and C.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. PowerShell is retained for Windows-only operations; terminal/profile recovery uses Python for deterministic JSON, image generation, validation, and rollback.",
   "runtimes": [
     "powershell",
     "python",
@@ -61,9 +61,9 @@
       "parameters": []
     },
     "apply-terminal-glass": {
-      "title": "Apply the Clintware acrylic Windows Terminal profile and restart Quillgeist Lite into it",
-      "runtime": "powershell",
-      "script": "quillgeist-lite/tasks/apply-terminal-glass.ps1",
+      "title": "Rebuild and verify the Quillgeist Lite Windows Terminal profile and retro DOS boot artwork with Python",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/terminal_repair.py",
       "parameters": []
     },
     "connect-jira": {
@@ -106,6 +106,12 @@
       "title": "Provision the isolated CodeFEDDY control plane and dedicated qq in codeFEDDY/codeFEDDY.github.io",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/provision-codefeddy-platform.ps1",
+      "parameters": []
+    },
+    "emergency-recover": {
+      "title": "Stop a qq restart loop, refresh canonical local files, rebuild the terminal profile, and verify a live runner",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/emergency_recover.py",
       "parameters": []
     }
   }
