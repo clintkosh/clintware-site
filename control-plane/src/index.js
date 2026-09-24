@@ -235,7 +235,8 @@ const QUILLGEIST_LITE_TASKS = {
   "connect-confluence":{runtime:"powershell",parameters:[]},
   "enable-admin-console":{runtime:"powershell",parameters:[]},
   "bootstrap-admin-console":{runtime:"powershell",parameters:[]},
-  "gimp-clintware-eclipse":{runtime:"powershell",parameters:[]}
+  "gimp-clintware-eclipse":{runtime:"powershell",parameters:[]},
+  "codefeddy-access-check":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
