@@ -31,5 +31,11 @@ if ($Url) { $args += @("--url",$Url) }
 if ($Selector) { $args += @("--selector",$Selector) }
 if ($Value) { $args += @("--value",$Value) }
 if ($StepsJson) { $args += @("--steps-json",$StepsJson) }
-& $RuntimePython @args
+$previousPythonIo = $env:PYTHONIOENCODING
+$env:PYTHONIOENCODING = "utf-8"
+try {
+  & $RuntimePython @args
+} finally {
+  $env:PYTHONIOENCODING = $previousPythonIo
+}
 if ($LASTEXITCODE -ne 0) { throw "qq browser agent failed with exit code $LASTEXITCODE." }
