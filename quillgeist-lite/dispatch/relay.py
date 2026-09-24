@@ -19,6 +19,7 @@ ALLOWED = {
     "ensure-powershell": set(),
     "update-powerchatbridge": set(),
     "self-update": set(),
+    "restart-window": set(),
     "repair-local-service": set(),
     "apply-terminal-glass": set(),
     "connect-jira": set(),
