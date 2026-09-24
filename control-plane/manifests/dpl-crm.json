@@ -1,0 +1,116 @@
+{
+  "product": "dpl-crm",
+  "environment": "production",
+  "version": 1,
+  "repo": {
+    "owner": "clintkosh",
+    "name": "clintware-site",
+    "default_branch": "main",
+    "read": true,
+    "write_prefixes": [
+      "projects/dpl-crm/"
+    ],
+    "allowed_workflows": [
+      "deploy-dpl-crm.yml"
+    ],
+    "identity": "clintkosh"
+  },
+  "dns": {
+    "allowed_names": [
+      "dpl.clintware.com"
+    ]
+  },
+  "capabilities": [
+    "repo.read:clintware-site",
+    "repo.write:projects/dpl-crm/**",
+    "repo.branch:create",
+    "repo.branch:read",
+    "repo.commit:status",
+    "repo.workflow:dispatch",
+    "repo.workflow:status",
+    "deployment.read",
+    "deployment.execute:dpl-crm",
+    "dns.ensure:dpl.clintware.com",
+    "analytics.write:dpl-crm",
+    "analytics.read:dpl-crm",
+    "research.invoke",
+    "jira.read:dpl-crm",
+    "jira.write:dpl-crm",
+    "confluence.read:dpl-crm",
+    "confluence.write:dpl-crm",
+    "ai.invoke",
+    "audio.transcribe:dpl-crm"
+  ],
+  "deny": [
+    "secrets.read",
+    "secrets.export",
+    "billing.manage",
+    "repo.delete",
+    "repo.write:unrelated/**",
+    "infrastructure.admin:*"
+  ],
+  "protected_paths": [
+    ".github/workflows/",
+    ".github/actions/",
+    "control-plane/security/",
+    "control-plane/policy/"
+  ],
+  "telemetry_namespace": "dpl-crm",
+  "privacy": {
+    "public_viewer": true,
+    "indexing": false,
+    "customer_data": true,
+    "oauth_required": false,
+    "identity_boundary": "auth.clintware.com",
+    "infrastructure_boundary": "mcp.clintware.com",
+    "guest_mode": "session-scoped"
+  },
+  "identity": {
+    "enabled": true,
+    "authority": "https://auth.clintware.com",
+    "config_endpoint": "https://auth.clintware.com/client-config/dpl-crm",
+    "redirect_uri": "https://dpl.clintware.com/auth/callback",
+    "scopes": [
+      "identity",
+      "email",
+      "profile"
+    ],
+    "pkce": "S256",
+    "client_id": "https://auth.clintware.com/client/clintware-web",
+    "application_context": [
+      "dpl-crm:read",
+      "dpl-crm:write"
+    ],
+    "cross_product_identity_access": false
+  },
+  "integrations": {
+    "jira": {
+      "mode": "control-plane",
+      "preferred_auth": "oauth2-3lo",
+      "rendering": "native-board-view",
+      "source_of_truth": "jira-when-connected",
+      "status": "authorization-required"
+    },
+    "confluence": {
+      "mode": "control-plane",
+      "preferred_auth": "atlassian-oauth2-3lo",
+      "rendering": "workspace-global-kb",
+      "source_of_truth": "local-kb-with-confluence-publication",
+      "status": "authorization-required",
+      "browser_credentials": false
+    },
+    "research": {
+      "mode": "control-plane",
+      "provider": "exa",
+      "external_query_policy": "de-identified-only",
+      "browser_credentials": false,
+      "human_review_for_crm_writes": true
+    }
+  },
+  "knowledge_base": {
+    "scope": "workspace-global",
+    "persistence": "durable-sqlite",
+    "confluence_mapping": true,
+    "human_review_required_for_automation": true
+  }
+}
