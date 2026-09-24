@@ -16,6 +16,8 @@ ALLOWED = {
     "python-runtime-check": {"Message"},
     "c-runtime-check": {"Message"},
     "ensure-c-runtime": set(),
+    "ensure-powershell": set(),
+    "update-powerchatbridge": set(),
     "self-update": set(),
     "repair-local-service": set(),
     "apply-terminal-glass": set(),
