@@ -9,6 +9,9 @@
     { "pattern": "newsletter.clintware.com", "custom_domain": true }
   ],
   "keep_vars": true,
+  "services": [
+    { "binding": "AUTH_BROKER", "service": "clintware-identity-broker" }
+  ],
   "vars": {
     "PUBLIC_ENDPOINT": "https://newsletter.clintware.com",
     "SITE_URL": "https://www.clintware.com",
