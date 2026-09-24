@@ -244,7 +244,8 @@ const QUILLGEIST_LITE_TASKS = {
   "provision-codefeddy-platform":{runtime:"powershell",parameters:[]},
   "self-heal":{runtime:"powershell",parameters:[]},
   "browser-setup":{runtime:"powershell",parameters:[]},
-  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Headless","WaitMs"]}
+  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Headless","WaitMs"]},
+  "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
