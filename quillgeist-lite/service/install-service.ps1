@@ -143,6 +143,7 @@ if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
 
 New-Service -Name $ServiceName -BinaryPathName ('"' + $ServiceExe + '"') -DisplayName "Clintware Quillgeist Lite Health" -Description "Maintains Quillgeist Lite local runner health and securely uplinks bounded diagnostics to the Clintware Control Plane." -StartupType Automatic | Out-Null
 
+& sc.exe config $ServiceName start= delayed-auto | Out-Null
 & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
 & sc.exe failureflag $ServiceName 1 | Out-Null
 
