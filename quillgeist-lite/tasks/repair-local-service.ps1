@@ -14,7 +14,7 @@ $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.24.6"
+$RepairVersion = "2026.09.24.7"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
@@ -189,7 +189,7 @@ function Install-FallbackRecovery {
     if ($parseErrors.Count -gt 0) { throw "recovery watchdog parse validation failed" }
 
     $hostExe = Get-Command pwsh.exe -ErrorAction SilentlyContinue
-    $exe = if ($hostExe) { $hostExe.Source } else { "$env:SystemRootSystem32WindowsPowerShell1.0powershell.exe" }
+    $exe = if ($hostExe) { $hostExe.Source } else { Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe" }
     $cmd = '"' + $exe + '" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $RecoveryWatchPath + '"'
 
     & schtasks.exe /Create /TN $FallbackTaskName /TR $cmd /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F | Out-Null
@@ -348,6 +348,12 @@ if ($serviceStarted) {
   Write-Host "SERVICE // native health watchdog running" -ForegroundColor Green
 } else {
   Write-Host "SERVICE // using scheduled fallback watchdog while native service is unavailable" -ForegroundColor DarkYellow
+}
+
+# Always retain a second, independent SYSTEM recovery path. It is idempotent and
+# only intervenes when the service or runner is unhealthy.
+if (Install-FallbackRecovery) {
+  Write-Host "FALLBACK // independent recovery layer ensured" -ForegroundColor Green
 }
 
 if (-not $SkipRunnerRestart) {
