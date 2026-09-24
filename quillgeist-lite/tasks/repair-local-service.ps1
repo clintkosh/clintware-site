@@ -14,11 +14,14 @@ $TaskName = "Clintware Quillgeist Lite Runner"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.24.4"
+$RepairVersion = "2026.09.24.5"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
 $MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
+$RecoveryWatchPath = Join-Path $ServiceDir "recovery-watch.ps1"
+$RecoveryWatchUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/recovery-watch.ps1"
+$FallbackTaskName = "Clintware Quillgeist Lite Fallback Recovery"
 
 Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
@@ -65,6 +68,111 @@ if (-not $service) {
   throw "The qq health service is not installed; run the maintained qq installer instead."
 }
 
+function Test-ServiceConfiguration {
+  $configPath = Join-Path $ProgramDir "service.json"
+  if (-not (Test-Path $configPath)) {
+    throw "qq health-service config is missing: $configPath"
+  }
+
+  try {
+    $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+  } catch {
+    throw ("qq health-service config is not valid JSON: " + $_.Exception.Message)
+  }
+
+  foreach ($name in @("Endpoint","DeviceId","Token","TaskName","RunnerPidPath")) {
+    if (-not $cfg.$name) {
+      throw ("qq health-service config is missing required field: " + $name)
+    }
+  }
+
+  # Rewrite validated JSON without a BOM to avoid framework/parser ambiguity.
+  $json = $cfg | ConvertTo-Json -Depth 8
+  [IO.File]::WriteAllText($configPath,$json,(New-Object Text.UTF8Encoding($false)))
+  Write-Host "CONFIG // health-service configuration validated" -ForegroundColor Cyan
+  return $cfg
+}
+
+function Repair-ServiceRegistration {
+  Write-Host "SERVICE // validating Windows service registration" -ForegroundColor Cyan
+
+  $quotedExe = '"' + $ServiceExe + '"'
+  & sc.exe config $ServiceName binPath= $quotedExe start= delayed-auto obj= LocalSystem type= own | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Could not repair Windows service registration."
+  }
+
+  & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
+  & sc.exe failureflag $ServiceName 1 | Out-Null
+
+  $svcInfo = Get-CimInstance Win32_Service -Filter ("Name='" + $ServiceName + "'") -ErrorAction SilentlyContinue
+  if ($svcInfo) {
+    Write-Host ("SERVICE // registered path " + $svcInfo.PathName) -ForegroundColor DarkCyan
+    Write-Host ("SERVICE // account " + $svcInfo.StartName + " / start " + $svcInfo.StartMode) -ForegroundColor DarkCyan
+  }
+}
+
+function Show-ServiceStartDiagnostics {
+  Write-Host "SERVICE // startup diagnostics" -ForegroundColor DarkYellow
+
+  try {
+    $q = & sc.exe queryex $ServiceName 2>&1 | Out-String
+    if ($q) { Write-Host ($q.Trim()) -ForegroundColor DarkYellow }
+  } catch {}
+
+  $startupLog = Join-Path $ProgramDir "service-startup-error.log"
+  if (Test-Path $startupLog) {
+    Write-Host "SERVICE STARTUP ERROR LOG:" -ForegroundColor Red
+    Get-Content $startupLog -Tail 20 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+  }
+
+  try {
+    $events = Get-WinEvent -FilterHashtable @{
+      LogName = "System"
+      ProviderName = "Service Control Manager"
+      StartTime = (Get-Date).AddMinutes(-5)
+    } -ErrorAction Stop | Where-Object {
+      $_.Message -like ("*" + $ServiceName + "*") -or $_.Message -like "*Quillgeist Lite*"
+    } | Select-Object -First 8
+    foreach ($evt in $events) {
+      Write-Host ("SCM " + $evt.Id + " // " + ($evt.Message -replace '[
+]+',' ')) -ForegroundColor DarkYellow
+    }
+  } catch {}
+}
+
+function Install-FallbackRecovery {
+  try {
+    Write-Host "FALLBACK // installing scheduled qq recovery watchdog" -ForegroundColor DarkYellow
+
+    Invoke-WebRequest -Uri ($RecoveryWatchUrl + "?v=" + [Uri]::EscapeDataString($RepairVersion)) -OutFile $RecoveryWatchPath -UseBasicParsing
+    if (-not (Test-Path $RecoveryWatchPath)) { throw "recovery watchdog download failed" }
+
+    $tokens = $null
+    $parseErrors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile(
+      (Resolve-Path $RecoveryWatchPath),
+      [ref]$tokens,
+      [ref]$parseErrors
+    ) | Out-Null
+    if ($parseErrors.Count -gt 0) { throw "recovery watchdog parse validation failed" }
+
+    $hostExe = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+    $exe = if ($hostExe) { $hostExe.Source } else { "$env:SystemRootSystem32WindowsPowerShell1.0powershell.exe" }
+    $cmd = '"' + $exe + '" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $RecoveryWatchPath + '"'
+
+    & schtasks.exe /Create /TN $FallbackTaskName /TR $cmd /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "could not register fallback recovery task" }
+
+    & schtasks.exe /Run /TN $FallbackTaskName | Out-Null
+    Write-Host "FALLBACK // recovery watchdog active every minute" -ForegroundColor Green
+    return $true
+  } catch {
+    Write-Host ("FALLBACK WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
+    return $false
+  }
+}
+
 function New-CompatibleTaskSettings {
   $common = @{
     AllowStartIfOnBatteries = $true
@@ -99,6 +207,7 @@ function New-CompatibleTaskSettings {
   return New-ScheduledTaskSettingsSet @common
 }
 
+$validatedConfig = Test-ServiceConfiguration
 $settings = New-CompatibleTaskSettings
 
 Write-Host "SERVICE // replacing watchdog binary" -ForegroundColor Cyan
@@ -189,13 +298,26 @@ try {
 Write-Host "TASK // automatic runner recovery is configured" -ForegroundColor Cyan
 
 Set-Service -Name $ServiceName -StartupType Automatic
-& sc.exe config $ServiceName start= delayed-auto | Out-Null
-& sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
-& sc.exe failureflag $ServiceName 1 | Out-Null
+Repair-ServiceRegistration
 
-Start-Service -Name $ServiceName
-Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
-(Get-Service -Name $ServiceName).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(20))
+$serviceStarted = $false
+try {
+  Start-Service -Name $ServiceName -ErrorAction Stop
+  Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
+  (Get-Service -Name $ServiceName).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running,[TimeSpan]::FromSeconds(20))
+  $serviceStarted = $true
+} catch {
+  Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
+  Write-Host ("SERVICE WARN // native watchdog could not start: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  Show-ServiceStartDiagnostics
+  [void](Install-FallbackRecovery)
+}
+
+if ($serviceStarted) {
+  Write-Host "SERVICE // native health watchdog running" -ForegroundColor Green
+} else {
+  Write-Host "SERVICE // using scheduled fallback watchdog while native service is unavailable" -ForegroundColor DarkYellow
+}
 
 if (-not $SkipRunnerRestart) {
   try {
@@ -233,7 +355,7 @@ if (-not $SkipRunnerRestart) {
     Write-Host ("WARN // service is repaired, but local repair-script refresh failed: " + $_.Exception.Message) -ForegroundColor DarkYellow
   }
 
-  Write-Host "READY // qq health service repaired; wake channel, credentials, and Control Plane registration preserved." -ForegroundColor Green
+  Write-Host "READY // qq recovery repaired; native service or scheduled fallback is supervising the runner." -ForegroundColor Green
 } catch {
   $repairError = $_
   Write-Host ("SELF-HEAL // repair step failed: " + $repairError.Exception.Message) -ForegroundColor Red
