@@ -691,6 +691,13 @@ export class RegistryHub extends DurableObject {
         if(ws.readyState===1){
           ws.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",job_id:job?.job_id||"",task_id:job?.task_id||"",reason:"job_queued",time:nowIso()}));
           delivered++;
+
+          // A half-open client socket can remain OPEN in the Durable Object
+          // even though the Windows service no longer receives frames. Force a
+          // clean reconnect after every wake. The service's existing wake loop
+          // reconnects automatically, and backlog-on-connect immediately emits
+          // another wake for any still-pending job.
+          try{ws.close(1012,"wake_reconnect");}catch{}
         }
       }catch{}
     }
@@ -964,10 +971,18 @@ export class RegistryHub extends DurableObject {
       const deviceId=clip(request.headers.get("x-quillgeist-device")||"unknown",120);
       this.ctx.acceptWebSocket(server,["quillgeist-lite-wake"]);
       server.serializeAttachment({receiver:"quillgeist-lite-wake",device_id:deviceId,connected_at:nowIso()});
-      const pending=await this.pendingQuillgeistLiteJobs();
-      if(pending.length){
-        try{server.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",pending_count:pending.length,reason:"backlog",time:nowIso()}));}catch{}
-      }
+
+      const replayWake=async()=>{
+        try{
+          const pending=await this.pendingQuillgeistLiteJobs(50);
+          if(pending.length&&server.readyState===1){
+            server.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",pending_count:pending.length,reason:"backlog",time:nowIso()}));
+          }
+        }catch(e){
+          console.error(JSON.stringify({event:"quillgeist_wake_backlog_error",message:String(e?.message||e)}));
+        }
+      };
+      try{this.ctx.waitUntil(replayWake());}catch{replayWake().catch(()=>{});}
       return new Response(null,{status:101,webSocket:client});
     }
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-device"){
