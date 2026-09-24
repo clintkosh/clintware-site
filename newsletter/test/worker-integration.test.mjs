@@ -62,6 +62,7 @@ class FakeRegistry {
 
 const registry = new FakeRegistry();
 const outbox = [];
+let brokerTokenRequests = 0;
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async (url, options) => {
   const target = new URL(url);
@@ -84,20 +85,28 @@ after(() => { globalThis.fetch = originalFetch; });
 
 const env = {
   SUBSCRIBERS: { getByName: () => registry },
-  PUBLIC_ENDPOINT: "https://clintware-blog-newsletter.clint-kosh.workers.dev",
+  PUBLIC_ENDPOINT: "https://newsletter.clintware.com",
   SITE_URL: "https://www.clintware.com",
   FROM_EMAIL: "Clintware <hello@clintware.com>",
   REPLY_TO: "hello@clintware.com",
   ALLOWED_ORIGINS: "https://www.clintware.com,https://clintware.com",
   MAIL_PROVIDER: "gmail",
-  GOOGLE_OAUTH_CLIENT_ID: "test-client",
-  GOOGLE_OAUTH_CLIENT_SECRET: "test-secret",
-  GOOGLE_DELEGATED_REFRESH_TOKEN: "test-refresh",
+  GOOGLE_DELEGATED_BRIDGE_SECRET: "fixture-bridge-secret",
+  AUTH_BROKER: {
+    fetch: async (_url, options = {}) => {
+      assert.equal(options.headers?.["x-clintware-google-secret"], "fixture-bridge-secret");
+      brokerTokenRequests += 1;
+      return new Response('{"access_token":"test-token","expires_in":3600,"token_type":"Bearer"}', {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+  },
   NEWSLETTER_PUBLISH_SECRET: "fixture-publish-secret",
 };
 
 async function invoke(path, options = {}) {
-  return worker.fetch(new Request(`https://clintware-blog-newsletter.clint-kosh.workers.dev${path}`, options), env);
+  return worker.fetch(new Request(`https://newsletter.clintware.com${path}`, options), env);
 }
 
 test("runs the complete request, confirmation, publish, and unsubscribe flow", async () => {
@@ -117,6 +126,7 @@ test("runs the complete request, confirmation, publish, and unsubscribe flow", a
   assert.equal(subscription.headers.get("access-control-allow-origin"), "https://www.clintware.com");
   assert.equal(outbox.length, 1);
   assert.equal(outbox[0].pathname, "/gmail/v1/users/me/messages/send");
+  assert.equal(brokerTokenRequests, 1);
 
   const confirmed = await invoke("/confirm?token=confirm-reader%40example.com");
   assert.equal(confirmed.status, 200);
@@ -136,6 +146,7 @@ test("runs the complete request, confirmation, publish, and unsubscribe flow", a
   assert.equal((await published.json()).recipients, 1);
   assert.equal(outbox.length, 2);
   assert.equal(outbox[1].pathname, "/gmail/v1/users/me/messages/send");
+  assert.equal(brokerTokenRequests, 2);
 
   const duplicate = await invoke("/publish", {
     method: "POST",
