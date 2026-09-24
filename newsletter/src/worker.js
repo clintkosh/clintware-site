@@ -211,6 +211,22 @@ async function internalSend(request, env) {
   return json({ ok: true }, 202);
 }
 
+async function deliverPublication(publication, env) {
+  const store = registry(env);
+  const subscribers = await store.confirmedSubscribers();
+  const batches = chunks(subscribers, EMAIL_BATCH_SIZE);
+  for (const batch of batches) {
+    const messages = batch.map((subscriber) => notificationEmail(env, publication, subscriber));
+    await sendMailBatch(env, messages);
+  }
+  await store.completePublication(publication.url, subscribers.length);
+  return subscribers.length;
+}
+
+function delegatedGrantMissing(error) {
+  return error?.code === "gmail_broker_token_failed" && Number(error?.status || 0) === 404;
+}
+
 async function publish(request, env) {
   if (!mailConfigured(env) || !env.NEWSLETTER_PUBLISH_SECRET) return json({ error: "Newsletter delivery is not configured." }, 503);
   const header = request.headers.get("authorization") || "";
@@ -228,15 +244,13 @@ async function publish(request, env) {
   if (claim.state === "sending") return json({ error: "This publication is already being delivered." }, 409);
 
   try {
-    const subscribers = await store.confirmedSubscribers();
-    const batches = chunks(subscribers, EMAIL_BATCH_SIZE);
-    for (const [index, batch] of batches.entries()) {
-      const messages = batch.map((subscriber) => notificationEmail(env, publication, subscriber));
-      await sendMailBatch(env, messages);
-    }
-    await store.completePublication(publication.url, subscribers.length);
-    return json({ ok: true, notified: true, recipients: subscribers.length }, 202);
+    const recipients = await deliverPublication(publication, env);
+    return json({ ok: true, notified: true, recipients }, 202);
   } catch (error) {
+    if (delegatedGrantMissing(error)) {
+      await store.deferPublication(publication.url);
+      return json({ ok: true, notified: false, queued: true, reason: "google_delegated_grant_required" }, 202);
+    }
     await store.failPublication(publication.url);
     throw error;
   }
@@ -382,6 +396,16 @@ export class SubscriberRegistry extends DurableObject {
     );
   }
 
+  async deferPublication(url) {
+    this.sql.exec("UPDATE publications SET status = 'pending_auth' WHERE url = ?", url);
+  }
+
+  async pendingPublications() {
+    return this.sql.exec(
+      "SELECT url, publication_id AS publicationId, title, excerpt FROM publications WHERE status = 'pending_auth' ORDER BY started_at ASC LIMIT 20",
+    ).toArray();
+  }
+
   async failPublication(url) {
     this.sql.exec("UPDATE publications SET status = 'failed' WHERE url = ?", url);
   }
@@ -408,5 +432,32 @@ export default {
       const status = error.code === "payload_too_large" ? 413 : error.code === "invalid_payload" ? 400 : 500;
       return json({ error: "The request could not be completed." }, status);
     }
+  },
+
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil((async () => {
+      const store = registry(env);
+      const pending = await store.pendingPublications();
+      for (const row of pending) {
+        const publication = {
+          id: row.publicationId,
+          url: row.url,
+          title: row.title,
+          excerpt: row.excerpt,
+        };
+        const claim = await store.claimPublication(publication);
+        if (claim.state !== "claimed") continue;
+        try {
+          await deliverPublication(publication, env);
+        } catch (error) {
+          if (delegatedGrantMissing(error)) {
+            await store.deferPublication(publication.url);
+            break;
+          }
+          await store.failPublication(publication.url);
+          console.error(JSON.stringify({ event: "newsletter_pending_delivery_failed", url: publication.url, code: error.code || "internal_error" }));
+        }
+      }
+    })());
   },
 };
