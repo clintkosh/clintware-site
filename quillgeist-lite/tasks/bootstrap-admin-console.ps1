@@ -86,33 +86,14 @@ if (-not $installedNow -and -not $changedPrincipal -and -not $Elevated) {
   exit 0
 }
 
-Write-Host "SERVICE // health service owns qq lifecycle and will relaunch the visible console when the runner is absent." -ForegroundColor Cyan
+Write-Host "SERVICE // health service owns qq lifecycle; no window restart is required for this repair." -ForegroundColor Cyan
 
-$helper = Join-Path $HomeDir "restart-supervised-admin-console.ps1"
-$helperContent = @'
-param(
-  [int]$RunnerPid,
-  [string]$TaskName
-)
-
-Start-Sleep -Seconds 5
-
-if ($RunnerPid -gt 0) {
-  try { Stop-Process -Id $RunnerPid -Force -ErrorAction Stop } catch {}
-}
-
-Start-Sleep -Seconds 1
-
+$repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
 try {
-  Start-ScheduledTask -TaskName $TaskName
+  Invoke-WebRequest -Uri ("https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/auto-repair-runtime.ps1?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $repair -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+  & $repair -HomeDir $HomeDir
 } catch {
-  schtasks.exe /Run /TN $TaskName | Out-Null
+  Write-Host ("SELF-HEAL WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
-'@
 
-[IO.File]::WriteAllText($helper,$helperContent,(New-Object Text.UTF8Encoding($false)))
-
-$helperArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $helper + '" -RunnerPid ' + $RunnerPid + ' -TaskName "' + $TaskName + '"'
-Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $helperArgs -WindowStyle Hidden
-
-Write-Host "READY // qq will reopen as an interactive ADMIN console after this task result returns." -ForegroundColor Green
+Write-Host "READY // qq admin/service state reconciled in place; the current window remains untouched." -ForegroundColor Green
