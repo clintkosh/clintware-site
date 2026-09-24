@@ -72,6 +72,17 @@ try {
   Write-RepairLog ("AUTO_REPAIR WARN // task rewrite failed: " + $_.Exception.Message)
 }
 
+try {
+  $serviceName = "ClintwareQuillgeistLiteHealth"
+  $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+  if ($svc -and $svc.Status -ne "Running") {
+    Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+    Write-RepairLog "SERVICE // restored health watchdog"
+  }
+} catch {
+  Write-RepairLog ("AUTO_REPAIR WARN // health service restart failed: " + $_.Exception.Message)
+}
+
 try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch {}
 Start-Sleep -Milliseconds 700
 Start-ScheduledTask -TaskName $TaskName
