@@ -13,10 +13,10 @@ function body(){
  if(tab==='triage')return triage();
  if(tab==='meetings')return meetings();
  if(tab==='documents')return docs();
- if(tab==='handoff')return page('handoff','Sales-to-CS handoff','Scope, promise, business case, systems, and validation.',[["title","Item"],["value","Value"],["validation","Validation"],["note","Notes"]])+stakeholderPanel('Customer stakeholders')+'<div class="section"><h2>Systems & integrations</h2><button class="btn" data-add="integration">Add integration</button></div>'+table('integration',[["name","System"],["purpose","Purpose"],["connectorStatus","Status"],["technicalValidation","Validation"]]);
+ if(tab==='handoff')return page('handoff','Technical customer handoff','Customer objective, technical scope, systems, integrations, ownership, and validation.',[["title","Item"],["value","Value"],["validation","Validation"],["note","Notes"]])+stakeholderPanel('Customer stakeholders')+'<div class="section"><h2>Integrations & technical dependencies</h2><button class="btn" data-add="integration">Add integration</button></div>'+table('integration',[["name","System"],["purpose","Purpose"],["connectorStatus","Status"],["technicalValidation","Validation"]]);
  if(tab==='risks')return page('risk','Risk & escalation','No surprise-at-week-10 scenarios.',[["title","Risk"],["impact","Impact"],["owner","Owner"],["mitigation","Mitigation"],["escalationStatus","Escalation"],["nextDecision","Next decision"]]);
- if(tab==='roi')return page('kpi','ROI & KPIs','Measure first; monetize only when method and inputs are documented.',[["name","Metric"],["baseline","Baseline"],["target","Target"],["sourceSystem","Source"],["cadence","Cadence"],["currentValue","Current"]]);
- if(tab==='adoption')return page('adoption','Adoption & health','Only supported or customer-provided measurements.',[["name","Metric"],["value","Value"],["period","Period"],["source","Source"],["owner","Owner"]]);
+ if(tab==='roi')return page('kpi','Value & technical KPIs','Measure customer impact with explicit definitions and source systems; do not claim realized value without evidence.',[["name","Metric"],["baseline","Baseline"],["target","Target"],["sourceSystem","Source"],["cadence","Cadence"],["currentValue","Current"]]);
+ if(tab==='adoption')return page('adoption','Support scale & adoption','Track recurring-work reduction, frontline enablement, automation, self-service, and customer adoption using supported measurements.',[["name","Metric"],["value","Value"],["period","Period"],["source","Source"],["owner","Owner"]]);
  if(tab==='renewal')return page('renewal','Renewal & value','Year-over-year value, risk, commitments, renewal plan, and expansion signals.',[["renewalDate","Renewal date"],["term","Term"],["arr","ARR"],["valueRealized","Value realized"],["renewalPlan","Plan"]]);
  return command()
 }
@@ -38,8 +38,8 @@ function bind(){
  let ic=document.querySelector('#import-customers');if(ic)ic.onclick=importCustomers;
  document.querySelectorAll('[data-customer-open]').forEach(x=>x.onclick=()=>{tab='command';load(x.dataset.customerOpen)});
  let clr=document.querySelector('#clear-non-golden');if(clr)clr.onclick=async()=>{let g=S.customers.find(c=>c.isGoldenExample);if(confirm('Remove every customer except '+(g?.name||'the golden example')+'?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:false})});tab='customers';await load()}};
- let ca=document.querySelector('#clear-all');if(ca)ca.onclick=async()=>{let ov=document.querySelector('#override-golden')?.checked===true;if(!ov){alert('Enable the golden-example override first to remove ACME MEDICAL.');return}if(confirm('Remove ALL customers, including ACME MEDICAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:true})});tab='customers';await load()}};
- let rs=document.querySelector('#reset-samples');if(rs)rs.onclick=async()=>{if(confirm('Reset the workspace to ACME MEDICAL plus the 10 default synthetic sample customers?')){await api('/customers/reset-samples',{method:'POST',body:'{}'});tab='customers';await load()}};
+ let ca=document.querySelector('#clear-all');if(ca)ca.onclick=async()=>{let ov=document.querySelector('#override-golden')?.checked===true;if(!ov){alert('Enable the golden-example override first to remove ACME GLOBAL.');return}if(confirm('Remove ALL customers, including ACME GLOBAL?')){await api('/customers/clear',{method:'POST',body:JSON.stringify({overrideGolden:true})});tab='customers';await load()}};
+ let rs=document.querySelector('#reset-samples');if(rs)rs.onclick=async()=>{if(confirm('Reset the workspace to ACME GLOBAL plus the default synthetic Technical Customer Engineering sample customers?')){await api('/customers/reset-samples',{method:'POST',body:'{}'});tab='customers';await load()}};
  document.querySelector('#whatif').onclick=()=>document.querySelector('#drawer').classList.remove('hidden');
  document.querySelector('#close').onclick=()=>document.querySelector('#drawer').classList.add('hidden');
  document.querySelector('#reset').onclick=()=>{scen.clear();render()};
@@ -64,10 +64,10 @@ function bind(){
 applyTheme();
 async function bootstrap(){
   const root=document.querySelector('#app');
-  if(root)root.innerHTML='<main class="startup-shell"><section class="startup-card"><div class="eyebrow">N7 DEMO CRM</div><h1>Loading workspace…</h1><p class="sub">No login required. A guest workspace is being prepared in this browser.</p></section></main>';
+  if(root)root.innerHTML='<main class="startup-shell"><section class="startup-card"><div class="eyebrow">DOPPEL TCE CRM</div><h1>Loading workspace…</h1><p class="sub">No login required. A guest workspace is being prepared in this browser.</p></section></main>';
   try{await load()}
   catch(err){
-    console.error('N7 CRM startup failed',err);
+    console.error('Doppel TCE CRM startup failed',err);
     if(root)root.innerHTML='<main class="startup-shell"><section class="startup-card startup-error"><div class="eyebrow">WORKSPACE LOAD ERROR</div><h1>The CRM could not load.</h1><p class="sub">'+e(err?.message||'Unknown startup error')+'</p><button class="btn primary" id="startup-retry">Retry</button></section></main>';
     let retry=document.querySelector('#startup-retry');if(retry)retry.onclick=()=>void bootstrap()
   }
