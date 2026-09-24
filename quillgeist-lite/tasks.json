@@ -1,7 +1,7 @@
 {
-  "version": 6,
+  "version": 7,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. PowerShell is retained for Windows-only operations; terminal/profile recovery uses Python for deterministic JSON, image generation, validation, and rollback.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, uses a no-focus acrylic Windows host, and provides a persistent local Playwright browser for bounded form/page automation without exporting browser credentials.",
   "runtimes": [
     "powershell",
     "python",
@@ -131,6 +131,32 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/restart-window.ps1",
       "parameters": []
+    },
+    "self-heal": {
+      "title": "Reconcile canonical qq files, health service, glass profile, and no-focus launch behavior without opening duplicate windows",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/auto-repair-runtime.ps1",
+      "parameters": []
+    },
+    "browser-setup": {
+      "title": "Install or repair the isolated local Playwright/Chromium runtime used by qq browser automation",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
+      "parameters": []
+    },
+    "browser-work": {
+      "title": "Inspect or operate a local persistent browser session for form filling, clicking, content editing, and bounded multi-step page work",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/browser-work.ps1",
+      "parameters": [
+        "Action",
+        "Url",
+        "Selector",
+        "Value",
+        "StepsJson",
+        "Headless",
+        "WaitMs"
+      ]
     }
   }
 }
