@@ -37,7 +37,16 @@ def main() -> int:
                 if response.status not in (200, 202):
                     raise RuntimeError(f"unexpected status {response.status}")
         except urllib.error.HTTPError as error:
-            raise SystemExit(f"Newsletter notification failed for {post['url']} (HTTP {error.code}).") from error
+            body = error.read(1200).decode("utf-8", "replace").replace("\n", " ").strip()
+            server = error.headers.get("server", "")
+            cf_ray = error.headers.get("cf-ray", "")
+            content_type = error.headers.get("content-type", "")
+            detail = f" server={server!r} cf-ray={cf_ray!r} content-type={content_type!r}"
+            if body:
+                detail += f" body={body[:1200]!r}"
+            raise SystemExit(
+                f"Newsletter notification failed for {post['url']} (HTTP {error.code}).{detail}"
+            ) from error
         print(f"Newsletter notification accepted for {post['url']}")
     return 0
 
