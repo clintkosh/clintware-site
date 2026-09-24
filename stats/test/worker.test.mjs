@@ -11,7 +11,7 @@ const TEST_ENV = {
 
 test("portfolio uses one measurement ID and unique page namespaces", () => {
   assert.equal(GA_MEASUREMENT_ID, "G-DCY144YM9P");
-  assert.equal(CRM_PORTFOLIO.length, 7);
+  assert.equal(CRM_PORTFOLIO.length, 10);
   assert.equal(new Set(CRM_PORTFOLIO.map((crm) => crm.hostname)).size, CRM_PORTFOLIO.length);
   assert.equal(new Set(CRM_PORTFOLIO.map((crm) => crm.pathPrefix)).size, CRM_PORTFOLIO.length);
   for (const crm of CRM_PORTFOLIO) {
@@ -24,6 +24,9 @@ test("page paths and hostnames resolve to the correct CRM", () => {
   assert.equal(crmForPage("/an/accounts")?.id, "abnormal");
   assert.equal(crmForPage("/renewnudge/app/dashboard")?.id, "renewnudge");
   assert.equal(crmForPage("/", "pp.clintware.com")?.id, "proofpoint");
+  assert.equal(crmForPage("/", "n7crm.clintware.com")?.id, "n7crm");
+  assert.equal(crmForPage("/", "n7.clintware.com")?.id, "n7case");
+  assert.equal(crmForPage("/", "n7demo.clintware.com")?.id, "n7demo");
   assert.equal(crmForPage("/unassigned"), undefined);
 });
 
