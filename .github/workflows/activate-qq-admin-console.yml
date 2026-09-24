@@ -102,3 +102,60 @@ jobs:
 
           echo "Timed out waiting for qq refresh result" >&2
           exit 1
+
+      - name: Ensure qq local browser runtime
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data '{"task_id":"browser-setup","args":{},"objective":"Ensure the isolated local Playwright browser runtime is installed and ready for qq browser work."}')
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+
+          for i in $(seq 1 120); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then
+              echo "$state"
+              echo "qq browser runtime is ready."
+              break
+            fi
+            if [ "$status" = "failed" ]; then
+              echo "$state"
+              echo "qq browser runtime setup failed" >&2
+              exit 1
+            fi
+            if [ "$i" = "120" ]; then
+              echo "$state"
+              echo "Timed out waiting for qq browser runtime setup" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Verify qq local browser operator
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"             -H "Content-Type: application/json"             --data '{"task_id":"browser-work","args":{"Action":"inspect","Url":"https://clintware.com/","Headless":"true","WaitMs":"300"},"objective":"Verify qq can launch its local browser, load a real page, and inspect interactive page controls."}')
+          echo "$response"
+          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+
+          for i in $(seq 1 60); do
+            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+            if [ "$status" = "passed" ]; then
+              echo "$state"
+              echo "qq local browser operator verified."
+              exit 0
+            fi
+            if [ "$status" = "failed" ]; then
+              echo "$state"
+              echo "qq local browser operator verification failed" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for qq browser verification" >&2
+          exit 1
