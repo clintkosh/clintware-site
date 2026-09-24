@@ -12,7 +12,7 @@ import os
 import random
 import time
 
-VERSION = "2026.09.24.7"
+VERSION = "2026.09.24.8"
 
 
 def main() -> int:
@@ -32,8 +32,8 @@ def main() -> int:
 
         # Compact by design: large enough to read, small enough to behave like
         # a boot mark rather than taking over the desktop.
-        ww = min(640, max(500, int(sw * 0.34)))
-        wh = min(470, max(360, int(sh * 0.43)))
+        ww = min(500, max(420, int(sw * 0.26)))
+        wh = min(340, max(300, int(sh * 0.31)))
         x = max(0, (sw - ww) // 2)
         y = max(0, (sh - wh) // 2)
         root.geometry(f"{ww}x{wh}+{x}+{y}")
@@ -50,8 +50,8 @@ def main() -> int:
 
         cx = ww / 2
         cy = wh * 0.47
-        rx = min(ww * 0.33, 195)
-        ry = min(wh * 0.36, 165)
+        rx = min(ww * 0.31, 145)
+        ry = min(wh * 0.34, 110)
 
         random.seed(2026)
 
@@ -98,7 +98,7 @@ def main() -> int:
 
         # Center wordmark. Keep it monochrome and restrained exactly as intended.
         family = "Cascadia Mono"
-        title_size = max(26, min(38, int(ww / 17)))
+        title_size = max(20, min(28, int(ww / 18)))
         canvas.create_text(
             cx,
             cy - 5,
@@ -124,7 +124,7 @@ def main() -> int:
             anchor="center",
         )
 
-        root.after(1150, root.destroy)
+        root.after(1000, root.destroy)
         root.bind("<Escape>", lambda _e: root.destroy())
         root.bind("<Button-1>", lambda _e: root.destroy())
         root.mainloop()
