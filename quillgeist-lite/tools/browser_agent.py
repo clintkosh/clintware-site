@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Quillgeist Lite local browser operator with governed live-web capabilities."""
 from __future__ import annotations
-import argparse, ipaddress, json, os, pathlib, re, socket, sys, time
+import argparse, base64, ipaddress, json, os, pathlib, re, socket, sys, time
 from typing import Any
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
 
@@ -10,7 +10,7 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.24.2"
+VERSION="2026.09.24.3"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
@@ -109,31 +109,41 @@ def resolve(page,step):
 def clean_result_href(href):
     href=str(href or "").strip()
     if not href: return ""
-    parsed=urlparse(href)
-    if "duckduckgo.com" in (parsed.hostname or "") and parsed.path.startswith("/l/"):
+    parsed=urlparse(href); host=(parsed.hostname or "").lower()
+    if "duckduckgo.com" in host and parsed.path.startswith("/l/"):
         uddg=parse_qs(parsed.query).get("uddg",[""])[0]
         if uddg: return unquote(uddg)
-    return href
-def extract_search_results(page,engine,limit):
-    configs={"bing":("li.b_algo","h2 a",".b_caption p"),"duckduckgo":(".result",".result__a",".result__snippet")}
-    item_sel,link_sel,snippet_sel=configs[engine]; results=[]; seen=set(); items=page.locator(item_sel)
-    for i in range(min(items.count(),max(limit*3,20))):
-        try:
-            item=items.nth(i); anchor=item.locator(link_sel).first
-            title=re.sub(r"\s+"," ",anchor.inner_text(timeout=2500)).strip()
-            href=clean_result_href(anchor.get_attribute("href") or "")
-            if not title or not href or href in seen: continue
-            parsed=urlparse(href); host=(parsed.hostname or "").lower()
-            if parsed.scheme not in {"http","https"}: continue
-            if engine=="bing" and host.endswith("bing.com"): continue
-            if engine=="duckduckgo" and host.endswith("duckduckgo.com"): continue
-            snippet=""
-            try: snippet=re.sub(r"\s+"," ",item.locator(snippet_sel).first.inner_text(timeout=1000)).strip()
+    if host.endswith("bing.com") and parsed.path.startswith("/ck/a"):
+        token=parse_qs(parsed.query.replace("!&&","")).get("u",[""])[0]
+        if token.startswith("a1"):
+            try:
+                raw=token[2:]; raw += "="*((4-len(raw)%4)%4)
+                decoded=base64.urlsafe_b64decode(raw.encode()).decode("utf-8","replace")
+                if decoded.startswith(("http://","https://")): return decoded
             except Exception: pass
-            results.append({"title":clip(title,500),"url":href,"snippet":clip(snippet,1000)}); seen.add(href)
-            if len(results)>=limit: break
-        except Exception: continue
+    return href
+
+def extract_search_results(page,engine,limit):
+    rows=page.evaluate("""() => Array.from(document.querySelectorAll('a[href]')).slice(0,1200).map(a=>({
+      text:(a.innerText||a.textContent||'').trim().replace(/\\s+/g,' '),
+      href:a.href||'',
+      context:(a.closest('li,article,section,div')?.innerText||'').trim().replace(/\\s+/g,' ').slice(0,1400)
+    }))""")
+    results=[]; seen=set()
+    for row in rows:
+        title=re.sub(r"\\s+"," ",str(row.get("text") or "")).strip()
+        href=clean_result_href(row.get("href") or "")
+        if len(title)<3 or not href or href in seen: continue
+        parsed=urlparse(href); host=(parsed.hostname or "").lower()
+        if parsed.scheme not in {"http","https"}: continue
+        if host.endswith("bing.com") or host.endswith("duckduckgo.com"): continue
+        context=re.sub(r"\\s+"," ",str(row.get("context") or "")).strip()
+        snippet=context[len(title):].strip(" -|:") if context.startswith(title) else context
+        results.append({"title":clip(title,500),"url":href,"snippet":clip(snippet,1000)})
+        seen.add(href)
+        if len(results)>=limit: break
     return results
+
 def search_web(page,query,engine,limit,policy):
     q=str(query or "").strip()
     if not q: raise ValueError("query is required for search")
@@ -151,29 +161,26 @@ def search_web(page,query,engine,limit,policy):
     raise RuntimeError("search failed: "+"; ".join(errors))
 def read_page(page,max_chars):
     limit=max(1000,min(int(max_chars or DEFAULT_MAX_CHARS),100000))
-    root=page.locator("main,article,[role='main'],body").first
-    try: text=root.inner_text(timeout=10000)
-    except Exception: text=page.locator("body").inner_text(timeout=10000)
-    text=re.sub(r"\n{3,}","\n\n",text).strip(); headings=[]; h=page.locator("h1,h2,h3")
-    for i in range(min(h.count(),80)):
-        try:
-            value=re.sub(r"\s+"," ",h.nth(i).inner_text(timeout=1000)).strip()
-            if value: headings.append(clip(value,300))
-        except Exception: pass
-    links=[]; seen=set(); anchors=page.locator("main a[href],article a[href],[role='main'] a[href],body a[href]")
-    for i in range(min(anchors.count(),250)):
-        try:
-            a=anchors.nth(i); href=a.get_attribute("href") or ""; label=re.sub(r"\s+"," ",a.inner_text(timeout=800)).strip()
-            if not href or not label: continue
-            href=page.evaluate("(u)=>new URL(u, document.baseURI).href",href)
-            if href in seen or urlparse(href).scheme not in {"http","https"}: continue
-            links.append({"text":clip(label,240),"url":href}); seen.add(href)
-            if len(links)>=50: break
-        except Exception: pass
-    description=""
-    try: description=page.locator('meta[name="description"]').first.get_attribute("content") or ""
-    except Exception: pass
-    return {"title":clip(page.title(),500),"url":page.url,"description":clip(description,1000),"headings":headings,"text":clip(text,limit),"links":links,"truncated":len(text)>limit}
+    snap=page.evaluate("""() => {
+      const root=document.querySelector('main,article,[role="main"]')||document.body;
+      const clean=s=>(s||'').replace(/\\r/g,'').replace(/\\n{3,}/g,'\\n\\n').trim();
+      return {
+        text:clean(root?.innerText||''),
+        description:document.querySelector('meta[name="description"]')?.content||'',
+        headings:Array.from(document.querySelectorAll('h1,h2,h3')).slice(0,80).map(x=>clean(x.innerText||x.textContent||'')).filter(Boolean),
+        links:Array.from((root||document).querySelectorAll('a[href]')).slice(0,300).map(a=>({text:clean(a.innerText||a.textContent||'').replace(/\\s+/g,' '),url:a.href||''})).filter(x=>x.text&&x.url)
+      };
+    }""")
+    text=str(snap.get("text") or "")
+    headings=[clip(x,300) for x in (snap.get("headings") or [])]
+    links=[]; seen=set()
+    for row in snap.get("links") or []:
+        href=str(row.get("url") or ""); label=str(row.get("text") or "")
+        if href in seen or urlparse(href).scheme not in {"http","https"}: continue
+        links.append({"text":clip(label,240),"url":href}); seen.add(href)
+        if len(links)>=50: break
+    return {"title":clip(page.title(),500),"url":page.url,"description":clip(snap.get("description") or "",1000),"headings":headings,"text":clip(text,limit),"links":links,"truncated":len(text)>limit}
+
 def run_steps(page,steps,wait_ms,policy,approved,max_chars):
     results=[]
     for i,step in enumerate(steps):
