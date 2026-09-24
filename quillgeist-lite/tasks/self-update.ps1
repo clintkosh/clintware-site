@@ -25,7 +25,7 @@ Write-Host " // downloading latest Quillgeist Lite terminal + runner" -Foregroun
 
 foreach ($item in $updates) {
   $temp = $item.Target + ".new"
-  Invoke-WebRequest -Uri $item.Url -OutFile $temp -UseBasicParsing
+  Invoke-WebRequest -Uri ($item.Url + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
 
   if (-not (Test-Path $temp)) {
     throw "$($item.Name) update download failed."
