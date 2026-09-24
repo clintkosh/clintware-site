@@ -41,6 +41,7 @@ $ServiceLog = Join-Path $ProgramDir "service-local.log"
 $MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
 
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
+$WindowHostPath = Join-Path $HomeDir "start-qq-window.ps1"
 $RunnerPidPath = Join-Path $HomeDir "runner.pid"
 $RunnerLogPath = Join-Path $HomeDir "runner.log"
 $CrashLogPath = Join-Path $HomeDir "runner-crash.log"
@@ -53,6 +54,7 @@ New-Item -ItemType Directory -Force -Path $ProgramDir | Out-Null
 
 if (-not (Test-Path $SourcePath)) { throw "Missing health service source: $SourcePath" }
 if (-not (Test-Path $LauncherPath)) { throw "Missing Quillgeist Lite launcher: $LauncherPath" }
+if (-not (Test-Path $WindowHostPath)) { throw "Missing Quillgeist Lite no-focus window host: $WindowHostPath" }
 
 Write-Host "Compiling Clintware Quillgeist Lite health service..." -ForegroundColor Cyan
 
@@ -107,7 +109,7 @@ if (-not $pwsh) {
   if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
 }
 $psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
-$taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+$taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $WindowHostPath + '" -LauncherPath "' + $LauncherPath + '" -HomeDir "' + $HomeDir + '"'
 
 $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserName
@@ -134,7 +136,7 @@ if ($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum) {
 }
 $settings = New-ScheduledTaskSettingsSet @settingsArgs
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service; stale instances are replaced." | Out-Null
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite glass console. Supervised by the local health service; stale instances are replaced without stealing foreground focus." | Out-Null
 Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
 
 Write-Host "Registering Windows health service..." -ForegroundColor Cyan
