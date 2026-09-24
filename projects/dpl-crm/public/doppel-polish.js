@@ -1,6 +1,8 @@
 /* Candidate-demo presentation layer for the Doppel-tailored CRM. */
 (()=>{
-  const baseHead=head,baseTopbar=topbar,baseBind=bind;
+  const baseHead=head,baseTopbar=topbar,baseBind=bind,baseBody=body;
+  if(!TABS.some(x=>x[0]==='operating_model'))TABS.push(['operating_model','Operating Model']);
+  const scaleGroup=NAV_GROUPS.find(x=>x[0]==='Scale');if(scaleGroup&&!scaleGroup[1].includes('operating_model'))scaleGroup[1].unshift('operating_model');
   const sourceType=c=>c?.isPublicReference||c?.provenance==='public_research'?'public':(c?.isSynthetic||c?.provenance==='synthetic_sample'||/synthetic/i.test(c?.nameStatus||''))?'synthetic':'user';
   const sourceLabel=c=>sourceType(c)==='public'?'Public Doppel source':sourceType(c)==='synthetic'?'Synthetic scenario':'User / imported';
   const sourceLong=c=>sourceType(c)==='public'?'Public Doppel customer story':sourceType(c)==='synthetic'?'Synthetic role-training scenario':'User / imported account';
@@ -18,6 +20,33 @@
     out=out.replace('<details class="top-more',chip+'<details class="top-more');
     return out;
   };
+
+  function operatingModel(){
+    const scenarios=[
+      ['Alert / workflow mismatch','Advanced Investigations','TCE reproduces on one canonical example, removes customer transforms, establishes expected vs actual, then resolves or sends an evidence-complete specialist ask.','triage'],
+      ['SSO / identity failure','Technical Services','TCE validates IdP, group / role mapping, tenant boundaries and permissions; customer IAM owns its configuration; custom architecture goes to SA only when standard paths are exhausted.','implementation'],
+      ['API / SIEM / data flow','Technical Services','TCE defines the data contract, auth, schema, mapping, freshness, dedupe and retry behavior; Jira handoff occurs only for reproducible product behavior.','deployment'],
+      ['Customer-facing report','Value + Reporting','TCE + CSM define metric contract, source-of-truth and reconciliation; TCE builds the technical delivery while CSM retains commercial / outcome ownership.','roi'],
+      ['Recurring advanced request','Support Scale','TCE turns the solved case into a diagnostic, playbook, training, automation or self-service candidate and measures whether the work actually shifts left.','kb'],
+      ['Custom architecture request','Specialist boundary','TCE scopes the customer need and supported options, then gives Solutions Architecture a bounded architecture question rather than an ambiguous escalation.','issues']
+    ];
+    const teams=[
+      ['Frontline Support','Fast intake + standard diagnostics','Own known issues and playbooks','Receives graduated TCE runbooks'],
+      ['Customer Success','Customer outcome + commercial ownership','Own account narrative and stakeholder cadence','Gets technical risk translated into decisions'],
+      ['Technical Customer Engineering','Facts + resolution + technical services','Own advanced investigation through resolution or clean handoff','Converts one-offs into reusable capability'],
+      ['Solutions Architecture','Custom design / architecture','Own non-standard architecture decisions','Gets a bounded design problem + validated constraints'],
+      ['Product','Expected behavior + product gaps','Own product decisions and roadmap signal','Gets recurring friction with evidence and frequency'],
+      ['Engineering','Reproducible defects','Own code-level defect resolution','Gets expected vs actual + repro + logs + business impact'],
+      ['Enablement','Knowledge distribution','Own training / readiness systems','Gets validated playbooks and graduation criteria']
+    ];
+    return head('Scale the function','Technical Customer Engineering operating model','A working routing model for the role Doppel posted: TCE is the deep technical owner between frontline Support and specialist teams, while CSMs retain commercial account ownership.','<button class="btn primary" data-goto="triage">Open investigation queue</button><button class="btn" data-goto="issues">Open Engineering handoffs</button>')+
+      '<div class="ops-flow"><div><b>1 · Intake</b><span>Support / CSM identifies a complex customer need.</span></div><i>→</i><div><b>2 · Establish facts</b><span>TCE reproduces, isolates configuration / integration / platform behavior.</span></div><i>→</i><div><b>3 · Resolve or route</b><span>Resolve directly, deliver bounded Technical Services, or hand off with evidence.</span></div><i>→</i><div><b>4 · Shift left</b><span>Turn the repeatable part into Support, automation, self-service or product signal.</span></div></div>'+
+      '<div class="section"><div><h2>Scenario routing</h2><div class="muted">Different customer problems should enter the same evidence and ownership system without forcing every team into the same workflow.</div></div></div><div class="scenario-matrix">'+scenarios.map(x=>'<article class="card"><div class="eyebrow">'+e(x[1])+'</div><h3>'+e(x[0])+'</h3><p>'+e(x[2])+'</p><button class="btn" data-goto="'+e(x[3])+'">Open supporting module</button></article>').join('')+'</div>'+
+      '<div class="section"><div><h2>Internal team contract</h2><div class="muted">The system does not erase ownership boundaries; it makes the handoff contract explicit.</div></div></div><div class="team-lanes">'+teams.map(x=>'<article><div><strong>'+e(x[0])+'</strong><span>'+e(x[1])+'</span></div><div><small>Primary ownership</small><b>'+e(x[2])+'</b></div><div><small>What the CRM gives them</small><b>'+e(x[3])+'</b></div></article>').join('')+'</div>'+
+      '<div class="callout"><strong>Scale rule</strong><span>Do not optimize for the number of cases TCE personally touches. Optimize for customer resolution quality, specialist handoff quality, and the percentage of recurring technical work that becomes a reusable frontline or self-service capability.</span></div>';
+  }
+
+  body=function(){return tab==='operating_model'?operatingModel():baseBody()};
 
   customers=function(){
     const cards=S.customers.map(c=>{
