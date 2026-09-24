@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-interactive-self-update-20260924-2",
-  "task_id": "self-update",
+  "request_id": "chatgpt-qq-window-restart-logo-20260924",
+  "task_id": "bootstrap-admin-console",
   "args": {},
-  "objective": "Upgrade the installed Clintware Quillgeist Lite runtime to the current interactive qq release: refresh runner/launcher, ensure PowerShell 7 is installed or upgraded and preferred for task/runtime execution, preserve 5-second question polling plus durable bidirectional answer relay, show the maintained splash on every qq window load, refresh the health watchdog, and enable bounded error-burst auto-repair."
+  "objective": "Restart the supervised Quillgeist Lite window now so launcher.ps1 executes from the top and the maintained logo/splash is shown on this window load. Preserve the existing managed service, task registration, interactive relay, and PowerShell 7 preference."
 }
