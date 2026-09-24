@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-force-restart-window-20260924",
-  "task_id": "restart-window",
+  "request_id": "chatgpt-qq-logo-self-update-20260924-1043",
+  "task_id": "self-update",
   "args": {},
-  "objective": "Force-restart the visible Quillgeist Lite window now. Close the current runner only after this task result returns, relaunch the managed scheduled task, and execute launcher.ps1 from the top so the maintained logo/splash is shown immediately on the new window load."
+  "objective": "Pull the latest maintained Quillgeist Lite launcher and runner containing the compact Clintware eclipse splash and small inline logo above the welcome text, then apply the update using the existing supervised restart path."
 }
