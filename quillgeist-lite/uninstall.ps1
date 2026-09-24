@@ -8,6 +8,7 @@ $ServiceName = "ClintwareQuillgeistLiteHealth"
 $TaskName = "Clintware Quillgeist Lite Runner"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ProgramDir = Join-Path $env:ProgramData "Clintware\QuillgeistLite"
+$MaintenanceMarker = Join-Path $ProgramDir "maintenance.lock"
 
 function Test-Administrator {
   $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
