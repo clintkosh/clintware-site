@@ -42,6 +42,7 @@ namespace Clintware.QuillgeistLite
         private DateTime serviceStartedUtc = DateTime.MinValue;
         private DateTime lastRestartAttemptUtc = DateTime.MinValue;
         private DateTime lastAutoRepairAttemptUtc = DateTime.MinValue;
+        private DateTime lastForcedWakeRestartUtc = DateTime.MinValue;
         private bool shuttingDown = false;
 
         public QuillgeistLiteHealthService()
@@ -195,7 +196,7 @@ namespace Clintware.QuillgeistLite
                                 {
                                     // A queued job can now wake qq even when its interactive
                                     // runner is not already connected.
-                                    EnsureRunner();
+                                    EnsureRunner(true);
                                 }
                                 else
                                 {
@@ -252,7 +253,7 @@ namespace Clintware.QuillgeistLite
 
                 if (!alive && (DateTime.UtcNow - serviceStartedUtc).TotalSeconds >= 8)
                 {
-                    EnsureRunner();
+                    EnsureRunner(false);
                 }
 
                 if ((DateTime.UtcNow - lastHeartbeat).TotalMinutes >= 5)
@@ -331,7 +332,7 @@ namespace Clintware.QuillgeistLite
             }
         }
 
-        private void EnsureRunner()
+        private void EnsureRunner(bool forceWake = false)
         {
             DateTime now = DateTime.UtcNow;
             if ((now - lastRestartAttemptUtc).TotalSeconds < 15) return;
@@ -341,15 +342,26 @@ namespace Clintware.QuillgeistLite
 
             if (restarts.Count >= 5)
             {
-                if ((now - lastSuppressedNotice).TotalMinutes >= 5)
+                if (forceWake && (now - lastForcedWakeRestartUtc).TotalSeconds >= 30)
                 {
-                    string msg = "restart_suppressed_after_5_attempts_in_10_minutes";
-                    LocalLog(msg);
-                    TryPost("ERROR", "health", msg, false);
-                    lastSuppressedNotice = now;
+                    lastForcedWakeRestartUtc = now;
+                    restarts.Clear();
+                    string forced = "wake_bypassing_stale_restart_limit";
+                    LocalLog(forced);
+                    TryPost("WARN", "wake", forced, false);
                 }
-                TryAutoRepair("restart_limit");
-                return;
+                else
+                {
+                    if ((now - lastSuppressedNotice).TotalMinutes >= 5)
+                    {
+                        string msg = "restart_suppressed_after_5_attempts_in_10_minutes";
+                        LocalLog(msg);
+                        TryPost("ERROR", "health", msg, false);
+                        lastSuppressedNotice = now;
+                    }
+                    TryAutoRepair("restart_limit");
+                    return;
+                }
             }
 
             try
@@ -601,7 +613,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.2.2\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"1.2.3\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
