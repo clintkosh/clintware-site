@@ -36,3 +36,16 @@ Unless the user explicitly names a language/runtime:
 5. if an attempted method proves inadequate, use returned evidence to choose a better registered method rather than forcing the original runtime.
 
 Efficiency is a tiebreaker after quality, not a substitute for quality.
+
+
+## Governed live-web policy
+
+Quillgeist Web extends qq with live search, page reading, and bounded browser automation while preserving the local execution boundary.
+
+- Remote web navigation is public HTTP/HTTPS by default. Loopback, RFC1918/private, link-local, multicast, and reserved network destinations are blocked to reduce SSRF and local-network exposure.
+- Browser authentication is local-first. A user signs in through the visible persistent qq browser with `web login <url>`; remote callers do not receive cookies, passwords, MFA codes, API keys, tokens, or other credentials.
+- Remote fill/type operations refuse password, OTP, payment-card, token/key, and other credential-like fields.
+- Consequential browser actions such as purchases, payments, destructive changes, publishing, authorization, or user-management actions require explicit approval for that run.
+- Downloads are disabled in the governed browser agent. File upload/download or other higher-risk capabilities require a separately reviewed task.
+- Search and read are preferred over automation when they satisfy the task. Automation is bounded to the registered step vocabulary; arbitrary JavaScript and remote shell text are not accepted.
+- The public-web policy is enforced again on redirects and browser subrequests. Private-network access is never enabled by the remote Quillgeist Web MCP tools.
