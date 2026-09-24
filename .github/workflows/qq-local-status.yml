@@ -1,0 +1,28 @@
+name: qq Local Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/qq-local-status.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read qq runner and watchdog status
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CONTROL_PLANE_MCP_TOKEN"
+
+          echo "=== QQ STATUS ==="
+          curl --fail-with-body -sS             "https://mcp.clintware.com/api/v1/quillgeist-lite/status"             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" | python3 -m json.tool
+
+          echo "=== QQ DIAGNOSTICS ==="
+          curl --fail-with-body -sS             "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=40"             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" | python3 -m json.tool
