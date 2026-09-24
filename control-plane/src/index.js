@@ -210,6 +210,7 @@ const DEFAULT_QUILLGEIST_LITE = {
     "analytics.read:quillgeist-lite",
     "local.read:quillgeist-lite",
     "local.run:quillgeist-lite",
+    "browser.run:quillgeist-lite",
     "jira.read:quillgeist-lite",
     "jira.write:quillgeist-lite",
     "confluence.read:quillgeist-lite",
@@ -240,7 +241,10 @@ const QUILLGEIST_LITE_TASKS = {
   "bootstrap-admin-console":{runtime:"powershell",parameters:[]},
   "gimp-clintware-eclipse":{runtime:"powershell",parameters:[]},
   "codefeddy-access-check":{runtime:"powershell",parameters:[]},
-  "provision-codefeddy-platform":{runtime:"powershell",parameters:[]}
+  "provision-codefeddy-platform":{runtime:"powershell",parameters:[]},
+  "self-heal":{runtime:"powershell",parameters:[]},
+  "browser-setup":{runtime:"powershell",parameters:[]},
+  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Headless","WaitMs"]}
 };
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
