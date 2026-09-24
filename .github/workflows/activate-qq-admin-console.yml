@@ -34,6 +34,7 @@ jobs:
           test "$ready" = "1"
 
       - name: Dispatch local qq admin-console upgrade
+        if: github.event_name == 'workflow_dispatch'
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
@@ -64,7 +65,7 @@ jobs:
 
           if [ -z "$final" ]; then final="queued_or_running"; fi
           echo "QQ_LOCAL_JOB_STATUS=$final"
-          echo "qq admin-service bootstrap dispatched. If Windows requests UAC locally, approve it once."
+          echo "qq admin-service bootstrap dispatched for explicit manual activation."
 
       - name: Report qq local service diagnostics
         if: always()
