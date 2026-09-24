@@ -16,6 +16,7 @@ $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/qu
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
 $RepairVersion = "2026.09.24.3"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+$AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 
 Write-Host ("REPAIR // Quillgeist Lite self-heal " + $RepairVersion) -ForegroundColor White
 
@@ -118,8 +119,13 @@ if (-not $task) {
   }
 
   Write-Host "TASK // runner task missing; recreating automatically" -ForegroundColor DarkYellow
-  $psExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-  $taskArgs = '-NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+  $pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  if (-not $pwsh) {
+    $pwshCandidate = Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+    if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
+  }
+  $psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
   $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
   $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
   $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userName
@@ -128,7 +134,26 @@ if (-not $task) {
   Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite console. Automatically launched and supervised by the local health service." | Out-Null
   $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 } else {
-  Set-ScheduledTask -TaskName $TaskName -Settings $settings | Out-Null
+  $pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  if (-not $pwsh) {
+    $pwshCandidate = Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+    if (Test-Path $pwshCandidate) { $pwsh = Get-Item $pwshCandidate }
+  }
+  $psExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+  $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File "' + $LauncherPath + '"'
+  $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
+  Set-ScheduledTask -TaskName $TaskName -Action $action -Settings $settings | Out-Null
+}
+
+try {
+  $configPath = Join-Path $ProgramDir "service.json"
+  if (Test-Path $configPath) {
+    $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+    $cfg | Add-Member -NotePropertyName AutoRepairPath -NotePropertyValue $AutoRepairPath -Force
+    $cfg | ConvertTo-Json -Depth 8 | Set-Content -Path $configPath -Encoding UTF8
+  }
+} catch {
+  Write-Host ("WARN // could not persist auto-repair path: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
 
 Write-Host "TASK // automatic runner recovery is configured" -ForegroundColor Cyan
