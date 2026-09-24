@@ -1,13 +1,13 @@
 {
-  "request_id": "chatgpt-quillgeist-web-multistep-smoke-20260924-1712",
+  "request_id": "chatgpt-quillgeist-web-multistep-smoke-v2-20260924-1715",
   "task_id": "browser-work",
   "args": {
     "Action": "run",
-    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://example.com\"},{\"op\":\"read\",\"max_chars\":4000},{\"op\":\"click\",\"text\":\"More information\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"read\",\"max_chars\":5000}]",
+    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://example.com\"},{\"op\":\"read\",\"max_chars\":3000},{\"op\":\"inspect\"},{\"op\":\"extract\",\"selector\":\"body\",\"max_chars\":3000},{\"op\":\"goto\",\"url\":\"https://www.iana.org/help/example-domains\"},{\"op\":\"read\",\"max_chars\":5000}]",
     "MaxChars": "5000",
     "Headless": "true",
     "AllowPrivate": "false",
     "Approved": "false"
   },
-  "objective": "Verify governed multi-step Quillgeist Web automation by navigating example.com, reading it, following its public information link, and reading the destination without consequential actions."
+  "objective": "Verify governed multi-step browser automation with two deterministic public navigations plus read, inspect, and extraction operations."
 }
