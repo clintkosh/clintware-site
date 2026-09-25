@@ -73,7 +73,7 @@ def cmd_make_pack(args):
     manifest=json.loads(Path(args.manifest).read_text(encoding="utf-8")); _print({"created":str(save_abpack(manifest,args.output))})
 
 def cmd_pair(args):
-    cfg=Config.load(); result=cloud_pair(cfg,args.cloud); _print(result); print(f"Enter pairing code {result['pair_code']} at {cfg.data['cloud_url']}")
+    cfg=Config.load(); result=cloud_pair(cfg,args.cloud); _print(result); print(f"Enter pairing code {result['pair_code']} at your self-hosted Quillgeist Cloud: {cfg.data['cloud_url']}")
 
 def _scheduled_run(row):
     cfg=Config.load(); print(f"Running scheduled pack {row['pack_path']}")
@@ -101,7 +101,10 @@ def _schedule_sync_loop(cfg):
         time.sleep(30)
 
 def cmd_daemon(args):
-    cfg=Config.load(); load_help(); engine=SchedulerEngine(_scheduled_run,after_run=_schedule_after_run)
+    cfg=Config.load()
+    if not str(cfg.data.get("cloud_url") or "").strip():
+        raise SystemExit("No cloud configured. Quillgeist remains local-only. To use cloud routing, self-host it and run pair --cloud https://your-host.")
+    load_help(); engine=SchedulerEngine(_scheduled_run,after_run=_schedule_after_run)
     thread=threading.Thread(target=engine.run_forever,daemon=True); thread.start()
     sync_thread=threading.Thread(target=_schedule_sync_loop,args=(cfg,),daemon=True); sync_thread.start()
     try: cloud_daemon(cfg)
@@ -181,7 +184,7 @@ def build_parser():
     x=sub.add_parser("run"); x.add_argument("pack"); x.add_argument("--workspace"); x.add_argument("--approve-all",action="store_true"); x.set_defaults(func=cmd_run)
     x=sub.add_parser("rollback"); x.add_argument("run_id"); x.add_argument("--workspace",required=True); x.set_defaults(func=cmd_rollback)
     x=sub.add_parser("make-pack"); x.add_argument("manifest"); x.add_argument("output"); x.set_defaults(func=cmd_make_pack)
-    x=sub.add_parser("pair"); x.add_argument("--cloud"); x.set_defaults(func=cmd_pair)
+    x=sub.add_parser("pair"); x.add_argument("--cloud",required=True,help="Your own self-hosted Quillgeist Cloud URL"); x.set_defaults(func=cmd_pair)
     x=sub.add_parser("daemon"); x.set_defaults(func=cmd_daemon)
     x=sub.add_parser("clipboard-watch"); x.add_argument("--mode",choices=["off","detect","import","trusted"]); x.set_defaults(func=cmd_clipboard)
     x=sub.add_parser("install-associations"); x.add_argument("--include-md-json",action="store_true"); x.set_defaults(func=cmd_associations)
