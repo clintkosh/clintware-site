@@ -228,7 +228,7 @@ Classify every compensation figure as **verified**, **estimated**, or **unknown 
 
 # Productive-work proof
 
-Include certifications, portfolio work, technical projects, AI workflows, demos, relevant consulting/volunteer work, or other proof only when it materially strengthens the search story. Keep unrelated identities/projects out unless the user explicitly chooses to include them.
+Include certifications, portfolio work, technical projects, AI workflows, demos, relevant project/volunteer work, or other proof only when it materially strengthens the search story. Keep unrelated identities/projects out unless the user explicitly chooses to include them.
 
 # Anti-regression rule
 
