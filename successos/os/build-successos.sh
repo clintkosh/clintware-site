@@ -75,9 +75,9 @@ mkdir -p config/includes.chroot/usr/local/bin
 mkdir -p config/includes.chroot/etc/successos
 mkdir -p config/includes.chroot/opt/successos/models
 cp "$ROOT/success_permission.py" config/includes.chroot/usr/local/lib/successos/success_permission.py
-cp "$ROOT/success_driver_scan.py" config/includes.chroot/usr/local/bin/success-driver-scan
+cp "$ROOT/success_driver_scan.py" config/includes.chroot/usr/local/bin/success-driver-scan\ncp "$ROOT/success_approve_gui.py" config/includes.chroot/usr/local/lib/successos/success_approve_gui.py\ncp "$ROOT/success_terminal.py" config/includes.chroot/usr/local/bin/success
 cp "$ROOT/default-policy.json" config/includes.chroot/etc/successos/default-policy.json
-chmod +x config/includes.chroot/usr/local/bin/success-driver-scan
+chmod +x config/includes.chroot/usr/local/bin/success-driver-scan\nchmod +x config/includes.chroot/usr/local/bin/success\nchmod +x config/includes.chroot/usr/local/lib/successos/success_approve_gui.py
 chmod +x config/includes.chroot/usr/local/lib/successos/success_permission.py
 
 cat > config/includes.chroot/usr/local/bin/success-approve <<'SH'
