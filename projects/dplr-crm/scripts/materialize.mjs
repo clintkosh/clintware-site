@@ -36,7 +36,10 @@ rewrite("src/index.js", [
 ]);
 rewrite("package.json", common);
 rewrite("wrangler.jsonc", common);
-rewrite("public/app-config.js", [["dpltheme", "dplrtheme"]]);
+rewrite("public/app-config.js", [
+  ["dpltheme", "dplrtheme"],
+  ['localStorage.getItem("dplrtheme")||"dark"', 'localStorage.getItem("dplrtheme")||"light"'],
+]);
 rewrite("public/app-router.js", [["dpltheme", "dplrtheme"], ["DOPPEL TCE CRM", "DOPPEL TCE OS"], ["Doppel TCE CRM", "Doppel TCE OS"]]);
 
 for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js"]) {
@@ -61,5 +64,7 @@ for (const required of [
 const html = fs.readFileSync(path.join(out, "public/index.html"), "utf8");
 if (html.includes("doppel-brand.css") || html.includes("doppel-polish.js")) throw new Error("Old marketing presentation layer leaked into DPLR");
 if (!html.includes("dplr-ui.css") || !html.includes("dplr-shell.js")) throw new Error("DPLR UI overlay missing");
+const config = fs.readFileSync(path.join(out, "public/app-config.js"), "utf8");
+if (!config.includes('localStorage.getItem("dplrtheme")||"light"')) throw new Error("DPLR must default to N7-style light mode");
 
 console.log(`DPLR materialized at ${out}`);
