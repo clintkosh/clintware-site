@@ -49,6 +49,8 @@ jobs:
           agentbridge help start --no-pager
           agentbridge help glossary --search Contextor --no-pager
           agentbridge dlp status
+          agentbridge local-ai status
+          agentbridge local-ai route --task ci
       - name: Local execution smoke test
         env:
           AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
@@ -101,12 +103,13 @@ jobs:
           XDG_CONFIG_HOME=/tmp/quillgeist-ci-xdg npx --yes --cache /tmp/quillgeist-ci-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Validate Help Center documentation invariant
         run: python3 scripts/check_agentbridge_help_docs.py
-      - name: Validate compact interface
+      - name: Validate current public interface
         run: |
-          grep -Fq 'Your intent. Your machines. Verified execution.' agentbridge-cloud/public/index.html
-          grep -Fq 'Local policy stays authoritative' agentbridge-cloud/public/index.html
-          grep -Fq 'All systems relaxed.' agentbridge-cloud/public/index.html
-          for view in home run automate activity help; do grep -Fq "data-view=\"$view\"" agentbridge-cloud/public/index.html; done
+          grep -Fq 'Your operating method. Your machine. Your infrastructure.' agentbridge-cloud/public/index.html
+          grep -Fq 'Public isolation boundary' agentbridge-cloud/public/index.html
+          grep -Fq 'Public alpha · local-only default · self-hosted cloud optional' agentbridge-cloud/public/index.html
+          grep -Fq 'Download Quillgeist for Windows' agentbridge-cloud/public/index.html
+          grep -Fq 'quillgeist pair --cloud https://quillgeist.example.com' agentbridge-cloud/public/index.html
           grep -Fq 'net_tokens_saved_est' agentbridge-cloud/src/telemetry.js
           grep -Fq 'bugs_resolved' agentbridge-cloud/src/telemetry.js
           grep -Fq 'HelpHub' agentbridge-cloud/src/help.js

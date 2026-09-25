@@ -179,7 +179,7 @@ const DEFAULT_ORGSYNAPSE = {
 const DEFAULT_QUILLGEIST_LITE = {
   product:"quillgeist-lite",
   environment:"production",
-  version:3,
+  version:4,
   repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["quillgeist-lite/","identity-broker/scripts/"],delete_prefixes:[],allowed_workflows:["deploy-control-plane.yml"]},
   dns:{allowed_names:["mcp.clintware.com"]},
   capabilities:[
@@ -232,6 +232,7 @@ const QUILLGEIST_LITE_TASKS = {
   "self-heal":{runtime:"powershell",parameters:[]},
   "browser-setup":{runtime:"powershell",parameters:[]},
   "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","AllowPrivate","Headless","WaitMs"]},
+  "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
