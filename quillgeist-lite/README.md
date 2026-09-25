@@ -232,7 +232,7 @@ The UI binds only to `127.0.0.1:8765`. It provides an enable toggle, global kill
 
 State is kept under `%LOCALAPPDATA%\Clintware\QuillgeistLite\responder-agent` using JSON configuration, SQLite WAL state, and local daily report files. The Windows scheduled task is `ClintwareResponderAgent` and defaults to a 15-minute cadence with overlapping runs disabled.
 
-The first built-in discovery adapter uses the official Hacker News API. Hacker News is hard-coded `RESEARCH_ONLY` because its current guidelines prohibit generated or AI-edited comments. Stack Overflow is disabled by default for the same reason. Discourse sites can be added explicitly, but remain `APPROVAL_REQUIRED` until the specific site's current policy and scoped write path are verified.
+The first built-in discovery adapter uses the official Hacker News API. Hacker News is hard-coded `RESEARCH_ONLY` because its current guidelines prohibit generated or AI-edited comments. Stack Overflow is disabled by default for the same reason. Discourse sites can be added explicitly, but remain `RESEARCH_ONLY` until the specific site's current policy and scoped write path are verified.
 
 If an installed Ollama model is configured, eligible approval-gated items can pass through independent draft, factual-verifier, adversarial-reviewer, and voice/policy-review passes. A passing local review does not grant publication permission.
 
