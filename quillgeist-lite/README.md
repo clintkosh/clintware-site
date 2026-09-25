@@ -236,6 +236,6 @@ The first built-in discovery adapter uses the official Hacker News API. Hacker N
 
 If an installed Ollama model is configured, eligible approval-gated items can pass through independent draft, factual-verifier, adversarial-reviewer, and voice/policy-review passes. A passing local review does not grant publication permission.
 
-Daily reports are generated locally. When a report address is configured, the scheduled wrapper sends the report through the authenticated qq/Control Plane boundary. The Control Plane obtains a short-lived delegated Google token from the identity broker and uses the existing Gmail send scope; provider refresh credentials never enter the local responder process.
+Daily reports are generated locally and sent through the authenticated qq/Control Plane boundary. If the report address is blank, the Control Plane sends to the currently delegated Google account; the UI can override it with another address. The Control Plane obtains a short-lived delegated Google token from the identity broker and uses the existing Gmail send scope; provider refresh credentials never enter the local responder process.
 
 See `ASTRO_RESPONDER_AGENT_SKILL.md` for the default design invariant.
