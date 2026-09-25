@@ -1,13 +1,6 @@
 {
-  "request_id": "chatgpt-google-oauth-publish-prod-20260925",
-  "task_id": "browser-work",
-  "args": {
-    "Action": "run",
-    "Url": "https://console.cloud.google.com/auth/audience",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://console.cloud.google.com/auth/audience\"},{\"op\":\"wait\",\"ms\":1800},{\"op\":\"inspect\"},{\"op\":\"click\",\"role\":\"button\",\"name\":\"Publish app\",\"approved\":true},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"},{\"op\":\"click\",\"role\":\"button\",\"name\":\"Confirm\",\"approved\":true},{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"}]}",
-    "Approved": "true",
-    "Headless": "false",
-    "WaitMs": "700"
-  },
-  "objective": "Using the persistent local qq browser session, move the Clintware Google OAuth app from Testing to In production. Do not alter redirect URIs, client IDs, scopes, credentials, or unrelated project settings. User explicitly authorized publishing in this conversation."
+  "request_id": "chatgpt-qq-restore-gold-splash-20260925",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Refresh the local qq runtime from main so the restored proven Clintware glass eclipse splash replaces the degraded current startup picture."
 }
