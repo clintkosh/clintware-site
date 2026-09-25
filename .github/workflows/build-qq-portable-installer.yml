@@ -1,0 +1,65 @@
+name: Build QQ Portable Installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "quillgeist-lite/bootstrapper/**"
+      - ".github/workflows/build-qq-portable-installer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish self-contained Windows x64 executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet publish quillgeist-lite/bootstrapper/Clintware.QQ.PortableInstaller.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP\qq-portable"
+
+          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\Clintware-QQ-Portable-Installer.exe"
+          if (-not (Test-Path $exe)) { throw "Portable installer executable was not produced." }
+
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $size = (Get-Item $exe).Length
+
+          @(
+            "file=Clintware-QQ-Portable-Installer.exe"
+            "sha256=$hash"
+            "bytes=$size"
+            "commit=${{ github.sha }}"
+            "built_at=$([DateTime]::UtcNow.ToString('o'))"
+          ) | Set-Content (Join-Path $env:RUNNER_TEMP "qq-portable\BUILDINFO.txt") -Encoding UTF8
+
+          Write-Host "EXE=$exe"
+          Write-Host "SHA256=$hash"
+          Write-Host "BYTES=$size"
+
+      - name: Verify PE header
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\Clintware-QQ-Portable-Installer.exe"
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "Output is not a valid Windows PE executable."
+          }
+          Write-Host "PE_HEADER_OK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qq-portable-installer-win-x64
+          path: |
+            ${{ runner.temp }}\qq-portable\Clintware-QQ-Portable-Installer.exe
+            ${{ runner.temp }}\qq-portable\BUILDINFO.txt
+          if-no-files-found: error
+          retention-days: 30
