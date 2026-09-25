@@ -40,12 +40,18 @@ jobs:
           grep -Fq 'Doppel Technical Customer Engineering OS' public/index.html
           grep -Fq '/dplr-ui.css' public/index.html
           grep -Fq '/dplr-shell.js' public/index.html
+          grep -Fq '/dplr-prep.js' public/index.html
+          node --check public/dplr-prep.js
           grep -Fq 'dplr-portfolio-grid' public/dplr-shell.js
           grep -Fq 'Operating Model' public/dplr-shell.js
           grep -Fq 'Advanced Investigations' public/dplr-shell.js
           grep -Fq 'Technical Services' public/dplr-shell.js
           grep -Fq 'Engineering Handoff' public/dplr-shell.js
           grep -Fq 'Support Scale' public/dplr-shell.js
+          grep -Fq 'Call Preparation' public/dplr-prep.js
+          grep -Fq 'Technology quick refresh' public/dplr-prep.js
+          grep -Fq 'Generate editable draft' public/dplr-prep.js
+          grep -Fq 'LIVE ASSIST' public/dplr-prep.js
           grep -Fq 'Guest records are scoped to this browser session and do not automatically migrate' public/dplr-shell.js
           grep -Fq 'localStorage.getItem("dplrtheme")||"light"' public/app-config.js
           ! grep -Rq 'doppel-brand.css' public/index.html
@@ -136,6 +142,14 @@ jobs:
           test "$patch_code" = "200"
           curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-final.json
           python3 -c 'import json; d=json.load(open("/tmp/dplrstake-final.json")); assert any(r.get("id")=="'"$stakeholder_id"'" and r.get("data",{}).get("status")=="Engaged" for r in d["records"])'
+
+          echo "API mutation test: modular call prep + email draft"
+          prep_code=$(curl -sS -o /tmp/dplrprep.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"call_prep","provenance":"internal_proposal","data":{"title":"CI call prep","objective":"Validate the technical path","technologyNotes":"Okta quick reminder","assistantNotes":"Use approved playbook"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          test "$prep_code" = "201"
+          email_code=$(curl -sS -o /tmp/dplremail.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"email_draft","provenance":"internal_proposal","data":{"title":"CI follow-up","kind":"post_call","subject":"Follow-up","body":"Draft only","status":"Draft"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          test "$email_code" = "201"
+          curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrprepstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplrprepstate.json")); t=[r["type"] for r in d["records"]]; assert "call_prep" in t and "email_draft" in t'
 
           echo "Security headers and internal-route shielding"
           headers=$(curl -fsS -D - -o /dev/null https://dplrcrm.clintware.com/)
