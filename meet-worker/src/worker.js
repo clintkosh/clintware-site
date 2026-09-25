@@ -665,6 +665,13 @@ async function apiBook(request, env) {
     }, 422);
   }
 
+  if (!googleCalendarConfigured(env)) {
+    return json({
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503);
+  }
+
   if (googleCalendarConfigured(env)) {
     try {
       const endMs = input.startMs + CONFIG.durationMinutes * 60_000;
@@ -680,6 +687,10 @@ async function apiBook(request, env) {
         message: String(error),
         code: error.code || "calendar_error",
       }));
+      return json({
+        error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+        code: "calendar_temporarily_unavailable",
+      }, 503);
     }
   }
 
@@ -734,7 +745,34 @@ async function apiBook(request, env) {
         message: String(error),
         code: error.code || "calendar_error",
       }));
+      const rollback = await store(env).fetch("https://scheduler/cancel", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ manageHash }),
+      }).catch(() => null);
+      if (!rollback?.ok) {
+        console.error(JSON.stringify({
+          event: "google_calendar_booking_rollback_failed",
+          bookingId: booking.id,
+        }));
+      }
+      return json({
+        error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+        code: "calendar_temporarily_unavailable",
+      }, 503);
     }
+  }
+
+  if (!calendar.synced || !calendar.meetLink) {
+    await store(env).fetch("https://scheduler/cancel", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ manageHash }),
+    }).catch(() => null);
+    return json({
+      error: "Google Meet could not be created. Please try again shortly.",
+      code: "google_meet_not_created",
+    }, 503);
   }
 
   let delivery = { guest: false, host: false };
