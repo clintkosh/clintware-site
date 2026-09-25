@@ -215,7 +215,10 @@ def cmd_local_ai(args):
         return
 
 def cmd_doctor(args):
-    cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama","llama-cli","llama-server"]}\n    local_ai=local_inference.status(_local_inference_settings(cfg))\n    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"local_inference":{"model_count":local_ai.get("model_count",0),"runtimes":local_ai.get("runtimes",[]),"memory":local_ai.get("memory",{}),"gpus":local_ai.get("gpus",[])},"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")})
+    cfg=Config.load()
+    runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama","llama-cli","llama-server"]}
+    local_ai=local_inference.status(_local_inference_settings(cfg))
+    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"local_inference":{"model_count":local_ai.get("model_count",0),"runtimes":local_ai.get("runtimes",[]),"memory":local_ai.get("memory",{}),"gpus":local_ai.get("gpus",[])},"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
     p=argparse.ArgumentParser(prog="quillgeist",description="Quillgeist local-first adaptive AI execution node"); sub=p.add_subparsers(dest="command",required=True)
