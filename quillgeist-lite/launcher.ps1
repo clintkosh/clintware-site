@@ -8,11 +8,11 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $CrashLog = Join-Path $HomeDir "runner-crash.log"
 $PidPath = Join-Path $HomeDir "runner.pid"
-$RunnerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/runner.ps1"
+$RunnerUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/runner.ps1"
 $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
-$EnsurePwshUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/ensure-powershell.ps1"
+$EnsurePwshUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/ensure-powershell.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
-$AutoRepairUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/auto-repair-runtime.ps1"
+$AutoRepairUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/auto-repair-runtime.ps1"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -106,9 +106,9 @@ function Ensure-ModernPowerShell {
 
 function Show-WindowLoadSplash {
   $SplashPath = Join-Path $HomeDir "boot_splash.py"
-  $SplashUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tools/boot_splash.py?cb=$([Guid]::NewGuid().ToString('n'))"
+  $SplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py?cb=$([Guid]::NewGuid().ToString('n'))"
   $LogoPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
-  $LogoUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64?cb=$([Guid]::NewGuid().ToString('n'))"
+  $LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64?cb=$([Guid]::NewGuid().ToString('n'))"
 
   try {
     Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
