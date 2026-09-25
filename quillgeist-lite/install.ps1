@@ -1,3 +1,7 @@
+param(
+  [string]$SourceRoot = ""
+)
+
 $ErrorActionPreference = "Stop"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
@@ -54,26 +58,43 @@ if ($LASTEXITCODE -ne 0 -or $login.ToLowerInvariant() -ne "clintkosh") {
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$ServiceDir | Out-Null
 
-$downloads = @{
-  "$BaseRaw/runner.ps1$CacheBust" = $RunnerPath
-  "$BaseRaw/launcher.ps1$CacheBust" = $LauncherPath
-  "$BaseRaw/service/QuillgeistLiteHealthService.cs$CacheBust" = $ServiceSourcePath
-  "$BaseRaw/service/install-service.ps1$CacheBust" = $ServiceInstallerPath
-  "$BaseRaw/tools/terminal_repair.py$CacheBust" = $TerminalRepairPath
-  "$BaseRaw/tools/boot_splash.py$CacheBust" = $BootSplashPath
-  "$BaseRaw/tasks/start-qq-window.ps1$CacheBust" = $WindowHostPath
-  "$BaseRaw/tools/browser_agent.py$CacheBust" = $BrowserAgentPath
-  "$BaseRaw/tasks/ensure-browser-runtime.ps1$CacheBust" = $BrowserSetupPath
-  "$BaseRaw/tasks/browser-work.ps1$CacheBust" = $BrowserWorkPath
-  "$BaseRaw/tasks/ensure-powershell.ps1$CacheBust" = $EnsurePwshPath
-  "$BaseRaw/tasks/auto-repair-runtime.ps1$CacheBust" = $AutoRepairPath
-  "$BaseRaw/tasks/repair-local-service.ps1$CacheBust" = $ServiceRepairPath
-  "$BaseRaw/service/recovery-watch.ps1$CacheBust" = $RecoveryWatchPath
+$sources = @(
+  @{ Relative = "runner.ps1"; Destination = $RunnerPath },
+  @{ Relative = "launcher.ps1"; Destination = $LauncherPath },
+  @{ Relative = "service/QuillgeistLiteHealthService.cs"; Destination = $ServiceSourcePath },
+  @{ Relative = "service/install-service.ps1"; Destination = $ServiceInstallerPath },
+  @{ Relative = "tools/terminal_repair.py"; Destination = $TerminalRepairPath },
+  @{ Relative = "tools/boot_splash.py"; Destination = $BootSplashPath },
+  @{ Relative = "tasks/start-qq-window.ps1"; Destination = $WindowHostPath },
+  @{ Relative = "tools/browser_agent.py"; Destination = $BrowserAgentPath },
+  @{ Relative = "tasks/ensure-browser-runtime.ps1"; Destination = $BrowserSetupPath },
+  @{ Relative = "tasks/browser-work.ps1"; Destination = $BrowserWorkPath },
+  @{ Relative = "tasks/ensure-powershell.ps1"; Destination = $EnsurePwshPath },
+  @{ Relative = "tasks/auto-repair-runtime.ps1"; Destination = $AutoRepairPath },
+  @{ Relative = "tasks/repair-local-service.ps1"; Destination = $ServiceRepairPath },
+  @{ Relative = "service/recovery-watch.ps1"; Destination = $RecoveryWatchPath }
+)
+
+if ($SourceRoot) {
+  $SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
+  Write-Host ("SOURCE // installing from verified local checkout " + $SourceRoot) -ForegroundColor Cyan
 }
 
-foreach ($entry in $downloads.GetEnumerator()) {
-  Invoke-WebRequest -Uri $entry.Key -OutFile $entry.Value -UseBasicParsing
-  if (-not (Test-Path $entry.Value)) { throw "Download failed: $($entry.Key)" }
+foreach ($entry in $sources) {
+  if ($SourceRoot) {
+    $sourcePath = Join-Path $SourceRoot ($entry.Relative -replace "/","\")
+    if (-not (Test-Path $sourcePath)) {
+      throw "Local install source missing: $sourcePath"
+    }
+    Copy-Item -LiteralPath $sourcePath -Destination $entry.Destination -Force
+  } else {
+    $url = "$BaseRaw/$($entry.Relative)$CacheBust"
+    Invoke-WebRequest -Uri $url -OutFile $entry.Destination -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+  }
+
+  if (-not (Test-Path $entry.Destination)) {
+    throw "Install source was not materialized: $($entry.Relative)"
+  }
 }
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
