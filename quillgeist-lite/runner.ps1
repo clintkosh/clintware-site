@@ -265,63 +265,45 @@ function Ensure-ClintwareLogoAsset {
 }
 
 function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 68)
-
-  if (-not (Ensure-ClintwareLogoAsset)) { return $false }
+  param([int]$MaxColumns = 58)
 
   try {
-    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-
-    $base64 = (Get-Content $LogoAssetPath -Raw).Trim()
-    $bytes = [Convert]::FromBase64String($base64)
-    $stream = New-Object IO.MemoryStream(,$bytes)
-    $source = [Drawing.Bitmap]::FromStream($stream)
-
     $windowWidth = 100
     try { $windowWidth = [Console]::WindowWidth } catch {}
 
-    $targetWidth = [Math]::Min($MaxColumns,[Math]::Max(42,$windowWidth - 12))
-    $targetHeight = [Math]::Max(2,[int][Math]::Round($targetWidth * $source.Height / $source.Width))
-    if (($targetHeight % 2) -ne 0) { $targetHeight++ }
-
-    $scaled = New-Object Drawing.Bitmap($targetWidth,$targetHeight)
-    $g = [Drawing.Graphics]::FromImage($scaled)
-    $g.Clear([Drawing.Color]::Black)
-    $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $g.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $g.CompositingQuality = [Drawing.Drawing2D.CompositingQuality]::HighQuality
-    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::HighQuality
-    $g.DrawImage($source,0,0,$targetWidth,$targetHeight)
-    $g.Dispose()
-
     $esc = [char]27
-    $pad = " " * [Math]::Max(0,[int](($windowWidth - $targetWidth) / 2))
+    $cyan1 = "$esc[38;2;24;115;170m"
+    $cyan2 = "$esc[38;2;41;199;255m"
+    $cyan3 = "$esc[38;2;114;230;255m"
+    $white = "$esc[38;2;247;251;255m"
+    $dim = "$esc[38;2;72;104;128m"
+    $reset = "$esc[0m"
 
-    for ($y=0; $y -lt $targetHeight; $y+=2) {
-      $line = New-Object Text.StringBuilder
-      [void]$line.Append($pad)
+    # Deliberately draw the mark as terminal-native text instead of rasterizing
+    # a PNG. This stays crisp at any DPI/terminal zoom and cannot become the
+    # giant pixelated block image that the old bitmap renderer produced.
+    $art = @(
+      @{ c=$dim;   t="              .  .  .  .  .              " },
+      @{ c=$cyan1; t="         .:*##############*:.         " },
+      @{ c=$cyan2; t="      .:*##*:          :*##*:.      " },
+      @{ c=$cyan2; t="     :##*.                .*##:     " },
+      @{ c=$cyan3; t="    *##:                    :##*    " },
+      @{ c=$cyan3; t="   :##.                      .##:   " },
+      @{ c=$white; t="   ##:      Clintware(TM)     :##   " },
+      @{ c=$cyan3; t="   :##.                      .##:   " },
+      @{ c=$cyan3; t="    *##:                    :##*    " },
+      @{ c=$cyan2; t="     :##*.                .*##:     " },
+      @{ c=$cyan2; t="      .:*##*:          :*##*:.      " },
+      @{ c=$cyan1; t="         .:*##############*:.         " },
+      @{ c=$dim;   t="              .  .  .  .  .              " }
+    )
 
-      for ($x=0; $x -lt $targetWidth; $x++) {
-        $top = $scaled.GetPixel($x,$y)
-        $bottom = $scaled.GetPixel($x,[Math]::Min($y+1,$targetHeight-1))
-
-        $tr = [int]($top.R * $top.A / 255)
-        $tg = [int]($top.G * $top.A / 255)
-        $tb = [int]($top.B * $top.A / 255)
-        $br = [int]($bottom.R * $bottom.A / 255)
-        $bg = [int]($bottom.G * $bottom.A / 255)
-        $bb = [int]($bottom.B * $bottom.A / 255)
-
-        [void]$line.Append(("{0}[38;2;{1};{2};{3}m{0}[48;2;{4};{5};{6}m▀" -f $esc,$tr,$tg,$tb,$br,$bg,$bb))
-      }
-
-      [void]$line.Append(("{0}[0m" -f $esc))
-      [Console]::WriteLine($line.ToString())
+    $contentWidth = 44
+    $padCount = [Math]::Max(0,[int](($windowWidth - $contentWidth) / 2))
+    $pad = " " * $padCount
+    foreach ($row in $art) {
+      [Console]::WriteLine($pad + $row.c + $row.t + $reset)
     }
-
-    $scaled.Dispose()
-    $source.Dispose()
-    $stream.Dispose()
     return $true
   } catch {
     return $false
@@ -339,7 +321,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 68
+  $rendered = Write-ClintwareLogoImage -MaxColumns 58
   if (-not $rendered) {
     Write-ClintwareCentered "CLINTWARE™" White
     Write-ClintwareCentered "EST. 2026" DarkGray
