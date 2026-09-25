@@ -1,12 +1,10 @@
 {
-  "request_id": "chatgpt-youtube-clintware-manual-login-relaunch-20260925-again",
-  "task_id": "browser-work",
+  "request_id": "chatgpt-local-ai-live-status-20260925",
+  "task_id": "local-ai",
   "args": {
-    "Action": "login",
-    "Url": "https://www.youtube.com/account",
-    "Headless": "false",
-    "Approved": "false",
-    "WaitMs": "700"
+    "Action": "status",
+    "ContextTokens": "4096",
+    "MaxTokens": "32"
   },
-  "objective": "Relaunch the persistent qq browser visibly at YouTube so the user can authenticate support@clintware.com locally. Do not transmit or log credentials. Keep the browser open until the user closes it after authentication."
+  "objective": "Inspect the live HP Windows local-AI runtimes, installed models, memory fit, and current local inference state. Read-only only; do not download or change anything."
 }
