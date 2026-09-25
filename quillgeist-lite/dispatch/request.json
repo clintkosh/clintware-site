@@ -1,13 +1,12 @@
 {
-  "request_id": "chatgpt-quillgeist-web-multistep-smoke-v2-20260924-1715",
+  "request_id": "chatgpt-youtube-clintware-session-inspect-20260925",
   "task_id": "browser-work",
   "args": {
-    "Action": "run",
-    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://example.com\"},{\"op\":\"read\",\"max_chars\":3000},{\"op\":\"inspect\"},{\"op\":\"extract\",\"selector\":\"body\",\"max_chars\":3000},{\"op\":\"goto\",\"url\":\"https://www.iana.org/help/example-domains\"},{\"op\":\"read\",\"max_chars\":5000}]",
-    "MaxChars": "5000",
+    "Action": "inspect",
+    "Url": "https://www.youtube.com/account",
     "Headless": "true",
-    "AllowPrivate": "false",
-    "Approved": "false"
+    "Approved": "false",
+    "WaitMs": "700"
   },
-  "objective": "Verify governed multi-step browser automation with two deterministic public navigations plus read, inspect, and extraction operations."
+  "objective": "Inspect the existing persistent qq browser session at YouTube to determine whether it is authenticated and ready to create the explicitly requested Clintware YouTube channel. Do not enter credentials or perform channel creation yet."
 }
