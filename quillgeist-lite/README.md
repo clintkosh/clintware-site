@@ -93,6 +93,24 @@ The visible qq window accepts local commands while its Control Plane WebSocket r
 
 The `!` escape is intentionally available only to keystrokes entered in the local console. It is not represented as an MCP tool or task and cannot be sent by a remote model through the Control Plane.
 
+
+## Local AI layer
+
+The owner qq build now exposes a bounded `local-ai` task for the local-inference portion of the stack without turning Lite into a general model-administration shell.
+
+From the visible qq console:
+
+```text
+run local-ai Action=status
+run local-ai Action=recommend ContextTokens=8192
+run local-ai Action=fit Model=ollama:MODEL
+run local-ai Action=benchmark Model=ollama:MODEL Prompt=Reply_with_READY MaxTokens=48
+```
+
+The task inventories installed Ollama/llama.cpp runtimes and models, estimates whether an installed model fits the current RAM envelope, recommends a viable installed local target, and can run a bounded benchmark. It does not download models implicitly and remains inside the reviewed task allowlist.
+
+This capability is part of the internal owner path. Public Quillgeist Full receives the reusable local-inference engine and self-hosted controls, but not the Clintware owner transport, credentials, or internal task channel.
+
 ## MCP surface
 
 The Control Plane exposes:
