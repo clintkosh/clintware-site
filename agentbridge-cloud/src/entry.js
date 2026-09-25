@@ -80,6 +80,25 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      const retiredPublicRuntime =
+        url.pathname === "/mcp" ||
+        url.pathname === "/api/v1" || url.pathname.startsWith("/api/v1/") ||
+        url.pathname.startsWith("/api/account/") ||
+        url.pathname.startsWith("/api/pair/") ||
+        url.pathname.startsWith("/api/device/") ||
+        url.pathname === "/api/state" ||
+        url.pathname === "/api/jobs" || url.pathname.startsWith("/api/jobs/") ||
+        url.pathname === "/api/schedules" || url.pathname.startsWith("/api/schedules/") ||
+        url.pathname === "/api/help" || url.pathname.startsWith("/api/help/") ||
+        url.pathname.startsWith("/api/telemetry/") ||
+        url.pathname.startsWith("/ws/device/");
+      if(retiredPublicRuntime){
+        return json({
+          error:"public_runtime_retired",
+          self_host_required:true,
+          message:"Public Quillgeist distributions are local-only by default. Deploy your own Quillgeist Cloud to use cloud routing, pairing, telemetry, schedules, or MCP/API execution."
+        },410);
+      }
       if(request.method==="GET"&&url.pathname==="/.well-known/openai-apps-challenge"){
         const token=String(env.OPENAI_APPS_CHALLENGE||"").trim();
         if(!token)return new Response("Not configured",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
@@ -89,7 +108,7 @@ export default{
       if(url.pathname==="/api/v1"||url.pathname.startsWith("/api/v1/")){
         const apiResponse=await handlePublicApi(request,env,ctx);if(apiResponse)return apiResponse;
       }
-      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Cloud",runtime:"AgentBridge Cloud",version:"0.1.0-alpha.3",api_version:"2026-08-23",mcp:"/mcp",time:new Date().toISOString()});
+      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Distribution Site",runtime:"static-self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:false,self_host_required:true,time:new Date().toISOString()});
       if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
