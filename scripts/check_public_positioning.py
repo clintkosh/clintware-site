@@ -108,12 +108,15 @@ def main() -> int:
     matches: list[str] = []
 
     for path in ROOT.rglob("*"):
-        if not path.is_file() or skipped(path) or not is_public_source(path):
+        if not path.is_file() or skipped(path):
             continue
 
         r = rel(path)
         if FORBIDDEN.search(str(r)):
-            add_match(matches, path, "public/deployable path contains forbidden positioning")
+            add_match(matches, path, "path contains forbidden positioning")
+
+        if not is_public_source(path):
+            continue
 
         suffix = path.suffix.lower()
         if suffix in TEXT_SUFFIXES or r in {Path("build_site.py"), Path("restore_resume_links.py")}:
