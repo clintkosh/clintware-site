@@ -47,7 +47,7 @@ class NetworkPolicy:
             try: addresses=[str(ipaddress.ip_address(host.split("%",1)[0]))]
             except ValueError: addresses=[row[4][0] for row in socket.getaddrinfo(host,None,type=socket.SOCK_STREAM)]
         except socket.gaierror:
-            self._cache[host]=True; return True
+            self._cache[host]=False; return False
         allowed=True
         for raw in set(addresses):
             try:
@@ -80,7 +80,7 @@ def safe_goto(page,url,policy,timeout=30000):
     policy.validate(page.url); return response
 def element_meta(locator):
     try:
-        return locator.evaluate("""el=>({tag:(el.tagName||'').toLowerCase(),type:el.getAttribute('type')||'',id:el.id||'',name:el.getAttribute('name')||'',placeholder:el.getAttribute('placeholder')||'',aria:el.getAttribute('aria-label')||'',role:el.getAttribute('role')||'',autocomplete:el.getAttribute('autocomplete')||'',text:(el.innerText||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,300),value:('value' in el?String(el.value||''):'')})""")
+        return locator.evaluate(r"""el=>({tag:(el.tagName||'').toLowerCase(),type:el.getAttribute('type')||'',id:el.id||'',name:el.getAttribute('name')||'',placeholder:el.getAttribute('placeholder')||'',aria:el.getAttribute('aria-label')||'',role:el.getAttribute('role')||'',autocomplete:el.getAttribute('autocomplete')||'',text:(el.innerText||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,300),value:('value' in el?String(el.value||''):'')})""")
     except Exception: return {}
 def ensure_not_sensitive(locator):
     if is_sensitive_meta(element_meta(locator)):
