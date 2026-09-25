@@ -1,0 +1,51 @@
+name: Quillgeist Lite Status Snapshot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "quillgeist-lite/status-request.json"
+      - ".github/workflows/quillgeist-lite-status-snapshot.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CONTROL_PLANE: https://mcp.clintware.com
+      CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Query live qq status
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ops
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" -o /tmp/status.json
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=20" -o /tmp/diag.json
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
+          with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
+          out={"checked_at":datetime.now(timezone.utc).isoformat(),"status":status,"diagnostics":diag}
+          with open("ops/quillgeist-lite-live-status.json","w",encoding="utf-8") as f:
+              json.dump(out,f,indent=2); f.write("\n")
+          PY
+      - name: Publish snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ops/quillgeist-lite-live-status.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Record live Quillgeist Lite status"
+            git push
+          fi
