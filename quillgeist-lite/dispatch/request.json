@@ -1,12 +1,12 @@
 {
-  "request_id": "chatgpt-youtube-clintware-session-inspect-20260925",
+  "request_id": "chatgpt-youtube-clintware-manual-login-20260925",
   "task_id": "browser-work",
   "args": {
-    "Action": "inspect",
+    "Action": "login",
     "Url": "https://www.youtube.com/account",
-    "Headless": "true",
+    "Headless": "false",
     "Approved": "false",
     "WaitMs": "700"
   },
-  "objective": "Inspect the existing persistent qq browser session at YouTube to determine whether it is authenticated and ready to create the explicitly requested Clintware YouTube channel. Do not enter credentials or perform channel creation yet."
+  "objective": "Open the persistent qq browser visibly at YouTube so the user can authenticate support@clintware.com locally. Do not transmit or log credentials. Keep the browser open until the user closes it after authentication."
 }
