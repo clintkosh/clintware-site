@@ -1,7 +1,7 @@
 {
-  "version": 8,
+  "version": 9,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files and provides governed persistent Playwright web search, page reading, and bounded multi-step browser automation without exporting browser credentials.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, and exposes bounded installed-model inspection, fit checks, routing recommendations, and benchmarks without implicit model downloads.",
   "runtimes": [
     "powershell",
     "python",
@@ -156,6 +156,18 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
       "parameters": []
+    },
+    "local-ai": {
+      "title": "Inspect installed local AI runtimes/models, estimate fit, recommend a local target, or benchmark an already-installed model",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/local_ai.py",
+      "parameters": [
+        "Action",
+        "Model",
+        "Prompt",
+        "ContextTokens",
+        "MaxTokens"
+      ]
     }
   }
 }
