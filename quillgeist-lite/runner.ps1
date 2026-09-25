@@ -9,6 +9,8 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $CacheDir = Join-Path $HomeDir "cache"
 $LogPath = Join-Path $HomeDir "runner.log"
 $StatePath = Join-Path $HomeDir "state.json"
+$LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
+$LogoAssetUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64"
 $RepoRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
@@ -213,27 +215,111 @@ function Write-ClintwareSplitLine {
   Write-Host $Right -ForegroundColor Cyan
 }
 
+function Ensure-ClintwareLogoAsset {
+  if (Test-Path $LogoAssetPath) { return $true }
+
+  try {
+    Invoke-WebRequest -Uri ($LogoAssetUrl + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile ($LogoAssetPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    $raw = (Get-Content ($LogoAssetPath + ".new") -Raw).Trim()
+    if (-not $raw.StartsWith("iVBOR")) { throw "Downloaded Clintware logo asset is invalid." }
+    Move-Item ($LogoAssetPath + ".new") $LogoAssetPath -Force
+    return $true
+  } catch {
+    Remove-Item ($LogoAssetPath + ".new") -Force -ErrorAction SilentlyContinue
+    return $false
+  }
+}
+
+function Write-ClintwareLogoImage {
+  param([int]$MaxColumns = 68)
+
+  if (-not (Ensure-ClintwareLogoAsset)) { return $false }
+
+  try {
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+
+    $base64 = (Get-Content $LogoAssetPath -Raw).Trim()
+    $bytes = [Convert]::FromBase64String($base64)
+    $stream = New-Object IO.MemoryStream(,$bytes)
+    $source = [Drawing.Bitmap]::FromStream($stream)
+
+    $windowWidth = 100
+    try { $windowWidth = [Console]::WindowWidth } catch {}
+
+    $targetWidth = [Math]::Min($MaxColumns,[Math]::Max(42,$windowWidth - 12))
+    $targetHeight = [Math]::Max(2,[int][Math]::Round($targetWidth * $source.Height / $source.Width))
+    if (($targetHeight % 2) -ne 0) { $targetHeight++ }
+
+    $scaled = New-Object Drawing.Bitmap($targetWidth,$targetHeight)
+    $g = [Drawing.Graphics]::FromImage($scaled)
+    $g.Clear([Drawing.Color]::Black)
+    $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.CompositingQuality = [Drawing.Drawing2D.CompositingQuality]::HighQuality
+    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::HighQuality
+    $g.DrawImage($source,0,0,$targetWidth,$targetHeight)
+    $g.Dispose()
+
+    $esc = [char]27
+    $pad = " " * [Math]::Max(0,[int](($windowWidth - $targetWidth) / 2))
+
+    for ($y=0; $y -lt $targetHeight; $y+=2) {
+      $line = New-Object Text.StringBuilder
+      [void]$line.Append($pad)
+
+      for ($x=0; $x -lt $targetWidth; $x++) {
+        $top = $scaled.GetPixel($x,$y)
+        $bottom = $scaled.GetPixel($x,[Math]::Min($y+1,$targetHeight-1))
+
+        $tr = [int]($top.R * $top.A / 255)
+        $tg = [int]($top.G * $top.A / 255)
+        $tb = [int]($top.B * $top.A / 255)
+        $br = [int]($bottom.R * $bottom.A / 255)
+        $bg = [int]($bottom.G * $bottom.A / 255)
+        $bb = [int]($bottom.B * $bottom.A / 255)
+
+        [void]$line.Append(("{0}[38;2;{1};{2};{3}m{0}[48;2;{4};{5};{6}m▀" -f $esc,$tr,$tg,$tb,$br,$bg,$bb))
+      }
+
+      [void]$line.Append(("{0}[0m" -f $esc))
+      [Console]::WriteLine($line.ToString())
+    }
+
+    $scaled.Dispose()
+    $source.Dispose()
+    $stream.Dispose()
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 function Show-QuillgeistSplash {
+  param(
+    [string]$Status = "CONNECTING"
+  )
+
   Initialize-ClintwareTerminal
 
   try { [Console]::CursorVisible = $false } catch {}
   try { Clear-Host } catch {}
 
-  # The compact Clintware eclipse is deliberately the first visible content.
-  # Keep it small enough to sit above the welcome text on ordinary terminal sizes.
   Write-Host ""
-  Write-ClintwareCentered "        · · · · · · ·        " DarkCyan
-  Write-ClintwareCentered "     · ·             · ·     " Cyan
-  Write-ClintwareCentered "   ·      CLINTWARE™      ·   " White
-  Write-ClintwareCentered "   ·       EST. 2026       ·   " DarkGray
-  Write-ClintwareCentered "     · ·             · ·     " Cyan
-  Write-ClintwareCentered "        · · · · · · ·        " DarkCyan
+  $rendered = Write-ClintwareLogoImage -MaxColumns 68
+  if (-not $rendered) {
+    Write-ClintwareCentered "CLINTWARE™" White
+    Write-ClintwareCentered "EST. 2026" DarkGray
+  }
+
   Write-Host ""
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
-  Write-ClintwareCentered "GO FURTHEST. ™" Cyan
+  Write-ClintwareCentered "Go Furthest.™" Cyan
   Write-Host ""
-  Write-ClintwareCentered "LOCAL EXECUTION  //  CONTROL PLANE LINK" DarkCyan
-  Write-ClintwareCentered "POWERSHELL  |  PYTHON  |  C" DarkCyan
+
+  $statusLabel = ("STATUS  //  " + $Status.ToUpperInvariant())
+  $statusColor = if ($Status -match '(?i)active|ready|healthy|connected') { [ConsoleColor]::Cyan } else { [ConsoleColor]::DarkCyan }
+  Write-ClintwareCentered $statusLabel $statusColor
+  Write-ClintwareCentered "Local execution  •  Governed browser  •  Control Plane" DarkGray
   Write-Host ""
 
   try { [Console]::CursorVisible = $true } catch {}
@@ -554,6 +640,7 @@ function Show-QQHelp {
   Write-Host "QQ LOCAL CONSOLE" -ForegroundColor White
   Write-Host "  help                         Show this command reference." -ForegroundColor Cyan
   Write-Host "  status                       Show local runner, service, and admin state." -ForegroundColor Cyan
+  Write-Host "  health                       Recheck the live link and redraw the Clintware welcome." -ForegroundColor Cyan
   Write-Host "  tasks                        List reviewed qq tasks." -ForegroundColor Cyan
   Write-Host "  <natural language>           Relay a question/instruction to Clintware for an LLM response." -ForegroundColor Cyan
   Write-Host "  ask <text>                   Explicitly relay a question/instruction." -ForegroundColor Cyan
@@ -756,6 +843,13 @@ function Invoke-QQLocalCommand {
     "help" { Show-QQHelp; return }
     "?" { Show-QQHelp; return }
     "status" { Show-QQStatus; return }
+    "health" {
+      $healthStatus = if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) { "HEALTHY // CONTROL PLANE LINK ACTIVE" } else { "DEGRADED // RECONNECTING" }
+      try { Show-QuillgeistSplash -Status $healthStatus } catch {}
+      try { Queue-RunnerDiagnostic "INFO" "manual_health_check" "health" } catch {}
+      Show-QQPrompt
+      return
+    }
     "tasks" {
       Suspend-QQPrompt
       $registry = Get-Registry
@@ -969,7 +1063,7 @@ function Invoke-AllowlistedTask {
 $completed = Get-Completed
 
 try {
-  Show-QuillgeistSplash
+  Show-QuillgeistSplash -Status "CONNECTING"
 } catch {
   Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
 }
@@ -1005,6 +1099,7 @@ try {
       }
 
       Flush-RunnerDiagnostics
+      try { Show-QuillgeistSplash -Status "CONTROL PLANE LINK ACTIVE" } catch {}
       Write-Log "Connected to Clintware Control Plane." "OK"
 
       Write-Log "Interactive relay channel initialized." "OK"
