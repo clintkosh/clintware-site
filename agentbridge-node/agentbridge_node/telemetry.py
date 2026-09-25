@@ -116,7 +116,7 @@ def _append_queue(event: dict) -> None:
 
 def emit_event(config: Config, event: dict, *, queue_on_failure: bool = True) -> bool:
     settings = _telemetry_config(config)
-    if settings.get("enabled", True) is False:
+    if settings.get("enabled", False) is False or not str(config.data.get("cloud_url") or "").strip():
         return False
     try:
         _post(config, event)
