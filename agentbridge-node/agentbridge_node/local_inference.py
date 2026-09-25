@@ -155,6 +155,9 @@ def runtime_snapshot() -> list[dict]:
         rows.append({"runtime": "llama.cpp", "path": llama_server or llama_cli, "server": llama_server, "cli": llama_cli, "ready": True, "detail": "local binary detected"})
     if importlib.util.find_spec("onnxruntime_genai") is not None:
         rows.append({"runtime": "onnxruntime-genai", "path": "python", "ready": True, "detail": "Python package detected"})
+    bitnet = _bitnet_runtime()
+    if bitnet:
+        rows.append(bitnet)
     return rows
 
 
@@ -229,8 +232,78 @@ def _gguf_models(config: dict | None = None, max_files: int = 200) -> list[dict]
     return rows
 
 
+def _bitnet_roots() -> list[Path]:
+    values = []
+    if os.environ.get("QUILLGEIST_BITNET_HOME"):
+        values.append(os.environ["QUILLGEIST_BITNET_HOME"])
+    if os.name == "nt":
+        values.extend([r"C:\AI\BitNet", r"F:\AI-Data\BitNet", r"F:\AI-Data\Models\BitNet"])
+    values.append(str(Path.home() / ".quillgeist" / "bitnet"))
+    seen, out = set(), []
+    for raw in values:
+        path = Path(raw).expanduser()
+        key = os.path.normcase(str(path))
+        if key not in seen:
+            seen.add(key)
+            out.append(path)
+    return out
+
+
+def _bitnet_executable(name: str) -> str:
+    names = [name + ".exe", name] if os.name == "nt" and not name.lower().endswith(".exe") else [name]
+    for root in _bitnet_roots():
+        for candidate in names:
+            for rel in (Path("build") / "bin" / "Release" / candidate, Path("build") / "bin" / candidate):
+                path = root / rel
+                if path.is_file():
+                    return str(path)
+    return ""
+
+
+def _bitnet_runtime() -> dict | None:
+    cli = _bitnet_executable("llama-cli")
+    server = _bitnet_executable("llama-server")
+    existing = next((str(p) for p in _bitnet_roots() if p.exists()), "")
+    if not cli and not server and not existing:
+        return None
+    return {
+        "runtime": "bitnet.cpp",
+        "path": cli or server or existing,
+        "server": server or None,
+        "cli": cli or None,
+        "ready": bool(cli),
+        "detail": "official Microsoft BitNet runtime detected" if cli else "BitNet files detected; runtime build incomplete",
+    }
+
+
+def _bitnet_models(max_files: int = 100) -> list[dict]:
+    rows, seen = [], set()
+    for root in _bitnet_roots():
+        if not root.exists():
+            continue
+        for model_root in (root / "models", root):
+            if not model_root.exists():
+                continue
+            try:
+                for path in model_root.rglob("*.gguf"):
+                    key = os.path.normcase(str(path))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    try:
+                        size = path.stat().st_size
+                    except OSError:
+                        continue
+                    rows.append({"id": f"bitnet:{path}", "name": path.name, "runtime": "bitnet.cpp", "size_bytes": size, "path": str(path)})
+                    if len(rows) >= max_files:
+                        return rows
+            except OSError:
+                pass
+    return rows
+
+
 def model_inventory(config: dict | None = None) -> list[dict]:
-    rows = _ollama_models() + _gguf_models(config)
+    rows = _ollama_models() + _gguf_models(config) + _bitnet_models()
     rows.sort(key=lambda r: (r.get("runtime", ""), r.get("name", "").lower()))
     return rows
 
@@ -397,6 +470,13 @@ def benchmark(model_selector: str, *, prompt: str = "Reply with the single word 
                 return {"ok": False, "error": "ollama_not_available"}
             code, output = _run([exe, "run", model["name"], prompt], timeout=timeout)
             elapsed = max(0.001, time.perf_counter() - started)
+    elif model["runtime"] == "bitnet.cpp":
+        exe = _bitnet_executable("llama-cli")
+        if not exe or not model.get("path"):
+            return {"ok": False, "error": "bitnet_cli_not_available"}
+        code, output = _run([exe, "-m", str(model["path"]), "-p", prompt, "-n", str(max_tokens), "-c", str(context_tokens), "-t", str(max(1, (os.cpu_count() or 4) // 2)), "--no-display-prompt"], timeout=timeout)
+        elapsed = max(0.001, time.perf_counter() - started)
+        context_controlled = True
     else:
         exe = _which_any(["llama-cli", "llama-cli.exe", "main", "main.exe"])
         if not exe or not model.get("path"):
@@ -483,6 +563,12 @@ def launch_plan(model_selector: str, *, context_tokens: int = _DEFAULT_CONTEXT, 
             "launch_required": False,
             "warnings": warnings,
         }
+    if model["runtime"] == "bitnet.cpp":
+        server = _bitnet_executable("llama-server")
+        if not server:
+            return {"ok": False, "error": "bitnet_server_not_available", "model": model["id"], "fit": model_fit}
+        argv = [server, "-m", str(model["path"]), "-c", str(context_tokens), "-t", str(max(1, (os.cpu_count() or 4) // 2)), "-ngl", "0", "--host", "127.0.0.1", "--port", str(port)]
+        return {"ok": True, "model": model["id"], "runtime": "bitnet.cpp", "fit": model_fit, "endpoint": f"http://127.0.0.1:{port}", "argv": argv, "launch_required": True, "warnings": warnings, "shell": False}
     server = _which_any(["llama-server", "llama-server.exe"])
     if not server:
         return {"ok": False, "error": "llama_server_not_available", "model": model["id"], "fit": model_fit}
