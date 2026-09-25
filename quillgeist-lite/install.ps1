@@ -3,12 +3,14 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ServiceDir = Join-Path $HomeDir "service"
+$RuntimeRoot = Join-Path $HomeDir "runtime"
+$ProgramDir = Join-Path $env:ProgramData "Clintware\QuillgeistLite"
+$ExistingConfigPath = Join-Path $ProgramDir "service.json"
 
-$BaseRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
-$CacheBust = "?v=20260924-qq-glass-browser-10"
 $RunnerPath = Join-Path $HomeDir "runner.ps1"
 $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $ServiceSourcePath = Join-Path $ServiceDir "QuillgeistLiteHealthService.cs"
@@ -24,39 +26,143 @@ $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $RecoveryWatchPath = Join-Path $ServiceDir "recovery-watch.ps1"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
+$RegistryPath = Join-Path $HomeDir "tasks.json"
+$LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 
 Write-Host ""
 Write-Host "=== INSTALL CLINTWARE QUILLGEIST LITE ===" -ForegroundColor Cyan
-Write-Host "Event-driven MCP -> local execution bridge + Windows health service" -ForegroundColor DarkGray
-Write-Host "Quality-first runtime selection: PowerShell / Python / C" -ForegroundColor DarkGray
+Write-Host "Local packaged runtime -> Clintware Control Plane -> local execution" -ForegroundColor DarkGray
+Write-Host "No GitHub CLI, GitHub login, or direct GitHub runtime fetches." -ForegroundColor DarkGray
 Write-Host ""
 
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-  if (Get-Command winget -ErrorAction SilentlyContinue) {
-    Write-Host "Installing GitHub CLI..." -ForegroundColor Cyan
-    winget install --id GitHub.cli --exact --source winget --accept-package-agreements --accept-source-agreements
-    if ($LASTEXITCODE -ne 0) { throw "GitHub CLI installation failed." }
-
-    $possibleGh = Join-Path $env:ProgramFiles "GitHub CLI"
-    if (Test-Path $possibleGh) { $env:Path += ";$possibleGh" }
-  } else {
-    throw "GitHub CLI is required and winget is not available."
+function Test-PowerShellFile([string]$Path) {
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path $Path),
+    [ref]$tokens,
+    [ref]$errors
+  ) | Out-Null
+  if ($errors.Count -gt 0) {
+    $errors | Format-List *
+    throw "PowerShell parse validation failed: $Path"
   }
 }
 
-gh auth status 2>$null
-if ($LASTEXITCODE -ne 0) {
-  Write-Host "Authenticating GitHub CLI..." -ForegroundColor Cyan
-  gh auth login --hostname github.com --git-protocol https --web
-  if ($LASTEXITCODE -ne 0) { throw "GitHub authentication failed." }
+function New-QQDeviceToken {
+  $bytes = New-Object byte[] 48
+  $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+  try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+  return [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+","-").Replace("/","_")
 }
 
-$login = (gh api user --jq .login).Trim()
-if ($LASTEXITCODE -ne 0 -or $login.ToLowerInvariant() -ne "clintkosh") {
-  throw "Quillgeist Lite expects the Clintware GitHub identity 'clintkosh'. Current identity: $login"
+function Get-TokenHash([string]$Token) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try {
+    $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Token))
+  } finally {
+    $sha.Dispose()
+  }
+  return (-join ($hashBytes | ForEach-Object { $_.ToString("x2") }))
 }
 
-New-Item -ItemType Directory -Force -Path $HomeDir,$ServiceDir | Out-Null
+function Test-ExistingQQEnrollment([object]$Config) {
+  if (-not $Config -or -not $Config.DeviceId -or -not $Config.Token -or -not $Config.Endpoint) { return $false }
+  try {
+    $body = @{
+      device_id = [string]$Config.DeviceId
+      level = "INFO"
+      phase = "installer"
+      message = "existing_device_enrollment_verified"
+      runner_alive = $false
+      service_version = "installer"
+      timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Compress
+    $r = Invoke-RestMethod -Method Post -Uri (([string]$Config.Endpoint).TrimEnd("/") + "/api/v1/quillgeist-lite/diagnostics") -Headers @{Authorization=("Bearer " + [string]$Config.Token)} -ContentType "application/json" -Body $body -TimeoutSec 20
+    return $r.ok -eq $true
+  } catch {
+    return $false
+  }
+}
+
+function Request-ClintwareEnrollment {
+  param(
+    [Parameter(Mandatory=$true)][string]$DeviceId,
+    [Parameter(Mandatory=$true)][string]$DeviceToken
+  )
+
+  $tokenHash = Get-TokenHash $DeviceToken
+  $nonce = [Guid]::NewGuid().ToString("n") + [Guid]::NewGuid().ToString("n")
+  $tcp = New-Object System.Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
+  $tcp.Start()
+  $port = ([Net.IPEndPoint]$tcp.LocalEndpoint).Port
+  $tcp.Stop()
+
+  $prefix = "http://127.0.0.1:$port/"
+  $listener = New-Object System.Net.HttpListener
+  $listener.Prefixes.Add($prefix)
+
+  try {
+    $listener.Start()
+
+    $callback = [Uri]::EscapeDataString($prefix)
+    $device = [Uri]::EscapeDataString($DeviceId)
+    $label = [Uri]::EscapeDataString("$DeviceId / $env:USERNAME")
+    $hash = [Uri]::EscapeDataString($tokenHash)
+    $safeNonce = [Uri]::EscapeDataString($nonce)
+    $authorize = "https://mcp.clintware.com/admin/qq/enroll?device_id=$device&token_hash=$hash&label=$label&callback=$callback&nonce=$safeNonce"
+
+    Write-Host "IDENTITY // opening Clintware device approval" -ForegroundColor Cyan
+    Write-Host "Complete the Clintware Identity sign-in in the browser if requested." -ForegroundColor DarkYellow
+    Start-Process $authorize
+
+    $pending = $listener.GetContextAsync()
+    if (-not $pending.Wait([TimeSpan]::FromMinutes(5))) {
+      throw "Clintware device enrollment timed out."
+    }
+
+    $ctx = $pending.Result
+    $status = [string]$ctx.Request.QueryString["status"]
+    $returnedNonce = [string]$ctx.Request.QueryString["nonce"]
+
+    $html = if ($status -eq "ok" -and $returnedNonce -eq $nonce) {
+      "<!doctype html><html><body style='font-family:Segoe UI;padding:40px'><h1>QQ approved</h1><p>You can close this tab.</p></body></html>"
+    } else {
+      "<!doctype html><html><body style='font-family:Segoe UI;padding:40px'><h1>QQ approval failed</h1><p>Return to the installer.</p></body></html>"
+    }
+    $bytes = [Text.Encoding]::UTF8.GetBytes($html)
+    $ctx.Response.ContentType = "text/html; charset=utf-8"
+    $ctx.Response.ContentLength64 = $bytes.Length
+    $ctx.Response.OutputStream.Write($bytes,0,$bytes.Length)
+    $ctx.Response.OutputStream.Close()
+
+    if ($status -ne "ok" -or $returnedNonce -ne $nonce) {
+      throw "Clintware device enrollment did not complete successfully."
+    }
+
+    Write-Host "IDENTITY // QQ device approved by Clintware" -ForegroundColor Green
+    return $true
+  }
+  finally {
+    try { $listener.Stop() } catch {}
+    try { $listener.Close() } catch {}
+  }
+}
+
+New-Item -ItemType Directory -Force -Path $HomeDir,$ServiceDir,$RuntimeRoot | Out-Null
+
+if (-not $SourceRoot) {
+  $localPackaged = Join-Path $RuntimeRoot "quillgeist-lite"
+  if (Test-Path (Join-Path $localPackaged "runner.ps1")) {
+    $SourceRoot = $localPackaged
+  } else {
+    throw "Local packaged QQ runtime is missing. Run the maintained QQ.exe installer."
+  }
+}
+
+$SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
+$RepoRoot = Split-Path $SourceRoot -Parent
+Write-Host ("SOURCE // using packaged local runtime " + $SourceRoot) -ForegroundColor Cyan
 
 $sources = @(
   @{ Relative = "runner.ps1"; Destination = $RunnerPath },
@@ -75,37 +181,39 @@ $sources = @(
   @{ Relative = "service/recovery-watch.ps1"; Destination = $RecoveryWatchPath }
 )
 
-if ($SourceRoot) {
-  $SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
-  Write-Host ("SOURCE // installing from verified local checkout " + $SourceRoot) -ForegroundColor Cyan
-}
-
 foreach ($entry in $sources) {
-  if ($SourceRoot) {
-    $sourcePath = Join-Path $SourceRoot ($entry.Relative -replace "/","\")
-    if (-not (Test-Path $sourcePath)) {
-      throw "Local install source missing: $sourcePath"
-    }
-    Copy-Item -LiteralPath $sourcePath -Destination $entry.Destination -Force
-  } else {
-    $url = "$BaseRaw/$($entry.Relative)$CacheBust"
-    Invoke-WebRequest -Uri $url -OutFile $entry.Destination -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  }
-
-  if (-not (Test-Path $entry.Destination)) {
-    throw "Install source was not materialized: $($entry.Relative)"
-  }
+  $sourcePath = Join-Path $SourceRoot ($entry.Relative -replace "/","\")
+  if (-not (Test-Path $sourcePath)) { throw "Local install source missing: $sourcePath" }
+  Copy-Item -LiteralPath $sourcePath -Destination $entry.Destination -Force
+  if (-not (Test-Path $entry.Destination)) { throw "Install source was not materialized: $($entry.Relative)" }
 }
+
+$registrySource = Join-Path $SourceRoot "tasks.json"
+if (-not (Test-Path $registrySource)) { throw "Packaged QQ task registry is missing." }
+Copy-Item -LiteralPath $registrySource -Destination $RegistryPath -Force
+
+$logoSource = Join-Path $SourceRoot "assets\clintware-terminal-logo.b64"
+if (Test-Path $logoSource) { Copy-Item -LiteralPath $logoSource -Destination $LogoAssetPath -Force }
+
+Write-Host "RUNTIME // staging packaged allowlisted task sources" -ForegroundColor Cyan
+$runtimeStage = $RuntimeRoot + ".new"
+Remove-Item $runtimeStage -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $runtimeStage | Out-Null
+
+$qqRuntimeDest = Join-Path $runtimeStage "quillgeist-lite"
+Copy-Item -LiteralPath $SourceRoot -Destination $qqRuntimeDest -Recurse -Force
+
+$identitySource = Join-Path $RepoRoot "identity-broker"
+if (Test-Path $identitySource) {
+  Copy-Item -LiteralPath $identitySource -Destination (Join-Path $runtimeStage "identity-broker") -Recurse -Force
+}
+
+Remove-Item $RuntimeRoot -Recurse -Force -ErrorAction SilentlyContinue
+Move-Item $runtimeStage $RuntimeRoot -Force
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
 foreach ($file in @($RunnerPath,$LauncherPath,$WindowHostPath,$BrowserSetupPath,$BrowserWorkPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath)) {
-  $tokens = $null
-  $errors = $null
-  [System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
-  if ($errors.Count -gt 0) {
-    $errors | Format-List *
-    throw "PowerShell parse validation failed: $file"
-  }
+  Test-PowerShellFile $file
 }
 
 Write-Host "Ensuring current PowerShell 7 runtime..." -ForegroundColor Cyan
@@ -124,63 +232,39 @@ try {
     if ($python) { & $python.Source $TerminalRepairPath }
   }
 } catch {
-  Write-Host ("GLASS WARN // terminal profile will self-repair on first qq recovery: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  Write-Host ("GLASS WARN // terminal profile will self-repair on first QQ recovery: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
-Write-Host "SAFE HOST // background qq recovery restores the previously focused application." -ForegroundColor Cyan
-
-Write-Host "Provisioning health-service device credential..." -ForegroundColor Cyan
-
-$bytes = New-Object byte[] 48
-$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
-try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
-
-$DeviceToken = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+","-").Replace("/","_")
-$sha = [Security.Cryptography.SHA256]::Create()
-try {
-  $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($DeviceToken))
-} finally {
-  $sha.Dispose()
-}
-$TokenHash = -join ($hashBytes | ForEach-Object { $_.ToString("x2") })
 
 $DeviceId = $env:COMPUTERNAME
 $UserName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-$ghToken = (gh auth token).Trim()
-if (-not $ghToken) { throw "GitHub CLI did not return an authentication token." }
+$DeviceToken = $null
+$Endpoint = "https://mcp.clintware.com"
 
-$registerBody = @{
-  device_id = $DeviceId
-  token_hash = $TokenHash
-  label = "$DeviceId / $env:USERNAME"
-} | ConvertTo-Json -Compress
-
-$registered = $false
-$lastRegistrationError = $null
-
-for ($i = 1; $i -le 18; $i++) {
+if (Test-Path $ExistingConfigPath) {
   try {
-    $response = Invoke-RestMethod -Method Post -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/devices/register" -Headers @{Authorization=("Bearer " + $ghToken)} -ContentType "application/json" -Body $registerBody
-    if ($response.ok) {
-      $registered = $true
-      break
+    $existing = Get-Content $ExistingConfigPath -Raw | ConvertFrom-Json
+    if (Test-ExistingQQEnrollment $existing) {
+      $DeviceId = [string]$existing.DeviceId
+      $DeviceToken = [string]$existing.Token
+      $Endpoint = ([string]$existing.Endpoint).TrimEnd("/")
+      Write-Host "IDENTITY // existing Clintware QQ device registration verified and reused" -ForegroundColor Green
     }
   } catch {
-    $lastRegistrationError = $_.Exception.Message
+    Write-Host ("IDENTITY WARN // existing registration could not be reused: " + $_.Exception.Message) -ForegroundColor DarkYellow
   }
-
-  Write-Host "Waiting for Clintware Control Plane device endpoint ($i/18)..." -ForegroundColor DarkGray
-  Start-Sleep -Seconds 5
 }
 
-if (-not $registered) {
-  throw "Could not register the Quillgeist Lite health device. Last error: $lastRegistrationError"
+if (-not $DeviceToken) {
+  Write-Host "IDENTITY // provisioning a new QQ device credential through Clintware" -ForegroundColor Cyan
+  $DeviceToken = New-QQDeviceToken
+  [void](Request-ClintwareEnrollment -DeviceId $DeviceId -DeviceToken $DeviceToken)
 }
 
 $bootstrap = [ordered]@{
   HomeDir = $HomeDir
   DeviceId = $DeviceId
   DeviceToken = $DeviceToken
-  Endpoint = "https://mcp.clintware.com"
+  Endpoint = $Endpoint
   UserName = $UserName
 }
 
@@ -191,9 +275,7 @@ Remove-Item $ServiceInstallMarker -Force -ErrorAction SilentlyContinue
 
 try {
   Write-Host ""
-  Write-Host "Windows will request one UAC approval to install the local health service." -ForegroundColor Yellow
   & $ServiceInstallerPath -BootstrapPath $BootstrapPath
-
   if (-not (Test-Path $ServiceInstallMarker)) {
     throw "Health service installation did not produce its success marker."
   }
@@ -201,18 +283,16 @@ try {
 finally {
   Remove-Item $BootstrapPath -Force -ErrorAction SilentlyContinue
   $DeviceToken = $null
-  $ghToken = $null
 }
 
 Write-Host ""
 Write-Host "==============================================" -ForegroundColor Green
 Write-Host " CLINTWARE QUILLGEIST LITE INSTALLED" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Green
+Write-Host "Source         : packaged inside QQ.exe"
+Write-Host "Identity       : Clintware Identity / QQ device credential"
+Write-Host "Control Plane  : https://mcp.clintware.com"
+Write-Host "GitHub local   : not required"
 Write-Host "Health service : ClintwareQuillgeistLiteHealth"
 Write-Host "Runner task    : Clintware Quillgeist Lite Runner"
-Write-Host "Execution      : PowerShell 7 / Python / C / local Playwright browser"
-Write-Host "Policy         : Best result first; efficiency after quality"
-Write-Host "Transport      : Event-driven outbound control channel"
-Write-Host "Diagnostics    : Bounded health/errors -> Clintware Control Plane"
-Write-Host "Terminal       : Acrylic Clintware glass + no-focus Python HUD"
 Write-Host ""
