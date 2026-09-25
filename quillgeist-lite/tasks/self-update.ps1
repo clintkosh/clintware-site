@@ -16,4 +16,14 @@ if ($errors.Count -gt 0) {
 Move-Item $temp $RepairPath -Force
 & $RepairPath -HomeDir $HomeDir
 if ($LASTEXITCODE -ne 0) { throw "qq self-heal returned exit code $LASTEXITCODE." }
-Write-Host "READY // qq updated in place. The current window stays open; no background restart or focus theft." -ForegroundColor Green
+
+$ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+if (-not (Test-Path $ServiceRepairPath)) {
+  throw "qq self-heal did not materialize the health-service repair script."
+}
+
+Write-Host "SERVICE // aligning qq health service with canonical source" -ForegroundColor Cyan
+& $ServiceRepairPath -SkipRunnerRestart
+if ($LASTEXITCODE -ne 0) { throw "qq health-service alignment returned exit code $LASTEXITCODE." }
+
+Write-Host "READY // qq runner and health service updated in place. The current window stays open; no duplicate launch requested." -ForegroundColor Green
