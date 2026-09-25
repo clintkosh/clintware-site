@@ -21,18 +21,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Publish self-contained Windows x64 executable
+      - name: Build native Windows QQ.exe
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          dotnet publish quillgeist-lite/bootstrapper/Clintware.QQ.PortableInstaller.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP\qq-portable"
 
-          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\QQ.exe"
-          if (-not (Test-Path $exe)) { throw "Portable installer executable was not produced." }
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found." }
+
+          $vs = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+          if (-not $vs) { throw "Visual C++ toolchain not found." }
+
+          $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvars64.bat"
+          if (-not (Test-Path $vcvars)) { throw "vcvars64.bat not found." }
+
+          $outDir = Join-Path $env:RUNNER_TEMP "qq-portable"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+          $src = (Resolve-Path "quillgeist-lite/bootstrapper/qq-bootstrap.c").Path
+          $exe = Join-Path $outDir "QQ.exe"
+
+          $compile = '"{0}" && cl.exe /nologo /O2 /MT /DUNICODE /D_UNICODE "{1}" /Fe:"{2}" /link /SUBSYSTEM:WINDOWS urlmon.lib user32.lib shell32.lib /MANIFESTUAC:"level=''''requireAdministrator'''' uiAccess=''''false''''"' -f $vcvars,$src,$exe
+          cmd.exe /d /s /c $compile
+          if ($LASTEXITCODE -ne 0) { throw "Native QQ.exe compile failed with exit code $LASTEXITCODE." }
+          if (-not (Test-Path $exe)) { throw "Native QQ.exe was not produced." }
 
           $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $size = (Get-Item $exe).Length
@@ -43,21 +55,37 @@ jobs:
             "bytes=$size"
             "commit=${{ github.sha }}"
             "built_at=$([DateTime]::UtcNow.ToString('o'))"
-          ) | Set-Content (Join-Path $env:RUNNER_TEMP "qq-portable\BUILDINFO.txt") -Encoding UTF8
+            "runtime=native-win64-msvc-mt"
+          ) | Set-Content (Join-Path $outDir "BUILDINFO.txt") -Encoding UTF8
 
           Write-Host "EXE=$exe"
           Write-Host "SHA256=$hash"
           Write-Host "BYTES=$size"
 
-      - name: Verify PE header
+      - name: Verify PE and bootstrap policy
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $exe = Join-Path $env:RUNNER_TEMP "qq-portable\QQ.exe"
           $bytes = [IO.File]::ReadAllBytes($exe)
           if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
-            throw "Output is not a valid Windows PE executable."
+            throw "QQ.exe is not a valid Windows PE executable."
           }
+
+          $bootstrap = Get-Content "quillgeist-lite/bootstrapper/bootstrap.ps1" -Raw
+          foreach ($required in @(
+            "dedupe-qq-windows.ps1",
+            "auto-repair-runtime.ps1",
+            "mcp.clintware.com",
+            "qq-local-status.yml"
+          )) {
+            if ($bootstrap -notlike ("*" + $required + "*")) {
+              throw "Bootstrap is missing required behavior: $required"
+            }
+          }
+
           Write-Host "PE_HEADER_OK"
+          Write-Host "BOOTSTRAP_POLICY_OK"
 
       - uses: actions/upload-artifact@v4
         with:
