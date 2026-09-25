@@ -140,6 +140,48 @@ jobs:
           dispatch_and_wait on
           echo "qq responder scheduled task installed and enabled."
 
+      - name: Install and enable LandThePlane career signal agent
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          dispatch_and_wait() {
+            action="$1"
+            at="${2:-}"
+            if [ -n "$at" ]; then
+              args="{\"Action\":\"$action\",\"At\":\"$at\"}"
+            else
+              args="{\"Action\":\"$action\"}"
+            fi
+            response=""
+            for i in $(seq 1 60); do
+              response=$(curl -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs \
+                -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "{\"task_id\":\"career-signal-agent\",\"args\":$args,\"objective\":\"Install and enable the LandThePlane daily hiring and YC career signal plan requested by the owner.\"}" || true)
+              if echo "$response" | grep -Fq '"ok":true'; then break; fi
+              echo "Waiting for career-signal-agent capability ($i/60)"
+              sleep 5
+            done
+            echo "$response" | grep -Fq '"ok":true'
+            job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+            for i in $(seq 1 90); do
+              state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+              status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+              if [ "$status" = "passed" ]; then echo "$state"; return 0; fi
+              if [ "$status" = "failed" ]; then echo "$state"; return 1; fi
+              sleep 4
+            done
+            echo "Timed out waiting for career-signal-agent $action" >&2
+            return 1
+          }
+
+          dispatch_and_wait install 08:00
+          dispatch_and_wait on
+          dispatch_and_wait status
+          echo "LandThePlane career signal agent installed, enabled, and scheduled for 08:00 local time."
+
       - name: Ensure qq local browser runtime
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
