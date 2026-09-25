@@ -1,5 +1,6 @@
 param(
-  [string]$HomeDir = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite")
+  [string]$HomeDir = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"),
+  [string]$SourceRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,11 +56,24 @@ $specs = @(
   @{ Remote = "tasks/browser-work.ps1"; Local = "browser-work.ps1"; Kind = "powershell"; Required = "browser_agent.py" }
 )
 
+if ($SourceRoot) {
+  $SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
+  Write-RepairLog ("AUTO_REPAIR // using local canonical source " + $SourceRoot)
+}
+
 foreach ($spec in $specs) {
   $target = Join-Path $HomeDir $spec.Local
   $temp = $target + ".new"
-  Invoke-WebRequest -Uri ($BaseUrl + "/" + $spec.Remote + "?v=" + [DateTime]::UtcNow.Ticks) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  if (-not (Test-Path $temp)) { throw "Auto-repair download failed: $($spec.Remote)" }
+
+  if ($SourceRoot) {
+    $sourcePath = Join-Path $SourceRoot ($spec.Remote -replace "/","\")
+    if (-not (Test-Path $sourcePath)) { throw "Auto-repair local source missing: $sourcePath" }
+    Copy-Item -LiteralPath $sourcePath -Destination $temp -Force
+  } else {
+    Invoke-WebRequest -Uri ($BaseUrl + "/" + $spec.Remote + "?v=" + [DateTime]::UtcNow.Ticks) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+  }
+
+  if (-not (Test-Path $temp)) { throw "Auto-repair source materialization failed: $($spec.Remote)" }
   $raw = Get-Content $temp -Raw
   if ($raw -notlike ("*" + $spec.Required + "*")) { throw "Auto-repair structural validation failed: $($spec.Remote)" }
 
