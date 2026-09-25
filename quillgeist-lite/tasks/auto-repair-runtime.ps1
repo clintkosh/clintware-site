@@ -43,7 +43,8 @@ Write-RepairLog "AUTO_REPAIR // reconciling qq against canonical Clintware sourc
 $specs = @(
   @{ Remote = "runner.ps1"; Local = "runner.ps1"; Kind = "powershell"; Required = "Show-QuillgeistSplash" },
   @{ Remote = "launcher.ps1"; Local = "launcher.ps1"; Kind = "powershell"; Required = "Show-WindowLoadSplash" },
-  @{ Remote = "tools/boot_splash.py"; Local = "boot_splash.py"; Kind = "python"; Required = "No-focus acrylic HUD" },
+  @{ Remote = "tools/boot_splash.py"; Local = "boot_splash.py"; Kind = "python"; Required = "Native-feeling no-focus startup surface" },
+  @{ Remote = "assets/clintware-terminal-logo.b64"; Local = "clintware-terminal-logo.b64"; Kind = "text"; Required = "iVBOR" },
   @{ Remote = "tools/terminal_repair.py"; Local = "terminal_repair.py"; Kind = "python"; Required = "Clintware Glass" },
   @{ Remote = "tools/browser_agent.py"; Local = "browser_agent.py"; Kind = "python"; Required = "local browser operator" },
   @{ Remote = "tasks/start-qq-window.ps1"; Local = "start-qq-window.ps1"; Kind = "powershell"; Required = "QQWindowNative" },
