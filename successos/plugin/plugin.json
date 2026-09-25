@@ -1,0 +1,37 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "clintware-successos",
+  "version": "0.1.0",
+  "description": "Governed SuccessOS and Clintware workflows using scoped MCP capabilities.",
+  "author": {
+    "name": "Clintware",
+    "url": "https://clintware.com"
+  },
+  "homepage": "https://successos.clintware.com/",
+  "repository": "https://github.com/clintkosh/clintware-site",
+  "keywords": [
+    "successos",
+    "mcp",
+    "local-ai",
+    "system-automation"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Clintware SuccessOS",
+        "shortDescription": "Governed local and remote system workflows",
+        "longDescription": "Use SuccessOS and Clintware capabilities through scoped, approval-aware workflows. Read first, request the narrowest necessary action, verify the result, and preserve execution boundaries.",
+        "developerName": "Clintware",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Scoped system workflows",
+          "Local-first AI workflows",
+          "Verified execution"
+        ],
+        "websiteURL": "https://successos.clintware.com/",
+        "privacyPolicyURL": "https://clintware.com/privacy/",
+        "defaultPrompt": "Inspect current state first. Use the narrowest SuccessOS or Clintware capability needed, request approval before state-changing operations, execute, and verify the result."
+      }
+    }
+  }
+}
