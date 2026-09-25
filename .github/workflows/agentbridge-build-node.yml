@@ -172,7 +172,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="quillgeist-v0.4.0-alpha"
+          tag="quillgeist-v0.4.0-selfhost-alpha"
           notes=$'Quillgeist v0.4.0 self-hosted public alpha.\n\nSecurity/isolation change: public builds start LOCAL ONLY, contain no Clintware server credential, have telemetry disabled by default, and do not connect to Clintware infrastructure. Cloud pairing requires an explicit URL for a Quillgeist Cloud instance the user owns or controls.\n\nWindows recommended: download Quillgeist-Setup-Windows-x64.exe. Portable Windows CLI, macOS Apple Silicon, and Linux x64 builds are also included.\n\nUnsigned public-alpha builds. Local policy remains authoritative.'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release-assets/* --clobber
@@ -180,6 +180,23 @@ jobs:
           else
             gh release create "$tag" release-assets/* --target "$GITHUB_SHA" --title "Quillgeist v0.4.0 Self-Hosted Alpha" --notes "$notes" --prerelease
           fi
+
+      - name: Remove older Quillgeist public releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          keep="quillgeist-v0.4.0-selfhost-alpha"
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | while read -r tag; do
+            case "$tag" in
+              quillgeist-v*)
+                if [ "$tag" != "$keep" ]; then
+                  echo "Removing superseded public Quillgeist release: $tag"
+                  gh release delete "$tag" --yes --cleanup-tag
+                fi
+                ;;
+            esac
+          done
 
       - name: Promote installer on latest Quillgeist Cloud
         run: |
@@ -191,10 +208,10 @@ jobs:
           import re
           p = Path('agentbridge-cloud/public/index.html')
           text = p.read_text(encoding='utf-8')
-          installer = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-alpha/Quillgeist-Setup-Windows-x64.exe'
-          portable = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-alpha/Quillgeist-Windows-x64.exe'
-          mac = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-alpha/Quillgeist-macOS-arm64'
-          linux = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-alpha/Quillgeist-Linux-x64'
+          installer = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-selfhost-alpha/Quillgeist-Setup-Windows-x64.exe'
+          portable = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-selfhost-alpha/Quillgeist-Windows-x64.exe'
+          mac = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-selfhost-alpha/Quillgeist-macOS-arm64'
+          linux = 'https://github.com/clintkosh/clintware-site/releases/download/quillgeist-v0.4.0-selfhost-alpha/Quillgeist-Linux-x64'
           text, n = re.subn(r'(<a class="btn primary wide" href=")[^"]+(\">Download Quillgeist for Windows</a>)', r'\1'+installer+r'\2', text, count=1)
           if n != 1: raise SystemExit('Windows primary download button not found')
           if 'Portable Windows CLI</a>' in text:
