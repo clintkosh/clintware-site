@@ -29,9 +29,17 @@ def _request(method: str, url: str, body: dict | None = None, token: str | None 
         return json.loads(raw.decode("utf-8")) if raw else {}
 
 
-def pair(config: Config, cloud_url: str | None = None) -> dict:
+def _configured_cloud(config: Config, cloud_url: str | None = None) -> str:
     if cloud_url:
         config.set_cloud(cloud_url)
+    base = str(config.data.get("cloud_url") or "").strip().rstrip("/")
+    if not base:
+        raise RuntimeError("No cloud is configured. Self-host Quillgeist Cloud and pass --cloud https://your-host.")
+    return base
+
+
+def pair(config: Config, cloud_url: str | None = None) -> dict:
+    base = _configured_cloud(config, cloud_url)
     code = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
     payload = {
         "pair_code": code,
@@ -41,7 +49,7 @@ def pair(config: Config, cloud_url: str | None = None) -> dict:
         "platform": platform.system().lower(),
         "node_version": __version__,
     }
-    out = _request("POST", config.data["cloud_url"] + "/api/pair/request", payload)
+    out = _request("POST", base + "/api/pair/request", payload)
     config.data["pair_code"] = code
     config.save()
     return {"pair_code": code, **out}
@@ -104,8 +112,8 @@ def daemon(config: Config) -> None:
         raise RuntimeError("websockets package is required for cloud daemon") from exc
 
     last_connection_error_at = 0.0
+    base = _configured_cloud(config)
     while True:
-        base = config.data["cloud_url"]
         scheme = "wss://" if base.startswith("https://") else "ws://"
         host = base.split("://", 1)[-1].rstrip("/")
         ws_url = f"{scheme}{host}/ws/device/{config.data['device_id']}?token={urllib.parse.quote(config.data['device_token'])}"
@@ -187,7 +195,7 @@ def daemon(config: Config) -> None:
 def sync_help_center(config: Config) -> dict:
     from .helpdb import apply_updates, load
 
-    url = config.data["cloud_url"] + "/api/device/help/sync"
+    url = _configured_cloud(config) + "/api/device/help/sync"
     body = {"device_id": config.data["device_id"], "help": load()}
     out = _request("POST", url, body, token=config.data["device_token"])
     if out.get("help"):
@@ -196,12 +204,12 @@ def sync_help_center(config: Config) -> dict:
 
 
 def sync_device_schedules(config: Config) -> list[dict]:
-    url = config.data["cloud_url"] + f"/api/device/schedules?device_id={config.data['device_id']}"
+    url = _configured_cloud(config) + f"/api/device/schedules?device_id={config.data['device_id']}"
     return _request("GET", url, token=config.data["device_token"]).get("schedules", [])
 
 
 def report_device_schedule_state(config: Config, row: dict, result: dict | None = None) -> dict:
-    url = config.data["cloud_url"] + "/api/device/schedules/state"
+    url = _configured_cloud(config) + "/api/device/schedules/state"
     body = {
         "device_id": config.data["device_id"],
         "id": row["id"],
