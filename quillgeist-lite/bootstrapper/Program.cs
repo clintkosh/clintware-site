@@ -129,20 +129,41 @@ try {
   $gh = Ensure-GitHubCli
   Ensure-GitHubAuth $gh
 
-  $install = Join-Path $env:TEMP ("clintware-qq-install-" + [Guid]::NewGuid().ToString("n") + ".ps1")
-  Download-PS "quillgeist-lite/install.ps1" $install
+  $bundleRoot = Join-Path $env:TEMP ("Clintware-QQ-Source-" + [Guid]::NewGuid().ToString("n"))
+  $archive = Join-Path $bundleRoot "clintware-site-main.zip"
+  $extract = Join-Path $bundleRoot "src"
+  New-Item -ItemType Directory -Force -Path $bundleRoot,$extract | Out-Null
 
-  Write-Step "QQ // installing canonical maintained runtime"
-  & $install
-  Remove-Item $install -Force -ErrorAction SilentlyContinue
+  Write-Step "SOURCE // downloading one canonical repository snapshot"
+  Invoke-WebRequest -Uri "https://codeload.github.com/clintkosh/clintware-site/zip/refs/heads/main" -OutFile $archive -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+  if (-not (Test-Path $archive) -or (Get-Item $archive).Length -lt 1024) {
+    throw "Canonical repository snapshot download failed."
+  }
+
+  Expand-Archive -Path $archive -DestinationPath $extract -Force
+  $repoRoot = Get-ChildItem -Path $extract -Directory | Where-Object { $_.Name -like "clintware-site-*" } | Select-Object -First 1
+  if (-not $repoRoot) { throw "Canonical repository snapshot did not contain the expected root directory." }
+
+  $qqSource = Join-Path $repoRoot.FullName "quillgeist-lite"
+  $install = Join-Path $qqSource "install.ps1"
+  $dedupeSource = Join-Path $qqSource "tasks\dedupe-qq-windows.ps1"
+  $repairSource = Join-Path $qqSource "tasks\auto-repair-runtime.ps1"
+
+  foreach ($required in @($install,$dedupeSource,$repairSource)) {
+    if (-not (Test-Path $required)) { throw "Canonical repository snapshot is missing required file: $required" }
+    Test-PowerShellFile $required
+  }
+
+  Write-Step "QQ // installing canonical maintained runtime from local snapshot"
+  & $install -SourceRoot $qqSource
 
   $dedupe = Join-Path $HomeDir "dedupe-qq-windows.ps1"
-  Download-PS "quillgeist-lite/tasks/dedupe-qq-windows.ps1" $dedupe
+  Copy-Item -LiteralPath $dedupeSource -Destination $dedupe -Force
   Write-Step "QQ // closing only stale duplicate qq launcher windows"
   & $dedupe -HomeDir $HomeDir
 
   $repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
-  Download-PS "quillgeist-lite/tasks/auto-repair-runtime.ps1" $repair
+  Copy-Item -LiteralPath $repairSource -Destination $repair -Force
   Write-Step "QQ // reconciling service, runner, singleton gate, and canonical files"
   & $repair -HomeDir $HomeDir
 
@@ -201,9 +222,11 @@ try {
   )
 
   Write-Step "READY // qq is installed, connected, supervised, and duplicate-window protected"
+  try { if ($bundleRoot -and (Test-Path $bundleRoot)) { Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch {}
   exit 0
 }
 catch {
+  try { if ($bundleRoot -and (Test-Path $bundleRoot)) { Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch {}
   $message = $_.Exception.ToString()
   try { Add-Content -Path $LogPath -Value ((Get-Date).ToUniversalTime().ToString("o") + " FATAL " + $message) -Encoding UTF8 } catch {}
   Write-Host ""
