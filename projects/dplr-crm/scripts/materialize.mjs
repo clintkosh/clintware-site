@@ -34,7 +34,12 @@ rewrite("src/index.js", [
   ['const WORKSPACE_ID="dpl-doppel";', 'const WORKSPACE_ID="dplr-doppel";'],
   ['idFromName("n7demo-main")', 'idFromName("dplr-main")'],
 ]);
-rewrite("package.json", [...common, ["public/doppel-polish.js", "public/dplr-shell.js"], ["node --check public/dplr-shell.js", "node --check public/dplr-shell.js && node --check public/dplr-prep.js"]]);
+rewrite("package.json", [
+  ...common,
+  ["public/doppel-polish.js", "public/dplr-shell.js"],
+  ["node prepare-production.mjs", "node prepare-production.mjs && node dplr-production.mjs"],
+  ["node --check public/dplr-shell.js", "node --check public/dplr-shell.js && node --check public/dplr-prep.js && node --check public/dplr-enrich.js"]
+]);
 rewrite("wrangler.jsonc", common);
 rewrite("public/app-config.js", [
   ["dpltheme", "dplrtheme"],
@@ -43,9 +48,10 @@ rewrite("public/app-config.js", [
 rewrite("public/app-router.js", [["dpltheme", "dplrtheme"], ["DOPPEL TCE CRM", "DOPPEL TCE OS"], ["Doppel TCE CRM", "Doppel TCE OS"]]);
 rewrite("public/app-forms.js", [["o.remove();load(x.customer.id)", "o.remove();tab='command';load(x.customer.id)"]]);
 
-for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js", "dplr-prep.js"]) {
+for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js", "dplr-prep.js", "dplr-enrich.js"]) {
   fs.copyFileSync(path.join(overlay, "public", file), path.join(out, "public", file));
 }
+fs.copyFileSync(path.join(overlay, "scripts", "dplr-production.mjs"), path.join(out, "dplr-production.mjs"));
 for (const stale of ["doppel-brand.css", "doppel-polish.js"]) {
   fs.rmSync(path.join(out, "public", stale), { force: true });
 }
@@ -63,10 +69,10 @@ for (const required of [
   if (!worker.includes(required)) throw new Error(`Backend identity patch missing: ${required}`);
 }
 const pkg = fs.readFileSync(path.join(out, "package.json"), "utf8");
-if (pkg.includes("public/doppel-polish.js") || !pkg.includes("public/dplr-shell.js") || !pkg.includes("public/dplr-prep.js")) throw new Error("Package validation still targets retired or incomplete UI");
+if (pkg.includes("public/doppel-polish.js") || !pkg.includes("public/dplr-shell.js") || !pkg.includes("public/dplr-prep.js") || !pkg.includes("public/dplr-enrich.js") || !pkg.includes("dplr-production.mjs")) throw new Error("Package validation still targets retired or incomplete UI");
 const html = fs.readFileSync(path.join(out, "public/index.html"), "utf8");
 if (html.includes("doppel-brand.css") || html.includes("doppel-polish.js")) throw new Error("Old marketing presentation layer leaked into DPLR");
-if (!html.includes("dplr-ui.css") || !html.includes("dplr-shell.js") || !html.includes("dplr-prep.js")) throw new Error("DPLR UI overlay missing");
+if (!html.includes("dplr-ui.css") || !html.includes("dplr-shell.js") || !html.includes("dplr-prep.js") || !html.includes("dplr-enrich.js")) throw new Error("DPLR UI overlay missing");
 const config = fs.readFileSync(path.join(out, "public/app-config.js"), "utf8");
 if (!config.includes('localStorage.getItem("dplrtheme")||"light"')) throw new Error("DPLR must default to N7-style light mode");
 const forms = fs.readFileSync(path.join(out, "public/app-forms.js"), "utf8");
