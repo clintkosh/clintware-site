@@ -109,6 +109,10 @@ export default{
       if(url.pathname==="/api/v1"||url.pathname.startsWith("/api/v1/")){
         const apiResponse=await handlePublicApi(request,env,ctx);if(apiResponse)return apiResponse;
       }
+      if(!onClintwareDistribution&&request.method==="GET"&&url.pathname==="/"){
+        const selfHostedUrl=new URL(request.url);selfHostedUrl.pathname="/self-host.html";selfHostedUrl.search="";selfHostedUrl.hash="";
+        return env.ASSETS.fetch(new Request(selfHostedUrl,request));
+      }
       if(request.method==="GET"&&url.pathname==="/api/health")return onClintwareDistribution\n        ? json({ok:true,service:"Quillgeist Distribution Site",runtime:"static-self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:false,self_host_required:true,time:new Date().toISOString()})\n        : json({ok:true,service:"Quillgeist Cloud",runtime:"self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:true,self_host_required:false,time:new Date().toISOString()});
       if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
