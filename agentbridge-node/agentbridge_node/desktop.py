@@ -19,7 +19,7 @@ from .prompt_planner import plan_prompt
 
 
 APP_NAME = "Quillgeist"
-CLOUD_URL = "https://quillgeist.clintware.com"
+NO_CLOUD = "not configured · self-host required"
 
 
 class ActivityLedger:
@@ -275,8 +275,8 @@ class QuillgeistDesktop:
         self.actions_frame = tk.Frame(self.root, bg=bg)
         self.actions_frame.pack(fill="x", padx=24, pady=(0, 10))
         for label, command in [
-            ("Pair device", self.pair_device),
-            ("Open Cloud", self.open_cloud),
+            ("Pair self-hosted cloud", self.pair_device),
+            ("Open configured cloud", self.open_cloud),
             ("Doctor", self.run_doctor),
             ("Toggle local-only", self.toggle_local_only),
         ]:
@@ -337,7 +337,7 @@ class QuillgeistDesktop:
         runtime = "RUNNING" if self._daemon_proc and self._daemon_proc.poll() is None else "STOPPED"
         return (
             f"Device: {self.cfg.data.get('device_name')}  ·  ID: {self.cfg.data.get('device_id')}\n"
-            f"Runtime: {runtime}  ·  Cloud: {self.cfg.data.get('cloud_url', CLOUD_URL)}"
+            f"Runtime: {runtime}  ·  Cloud: {self.cfg.data.get('cloud_url') or NO_CLOUD}"
         )
 
     def refresh(self) -> None:
@@ -353,10 +353,15 @@ class QuillgeistDesktop:
             self.activity.insert("end", f"{stamp}  {kind.upper():10} {summary}")
 
     def _startup_runtime(self) -> None:
-        if not self.cfg.data.get("desktop", {}).get("local_only", False):
+        if not self.cfg.data.get("desktop", {}).get("local_only", True) and self.cfg.data.get("cloud_url"):
             self.start_runtime(silent=True)
 
     def start_runtime(self, silent: bool = False) -> None:
+        if not str(self.cfg.data.get("cloud_url") or "").strip():
+            if not silent:
+                self._write_output("No cloud is configured. Quillgeist stays local-only until you configure your own self-hosted endpoint.")
+            self.refresh()
+            return
         if self._daemon_proc and self._daemon_proc.poll() is None:
             if not silent:
                 self._write_output("Quillgeist local runtime is already running.")
@@ -433,7 +438,10 @@ class QuillgeistDesktop:
         def worker():
             try:
                 cfg = Config.load()
-                result = cloud_pair(cfg, cfg.data.get("cloud_url") or CLOUD_URL)
+                cloud_url = str(cfg.data.get("cloud_url") or "").strip()
+                if not cloud_url:
+                    raise RuntimeError("No cloud configured. Use the CLI: quillgeist pair --cloud https://your-host")
+                result = cloud_pair(cfg, cloud_url)
                 code = result.get("pair_code", "")
                 self.ledger.add("pair", "pairing code issued")
                 self.root.after(0, lambda: self._pair_ready(code, result))
@@ -445,16 +453,23 @@ class QuillgeistDesktop:
     def _pair_ready(self, code: str, result: dict) -> None:
         self._write_output({
             **result,
-            "next": f"Enter pairing code {code} in Quillgeist Cloud.",
+            "next": f"Enter pairing code {code} in your self-hosted Quillgeist Cloud.",
         })
         self.root.clipboard_clear()
         self.root.clipboard_append(code)
-        webbrowser.open(self.cfg.data.get("cloud_url") or CLOUD_URL)
+        cloud_url = str(self.cfg.data.get("cloud_url") or "").strip()
+        if cloud_url:
+            webbrowser.open(cloud_url)
         self.refresh()
 
     def open_cloud(self) -> None:
-        webbrowser.open(self.cfg.data.get("cloud_url") or CLOUD_URL)
-        self.ledger.add("cloud", "opened control room")
+        cloud_url = str(self.cfg.data.get("cloud_url") or "").strip()
+        if not cloud_url:
+            self._write_output("No cloud is configured. Public Quillgeist does not connect to Clintware infrastructure. Configure your own self-hosted endpoint first.")
+            self.refresh()
+            return
+        webbrowser.open(cloud_url)
+        self.ledger.add("cloud", "opened self-hosted control room")
         self.refresh()
 
     def toggle_local_only(self) -> None:
@@ -466,9 +481,15 @@ class QuillgeistDesktop:
             self._write_output("Local-only mode enabled. Cloud runtime is stopped; local tools and data remain available.")
             self.ledger.add("privacy", "local-only enabled")
         else:
-            self.ledger.add("privacy", "local-first enabled")
-            self.start_runtime(silent=True)
-            self._write_output("Local-first mode enabled. Quillgeist may connect to configured Cloud services under local policy.")
+            if not str(self.cfg.data.get("cloud_url") or "").strip():
+                desktop["local_only"] = True
+                self.cfg.save()
+                self._write_output("No self-hosted cloud is configured, so Quillgeist remains local-only.")
+                self.ledger.add("privacy", "local-only retained; no cloud configured")
+            else:
+                self.ledger.add("privacy", "self-hosted cloud enabled")
+                self.start_runtime(silent=True)
+                self._write_output("Local-first mode enabled for your configured self-hosted Quillgeist Cloud.")
         self.refresh()
 
     def _submit_command_event(self, _event=None):
@@ -576,8 +597,8 @@ class QuillgeistDesktop:
             menu = pystray.Menu(
                 pystray.MenuItem("Open Quillgeist", lambda: self.root.after(0, self.focus_command), default=True),
                 pystray.MenuItem("Focus command box", lambda: self.root.after(0, self.focus_command)),
-                pystray.MenuItem("Open Cloud", lambda: self.root.after(0, self.open_cloud)),
-                pystray.MenuItem("Pair device", lambda: self.root.after(0, self.pair_device)),
+                pystray.MenuItem("Open configured cloud", lambda: self.root.after(0, self.open_cloud)),
+                pystray.MenuItem("Pair self-hosted cloud", lambda: self.root.after(0, self.pair_device)),
                 pystray.MenuItem("Toggle local-only", lambda: self.root.after(0, self.toggle_local_only)),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Exit", lambda: self.root.after(0, self.exit_app)),
