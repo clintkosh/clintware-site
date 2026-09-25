@@ -27,6 +27,7 @@ try {
 
   assert(await page.locator('link[href="/dplr-ui.css"]').count() === 1, "DPLR UI stylesheet is missing");
   assert(await page.locator('script[src="/dplr-shell.js"]').count() === 1, "DPLR shell script is missing");
+  assert(await page.locator('script[src="/dplr-prep.js"]').count() === 1, "DPLR call-prep module is missing");
   assert(await page.locator('link[href*="doppel-brand.css"]').count() === 0, "Old marketing stylesheet leaked into DPLR");
   assert(await page.locator('script[src*="doppel-polish.js"]').count() === 0, "Old marketing shell leaked into DPLR");
   assert(await page.locator(".top").count() === 0, "Legacy topbar is visible instead of DPLR shell");
@@ -45,7 +46,7 @@ try {
   // Open the golden account, then traverse every real functional module plus the role operating model.
   await page.locator("[data-customer-open]").first().click();
   await waitStable();
-  const tabs = ["command","live_prompt","live_assistant","triage","risks","handoff","implementation","deployment","issues","raci","rollout","operating_model","adoption","kb","roi","meetings","renewal","documents","accounts"];
+  const tabs = ["command","prep","live_prompt","live_assistant","triage","risks","handoff","implementation","deployment","issues","raci","rollout","operating_model","adoption","kb","roi","meetings","renewal","documents","accounts"];
   for (const tab of tabs) {
     const btn = page.locator('[data-tab="' + tab + '"]').first();
     assert(await btn.count() === 1, "Missing tab " + tab);
@@ -56,6 +57,42 @@ try {
     assert(text.length > 35, "Tab " + tab + " rendered too little content");
     assert(await page.locator("#theme").count() === 1, "Theme control missing on " + tab);
   }
+
+  // Call preparation is a real editable workflow, not a static presentation.
+  await page.locator('[data-tab="prep"]').first().click();
+  await page.waitForTimeout(200);
+  assert((await page.locator(".dplr-main").innerText()).includes("Call Preparation"), "Call Preparation view did not render");
+  assert(await page.locator(".dplr-prep-flow article").count() === 6, "Preparation flow is incomplete");
+  assert(await page.locator(".dplr-tech-grid article").count() >= 1, "Technology quick reminders are missing");
+  await page.locator("[data-tech-guide]").first().click();
+  await page.waitForSelector(".overlay .modal");
+  assert((await page.locator(".overlay .modal").innerText()).includes("Preparation aid"), "Technology reminder modal did not open");
+  await page.locator(".overlay [data-close]").click();
+
+  const prepBefore = await page.locator('[data-row-edit]').count();
+  await page.locator("#prep-generate").click();
+  await page.waitForSelector(".overlay .modal");
+  assert((await page.locator(".overlay .modal").innerText()).includes("Edit call prep"), "Generated prep did not open as an editable modular record");
+  await page.locator(".overlay [data-close]").click();
+  await page.waitForTimeout(180);
+  assert(await page.locator('[data-row-edit]').count() >= prepBefore + 1, "Generated prep did not persist");
+
+  await page.locator("#email-kind").selectOption("post_call");
+  await page.locator("#email-generate").click();
+  await page.waitForSelector(".overlay .modal");
+  assert((await page.locator(".overlay .modal").innerText()).includes("Edit email draft"), "Email generator did not create an editable draft");
+  assert((await page.locator('[data-f="body"]').inputValue()).includes("Thanks for the time"), "Default post-call email body was not generated");
+  await page.locator(".overlay [data-close]").click();
+  await page.waitForTimeout(180);
+
+  // Direct row click must reopen a modular record for editing.
+  await page.locator('[data-row-edit]').first().click();
+  await page.waitForSelector(".overlay .modal");
+  assert((await page.locator(".overlay .modal").innerText()).match(/Edit (call prep|email draft)/), "Clickable modular record did not open editor");
+  await page.locator(".overlay [data-close]").click();
+
+  const prepText = await page.evaluate(() => window.DPLRPrep?.prepText?.() || "");
+  assert(prepText.includes("TECHNOLOGY QUICK REMINDERS") && prepText.includes("LIVE ASSIST"), "Printable call-prep material is incomplete");
 
   // Guest customer create flow should enter the selected customer's command center.
   await page.locator('[data-tab="customers"]').first().click();
@@ -105,7 +142,7 @@ try {
 
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
-  console.log("DPLR browser smoke passed: desktop modules, theme, create, stakeholder, search, mobile portfolio, customer navigation, and overflow.");
+  console.log("DPLR browser smoke passed: desktop modules, theme, call prep, modular editing, email draft, create, stakeholder, search, mobile portfolio, customer navigation, and overflow.");
 } catch (err) {
   try { await page.screenshot({ path: "dplr-failure.png", fullPage: true }); } catch {}
   console.error("DPLR browser smoke failure:", err);
