@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "defaults": {
+    "R0": "allow",
+    "R1": "prompt",
+    "R2": "prompt",
+    "R3": "prompt-fresh"
+  },
+  "durable_rules": [
+    {
+      "capability": "hardware.inspect",
+      "operation": "read",
+      "resource": "*",
+      "risk": "R0",
+      "decision": "allow"
+    },
+    {
+      "capability": "filesystem.inspect",
+      "operation": "read",
+      "resource": "/sys/**",
+      "risk": "R0",
+      "decision": "allow"
+    },
+    {
+      "capability": "filesystem.inspect",
+      "operation": "read",
+      "resource": "/proc/**",
+      "risk": "R0",
+      "decision": "allow"
+    }
+  ],
+  "constraints": {
+    "reject_durable_wildcards_for": [
+      "R2",
+      "R3"
+    ],
+    "fresh_approval_for": [
+      "disk.partition",
+      "disk.format",
+      "bootloader.write",
+      "credential.export",
+      "identity.change",
+      "security.disable",
+      "os.replace"
+    ]
+  }
+}
