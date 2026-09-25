@@ -1,6 +1,8 @@
 using System;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,237 +13,81 @@ internal static class Program
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
-    private const string BootstrapScript = """
-$ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    private const string ResourcePrefix = "qqruntime/";
 
-$Repo = "clintkosh/clintware-site"
-$Raw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
-$HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
-$LogPath = Join-Path $HomeDir "portable-installer.log"
-$ResultPath = Join-Path $HomeDir "portable-install-result.json"
-$TaskName = "Clintware Quillgeist Lite Runner"
-$ServiceName = "ClintwareQuillgeistLiteHealth"
+    private static string ExtractRuntime(string tempDir)
+    {
+        string runtimeRoot = Path.Combine(tempDir, "runtime");
+        Directory.CreateDirectory(runtimeRoot);
 
-New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string[] names = assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith(ResourcePrefix, StringComparison.Ordinal))
+            .ToArray();
 
-function Write-Step([string]$Message) {
-  $line = ((Get-Date).ToUniversalTime().ToString("o") + " " + $Message)
-  Add-Content -Path $LogPath -Value $line -Encoding UTF8
-  Write-Host $Message -ForegroundColor Cyan
-}
+        if (names.Length < 10)
+            throw new InvalidOperationException("Embedded QQ runtime payload is missing.");
 
-function Test-PowerShellFile([string]$Path) {
-  $tokens = $null
-  $errors = $null
-  [System.Management.Automation.Language.Parser]::ParseFile(
-    (Resolve-Path $Path),
-    [ref]$tokens,
-    [ref]$errors
-  ) | Out-Null
-  if ($errors.Count -gt 0) {
-    $errors | ForEach-Object { Write-Step ("PARSE ERROR // " + $_.Message) }
-    throw "Downloaded PowerShell file failed parse validation: $Path"
-  }
-}
+        string rootFull = Path.GetFullPath(runtimeRoot) + Path.DirectorySeparatorChar;
 
-function Get-Gh {
-  $cmd = Get-Command gh.exe -ErrorAction SilentlyContinue
-  if ($cmd) { return $cmd.Source }
-  $known = Join-Path $env:ProgramFiles "GitHub CLI\gh.exe"
-  if (Test-Path $known) { return $known }
-  return $null
-}
+        foreach (string name in names)
+        {
+            string relative = name.Substring(ResourcePrefix.Length)
+                .Replace('/', Path.DirectorySeparatorChar);
 
-function Refresh-Path {
-  $machine = [Environment]::GetEnvironmentVariable("Path","Machine")
-  $user = [Environment]::GetEnvironmentVariable("Path","User")
-  $env:Path = ($machine + ";" + $user)
-}
+            string target = Path.GetFullPath(Path.Combine(runtimeRoot, relative));
+            if (!target.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Embedded QQ resource escaped the runtime root.");
 
-function Ensure-GitHubCli {
-  $gh = Get-Gh
-  if ($gh) { return $gh }
+            string? parent = Path.GetDirectoryName(target);
+            if (!string.IsNullOrWhiteSpace(parent))
+                Directory.CreateDirectory(parent);
 
-  Write-Step "GITHUB // CLI missing; installing official GitHub CLI"
-  $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
-  if ($winget) {
-    & $winget.Source install --id GitHub.cli --exact --silent --disable-interactivity --accept-source-agreements --accept-package-agreements
-    Refresh-Path
-    $gh = Get-Gh
-    if ($gh) { return $gh }
-  }
+            using Stream? input = assembly.GetManifestResourceStream(name);
+            if (input is null)
+                throw new InvalidOperationException("Could not read embedded QQ resource: " + name);
 
-  Write-Step "GITHUB // winget path unavailable; using official GitHub release MSI"
-  $release = Invoke-RestMethod -Uri "https://api.github.com/repos/cli/cli/releases/latest" -Headers @{
-    "User-Agent" = "Clintware-QQ-Portable-Installer"
-    "Accept" = "application/vnd.github+json"
-  }
-  $asset = $release.assets | Where-Object { $_.name -match "_windows_amd64\.msi$" } | Select-Object -First 1
-  if (-not $asset) { throw "Could not locate the official GitHub CLI Windows AMD64 MSI." }
+            using FileStream output = File.Create(target);
+            input.CopyTo(output);
+        }
 
-  $msi = Join-Path $env:TEMP $asset.name
-  Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $msi -UseBasicParsing
-  $p = Start-Process msiexec.exe -ArgumentList @("/i",$msi,"/qn","/norestart") -Wait -PassThru
-  Remove-Item $msi -Force -ErrorAction SilentlyContinue
-  if ($p.ExitCode -notin @(0,3010)) { throw "GitHub CLI MSI install failed with exit code $($p.ExitCode)." }
-
-  Refresh-Path
-  $gh = Get-Gh
-  if (-not $gh) { throw "GitHub CLI installed but gh.exe could not be resolved." }
-  return $gh
-}
-
-function Ensure-GitHubAuth([string]$Gh) {
-  & $Gh auth status --hostname github.com 1>$null 2>$null
-  if ($LASTEXITCODE -eq 0) {
-    Write-Step "GITHUB // existing authorized identity found"
-    return
-  }
-
-  Write-Step "GITHUB // one-time browser authorization required"
-  & $Gh auth login --hostname github.com --git-protocol https --web
-  if ($LASTEXITCODE -ne 0) { throw "GitHub authorization was not completed." }
-
-  & $Gh auth status --hostname github.com 1>$null 2>$null
-  if ($LASTEXITCODE -ne 0) { throw "GitHub authorization could not be verified." }
-}
-
-function Download-PS([string]$RepoPath,[string]$Destination) {
-  $url = $Raw + "/" + $RepoPath + "?cb=" + [Guid]::NewGuid().ToString("n")
-  Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  Test-PowerShellFile $Destination
-}
-
-function Test-RunnerAlive {
-  $pidPath = Join-Path $HomeDir "runner.pid"
-  try {
-    if (-not (Test-Path $pidPath)) { return $false }
-    $rawPid = (Get-Content $pidPath -Raw).Trim()
-    $runnerPid = 0
-    if (-not [int]::TryParse($rawPid,[ref]$runnerPid) -or $runnerPid -le 0) { return $false }
-    return -not (Get-Process -Id $runnerPid -ErrorAction Stop).HasExited
-  } catch { return $false }
-}
-
-try {
-  Write-Step "QQ PORTABLE // starting one-click install/repair"
-
-  $gh = Ensure-GitHubCli
-  Ensure-GitHubAuth $gh
-
-  $bundleRoot = Join-Path $env:TEMP ("Clintware-QQ-Source-" + [Guid]::NewGuid().ToString("n"))
-  $archive = Join-Path $bundleRoot "clintware-site-main.zip"
-  $extract = Join-Path $bundleRoot "src"
-  New-Item -ItemType Directory -Force -Path $bundleRoot,$extract | Out-Null
-
-  Write-Step "SOURCE // downloading one canonical repository snapshot"
-  Invoke-WebRequest -Uri "https://codeload.github.com/clintkosh/clintware-site/zip/refs/heads/main" -OutFile $archive -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  if (-not (Test-Path $archive) -or (Get-Item $archive).Length -lt 1024) {
-    throw "Canonical repository snapshot download failed."
-  }
-
-  Expand-Archive -Path $archive -DestinationPath $extract -Force
-  $repoRoot = Get-ChildItem -Path $extract -Directory | Where-Object { $_.Name -like "clintware-site-*" } | Select-Object -First 1
-  if (-not $repoRoot) { throw "Canonical repository snapshot did not contain the expected root directory." }
-
-  $qqSource = Join-Path $repoRoot.FullName "quillgeist-lite"
-  $install = Join-Path $qqSource "install.ps1"
-  $dedupeSource = Join-Path $qqSource "tasks\dedupe-qq-windows.ps1"
-  $repairSource = Join-Path $qqSource "tasks\auto-repair-runtime.ps1"
-
-  foreach ($required in @($install,$dedupeSource,$repairSource)) {
-    if (-not (Test-Path $required)) { throw "Canonical repository snapshot is missing required file: $required" }
-    Test-PowerShellFile $required
-  }
-
-  Write-Step "QQ // installing canonical maintained runtime from local snapshot"
-  & $install -SourceRoot $qqSource
-
-  $dedupe = Join-Path $HomeDir "dedupe-qq-windows.ps1"
-  Copy-Item -LiteralPath $dedupeSource -Destination $dedupe -Force
-  Write-Step "QQ // closing only stale duplicate qq launcher windows"
-  & $dedupe -HomeDir $HomeDir
-
-  $repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
-  Copy-Item -LiteralPath $repairSource -Destination $repair -Force
-  Write-Step "QQ // reconciling service, runner, singleton gate, and canonical files"
-  & $repair -HomeDir $HomeDir -SourceRoot $qqSource
-
-  Write-Step "QQ // final duplicate-window verification"
-  & $dedupe -HomeDir $HomeDir
-
-  $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-  if (-not $service) { throw "qq health service is not installed." }
-  if ($service.Status -ne "Running") {
-    Start-Service -Name $ServiceName
-    $service = Get-Service -Name $ServiceName
-  }
-
-  $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-  if (-not $task) { throw "qq supervised runner task is not installed." }
-  Enable-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Out-Null
-
-  if (-not (Test-RunnerAlive)) {
-    Write-Step "QQ // runner not live; starting the supervised singleton task"
-    Start-ScheduledTask -TaskName $TaskName
-    Start-Sleep -Seconds 4
-  }
-
-  $runnerAlive = Test-RunnerAlive
-  if (-not $runnerAlive) { throw "qq runner did not become live after installation." }
-
-  $checkInRequested = $false
-  try {
-    Write-Step "CHECK-IN // requesting Clintware qq status workflow"
-    & $gh workflow run qq-local-status.yml --repo $Repo --ref main
-    if ($LASTEXITCODE -eq 0) {
-      $checkInRequested = $true
-      Write-Step "CHECK-IN // GitHub status workflow requested"
-    } else {
-      Write-Step "CHECK-IN WARN // workflow dispatch was unavailable; local control-plane registration remains active"
+        return runtimeRoot;
     }
-  } catch {
-    Write-Step ("CHECK-IN WARN // " + $_.Exception.Message)
-  }
 
-  $result = [ordered]@{
-    status = "ready"
-    installed_at = (Get-Date).ToUniversalTime().ToString("o")
-    control_plane = "https://mcp.clintware.com"
-    service = (Get-Service -Name $ServiceName).Status.ToString()
-    runner_alive = $runnerAlive
-    duplicate_window_guard = "enabled"
-    check_in_requested = $checkInRequested
-    log_path = $LogPath
-  }
+    private static int RunPowerShell(string scriptPath, params string[] arguments)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                "WindowsPowerShell", "v1.0", "powershell.exe"),
+            UseShellExecute = false,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            CreateNoWindow = false
+        };
 
-  [IO.File]::WriteAllText(
-    $ResultPath,
-    ($result | ConvertTo-Json -Depth 6),
-    (New-Object Text.UTF8Encoding($false))
-  )
+        psi.ArgumentList.Add("-NoLogo");
+        psi.ArgumentList.Add("-NoProfile");
+        psi.ArgumentList.Add("-ExecutionPolicy");
+        psi.ArgumentList.Add("Bypass");
+        psi.ArgumentList.Add("-File");
+        psi.ArgumentList.Add(scriptPath);
 
-  Write-Step "READY // qq is installed, connected, supervised, and duplicate-window protected"
-  try { if ($bundleRoot -and (Test-Path $bundleRoot)) { Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch {}
-  exit 0
-}
-catch {
-  try { if ($bundleRoot -and (Test-Path $bundleRoot)) { Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch {}
-  $message = $_.Exception.ToString()
-  try { Add-Content -Path $LogPath -Value ((Get-Date).ToUniversalTime().ToString("o") + " FATAL " + $message) -Encoding UTF8 } catch {}
-  Write-Host ""
-  Write-Host "QQ PORTABLE // FAILED" -ForegroundColor Red
-  Write-Host $_.Exception.Message -ForegroundColor Red
-  Write-Host ("Log: " + $LogPath) -ForegroundColor DarkYellow
-  exit 1
-}
-""";
+        foreach (string arg in arguments)
+            psi.ArgumentList.Add(arg);
+
+        using Process? process = Process.Start(psi);
+        if (process is null)
+            throw new InvalidOperationException("PowerShell could not be started.");
+
+        process.WaitForExit();
+        return process.ExitCode;
+    }
 
     public static int Main()
     {
-        Console.Title = "Clintware Quillgeist Lite Portable Installer";
+        Console.Title = "Clintware QQ Installer";
         Console.OutputEncoding = Encoding.UTF8;
 
         if (!OperatingSystem.IsWindows())
@@ -250,64 +96,68 @@ catch {
             return 2;
         }
 
-        string tempDir = Path.Combine(Path.GetTempPath(), "Clintware-QQ-" + Guid.NewGuid().ToString("N"));
+        string tempDir = Path.Combine(
+            Path.GetTempPath(),
+            "Clintware-QQ-" + Guid.NewGuid().ToString("N"));
+
         Directory.CreateDirectory(tempDir);
-        string scriptPath = Path.Combine(tempDir, "bootstrap.ps1");
 
         try
         {
-            File.WriteAllText(scriptPath, BootstrapScript, new UTF8Encoding(false));
+            Console.WriteLine("QQ // unpacking embedded runtime");
+            string runtimeRoot = ExtractRuntime(tempDir);
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
-                    "WindowsPowerShell", "v1.0", "powershell.exe"),
-                UseShellExecute = false,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false,
-                CreateNoWindow = false
-            };
-            psi.ArgumentList.Add("-NoLogo");
-            psi.ArgumentList.Add("-NoProfile");
-            psi.ArgumentList.Add("-ExecutionPolicy");
-            psi.ArgumentList.Add("Bypass");
-            psi.ArgumentList.Add("-File");
-            psi.ArgumentList.Add(scriptPath);
+            string qqSource = Path.Combine(runtimeRoot, "quillgeist-lite");
+            string install = Path.Combine(qqSource, "install.ps1");
 
-            using var process = Process.Start(psi);
-            if (process is null)
+            if (!File.Exists(install))
+                throw new FileNotFoundException("Embedded QQ installer is missing.", install);
+
+            Console.WriteLine("QQ // installing from embedded runtime");
+            Console.WriteLine("QQ // GitHub is not used by the local install path");
+
+            int exitCode = RunPowerShell(
+                install,
+                "-SourceRoot",
+                qqSource);
+
+            if (exitCode != 0)
             {
-                MessageBoxW(IntPtr.Zero, "PowerShell could not be started.", "Clintware QQ Installer", 0x10);
-                return 3;
+                MessageBoxW(
+                    IntPtr.Zero,
+                    $"QQ installation did not complete.\n\nExit code: {exitCode}",
+                    "Clintware QQ Installer",
+                    0x10);
+                return exitCode;
             }
 
-            process.WaitForExit();
-            int exitCode = process.ExitCode;
-
-            string logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Clintware", "QuillgeistLite", "portable-installer.log");
-
-            if (exitCode == 0)
+            string dedupe = Path.Combine(qqSource, "tasks", "dedupe-qq-windows.ps1");
+            if (File.Exists(dedupe))
             {
-                MessageBoxW(IntPtr.Zero,
-                    "Quillgeist Lite is installed and connected.\n\n" +
-                    "Duplicate-window protection is enabled and the supervised runner will continue through the Clintware control plane.\n\n" +
-                    "A status check-in was requested when GitHub workflow access was available.",
-                    "Clintware QQ Ready", 0x40);
-            }
-            else
-            {
-                MessageBoxW(IntPtr.Zero,
-                    $"Installation did not complete.\n\nExit code: {exitCode}\nLog: {logPath}",
-                    "Clintware QQ Installer", 0x10);
+                string homeDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Clintware", "QuillgeistLite");
+
+                _ = RunPowerShell(dedupe, "-HomeDir", homeDir);
             }
 
-            return exitCode;
+            MessageBoxW(
+                IntPtr.Zero,
+                "QQ is installed and connected through the Clintware Control Plane.\n\n" +
+                "The local installer and runner do not require GitHub or GitHub CLI.",
+                "Clintware QQ Ready",
+                0x40);
+
+            return 0;
         }
         catch (Exception ex)
         {
-            MessageBoxW(IntPtr.Zero, ex.Message, "Clintware QQ Installer", 0x10);
+            Console.Error.WriteLine(ex);
+            MessageBoxW(
+                IntPtr.Zero,
+                ex.Message,
+                "Clintware QQ Installer",
+                0x10);
             return 4;
         }
         finally
