@@ -12,7 +12,7 @@ def home_dir() -> Path:
 
 def _defaults() -> dict:
     return {
-        "version": 3,
+        "version": 4,
         "device_id": str(uuid.uuid4()),
         "device_token": secrets.token_urlsafe(32),
         "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "Quillgeist Node",
@@ -63,6 +63,17 @@ def _defaults() -> dict:
             "working_limit": 12,
             "archive_max_atoms": 4000
         },
+        "local_inference": {
+            "enabled": True,
+            "preferred_runtime": "auto",
+            "model_dirs": [],
+            "ram_reserve_gib": 2.0,
+            "default_context_tokens": 4096,
+            "benchmark_timeout_seconds": 60,
+            "allow_model_downloads": False,
+            "auto_fit": False,
+            "auto_apply": False
+        },
         "telemetry": {
             "enabled": False,
             "privacy": "local_only_default",
@@ -96,6 +107,7 @@ class Config:
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["prompt_planner"] = {**_defaults()["prompt_planner"], **incoming.get("prompt_planner", {})}
             base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
+            base["local_inference"] = {**_defaults()["local_inference"], **incoming.get("local_inference", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Public builds must never silently reconnect to Clintware infrastructure.
