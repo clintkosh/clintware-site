@@ -49,6 +49,7 @@ jobs:
             "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
             "quillgeist-lite/tasks/browser-work.ps1",
             "quillgeist-lite/tasks/responder-agent.ps1",
+            "quillgeist-lite/tasks/career-signal-agent.ps1",
             "quillgeist-lite/tasks/bitnet-setup.ps1",
             "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
@@ -133,7 +134,8 @@ jobs:
             "quillgeist-lite/tools/oauth_verification_capture.py",
             "quillgeist-lite/tools/local_ai.py",
             "quillgeist-lite/tools/local_ai_parity_check.py",
-            "quillgeist-lite/tools/responder_agent.py"
+            "quillgeist-lite/tools/responder_agent.py",
+            "quillgeist-lite/tools/career_signal_agent.py"
           )
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
@@ -198,6 +200,23 @@ jobs:
             throw "Stack Overflow must remain disabled by default."
           }
           Write-Host "RESPONDER_DEFAULTS_OK"
+
+      - name: Smoke-test career signal defaults
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP "career-signal-test"
+          $raw = @(python quillgeist-lite/tools/career_signal_agent.py status --json)
+          if ($LASTEXITCODE -ne 0) { throw "career signal status failed." }
+          $data = ($raw -join "`n") | ConvertFrom-Json
+          if ($data.enabled -ne $true) { throw "Career Signal must default enabled once explicitly installed." }
+          if ($data.linkedin_mode -ne "MANUAL_PUBLISH_ONLY") { throw "LinkedIn must remain manual publish only." }
+          $runRaw = @(python quillgeist-lite/tools/career_signal_agent.py run --json)
+          if ($LASTEXITCODE -ne 0) { throw "career signal run failed." }
+          $run = ($runRaw -join "`n") | ConvertFrom-Json
+          if ($run.daily_targets.comments -ne 20) { throw "Unexpected daily comment target." }
+          if (-not (Test-Path (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite\career-signal-agent\latest.json"))) { throw "Career Signal did not persist latest.json." }
+          Write-Host "CAREER_SIGNAL_DEFAULTS_OK"
 
       - name: Compile Windows health service
         shell: pwsh
