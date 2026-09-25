@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Python syntax
-        run: python -m py_compile successos/os/success_permission.py successos/os/success_driver_scan.py
+        run: python -m py_compile successos/os/success_permission.py successos/os/success_driver_scan.py successos/os/success_approve_gui.py successos/os/success_terminal.py
       - name: Permission and static tests
         run: python -m unittest discover -s successos/tests -v
       - name: JSON syntax
@@ -34,4 +34,6 @@ jobs:
           python -m json.tool successos/plugin/plugin.json >/dev/null
           python -m json.tool successos/plugin/mcp.json >/dev/null
       - name: ISO build-script syntax
-        run: bash -n successos/os/build-successos.sh
+        run: |
+          bash -n successos/os/build-successos.sh
+          bash -n successos/os/prepare-bitnet-bundle.sh
