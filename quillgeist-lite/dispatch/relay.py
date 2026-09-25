@@ -29,8 +29,6 @@ ALLOWED = {
     "enable-admin-console": set(),
     "bootstrap-admin-console": set(),
     "gimp-clintware-eclipse": set(),
-    "codefeddy-access-check": set(),
-    "provision-codefeddy-platform": set(),
 }
 
 def request_json(method, path, body=None):
