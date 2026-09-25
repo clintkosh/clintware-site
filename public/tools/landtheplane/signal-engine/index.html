@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="LandThePlane Signal Engine turns real observations into a daily hiring + YC visibility plan with a mandatory LinkedIn quality gate and local-first tracking.">
+<link rel="canonical" href="https://www.clintware.com/tools/landtheplane/signal-engine/">
+<title>Signal Engine | LandThePlane | Clintware™</title>
+<link rel="stylesheet" href="/assets/clintware.css">
+<style>
+:root{--cyan:#68dfff;--green:#75e6a8;--amber:#f0c96b;--red:#ff7878;--line:#26323d;--panel:#0b1118;--muted:#91a4b8}
+.wrap{max-width:1120px;margin:auto;padding:0 22px}.hero{padding:38px 0 24px;border-bottom:1px solid var(--line)}.section{padding:26px 0;border-bottom:1px solid #1f2a34}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{border:1px solid var(--line);background:var(--panel);padding:17px}.field{display:grid;gap:6px;margin:12px 0}.field label{font:700 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.field textarea,.field input,.field select{width:100%;background:#06090d;color:#eef6fc;border:1px solid #32404d;padding:10px}.field textarea{min-height:150px;resize:vertical}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn{border:1px solid #34576b;background:#0a1b25;color:#e7f8ff;padding:9px 12px;cursor:pointer}.btn.primary{border-color:#2f819d;background:#0b2a36}.metricrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.metric{border:1px solid var(--line);padding:10px;background:#071019}.metric b{display:block;color:var(--cyan);font-size:18px}.metric span,.small{color:var(--muted);font-size:11px}.gate{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1c2731}.gate input{margin-top:3px}.ok{color:var(--green)}.hold{color:var(--red)}.queue{display:grid;gap:8px}.item{border-left:3px solid #35596a;background:#071019;padding:10px}.item strong{display:block}.note{padding:11px;border:1px solid #3a3321;background:#151208;color:#d9c886;font-size:11px;line-height:1.55}.split{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.split div{border:1px solid var(--line);padding:10px}.split b{color:var(--cyan);display:block}@media(max-width:850px){.grid,.metricrow,.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container nav-row"><a class="brand" href="/tools/landtheplane/">CLINT<span class="brand-accent">WARE</span>™ / LANDTHEPLANE</a><nav class="site-nav"><a href="/tools/landtheplane/">Overview</a><a href="/tools/landtheplane/hyper-sprint/">Hyper Sprint</a><a href="https://landtheplane.clintware.com/">Alpha</a></nav></div></header>
+<main>
+<section class="hero"><div class="wrap"><span class="section-kicker">LANDTHEPLANE · HIRING + YC SIGNAL</span><h1>Signal Engine</h1><p>Turn real observations, shipped work, and target conversations into a daily visibility plan. The engine tracks quality, not vanity volume, and applies a mandatory LinkedIn gate before anything is considered ready.</p><div class="note"><strong>LinkedIn boundary:</strong> this module does not scrape LinkedIn or automate posts, comments, likes, messages, or profile actions. Paste target text or observations manually, generate/review locally, then publish yourself.</div></div></section>
+
+<section class="section"><div class="wrap">
+<div class="metricrow">
+<div class="metric"><b id="commentGoal">20</b><span>quality comments / day</span></div>
+<div class="metric"><b>3</b><span>posts / week target</span></div>
+<div class="metric"><b id="gateReady">0</b><span>gate-ready items</span></div>
+<div class="metric"><b id="ycDays">—</b><span>days to YC deadline</span></div>
+</div>
+<div class="split" style="margin-top:12px"><div><b>40%</b><span class="small">Hiring leaders</span></div><div><b>30%</b><span class="small">Founders / YC</span></div><div><b>20%</b><span class="small">Target companies</span></div><div><b>10%</b><span class="small">Relationships</span></div></div>
+</div></section>
+
+<section class="section"><div class="wrap grid">
+<div class="panel"><h2>Capture a real idea</h2>
+<div class="field"><label>Goal</label><select id="goal"><option value="both">HIRE + YC</option><option value="hire">HIRE</option><option value="yc">YC</option></select></div>
+<div class="field"><label>Observation / brain dump</label><textarea id="observation" placeholder="What actually happened, what did you notice, what did you build, what changed, or what did someone ask?"></textarea></div>
+<div class="field"><label>Target post text (optional, paste manually)</label><textarea id="target" placeholder="Paste the relevant LinkedIn post/comment text here. Do not scrape it."></textarea></div>
+<div class="field"><label>Why this should exist</label><input id="purpose" placeholder="Add perspective, build relationship, show proof, start a useful conversation..."></div>
+<div class="actions"><button class="btn primary" id="draft">Build draft</button><button class="btn" id="save">Save to local queue</button></div>
+<div class="field"><label>Draft</label><textarea id="draftText"></textarea></div>
+</div>
+
+<div class="panel"><h2>Mandatory LinkedIn gate</h2><div id="gates"></div><div id="gateState" class="note" style="margin-top:12px">HOLD · complete the gate before publishing.</div>
+<div class="actions"><button class="btn primary" id="check">Run gate</button><button class="btn" id="copy" disabled>Copy approved draft</button></div>
+</div>
+</div></section>
+
+<section class="section"><div class="wrap grid">
+<div class="panel"><h2>Daily action queue</h2><div id="queue" class="queue"></div></div>
+<div class="panel"><h2>Local agent report</h2><p class="small">The qq Career Signal Agent writes <code>%LOCALAPPDATA%\Clintware\QuillgeistLite\career-signal-agent\latest.json</code>. Import that JSON here to inspect the day's plan.</p><div class="field"><label>Import latest.json</label><input id="file" type="file" accept=".json,application/json"></div><pre id="report" class="small" style="white-space:pre-wrap"></pre></div>
+</div></section>
+</main>
+<footer class="site-footer"><div class="container footer-row"><span>LandThePlane · Signal Engine · local-first</span><span class="footer-links"><a href="/tools/landtheplane/">Overview</a><a href="/privacy/">Privacy</a></span></div></footer>
+<script>
+const GATES=[
+["profile","Supports the profile/story you want people to remember"],
+["perspective","Adds actual perspective, not generic praise"],
+["human","Sounds human, not over-polished corporate copy"],
+["real","Starts from a real observation, question, result, or shipped change"],
+["voice","Uses tools to remove friction without replacing your voice"],
+["reason","Has a clear reason to exist"],
+["reply","A real person could reasonably want to reply"],
+["proof","Any factual/personal claim is defendable from real evidence"]
+];
+const state=JSON.parse(localStorage.getItem("ltpSignal")||'{"queue":[]}');
+function renderGates(){gates.innerHTML=GATES.map(([id,t])=>'<label class="gate"><input type="checkbox" id="g_'+id+'"><span>'+t+'</span></label>').join("")}
+function ready(){return GATES.every(([id])=>document.getElementById("g_"+id).checked)}
+function updateGate(){const ok=ready()&&draftText.value.trim().length>0;gateState.className="note "+(ok?"ok":"hold");gateState.textContent=ok?"PASS · ready for your manual review and publish action.":"HOLD · complete every gate before publishing.";copy.disabled=!ok;return ok}
+function draftIt(){const o=observation.value.trim(),t=target.value.trim();let d=o;if(!d&&t)d="The part I would pressure-test is the operating mechanism behind this. What changed in the workflow or decision process that made the result repeatable?";draftText.value=d;GATES.forEach(([id])=>document.getElementById("g_"+id).checked=false);updateGate()}
+function save(){const item={created:new Date().toISOString(),goal:goal.value,observation:observation.value.trim(),target:target.value.trim(),purpose:purpose.value.trim(),draft:draftText.value.trim(),passed:updateGate()};state.queue.unshift(item);localStorage.setItem("ltpSignal",JSON.stringify(state));renderQueue()}
+function renderQueue(){gateReady.textContent=state.queue.filter(x=>x.passed).length;queue.innerHTML=state.queue.length?state.queue.slice(0,20).map(x=>'<div class="item"><strong>'+escapeHtml(x.goal.toUpperCase())+' · '+(x.passed?'PASS':'HOLD')+'</strong><div class="small">'+escapeHtml(x.draft||x.observation||"No draft")+'</div></div>').join(""):'<div class="item"><span class="small">No local items yet.</span></div>'}
+function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function yc(){const d=new Date("2026-11-02T20:00:00-08:00");ycDays.textContent=Math.max(0,Math.ceil((d-Date.now())/86400000))}
+renderGates();renderQueue();yc();draft.onclick=draftIt;save.onclick=save;check.onclick=updateGate;GATES.forEach(([id])=>document.getElementById("g_"+id).onchange=updateGate);draftText.oninput=updateGate;
+copy.onclick=()=>navigator.clipboard.writeText(draftText.value);
+file.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());report.textContent=JSON.stringify(j,null,2);if(j.daily_targets?.comments)commentGoal.textContent=j.daily_targets.comments;if(Array.isArray(j.linkedin_queue)){state.queue=j.linkedin_queue.map(x=>({goal:x.category||"both",draft:x.draft||"",observation:x.observation||"",purpose:x.purpose||"",passed:!!x.gate?.pass,created:j.generated_at})).concat(state.queue);localStorage.setItem("ltpSignal",JSON.stringify(state));renderQueue()}}catch(err){report.textContent="Invalid report: "+err.message}}
+</script>
+</body></html>
