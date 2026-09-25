@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": "2026-09-25.1",
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -187,6 +187,16 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/bitnet-setup.ps1",
       "parameters": []
+    },
+    "responder-agent": {
+      "title": "Manage the local policy-aware responder agent",
+      "script": "quillgeist-lite/tasks/responder-agent.ps1",
+      "runtime": "powershell",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
     }
   }
 }
