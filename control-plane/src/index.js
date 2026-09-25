@@ -7,7 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-25-qq-mcp-enrollment.1";
+const VERSION = "2026-09-25-qq-mcp-runtime.2";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -210,6 +210,14 @@ const DEFAULT_QUILLGEIST_LITE = {
   telemetry_namespace:"quillgeist-lite",
   created_at:"2026-09-21T00:00:00.000Z"
 };
+
+const QUILLGEIST_RUNTIME_ASSETS = new Set([
+  "quillgeist-lite/runner.ps1",
+  "quillgeist-lite/tasks/ensure-powershell.ps1",
+  "quillgeist-lite/tasks/auto-repair-runtime.ps1",
+  "quillgeist-lite/tools/boot_splash.py",
+  "quillgeist-lite/assets/clintware-terminal-logo.b64"
+]);
 
 const QUILLGEIST_LITE_TASKS = {
   "clintware-doctor":{runtime:"powershell",parameters:[]},
@@ -3038,6 +3046,16 @@ export default {
         const headers=new Headers();
         headers.set("upgrade","websocket");
         return await registryHub(env).fetch(new Request("https://internal/handoff-stream",{method:"GET",headers}));
+      }
+
+      if(request.method==="GET"&&url.pathname.startsWith("/api/v1/quillgeist-lite/runtime/")){
+        const relative=decodeURIComponent(url.pathname.slice("/api/v1/quillgeist-lite/runtime/".length)).replace(/^\/+|\\/g,"");
+        const repoPath="quillgeist-lite/"+relative;
+        if(!QUILLGEIST_RUNTIME_ASSETS.has(repoPath))return json({error:"runtime_asset_not_allowed"},404);
+        const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,"main");
+        if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
+        const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
+        return new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"no-store","x-clintware-runtime-sha":asset.sha||""}});
       }
 
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/stream"){
