@@ -5,7 +5,13 @@
   const baseDrawer=drawer;
   const basePersistence=persistenceBanner;
 
+  if(!TABS.some(([id])=>id==='prep')) TABS.push(['prep','Call Prep']);
   if(!TABS.some(([id])=>id==='operating_model')) TABS.push(['operating_model','Operating Model']);
+  const operateGroup=NAV_GROUPS.find(([label])=>label==='Operate');
+  if(operateGroup&&!operateGroup[1].includes('prep')){
+    const at=Math.max(0,operateGroup[1].indexOf('command')+1);
+    operateGroup[1].splice(at,0,'prep');
+  }
   const scaleGroup=NAV_GROUPS.find(([label])=>label==='Scale');
   if(scaleGroup&&!scaleGroup[1].includes('operating_model')) scaleGroup[1].unshift('operating_model');
 
@@ -72,6 +78,11 @@
     return '<div class="dplr-section-head"><div><div class="dplr-kicker">'+e(k)+'</div><h1>'+e(t)+'</h1><p>'+e(s)+'</p></div>'+(a?'<div class="actions">'+a+'</div>':'')+'</div>';
   };
 
+  table=function(type,cols){
+    const q=R(type);if(!q.length)return '<div class="empty">No '+e(type.replaceAll('_',' '))+' records yet.</div>';
+    return '<div class="tablewrap"><table class="table dplr-clickable"><thead><tr>'+cols.map(c=>'<th>'+e(c[1])+'</th>').join('')+'<th>Source</th><th></th></tr></thead><tbody>'+q.map(r=>'<tr data-row-edit="'+e(r.id)+'">'+cols.map(c=>'<td>'+e(r.data[c[0]]||'Not provided')+'</td>').join('')+'<td><span class="prov">'+e(P(r.provenance))+'</span></td><td><div class="actions"><button class="btn" data-edit="'+e(r.id)+'">Edit</button><button class="btn" data-del="'+e(r.id)+'">Archive</button></div></td></tr>').join('')+'</tbody></table></div>';
+  };
+
   persistenceBanner=function(){
     const auth=S.access?.authenticated===true;
     return '<div class="dplr-persistence '+(auth?'saved':'guest')+'"><div><strong>'+(auth?'Durable SSO workspace':'Guest session workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Guest records are scoped to this browser session and do not automatically migrate into the signed-in workspace.')+'</span></div>'+(auth?'':'<a class="btn primary" href="/auth/login">Sign in for durable workspace</a>')+'</div>';
@@ -136,11 +147,18 @@
       '<div class="dplr-scale-rule"><strong>Scale rule</strong><p>Do not optimize for how many cases TCE personally touches. Optimize customer resolution quality, specialist handoff quality, and the percentage of recurring technical work converted into frontline or self-service capability.</p></div>';
   }
 
-  body=function(){return tab==='operating_model'?operatingModel():baseBody()};
+  body=function(){
+    if(tab==='prep'&&window.DPLRPrep)return window.DPLRPrep.view();
+    return tab==='operating_model'?operatingModel():baseBody();
+  };
 
   function bindShell(){
     const search=document.querySelector('#dplr-search');
     if(search){search.onkeydown=ev=>{if(ev.key!=='Enter')return;const q=search.value.trim().toLowerCase();if(!q)return;const match=S.customers.find(c=>String(c.name||'').toLowerCase().includes(q)||String(c.industry||'').toLowerCase().includes(q));if(match){tab='command';void load(match.id)}else{search.setCustomValidity('No matching customer');search.reportValidity();setTimeout(()=>search.setCustomValidity(''),1200)}}}
+    document.querySelectorAll('[data-row-edit]').forEach(row=>row.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const rec=S.records.find(x=>x.id===row.dataset.rowEdit);if(rec)edit(rec.type,rec)});
+    document.querySelectorAll('.kanban-card[data-card]').forEach(card=>card.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const rec=S.records.find(x=>x.id===card.dataset.card);if(rec)edit(rec.type,rec)});
+    document.querySelectorAll('.stakeholder-card').forEach(card=>card.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const b=card.querySelector('[data-edit]'),rec=b?S.records.find(x=>x.id===b.dataset.edit):null;if(rec)edit(rec.type,rec)});
+    if(window.DPLRPrep)window.DPLRPrep.bind();
   }
 
   render=function(){
