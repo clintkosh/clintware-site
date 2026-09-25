@@ -38,6 +38,10 @@ try {
   assert(firstText.includes("Browser-persistent"), "No-login browser persistence state is not visible");
   assert(await page.locator('a[href="/auth/login"]').count() === 0, "SSO sign-in remains visible");
   assert(await page.locator('form[action="/auth/logout"]').count() === 0, "SSO sign-out remains visible");
+  const loginProbe = await page.request.get(new URL("/auth/login", base).toString(), { maxRedirects: 0 });
+  assert(loginProbe.status() === 404, "DPLR auth login route should be disabled");
+  const me = await (await page.request.get(new URL("/me", base).toString())).json();
+  assert(me.authenticated === false && me.persistence === "browser-persistent", "DPLR /me is not explicitly no-login browser-persistent");
 
   // Theme controls exist in every view through the persistent app bar.
   await page.locator(".dplr-more summary").click();
@@ -62,20 +66,21 @@ try {
     assert(await page.locator('a[href="/auth/login"]').count() === 0, "Sign-in surfaced on tab " + tab);
   }
 
-  // Call preparation is a real editable workflow with evidence terminology and official training sources.
+  // Call preparation is a real editable workflow with evidence terminology, issue cards, and official training sources.
   await page.locator('[data-tab="prep"]').first().click();
   await page.waitForTimeout(260);
   const prepViewText = await page.locator(".dplr-main").innerText();
-  assert(prepViewText.includes("Call Preparation"), "Call Preparation view did not render");
-  assert(prepViewText.includes("Common technical language"), "Common technical vocabulary is missing");
-  assert(prepViewText.includes("Evidence quality gate"), "Evidence quality gate is missing");
-  assert(prepViewText.includes("Support graduation gate"), "Support graduation gate is missing");
-  assert(prepViewText.includes("Official product + workflow refresh"), "Official training resources are missing");
+  for (const required of ["Call Preparation","Issue-specific preparation cards","Common technical language","Evidence quality gate","Support graduation gate","Official training + product refresh","SAML assertion","429 / Retry-After","Webhook acknowledgement","Schema / field mapping","MTTD / MTTR"]) {
+    assert(prepViewText.includes(required), "Preparation view missing: " + required);
+  }
   assert(await page.locator(".dplr-prep-flow article").count() === 6, "Preparation flow is incomplete");
-  assert(await page.locator(".dplr-tech-grid article").count() >= 7, "Training and technology refresh cards are incomplete");
+  assert(await page.locator(".dplr-tech-grid article").count() >= 20, "Training, issue, and technology refresh cards are incomplete");
   assert(await page.locator('a[href*="/videos/doppel-platform-overview"]').count() === 1, "Doppel Platform Overview training link missing");
   assert(await page.locator('a[href*="/docs/doppel-okta-setup-instructions"]').count() === 1, "Doppel Okta documentation link missing");
   assert(await page.locator('a[href*="/docs/jira-integration"]').count() === 1, "Doppel Jira documentation link missing");
+  assert(await page.locator('a[href*="developer.okta.com/docs/concepts/sso-overview"]').count() === 1, "Okta SSO official training link missing");
+  assert(await page.locator('a[href*="help.splunk.com/en/splunk-enterprise/get-started"]').count() === 1, "Splunk official training link missing");
+  assert(await page.locator('a[href*="learning.postman.com/docs/getting-started/quick-start"]').count() === 1, "Postman official training link missing");
   await page.locator("[data-tech-guide]").first().click();
   await page.waitForSelector(".overlay .modal");
   assert((await page.locator(".overlay .modal").innerText()).includes("Preparation aid"), "Technology reminder modal did not open");
@@ -104,19 +109,27 @@ try {
   await page.locator(".overlay [data-close]").click();
 
   const prepText = await page.evaluate(() => window.DPLRPrep?.prepText?.() || "");
-  for (const required of ["TECHNOLOGY QUICK REMINDERS","LIVE ASSIST","COMMON TECHNICAL LANGUAGE","EVIDENCE QUALITY GATE","SUPPORT GRADUATION GATE","OFFICIAL TRAINING / PRODUCT REFRESH","Known-good control","First point of divergence","Bounded specialist ask"]) {
+  for (const required of ["TECHNOLOGY QUICK REMINDERS","LIVE ASSIST","ISSUE-SPECIFIC PREPARATION","COMMON TECHNICAL LANGUAGE","EVIDENCE QUALITY GATE","SUPPORT GRADUATION GATE","OFFICIAL TRAINING / PRODUCT REFRESH","Known-good control","First point of divergence","Bounded specialist ask","Webhook acknowledgement","Postman Quick Start"]) {
     assert(prepText.includes(required), "Printable call-prep material missing: " + required);
   }
 
-  // Rich default scenario: verify the new synthetic financial-services scenario opens with seeded prep and playbook data.
+  // Rich default scenario: verify Ironwood opens with populated prep, people, work, and active investigation data.
   await page.locator('[data-tab="customers"]').first().click();
   await page.locator("#dplr-search").fill("Ironwood Bank");
   await page.locator("#dplr-search").press("Enter");
   await page.waitForTimeout(500);
   assert((await page.locator(".dplr-right").innerText()).includes("Ironwood Bank"), "Ironwood Bank default scenario did not route");
+  assert((await page.locator(".dplr-right").innerText()).includes("2 stakeholders"), "Ironwood stakeholders were not populated");
   await page.locator('[data-tab="prep"]').first().click();
   await page.waitForTimeout(250);
   assert((await page.locator(".dplr-main").innerText()).includes("Default technical review prep"), "Default sample call prep was not populated");
+  await page.locator('[data-tab="triage"]').first().click();
+  await page.waitForTimeout(220);
+  const triageText = await page.locator(".dplr-main").innerText();
+  assert(triageText.includes("Webhook retry duplicates one takedown workflow action"), "Ironwood real-world incident sample is missing");
+  await page.locator('[data-tab="issues"]').first().click();
+  await page.waitForTimeout(220);
+  assert((await page.locator(".dplr-main").innerText()).includes("Severity differs between platform view and raw API payload"), "Ironwood engineering handoff sample is missing");
 
   // Guest customer create flow should enter the selected customer's command center.
   await page.locator('[data-tab="customers"]').first().click();
@@ -167,7 +180,7 @@ try {
 
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
-  console.log("DPLR browser smoke passed: ten defaults, no-login persistence, themes, rich call prep, training resources, modular editing, email draft, create, stakeholder, search, mobile navigation, and overflow.");
+  console.log("DPLR browser smoke passed: ten defaults, fully disabled sign-in, browser persistence, themes, populated technical scenarios, rich call prep, common terminology, official training, modular editing, create/stakeholder/search, mobile navigation, and overflow.");
 } catch (err) {
   try { await page.screenshot({ path: "dplr-failure.png", fullPage: true }); } catch {}
   console.error("DPLR browser smoke failure:", err);
