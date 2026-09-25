@@ -1,0 +1,184 @@
+name: Deploy DPLR TCE OS
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/dplr-crm/**"
+      - "projects/dpl-crm/**"
+      - "tests/dplr_browser_smoke.mjs"
+      - ".github/workflows/deploy-dplr-crm.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: clintware-dplr-crm
+  cancel-in-progress: true
+jobs:
+  validate-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+
+      - name: Layer 1 - materialize and validate source
+        run: |
+          set -euo pipefail
+          node projects/dplr-crm/scripts/materialize.mjs
+          cd .build/dplr-crm
+          npm install --no-audit --no-fund
+          npm run check
+          grep -Fq '"name":"clintware-dplr-crm"' wrangler.jsonc
+          grep -Fq 'const APP_ID="dplr-crm"' src/index.js
+          grep -Fq 'const REQUIRED_CONTEXT="dplr-crm:read"' src/index.js
+          grep -Fq 'ctx.includes("dplr-crm:write")' src/index.js
+          grep -Fq 'const WORKSPACE_ID="dplr-doppel"' src/index.js
+          grep -Fq '/client-config/dplr-crm' src/index.js
+          grep -Fq 'Doppel Technical Customer Engineering OS' public/index.html
+          grep -Fq '/dplr-ui.css' public/index.html
+          grep -Fq '/dplr-shell.js' public/index.html
+          grep -Fq 'dplr-portfolio-grid' public/dplr-shell.js
+          grep -Fq 'Operating Model' public/dplr-shell.js
+          grep -Fq 'Advanced Investigations' public/dplr-shell.js
+          grep -Fq 'Technical Services' public/dplr-shell.js
+          grep -Fq 'Engineering Handoff' public/dplr-shell.js
+          grep -Fq 'Support Scale' public/dplr-shell.js
+          grep -Fq 'Guest records are scoped to this browser session and do not automatically migrate' public/dplr-shell.js
+          grep -Fq 'localStorage.getItem("dplrtheme")||"light"' public/app-config.js
+          ! grep -Rq 'doppel-brand.css' public/index.html
+          ! grep -Rq 'doppel-polish.js' public/index.html
+          ! grep -RqiE 'sites\.google\.com|google sites|googlesites' public src
+          ! test -e public/doppel-brand.css
+          ! test -e public/doppel-polish.js
+
+      - name: Layer 1 - Wrangler dry run
+        run: |
+          set -euo pipefail
+          cd .build/dplr-crm
+          npx wrangler deploy --dry-run
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/dplr-crm
+
+      - name: Attach custom domain
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"dplrcrm.clintware.com","service":"clintware-dplr-crm","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
+
+      - name: Layer 2 - live API, data, security, AI, and SSO contract
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/health || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/ || true)
+            s=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/dplr-shell.js || true)
+            if grep -Fq '"service":"clintware-dplr-crm"' <<< "$h" \
+              && grep -Fq 'Doppel Technical Customer Engineering OS' <<< "$p" \
+              && grep -Fq 'dplr-ui.css' <<< "$p" \
+              && grep -Fq 'dplr-portfolio-grid' <<< "$s"; then ready=1; break; fi
+            echo "Waiting for dplrcrm.clintware.com (${i}/48)"; sleep 5
+          done
+          test "$ready" = "1"
+
+          rm -f /tmp/dplr.cookies
+          curl -fsS -c /tmp/dplr.cookies https://dplrcrm.clintware.com/ >/tmp/dplr.html
+          state_code=$(curl -sS -o /tmp/dplrstate.json -w '%{http_code}' -b /tmp/dplr.cookies -c /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state | tr -cd '0-9')
+          test "$state_code" = "200"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/dplrstate.json'))
+          assert d['access']['authenticated'] is False
+          assert len(d['customers']) == 7, len(d['customers'])
+          assert d['customer']['name'] == 'ACME GLOBAL'
+          assert sum(1 for c in d['customers'] if c.get('isGoldenExample')) == 1
+          assert sum(1 for c in d['customers'] if c.get('isSynthetic')) == 3
+          assert sum(1 for c in d['customers'] if c.get('isPublicReference')) == 3
+          PY
+
+          echo "API mutation test: import customer"
+          import_code=$(curl -sS -o /tmp/dplrimport.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"DPLR CI Import","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dplrcrm.clintware.com/api/customers/bulk-import | tr -cd '0-9')
+          test "$import_code" = "201"
+          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrafter.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplrafter.json")); assert any(c["name"]=="DPLR CI Import" for c in d["customers"])'
+
+          echo "API mutation test: clear except golden and repopulate"
+          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dplrcrm.clintware.com/api/customers/clear >/tmp/dplrclear.json
+          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrkept.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplrkept.json")); assert len(d["customers"])==1 and d["customers"][0]["name"]=="ACME GLOBAL"'
+          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{}' https://dplrcrm.clintware.com/api/customers/reset-samples >/tmp/dplrreset.json
+          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrresetstate.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplrresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
+
+          echo "API mutation test: stakeholder create + edit"
+          customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/dplrresetstate.json"))["customer"]["id"])')
+          stakeholder_code=$(curl -sS -o /tmp/dplrstake.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"DPLR CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          test "$stakeholder_code" = "201"
+          stakeholder_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplrstake.json")); print(d.get("id") or d.get("record",{}).get("id") or d.get("recordId") or "")')
+          if [ -z "$stakeholder_id" ]; then
+            curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-state.json
+            stakeholder_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplrstake-state.json")); print(next(r["id"] for r in d["records"] if r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="DPLR CI Stakeholder"))')
+          fi
+          patch_code=$(curl -sS -o /tmp/dplrpatch.json -w '%{http_code}' -X PATCH -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"data":{"status":"Engaged"}}' "https://dplrcrm.clintware.com/api/records/$stakeholder_id" | tr -cd '0-9')
+          test "$patch_code" = "200"
+          curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-final.json
+          python3 -c 'import json; d=json.load(open("/tmp/dplrstake-final.json")); assert any(r.get("id")=="'"$stakeholder_id"'" and r.get("data",{}).get("status")=="Engaged" for r in d["records"])'
+
+          echo "Security headers and internal-route shielding"
+          headers=$(curl -fsS -D - -o /dev/null https://dplrcrm.clintware.com/)
+          grep -Fqi 'strict-transport-security:' <<< "$headers"
+          grep -Fqi 'x-frame-options: DENY' <<< "$headers"
+          grep -Fqi 'content-security-policy:' <<< "$headers"
+          grep -Fqi "script-src 'self'" <<< "$headers"
+          grep -Fqi 'cross-origin-opener-policy: same-origin' <<< "$headers"
+          test "$(curl -sS -o /tmp/dplr-backup-blocked.json -w '%{http_code}' https://dplrcrm.clintware.com/api/backup | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-session-blocked.json -w '%{http_code}' https://dplrcrm.clintware.com/api/session/test | tr -cd '0-9')" = "404"
+
+          echo "AI / Exa contract"
+          ai_status=$(curl -fsS https://dplrcrm.clintware.com/api/ai/status)
+          grep -Fq '"guestAvailable":true' <<< "$ai_status"
+          grep -Fq '"provider":"exa"' <<< "$ai_status"
+          ai_contract=$(curl -sS -o /tmp/dplr-ai-contract.json -w '%{http_code}' -X POST https://dplrcrm.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
+          test "$ai_contract" = "400"
+          grep -Fq '"error":"text_and_customer_required"' /tmp/dplr-ai-contract.json
+
+          echo "Identity contract"
+          auth_ok=0
+          for i in $(seq 1 36); do
+            auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/dplr-crm || true)
+            if grep -Fq '"app":"dplr-crm"' <<< "$auth" && grep -Fq '"redirect_uri":"https://dplrcrm.clintware.com/auth/callback"' <<< "$auth"; then auth_ok=1; break; fi
+            echo "Waiting for DPLR identity registration ($i/36)"; sleep 5
+          done
+          test "$auth_ok" = "1"
+          echo "DPLR layer-2 live verification passed."
+
+      - name: Layer 3 - real browser functional smoke
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node tests/dplr_browser_smoke.mjs
+
+      - name: Upload DPLR browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dplr-browser-evidence
+          path: |
+            dplr-desktop-smoke.png
+            dplr-mobile-smoke.png
+            dplr-failure.png
+          if-no-files-found: ignore
