@@ -192,16 +192,19 @@ namespace Clintware.QuillgeistLite
                             {
                                 LocalLog("wake_received " + Redact(payload));
                                 bool alive = RunnerAlive();
-                                if (!alive)
+
+                                // The Control Plane sends the health-service wake only when
+                                // it could not deliver the queued job to an interactive runner.
+                                // A PID can therefore be alive while its WebSocket is stale.
+                                // Treat the wake as authoritative reconnect evidence and cycle
+                                // the supervised task even when RunnerAlive() is true.
+                                if (alive)
                                 {
-                                    // A queued job can now wake qq even when its interactive
-                                    // runner is not already connected.
-                                    EnsureRunner(true);
+                                    string stale = "wake_received_runner_pid_alive_but_control_plane_disconnected";
+                                    LocalLog(stale);
+                                    TryPost("WARN", "wake", stale, true);
                                 }
-                                else
-                                {
-                                    TryPost("INFO", "wake", "wake_received_runner_already_alive", true);
-                                }
+                                EnsureRunner(true);
                             }
                         }
                     }
