@@ -1,7 +1,7 @@
 {
-  "version": 9,
+  "version": 10,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, and exposes bounded installed-model inspection, fit checks, routing recommendations, and benchmarks without implicit model downloads.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
     "powershell",
     "python",
@@ -167,6 +167,19 @@
         "Prompt",
         "ContextTokens",
         "MaxTokens"
+      ]
+    },
+    "repo-code-search": {
+      "title": "Search the maintained Clintware repository deterministically without provider code-search indexing",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/repo-code-search.ps1",
+      "parameters": [
+        "Query",
+        "Path",
+        "Mode",
+        "Max",
+        "Json",
+        "FilesOnly"
       ]
     }
   }
