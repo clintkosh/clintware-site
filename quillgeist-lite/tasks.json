@@ -216,6 +216,14 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 900
+    },
+    "dedupe-qq-windows": {
+      "title": "Close stale duplicate Quillgeist Lite windows and keep the canonical live runner",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/dedupe-qq-windows.ps1",
+      "parameters": [],
+      "approval": "pre-approved",
+      "timeout_seconds": 120
     }
   }
 }
