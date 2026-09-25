@@ -71,6 +71,43 @@ This provides the MVP cross-model loop:
 
 `user correction → local Quillgeist preference → new task → preference injected → any connected model`
 
+
+## Local inference manager
+
+Quillgeist Full now includes a Windows-first local inference manager for installed runtimes and models. It inventories available RAM, detected GPU metadata, Ollama, llama.cpp binaries, ONNX Runtime GenAI when installed, Ollama models, and GGUF files from configured model directories. It applies a conservative memory-fit guard before recommending or planning local execution.
+
+```bash
+quillgeist local-ai status
+quillgeist local-ai fit MODEL --context-tokens 8192
+quillgeist local-ai route --task coding --context-tokens 8192
+quillgeist local-ai fallback --task coding --context-tokens 8192
+quillgeist local-ai plan MODEL --context-tokens 8192
+quillgeist local-ai benchmark MODEL --context-tokens 4096
+quillgeist local-ai curve MODEL --contexts 2048,4096,8192
+quillgeist local-ai workload
+```
+
+Full also has an explicit measurement-and-verification loop:
+
+```bash
+quillgeist local-ai autofit --contexts 2048,4096,8192
+quillgeist local-ai apply PROPOSAL_ID
+quillgeist local-ai verify
+quillgeist local-ai rollback-profile
+```
+
+Auto-fit measures only installed candidates. Applying a proposal changes only Quillgeist's local selection profile; it does not modify firmware, clocks, voltages, or model files. Verification compares the active profile against measured baseline performance and restores the previous profile when a configured regression threshold is crossed.
+
+For clients that already speak the OpenAI chat-completions shape, Full can expose a local endpoint:
+
+```bash
+quillgeist local-ai gateway --host 127.0.0.1 --port 11435
+```
+
+The gateway serves `GET /health`, `GET /v1/models`, and non-streaming `POST /v1/chat/completions`. It refuses non-loopback binds, routes only to installed local models, applies the same RAM guard, records bounded workload measurements locally, and does not implicitly download a model.
+
+Public Quillgeist builds retain the existing isolation boundary: they start local-only, do not contain a Clintware credential, and cannot silently pair to Clintware infrastructure. Internal owner routing is maintained separately from this public runtime.
+
 ## Local authority
 
 Quillgeist does not expose an unrestricted administrator shell to the internet.
