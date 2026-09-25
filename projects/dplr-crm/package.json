@@ -1,0 +1,11 @@
+{
+  "name": "dplr-crm-build",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "materialize": "node scripts/materialize.mjs",
+    "check": "node scripts/materialize.mjs && cd ../../.build/dplr-crm && npm install --no-audit --no-fund && npm run check",
+    "deploy": "node scripts/materialize.mjs && cd ../../.build/dplr-crm && npm install --no-audit --no-fund && npx wrangler deploy"
+  }
+}
