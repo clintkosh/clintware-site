@@ -8,6 +8,7 @@ import subprocess
 import time
 
 from .config import Config
+from . import local_inference
 
 _CACHE_SECONDS = 60
 _cache: dict = {"ts": 0.0, "data": None}
@@ -144,6 +145,14 @@ def _ollama(config: Config) -> dict | None:
     return _row("Ollama", ready=code == 0, auth_source="local runtime", identity="This PC", detail=detail, models=models, client="ollama")
 
 
+def _bitnet() -> dict | None:
+    runtime = next((r for r in local_inference.runtime_snapshot() if r.get("runtime") == "bitnet.cpp"), None)
+    if not runtime:
+        return None
+    models = [m.get("name", "") for m in local_inference._bitnet_models() if m.get("name")]
+    return _row("BitNet", ready=bool(runtime.get("ready")), auth_source="local runtime", identity="This PC", detail=str(runtime.get("detail") or ""), models=models, client="bitnet.cpp")
+
+
 def _other_api_keys(env: dict[str, str]) -> list[dict]:
     rows = []
     if env.get("OPENROUTER_API_KEY"):
@@ -168,7 +177,7 @@ def provider_snapshot(config: Config | None = None, *, force: bool = False) -> d
     config = config or Config.load()
     env = dict(os.environ)
     home = Path.home()
-    rows = [r for r in (_codex(env, home), _claude(env, home), _gemini(env, home), _ollama(config)) if r]
+    rows = [r for r in (_codex(env, home), _claude(env, home), _gemini(env, home), _ollama(config), _bitnet()) if r]
     rows.extend(_other_api_keys(env))
     rows.sort(key=lambda r: (not r["ready"], r["provider"].lower()))
     ready = [r for r in rows if r["ready"]]
