@@ -521,6 +521,8 @@ export class RegistryHub extends DurableObject {
       if(!job||!["queued","running"].includes(String(job.status||"queued")))continue;
 
       const taskId=String(job.task_id||"");
+      const ageMs=Date.now()-Date.parse(job.created_at||"");
+      if((taskId==="browser-work"||taskId==="browser-setup")&&Number.isFinite(ageMs)&&ageMs>45*60*1000)continue;
       if(singletonMaintenance.has(taskId)){
         if(seenSingleton.has(taskId))continue;
         seenSingleton.add(taskId);
