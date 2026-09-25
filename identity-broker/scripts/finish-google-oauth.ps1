@@ -12,7 +12,7 @@ $SetupPath = Join-Path $env:TEMP "clintware-google-oauth.ps1"
 
 Write-Host ""
 Write-Host "=== FINISH CLINTWARE GOOGLE OAUTH ===" -ForegroundColor Cyan
-Write-Host "Clintware only. CodeFEDDY is not touched." -ForegroundColor Yellow
+Write-Host "Clintware identity scope only." -ForegroundColor Yellow
 Write-Host ""
 
 Invoke-WebRequest -Uri $SetupUrl -OutFile $SetupPath -UseBasicParsing
