@@ -1,0 +1,37 @@
+name: Validate SuccessOS
+on:
+  push:
+    branches: [main]
+    paths:
+      - "successos/**"
+      - "public/successos/**"
+      - "public/startup/index.html"
+      - "public/tools/index.html"
+      - ".github/workflows/successos-validate.yml"
+  pull_request:
+    paths:
+      - "successos/**"
+      - "public/successos/**"
+      - "public/startup/index.html"
+      - "public/tools/index.html"
+      - ".github/workflows/successos-validate.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python syntax
+        run: python -m py_compile successos/os/success_permission.py successos/os/success_driver_scan.py
+      - name: Permission and static tests
+        run: python -m unittest discover -s successos/tests -v
+      - name: JSON syntax
+        run: |
+          python -m json.tool successos/os/default-policy.json >/dev/null
+          python -m json.tool successos/plugin/plugin.json >/dev/null
+          python -m json.tool successos/plugin/mcp.json >/dev/null
+      - name: ISO build-script syntax
+        run: bash -n successos/os/build-successos.sh
