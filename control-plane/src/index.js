@@ -233,6 +233,7 @@ const QUILLGEIST_LITE_TASKS = {
   "browser-setup":{runtime:"powershell",parameters:[]},
   "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","AllowPrivate","Headless","WaitMs"]},
   "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
+  "responder-agent":{runtime:"powershell",parameters:["Action"]},
   "bitnet-setup":{runtime:"powershell",parameters:[]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
@@ -426,6 +427,49 @@ async function verifyGithubReceiver(request){
     const login=String(user?.login||"").toLowerCase();
     return login==="clintkosh"?{ok:true,login}:{ok:false,reason:"receiver_identity_not_allowed"};
   }catch{return {ok:false,reason:"github_auth_unavailable"};}
+}
+
+function base64UrlUtf8(value){
+  const bytes=new TextEncoder().encode(String(value||""));
+  let binary="";
+  for(const b of bytes)binary+=String.fromCharCode(b);
+  return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"");
+}
+
+async function sendResponderEmail(env,{to,subject,body}={}){
+  const recipient=String(to||"").trim();
+  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(recipient))return {ok:false,error:"invalid_recipient"};
+  const bridge=String(env.GOOGLE_DELEGATED_BRIDGE_SECRET||"");
+  if(!bridge)return {ok:false,error:"google_bridge_not_configured"};
+  const tokenResp=await fetch("https://auth.clintware.com/internal/google-access-token",{
+    method:"POST",
+    headers:{"x-clintware-google-secret":bridge}
+  });
+  const tokenData=await tokenResp.json().catch(()=>({}));
+  if(!tokenResp.ok||!tokenData.access_token)return {ok:false,error:tokenData.error||"google_token_unavailable",status:tokenResp.status};
+
+  const safeSubject=String(subject||"Responder Daily").replace(/[\\r\\n]+/g," ").slice(0,200);
+  const safeBody=String(body||"").slice(0,50000);
+  const raw=[
+    "To: "+recipient,
+    "Subject: "+safeSubject,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    safeBody
+  ].join("\\r\\n");
+  const sendResp=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{
+    method:"POST",
+    headers:{
+      "authorization":"Bearer "+tokenData.access_token,
+      "content-type":"application/json"
+    },
+    body:JSON.stringify({raw:base64UrlUtf8(raw)})
+  });
+  const sent=await sendResp.json().catch(()=>({}));
+  if(!sendResp.ok)return {ok:false,error:"gmail_send_failed",status:sendResp.status};
+  return {ok:true,message_id:String(sent.id||"")};
 }
 
 async function authorizeJiraControlRequest(request,env){
@@ -3000,6 +3044,14 @@ export default {
         headers.set("upgrade","websocket");
         headers.set("x-quillgeist-device",device_id);
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-wake-stream",{method:"GET",headers}));
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/responder-report"){
+        const receiver=await verifyGithubReceiver(request);
+        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const body=await reqJson(request,64_000);
+        const result=await sendResponderEmail(env,{to:body.to,subject:body.subject,body:body.body});
+        if(!result.ok)return json(result,result.status||503);
+        return json({ok:true,email:result,runner_id:clip(body.runner_id||"",120),generated_at:clip(body.generated_at||"",80)});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
