@@ -78,6 +78,7 @@ jobs:
           echo
 
       - name: Refresh qq runtime in place
+        continue-on-error: true
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
