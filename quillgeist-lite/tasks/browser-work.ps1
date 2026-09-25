@@ -5,7 +5,7 @@ param(
   [string]$Value = "",
   [string]$StepsJson = "",
   [string]$Query = "",
-  [ValidateSet("auto","bing","duckduckgo")][string]$Engine = "auto",
+  [ValidateSet("auto","google","brave","bing","duckduckgo")][string]$Engine = "auto",
   [ValidateRange(1,20)][int]$MaxResults = 8,
   [ValidateRange(1000,100000)][int]$MaxChars = 20000,
   [string]$Approved = "false",
