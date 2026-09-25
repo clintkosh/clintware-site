@@ -145,23 +145,27 @@ function manageUrl(booking) {
   return `${CONFIG.publicUrl}/manage/${booking.manageToken}`;
 }
 
-function eventBody(booking) {
+export function buildGoogleCalendarEventBody(booking, { includeConference = true } = {}) {
   const room = roomUrl(booking);
   const manage = manageUrl(booking);
   const purpose = booking.purpose || "Conversation";
   const topic = booking.topic || "Conversation";
-  return {
+  const attendees = [{ email: booking.email, displayName: booking.name }];
+  if (String(booking.email || "").toLowerCase() !== CONFIG.hostEmail.toLowerCase()) {
+    attendees.push({ email: CONFIG.hostEmail, displayName: CONFIG.hostName });
+  }
+
+  const body = {
     id: String(booking.id || "").replaceAll("-", "").toLowerCase(),
     summary: `Meet with Clinton — ${booking.name}`,
     description: [
       "Scheduled through Clintware Meet.",
       `Purpose: ${purpose}`,
       `Topic: ${topic}`,
-      `Join meeting: ${room}`,
+      `Backup room: ${room}`,
       `Manage booking: ${manage}`,
       `Host contact: ${CONFIG.hostEmail}`,
     ].join("\n"),
-    location: room,
     start: {
       dateTime: new Date(booking.startMs).toISOString(),
       timeZone: CONFIG.hostTimeZone,
@@ -170,7 +174,7 @@ function eventBody(booking) {
       dateTime: new Date(booking.endMs).toISOString(),
       timeZone: CONFIG.hostTimeZone,
     },
-    attendees: [{ email: booking.email, displayName: booking.name }],
+    attendees,
     guestsCanInviteOthers: false,
     guestsCanModify: false,
     reminders: { useDefault: true },
@@ -178,38 +182,64 @@ function eventBody(booking) {
       private: {
         clintwareBookingId: booking.id,
         clintwareManageUrl: manage,
+        clintwareBackupRoom: room,
       },
     },
   };
+
+  if (includeConference) {
+    body.conferenceData = {
+      createRequest: {
+        requestId: `clintware-${String(booking.id || "").replaceAll("-", "").toLowerCase()}`,
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    };
+  }
+
+  return body;
 }
 
 export async function createGoogleCalendarEvent(env, booking) {
   const id = String(booking.id || "").replaceAll("-", "").toLowerCase();
   const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events`;
-  const url = `${base}?sendUpdates=all`;
+  const url = `${base}?conferenceDataVersion=1&sendUpdates=all`;
   try {
     const event = await googleJson(env, url, {
       method: "POST",
-      body: JSON.stringify(eventBody(booking)),
+      body: JSON.stringify(buildGoogleCalendarEventBody(booking)),
     });
-    return { id: event.id || id, htmlLink: event.htmlLink || "", status: event.status || "confirmed" };
+    return { id: event.id || id, htmlLink: event.htmlLink || "", hangoutLink: event.hangoutLink || "", status: event.status || "confirmed" };
   } catch (error) {
     if (error.status !== 409) throw error;
-    const existing = await googleJson(env, `${base}/${encodeURIComponent(id)}`);
-    return { id: existing.id || id, htmlLink: existing.htmlLink || "", status: existing.status || "confirmed" };
+    const existing = await googleJson(env, `${base}/${encodeURIComponent(id)}?conferenceDataVersion=1`);
+    return { id: existing.id || id, htmlLink: existing.htmlLink || "", hangoutLink: existing.hangoutLink || "", status: existing.status || "confirmed" };
   }
 }
 
 export async function updateGoogleCalendarEvent(env, booking) {
   if (!booking.googleEventId) return null;
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events/${encodeURIComponent(booking.googleEventId)}?sendUpdates=all`;
-  const body = eventBody(booking);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events/${encodeURIComponent(booking.googleEventId)}?conferenceDataVersion=1&sendUpdates=all`;
+  const body = buildGoogleCalendarEventBody(booking, { includeConference: false });
   delete body.id;
   const event = await googleJson(env, url, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
-  return { id: event.id || booking.googleEventId, htmlLink: event.htmlLink || "", status: event.status || "confirmed" };
+  return { id: event.id || booking.googleEventId, htmlLink: event.htmlLink || "", hangoutLink: event.hangoutLink || "", status: event.status || "confirmed" };
+}
+
+export async function getGoogleCalendarEvent(env, booking) {
+  if (!booking.googleEventId) return null;
+  const event = await googleJson(
+    env,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events/${encodeURIComponent(booking.googleEventId)}?conferenceDataVersion=1`
+  );
+  return {
+    id: event.id || booking.googleEventId,
+    htmlLink: event.htmlLink || "",
+    hangoutLink: event.hangoutLink || "",
+    status: event.status || "confirmed",
+  };
 }
 
 export async function deleteGoogleCalendarEvent(env, booking) {
