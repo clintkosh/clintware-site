@@ -14,10 +14,57 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>QQ</AssemblyName>
     <RootNamespace>Clintware.QQ.PortableInstaller</RootNamespace>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
     <Product>Clintware Quillgeist Lite Portable Installer</Product>
     <Company>Clintware</Company>
-    <Description>Installs and repairs the authorized Clintware Quillgeist Lite local runner with singleton and duplicate-window protection.</Description>
+    <Description>Self-contained installer for the Clintware Quillgeist Lite local runner and device-authenticated control-plane connection.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\*.ps1;..\*.json;..\*.md;..\*.cmd">
+      <LogicalName>qqruntime/quillgeist-lite/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\assets\**\*">
+      <LogicalName>qqruntime/quillgeist-lite/assets/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\guardian\**\*" Exclude="..\guardian\bin\**;..\guardian\obj\**">
+      <LogicalName>qqruntime/quillgeist-lite/guardian/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\launcher\**\*" Exclude="..\launcher\bin\**;..\launcher\obj\**">
+      <LogicalName>qqruntime/quillgeist-lite/launcher/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\service\**\*">
+      <LogicalName>qqruntime/quillgeist-lite/service/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\tasks\**\*">
+      <LogicalName>qqruntime/quillgeist-lite/tasks/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\tools\**\*">
+      <LogicalName>qqruntime/quillgeist-lite/tools/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\..\identity-broker\scripts\grant-google-cloud-support-access.ps1">
+      <LogicalName>qqruntime/identity-broker/scripts/grant-google-cloud-support-access.ps1</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\identity-broker\scripts\finish-google-oauth.ps1">
+      <LogicalName>qqruntime/identity-broker/scripts/finish-google-oauth.ps1</LogicalName>
+    </EmbeddedResource>
+
+    <EmbeddedResource Include="..\..\scripts\code-search.ps1">
+      <LogicalName>qqruntime/scripts/code-search.ps1</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\scripts\code-search.mjs">
+      <LogicalName>qqruntime/scripts/code-search.mjs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\CODE_SEARCH.md">
+      <LogicalName>qqruntime/CODE_SEARCH.md</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
