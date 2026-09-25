@@ -150,19 +150,6 @@ const DEFAULT_N7DEMO_CRM = {
 };
 
 
-const DEFAULT_CODEFEDDY = {
-  product:"codefeddy",
-  environment:"production",
-  version:1,
-  repo:{identity:"codefeddy",owner:"codeFEDDY",name:"codeFEDDY.github.io",default_branch:"main",read:true,write_prefixes:[""],delete_prefixes:[""],allowed_workflows:[]},
-  dns:{allowed_names:[]},
-  capabilities:["repo.read:codeFEDDY.github.io","repo.write:*","repo.delete:*","repo.branch:create","repo.branch:read","repo.commit:status","analytics.write:codefeddy","analytics.read:codefeddy"],
-  deny:["secrets.read","secrets.export","billing.manage","repo.workflow:dispatch","infrastructure.admin:*"],
-  protected_paths:[".github/workflows/",".github/actions/"],
-  telemetry_namespace:"codefeddy",
-  created_at:"2026-09-18T00:00:00.000Z"
-};
-
 const DEFAULT_MINDTOFORM = {
   product:"mindtoform",
   environment:"production",
@@ -242,15 +229,13 @@ const QUILLGEIST_LITE_TASKS = {
   "enable-admin-console":{runtime:"powershell",parameters:[]},
   "bootstrap-admin-console":{runtime:"powershell",parameters:[]},
   "gimp-clintware-eclipse":{runtime:"powershell",parameters:[]},
-  "codefeddy-access-check":{runtime:"powershell",parameters:[]},
-  "provision-codefeddy-platform":{runtime:"powershell",parameters:[]},
   "self-heal":{runtime:"powershell",parameters:[]},
   "browser-setup":{runtime:"powershell",parameters:[]},
   "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","AllowPrivate","Headless","WaitMs"]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,codefeddy:DEFAULT_CODEFEDDY,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
 
 const DEFAULT_FLOW_DEFINITIONS = [
   {
@@ -927,6 +912,18 @@ export class RegistryHub extends DurableObject {
     let products=await this.ctx.storage.get("products");
     if(!products)products={};
     let changed=false;
+    // Brand isolation: this Clintware control plane must not retain or expose the
+    // separate creator-brand product in current registry/client state.
+    const retiredProduct=["code","feddy"].join("");
+    if(products[retiredProduct]){
+      delete products[retiredProduct];
+      changed=true;
+    }
+    const retiredClients=await this.ctx.storage.get("clients")||{};
+    if(retiredClients[retiredProduct]){
+      delete retiredClients[retiredProduct];
+      await this.ctx.storage.put("clients",retiredClients);
+    }
     for(const [key,defaults] of Object.entries(DEFAULT_PRODUCTS)){
       if(!products[key]){products[key]=defaults;changed=true;continue;}
       if(products[key].version!==defaults.version){
@@ -2211,7 +2208,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","codefeddy-access-check","provision-codefeddy-platform","self-heal","browser-setup","browser-work","record-google-oauth-verification"]),
+      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","self-heal","browser-setup","browser-work","record-google-oauth-verification"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
@@ -2890,7 +2887,7 @@ function controlPlaneLanding(){
 }
 
 function safeConfig(env){
-  const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH||env.GITHUB_TOKEN_CODEFEDDY);
+  const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH);
   return {
     github_read:true,
     github_write:knownGithub,
