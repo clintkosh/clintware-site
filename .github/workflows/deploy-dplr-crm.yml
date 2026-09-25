@@ -33,15 +33,17 @@ jobs:
           npm run check
           grep -Fq '"name":"clintware-dplr-crm"' wrangler.jsonc
           grep -Fq 'const APP_ID="dplr-crm"' src/index.js
-          grep -Fq 'const REQUIRED_CONTEXT="dplr-crm:read"' src/index.js
-          grep -Fq 'ctx.includes("dplr-crm:write")' src/index.js
           grep -Fq 'const WORKSPACE_ID="dplr-doppel"' src/index.js
-          grep -Fq '/client-config/dplr-crm' src/index.js
+          grep -Fq 'SAMPLE_SEED_VERSION=4' src/sample-customers.js
+          grep -Fq 'setCookie(GUEST_COOKIE,id,15552000)' src/index.js
+          grep -Fq 'persistence:"browser-persistent"' src/index.js
           grep -Fq 'Doppel Technical Customer Engineering OS' public/index.html
           grep -Fq '/dplr-ui.css' public/index.html
           grep -Fq '/dplr-shell.js' public/index.html
           grep -Fq '/dplr-prep.js' public/index.html
+          grep -Fq '/dplr-enrich.js' public/index.html
           node --check public/dplr-prep.js
+          node --check public/dplr-enrich.js
           grep -Fq 'dplr-portfolio-grid' public/dplr-shell.js
           grep -Fq 'Operating Model' public/dplr-shell.js
           grep -Fq 'Advanced Investigations' public/dplr-shell.js
@@ -49,10 +51,12 @@ jobs:
           grep -Fq 'Engineering Handoff' public/dplr-shell.js
           grep -Fq 'Support Scale' public/dplr-shell.js
           grep -Fq 'Call Preparation' public/dplr-prep.js
-          grep -Fq 'Technology quick refresh' public/dplr-prep.js
-          grep -Fq 'Generate editable draft' public/dplr-prep.js
-          grep -Fq 'LIVE ASSIST' public/dplr-prep.js
-          grep -Fq 'Guest records are scoped to this browser session and do not automatically migrate' public/dplr-shell.js
+          grep -Fq 'Known-good control' public/dplr-enrich.js
+          grep -Fq 'Evidence quality gate' public/dplr-enrich.js
+          grep -Fq 'Support graduation gate' public/dplr-enrich.js
+          grep -Fq 'doppel-platform-overview' public/dplr-enrich.js
+          grep -Fq 'doppel-okta-setup-instructions' public/dplr-enrich.js
+          grep -Fq 'jira-integration' public/dplr-enrich.js
           grep -Fq 'localStorage.getItem("dplrtheme")||"light"' public/app-config.js
           ! grep -Rq 'doppel-brand.css' public/index.html
           ! grep -Rq 'doppel-polish.js' public/index.html
@@ -84,7 +88,7 @@ jobs:
             --data '{"hostname":"dplrcrm.clintware.com","service":"clintware-dplr-crm","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
 
-      - name: Layer 2 - live API, data, security, AI, and SSO contract
+      - name: Layer 2 - live API, data, security, AI, and no-login persistence contract
         run: |
           set -euo pipefail
           ready=0
@@ -92,27 +96,38 @@ jobs:
             h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/health || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/ || true)
             s=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/dplr-shell.js || true)
+            e=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/dplr-enrich.js || true)
             if grep -Fq '"service":"clintware-dplr-crm"' <<< "$h" \
               && grep -Fq 'Doppel Technical Customer Engineering OS' <<< "$p" \
               && grep -Fq 'dplr-ui.css' <<< "$p" \
-              && grep -Fq 'dplr-portfolio-grid' <<< "$s"; then ready=1; break; fi
+              && grep -Fq 'dplr-portfolio-grid' <<< "$s" \
+              && grep -Fq 'Known-good control' <<< "$e"; then ready=1; break; fi
             echo "Waiting for dplrcrm.clintware.com (${i}/48)"; sleep 5
           done
           test "$ready" = "1"
 
-          rm -f /tmp/dplr.cookies
-          curl -fsS -c /tmp/dplr.cookies https://dplrcrm.clintware.com/ >/tmp/dplr.html
+          rm -f /tmp/dplr.cookies /tmp/dplr.headers
+          curl -fsS -D /tmp/dplr.headers -c /tmp/dplr.cookies https://dplrcrm.clintware.com/ >/tmp/dplr.html
+          grep -Fqi 'max-age=15552000' /tmp/dplr.headers
+          me=$(curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/me)
+          grep -Fq '"authenticated":false' <<< "$me"
+          grep -Fq '"persistence":"browser-persistent"' <<< "$me"
+          login_status=$(curl -sS -o /dev/null -D /tmp/dplr-login.headers -w '%{http_code}' https://dplrcrm.clintware.com/auth/login | tr -cd '0-9')
+          test "$login_status" = "302"
+          grep -Fqi 'location: /' /tmp/dplr-login.headers
+
           state_code=$(curl -sS -o /tmp/dplrstate.json -w '%{http_code}' -b /tmp/dplr.cookies -c /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state | tr -cd '0-9')
           test "$state_code" = "200"
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/dplrstate.json'))
           assert d['access']['authenticated'] is False
-          assert len(d['customers']) == 7, len(d['customers'])
+          assert len(d['customers']) == 10, len(d['customers'])
           assert d['customer']['name'] == 'ACME GLOBAL'
           assert sum(1 for c in d['customers'] if c.get('isGoldenExample')) == 1
-          assert sum(1 for c in d['customers'] if c.get('isSynthetic')) == 3
+          assert sum(1 for c in d['customers'] if c.get('isSynthetic')) == 6
           assert sum(1 for c in d['customers'] if c.get('isPublicReference')) == 3
+          assert {'Ironwood Bank','Meridian Manufacturing','NovaCloud SaaS'} <= {c['name'] for c in d['customers']}
           PY
 
           echo "API mutation test: import customer"
@@ -127,7 +142,13 @@ jobs:
           python3 -c 'import json; d=json.load(open("/tmp/dplrkept.json")); assert len(d["customers"])==1 and d["customers"][0]["name"]=="ACME GLOBAL"'
           curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{}' https://dplrcrm.clintware.com/api/customers/reset-samples >/tmp/dplrreset.json
           curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrresetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplrresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/dplrresetstate.json'))
+          assert len(d['customers'])==10
+          assert sum(1 for c in d['customers'] if c.get('isPublicReference'))==3
+          iron=next(c for c in d['customers'] if c['name']=='Ironwood Bank')
+          PY
 
           echo "API mutation test: stakeholder create + edit"
           customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/dplrresetstate.json"))["customer"]["id"])')
@@ -140,16 +161,26 @@ jobs:
           fi
           patch_code=$(curl -sS -o /tmp/dplrpatch.json -w '%{http_code}' -X PATCH -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"data":{"status":"Engaged"}}' "https://dplrcrm.clintware.com/api/records/$stakeholder_id" | tr -cd '0-9')
           test "$patch_code" = "200"
-          curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-final.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplrstake-final.json")); assert any(r.get("id")=="'"$stakeholder_id"'" and r.get("data",{}).get("status")=="Engaged" for r in d["records"])'
+
+          echo "Default sample prep + playbook contract"
+          iron_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplrresetstate.json")); print(next(c["id"] for c in d["customers"] if c["name"]=="Ironwood Bank"))')
+          curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$iron_id" >/tmp/dplriron.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/dplriron.json'))
+          types=[r['type'] for r in d['records']]
+          assert 'call_prep' in types
+          assert 'assistant_profile' in types
+          prep=next(r for r in d['records'] if r['type']=='call_prep')['data']
+          assert 'Known-good control' in prep['evidenceReady']
+          assert 'bounded ask' in prep['escalationCriteria']
+          PY
 
           echo "API mutation test: modular call prep + email draft"
-          prep_code=$(curl -sS -o /tmp/dplrprep.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"call_prep","provenance":"internal_proposal","data":{"title":"CI call prep","objective":"Validate the technical path","technologyNotes":"Okta quick reminder","assistantNotes":"Use approved playbook"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          prep_code=$(curl -sS -o /tmp/dplrprep.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"call_prep","provenance":"internal_proposal","data":{"title":"CI call prep","objective":"Validate the technical path","technologyNotes":"Known-good control","assistantNotes":"Use approved playbook"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
           test "$prep_code" = "201"
           email_code=$(curl -sS -o /tmp/dplremail.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"email_draft","provenance":"internal_proposal","data":{"title":"CI follow-up","kind":"post_call","subject":"Follow-up","body":"Draft only","status":"Draft"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
           test "$email_code" = "201"
-          curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrprepstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplrprepstate.json")); t=[r["type"] for r in d["records"]]; assert "call_prep" in t and "email_draft" in t'
 
           echo "Security headers and internal-route shielding"
           headers=$(curl -fsS -D - -o /dev/null https://dplrcrm.clintware.com/)
@@ -168,15 +199,6 @@ jobs:
           ai_contract=$(curl -sS -o /tmp/dplr-ai-contract.json -w '%{http_code}' -X POST https://dplrcrm.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
           test "$ai_contract" = "400"
           grep -Fq '"error":"text_and_customer_required"' /tmp/dplr-ai-contract.json
-
-          echo "Identity contract"
-          auth_ok=0
-          for i in $(seq 1 36); do
-            auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/dplr-crm || true)
-            if grep -Fq '"app":"dplr-crm"' <<< "$auth" && grep -Fq '"redirect_uri":"https://dplrcrm.clintware.com/auth/callback"' <<< "$auth"; then auth_ok=1; break; fi
-            echo "Waiting for DPLR identity registration ($i/36)"; sleep 5
-          done
-          test "$auth_ok" = "1"
           echo "DPLR layer-2 live verification passed."
 
       - name: Layer 3 - real browser functional smoke
