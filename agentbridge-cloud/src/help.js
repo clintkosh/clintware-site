@@ -8,9 +8,9 @@ export const BASE_HELP={
   schema:1,
   updated_at:"2026-09-07T00:00:00Z",
   getting_started:[
-    {id:"quick-start",title:"Quick start",body:"Run `agentbridge init`, pair with Quillgeist, start `agentbridge daemon`, inspect an Execution Pack, then run locally or send it from Quillgeist Cloud."},
+    {id:"quick-start",title:"Quick start",body:"Run `agentbridge init` and use Quillgeist locally. Cloud is optional: deploy your own Quillgeist Cloud, pair with its explicit URL, then start `agentbridge daemon`."},
     {id:"execution-pack",title:"Execution Packs",body:"Quillgeist accepts `.abpack`, runtime JSON, and runtime Markdown. Inspect a pack before execution to review its workspace, permissions, steps, and Definition of Done."},
-    {id:"cloud-pairing",title:"Pair a device",body:"Run `agentbridge pair --cloud https://quillgeist.clintware.com`, then enter the eight-character pairing code in Quillgeist. The Node connects outbound; no inbound admin port is exposed."},
+    {id:"cloud-pairing",title:"Pair a self-hosted cloud",body:"Run `agentbridge pair --cloud https://quillgeist.example.com`, then enter the eight-character pairing code in Quillgeist. The Node connects outbound; no inbound admin port is exposed."},
     {id:"permissions",title:"Permissions",body:"Local policy is authoritative. `always` permits a capability, `ask` requires approval, and `never` cannot be overridden remotely."},
     {id:"dlp",title:"Sensitive-data protection",body:"Quillgeist scans Execution Pack content locally before execution. Standard protection is on by default: high-risk findings such as payment cards, private keys, credentials, API tokens, JWTs, and U.S. SSNs require explicit approval before execution; Strict blocks findings; Monitor records only sanitized finding metadata; Off disables the gate. Email addresses and phone numbers are treated as medium-risk contact data. Use `agentbridge dlp status|standard|strict|monitor|off|on` to control it."},
     {id:"contextor",title:"Contextor",body:"Contextor reduces execution output before it returns to an upstream planner. Small results pass through, large results use deterministic compaction, and Smart mode can optionally use a local model when the savings justify it."},
@@ -18,19 +18,19 @@ export const BASE_HELP={
     {id:"operating-rules",title:"Scoped operating rules",body:"Quillgeist stores explicit user-owned operating rules with global, project, or task scope. `quillgeist-rules` manages them and `quillgeist-plan --project <name> --task <type>` compiles only applicable rules, reporting how much saved context was not sent."},
     {id:"assemblerer-manifest",title:"Assemblerer company manifests",body:"`quillgeist-manifest <manifest.json>` compiles an Assemblerer company export into bounded authority, routing, pending-work, and evidence context. The manifest is not silently converted into permanent user rules."},
     {id:"scheduling",title:"Scheduling",body:"Schedules may be device-owned or cloud-owned. Device-owned schedules can continue while Quillgeist Cloud is unavailable. Cloud-owned schedules are dispatched to the selected paired Node."},
-    {id:"telemetry",title:"Metrics and error reporting",body:"Quillgeist records operational metadata such as connections, sends/receives, run status and duration, Contextor token estimates, patch/file counts, and redacted errors. Prompt text and file contents are not part of the telemetry event."}
+    {id:"telemetry",title:"Metrics and error reporting",body:"Public builds keep telemetry off by default. If the user explicitly enables telemetry against their own self-hosted cloud, operational metadata can be sent there; prompt text and file contents are not telemetry."}
   ],
   setup_removal:[
-    {id:"install-node",title:"Initial setup",body:"Download the correct Node for Windows, macOS, or Linux. Run `agentbridge init`, review `~/.agentbridge/config.json`, then pair the Node with Quillgeist Cloud."},
+    {id:"install-node",title:"Initial setup",body:"Download the correct Node for Windows, macOS, or Linux. Run `agentbridge init` and review the local configuration. Public builds start local-only; pairing is optional and requires your own self-hosted cloud URL."},
     {id:"workspace",title:"Restrict workspaces",body:"Add trusted directories to `allowed_workspaces`. Production use should normally use explicit allowed workspaces."},
-    {id:"start-daemon",title:"Start Cloud routing",body:"Run `agentbridge daemon` to keep Quillgeist Cloud routing, telemetry delivery, Help Center sync, and schedule synchronization active."},
+    {id:"start-daemon",title:"Start Cloud routing",body:"After explicitly configuring your own self-hosted cloud, run `agentbridge daemon` to keep that routing and synchronization active. Without a configured cloud, Quillgeist remains local-only."},
     {id:"remove-associations",title:"Remove file associations",body:"Until the signed installer provides one-click removal, use the operating system Default Apps/File Associations settings to change `.abpack` and `.abresult` handlers."},
     {id:"remove-node",title:"Remove Quillgeist",body:"Stop the daemon, remove the executable/package, and delete `~/.agentbridge` only if you also want to remove local settings, schedules, run evidence, snapshots, queued telemetry, and Help Center history."},
     {id:"disconnect-cloud",title:"Disconnect Cloud",body:"Stop the daemon or remove/change the Cloud pairing. Local Execution Packs and device-owned schedules can continue independently."}
   ],
   faq:[
     {id:"faq-llm",q:"Does Quillgeist require a local LLM?",a:"No. Explicit Execution Packs use the deterministic executor. A local model is optional for Smart Contextor and future intent interpretation."},
-    {id:"faq-admin",q:"Does Clintware get unrestricted administrator access?",a:"No. Cloud requests work; the local Node enforces device policy. A local `never` capability cannot be overridden remotely."},
+    {id:"faq-admin",q:"Does a cloud operator get unrestricted administrator access?",a:"No. The local Node enforces device policy. A local `never` capability cannot be overridden remotely, including by a self-hosted cloud operator."},
     {id:"faq-offline",q:"Can Quillgeist work without Cloud?",a:"Yes. Local Execution Packs and device-owned schedules can operate independently. Cloud adds routing, synchronization, remote control, history, and reporting."},
     {id:"faq-rules",q:"Does Quillgeist automatically learn permanent rules from corrections?",a:"No. A correction may create a proposed operating rule, but it remains unsaved until the user accepts it and chooses global, project, or task scope."},
     {id:"faq-delta-state",q:"Does delta-state context persist conversation history?",a:"Only when a project/state scope is used. The Node stores extracted project context locally so repeated work can avoid replaying known history. The local state can be inspected and explicitly reset, and planner state can be disabled per call with `--no-state`."},
@@ -42,7 +42,7 @@ export const BASE_HELP={
     {id:"faq-abpack",q:"What is an .abpack?",a:"A portable Quillgeist Execution Pack containing structured instructions, requested capabilities, Definition of Done, and optionally embedded files."}
   ],
   glossary:[
-    {term:"Quillgeist Cloud",definition:"Hosted control plane for pairing devices, routing jobs, synchronizing schedules/help, and storing account-scoped operational history."},
+    {term:"Quillgeist Cloud",definition:"Optional self-hosted control plane for pairing devices, routing jobs, synchronizing schedules/help, and storing account-scoped operational history."},
     {term:"Quillgeist Node",definition:"Local Windows, macOS, or Linux executor that enforces local permissions and performs authorized work."},
     {term:"Operating rule",definition:"An explicit user-owned instruction with global, project, or task scope that can be selectively compiled into applicable AI work."},
     {term:"Context compilation",definition:"Selecting only rules and bounded context relevant to the current task instead of sending the full preference/history store."},
@@ -59,7 +59,7 @@ export const BASE_HELP={
     {term:"Cloud-owned schedule",definition:"Schedule triggered by Cloud and dispatched to a selected paired Node."},
     {term:"Product bug",definition:"A failure attributed to Quillgeist rather than the user's task, environment, or denied permission."},
     {term:"Bug fingerprint",definition:"Normalized hash of a redacted error signature used to group repeat occurrences without storing a user's prompt or file contents."},
-    {term:"Telemetry",definition:"Operational metadata used for the user's dashboard/reporting and separate de-identified aggregate product-health metrics."}
+    {term:"Telemetry",definition:"Optional operational metadata. Public builds leave telemetry off unless the user explicitly enables it for their own configured cloud."}
   ],
   fixes:[
     {id:"alpha-1",date:"2026-08-15",version:"0.1.0-alpha.1",title:"Public alpha execution backbone",body:"Cross-platform Nodes, Cloud routing, Execution/Result Packs, local capability policy, rollback, schedules, Contextor, file associations, and mobile/PWA control."},
