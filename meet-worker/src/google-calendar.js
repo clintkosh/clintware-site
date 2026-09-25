@@ -1,5 +1,27 @@
 import { CONFIG } from "./lib.js";
 
+const RETRYABLE_GOOGLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const GOOGLE_REQUEST_RETRY_MS = [125, 400];
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableCalendarError(error) {
+  const status = Number(error?.status || 0);
+  if (RETRYABLE_GOOGLE_STATUSES.has(status)) return true;
+  return (
+    ["google_calendar_broker_token_failed", "google_calendar_oauth_refresh_failed"].includes(error?.code) &&
+    (status === 0 || status === 429 || status >= 500)
+  );
+}
+
+export function calendarRepairDelayMs(attempt) {
+  const schedule = [2_000, 10_000, 30_000, 120_000, 600_000];
+  const index = Math.max(0, Math.min(schedule.length - 1, Number(attempt || 1) - 1));
+  return schedule[index];
+}
+
 function calendarId(env) {
   return String(env.GOOGLE_CALENDAR_ID || "primary").trim() || "primary";
 }
@@ -80,22 +102,32 @@ async function accessToken(env) {
 }
 
 async function googleJson(env, url, init = {}) {
-  const token = await accessToken(env);
-  const headers = new Headers(init.headers || {});
-  headers.set("authorization", `Bearer ${token}`);
-  if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
-  const response = await fetch(url, { ...init, headers });
-  const text = await response.text();
-  let data = {};
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text.slice(0, 500) }; }
-  if (!response.ok) {
-    const error = new Error(`google_calendar_request_failed:${response.status}`);
-    error.code = "google_calendar_request_failed";
-    error.status = response.status;
-    error.detail = JSON.stringify(data).slice(0, 800);
-    throw error;
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const token = await accessToken(env);
+      const headers = new Headers(init.headers || {});
+      headers.set("authorization", `Bearer ${token}`);
+      if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
+      const response = await fetch(url, { ...init, headers });
+      const text = await response.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text.slice(0, 500) }; }
+      if (!response.ok) {
+        const error = new Error(`google_calendar_request_failed:${response.status}`);
+        error.code = "google_calendar_request_failed";
+        error.status = response.status;
+        error.detail = JSON.stringify(data).slice(0, 800);
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= GOOGLE_REQUEST_RETRY_MS.length || !isRetryableCalendarError(error)) throw error;
+      await sleep(GOOGLE_REQUEST_RETRY_MS[attempt]);
+    }
   }
-  return data;
+  throw lastError;
 }
 
 export async function googleBusyIntervals(env, fromMs, toMs) {
@@ -121,6 +153,17 @@ export async function googleBusyIntervals(env, fromMs, toMs) {
     startMs: Date.parse(item.start),
     endMs: Date.parse(item.end),
   })).filter((item) => Number.isFinite(item.startMs) && Number.isFinite(item.endMs));
+}
+
+export async function probeGoogleCalendar(env) {
+  if (!googleCalendarConfigured(env)) {
+    const error = new Error("google_calendar_not_configured");
+    error.code = "google_calendar_not_configured";
+    throw error;
+  }
+  const now = Date.now();
+  await googleBusyIntervals(env, now, now + 60_000);
+  return { ok: true, checkedAt: now };
 }
 
 export function filterSlotsAgainstGoogleBusy(slots, busy, config = CONFIG) {
