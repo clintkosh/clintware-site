@@ -117,7 +117,7 @@ jobs:
           for i in $(seq 1 30); do
             body=$(mktemp)
             code=$(curl -sS --connect-timeout 5 --max-time 20               -o "$body" -w '%{http_code}' "https://meet.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Pick a time. Get it done.' "$body"               && grep -Fq 'Book meeting' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Fq 'ca-pub-6169557480632773' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
+            if [ "$code" = "200" ]               && grep -Fq 'CLINT<b>WARE</b>™' "$body"               && grep -Fq 'GO FURTHEST.' "$body"               && grep -Fq 'Choose a time that works for you.' "$body"               && grep -Fq 'Book meeting' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Fq 'ca-pub-6169557480632773' "$body"               && ! grep -Fqi 'koalendar.com' "$body"               && ! grep -Fqi 'formsubmit.co' "$body"; then
               echo 'meet.clintware.com serves native ClintCal with no Koalendar or FormSubmit dependency.'
               ready=1
               rm -f "$body"
@@ -209,7 +209,7 @@ jobs:
           curl --fail-with-body -sS -X POST https://meet.clintware.com/api/book             -H 'content-type: application/json' --data @/tmp/book.json >/tmp/book-response.json
 
           token=$(python3 -c 'import json,re; d=json.load(open("/tmp/book-response.json")); u=d["booking"]["manageUrl"]; print(re.search(r"/manage/([a-f0-9]{48})",u).group(1))')
-          python3 -c 'import json; d=json.load(open("/tmp/book-response.json")); assert d["booking"]["status"]=="confirmed",d; assert d["delivery"]["guest"] is True,d'
+          python3 -c 'import json; d=json.load(open("/tmp/book-response.json")); assert d["booking"]["status"]=="confirmed",d; assert d["delivery"]["guest"] is True,d; assert d["calendar"]["synced"] is True,d; assert d["calendar"]["meetLink"].startswith("https://meet.google.com/"),d'
 
           curl --fail-with-body -sS "https://meet.clintware.com/api/manage/$token" >/tmp/manage.json
           python3 -c 'import json; d=json.load(open("/tmp/manage.json")); assert d["booking"]["status"]=="confirmed",d'
