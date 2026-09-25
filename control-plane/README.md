@@ -199,31 +199,9 @@ The deployment workflow uses the repository's existing `CLOUDFLARE_API_TOKEN` an
 
 ## Multiple GitHub identities
 
-The Control Plane now resolves GitHub credentials from each product manifest instead of assuming one global GitHub account.
+The Control Plane can resolve provider credentials from a product manifest instead of assuming one global GitHub account. Separate brands or organizations must use separate control planes and credential stores; Clintware does not broker unrelated brand identities.
 
-A manifest may set:
-
-```json
-{
-  "repo": {
-    "identity": "codefeddy",
-    "owner": "codeFEDDY",
-    "name": "codeFEDDY.github.io"
-  }
-}
-```
-
-The identity is normalized and mapped to a Cloudflare Worker secret:
-
-- `clintkosh` -> `GITHUB_TOKEN_CLINTKOSH`
-- `codefeddy` -> `GITHUB_TOKEN_CODEFEDDY`
-- `Acme Labs` -> `GITHUB_TOKEN_ACME_LABS`
-
-This lets one `mcp.clintware.com` client work across independent GitHub accounts without receiving or switching provider credentials. Each product still has its own repository/path/workflow policy.
-
-Use `control-plane/add-github-identity.ps1` to add another GitHub account once. Unknown account secrets are not deleted by normal deployments. `GET /health` reports identity aliases, repository mappings, expected secret names, and whether each identity is configured; it never returns token values.
-
-CodeFEDDY is registered as its own product and resolves to `codeFEDDY/codeFEDDY.github.io` using the `codefeddy` identity. Clintware products continue to resolve to the `clintkosh` identity.
+A generic external deployment can define its own identity alias in its own control plane, for example `external-lab`, and map that alias to a provider secret kept in that deployment. Clintware product manifests remain scoped to Clintware repositories, domains, and credentials.
 
 
 ## Cross-LLM routing
