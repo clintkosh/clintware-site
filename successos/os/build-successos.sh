@@ -32,6 +32,14 @@ firmware-iwlwifi
 firmware-realtek
 firmware-atheros
 firmware-mediatek
+firmware-amd-graphics
+firmware-intel-graphics
+firmware-intel-misc
+firmware-sof-signed
+firmware-brcm80211
+firmware-nvidia-graphics
+amd64-microcode
+intel-microcode
 network-manager
 wpasupplicant
 bluez
@@ -86,10 +94,15 @@ exec python3 /usr/local/lib/successos/success_permission.py "$@"
 SH
 chmod +x config/includes.chroot/usr/local/bin/success-approve
 
-cat > config/includes.chroot/opt/successos/models/README <<'TXT'
-Place verified local model payloads here during the release pipeline.
-Record source URL, model license, SHA-256 and bitnet.cpp build revision.
+BITNET_BUNDLE="${SUCCESSOS_BITNET_BUNDLE:-$ROOT/dist/bitnet-bundle.tar.gz}"
+if [[ -f "$BITNET_BUNDLE" ]]; then
+  tar -xzf "$BITNET_BUNDLE" -C config/includes.chroot/opt/successos
+else
+  cat > config/includes.chroot/opt/successos/models/README <<'TXT'
+No BitNet bundle was supplied to this build.
+Run prepare-bitnet-bundle.sh first, then rebuild to produce an offline AI image.
 TXT
+fi
 
 lb build
 cp live-image-amd64.hybrid.iso "$OUT/successos-amd64.iso"
