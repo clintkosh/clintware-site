@@ -1,0 +1,877 @@
+{
+  "checked_at": "2026-09-25T19:43:50.681676+00:00",
+  "status": {
+    "ok": true,
+    "online": 0,
+    "wake_online": 1,
+    "runner": {
+      "runner_id": "DRIZNET",
+      "version": "1.5.1",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape"
+      ],
+      "connected_at": "2026-09-25T15:02:56.274Z",
+      "last_seen": "2026-09-25T15:06:33.270Z"
+    },
+    "jobs": [
+      {
+        "job_id": "bbf6e845-1799-4dfd-99e4-87a4a5440057",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T19:43:31.504Z",
+        "updated_at": "2026-09-25T19:43:31.504Z"
+      },
+      {
+        "job_id": "88c26e67-aa9d-4aa1-a1e7-88feb96efa15",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T19:43:13.218Z",
+        "updated_at": "2026-09-25T19:43:13.218Z"
+      },
+      {
+        "job_id": "3c2c0f4f-8ee7-4db9-8dd3-e2bb11726a43",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T19:43:02.784Z",
+        "updated_at": "2026-09-25T19:43:02.784Z"
+      },
+      {
+        "job_id": "cf998f86-d2d9-458a-8b84-6a5bd31a9cb4",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T19:42:38.883Z",
+        "updated_at": "2026-09-25T19:42:38.883Z"
+      },
+      {
+        "job_id": "65714175-60e4-47a3-975c-2566ee1ed43a",
+        "task_id": "browser-work",
+        "status": "queued",
+        "created_at": "2026-09-25T19:37:50.397Z",
+        "updated_at": "2026-09-25T19:37:50.397Z"
+      },
+      {
+        "job_id": "4a231552-5cf0-4772-9045-f82bb463b47f",
+        "task_id": "browser-setup",
+        "status": "queued",
+        "created_at": "2026-09-25T19:35:34.701Z",
+        "updated_at": "2026-09-25T19:35:34.701Z"
+      },
+      {
+        "job_id": "1459d336-1845-455d-a075-7786e354fa8e",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:53.016Z",
+        "updated_at": "2026-09-25T18:27:53.016Z"
+      },
+      {
+        "job_id": "96e2260b-1c4e-4dee-aafc-2f113c7d9221",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:45.622Z",
+        "updated_at": "2026-09-25T18:27:45.622Z"
+      },
+      {
+        "job_id": "1b8bfa12-9274-4cd3-b5ff-b82164f0c08d",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:42.961Z",
+        "updated_at": "2026-09-25T18:27:42.961Z"
+      },
+      {
+        "job_id": "87f24907-5414-430f-9df0-27a795b249c0",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:39.980Z",
+        "updated_at": "2026-09-25T18:27:39.980Z"
+      },
+      {
+        "job_id": "d8d18ab8-9ce0-4021-b733-f80847d0d842",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:34.000Z",
+        "updated_at": "2026-09-25T18:27:34.000Z"
+      },
+      {
+        "job_id": "f0077749-ace7-45d0-b49a-139f96bfd1d4",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:27:07.804Z",
+        "updated_at": "2026-09-25T18:27:07.804Z"
+      },
+      {
+        "job_id": "bc3901ae-1ace-4cf9-ba2d-be161077e72f",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:23:49.136Z",
+        "updated_at": "2026-09-25T18:23:49.136Z"
+      },
+      {
+        "job_id": "2c52201b-de33-404a-af6e-becdd356397d",
+        "task_id": "local-ai",
+        "status": "queued",
+        "created_at": "2026-09-25T18:22:38.366Z",
+        "updated_at": "2026-09-25T18:22:38.366Z"
+      },
+      {
+        "job_id": "d4b667bc-4e72-46cb-9b87-dbcced7f6dc5",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:22:36.977Z",
+        "updated_at": "2026-09-25T18:22:36.977Z"
+      },
+      {
+        "job_id": "685fa854-d129-42ce-86ad-c17bd8731630",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:17:10.038Z",
+        "updated_at": "2026-09-25T18:17:10.038Z"
+      },
+      {
+        "job_id": "5553ad26-0c9c-480f-b4d8-f99dafa5e111",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T18:14:30.347Z",
+        "updated_at": "2026-09-25T18:14:30.347Z"
+      },
+      {
+        "job_id": "deeea898-7510-4413-8ed7-e9ed6397700d",
+        "task_id": "browser-work",
+        "status": "queued",
+        "created_at": "2026-09-25T16:55:03.884Z",
+        "updated_at": "2026-09-25T16:55:03.884Z"
+      },
+      {
+        "job_id": "3bd5b2d1-3591-4143-aa21-ebec15727bc6",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T16:55:01.918Z",
+        "updated_at": "2026-09-25T16:55:01.918Z"
+      },
+      {
+        "job_id": "c781d5bb-bb09-40a6-9cbb-d18193a9b01e",
+        "task_id": "browser-work",
+        "status": "queued",
+        "created_at": "2026-09-25T16:26:14.231Z",
+        "updated_at": "2026-09-25T16:26:14.231Z"
+      },
+      {
+        "job_id": "582f6506-13fd-4f22-a87d-c657764e9634",
+        "task_id": "self-update",
+        "status": "queued",
+        "created_at": "2026-09-25T16:26:13.923Z",
+        "updated_at": "2026-09-25T16:26:13.923Z"
+      },
+      {
+        "job_id": "93097e50-3764-40c1-9eac-5ac6d8149226",
+        "task_id": "browser-setup",
+        "status": "queued",
+        "created_at": "2026-09-25T15:06:34.876Z",
+        "updated_at": "2026-09-25T15:06:34.876Z"
+      },
+      {
+        "job_id": "d5c21ec3-b7b4-4bc0-a7d4-cda578cbad80",
+        "task_id": "browser-work",
+        "status": "running",
+        "created_at": "2026-09-25T15:06:29.766Z",
+        "updated_at": "2026-09-25T15:06:37.147Z"
+      },
+      {
+        "job_id": "539e9986-9c9c-44e5-95ca-287a7c17374f",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:06:28.020Z",
+        "updated_at": "2026-09-25T15:06:33.270Z"
+      },
+      {
+        "job_id": "b78e621f-a32a-4d42-a7fc-bad75e90d293",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:35.882Z",
+        "updated_at": "2026-09-25T15:05:39.755Z"
+      },
+      {
+        "job_id": "b504dc7a-f7e6-44ab-905e-4380c461452c",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:25.144Z",
+        "updated_at": "2026-09-25T15:05:33.772Z"
+      },
+      {
+        "job_id": "95e866bf-2d26-4ae0-891e-99bf7c270a35",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:23.425Z",
+        "updated_at": "2026-09-25T15:05:32.835Z"
+      },
+      {
+        "job_id": "bbda3685-7868-436b-8cc8-295f4b71f2f1",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:23.117Z",
+        "updated_at": "2026-09-25T15:05:28.225Z"
+      },
+      {
+        "job_id": "1813e51f-1af6-4de6-86c3-2ae0183c2af4",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:20.379Z",
+        "updated_at": "2026-09-25T15:05:24.280Z"
+      },
+      {
+        "job_id": "3e0f0804-d237-4418-bc97-77bb5b96e87d",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:17.476Z",
+        "updated_at": "2026-09-25T15:05:18.548Z"
+      },
+      {
+        "job_id": "b06c37a8-171f-4a8d-af82-6baafbc4b397",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:05:12.512Z",
+        "updated_at": "2026-09-25T15:05:16.353Z"
+      },
+      {
+        "job_id": "fe1f4c8e-d354-47c6-ad44-3466d8433ef3",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:04:09.872Z",
+        "updated_at": "2026-09-25T15:04:13.563Z"
+      },
+      {
+        "job_id": "be958f23-abce-4741-9103-a18f65637843",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:04:03.822Z",
+        "updated_at": "2026-09-25T15:04:04.986Z"
+      },
+      {
+        "job_id": "cce7d9ed-e607-4fad-9641-e338c2b581a2",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:03:58.918Z",
+        "updated_at": "2026-09-25T15:04:02.741Z"
+      },
+      {
+        "job_id": "79f252b8-eefa-43a1-af3b-58dcfcb02e0c",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:02:07.475Z",
+        "updated_at": "2026-09-25T15:02:11.146Z"
+      },
+      {
+        "job_id": "4dd33097-cbd9-4c93-b3d5-08e5e00efc12",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:02:01.773Z",
+        "updated_at": "2026-09-25T15:02:02.933Z"
+      },
+      {
+        "job_id": "b52f7a3f-6dcc-417e-8855-74e2b10166cd",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:56.871Z",
+        "updated_at": "2026-09-25T15:02:00.592Z"
+      },
+      {
+        "job_id": "21362801-1da3-42af-874b-4d7b344d86b0",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:35.160Z",
+        "updated_at": "2026-09-25T15:01:41.498Z"
+      },
+      {
+        "job_id": "f934b6bb-da24-44ef-9516-fdc549aa0a8d",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:31.899Z",
+        "updated_at": "2026-09-25T15:01:37.975Z"
+      },
+      {
+        "job_id": "24385d4f-4819-4947-b360-25609a61f136",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:29.431Z",
+        "updated_at": "2026-09-25T15:01:32.027Z"
+      },
+      {
+        "job_id": "7734cb41-6205-49d0-a907-faf5b01ea12d",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:26.254Z",
+        "updated_at": "2026-09-25T15:01:31.101Z"
+      },
+      {
+        "job_id": "2cadb717-30b9-4687-9170-46367ccbc4ce",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:19.200Z",
+        "updated_at": "2026-09-25T15:01:28.668Z"
+      },
+      {
+        "job_id": "2cd07ac0-f422-491e-bcfd-f6a8dc3294ed",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T15:01:18.498Z",
+        "updated_at": "2026-09-25T15:01:25.149Z"
+      },
+      {
+        "job_id": "51a2d246-750f-42b0-832a-dc8013e04aa3",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T03:46:29.630Z",
+        "updated_at": "2026-09-25T04:01:39.579Z"
+      },
+      {
+        "job_id": "489286dd-1918-4737-8f13-d26fa60bc903",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T03:46:26.677Z",
+        "updated_at": "2026-09-25T04:52:11.752Z"
+      },
+      {
+        "job_id": "c9d7b752-c5d6-4852-a72c-18d708e8a60f",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T03:45:56.944Z",
+        "updated_at": "2026-09-25T04:53:22.211Z"
+      },
+      {
+        "job_id": "41b94a21-409c-4157-abe9-1aa9c0cb2dcc",
+        "task_id": "self-update",
+        "status": "passed",
+        "created_at": "2026-09-25T03:45:55.019Z",
+        "updated_at": "2026-09-25T06:36:01.901Z"
+      },
+      {
+        "job_id": "cc2cc78e-032d-4fa7-9c80-3117c406f07c",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-24T22:10:20.075Z",
+        "updated_at": "2026-09-24T22:10:24.541Z"
+      },
+      {
+        "job_id": "cf01be2b-8c09-468c-bab3-d929af397b14",
+        "task_id": "browser-setup",
+        "status": "passed",
+        "created_at": "2026-09-24T22:10:14.424Z",
+        "updated_at": "2026-09-24T22:10:18.629Z"
+      },
+      {
+        "job_id": "6a2743c3-f6ba-4cb3-af22-d910ff09f467",
+        "task_id": "browser-work",
+        "status": "passed",
+        "created_at": "2026-09-24T22:10:09.157Z",
+        "updated_at": "2026-09-24T22:10:17.330Z"
+      }
+    ],
+    "questions": [
+      {
+        "question_id": "ae53af9564e94b8c8dd83059228da0e2",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T18:31:28.2533791Z",
+        "updated_at": "2026-09-24T18:31:22.069Z"
+      },
+      {
+        "question_id": "e9a1c38a38c44ffeb076afdc4e0a8d93",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T18:30:39.5108130Z",
+        "updated_at": "2026-09-24T18:30:33.333Z"
+      },
+      {
+        "question_id": "9bc920801d5f4c1ca85f3ae1d43fc380",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T18:29:19.4142621Z",
+        "updated_at": "2026-09-24T18:29:13.235Z"
+      },
+      {
+        "question_id": "f56695179e8b4bc48b684027fa69c318",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T18:28:44.4081479Z",
+        "updated_at": "2026-09-24T18:28:38.230Z"
+      },
+      {
+        "question_id": "3bbd6b731e264f48824ce47ab74bd60b",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T13:00:24.9704298Z",
+        "updated_at": "2026-09-24T13:00:19.277Z"
+      },
+      {
+        "question_id": "a524babb788a48d997abf63379637fc9",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T12:50:49.3468086Z",
+        "updated_at": "2026-09-24T12:50:43.667Z"
+      },
+      {
+        "question_id": "3dc3623a9e0144508865668d9c0396bb",
+        "runner_id": "DRIZNET",
+        "status": "pending",
+        "created_at": "2026-09-24T12:46:35.8046140Z",
+        "updated_at": "2026-09-24T12:46:30.133Z"
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "diagnostics": [
+      {
+        "diagnostic_id": "b8872416-0ea3-4983-a217-3bbafebe3b59",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:35.0295155Z",
+        "received_at": "2026-09-25T19:43:34.087Z"
+      },
+      {
+        "diagnostic_id": "bb325898-f8d5-47de-a8e0-dc561f768a07",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:34.9246026Z",
+        "received_at": "2026-09-25T19:43:33.986Z"
+      },
+      {
+        "diagnostic_id": "92ea9a2a-4c98-419f-924e-fc1f0b37d009",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:32.5706147Z",
+        "received_at": "2026-09-25T19:43:31.638Z"
+      },
+      {
+        "diagnostic_id": "d1ad0446-53c6-427b-9873-dda27e67ea67",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:21.3959462Z",
+        "received_at": "2026-09-25T19:43:20.471Z"
+      },
+      {
+        "diagnostic_id": "92ca85b9-ed17-43cb-a923-c1c9c1245ebb",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:16.5962562Z",
+        "received_at": "2026-09-25T19:43:15.655Z"
+      },
+      {
+        "diagnostic_id": "6ddb5935-4d59-47aa-a8f7-951337056a87",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:16.4996029Z",
+        "received_at": "2026-09-25T19:43:15.558Z"
+      },
+      {
+        "diagnostic_id": "4ad520ca-bf3b-4623-907e-6b3ee9f7bb30",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:14.2809982Z",
+        "received_at": "2026-09-25T19:43:13.348Z"
+      },
+      {
+        "diagnostic_id": "9592a486-78bb-4dce-9aaf-c4436e0b78ee",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:06.1856027Z",
+        "received_at": "2026-09-25T19:43:05.246Z"
+      },
+      {
+        "diagnostic_id": "915e66a3-6dd5-4ba4-9cf2-c2583b488ead",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:06.0691487Z",
+        "received_at": "2026-09-25T19:43:05.138Z"
+      },
+      {
+        "diagnostic_id": "620d45ae-fb14-4979-97d1-8325ac42751d",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:03.8528088Z",
+        "received_at": "2026-09-25T19:43:02.917Z"
+      },
+      {
+        "diagnostic_id": "54cc91fa-c6e0-414c-beaf-5e726e5cd7a4",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:42.6091666Z",
+        "received_at": "2026-09-25T19:42:41.671Z"
+      },
+      {
+        "diagnostic_id": "623d3c08-a174-4dad-8074-c89f6981855f",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:42.5011647Z",
+        "received_at": "2026-09-25T19:42:41.569Z"
+      },
+      {
+        "diagnostic_id": "cd8350d6-db13-47c4-b0c9-2e3f90280a20",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:39.9483751Z",
+        "received_at": "2026-09-25T19:42:39.340Z"
+      },
+      {
+        "diagnostic_id": "4e5ad397-788e-4efb-9356-b68ade36354e",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:38:20.9543328Z",
+        "received_at": "2026-09-25T19:38:20.029Z"
+      },
+      {
+        "diagnostic_id": "4a5350a7-8347-47b0-920a-fb2e2476a3af",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:53.8352873Z",
+        "received_at": "2026-09-25T19:37:52.901Z"
+      },
+      {
+        "diagnostic_id": "c9d04cc2-a6e3-4fd7-8175-cc9d522db5d3",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:53.7351925Z",
+        "received_at": "2026-09-25T19:37:52.802Z"
+      },
+      {
+        "diagnostic_id": "d4555350-4a33-4aca-ac94-820056f1b703",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:51.4509299Z",
+        "received_at": "2026-09-25T19:37:50.613Z"
+      },
+      {
+        "diagnostic_id": "fdad9658-b8eb-4a7c-9fbe-9cf27c9fc7c5",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:38.1819643Z",
+        "received_at": "2026-09-25T19:35:37.259Z"
+      },
+      {
+        "diagnostic_id": "6354b138-c47d-42e0-af8e-1b47de742267",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:38.0709121Z",
+        "received_at": "2026-09-25T19:35:37.147Z"
+      },
+      {
+        "diagnostic_id": "8fdb7660-64f8-46f6-a375-4fa4a5c782c0",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:35.7562975Z",
+        "received_at": "2026-09-25T19:35:34.888Z"
+      }
+    ]
+  },
+  "diagnostics": {
+    "ok": true,
+    "diagnostics": [
+      {
+        "diagnostic_id": "b8872416-0ea3-4983-a217-3bbafebe3b59",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:35.0295155Z",
+        "received_at": "2026-09-25T19:43:34.087Z"
+      },
+      {
+        "diagnostic_id": "bb325898-f8d5-47de-a8e0-dc561f768a07",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:34.9246026Z",
+        "received_at": "2026-09-25T19:43:33.986Z"
+      },
+      {
+        "diagnostic_id": "92ea9a2a-4c98-419f-924e-fc1f0b37d009",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:32.5706147Z",
+        "received_at": "2026-09-25T19:43:31.638Z"
+      },
+      {
+        "diagnostic_id": "d1ad0446-53c6-427b-9873-dda27e67ea67",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:21.3959462Z",
+        "received_at": "2026-09-25T19:43:20.471Z"
+      },
+      {
+        "diagnostic_id": "92ca85b9-ed17-43cb-a923-c1c9c1245ebb",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:16.5962562Z",
+        "received_at": "2026-09-25T19:43:15.655Z"
+      },
+      {
+        "diagnostic_id": "6ddb5935-4d59-47aa-a8f7-951337056a87",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:16.4996029Z",
+        "received_at": "2026-09-25T19:43:15.558Z"
+      },
+      {
+        "diagnostic_id": "4ad520ca-bf3b-4623-907e-6b3ee9f7bb30",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:14.2809982Z",
+        "received_at": "2026-09-25T19:43:13.348Z"
+      },
+      {
+        "diagnostic_id": "9592a486-78bb-4dce-9aaf-c4436e0b78ee",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:06.1856027Z",
+        "received_at": "2026-09-25T19:43:05.246Z"
+      },
+      {
+        "diagnostic_id": "915e66a3-6dd5-4ba4-9cf2-c2583b488ead",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:06.0691487Z",
+        "received_at": "2026-09-25T19:43:05.138Z"
+      },
+      {
+        "diagnostic_id": "620d45ae-fb14-4979-97d1-8325ac42751d",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:43:03.8528088Z",
+        "received_at": "2026-09-25T19:43:02.917Z"
+      },
+      {
+        "diagnostic_id": "54cc91fa-c6e0-414c-beaf-5e726e5cd7a4",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:42.6091666Z",
+        "received_at": "2026-09-25T19:42:41.671Z"
+      },
+      {
+        "diagnostic_id": "623d3c08-a174-4dad-8074-c89f6981855f",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:42.5011647Z",
+        "received_at": "2026-09-25T19:42:41.569Z"
+      },
+      {
+        "diagnostic_id": "cd8350d6-db13-47c4-b0c9-2e3f90280a20",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:42:39.9483751Z",
+        "received_at": "2026-09-25T19:42:39.340Z"
+      },
+      {
+        "diagnostic_id": "4e5ad397-788e-4efb-9356-b68ade36354e",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:38:20.9543328Z",
+        "received_at": "2026-09-25T19:38:20.029Z"
+      },
+      {
+        "diagnostic_id": "4a5350a7-8347-47b0-920a-fb2e2476a3af",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:53.8352873Z",
+        "received_at": "2026-09-25T19:37:52.901Z"
+      },
+      {
+        "diagnostic_id": "c9d04cc2-a6e3-4fd7-8175-cc9d522db5d3",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:53.7351925Z",
+        "received_at": "2026-09-25T19:37:52.802Z"
+      },
+      {
+        "diagnostic_id": "d4555350-4a33-4aca-ac94-820056f1b703",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:37:51.4509299Z",
+        "received_at": "2026-09-25T19:37:50.613Z"
+      },
+      {
+        "diagnostic_id": "fdad9658-b8eb-4a7c-9fbe-9cf27c9fc7c5",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:38.1819643Z",
+        "received_at": "2026-09-25T19:35:37.259Z"
+      },
+      {
+        "diagnostic_id": "6354b138-c47d-42e0-af8e-1b47de742267",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_channel_connected",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:38.0709121Z",
+        "received_at": "2026-09-25T19:35:37.147Z"
+      },
+      {
+        "diagnostic_id": "8fdb7660-64f8-46f6-a375-4fa4a5c782c0",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_received_runner_already_alive",
+        "runner_alive": true,
+        "service_version": "1.2.3",
+        "timestamp": "2026-09-25T19:35:35.7562975Z",
+        "received_at": "2026-09-25T19:35:34.888Z"
+      }
+    ]
+  }
+}
