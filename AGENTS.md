@@ -40,6 +40,24 @@ Legacy `/tools/` pages may remain for product documentation, but YC/startup navi
 
 A Clintware public-page change made without first applying ASTRO is an incomplete task and must be revisited before delivery.
 
+
+## Public positioning invariant: no consulting brand
+
+Clintware public positioning must not present Clinton Kosh or Clintware as a consulting business. This is a permanent public-brand and YC-boundary rule.
+
+Required rules:
+
+1. Do not display the words **consulting**, **consultant**, or **consultancy** on any public Clintware page, app, subdomain, résumé, CV, downloadable professional artifact, metadata field, navigation label, CTA, or generated public copy.
+2. Do not create or restore a public `/consulting/` route or a `consulting.clintware.com` product/service surface.
+3. Describe legitimate work using accurate alternatives such as **products**, **client work**, **implementation**, **project work**, **technical systems**, **support**, **automation**, or **collaboration**, according to what the work actually is.
+4. Résumé/CV generation and publication must pass the public-positioning guard before deployment. A PDF or DOCX is not exempt merely because ordinary text grep cannot read it.
+5. Public generators, deployment workflows, and site refreshes must preserve this rule. If a template or older artifact reintroduces the forbidden positioning, the build must fail until it is corrected.
+6. Internal historical references may remain only where required to explain or enforce this invariant; they must never be deployed as public-facing content.
+
+Canonical check:
+
+`PUBLIC SOURCE -> GENERATED OUTPUT -> DOWNLOADABLE ARTIFACTS -> POSITIONING GUARD -> DEPLOY`
+
 ## Public/shared skill security boundary
 
 Every skill or reusable artifact published under `public/skills/` must be safe for an unrelated operator to use without receiving access to Clintware private infrastructure.
