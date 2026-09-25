@@ -643,7 +643,7 @@ def page() -> str:
       <form method="post" action="/toggle"><div class="switch"><input type="checkbox" name="enabled" {checked}><b>Agent enabled</b></div><button>Apply</button></form>
       <form method="post" action="/kill"><div class="switch"><input type="checkbox" name="kill_switch" {killed}><b>Global kill switch</b></div><button class="danger">Apply</button></form>
       <form method="post" action="/run"><button>Run scan now</button></form>
-    </section><section class="card"><b>Operating boundary</b><p class="sub">HN is research-only. Stack Overflow is off by default. Discourse writes stay approval-gated until the specific site's current rules and scoped write path are verified.</p></section></div>
+    </section><section class="card"><b>Operating boundary</b><p class="sub">HN is research-only. Stack Overflow is off by default. Discourse remains research-only until the specific site's current rules and scoped write path are verified.</p></section></div>
     <form class="card" method="post" action="/save" style="margin-top:14px">
       <label>Expertise / topics</label><textarea name="expertise_text">{esc(cfg['expertise_text'])}</textarea>
       <label>Voice / response rules</label><textarea name="voice_text">{esc(cfg['voice_text'])}</textarea>
