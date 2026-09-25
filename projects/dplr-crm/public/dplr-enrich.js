@@ -67,22 +67,23 @@
       '<div class="dplr-panel" style="margin-top:16px"><div class="dplr-panel-head"><h2>Support graduation gate</h2></div><ol class="dplr-guide-list">'+supportGraduation.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></div>';
   }
 
+  function setText(el,value){if(el&&el.textContent!==value)el.textContent=value}
   function sanitizeNoLogin(){
     document.querySelectorAll('a[href="/auth/login"],form[action="/auth/logout"]').forEach(x=>x.remove());
-    document.querySelectorAll('.dplr-chip.guest').forEach(x=>{x.textContent='Browser saved';x.title='No sign-in required; anonymous workspace persists in this browser.'});
+    document.querySelectorAll('.dplr-chip.guest').forEach(x=>{setText(x,'Browser saved');x.title='No sign-in required; anonymous workspace persists in this browser.'});
     document.querySelectorAll('.dplr-persistence.guest').forEach(x=>{
       const strong=x.querySelector('strong'),span=x.querySelector('span');
-      if(strong)strong.textContent='Browser-persistent workspace';
-      if(span)span.textContent='No sign-in required. This anonymous workspace is retained in this browser for up to 180 days unless site data is cleared. Export a backup before moving browsers or devices.';
+      setText(strong,'Browser-persistent workspace');
+      setText(span,'No sign-in required. This anonymous workspace is retained in this browser for up to 180 days unless site data is cleared. Export a backup before moving browsers or devices.');
     });
     document.querySelectorAll('.dplr-kpis article').forEach(a=>{
       if(a.querySelector('span')?.textContent.trim()==='Retention'){
-        const b=a.querySelector('b'),sm=a.querySelector('small');if(b)b.textContent='Browser-persistent';if(sm)sm.textContent='No login required';
+        const b=a.querySelector('b'),sm=a.querySelector('small');setText(b,'Browser-persistent');setText(sm,'No login required');
       }
     });
     document.querySelectorAll('.dplr-admin-grid article').forEach(a=>{
       if(a.querySelector('span')?.textContent.trim()==='Workspace mode'){
-        const st=a.querySelector('strong'),p=a.querySelector('p');if(st)st.textContent='No-login / browser-persistent';if(p)p.textContent='Records stay in this browser for up to 180 days unless site data is cleared. Export/import provides portability across browsers or devices.';
+        const st=a.querySelector('strong'),p=a.querySelector('p');setText(st,'No-login / browser-persistent');setText(p,'Records stay in this browser for up to 180 days unless site data is cleared. Export/import provides portability across browsers or devices.');
       }
     });
   }
@@ -111,7 +112,5 @@
     render=function(){originalRender();sanitizeNoLogin()};
     render();
   }else sanitizeNoLogin();
-  const observer=new MutationObserver(()=>sanitizeNoLogin());
-  observer.observe(document.documentElement,{childList:true,subtree:true});
   window.DPLREnrichment={resources,glossary,gates,supportGraduation,sanitizeNoLogin};
 })();
