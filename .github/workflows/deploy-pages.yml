@@ -1,4 +1,4 @@
-# Canonical Clintware Pages deployment. Legacy consulting web surface removed 2026-09-10.
+# Canonical Clintware Pages deployment. Legacy service surface removed 2026-09-10.
 name: Deploy Clintware Homepage
 
 on:
@@ -9,6 +9,7 @@ on:
       - "skills/**"
       - "agentbridge-cloud/chatgpt-plugin/skills/**"
       - "scripts/validate-public-skill-boundary.mjs"
+      - "scripts/check_public_positioning.py"
       - "payloads/teamsgallery/**"
       - "materialize_teamsgallery.py"
       - "build_site.py"
@@ -21,6 +22,7 @@ on:
       - "skills/**"
       - "agentbridge-cloud/chatgpt-plugin/skills/**"
       - "scripts/validate-public-skill-boundary.mjs"
+      - "scripts/check_public_positioning.py"
       - "payloads/teamsgallery/**"
       - "materialize_teamsgallery.py"
       - "build_site.py"
