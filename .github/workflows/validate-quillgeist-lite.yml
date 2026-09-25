@@ -160,7 +160,7 @@ jobs:
           }
 
           $sourceText = Get-Content $source -Raw
-          if ($sourceText -notmatch 'service_version\\":\\"1\.2\.4') {
+          if ($sourceText -notlike '*service_version\":\"1.2.4*') {
             throw "Health service version marker is not 1.2.4."
           }
           if ($sourceText -notlike '*wake_received_runner_pid_alive_but_control_plane_disconnected*') {
