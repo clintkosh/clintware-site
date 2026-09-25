@@ -15,6 +15,7 @@ $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
 $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $RuntimeRoot = Join-Path $HomeDir "runtime"
 $DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service.json"
+$UserDeviceConfigPath = Join-Path $HomeDir "device.json"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -415,19 +416,170 @@ function Save-Completed {
   $copy | ConvertTo-Json -Depth 10 | Set-Content -Path $StatePath -Encoding UTF8
 }
 
-function Get-QQDeviceCredential {
-  if (-not (Test-Path $DeviceConfigPath)) {
-    throw "QQ device configuration is missing. Run the maintained QQ installer."
+function New-QQDeviceToken {
+  $bytes = New-Object byte[] 48
+  $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+  try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+  return [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+","-").Replace("/","_")
+}
+
+function Get-QQTokenHash {
+  param([Parameter(Mandatory=$true)][string]$Token)
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try {
+    $hashBytes = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Token))
+  } finally {
+    $sha.Dispose()
   }
-  $config = Get-Content $DeviceConfigPath -Raw | ConvertFrom-Json
-  if (-not $config.DeviceId -or -not $config.Token) {
-    throw "QQ device configuration is incomplete."
+  return (-join ($hashBytes | ForEach-Object { $_.ToString("x2") }))
+}
+
+function Test-QQCredentialConfig {
+  param([object]$Config)
+  return [bool]($Config -and $Config.DeviceId -and $Config.Token)
+}
+
+function Read-QQCredentialConfig {
+  foreach ($path in @($DeviceConfigPath,$UserDeviceConfigPath)) {
+    if (-not (Test-Path $path)) { continue }
+    try {
+      $config = Get-Content $path -Raw | ConvertFrom-Json
+      if (Test-QQCredentialConfig $config) {
+        return $config
+      }
+    } catch {}
   }
+  return $null
+}
+
+function Save-QQUserCredential {
+  param(
+    [Parameter(Mandatory=$true)][string]$DeviceId,
+    [Parameter(Mandatory=$true)][string]$Token
+  )
+  $config = [ordered]@{
+    Endpoint = "https://mcp.clintware.com"
+    DeviceId = $DeviceId
+    Token = $Token
+    RegisteredAt = (Get-Date).ToUniversalTime().ToString("o")
+    Source = "clintware-identity-self-enrollment"
+  }
+  $config | ConvertTo-Json -Depth 5 | Set-Content -Path $UserDeviceConfigPath -Encoding UTF8
+
+  # If qq is elevated, also restore the machine-level credential consumed by
+  # the Windows health service. Failure here must not prevent the interactive
+  # runner from reconnecting with its user-local credential.
+  try {
+    $programDir = Split-Path $DeviceConfigPath -Parent
+    New-Item -ItemType Directory -Force -Path $programDir | Out-Null
+    if (Test-Path $DeviceConfigPath) {
+      $machine = Get-Content $DeviceConfigPath -Raw | ConvertFrom-Json
+    } else {
+      $machine = [pscustomobject]@{}
+    }
+    $merged = [ordered]@{
+      Endpoint = $(if($machine.Endpoint){[string]$machine.Endpoint}else{"https://mcp.clintware.com"})
+      DeviceId = $DeviceId
+      Token = $Token
+      TaskName = $(if($machine.TaskName){[string]$machine.TaskName}else{"Clintware Quillgeist Lite Runner"})
+      RunnerPidPath = $(if($machine.RunnerPidPath){[string]$machine.RunnerPidPath}else{Join-Path $HomeDir "runner.pid"})
+      RunnerLogPath = $(if($machine.RunnerLogPath){[string]$machine.RunnerLogPath}else{$LogPath})
+      CrashLogPath = $(if($machine.CrashLogPath){[string]$machine.CrashLogPath}else{Join-Path $HomeDir "runner-crash.log"})
+      LocalServiceLogPath = $(if($machine.LocalServiceLogPath){[string]$machine.LocalServiceLogPath}else{Join-Path $programDir "service-local.log"})
+      AutoRepairPath = $(if($machine.AutoRepairPath){[string]$machine.AutoRepairPath}else{Join-Path $HomeDir "auto-repair-runtime.ps1"})
+    }
+    $merged | ConvertTo-Json -Depth 6 | Set-Content -Path $DeviceConfigPath -Encoding UTF8 -ErrorAction Stop
+  } catch {
+    Write-Log ("DEVICE // interactive credential restored; machine-level service config not writable: " + $_.Exception.Message) "WARN"
+  }
+}
+
+function Request-QQSelfEnrollment {
+  $deviceId = $env:COMPUTERNAME
+  if (-not $deviceId) { $deviceId = "qq-" + [Guid]::NewGuid().ToString("n").Substring(0,12) }
+  $deviceToken = New-QQDeviceToken
+  $tokenHash = Get-QQTokenHash $deviceToken
+  $nonce = [Guid]::NewGuid().ToString("n") + [Guid]::NewGuid().ToString("n")
+
+  $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
+  $listener.Start()
+  try {
+    $port = ([Net.IPEndPoint]$listener.LocalEndpoint).Port
+    $callback = [Uri]::EscapeDataString("http://127.0.0.1:$port/")
+    $device = [Uri]::EscapeDataString($deviceId)
+    $label = [Uri]::EscapeDataString("$deviceId / $env:USERNAME")
+    $hash = [Uri]::EscapeDataString($tokenHash)
+    $safeNonce = [Uri]::EscapeDataString($nonce)
+    $authorize = "https://mcp.clintware.com/admin/qq/enroll?device_id=$device&token_hash=$hash&label=$label&callback=$callback&nonce=$safeNonce"
+
+    Write-Log "DEVICE // local credential missing; opening Clintware Identity enrollment." "WARN"
+    try { Start-Process $authorize | Out-Null } catch { throw "Could not open Clintware Identity device enrollment." }
+
+    $pending = $listener.AcceptTcpClientAsync()
+    if (-not $pending.Wait([TimeSpan]::FromMinutes(5))) {
+      throw "Clintware device enrollment timed out."
+    }
+
+    $client = $pending.Result
+    try {
+      $stream = $client.GetStream()
+      $reader = New-Object IO.StreamReader($stream,[Text.Encoding]::ASCII,$false,4096,$true)
+      $requestLine = $reader.ReadLine()
+      while ($true) {
+        $line = $reader.ReadLine()
+        if ($null -eq $line -or $line -eq "") { break }
+      }
+
+      if ($requestLine -notmatch '^GET\s+([^\s]+)\s+HTTP/') {
+        throw "Invalid local enrollment callback."
+      }
+
+      $callbackUri = [Uri]("http://127.0.0.1" + $matches[1])
+      $query = [Web.HttpUtility]::ParseQueryString($callbackUri.Query)
+      $status = [string]$query["status"]
+      $returnedNonce = [string]$query["nonce"]
+
+      $ok = ($status -eq "ok" -and $returnedNonce -eq $nonce)
+      $html = if ($ok) {
+        "<!doctype html><html><body style='font-family:Segoe UI;padding:40px'><h1>QQ connected</h1><p>Clintware device identity restored. You can close this tab.</p></body></html>"
+      } else {
+        "<!doctype html><html><body style='font-family:Segoe UI;padding:40px'><h1>QQ connection failed</h1><p>Return to the qq window.</p></body></html>"
+      }
+      $body = [Text.Encoding]::UTF8.GetBytes($html)
+      $headers = "HTTP/1.1 " + $(if($ok){"200 OK"}else{"400 Bad Request"}) + "`r`nContent-Type: text/html; charset=utf-8`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n"
+      $head = [Text.Encoding]::ASCII.GetBytes($headers)
+      $stream.Write($head,0,$head.Length)
+      $stream.Write($body,0,$body.Length)
+      $stream.Flush()
+
+      if (-not $ok) { throw "Clintware device enrollment was not approved." }
+    } finally {
+      try { $client.Close() } catch {}
+    }
+  } finally {
+    try { $listener.Stop() } catch {}
+  }
+
+  Save-QQUserCredential -DeviceId $deviceId -Token $deviceToken
+  Write-Log "DEVICE // Clintware Identity enrollment complete; qq device credential restored." "OK"
   return @{
-    DeviceId = [string]$config.DeviceId
-    Token = [string]$config.Token
-    Endpoint = [string]$config.Endpoint
+    DeviceId = $deviceId
+    Token = $deviceToken
+    Endpoint = "https://mcp.clintware.com"
   }
+}
+
+function Get-QQDeviceCredential {
+  $config = Read-QQCredentialConfig
+  if ($config) {
+    return @{
+      DeviceId = [string]$config.DeviceId
+      Token = [string]$config.Token
+      Endpoint = [string]$config.Endpoint
+    }
+  }
+
+  return Request-QQSelfEnrollment
 }
 
 function Get-Registry {
