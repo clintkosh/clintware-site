@@ -52,6 +52,7 @@ xfce4-terminal
 lightdm
 sudo
 polkitd
+zenity
 python3
 python3-venv
 python3-pip
