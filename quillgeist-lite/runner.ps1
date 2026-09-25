@@ -9,6 +9,7 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $CacheDir = Join-Path $HomeDir "cache"
 $LogPath = Join-Path $HomeDir "runner.log"
 $StatePath = Join-Path $HomeDir "state.json"
+$HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
 $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $LogoAssetUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64"
 $RepoRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
@@ -25,6 +26,39 @@ $script:QQReceiveStream = New-Object IO.MemoryStream
 $script:QQReceiveTask = $null
 $script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
+$script:LastHeartbeatWrite = [DateTime]::MinValue
+
+function Write-RunnerHeartbeat {
+  param(
+    [string]$State = "connected",
+    [string]$JobId = "",
+    [string]$TaskId = "",
+    [switch]$Force
+  )
+
+  $now = Get-Date
+  if (-not $Force -and (($now - $script:LastHeartbeatWrite).TotalSeconds -lt 15)) { return }
+
+  try {
+    $payload = [ordered]@{
+      version = "1"
+      runner_id = $env:COMPUTERNAME
+      pid = $PID
+      state = $State
+      job_id = $JobId
+      task_id = $TaskId
+      timestamp = $now.ToUniversalTime().ToString("o")
+    }
+    $temp = $HeartbeatPath + ".new"
+    [IO.File]::WriteAllText(
+      $temp,
+      ($payload | ConvertTo-Json -Depth 4),
+      (New-Object Text.UTF8Encoding($false))
+    )
+    Move-Item $temp $HeartbeatPath -Force
+    $script:LastHeartbeatWrite = $now
+  } catch {}
+}
 
 function Queue-RunnerDiagnostic {
   param(
@@ -1100,6 +1134,7 @@ try {
 
       Flush-RunnerDiagnostics
       try { Show-QuillgeistSplash -Status "CONTROL PLANE LINK ACTIVE" } catch {}
+      Write-RunnerHeartbeat -State "connected" -Force
       Write-Log "Connected to Clintware Control Plane." "OK"
 
       Write-Log "Interactive relay channel initialized." "OK"
@@ -1118,6 +1153,7 @@ try {
       Show-QQPrompt
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
+        Write-RunnerHeartbeat -State "connected"
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
@@ -1192,6 +1228,7 @@ try {
           started_at = (Get-Date).ToUniversalTime().ToString("o")
         }
 
+        Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$job.task_id) -Force
         try {
           $result = Invoke-AllowlistedTask $job $ws
         } catch {
@@ -1212,6 +1249,7 @@ try {
         $completed[$jobId] = $result
         Save-Completed $completed
         Send-Json $ws $result
+        Write-RunnerHeartbeat -State "connected" -Force
 
         $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
         Write-Log ("Job {0} finished with status {1}" -f $jobId,$result.status) $level
@@ -1223,6 +1261,7 @@ try {
         Add-Content -Path $LogPath -Value ("FULL_EXCEPTION " + $_.Exception.ToString())
       } catch {}
     } finally {
+      Write-RunnerHeartbeat -State "disconnected" -Force
       $script:RunnerSocket = $null
       Reset-QQReceiveState
       if ($ws) {
