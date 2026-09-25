@@ -1,6 +1,13 @@
 {
-  "request_id": "chatgpt-qq-persistent-repair-20260925",
-  "task_id": "repair-local-service",
-  "args": {},
-  "objective": "Upgrade the qq health service to the maintained build that force-cycles a stale runner when a wake arrives, then restart the supervised runner so queued QuillGeist Web jobs can execute."
+  "request_id": "chatgpt-google-oauth-publish-prod-20260925",
+  "task_id": "browser-work",
+  "args": {
+    "Action": "run",
+    "Url": "https://console.cloud.google.com/auth/audience",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://console.cloud.google.com/auth/audience\"},{\"op\":\"wait\",\"ms\":1800},{\"op\":\"inspect\"},{\"op\":\"click\",\"role\":\"button\",\"name\":\"Publish app\",\"approved\":true},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"},{\"op\":\"click\",\"role\":\"button\",\"name\":\"Confirm\",\"approved\":true},{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"}]}",
+    "Approved": "true",
+    "Headless": "false",
+    "WaitMs": "700"
+  },
+  "objective": "Using the persistent local qq browser session, move the Clintware Google OAuth app from Testing to In production. Do not alter redirect URIs, client IDs, scopes, credentials, or unrelated project settings. User explicitly authorized publishing in this conversation."
 }
