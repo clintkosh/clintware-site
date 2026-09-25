@@ -1,0 +1,58 @@
+name: Build Audio Focus Fix v2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/audio-focus-fix-v2/**'
+      - '.github/workflows/build-audio-focus-fix-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+      - name: Source validation
+        working-directory: tools/audio-focus-fix-v2
+        run: |
+          gofmt -w main.go
+          go test ./...
+      - name: Build Windows x64
+        working-directory: tools/audio-focus-fix-v2
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          go build -trimpath -ldflags='-s -w' -o ../../Clintware-AudioFocusFix-v2.exe .
+      - name: Verify PE and checksum
+        run: |
+          test -s Clintware-AudioFocusFix-v2.exe
+          file Clintware-AudioFocusFix-v2.exe | tee build-type.txt
+          grep -q 'PE32+' build-type.txt
+          sha256sum Clintware-AudioFocusFix-v2.exe | tee Clintware-AudioFocusFix-v2-SHA256.txt
+      - name: Publish website download
+        run: |
+          mkdir -p downloads
+          cp Clintware-AudioFocusFix-v2.exe downloads/Clintware-AudioFocusFix-v2.exe
+          cp Clintware-AudioFocusFix-v2-SHA256.txt downloads/Clintware-AudioFocusFix-v2-SHA256.txt
+          git config user.name "clintware-build"
+          git config user.email "actions@users.noreply.github.com"
+          git add tools/audio-focus-fix-v2/main.go downloads/Clintware-AudioFocusFix-v2.exe downloads/Clintware-AudioFocusFix-v2-SHA256.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish Audio Focus Fix v2 Windows build"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clintware-AudioFocusFix-v2-win-x64
+          path: |
+            Clintware-AudioFocusFix-v2.exe
+            Clintware-AudioFocusFix-v2-SHA256.txt
