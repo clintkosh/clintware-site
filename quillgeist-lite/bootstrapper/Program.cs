@@ -167,7 +167,7 @@ try {
   $repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
   Copy-Item -LiteralPath $repairSource -Destination $repair -Force
   Write-Step "QQ // reconciling service, runner, singleton gate, and canonical files"
-  & $repair -HomeDir $HomeDir
+  & $repair -HomeDir $HomeDir -SourceRoot $qqSource
 
   Write-Step "QQ // final duplicate-window verification"
   & $dedupe -HomeDir $HomeDir
