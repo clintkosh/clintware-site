@@ -205,6 +205,17 @@
       "parameters": [
         "NoLaunch"
       ]
+    },
+    "career-signal-agent": {
+      "title": "Manage the LandThePlane daily hiring + YC career signal agent",
+      "script": "quillgeist-lite/tasks/career-signal-agent.ps1",
+      "runtime": "powershell",
+      "parameters": [
+        "Action",
+        "At"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 900
     }
   }
 }
