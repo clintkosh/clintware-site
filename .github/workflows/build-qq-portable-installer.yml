@@ -6,6 +6,10 @@ on:
     paths:
       - "quillgeist-lite/bootstrapper/**"
       - ".github/workflows/build-qq-portable-installer.yml"
+  pull_request:
+    paths:
+      - "quillgeist-lite/bootstrapper/**"
+      - ".github/workflows/build-qq-portable-installer.yml"
   workflow_dispatch:
 
 permissions:
