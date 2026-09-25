@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -197,6 +197,17 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 600
+    },
+    "career-signal-agent": {
+      "title": "Manage the LandThePlane daily hiring + YC career signal agent",
+      "script": "quillgeist-lite/tasks/career-signal-agent.ps1",
+      "runtime": "powershell",
+      "parameters": [
+        "Action",
+        "At"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 900
     }
   }
 }
