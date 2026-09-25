@@ -49,6 +49,8 @@ jobs:
           agentbridge help start --no-pager
           agentbridge help glossary --search Contextor --no-pager
           agentbridge dlp status
+          agentbridge local-ai status
+          agentbridge local-ai route --task ci
       - name: Local execution smoke test
         env:
           AGENTBRIDGE_HOME: ${{ runner.temp }}/agentbridge-home
