@@ -52,5 +52,45 @@ class LocalInferenceTests(unittest.TestCase):
         self.assertEqual(out["choice"]["model"], "ollama:test")
 
 
+    def test_launch_plan_refuses_memory_overcommit(self):
+        fake = {
+            "memory": {"available_bytes": 4 * 1024**3},
+            "runtimes": [],
+            "models": [{"id": "gguf:huge", "name": "huge.gguf", "runtime": "llama.cpp", "size_bytes": 10 * 1024**3, "path": "/tmp/huge.gguf"}],
+        }
+        with mock.patch.object(li, "status", return_value=fake):
+            out = li.launch_plan("gguf:huge", context_tokens=4096)
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["error"], "memory_guard_refused")
+
+    def test_workload_profile_uses_local_history(self):
+        with tempfile.TemporaryDirectory() as td:
+            with mock.patch.dict(os.environ, {"QUILLGEIST_HOME": td}, clear=False):
+                li._append_history({"ok": True, "model": "ollama:test", "context_tokens": 4096, "elapsed_seconds": 1.0, "chars_per_second": 20.0})
+                li._append_history({"ok": True, "model": "ollama:test", "context_tokens": 4096, "elapsed_seconds": 2.0, "chars_per_second": 10.0})
+                out = li.workload_profile()
+        self.assertEqual(out["measurements"], 2)
+        self.assertEqual(out["models"][0]["model"], "ollama:test")
+        self.assertEqual(out["models"][0]["median_chars_per_second"], 15.0)
+
+    def test_apply_and_rollback_profile(self):
+        with tempfile.TemporaryDirectory() as td:
+            with mock.patch.dict(os.environ, {"QUILLGEIST_HOME": td}, clear=False):
+                proposal_id = "af-test"
+                path = li._proposal_path(proposal_id)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('{"proposal_id":"af-test","chosen":{"model":"ollama:new","runtime":"ollama","context_tokens":4096,"chars_per_second":20},"applied":false}', encoding="utf-8")
+                first = li.apply_auto_fit(proposal_id)
+                self.assertTrue(first["ok"])
+                second_path = li._proposal_path("af-second")
+                second_path.write_text('{"proposal_id":"af-second","chosen":{"model":"ollama:second","runtime":"ollama","context_tokens":2048,"chars_per_second":30},"applied":false}', encoding="utf-8")
+                second = li.apply_auto_fit("af-second")
+                self.assertTrue(second["ok"])
+                rolled = li.rollback_profile()
+                self.assertTrue(rolled["ok"])
+                self.assertEqual(rolled["profile"]["model"], "ollama:new")
+
+
+
 if __name__ == "__main__":
     unittest.main()
