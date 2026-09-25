@@ -1,0 +1,25 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "clintware-live-site-agent",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    {"pattern":"helper.clintware.com","custom_domain":true}
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://clintware.com,https://www.clintware.com,https://*.clintware.com",
+    "LLM_BASE_URL": "https://api.openai.com/v1",
+    "LLM_MODEL": "SET_ME",
+    "MCP_PROXY_URL": "",
+    "OWNER_RELAY_URL": "",
+    "AUTO_ACTIONS": "read_public_content,open_public_resource",
+    "CONFIRM_ACTIONS": "schedule_meeting,send_contact_request,create_lead"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
