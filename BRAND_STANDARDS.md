@@ -36,6 +36,10 @@ Clintware is a restrained technical brand, not a generic SaaS/AI marketing templ
 
 These are hard design constraints for future site changes. Do not replace them with framework/theme defaults during redesigns, migrations, template generation, migrations to another framework, or automated site refreshes.
 
+### Public positioning boundary
+
+Clintware is a product-led company. Public-facing copy and professional artifacts must not describe Clintware or Clinton Kosh using the terms **consulting**, **consultant**, or **consultancy**. Use accurate product, client-work, implementation, project, support, automation, or systems language instead. This applies to page titles, metadata, navigation, subdomains, downloadable résumés/CVs, generated PDFs/DOCX files, and scheduler choices. The legacy consulting route/domain is retired and must not be restored.
+
 ### Typography persistence rule
 
 Any site-wide refresh, redesign, migration, page generator, theme replacement, product-page rebuild, or automated visual cleanup must preserve the Clintware Type System before it is considered complete.
