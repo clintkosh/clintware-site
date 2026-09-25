@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const base = process.env.DPLR_URL || "https://dplrcrm.clintware.com/";
+const base = process.env.DPLR_URL || "https://dplcrm.clintware.com/";
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
 const consoleErrors = [];
