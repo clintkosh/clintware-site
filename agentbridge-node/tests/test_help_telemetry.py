@@ -42,8 +42,7 @@ class HelpTelemetryTests(unittest.TestCase):
     def test_help_sync_pushes_local_and_pulls_cloud_updates(self):
         with tempfile.TemporaryDirectory() as td:
             os.environ["AGENTBRIDGE_HOME"]=str(Path(td)/"home-sync")
-            cfg=Config.load()
-            apply_updates({
+            cfg=Config.load()\n            cfg.set_cloud("https://quillgeist.example.test")\n            apply_updates({
                 "faq":[{"id":"faq-local-sync","q":"Local only?","a":"This entry began on the Node."}]
             },source="unit-test-local")
             captured={}
