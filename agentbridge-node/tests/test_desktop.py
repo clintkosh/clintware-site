@@ -9,10 +9,13 @@ from agentbridge_node.usage_desktop import QuillgeistDesktopWithUsage
 def test_desktop_intent_compiler_and_activity(tmp_path, monkeypatch):
     monkeypatch.setenv("QUILLGEIST_HOME", str(tmp_path))
     cfg = Config.load()
+    assert cfg.data["cloud_url"] == ""
+    assert cfg.data["telemetry"]["enabled"] is False
+    assert cfg.data["desktop"]["local_only"] is True
     compiled = compile_intent("summarize this report as a table", cfg)
     assert compiled["product"] == "Quillgeist"
     assert compiled["action"] == "summarize"
-    assert compiled["routing"] == "local-first"
+    assert compiled["routing"] == "local-only"
     assert "table" in compiled["definition_of_done"].lower()
 
     ledger = ActivityLedger()
