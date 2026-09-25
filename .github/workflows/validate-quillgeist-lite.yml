@@ -42,6 +42,7 @@ jobs:
             "quillgeist-lite/tasks/start-qq-window.ps1",
             "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
             "quillgeist-lite/tasks/browser-work.ps1",
+            "quillgeist-lite/tasks/bitnet-setup.ps1",
             "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
@@ -81,7 +82,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 9) {
+          if ($registry.version -ne 11) {
             throw "Unexpected task registry version."
           }
 
