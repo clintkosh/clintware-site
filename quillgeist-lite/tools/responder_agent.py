@@ -110,6 +110,7 @@ def default_config() -> dict:
             }
         },
         "discourse_sites": "",
+        "discourse_draft_allowed_sites": "",
         "auto_publish": False,
         "auto_publish_allowlist": [],
         "kill_switch": False,
@@ -391,6 +392,15 @@ def discourse_sites(cfg: dict) -> list[str]:
     return out[:20]
 
 
+def discourse_draft_allowed(cfg: dict) -> set[str]:
+    allowed = set()
+    for raw in re.split(r"[\r\n,]+", cfg.get("discourse_draft_allowed_sites", "")):
+        raw = raw.strip().rstrip("/")
+        if raw.startswith("https://"):
+            allowed.add(urllib.parse.urlparse(raw).netloc.lower())
+    return allowed
+
+
 def fetch_discourse(site: str, cfg: dict) -> list[dict]:
     try:
         data = http_json(site + "/latest.json")
@@ -416,8 +426,8 @@ def fetch_discourse(site: str, cfg: dict) -> list[dict]:
             "author": "",
             "created_at": str(topic.get("created_at", "")),
             "score": score,
-            "mode": "RESEARCH_ONLY",
-            "reasons": reasons + ["community_policy_and_scoped_write_path_must_be_verified_before_drafting"],
+            "mode": "APPROVAL_REQUIRED" if urllib.parse.urlparse(site).netloc.lower() in discourse_draft_allowed(cfg) else "RESEARCH_ONLY",
+            "reasons": reasons + (["owner_marked_ai_drafting_policy_verified"] if urllib.parse.urlparse(site).netloc.lower() in discourse_draft_allowed(cfg) else ["community_policy_and_scoped_write_path_must_be_verified_before_drafting"]),
         })
     return rows
 
@@ -649,6 +659,7 @@ def page() -> str:
       <label>Voice / response rules</label><textarea name="voice_text">{esc(cfg['voice_text'])}</textarea>
       <label>Goals</label><textarea name="goals_text">{esc(cfg['goals_text'])}</textarea>
       <label>Discourse sites, one HTTPS base URL per line</label><textarea name="discourse_sites">{esc(cfg.get('discourse_sites',''))}</textarea>
+      <label>Discourse sites where you have verified AI drafting is permitted (still approval-required)</label><textarea name="discourse_draft_allowed_sites">{esc(cfg.get('discourse_draft_allowed_sites',''))}</textarea>
       <div class="grid"><div><label>Daily report email</label><input type="text" name="report_to" value="{esc(cfg.get('report_to',''))}"></div>
       <div><label>Daily report hour (local, 0-23)</label><input type="number" min="0" max="23" name="daily_report_hour_local" value="{int(cfg['daily_report_hour_local'])}"></div>
       <div><label>Minimum opportunity score</label><input type="number" min="0" max="100" name="minimum_score" value="{int(cfg['minimum_score'])}"></div>
@@ -690,7 +701,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/kill":
             cfg["kill_switch"] = "kill_switch" in form
         elif self.path == "/save":
-            for key in ("expertise_text", "voice_text", "goals_text", "discourse_sites", "report_to", "ollama_model"):
+            for key in ("expertise_text", "voice_text", "goals_text", "discourse_sites", "discourse_draft_allowed_sites", "report_to", "ollama_model"):
                 cfg[key] = form.get(key, [""])[0][:20000]
             for key, lo, hi in (("daily_report_hour_local", 0, 23), ("minimum_score", 0, 100)):
                 try: cfg[key] = max(lo, min(hi, int(form.get(key, [cfg[key]])[0])))
