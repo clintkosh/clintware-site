@@ -10,7 +10,7 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.24.4"
+VERSION="2026.09.25.1"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
@@ -196,7 +196,7 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
     for i,step in enumerate(steps):
         if not isinstance(step,dict): raise ValueError(f"step {i} is not an object")
         op=str(step.get("op") or step.get("action") or "").lower().strip(); timeout=int(step.get("timeout_ms") or 15000)
-        step_approved=approved or bool(step.get("approved",False)); r={"index":i,"op":op,"ok":True}
+        step_approved=approved or as_bool(step.get("approved",False)); r={"index":i,"op":op,"ok":True}
         if op in {"goto","open","navigate"}: safe_goto(page,str(step.get("url") or ""),policy,timeout); r["url"]=page.url
         elif op=="fill":
             loc=resolve(page,step); ensure_not_sensitive(loc); loc.fill(str(step.get("value") or ""),timeout=timeout)
@@ -204,7 +204,8 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
             loc=resolve(page,step); ensure_not_sensitive(loc); loc.type(str(step.get("value") or ""),delay=int(step.get("delay_ms") or 20),timeout=timeout)
         elif op=="click":
             loc=resolve(page,step); ensure_action_allowed(loc,step_approved); loc.click(timeout=timeout)
-        elif op=="select": resolve(page,step).select_option(value=step.get("value"),timeout=timeout)
+        elif op=="select":
+            loc=resolve(page,step); ensure_not_sensitive(loc); ensure_action_allowed(loc,step_approved); loc.select_option(value=step.get("value"),timeout=timeout)
         elif op=="check":
             loc=resolve(page,step); ensure_action_allowed(loc,step_approved); loc.check(timeout=timeout)
         elif op=="uncheck":
