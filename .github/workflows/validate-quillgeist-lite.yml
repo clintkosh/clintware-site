@@ -5,12 +5,18 @@ on:
     branches: [main]
     paths:
       - "quillgeist-lite/**"
+      - "scripts/code-search.mjs"
+      - "scripts/code-search.ps1"
+      - "CODE_SEARCH.md"
       - "identity-broker/scripts/grant-google-cloud-support-access.ps1"
       - "identity-broker/scripts/finish-google-oauth.ps1"
       - ".github/workflows/validate-quillgeist-lite.yml"
   pull_request:
     paths:
       - "quillgeist-lite/**"
+      - "scripts/code-search.mjs"
+      - "scripts/code-search.ps1"
+      - "CODE_SEARCH.md"
       - "identity-broker/scripts/grant-google-cloud-support-access.ps1"
       - "identity-broker/scripts/finish-google-oauth.ps1"
       - ".github/workflows/validate-quillgeist-lite.yml"
@@ -51,6 +57,8 @@ jobs:
             "quillgeist-lite/tasks/connect-jira.ps1",
             "quillgeist-lite/tasks/enable-admin-console.ps1",
             "quillgeist-lite/tasks/bootstrap-admin-console.ps1",
+            "quillgeist-lite/tasks/repo-code-search.ps1",
+            "scripts/code-search.ps1",
             "identity-broker/scripts/grant-google-cloud-support-access.ps1",
             "identity-broker/scripts/finish-google-oauth.ps1"
           )
@@ -133,6 +141,29 @@ jobs:
             Write-Host "PYTHON_PARSE_OK $pyFile"
           }
 
+
+      - name: Validate deterministic repository code search
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          node --check scripts/code-search.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Node code-search syntax check failed." }
+
+          $raw = @(node scripts/code-search.mjs "calendar_temporarily_unavailable" --path meet-worker --json)
+          if ($LASTEXITCODE -ne 0) { throw "Node code-search smoke test found no expected match." }
+          $result = ($raw -join "`n") | ConvertFrom-Json
+          if ($result.matches -lt 1) { throw "Node code-search did not return an expected match." }
+
+          $psRaw = @(pwsh -NoProfile -File scripts/code-search.ps1 "calendar_temporarily_unavailable" -Path meet-worker -Json -Root $PWD)
+          if ($LASTEXITCODE -ne 0) { throw "PowerShell code-search wrapper found no expected match." }
+          $psResult = ($psRaw -join "`n") | ConvertFrom-Json
+          if ($psResult.matches -lt 1) { throw "PowerShell code-search wrapper did not return an expected match." }
+
+          $taskText = Get-Content "quillgeist-lite/tasks/repo-code-search.ps1" -Raw
+          if ($taskText -notlike '*https://github.com/clintkosh/clintware-site.git*') {
+            throw "QQ repo-code-search task is not pinned to the maintained repository."
+          }
+          Write-Host "CODE_SEARCH_OK"
 
       - name: Smoke-test bounded local AI inspection
         shell: pwsh
