@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import uuid
+from urllib.parse import urlparse
 
 def home_dir() -> Path:
     return Path(os.environ.get("QUILLGEIST_HOME", os.environ.get("AGENTBRIDGE_HOME", Path.home() / ".quillgeist"))).expanduser()
@@ -15,7 +16,7 @@ def _defaults() -> dict:
         "device_id": str(uuid.uuid4()),
         "device_token": secrets.token_urlsafe(32),
         "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "Quillgeist Node",
-        "cloud_url": "https://quillgeist.clintware.com",
+        "cloud_url": os.environ.get("QUILLGEIST_CLOUD_URL", "").rstrip("/"),
         "allowed_workspaces": [],
         "policy": {
             "file.read": "always",
@@ -63,13 +64,13 @@ def _defaults() -> dict:
             "archive_max_atoms": 4000
         },
         "telemetry": {
-            "enabled": True,
-            "privacy": "metadata_only",
-            "send_redacted_errors": True,
-            "queue_when_offline": True
+            "enabled": False,
+            "privacy": "local_only_default",
+            "send_redacted_errors": False,
+            "queue_when_offline": False
         },
         "desktop": {
-            "local_only": False,
+            "local_only": True,
             "launch_minimized": False,
             "global_hotkey": "Ctrl+Alt+Space"
         }
@@ -97,9 +98,15 @@ class Config:
             base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
-            # Migrate the pre-Quillgeist alpha endpoint without disturbing custom endpoints.
-            if incoming.get("cloud_url") == "https://agentbridge.clintware.com":
-                base["cloud_url"] = "https://quillgeist.clintware.com"
+            # Public builds must never silently reconnect to Clintware infrastructure.
+            incoming_cloud = str(incoming.get("cloud_url") or "").strip()
+            host = (urlparse(incoming_cloud).hostname or "").lower() if incoming_cloud else ""
+            if host == "clintware.com" or host.endswith(".clintware.com"):
+                base["cloud_url"] = ""
+                base["desktop"]["local_only"] = True
+                base["telemetry"]["enabled"] = False
+                base["telemetry"]["send_redacted_errors"] = False
+                base["telemetry"]["queue_when_offline"] = False
         cfg = cls(base)
         cfg.save()
         return cfg
@@ -114,7 +121,15 @@ class Config:
             pass
 
     def set_cloud(self, url: str) -> None:
-        self.data["cloud_url"] = url.rstrip("/")
+        value = str(url or "").strip().rstrip("/")
+        parsed = urlparse(value) if value else None
+        host = (parsed.hostname or "").lower() if parsed else ""
+        if not value or parsed.scheme not in {"http", "https"} or not host:
+            raise ValueError("Provide your own self-hosted Quillgeist Cloud http/https URL.")
+        if host == "clintware.com" or host.endswith(".clintware.com"):
+            raise ValueError("Public Quillgeist builds cannot pair to Clintware infrastructure. Use your own self-hosted endpoint.")
+        self.data["cloud_url"] = value
+        self.data.setdefault("desktop", {})["local_only"] = False
         self.save()
 
     def workspace_allowed(self, workspace: Path) -> bool:
