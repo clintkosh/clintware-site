@@ -52,8 +52,8 @@
                      Foreground="#FFEAF7FF"
                      Background="Transparent"
                      BorderThickness="0"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Disabled"/>
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
         </Border>
 
         <Grid Grid.Row="3" ColumnSpacing="8">
