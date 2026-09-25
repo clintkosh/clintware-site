@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.request
 
 GIB = 1024 ** 3
 
@@ -80,6 +81,60 @@ def model_dirs():
     return out
 
 
+def bitnet_roots():
+    values = []
+    if os.environ.get("QUILLGEIST_BITNET_HOME"):
+        values.append(os.environ["QUILLGEIST_BITNET_HOME"])
+    if os.name == "nt":
+        values.extend([r"C:\AI\BitNet", r"F:\AI-Data\BitNet", r"F:\AI-Data\Models\BitNet"])
+    values.append(str(Path.home() / ".quillgeist" / "bitnet"))
+    out, seen = [], set()
+    for raw in values:
+        p = Path(raw).expanduser()
+        key = os.path.normcase(str(p))
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
+def bitnet_executable(name):
+    names = [name + ".exe", name] if os.name == "nt" and not name.lower().endswith(".exe") else [name]
+    for root in bitnet_roots():
+        for candidate in names:
+            for rel in (Path("build") / "bin" / "Release" / candidate, Path("build") / "bin" / candidate):
+                path = root / rel
+                if path.is_file():
+                    return str(path)
+    return ""
+
+
+def bitnet_models():
+    rows, seen = [], set()
+    for root in bitnet_roots():
+        if not root.exists():
+            continue
+        for base in (root / "models", root):
+            if not base.exists():
+                continue
+            try:
+                for path in base.rglob("*.gguf"):
+                    key = os.path.normcase(str(path))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    try:
+                        size = path.stat().st_size
+                    except OSError:
+                        continue
+                    rows.append({"id": "bitnet:" + str(path), "name": path.name, "runtime": "bitnet.cpp", "size_bytes": size, "path": str(path)})
+                    if len(rows) >= 100:
+                        return rows
+            except OSError:
+                pass
+    return rows
+
+
 def models():
     rows = []
     ollama = shutil.which("ollama")
@@ -110,6 +165,7 @@ def models():
                     return rows
         except OSError:
             pass
+    rows.extend(bitnet_models())
     return rows
 
 
@@ -137,6 +193,10 @@ def snapshot(context_tokens=4096):
     llama = next((shutil.which(x) for x in ["llama-cli", "llama-cli.exe", "main", "main.exe"] if shutil.which(x)), None)
     if llama:
         runtimes.append({"runtime": "llama.cpp", "ready": True, "path": llama})
+    bitnet_cli = bitnet_executable("llama-cli")
+    bitnet_root = next((str(p) for p in bitnet_roots() if p.exists()), "")
+    if bitnet_cli or bitnet_root:
+        runtimes.append({"runtime": "bitnet.cpp", "ready": bool(bitnet_cli), "path": bitnet_cli or bitnet_root})
     return {
         "scope": "owner-machine",
         "platform": platform.platform(),
@@ -169,6 +229,11 @@ def benchmark(selector, prompt, max_tokens=48):
         if not exe:
             return {"ok": False, "error": "ollama_not_available"}
         code, output = run([exe, "run", model["name"], prompt], 60)
+    elif model["runtime"] == "bitnet.cpp":
+        exe = bitnet_executable("llama-cli")
+        if not exe:
+            return {"ok": False, "error": "bitnet_cli_not_available"}
+        code, output = run([exe, "-m", model["path"], "-p", prompt, "-n", str(max_tokens), "-c", "4096", "-t", str(max(1, (os.cpu_count() or 4) // 2)), "--no-display-prompt"], 120)
     else:
         exe = next((shutil.which(x) for x in ["llama-cli", "llama-cli.exe", "main", "main.exe"] if shutil.which(x)), None)
         if not exe:
@@ -188,9 +253,64 @@ def benchmark(selector, prompt, max_tokens=48):
     }
 
 
+
+def services():
+    probes = [
+        ("Open WebUI", "http://127.0.0.1:3015"),
+        ("Ollama", "http://127.0.0.1:11434/api/tags"),
+        ("SearXNG", "http://127.0.0.1:8088"),
+        ("n8n", "http://127.0.0.1:5678"),
+        ("Pipelines", "http://127.0.0.1:9099"),
+        ("Web Search Agent", "http://127.0.0.1:8788/health"),
+        ("Media Agent", "http://127.0.0.1:8799/health"),
+        ("ComfyUI", "http://127.0.0.1:8188/system_stats"),
+    ]
+    rows = []
+    for name, url in probes:
+        try:
+            req = urllib.request.Request(url, headers={"user-agent": "quillgeist-lite-local-ai"})
+            with urllib.request.urlopen(req, timeout=4) as response:
+                rows.append({"name": name, "url": url, "ok": True, "status": response.status})
+        except Exception as exc:
+            rows.append({"name": name, "url": url, "ok": False, "error": str(exc)[:300]})
+    return rows
+
+
+def start_existing_stack():
+    if os.name != "nt":
+        return None
+    candidates = [
+        Path(r"C:\AI\LOCAL-CHATGPT\START-LOCAL-CHATGPT.bat"),
+        Path(r"C:\AI\LOCAL-CHATGPT\START-LOCAL-CHATGPT.ps1"),
+        Path(r"C:\AI\LOCAL-CHATGPT\START-LOCAL-AI.bat"),
+    ]
+    launcher = next((p for p in candidates if p.exists()), None)
+    if not launcher:
+        return None
+    try:
+        if launcher.suffix.lower() == ".ps1":
+            shell = shutil.which("pwsh") or shutil.which("powershell")
+            subprocess.Popen([shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(launcher)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.Popen(["cmd.exe", "/d", "/c", "start", "", "/min", str(launcher)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return str(launcher)
+    except OSError:
+        return None
+
+
+def reconcile():
+    before = services()
+    launcher = None
+    if any(not row["ok"] for row in before):
+        launcher = start_existing_stack()
+        if launcher:
+            time.sleep(10)
+    return {"before": before, "after": services(), "launcher_used": launcher, "snapshot": snapshot(4096)}
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
@@ -204,6 +324,10 @@ def main():
         out = {"ok": bool(model), "model": model, "error": None if model else "installed_model_not_found"}
     elif a.Action == "benchmark":
         out = benchmark(a.Model, a.Prompt, a.MaxTokens)
+    elif a.Action == "services":
+        out = {"services": services()}
+    elif a.Action == "reconcile":
+        out = reconcile()
     else:
         viable = [m for m in snap["models"] if m.get("fit", {}).get("fit") in {"likely", "tight"}]
         viable.sort(key=lambda x: (x["fit"]["fit"] != "likely", -(x.get("size_bytes") or 0)))
