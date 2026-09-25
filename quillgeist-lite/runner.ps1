@@ -563,7 +563,7 @@ function Show-QQHelp {
   Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
   Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
   Write-Host "  heal                         Self-repair qq in place without stealing focus." -ForegroundColor Cyan
-  Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan
+  Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan\n  Write-Host "  code search <query>          Search the maintained repository without provider indexing." -ForegroundColor Cyan
   Write-Host "  web search <query>           Search the live public web without a search API key." -ForegroundColor Cyan
   Write-Host "  web read <url>               Read a public page into structured text/links." -ForegroundColor Cyan
   Write-Host "  web login <url>              Open the persistent browser for manual local sign-in." -ForegroundColor Cyan
@@ -792,6 +792,11 @@ function Invoke-QQLocalCommand {
       try { if ($script:RunnerSocket) { $script:RunnerSocket.Abort() } } catch {}
       return
     }
+  }
+
+  if ($lower.StartsWith("code search ")) {
+    Invoke-QQLocalTask "repo-code-search" @{Query=$line.Substring(12).Trim();Mode="text";Max="100";Json="false";FilesOnly="false"}
+    return
   }
 
   if ($lower.StartsWith("web search ")) {
