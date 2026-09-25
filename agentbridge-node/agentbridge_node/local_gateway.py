@@ -86,7 +86,7 @@ def _ollama_chat(model: str, messages: list[dict], *, context_tokens: int, max_t
 
 
 def _llama_cli_chat(model: dict, messages: list[dict], *, context_tokens: int, max_tokens: int, timeout: int) -> dict:
-    exe = local_inference._which_any(["llama-cli", "llama-cli.exe", "main", "main.exe"])
+    exe = local_inference._bitnet_executable("llama-cli") if model.get("runtime") == "bitnet.cpp" else local_inference._which_any(["llama-cli", "llama-cli.exe", "main", "main.exe"])
     if not exe or not model.get("path"):
         return {"ok": False, "error": "llama_cli_not_available"}
     prompt = _flatten_messages(messages)
