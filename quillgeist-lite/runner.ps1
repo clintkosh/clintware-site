@@ -535,7 +535,13 @@ function Request-QQSelfEnrollment {
       }
 
       $callbackUri = [Uri]("http://127.0.0.1" + $matches[1])
-      $query = [Web.HttpUtility]::ParseQueryString($callbackUri.Query)
+      $query = @{}
+      foreach ($pair in $callbackUri.Query.TrimStart("?").Split("&",[StringSplitOptions]::RemoveEmptyEntries)) {
+        $kv = $pair.Split("=",2)
+        $key = [Uri]::UnescapeDataString([string]$kv[0])
+        $value = if ($kv.Count -gt 1) { [Uri]::UnescapeDataString([string]$kv[1]) } else { "" }
+        $query[$key] = $value
+      }
       $status = [string]$query["status"]
       $returnedNonce = [string]$query["nonce"]
 
