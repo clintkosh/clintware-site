@@ -80,7 +80,7 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Google delegated access is not configured; ClintCal will retain ICS fallback behavior."
+            echo "Direct refresh fallback is not configured; ClintCal will use identity-broker delegated access."
           fi
 
       - name: Configure Google Calendar delegated access
@@ -191,7 +191,9 @@ jobs:
           assert d.get('storage',{}).get('storage') == 'sqlite',d
           assert d.get('slots',0) > 0,d
           assert d.get('calendarBridgeConfigured') is True,d
-          print('Protected self-test passed:',d)
+          assert d.get('calendarReady') is True,d
+          assert d.get('repairMode') == 'event-driven-durable-alarm',d
+          print('Protected storage + live Calendar self-test passed:',d)
           PY
 
       - name: Run one live book-reschedule-cancel test
