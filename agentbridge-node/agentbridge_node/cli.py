@@ -15,7 +15,7 @@ from .config import Config, home_dir
 from .dlp import evaluate as evaluate_dlp
 from .executor import rollback
 from .helpdb import load as load_help, page as page_help, render as render_help
-from . import local_inference
+from . import local_inference, local_gateway
 from .pack import load_pack, save_abpack, summary
 from .policy import evaluate
 from .preferences import PreferenceStore
@@ -177,6 +177,16 @@ def cmd_help_center(args):
 def _local_inference_settings(cfg):
     return dict(cfg.data.get("local_inference") or {})
 
+
+def _context_values(raw):
+    values=[]
+    for item in str(raw or "").split(","):
+        item=item.strip()
+        if item:
+            values.append(int(item))
+    return values
+
+
 def cmd_local_ai(args):
     cfg = Config.load()
     settings = _local_inference_settings(cfg)
@@ -192,13 +202,20 @@ def cmd_local_ai(args):
         if not model:
             _print({"ok": False, "error": "installed_model_not_found", "model": args.model})
             raise SystemExit(2)
-        _print({"ok": True, "model": model})
+        fit = local_inference.estimate_fit(
+            model.get("size_bytes"),
+            context_tokens=args.context_tokens,
+            memory=snapshot.get("memory"),
+            reserve_gib=float(settings.get("ram_reserve_gib") or 2.0),
+        )
+        _print({"ok": True, "model": model, "fit": fit})
         return
     if command == "benchmark":
         result = local_inference.benchmark(
             args.model,
             prompt=args.prompt,
             max_tokens=args.max_tokens,
+            context_tokens=args.context_tokens,
             timeout=int(settings.get("benchmark_timeout_seconds") or 60),
             config=settings,
         )
@@ -213,6 +230,62 @@ def cmd_local_ai(args):
             config=settings,
         ))
         return
+    if command == "fallback":
+        _print(local_inference.fallback_plan(task=args.task, context_tokens=args.context_tokens, config=settings))
+        return
+    if command == "plan":
+        result=local_inference.launch_plan(args.model, context_tokens=args.context_tokens, port=args.port, config=settings)
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "curve":
+        result=local_inference.context_depth_curve(
+            args.model,
+            _context_values(args.contexts),
+            prompt=args.prompt,
+            max_tokens=args.max_tokens,
+            timeout=int(settings.get("benchmark_timeout_seconds") or 60),
+            config=settings,
+        )
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "workload":
+        _print(local_inference.workload_profile(args.limit))
+        return
+    if command == "autofit":
+        result=local_inference.auto_fit(
+            models=args.model or None,
+            contexts=_context_values(args.contexts),
+            max_tokens=args.max_tokens,
+            timeout=int(settings.get("benchmark_timeout_seconds") or 60),
+            config=settings,
+        )
+        if args.apply and result.get("chosen"):
+            result["apply_result"]=local_inference.apply_auto_fit(result["proposal_id"])
+        _print(result)
+        raise SystemExit(0 if result.get("chosen") else 2)
+    if command == "apply":
+        result=local_inference.apply_auto_fit(args.proposal_id)
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "profile":
+        _print(local_inference.active_profile())
+        return
+    if command == "verify":
+        result=local_inference.verify_profile(
+            tolerance_pct=args.tolerance_pct,
+            timeout=int(settings.get("benchmark_timeout_seconds") or 60),
+            config=settings,
+        )
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "rollback-profile":
+        result=local_inference.rollback_profile()
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "gateway":
+        local_gateway.serve(settings, host=args.host or str(settings.get("gateway_host") or "127.0.0.1"), port=args.port or int(settings.get("gateway_port") or 11435))
+        return
+
 
 def cmd_doctor(args):
     cfg=Config.load()
@@ -233,11 +306,21 @@ def build_parser():
     x=sub.add_parser("clipboard-watch"); x.add_argument("--mode",choices=["off","detect","import","trusted"]); x.set_defaults(func=cmd_clipboard)
     x=sub.add_parser("install-associations"); x.add_argument("--include-md-json",action="store_true"); x.set_defaults(func=cmd_associations)
     x=sub.add_parser("doctor"); x.set_defaults(func=cmd_doctor)
-    x=sub.add_parser("local-ai",help="Inspect and benchmark installed local AI runtimes and models"); ls=x.add_subparsers(dest="local_ai_command",required=True)
+    x=sub.add_parser("local-ai",help="Operate installed local AI with fit guards and measured evidence"); ls=x.add_subparsers(dest="local_ai_command",required=True)
     ls.add_parser("status")
-    f=ls.add_parser("fit"); f.add_argument("model")
-    b=ls.add_parser("benchmark"); b.add_argument("model"); b.add_argument("--prompt",default="Reply with the single word READY."); b.add_argument("--max-tokens",type=int,default=48)
+    f=ls.add_parser("fit"); f.add_argument("model"); f.add_argument("--context-tokens",type=int,default=4096)
+    b=ls.add_parser("benchmark"); b.add_argument("model"); b.add_argument("--prompt",default="Reply with the single word READY."); b.add_argument("--max-tokens",type=int,default=48); b.add_argument("--context-tokens",type=int,default=4096)
     r=ls.add_parser("route"); r.add_argument("--task",default="general"); r.add_argument("--context-tokens",type=int,default=4096); r.add_argument("--privacy-required",action="store_true"); r.add_argument("--prefer-external",action="store_true")
+    fb=ls.add_parser("fallback"); fb.add_argument("--task",default="general"); fb.add_argument("--context-tokens",type=int,default=4096)
+    pl=ls.add_parser("plan"); pl.add_argument("model"); pl.add_argument("--context-tokens",type=int,default=4096); pl.add_argument("--port",type=int,default=11435)
+    cv=ls.add_parser("curve"); cv.add_argument("model"); cv.add_argument("--contexts",default="2048,4096,8192"); cv.add_argument("--prompt",default="Reply with READY."); cv.add_argument("--max-tokens",type=int,default=32)
+    wl=ls.add_parser("workload"); wl.add_argument("--limit",type=int,default=500)
+    af=ls.add_parser("autofit"); af.add_argument("--model",action="append"); af.add_argument("--contexts",default="2048,4096,8192"); af.add_argument("--max-tokens",type=int,default=32); af.add_argument("--apply",action="store_true")
+    ap=ls.add_parser("apply"); ap.add_argument("proposal_id")
+    ls.add_parser("profile")
+    vf=ls.add_parser("verify"); vf.add_argument("--tolerance-pct",type=float,default=20.0)
+    ls.add_parser("rollback-profile")
+    gw=ls.add_parser("gateway"); gw.add_argument("--host",default="127.0.0.1"); gw.add_argument("--port",type=int,default=11435)
     x.set_defaults(func=cmd_local_ai)
     x=sub.add_parser("telemetry"); ts=x.add_subparsers(dest="telemetry_command",required=True); ts.add_parser("status"); f=ts.add_parser("flush"); f.add_argument("--limit",type=int,default=100); ts.add_parser("on"); ts.add_parser("off"); x.set_defaults(func=cmd_telemetry)
     x=sub.add_parser("dlp",help="Quillgeist local sensitive-data protection"); ds=x.add_subparsers(dest="dlp_command",required=True); [ds.add_parser(name) for name in ["status","on","standard","strict","monitor","off"]]; x.set_defaults(func=cmd_dlp)
