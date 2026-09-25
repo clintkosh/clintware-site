@@ -57,6 +57,10 @@ A first-time visitor should be able to answer quickly:
 
 If those answers are buried under marketing copy, the page fails.
 
+## Public positioning guard
+
+Clintware is product-led and may show clearly separated client work, implementation, systems, support, or project work, but public surfaces must not position Clintware or Clinton Kosh as a consulting business. The words **consulting**, **consultant**, and **consultancy** are prohibited from public pages, apps, metadata, downloadable résumés/CVs, and generated professional artifacts. The legacy consulting route/domain must not be restored. Run the repository public-positioning guard before deployment.
+
 ## Product truth hierarchy
 
 Use this order when presenting products:
@@ -214,5 +218,6 @@ Before publishing, reject the draft if any of these are true:
 - the page feels like generic SaaS boilerplate instead of Clintware;
 - body, headings, navigation, metadata, or brand text have drifted away from the Clintware Type System without an explicitly approved independent product identity;
 - `/fonts/` no longer matches the type roles actually used in production.
+- public copy or downloadable artifacts reintroduce consulting positioning.
 
 If the draft fails, rewrite it before deployment.
