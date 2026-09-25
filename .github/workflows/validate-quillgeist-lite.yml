@@ -81,7 +81,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 8) {
+          if ($registry.version -ne 9) {
             throw "Unexpected task registry version."
           }
 
@@ -120,7 +120,8 @@ jobs:
             "quillgeist-lite/tools/boot_splash.py",
             "quillgeist-lite/tools/terminal_repair.py",
             "quillgeist-lite/tools/browser_agent.py",
-            "quillgeist-lite/tools/oauth_verification_capture.py"
+            "quillgeist-lite/tools/oauth_verification_capture.py",
+            "quillgeist-lite/tools/local_ai.py"
           )
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
@@ -129,6 +130,19 @@ jobs:
             }
             Write-Host "PYTHON_PARSE_OK $pyFile"
           }
+
+
+      - name: Smoke-test bounded local AI inspection
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $output = @(python quillgeist-lite/tools/local_ai.py --Action status)
+          if ($LASTEXITCODE -ne 0) { throw "local_ai status failed with exit code $LASTEXITCODE" }
+          $data = ($output -join "`n") | ConvertFrom-Json
+          if ($data.network_required -ne $false) { throw "local_ai status unexpectedly requires network access." }
+          if ($data.model_downloads_performed -ne $false) { throw "local_ai status unexpectedly downloaded a model." }
+          if ($null -eq $data.memory) { throw "local_ai status omitted memory evidence." }
+          Write-Host "LOCAL_AI_STATUS_OK"
 
 
       - name: Compile Windows health service
