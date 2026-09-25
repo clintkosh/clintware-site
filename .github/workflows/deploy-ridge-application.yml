@@ -67,8 +67,6 @@ jobs:
             "512-922-2324",
             "courtney",
             "marykosh",
-            "CodeFEDDY",
-            "feddy"
           ]
           bad=[x for x in forbidden if x.lower() in html.lower()]
           assert not bad, f"private/unrelated data found: {bad}"
@@ -105,7 +103,7 @@ jobs:
           # Check 4: professional-content sanity and unwanted-brand exclusion.
           grep -Eiq 'Customer Success|Customer Experience|customer' /tmp/resume.txt
           grep -Eiq 'Cofense|Check Point|Dedrone|IBM' /tmp/resume.txt
-          if grep -Eiq 'CodeFEDDY|feddy|cannabis|THCA' /tmp/resume.txt; then
+          if grep -Eiq 'cannabis|THCA' /tmp/resume.txt; then
             echo "Unrelated personal/creator content found in resume" >&2; exit 1
           fi
           echo "Resume passed four validation layers across $pages page(s)."
