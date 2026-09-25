@@ -429,6 +429,18 @@ async function verifyGithubReceiver(request){
   }catch{return {ok:false,reason:"github_auth_unavailable"};}
 }
 
+async function verifyQuillgeistDeviceRequest(request,env,explicitDeviceId=""){
+  const token=bearer(request);
+  const url=new URL(request.url);
+  const device_id=clip(explicitDeviceId||request.headers.get("x-quillgeist-device")||url.searchParams.get("device_id")||"",120);
+  if(!token||!device_id)return {ok:false,reason:"missing_device_auth"};
+  const token_hash=await sha256(token);
+  const verifyResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash})}));
+  const verify=await verifyResp.json().catch(()=>({}));
+  if(!verifyResp.ok||!verify.ok)return {ok:false,reason:"unauthorized_device"};
+  return {ok:true,device_id,device:verify.device||null};
+}
+
 function base64UrlUtf8(value){
   const bytes=new TextEncoder().encode(String(value||""));
   let binary="";
@@ -3030,33 +3042,29 @@ export default {
 
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/stream"){
         if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
-        const receiver=await verifyGithubReceiver(request);
-        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
+        const device=await verifyQuillgeistDeviceRequest(request,env);
+        if(!device.ok)return json({error:"unauthorized_device",reason:device.reason},401);
         const headers=new Headers();
         headers.set("upgrade","websocket");
+        headers.set("x-quillgeist-device",device.device_id);
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-stream",{method:"GET",headers}));
       }
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/wake-stream"){
         if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
-        const token=bearer(request);
-        const device_id=clip(url.searchParams.get("device_id")||"",120);
-        if(!token||!device_id)return json({error:"unauthorized_device"},401);
-        const token_hash=await sha256(token);
-        const verifyResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash})}));
-        const verify=await verifyResp.json();
-        if(!verify.ok)return json({error:"unauthorized_device"},401);
+        const device=await verifyQuillgeistDeviceRequest(request,env);
+        if(!device.ok)return json({error:"unauthorized_device",reason:device.reason},401);
         const headers=new Headers();
         headers.set("upgrade","websocket");
-        headers.set("x-quillgeist-device",device_id);
+        headers.set("x-quillgeist-device",device.device_id);
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-wake-stream",{method:"GET",headers}));
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/responder-report"){
-        const receiver=await verifyGithubReceiver(request);
-        if(!receiver.ok)return json({error:"unauthorized_receiver",reason:receiver.reason},401);
         const body=await reqJson(request,64_000);
+        const device=await verifyQuillgeistDeviceRequest(request,env,body.device_id||body.runner_id);
+        if(!device.ok)return json({error:"unauthorized_device",reason:device.reason},401);
         const result=await sendResponderEmail(env,{to:body.to,subject:body.subject,body:body.body});
         if(!result.ok)return json(result,result.status||503);
-        return json({ok:true,email:result,runner_id:clip(body.runner_id||"",120),generated_at:clip(body.generated_at||"",80)});
+        return json({ok:true,email:result,runner_id:clip(body.runner_id||device.device_id,120),generated_at:clip(body.generated_at||"",80)});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
         return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
@@ -3071,16 +3079,11 @@ export default {
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash,label:body.label||device_id})}));
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/diagnostics"){
-        const token=bearer(request);
         const body=await reqJson(request,64_000);
-        const device_id=clip(body.device_id||"",120);
-        if(!token||!device_id)return json({error:"unauthorized_device"},401);
-        const token_hash=await sha256(token);
-        const verifyResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-device-verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({device_id,token_hash})}));
-        const verify=await verifyResp.json();
-        if(!verify.ok)return json({error:"unauthorized_device"},401);
+        const device=await verifyQuillgeistDeviceRequest(request,env,body.device_id);
+        if(!device.ok)return json({error:"unauthorized_device",reason:device.reason},401);
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-diagnostic",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-          device_id,
+          device_id:device.device_id,
           level:body.level,
           phase:body.phase,
           message:body.message,
