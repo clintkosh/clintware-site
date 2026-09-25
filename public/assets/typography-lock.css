@@ -145,7 +145,7 @@ h3,.cw-home h3,.card h3{font-size:16px!important;line-height:1.3!important;font-
 .cw-route-tools a:hover,.cw-route-tools a:focus-visible{background:#0b2229!important;border-color:#62e9f5!important;color:#fff!important}
 .cw-route-tools>span[aria-hidden="true"]{color:#58707e!important;opacity:1!important}
 
-.site-nav a[href="https://consulting.clintware.com/"],
+.site-nav a[href="/client-work/"],
 .nav-cta[href*="Clintware%20project%20inquiry"]{display:none!important}
 
 .panel,.card,.metric,.process-step,.planned-item,.utility-panel,.article-closing,
