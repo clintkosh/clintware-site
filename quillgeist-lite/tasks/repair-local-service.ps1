@@ -15,7 +15,7 @@ $LauncherPath = Join-Path $HomeDir "launcher.ps1"
 $WindowHostPath = Join-Path $HomeDir "start-qq-window.ps1"
 $SourceUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/service/QuillgeistLiteHealthService.cs"
 $SelfUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/repair-local-service.ps1"
-$RepairVersion = "2026.09.25.9"
+$RepairVersion = "2026.09.25.11"
 $LocalRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $DeadmanPath = Join-Path $ProgramDir "service-restart-deadman.ps1"
@@ -377,10 +377,14 @@ if (Install-FallbackRecovery) {
 if (-not $SkipRunnerRestart) {
   try {
     Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
+    try {
+      Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+      Start-Sleep -Milliseconds 900
+    } catch {}
     Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-    Write-Host "TASK // runner start requested immediately" -ForegroundColor Cyan
+    Write-Host "TASK // stale runner cleared; clean qq start requested immediately" -ForegroundColor Cyan
   } catch {
-    Write-Host ("WARN // runner task could not be started immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
+    Write-Host ("WARN // runner task could not be restarted immediately: " + $_.Exception.Message) -ForegroundColor DarkYellow
   }
 } else {
   Write-Host "TASK // runner restart deferred because an active qq job is using this session" -ForegroundColor DarkGray
