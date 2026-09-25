@@ -92,7 +92,8 @@ export default{
         url.pathname === "/api/help" || url.pathname.startsWith("/api/help/") ||
         url.pathname.startsWith("/api/telemetry/") ||
         url.pathname.startsWith("/ws/device/");
-      if(retiredPublicRuntime){
+      const onClintwareDistribution=url.hostname.toLowerCase()==="quillgeist.clintware.com";
+      if(onClintwareDistribution&&retiredPublicRuntime){
         return json({
           error:"public_runtime_retired",
           self_host_required:true,
@@ -108,7 +109,7 @@ export default{
       if(url.pathname==="/api/v1"||url.pathname.startsWith("/api/v1/")){
         const apiResponse=await handlePublicApi(request,env,ctx);if(apiResponse)return apiResponse;
       }
-      if(request.method==="GET"&&url.pathname==="/api/health")return json({ok:true,service:"Quillgeist Distribution Site",runtime:"static-self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:false,self_host_required:true,time:new Date().toISOString()});
+      if(request.method==="GET"&&url.pathname==="/api/health")return onClintwareDistribution\n        ? json({ok:true,service:"Quillgeist Distribution Site",runtime:"static-self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:false,self_host_required:true,time:new Date().toISOString()})\n        : json({ok:true,service:"Quillgeist Cloud",runtime:"self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:true,self_host_required:false,time:new Date().toISOString()});
       if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
