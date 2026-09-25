@@ -2,7 +2,9 @@
 from __future__ import annotations
 import getpass, json, os, re, shlex, shutil, subprocess, sys, time
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parent))
+HERE=Path(__file__).resolve().parent
+for candidate in (HERE,Path("/usr/local/lib/successos")):
+    if str(candidate) not in sys.path: sys.path.insert(0,str(candidate))
 from success_permission import PolicyStore, Request, interactive_approve
 
 STATE=Path.home()/".local/state/successos"
@@ -74,7 +76,9 @@ def run_action(plan:dict)->dict:
         cmd=["lshw","-short"]
         resource="machine"
     elif action=="driver.scan":
-        cmd=[sys.executable,str(Path(__file__).resolve().parent/"success_driver_scan.py")]
+        scan=Path("/usr/local/bin/success-driver-scan")
+        if not scan.exists(): scan=HERE/"success_driver_scan.py"
+        cmd=[str(scan)]
         resource="machine"
     elif action=="network.status":
         cmd=["nmcli","device","status"]; resource="machine"
