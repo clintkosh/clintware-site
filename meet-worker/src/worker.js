@@ -22,12 +22,14 @@ import {
 } from "./lib.js";
 import { bookingPage, managePage, roomPage } from "./ui.js";
 import {
+  calendarRepairDelayMs,
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
   filterSlotsAgainstGoogleBusy,
   googleBusyIntervals,
   googleCalendarConfigured,
   getGoogleCalendarEvent,
+  probeGoogleCalendar,
   requestedTimeIsGoogleBusy,
   updateGoogleCalendarEvent,
 } from "./google-calendar.js";
@@ -75,6 +77,77 @@ function html(content) {
 
 function store(env) {
   return env.SCHEDULER.getByName("clintware-meet-v1");
+}
+
+const CALENDAR_INCIDENT_KEY = "calendarIncident";
+
+function calendarReconnectRequired(error) {
+  const code = String(error?.code || "");
+  const detail = String(error?.detail || "");
+  return (
+    code === "google_calendar_not_connected" ||
+    code === "google_calendar_not_configured" ||
+    code === "google_calendar_oauth_refresh_failed" ||
+    /google_delegated_(grant_missing|refresh_failed)|invalid_grant/i.test(detail)
+  );
+}
+
+async function signalCalendarFailure(env, error, trigger) {
+  try {
+    await store(env).fetch("https://scheduler/calendar-failure", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        trigger: cleanText(trigger, 100),
+        code: cleanText(error?.code || "calendar_error", 120),
+        httpStatus: Number(error?.status || 0),
+        reconnectRequired: calendarReconnectRequired(error),
+      }),
+    });
+  } catch (signalError) {
+    console.error(JSON.stringify({
+      event: "google_calendar_repair_signal_failed",
+      trigger,
+      message: String(signalError),
+    }));
+  }
+}
+
+async function signalCalendarRecovered(env, trigger) {
+  try {
+    await store(env).fetch("https://scheduler/calendar-recovered", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trigger: cleanText(trigger, 100) }),
+    });
+  } catch (signalError) {
+    console.error(JSON.stringify({
+      event: "google_calendar_recovery_clear_failed",
+      trigger,
+      message: String(signalError),
+    }));
+  }
+}
+
+async function runCalendarOperation(env, trigger, operation) {
+  try {
+    return await operation();
+  } catch (firstError) {
+    await signalCalendarFailure(env, firstError, trigger);
+    try {
+      await probeGoogleCalendar(env);
+      const result = await operation();
+      await signalCalendarRecovered(env, `${trigger}:inline-retry`);
+      console.info(JSON.stringify({
+        event: "google_calendar_inline_recovery_succeeded",
+        trigger,
+      }));
+      return result;
+    } catch (retryError) {
+      await signalCalendarFailure(env, retryError, trigger);
+      throw retryError;
+    }
+  }
 }
 
 function rowToBooking(row) {
@@ -294,6 +367,9 @@ export class SchedulerState extends DurableObject {
     }
     if (request.method === "GET" && url.pathname === "/availability") return this.availability();
     if (request.method === "GET" && url.pathname === "/lookup") return this.lookup(url.searchParams.get("hash") || "");
+    if (request.method === "GET" && url.pathname === "/calendar-status") return this.calendarStatus();
+    if (request.method === "POST" && url.pathname === "/calendar-failure") return this.recordCalendarFailure(await request.json());
+    if (request.method === "POST" && url.pathname === "/calendar-recovered") return this.recordCalendarRecovered(await request.json());
     if (request.method === "POST" && url.pathname === "/reserve") return this.reserve(await request.json());
     if (request.method === "POST" && url.pathname === "/google-event") return this.setGoogleEvent(await request.json());
     if (request.method === "POST" && url.pathname === "/reschedule") return this.reschedule(await request.json());
@@ -510,6 +586,118 @@ export class SchedulerState extends DurableObject {
     return json({ ok: true, canceled: rows.length });
   }
 
+  async calendarStatus() {
+    const incident = await this.ctx.storage.get(CALENDAR_INCIDENT_KEY);
+    return json({
+      calendar: incident || {
+        status: "healthy",
+        attempts: 0,
+        failureEvents: 0,
+        reconnectRequired: false,
+        nextRetryMs: null,
+      },
+    });
+  }
+
+  async recordCalendarFailure(input = {}) {
+    const now = Date.now();
+    const current = await this.ctx.storage.get(CALENDAR_INCIDENT_KEY);
+    const open = current?.status === "open";
+    const attempts = open ? Number(current.attempts || 0) : 0;
+    const existingRetry = open ? Number(current.nextRetryMs || 0) : 0;
+    const nextRetryMs = existingRetry > now
+      ? existingRetry
+      : now + calendarRepairDelayMs(attempts + 1);
+    const incident = {
+      status: "open",
+      trigger: cleanText(input.trigger || "unknown", 100),
+      code: cleanText(input.code || "calendar_error", 120),
+      httpStatus: Number(input.httpStatus || 0),
+      reconnectRequired: Boolean(input.reconnectRequired),
+      attempts,
+      failureEvents: open ? Number(current.failureEvents || 0) + 1 : 1,
+      openedAt: open ? Number(current.openedAt || now) : now,
+      updatedAt: now,
+      resolvedAt: null,
+      nextRetryMs,
+    };
+    await this.ctx.storage.put(CALENDAR_INCIDENT_KEY, incident);
+    console.warn(JSON.stringify({
+      event: "google_calendar_repair_queued",
+      trigger: incident.trigger,
+      code: incident.code,
+      httpStatus: incident.httpStatus,
+      reconnectRequired: incident.reconnectRequired,
+      nextRetryMs,
+    }));
+    await this.scheduleNextAlarm();
+    return json({ ok: true, calendar: incident });
+  }
+
+  async recordCalendarRecovered(input = {}) {
+    const now = Date.now();
+    const current = await this.ctx.storage.get(CALENDAR_INCIDENT_KEY);
+    if (current?.status !== "open") {
+      return json({ ok: true, calendar: current || { status: "healthy" } });
+    }
+    const healthy = {
+      status: "healthy",
+      trigger: cleanText(input.trigger || "probe", 100),
+      code: "",
+      httpStatus: 0,
+      reconnectRequired: false,
+      attempts: Number(current.attempts || 0),
+      failureEvents: Number(current.failureEvents || 0),
+      openedAt: Number(current.openedAt || now),
+      updatedAt: now,
+      resolvedAt: now,
+      nextRetryMs: null,
+    };
+    await this.ctx.storage.put(CALENDAR_INCIDENT_KEY, healthy);
+    console.info(JSON.stringify({
+      event: "google_calendar_repair_resolved",
+      trigger: healthy.trigger,
+      attempts: healthy.attempts,
+      failureEvents: healthy.failureEvents,
+    }));
+    return json({ ok: true, calendar: healthy });
+  }
+
+  async attemptCalendarRepair() {
+    const incident = await this.ctx.storage.get(CALENDAR_INCIDENT_KEY);
+    if (incident?.status !== "open") return;
+    const now = Date.now();
+    if (Number(incident.nextRetryMs || 0) > now) return;
+
+    try {
+      await probeGoogleCalendar(this.env);
+      await this.recordCalendarRecovered({ trigger: "durable-alarm" });
+    } catch (error) {
+      const attempts = Number(incident.attempts || 0) + 1;
+      const updatedAt = Date.now();
+      const nextRetryMs = updatedAt + calendarRepairDelayMs(attempts + 1);
+      const next = {
+        ...incident,
+        status: "open",
+        code: cleanText(error?.code || incident.code || "calendar_error", 120),
+        httpStatus: Number(error?.status || incident.httpStatus || 0),
+        reconnectRequired: Boolean(incident.reconnectRequired || calendarReconnectRequired(error)),
+        attempts,
+        updatedAt,
+        nextRetryMs,
+      };
+      await this.ctx.storage.put(CALENDAR_INCIDENT_KEY, next);
+      console.error(JSON.stringify({
+        event: "google_calendar_repair_attempt_failed",
+        code: next.code,
+        httpStatus: next.httpStatus,
+        reconnectRequired: next.reconnectRequired,
+        attempts,
+        nextRetryMs,
+      }));
+    }
+  }
+
   async selfTest() {
     const id = `selftest-${crypto.randomUUID()}`;
     const now = Date.now();
@@ -559,6 +747,12 @@ export class SchedulerState extends DurableObject {
         if (next === null || t < next) next = t;
       }
     }
+    const calendarIncident = await this.ctx.storage.get(CALENDAR_INCIDENT_KEY);
+    if (calendarIncident?.status === "open" && Number(calendarIncident.nextRetryMs || 0) > 0) {
+      const repairDue = Math.max(now + 1000, Number(calendarIncident.nextRetryMs));
+      if (next === null || repairDue < next) next = repairDue;
+    }
+
     if (next !== null) await this.ctx.storage.setAlarm(next);
   }
 
@@ -590,6 +784,7 @@ export class SchedulerState extends DurableObject {
   }
 
   async alarm() {
+    await this.attemptCalendarRepair();
     const now = Date.now();
     const rows = this.sql.exec(
       "SELECT * FROM bookings WHERE status='confirmed' AND end_ms > ? ORDER BY start_ms LIMIT 200",
@@ -642,7 +837,7 @@ async function apiAvailability(env) {
       const after = CONFIG.bufferAfterMinutes * 60_000;
       const fromMs = data.slots[0].startMs - before;
       const toMs = data.slots.at(-1).endMs + after;
-      const busy = await googleBusyIntervals(env, fromMs, toMs);
+      const busy = await runCalendarOperation(env, "availability", () => googleBusyIntervals(env, fromMs, toMs));
       data.slots = filterSlotsAgainstGoogleBusy(data.slots, busy, CONFIG);
       calendarSync = "google";
     } catch (error) {
@@ -677,7 +872,7 @@ async function apiBook(request, env) {
       const endMs = input.startMs + CONFIG.durationMinutes * 60_000;
       const before = CONFIG.bufferBeforeMinutes * 60_000;
       const after = CONFIG.bufferAfterMinutes * 60_000;
-      const busy = await googleBusyIntervals(env, input.startMs - before, endMs + after);
+      const busy = await runCalendarOperation(env, "prebook", () => googleBusyIntervals(env, input.startMs - before, endMs + after));
       if (requestedTimeIsGoogleBusy(input.startMs, endMs, busy, CONFIG)) {
         return json({ error: "slot_not_available" }, 409);
       }
@@ -723,7 +918,7 @@ async function apiBook(request, env) {
 
   if (calendar.configured) {
     try {
-      const event = await createGoogleCalendarEvent(env, booking);
+      const event = await runCalendarOperation(env, "event-create", () => createGoogleCalendarEvent(env, booking));
       booking.googleEventId = event.id;
       const linked = await store(env).fetch("https://scheduler/google-event", {
         method: "POST",
@@ -803,7 +998,7 @@ async function apiManage(env, token) {
 
   if (calendar.configured && booking.googleEventId) {
     try {
-      const event = await getGoogleCalendarEvent(env, booking);
+      const event = await runCalendarOperation(env, "event-read", () => getGoogleCalendarEvent(env, booking));
       calendar = {
         configured: true,
         synced: Boolean(event),
@@ -845,7 +1040,7 @@ async function apiReschedule(request, env, token) {
       const endMs = startMs + CONFIG.durationMinutes * 60_000;
       const before = CONFIG.bufferBeforeMinutes * 60_000;
       const after = CONFIG.bufferAfterMinutes * 60_000;
-      const busy = await googleBusyIntervals(env, startMs - before, endMs + after);
+      const busy = await runCalendarOperation(env, "prereschedule", () => googleBusyIntervals(env, startMs - before, endMs + after));
       if (requestedTimeIsGoogleBusy(startMs, endMs, busy, CONFIG)) {
         return json({ error: "slot_not_available" }, 409);
       }
@@ -881,9 +1076,9 @@ async function apiReschedule(request, env, token) {
     try {
       let event;
       if (booking.googleEventId) {
-        event = await updateGoogleCalendarEvent(env, booking);
+        event = await runCalendarOperation(env, "event-update", () => updateGoogleCalendarEvent(env, booking));
       } else {
-        event = await createGoogleCalendarEvent(env, booking);
+        event = await runCalendarOperation(env, "reschedule-event-create", () => createGoogleCalendarEvent(env, booking));
         booking.googleEventId = event.id;
         const linked = await store(env).fetch("https://scheduler/google-event", {
           method: "POST",
@@ -935,7 +1130,7 @@ async function apiCancel(env, token) {
   };
   if (calendar.configured && existing.googleEventId) {
     try {
-      await deleteGoogleCalendarEvent(env, { ...existing, manageToken: token });
+      await runCalendarOperation(env, "event-delete", () => deleteGoogleCalendarEvent(env, { ...existing, manageToken: token }));
       calendar = { configured: true, synced: true, inviteSent: true };
     } catch (error) {
       console.error(JSON.stringify({
@@ -988,6 +1183,11 @@ async function health(env) {
     mailer = await mailResponse.value.json().catch(() => ({ ok: false }));
   }
 
+  const calendarStatusResponse = await store(env).fetch("https://scheduler/calendar-status").catch(() => null);
+  const calendarStatus = calendarStatusResponse
+    ? await calendarStatusResponse.json().catch(() => ({}))
+    : {};
+  const incident = calendarStatus.calendar || {};
   const ok = Boolean(storage.ok && mailer.deliveryConfigured && env.INTERNAL_MAIL_SECRET);
   return json({
     ok,
@@ -995,6 +1195,10 @@ async function health(env) {
     mode: "clintcal-native",
     storage: storage.ok ? "sqlite" : "error",
     mailer: mailer.deliveryConfigured ? (mailer.provider || "configured") : "error",
+    calendarBridgeConfigured: googleCalendarConfigured(env),
+    calendarState: incident.status || "unknown",
+    calendarReconnectRequired: Boolean(incident.reconnectRequired),
+    calendarRepairAttempts: Number(incident.attempts || 0),
     durationMinutes: CONFIG.durationMinutes,
   }, ok ? 200 : 503, { "Cache-Control": "no-store" });
 }
@@ -1026,10 +1230,29 @@ async function adminSelfTest(request, env) {
   const mailResponse = env.MAILER ? await env.MAILER.fetch("https://mailer/health") : null;
   const mailer = mailResponse ? await mailResponse.json().catch(() => ({})) : {};
 
+  let calendarReady = false;
+  let calendarErrorCode = "";
+  let reconnectRequired = false;
+  try {
+    await probeGoogleCalendar(env);
+    calendarReady = true;
+    await signalCalendarRecovered(env, "admin-self-test");
+  } catch (error) {
+    calendarErrorCode = cleanText(error?.code || "calendar_error", 120);
+    reconnectRequired = Boolean(
+      error?.code === "google_calendar_not_connected" ||
+      error?.code === "google_calendar_not_configured" ||
+      error?.code === "google_calendar_oauth_refresh_failed" ||
+      /google_delegated_(grant_missing|refresh_failed)|invalid_grant/i.test(String(error?.detail || ""))
+    );
+    await signalCalendarFailure(env, error, "admin-self-test");
+  }
+
   const ok = Boolean(
     storage.ok &&
     Array.isArray(availability.slots) &&
-    availability.slots.length > 0
+    availability.slots.length > 0 &&
+    calendarReady
   );
 
   return json({
@@ -1039,6 +1262,11 @@ async function adminSelfTest(request, env) {
     mailer: Boolean(mailer.deliveryConfigured),
     mailerRequiredForCoreBooking: false,
     calendarBridgeConfigured: googleCalendarConfigured(env),
+    calendarReady,
+    calendarErrorCode,
+    calendarReconnectRequired: reconnectRequired,
+    calendarReconnectUrl: reconnectRequired ? "https://auth.clintware.com/delegated/google/start" : "",
+    repairMode: "event-driven-durable-alarm",
     bookingFlow: "reserve/reschedule/cancel protected by durable-object serialization",
   }, ok ? 200 : 503);
 }
