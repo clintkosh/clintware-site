@@ -101,7 +101,7 @@ jobs:
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data '{"hostname":"dplrcrm.clintware.com","service":"clintware-dplr-crm","zone_name":"clintware.com"}')
+            --data '{"hostname":"dplcrm.clintware.com","service":"clintware-dplr-crm","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
 
       - name: Layer 2 - live API, rich data, security, AI, and no-login persistence contract
@@ -109,10 +109,10 @@ jobs:
           set -euo pipefail
           ready=0
           for i in $(seq 1 48); do
-            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/health || true)
-            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/ || true)
-            s=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/dplr-shell.js || true)
-            e=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplrcrm.clintware.com/dplr-enrich.js || true)
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplcrm.clintware.com/health || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplcrm.clintware.com/ || true)
+            s=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplcrm.clintware.com/dplr-shell.js || true)
+            e=$(curl -fsS --connect-timeout 5 --max-time 15 https://dplcrm.clintware.com/dplr-enrich.js || true)
             if grep -Fq '"service":"clintware-dplr-crm"' <<< "$h" \
               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h" \
               && grep -Fq '"oauthApp":"none"' <<< "$h" \
@@ -121,21 +121,21 @@ jobs:
               && grep -Fq 'dplr-portfolio-grid' <<< "$s" \
               && grep -Fq 'Issue-specific preparation cards' <<< "$e" \
               && grep -Fq 'Postman Quick Start' <<< "$e"; then ready=1; break; fi
-            echo "Waiting for dplrcrm.clintware.com (${i}/48)"; sleep 5
+            echo "Waiting for dplcrm.clintware.com (${i}/48)"; sleep 5
           done
           test "$ready" = "1"
 
           rm -f /tmp/dplr.cookies /tmp/dplr.headers
-          curl -fsS -D /tmp/dplr.headers -c /tmp/dplr.cookies https://dplrcrm.clintware.com/ >/tmp/dplr.html
+          curl -fsS -D /tmp/dplr.headers -c /tmp/dplr.cookies https://dplcrm.clintware.com/ >/tmp/dplr.html
           grep -Fqi 'max-age=15552000' /tmp/dplr.headers
-          me=$(curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/me)
+          me=$(curl -fsS -b /tmp/dplr.cookies https://dplcrm.clintware.com/me)
           grep -Fq '"authenticated":false' <<< "$me"
           grep -Fq '"persistence":"browser-persistent"' <<< "$me"
-          test "$(curl -sS -o /tmp/dplr-login.json -w '%{http_code}' https://dplrcrm.clintware.com/auth/login | tr -cd '0-9')" = "404"
-          test "$(curl -sS -o /tmp/dplr-callback.json -w '%{http_code}' https://dplrcrm.clintware.com/auth/callback | tr -cd '0-9')" = "404"
-          test "$(curl -sS -o /tmp/dplr-logout.json -w '%{http_code}' -X POST https://dplrcrm.clintware.com/auth/logout | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-login.json -w '%{http_code}' https://dplcrm.clintware.com/auth/login | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-callback.json -w '%{http_code}' https://dplcrm.clintware.com/auth/callback | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-logout.json -w '%{http_code}' -X POST https://dplcrm.clintware.com/auth/logout | tr -cd '0-9')" = "404"
 
-          state_code=$(curl -sS -o /tmp/dplrstate.json -w '%{http_code}' -b /tmp/dplr.cookies -c /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state | tr -cd '0-9')
+          state_code=$(curl -sS -o /tmp/dplrstate.json -w '%{http_code}' -b /tmp/dplr.cookies -c /tmp/dplr.cookies https://dplcrm.clintware.com/api/state | tr -cd '0-9')
           test "$state_code" = "200"
           python3 - <<'PY'
           import json
@@ -151,17 +151,17 @@ jobs:
           PY
 
           echo "API mutation test: import customer"
-          import_code=$(curl -sS -o /tmp/dplrimport.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"DPLR CI Import","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dplrcrm.clintware.com/api/customers/bulk-import | tr -cd '0-9')
+          import_code=$(curl -sS -o /tmp/dplrimport.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"DPLR CI Import","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dplcrm.clintware.com/api/customers/bulk-import | tr -cd '0-9')
           test "$import_code" = "201"
-          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrafter.json
+          curl -fsS -b /tmp/dplr.cookies https://dplcrm.clintware.com/api/state >/tmp/dplrafter.json
           python3 -c 'import json; d=json.load(open("/tmp/dplrafter.json")); assert any(c["name"]=="DPLR CI Import" for c in d["customers"])'
 
           echo "API mutation test: clear except golden and repopulate"
-          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dplrcrm.clintware.com/api/customers/clear >/tmp/dplrclear.json
-          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrkept.json
+          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dplcrm.clintware.com/api/customers/clear >/tmp/dplrclear.json
+          curl -fsS -b /tmp/dplr.cookies https://dplcrm.clintware.com/api/state >/tmp/dplrkept.json
           python3 -c 'import json; d=json.load(open("/tmp/dplrkept.json")); assert len(d["customers"])==1 and d["customers"][0]["name"]=="ACME GLOBAL"'
-          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{}' https://dplrcrm.clintware.com/api/customers/reset-samples >/tmp/dplrreset.json
-          curl -fsS -b /tmp/dplr.cookies https://dplrcrm.clintware.com/api/state >/tmp/dplrresetstate.json
+          curl -fsS -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{}' https://dplcrm.clintware.com/api/customers/reset-samples >/tmp/dplrreset.json
+          curl -fsS -b /tmp/dplr.cookies https://dplcrm.clintware.com/api/state >/tmp/dplrresetstate.json
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/dplrresetstate.json'))
@@ -172,7 +172,7 @@ jobs:
           echo "Default sample richness contract"
           python3 - <<'PY'
           import json, subprocess
-          base='https://dplrcrm.clintware.com'
+          base='https://dplcrm.clintware.com'
           cookies='/tmp/dplr.cookies'
           d=json.load(open('/tmp/dplrresetstate.json'))
           def state(name):
@@ -197,24 +197,24 @@ jobs:
 
           echo "API mutation test: stakeholder create + edit"
           customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/dplrresetstate.json"))["customer"]["id"])')
-          stakeholder_code=$(curl -sS -o /tmp/dplrstake.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"DPLR CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          stakeholder_code=$(curl -sS -o /tmp/dplrstake.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"DPLR CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dplcrm.clintware.com/api/records | tr -cd '0-9')
           test "$stakeholder_code" = "201"
           stakeholder_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplrstake.json")); print(d.get("id") or d.get("record",{}).get("id") or d.get("recordId") or "")')
           if [ -z "$stakeholder_id" ]; then
-            curl -fsS -b /tmp/dplr.cookies "https://dplrcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-state.json
+            curl -fsS -b /tmp/dplr.cookies "https://dplcrm.clintware.com/api/state?customer=$customer_id" >/tmp/dplrstake-state.json
             stakeholder_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplrstake-state.json")); print(next(r["id"] for r in d["records"] if r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="DPLR CI Stakeholder"))')
           fi
-          patch_code=$(curl -sS -o /tmp/dplrpatch.json -w '%{http_code}' -X PATCH -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"data":{"status":"Engaged"}}' "https://dplrcrm.clintware.com/api/records/$stakeholder_id" | tr -cd '0-9')
+          patch_code=$(curl -sS -o /tmp/dplrpatch.json -w '%{http_code}' -X PATCH -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"data":{"status":"Engaged"}}' "https://dplcrm.clintware.com/api/records/$stakeholder_id" | tr -cd '0-9')
           test "$patch_code" = "200"
 
           echo "API mutation test: modular call prep + email draft"
-          prep_code=$(curl -sS -o /tmp/dplrprep.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"call_prep","provenance":"internal_proposal","data":{"title":"CI call prep","objective":"Validate the technical path","technologyNotes":"Known-good control","assistantNotes":"Use approved playbook"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          prep_code=$(curl -sS -o /tmp/dplrprep.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"call_prep","provenance":"internal_proposal","data":{"title":"CI call prep","objective":"Validate the technical path","technologyNotes":"Known-good control","assistantNotes":"Use approved playbook"}}' https://dplcrm.clintware.com/api/records | tr -cd '0-9')
           test "$prep_code" = "201"
-          email_code=$(curl -sS -o /tmp/dplremail.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"email_draft","provenance":"internal_proposal","data":{"title":"CI follow-up","kind":"post_call","subject":"Follow-up","body":"Draft only","status":"Draft"}}' https://dplrcrm.clintware.com/api/records | tr -cd '0-9')
+          email_code=$(curl -sS -o /tmp/dplremail.json -w '%{http_code}' -b /tmp/dplr.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"email_draft","provenance":"internal_proposal","data":{"title":"CI follow-up","kind":"post_call","subject":"Follow-up","body":"Draft only","status":"Draft"}}' https://dplcrm.clintware.com/api/records | tr -cd '0-9')
           test "$email_code" = "201"
 
           echo "Security headers and internal-route shielding"
-          headers=$(curl -fsS -D - -o /dev/null https://dplrcrm.clintware.com/)
+          headers=$(curl -fsS -D - -o /dev/null https://dplcrm.clintware.com/)
           grep -Fqi 'strict-transport-security:' <<< "$headers"
           grep -Fqi 'x-frame-options: DENY' <<< "$headers"
           grep -Fqi 'content-security-policy:' <<< "$headers"
@@ -222,14 +222,14 @@ jobs:
           grep -Fqi "form-action 'self'" <<< "$headers"
           ! grep -Fqi 'form-action.*auth.clintware.com' <<< "$headers"
           grep -Fqi 'cross-origin-opener-policy: same-origin' <<< "$headers"
-          test "$(curl -sS -o /tmp/dplr-backup-blocked.json -w '%{http_code}' https://dplrcrm.clintware.com/api/backup | tr -cd '0-9')" = "404"
-          test "$(curl -sS -o /tmp/dplr-session-blocked.json -w '%{http_code}' https://dplrcrm.clintware.com/api/session/test | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-backup-blocked.json -w '%{http_code}' https://dplcrm.clintware.com/api/backup | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/dplr-session-blocked.json -w '%{http_code}' https://dplcrm.clintware.com/api/session/test | tr -cd '0-9')" = "404"
 
           echo "AI / Exa contract"
-          ai_status=$(curl -fsS https://dplrcrm.clintware.com/api/ai/status)
+          ai_status=$(curl -fsS https://dplcrm.clintware.com/api/ai/status)
           grep -Fq '"guestAvailable":true' <<< "$ai_status"
           grep -Fq '"provider":"exa"' <<< "$ai_status"
-          ai_contract=$(curl -sS -o /tmp/dplr-ai-contract.json -w '%{http_code}' -X POST https://dplrcrm.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
+          ai_contract=$(curl -sS -o /tmp/dplr-ai-contract.json -w '%{http_code}' -X POST https://dplcrm.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
           test "$ai_contract" = "400"
           grep -Fq '"error":"text_and_customer_required"' /tmp/dplr-ai-contract.json
           echo "DPLR layer-2 live verification passed."
