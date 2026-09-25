@@ -41,6 +41,7 @@ rewrite("public/app-config.js", [
   ['localStorage.getItem("dplrtheme")||"dark"', 'localStorage.getItem("dplrtheme")||"light"'],
 ]);
 rewrite("public/app-router.js", [["dpltheme", "dplrtheme"], ["DOPPEL TCE CRM", "DOPPEL TCE OS"], ["Doppel TCE CRM", "Doppel TCE OS"]]);
+rewrite("public/app-forms.js", [["o.remove();load(x.customer.id)", "o.remove();tab='command';load(x.customer.id)"]]);
 
 for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js"]) {
   fs.copyFileSync(path.join(overlay, "public", file), path.join(out, "public", file));
@@ -68,5 +69,7 @@ if (html.includes("doppel-brand.css") || html.includes("doppel-polish.js")) thro
 if (!html.includes("dplr-ui.css") || !html.includes("dplr-shell.js")) throw new Error("DPLR UI overlay missing");
 const config = fs.readFileSync(path.join(out, "public/app-config.js"), "utf8");
 if (!config.includes('localStorage.getItem("dplrtheme")||"light"')) throw new Error("DPLR must default to N7-style light mode");
+const forms = fs.readFileSync(path.join(out, "public/app-forms.js"), "utf8");
+if (!forms.includes("o.remove();tab='command';load(x.customer.id)")) throw new Error("New-customer navigation patch missing");
 
 console.log(`DPLR materialized at ${out}`);
