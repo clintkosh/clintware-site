@@ -1,59 +1,98 @@
 package main
 
 import (
-  "encoding/base64"
-  "fmt"
-  "os"
-  "os/exec"
-  "strings"
-  "unicode/utf16"
+	"encoding/base64"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"unicode/utf16"
 )
 
 const version = "2.1.0"
 
 func main() {
-  args := os.Args[1:]
-  if has(args, "--selftest") {
-    s := script(false, true)
-    ok := strings.Contains(s, "Get-ScheduledTask") && strings.Contains(s, "Hidden = $true") && strings.Contains(s, "Listen to this device") && strings.Contains(s, "Jabra")
-    if !ok { fmt.Println("CLINTWARE_AUDIO_FOCUS_FIX_SELFTEST=FAIL"); os.Exit(1) }
-    fmt.Println("CLINTWARE_AUDIO_FOCUS_FIX_SELFTEST=PASS")
-    fmt.Println("VERSION="+version)
-    return
-  }
-  if !admin() { if err:=elevate(); err!=nil { fmt.Println("Administrator access is required:",err); fmt.Scanln() }; return }
-  fmt.Println("============================================================")
-  fmt.Println(" CLINTWARE // AUDIO + FOCUS FIX")
-  fmt.Println(" Windows echo isolation + recurring task popup repair")
-  fmt.Println(" Version",version)
-  fmt.Println("============================================================")
-  var ps string
-  switch {
-  case has(args,"--diagnose"): ps = common + `\nDiagnoseAudio\nDiagnoseTasks\n`
-  case has(args,"--tasks-only"): ps = common + `\nDiagnoseTasks\nHideRecurringTasks\n`
-  case has(args,"--restore-tasks"): ps = common + `\nRestoreTasks\n`
-  case has(args,"--audio-only"): ps = script(has(args,"--deep"), false)
-  default: ps = script(has(args,"--deep"), true)
-  }
-  runPS(ps)
-  if !has(args,"--quiet") { fmt.Println("\nPress Enter to close."); fmt.Scanln() }
+	args := os.Args[1:]
+	if has(args, "--selftest") {
+		s := script(false, true)
+		ok := strings.Contains(s, "Get-ScheduledTask") && strings.Contains(s, "Hidden = $true") && strings.Contains(s, "Listen to this device") && strings.Contains(s, "Jabra")
+		if !ok {
+			fmt.Println("CLINTWARE_AUDIO_FOCUS_FIX_SELFTEST=FAIL")
+			os.Exit(1)
+		}
+		fmt.Println("CLINTWARE_AUDIO_FOCUS_FIX_SELFTEST=PASS")
+		fmt.Println("VERSION=" + version)
+		return
+	}
+	if !admin() {
+		if err := elevate(); err != nil {
+			fmt.Println("Administrator access is required:", err)
+			fmt.Scanln()
+		}
+		return
+	}
+	fmt.Println("============================================================")
+	fmt.Println(" CLINTWARE // AUDIO + FOCUS FIX")
+	fmt.Println(" Windows echo isolation + recurring task popup repair")
+	fmt.Println(" Version", version)
+	fmt.Println("============================================================")
+	var ps string
+	switch {
+	case has(args, "--diagnose"):
+		ps = common + `\nDiagnoseAudio\nDiagnoseTasks\n`
+	case has(args, "--tasks-only"):
+		ps = common + `\nDiagnoseTasks\nHideRecurringTasks\n`
+	case has(args, "--restore-tasks"):
+		ps = common + `\nRestoreTasks\n`
+	case has(args, "--audio-only"):
+		ps = script(has(args, "--deep"), false)
+	default:
+		ps = script(has(args, "--deep"), true)
+	}
+	runPS(ps)
+	if !has(args, "--quiet") {
+		fmt.Println("\nPress Enter to close.")
+		fmt.Scanln()
+	}
 }
 
-func has(a []string,w string) bool { for _,x:=range a { if strings.EqualFold(x,w){return true} }; return false }
-func admin() bool { return exec.Command("cmd.exe","/C","net session >nul 2>&1").Run()==nil }
+func has(a []string, w string) bool {
+	for _, x := range a {
+		if strings.EqualFold(x, w) {
+			return true
+		}
+	}
+	return false
+}
+func admin() bool { return exec.Command("cmd.exe", "/C", "net session >nul 2>&1").Run() == nil }
 func elevate() error {
-  exe,e:=os.Executable(); if e!=nil{return e}
-  var a []string; for _,x:=range os.Args[1:] { a=append(a,strings.ReplaceAll(x,"'","''")) }
-  ps:=fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs",strings.ReplaceAll(exe,"'","''"),strings.ReplaceAll(strings.Join(a," "),"'","''"))
-  return exec.Command("powershell.exe","-NoProfile","-NonInteractive","-Command",ps).Run()
+	exe, e := os.Executable()
+	if e != nil {
+		return e
+	}
+	var a []string
+	for _, x := range os.Args[1:] {
+		a = append(a, strings.ReplaceAll(x, "'", "''"))
+	}
+	ps := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs", strings.ReplaceAll(exe, "'", "''"), strings.ReplaceAll(strings.Join(a, " "), "'", "''"))
+	return exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps).Run()
 }
 func runPS(s string) {
-  enc:=base64.StdEncoding.EncodeToString(utf16le(s))
-  c:=exec.Command("powershell.exe","-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-EncodedCommand",enc)
-  c.Stdout,c.Stderr,c.Stdin=os.Stdout,os.Stderr,os.Stdin
-  if e:=c.Run();e!=nil{fmt.Println("[ERROR]",e)}
+	enc := base64.StdEncoding.EncodeToString(utf16le(s))
+	c := exec.Command("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc)
+	c.Stdout, c.Stderr, c.Stdin = os.Stdout, os.Stderr, os.Stdin
+	if e := c.Run(); e != nil {
+		fmt.Println("[ERROR]", e)
+	}
 }
-func utf16le(s string) []byte { u:=utf16.Encode([]rune(s)); b:=make([]byte,0,len(u)*2); for _,x:=range u {b=append(b,byte(x),byte(x>>8))}; return b }
+func utf16le(s string) []byte {
+	u := utf16.Encode([]rune(s))
+	b := make([]byte, 0, len(u)*2)
+	for _, x := range u {
+		b = append(b, byte(x), byte(x>>8))
+	}
+	return b
+}
 
 const common = `$ErrorActionPreference='Continue'
 $DataDir=Join-Path $env:ProgramData 'Clintware\AudioFocusFix'
@@ -93,16 +132,21 @@ function HideRecurringTasks{
 function RestoreTasks{if(!(Test-Path $TaskBackup)){Write-Host 'No task backups found.';return};Get-ChildItem $TaskBackup -Filter *.xml|%{try{$raw=Get-Content $_.FullName -Raw;$doc=[xml]$raw;$uri=[string]$doc.Task.RegistrationInfo.URI;if(!$uri){return};$leaf=Split-Path $uri -Leaf;$path=$uri.Substring(0,$uri.Length-$leaf.Length);Register-ScheduledTask -TaskName $leaf -TaskPath $path -Xml $raw -Force|Out-Null;Write-Host ('Restored task: '+$uri) -ForegroundColor Green}catch{Write-Host ('Restore warning: '+$_.Name) -ForegroundColor Yellow}}}
 `
 
-func script(deep,tasks bool) string {
-  d := "$Deep=$false"; if deep { d="$Deep=$true" }
-  s := common+"\n"+d+"\nDiagnoseAudio\nRepairAudio $Deep\n"
-  if tasks { s += "\nDiagnoseTasks\nHideRecurringTasks\n" }
-  s += `
+func script(deep, tasks bool) string {
+	d := "$Deep=$false"
+	if deep {
+		d = "$Deep=$true"
+	}
+	s := common + "\n" + d + "\nDiagnoseAudio\nRepairAudio $Deep\n"
+	if tasks {
+		s += "\nDiagnoseTasks\nHideRecurringTasks\n"
+	}
+	s += `
 Write-Host ''
 Write-Host 'TEST ORDER:' -ForegroundColor Cyan
 Write-Host '1. Keep Discord closed and test the TCL/external speaker.'
 Write-Host '2. If echo remains, disconnect Jabra completely and test again.'
 Write-Host '3. If Jabra removal stops it, investigate Jabra sidetone, Hands-Free profile, firmware/driver, or hardware.'
 `
-  return s
+	return s
 }
