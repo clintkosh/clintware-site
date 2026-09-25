@@ -1,6 +1,6 @@
 param(
   [string]$Endpoint = "wss://mcp.clintware.com/api/v1/quillgeist-lite/stream",
-  [string]$RegistryUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks.json"
+  [string]$RegistryPath = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite\tasks.json")
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,8 +13,8 @@ $UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
 $UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
 $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
-$LogoAssetUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64"
-$RepoRaw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
+$RuntimeRoot = Join-Path $HomeDir "runtime"
+$DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service.json"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -252,16 +252,11 @@ function Write-ClintwareSplitLine {
 }
 
 function Ensure-ClintwareLogoAsset {
-  if (Test-Path $LogoAssetPath) { return $true }
-
+  if (-not (Test-Path $LogoAssetPath)) { return $false }
   try {
-    Invoke-WebRequest -Uri ($LogoAssetUrl + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile ($LogoAssetPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-    $raw = (Get-Content ($LogoAssetPath + ".new") -Raw).Trim()
-    if (-not $raw.StartsWith("iVBOR")) { throw "Downloaded Clintware logo asset is invalid." }
-    Move-Item ($LogoAssetPath + ".new") $LogoAssetPath -Force
-    return $true
+    $raw = (Get-Content $LogoAssetPath -Raw).Trim()
+    return $raw.StartsWith("iVBOR")
   } catch {
-    Remove-Item ($LogoAssetPath + ".new") -Force -ErrorAction SilentlyContinue
     return $false
   }
 }
@@ -420,26 +415,24 @@ function Save-Completed {
   $copy | ConvertTo-Json -Depth 10 | Set-Content -Path $StatePath -Encoding UTF8
 }
 
-function Get-GitHubToken {
-  if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    throw "GitHub CLI (gh) is required. Run the Quillgeist Lite installer again."
+function Get-QQDeviceCredential {
+  if (-not (Test-Path $DeviceConfigPath)) {
+    throw "QQ device configuration is missing. Run the maintained QQ installer."
   }
-
-  gh auth status 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "GitHub CLI is not authenticated." }
-
-  $login = (gh api user --jq .login).Trim()
-  if ($LASTEXITCODE -ne 0 -or $login.ToLowerInvariant() -ne "clintkosh") {
-    throw "Expected GitHub identity clintkosh. Current identity: $login"
+  $config = Get-Content $DeviceConfigPath -Raw | ConvertFrom-Json
+  if (-not $config.DeviceId -or -not $config.Token) {
+    throw "QQ device configuration is incomplete."
   }
-
-  $token = (gh auth token).Trim()
-  if (-not $token) { throw "GitHub CLI did not return an authentication token." }
-  return $token
+  return @{
+    DeviceId = [string]$config.DeviceId
+    Token = [string]$config.Token
+    Endpoint = [string]$config.Endpoint
+  }
 }
 
 function Get-Registry {
-  $registry = Invoke-RestMethod -Uri $RegistryUrl -Headers @{"Cache-Control"="no-cache"}
+  if (-not (Test-Path $RegistryPath)) { throw "Local QQ task registry is missing: $RegistryPath" }
+  $registry = Get-Content $RegistryPath -Raw | ConvertFrom-Json
   if (-not $registry.tasks) { throw "Quillgeist Lite task registry is invalid." }
   return $registry
 }
@@ -1052,11 +1045,14 @@ function Invoke-AllowlistedTask {
   }
 
   $safeName = ([string]$Job.task_id -replace '[^A-Za-z0-9._-]','_')
-  $localSource = Join-Path $CacheDir ($safeName + $requiredExtension)
-
-  Invoke-WebRequest -Uri ($RepoRaw + "/" + $scriptPath) -OutFile $localSource -UseBasicParsing
+  $localSource = Join-Path $RuntimeRoot ($scriptPath -replace "/","\")
   if (-not (Test-Path $localSource)) {
-    throw "Could not download task source '$scriptPath'."
+    throw "Packaged task source is missing: $scriptPath"
+  }
+  $resolvedRuntime = (Resolve-Path $RuntimeRoot).Path.TrimEnd("\")
+  $resolvedSource = (Resolve-Path $localSource).Path
+  if (-not $resolvedSource.StartsWith($resolvedRuntime + "\",[StringComparison]::OrdinalIgnoreCase)) {
+    throw "Task source escaped the packaged QQ runtime."
   }
 
   $taskArgs = Get-TaskArguments $task $Job $runtime
@@ -1135,13 +1131,15 @@ try {
     $ws = $null
 
     try {
-      $token = Get-GitHubToken
+      $credential = Get-QQDeviceCredential
       $ws = New-Object System.Net.WebSockets.ClientWebSocket
-      $ws.Options.SetRequestHeader("Authorization","Bearer $token")
+      $ws.Options.SetRequestHeader("Authorization","Bearer " + $credential.Token)
       $ws.Options.SetRequestHeader("X-Quillgeist-Runner-Id",$env:COMPUTERNAME)
+      $ws.Options.SetRequestHeader("X-Quillgeist-Device",$credential.DeviceId)
+      $connectUri = $Endpoint + $(if($Endpoint.Contains("?")){"&"}else{"?"}) + "device_id=" + [Uri]::EscapeDataString($credential.DeviceId)
 
       $null = $ws.ConnectAsync(
-        [Uri]$Endpoint,
+        [Uri]$connectUri,
         [Threading.CancellationToken]::None
       ).GetAwaiter().GetResult()
 
@@ -1150,7 +1148,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.7.0"
+        version = "1.8.0"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
