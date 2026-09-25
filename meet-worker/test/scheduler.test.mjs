@@ -9,6 +9,7 @@ import {
   hostDateString,
 } from "../src/lib.js";
 import {
+  buildGoogleCalendarEventBody,
   filterSlotsAgainstGoogleBusy,
   requestedTimeIsGoogleBusy,
 } from "../src/google-calendar.js";
@@ -61,4 +62,23 @@ test("Google Calendar busy windows remove mirrored availability", () => {
   assert.deepEqual(available, [slots[1]]);
   assert.equal(requestedTimeIsGoogleBusy(1000, 2000, busy, config), true);
   assert.equal(requestedTimeIsGoogleBusy(5000, 6000, busy, config), false);
+});
+
+
+test("Google Calendar event includes Google Meet and both attendees", () => {
+  const booking = {
+    id: "9a8b7c6d-1111-2222-3333-444455556666",
+    name: "Guest Person",
+    email: "guest@example.com",
+    purpose: "Hiring / interview",
+    topic: "Technical Account Manager",
+    startMs: Date.parse("2026-09-28T15:00:00Z"),
+    endMs: Date.parse("2026-09-28T15:30:00Z"),
+    roomCode: "abcdef123456abcdef123456",
+    manageToken: "a".repeat(48),
+  };
+  const event = buildGoogleCalendarEventBody(booking);
+  assert.deepEqual(event.attendees.map((x) => x.email), ["guest@example.com", "clint@clintware.com"]);
+  assert.equal(event.conferenceData.createRequest.conferenceSolutionKey.type, "hangoutsMeet");
+  assert.match(event.description, /Backup room:/);
 });
