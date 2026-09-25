@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -197,6 +197,14 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 600
+    },
+    "install-desktop-app": {
+      "title": "Build, migrate, install, and launch the single-pane Quillgeist Lite desktop app and Guardian",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/install-desktop-app.ps1",
+      "parameters": [
+        "NoLaunch"
+      ]
     }
   }
 }
