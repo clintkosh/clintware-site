@@ -1,6 +1,6 @@
 # DPLR Technical Customer Engineering OS
 
-Production: `https://dplrcrm.clintware.com`
+Production: `https://dplcrm.clintware.com`
 
 This project intentionally materializes the mature Doppel Technical Customer Engineering CRM core from `projects/dpl-crm` and replaces its presentation shell with an N7 Customer Value OS-style operational workspace.
 
