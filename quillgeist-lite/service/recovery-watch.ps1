@@ -11,6 +11,9 @@ $RecoveryConfigPath = Join-Path $ProgramDir "recovery.json"
 $StatePath = Join-Path $ProgramDir "recovery-state.json"
 $LogPath = Join-Path $ProgramDir "recovery.log"
 $RepairCooldownMinutes = 30
+$RunnerHeartbeatStaleSeconds = 90
+$RunnerHeartbeatStartupGraceSeconds = 180
+$RunnerBusyMaxMinutes = 45
 
 New-Item -ItemType Directory -Force -Path $ProgramDir | Out-Null
 
@@ -73,6 +76,116 @@ function Test-RunnerAlive {
   } catch {
     return $false
   }
+}
+
+function Get-RunnerHeartbeatHealth {
+  param([string]$PidPath)
+
+  $result = [ordered]@{
+    Healthy = $false
+    Reason = "unknown"
+    State = ""
+    AgeSeconds = [double]::PositiveInfinity
+  }
+
+  if (-not $PidPath) {
+    $result.Reason = "pid_path_missing"
+    return [pscustomobject]$result
+  }
+
+  $homeDir = Split-Path $PidPath -Parent
+  $heartbeatPath = Join-Path $homeDir "runner-heartbeat.json"
+
+  if (-not (Test-Path $heartbeatPath)) {
+    try {
+      $raw = (Get-Content $PidPath -Raw).Trim()
+      $runnerPid = 0
+      if ([int]::TryParse($raw,[ref]$runnerPid) -and $runnerPid -gt 0) {
+        $process = Get-Process -Id $runnerPid -ErrorAction Stop
+        $age = ((Get-Date) - $process.StartTime).TotalSeconds
+        if ($age -lt $RunnerHeartbeatStartupGraceSeconds) {
+          $result.Healthy = $true
+          $result.Reason = "heartbeat_startup_grace"
+          $result.AgeSeconds = $age
+          return [pscustomobject]$result
+        }
+      }
+    } catch {}
+    $result.Reason = "heartbeat_missing"
+    return [pscustomobject]$result
+  }
+
+  try {
+    $heartbeat = Get-Content $heartbeatPath -Raw | ConvertFrom-Json
+    $stamp = [DateTime]::Parse([string]$heartbeat.timestamp).ToUniversalTime()
+    $ageSeconds = ((Get-Date).ToUniversalTime() - $stamp).TotalSeconds
+    $state = [string]$heartbeat.state
+    $result.State = $state
+    $result.AgeSeconds = $ageSeconds
+
+    if ($state -eq "busy") {
+      if ($ageSeconds -le ($RunnerBusyMaxMinutes * 60)) {
+        $result.Healthy = $true
+        $result.Reason = "busy_within_limit"
+      } else {
+        $result.Reason = "busy_heartbeat_stale"
+      }
+      return [pscustomobject]$result
+    }
+
+    if ($ageSeconds -le $RunnerHeartbeatStaleSeconds) {
+      $result.Healthy = $true
+      $result.Reason = if ($state -eq "connected") { "connected" } else { "reconnect_grace" }
+    } else {
+      $result.Reason = "heartbeat_stale"
+    }
+    return [pscustomobject]$result
+  } catch {
+    $result.Reason = "heartbeat_invalid"
+    return [pscustomobject]$result
+  }
+}
+
+function Restart-SupervisedRunner {
+  param(
+    [string]$TaskName,
+    [string]$PidPath,
+    [string]$Reason
+  )
+
+  Write-RecoveryLog ("runner_restart_begin reason=" + $Reason)
+
+  try {
+    if ($PidPath -and (Test-Path $PidPath)) {
+      $raw = (Get-Content $PidPath -Raw).Trim()
+      $runnerPid = 0
+      if ([int]::TryParse($raw,[ref]$runnerPid) -and $runnerPid -gt 0) {
+        Stop-Process -Id $runnerPid -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {
+    Write-RecoveryLog ("runner_process_stop_warn " + $_.Exception.Message)
+  }
+
+  try { & schtasks.exe /End /TN $TaskName 1>$null 2>$null } catch {}
+  Start-Sleep -Milliseconds 900
+
+  try {
+    $enableOutput = & schtasks.exe /Change /TN $TaskName /ENABLE 2>&1 | Out-String
+    Write-RecoveryLog ("runner_enable_requested " + ($enableOutput.Trim() -replace '[\r\n]+',' '))
+  } catch {
+    Write-RecoveryLog ("runner_enable_exception " + $_.Exception.Message)
+  }
+
+  try {
+    $runOutput = & schtasks.exe /Run /TN $TaskName 2>&1 | Out-String
+    Write-RecoveryLog ("runner_start_requested " + ($runOutput.Trim() -replace '[\r\n]+',' '))
+  } catch {
+    Write-RecoveryLog ("runner_start_exception " + $_.Exception.Message)
+  }
+
+  Start-Sleep -Seconds 8
+  return (Test-RunnerAlive $PidPath)
 }
 
 function Resolve-PowerShellHost {
@@ -175,26 +288,17 @@ if ($serviceHealthy) {
 }
 
 $runnerAlive = Test-RunnerAlive $runnerPidPath
-if (-not $runnerAlive) {
-  try {
-    $enableOutput = & schtasks.exe /Change /TN $RunnerTaskName /ENABLE 2>&1 | Out-String
-    Write-RecoveryLog ("runner_enable_requested " + ($enableOutput.Trim() -replace '[\r\n]+',' '))
-  } catch {
-    Write-RecoveryLog ("runner_enable_exception " + $_.Exception.Message)
-  }
-  try {
-    & schtasks.exe /End /TN $RunnerTaskName 1>$null 2>$null
-  } catch {}
-  Start-Sleep -Milliseconds 750
-  try {
-    $runOutput = & schtasks.exe /Run /TN $RunnerTaskName 2>&1 | Out-String
-    Write-RecoveryLog ("runner_start_requested " + ($runOutput.Trim() -replace '[\r\n]+',' '))
-  } catch {
-    Write-RecoveryLog ("runner_start_exception " + $_.Exception.Message)
-  }
+$runnerHeartbeat = if ($runnerAlive) { Get-RunnerHeartbeatHealth $runnerPidPath } else { $null }
 
-  Start-Sleep -Seconds 8
-  $runnerAlive = Test-RunnerAlive $runnerPidPath
+if ($runnerAlive -and $runnerHeartbeat -and -not $runnerHeartbeat.Healthy) {
+  Write-RecoveryLog ("runner_stale_detected reason=" + $runnerHeartbeat.Reason + " state=" + $runnerHeartbeat.State + " age_seconds=" + [Math]::Round([double]$runnerHeartbeat.AgeSeconds,1))
+  $runnerAlive = Restart-SupervisedRunner -TaskName $RunnerTaskName -PidPath $runnerPidPath -Reason $runnerHeartbeat.Reason
+  $runnerHeartbeat = if ($runnerAlive) { Get-RunnerHeartbeatHealth $runnerPidPath } else { $null }
+}
+
+if (-not $runnerAlive) {
+  $runnerAlive = Restart-SupervisedRunner -TaskName $RunnerTaskName -PidPath $runnerPidPath -Reason "runner_not_alive"
+  $runnerHeartbeat = if ($runnerAlive) { Get-RunnerHeartbeatHealth $runnerPidPath } else { $null }
 }
 
 if (-not $runnerAlive -and (Test-CooldownElapsed ([string]$state.last_runtime_repair_utc))) {
@@ -215,9 +319,10 @@ if (-not $runnerAlive -and (Test-CooldownElapsed ([string]$state.last_runtime_re
   $runnerAlive = Test-RunnerAlive $runnerPidPath
 }
 
-if ($runnerAlive -and $serviceHealthy) {
+if ($runnerAlive -and $serviceHealthy -and (!$runnerHeartbeat -or $runnerHeartbeat.Healthy)) {
   $state.consecutive_failures = 0
-  Write-RecoveryLog "healthy service=running runner=alive"
+  $heartbeatSummary = if ($runnerHeartbeat) { " heartbeat=" + $runnerHeartbeat.Reason } else { "" }
+  Write-RecoveryLog ("healthy service=running runner=alive" + $heartbeatSummary)
 } else {
   $state.consecutive_failures = [int]$state.consecutive_failures + 1
   Write-RecoveryLog ("degraded service=" + $serviceHealthy + " runner=" + $runnerAlive + " failures=" + $state.consecutive_failures)
