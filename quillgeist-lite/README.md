@@ -209,3 +209,33 @@ qq now provides a TinyFish-class live-web surface using the existing local Playw
 The authenticated plugin/MCP endpoint is `https://mcp.clintware.com/mcp`. It uses the existing Clintware OAuth/PKCE flow, so a compatible client can connect through browser authorization without asking the user to paste a Control Plane API key. The current OAuth policy remains owner/admin scoped; this is not a general public remote-control grant.
 
 The plugin bundle and curated skill live under `control-plane/chatgpt-plugin/`. Search and read queue allowlisted qq browser jobs, and multi-step automation uses the same task with an explicit approval bit for consequential actions. Results return through the existing durable Quillgeist Lite job record.
+
+
+## Responder agent
+
+The reviewed `responder-agent` task installs a lightweight local scheduled scanner and a loopback-only management UI.
+
+Local qq shortcuts:
+
+```text
+responder install
+responder
+responder on
+responder off
+responder run
+responder status
+responder kill
+responder unkill
+```
+
+The UI binds only to `127.0.0.1:8765`. It provides an enable toggle, global kill switch, run-now action, editable expertise/voice/goals text, Discourse source list, report address/hour, scoring threshold, optional local Ollama model, resource metrics, and the current opportunity queue.
+
+State is kept under `%LOCALAPPDATA%\Clintware\QuillgeistLite\responder-agent` using JSON configuration, SQLite WAL state, and local daily report files. The Windows scheduled task is `ClintwareResponderAgent` and defaults to a 15-minute cadence with overlapping runs disabled.
+
+The first built-in discovery adapter uses the official Hacker News API. Hacker News is hard-coded `RESEARCH_ONLY` because its current guidelines prohibit generated or AI-edited comments. Stack Overflow is disabled by default for the same reason. Discourse sites can be added explicitly, but remain `APPROVAL_REQUIRED` until the specific site's current policy and scoped write path are verified.
+
+If an installed Ollama model is configured, eligible approval-gated items can pass through independent draft, factual-verifier, adversarial-reviewer, and voice/policy-review passes. A passing local review does not grant publication permission.
+
+Daily reports are generated locally. When a report address is configured, the scheduled wrapper sends the report through the authenticated qq/Control Plane boundary. The Control Plane obtains a short-lived delegated Google token from the identity broker and uses the existing Gmail send scope; provider refresh credentials never enter the local responder process.
+
+See `ASTRO_RESPONDER_AGENT_SKILL.md` for the default design invariant.
