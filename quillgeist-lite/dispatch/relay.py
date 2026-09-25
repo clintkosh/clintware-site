@@ -21,7 +21,7 @@ ALLOWED = {
     "self-update": set(),
     "self-heal": set(),
     "browser-setup": set(),
-    "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "AllowPrivate", "Headless", "WaitMs"},
+    "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs"},
     "restart-window": set(),
     "repair-local-service": set(),
     "apply-terminal-glass": set(),
