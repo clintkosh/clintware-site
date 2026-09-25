@@ -15,6 +15,7 @@ from .config import Config, home_dir
 from .dlp import evaluate as evaluate_dlp
 from .executor import rollback
 from .helpdb import load as load_help, page as page_help, render as render_help
+from . import local_inference
 from .pack import load_pack, save_abpack, summary
 from .policy import evaluate
 from .preferences import PreferenceStore
@@ -172,9 +173,49 @@ def cmd_help_center(args):
         print(render_help(args.section,limit=args.limit)); return
     page_help(args.section,limit=args.limit)
 
+
+def _local_inference_settings(cfg):
+    return dict(cfg.data.get("local_inference") or {})
+
+def cmd_local_ai(args):
+    cfg = Config.load()
+    settings = _local_inference_settings(cfg)
+    if not settings.get("enabled", True):
+        raise SystemExit("Local inference is disabled in Quillgeist configuration.")
+    command = args.local_ai_command
+    if command == "status":
+        _print(local_inference.status(settings))
+        return
+    if command == "fit":
+        snapshot = local_inference.status(settings)
+        model = local_inference._find_model(args.model, snapshot.get("models", []))
+        if not model:
+            _print({"ok": False, "error": "installed_model_not_found", "model": args.model})
+            raise SystemExit(2)
+        _print({"ok": True, "model": model})
+        return
+    if command == "benchmark":
+        result = local_inference.benchmark(
+            args.model,
+            prompt=args.prompt,
+            max_tokens=args.max_tokens,
+            timeout=int(settings.get("benchmark_timeout_seconds") or 60),
+            config=settings,
+        )
+        _print(result)
+        raise SystemExit(0 if result.get("ok") else 2)
+    if command == "route":
+        _print(local_inference.route_recommendation(
+            task=args.task,
+            prefer_local=not args.prefer_external,
+            privacy_required=args.privacy_required,
+            context_tokens=args.context_tokens,
+            config=settings,
+        ))
+        return
+
 def cmd_doctor(args):
-    cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama"]}
-    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")})
+    cfg=Config.load(); runtimes={x:shutil.which(x) for x in ["git","node","python","python3","pwsh","powershell","ollama","llama-cli","llama-server"]}\n    local_ai=local_inference.status(_local_inference_settings(cfg))\n    _print({"product":"Quillgeist","version":__version__,"platform":platform.platform(),"python":sys.version,"device_id":cfg.data["device_id"],"cloud_url":cfg.data["cloud_url"],"runtimes":runtimes,"local_inference":{"model_count":local_ai.get("model_count",0),"runtimes":local_ai.get("runtimes",[]),"memory":local_ai.get("memory",{}),"gpus":local_ai.get("gpus",[])},"allowed_workspaces":cfg.data.get("allowed_workspaces"),"policy":cfg.data.get("policy"),"dlp":cfg.data.get("dlp"),"telemetry":cfg.data.get("telemetry"),"preferences":len(PreferenceStore().list()),"help_center":str(home_dir()/"help"/"help.json")})
 
 def build_parser():
     p=argparse.ArgumentParser(prog="quillgeist",description="Quillgeist local-first adaptive AI execution node"); sub=p.add_subparsers(dest="command",required=True)
@@ -189,6 +230,12 @@ def build_parser():
     x=sub.add_parser("clipboard-watch"); x.add_argument("--mode",choices=["off","detect","import","trusted"]); x.set_defaults(func=cmd_clipboard)
     x=sub.add_parser("install-associations"); x.add_argument("--include-md-json",action="store_true"); x.set_defaults(func=cmd_associations)
     x=sub.add_parser("doctor"); x.set_defaults(func=cmd_doctor)
+    x=sub.add_parser("local-ai",help="Inspect and benchmark installed local AI runtimes and models"); ls=x.add_subparsers(dest="local_ai_command",required=True)
+    ls.add_parser("status")
+    f=ls.add_parser("fit"); f.add_argument("model")
+    b=ls.add_parser("benchmark"); b.add_argument("model"); b.add_argument("--prompt",default="Reply with the single word READY."); b.add_argument("--max-tokens",type=int,default=48)
+    r=ls.add_parser("route"); r.add_argument("--task",default="general"); r.add_argument("--context-tokens",type=int,default=4096); r.add_argument("--privacy-required",action="store_true"); r.add_argument("--prefer-external",action="store_true")
+    x.set_defaults(func=cmd_local_ai)
     x=sub.add_parser("telemetry"); ts=x.add_subparsers(dest="telemetry_command",required=True); ts.add_parser("status"); f=ts.add_parser("flush"); f.add_argument("--limit",type=int,default=100); ts.add_parser("on"); ts.add_parser("off"); x.set_defaults(func=cmd_telemetry)
     x=sub.add_parser("dlp",help="Quillgeist local sensitive-data protection"); ds=x.add_subparsers(dest="dlp_command",required=True); [ds.add_parser(name) for name in ["status","on","standard","strict","monitor","off"]]; x.set_defaults(func=cmd_dlp)
     x=sub.add_parser("preferences",help="Manage user-owned persistent preferences"); ps=x.add_subparsers(dest="preferences_command",required=True); ps.add_parser("list"); a=ps.add_parser("add"); a.add_argument("text"); r=ps.add_parser("remove"); r.add_argument("selector"); c=ps.add_parser("clear"); c.add_argument("--yes",action="store_true"); x.set_defaults(func=cmd_preferences)
