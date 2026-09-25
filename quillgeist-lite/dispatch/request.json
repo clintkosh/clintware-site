@@ -1,5 +1,5 @@
 {
-  "request_id": "chatgpt-youtube-clintware-manual-login-20260925",
+  "request_id": "chatgpt-youtube-clintware-manual-login-relaunch-20260925-1125",
   "task_id": "browser-work",
   "args": {
     "Action": "login",
@@ -8,5 +8,5 @@
     "Approved": "false",
     "WaitMs": "700"
   },
-  "objective": "Open the persistent qq browser visibly at YouTube so the user can authenticate support@clintware.com locally. Do not transmit or log credentials. Keep the browser open until the user closes it after authentication."
+  "objective": "Relaunch the persistent qq browser visibly at YouTube so the user can authenticate support@clintware.com locally. Do not transmit or log credentials. Keep the browser open until the user closes it after authentication."
 }
