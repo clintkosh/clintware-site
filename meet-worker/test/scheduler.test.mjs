@@ -10,6 +10,7 @@ import {
 } from "../src/lib.js";
 import {
   buildGoogleCalendarEventBody,
+  calendarRepairDelayMs,
   filterSlotsAgainstGoogleBusy,
   requestedTimeIsGoogleBusy,
 } from "../src/google-calendar.js";
@@ -81,4 +82,14 @@ test("Google Calendar event includes Google Meet and both attendees", () => {
   assert.deepEqual(event.attendees.map((x) => x.email), ["guest@example.com", "clint@clintware.com"]);
   assert.equal(event.conferenceData.createRequest.conferenceSolutionKey.type, "hangoutsMeet");
   assert.match(event.description, /Backup room:/);
+});
+
+
+test("Calendar repair backoff is bounded and deterministic", () => {
+  assert.equal(calendarRepairDelayMs(1), 2_000);
+  assert.equal(calendarRepairDelayMs(2), 10_000);
+  assert.equal(calendarRepairDelayMs(3), 30_000);
+  assert.equal(calendarRepairDelayMs(4), 120_000);
+  assert.equal(calendarRepairDelayMs(5), 600_000);
+  assert.equal(calendarRepairDelayMs(99), 600_000);
 });
