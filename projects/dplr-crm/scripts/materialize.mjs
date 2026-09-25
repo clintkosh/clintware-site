@@ -34,7 +34,7 @@ rewrite("src/index.js", [
   ['const WORKSPACE_ID="dpl-doppel";', 'const WORKSPACE_ID="dplr-doppel";'],
   ['idFromName("n7demo-main")', 'idFromName("dplr-main")'],
 ]);
-rewrite("package.json", common);
+rewrite("package.json", [...common, ["public/doppel-polish.js", "public/dplr-shell.js"]]);
 rewrite("wrangler.jsonc", common);
 rewrite("public/app-config.js", [
   ["dpltheme", "dplrtheme"],
@@ -61,6 +61,8 @@ for (const required of [
 ]) {
   if (!worker.includes(required)) throw new Error(`Backend identity patch missing: ${required}`);
 }
+const pkg = fs.readFileSync(path.join(out, "package.json"), "utf8");
+if (pkg.includes("public/doppel-polish.js") || !pkg.includes("public/dplr-shell.js")) throw new Error("Package validation still targets retired UI");
 const html = fs.readFileSync(path.join(out, "public/index.html"), "utf8");
 if (html.includes("doppel-brand.css") || html.includes("doppel-polish.js")) throw new Error("Old marketing presentation layer leaked into DPLR");
 if (!html.includes("dplr-ui.css") || !html.includes("dplr-shell.js")) throw new Error("DPLR UI overlay missing");
