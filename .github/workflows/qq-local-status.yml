@@ -27,4 +27,4 @@ jobs:
           echo "=== QQ DIAGNOSTICS ==="
           curl --fail-with-body -sS             "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=40"             -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" | python3 -m json.tool
 
-# status probe 2026-09-24T10:13Z
+# status probe 2026-09-25T18:24Z
