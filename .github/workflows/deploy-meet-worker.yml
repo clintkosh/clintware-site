@@ -164,6 +164,15 @@ jobs:
           print('Availability slots:',len(slots))
           PY
 
+      - name: Clean stale deployment-test bookings
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          curl --fail-with-body -sS -X POST https://meet.clintware.com/api/admin/cleanup-deployment-tests \
+            -H "x-clintware-admin-secret: $scheduler_admin_secret"
+
       - name: Run protected storage self-test
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -187,8 +196,17 @@ jobs:
 
       - name: Run one live book-reschedule-cancel test
         if: github.event_name == 'push' && contains(github.event.head_commit.message, '[meet-e2e]')
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
+          scheduler_admin_secret=$(printf 'clintware-scheduler-admin:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          cleanup_test_bookings() {
+            curl -sS -X POST https://meet.clintware.com/api/admin/cleanup-deployment-tests \
+              -H "x-clintware-admin-secret: $scheduler_admin_secret" >/dev/null || true
+          }
+          trap cleanup_test_bookings EXIT
+          cleanup_test_bookings
           curl --fail-with-body -sS https://meet.clintware.com/api/availability >/tmp/e2e-availability.json
           first=$(python3 -c 'import json; d=json.load(open("/tmp/e2e-availability.json")); print(d["slots"][0]["startMs"])')
           second=$(python3 -c 'import json; d=json.load(open("/tmp/e2e-availability.json")); print(d["slots"][2]["startMs"])')
