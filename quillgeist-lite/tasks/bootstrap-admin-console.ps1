@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $TaskName = "Clintware Quillgeist Lite Runner"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
+$PackagedRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
 
 function Test-Administrator {
   $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -57,11 +58,9 @@ $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 
 if (-not $task) {
   Write-Host "SERVICE // qq managed service/task is missing. Installing it now." -ForegroundColor Cyan
-  $installerUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/install.ps1?v=20260922-qq-admin-2"
-  $installer = (Invoke-WebRequest -Uri $installerUrl -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}).Content
-  if (-not $installer) { throw "Could not download the maintained qq installer." }
-
-  Invoke-Expression $installer
+  $installer = Join-Path $PackagedRoot "install.ps1"
+  if (-not (Test-Path $installer)) { throw "Packaged QQ installer is missing. Reinstall using QQ.exe." }
+  & $installer -SourceRoot $PackagedRoot
   $installedNow = $true
 
   $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -90,8 +89,10 @@ Write-Host "SERVICE // health service owns qq lifecycle; no window restart is re
 
 $repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
 try {
-  Invoke-WebRequest -Uri ("https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/tasks/auto-repair-runtime.ps1?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $repair -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  & $repair -HomeDir $HomeDir
+  $packagedRepair = Join-Path $PackagedRoot "tasks\auto-repair-runtime.ps1"
+  if (-not (Test-Path $packagedRepair)) { throw "Packaged QQ self-heal source is missing." }
+  Copy-Item -LiteralPath $packagedRepair -Destination $repair -Force
+  & $repair -HomeDir $HomeDir -SourceRoot $PackagedRoot
 } catch {
   Write-Host ("SELF-HEAL WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
