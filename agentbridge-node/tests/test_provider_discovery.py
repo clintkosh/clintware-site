@@ -52,3 +52,17 @@ def test_provider_snapshot_reports_no_secret_or_browser_session_read(tmp_path, m
     assert out["ready"] == 0
     assert out["secrets_read"] is False
     assert out["browser_sessions_read"] is False
+
+
+def test_bitnet_provider_is_detected_without_secrets(tmp_path, monkeypatch):
+    root = tmp_path / "BitNet"
+    bin_dir = root / "build" / "bin" / "Release"
+    model_dir = root / "models" / "BitNet-b1.58-2B-4T"
+    bin_dir.mkdir(parents=True)
+    model_dir.mkdir(parents=True)
+    (bin_dir / "llama-cli.exe").write_bytes(b"x")
+    (model_dir / "ggml-model-i2_s.gguf").write_bytes(b"x")
+    monkeypatch.setenv("QUILLGEIST_BITNET_HOME", str(root))
+    row = providers._bitnet()
+    assert row and row["provider"] == "BitNet" and row["ready"] is True
+    assert "ggml-model-i2_s.gguf" in row["models"]
