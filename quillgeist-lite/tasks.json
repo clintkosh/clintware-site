@@ -187,6 +187,16 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/bitnet-setup.ps1",
       "parameters": []
+    },
+    "responder-agent": {
+      "title": "Manage the local policy-aware responder agent",
+      "script": "quillgeist-lite/tasks/responder-agent.ps1",
+      "runtime": "powershell",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
     }
   }
 }

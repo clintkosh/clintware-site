@@ -190,3 +190,10 @@ Before reporting “no new interview,” explicitly verify both of these are tru
 - no Gmail recruiting thread contains a newly scheduled, time-proposed-and-accepted, or next-stage signal that requires prep or active watch.
 
 A Calendar-only scan is a failed scan. A light-mode kit is a failed kit. A next-round kit that ignores newer recruiting email, transcript, interviewer, stage, or timing information is a failed refresh.
+
+
+## ASTRO responder-agent invariant
+
+Before creating or materially changing any agent that discovers public questions, drafts community responses, publishes replies, or manages professional/community participation, read and apply `ASTRO_RESPONDER_AGENT_SKILL.md`.
+
+A responder agent is incomplete until platform policy, identity, evidence, independent quality gates, resource limits, auditability, approval boundaries, and kill controls have been verified. A platform-specific prohibition must not be bypassed through another adapter or execution path.

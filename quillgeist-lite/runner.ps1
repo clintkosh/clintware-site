@@ -684,7 +684,12 @@ function Show-QQHelp {
   Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
   Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
   Write-Host "  heal                         Self-repair qq in place without stealing focus." -ForegroundColor Cyan
-  Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan\n  Write-Host "  code search <query>          Search the maintained repository without provider indexing." -ForegroundColor Cyan
+  Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan
+  Write-Host "  responder                    Open the local responder management UI." -ForegroundColor Cyan
+  Write-Host "  responder on|off             Enable or disable scheduled responder scans." -ForegroundColor Cyan
+  Write-Host "  responder run                Run one responder scan immediately." -ForegroundColor Cyan
+  Write-Host "  responder status             Show responder runtime state." -ForegroundColor Cyan
+  Write-Host "  code search <query>          Search the maintained repository without provider indexing." -ForegroundColor Cyan
   Write-Host "  web search <query>           Search the live public web without a search API key." -ForegroundColor Cyan
   Write-Host "  web read <url>               Read a public page into structured text/links." -ForegroundColor Cyan
   Write-Host "  web login <url>              Open the persistent browser for manual local sign-in." -ForegroundColor Cyan
@@ -909,6 +914,15 @@ function Invoke-QQLocalCommand {
     "self-heal" { Invoke-QQLocalTask "self-heal"; return }
     "web setup" { Invoke-QQLocalTask "browser-setup"; return }
     "browser setup" { Invoke-QQLocalTask "browser-setup"; return }
+    "responder" { Invoke-QQLocalTask "responder-agent" @{Action="ui"}; return }
+    "responder ui" { Invoke-QQLocalTask "responder-agent" @{Action="ui"}; return }
+    "responder install" { Invoke-QQLocalTask "responder-agent" @{Action="install"}; return }
+    "responder on" { Invoke-QQLocalTask "responder-agent" @{Action="on"}; return }
+    "responder off" { Invoke-QQLocalTask "responder-agent" @{Action="off"}; return }
+    "responder run" { Invoke-QQLocalTask "responder-agent" @{Action="run"}; return }
+    "responder status" { Invoke-QQLocalTask "responder-agent" @{Action="status"}; return }
+    "responder kill" { Invoke-QQLocalTask "responder-agent" @{Action="kill"}; return }
+    "responder unkill" { Invoke-QQLocalTask "responder-agent" @{Action="unkill"}; return }
     "clear" {
       try { Clear-Host } catch {}
       Show-QuillgeistSplash
@@ -1127,9 +1141,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.6.0"
+        version = "1.7.0"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
 
       Flush-RunnerDiagnostics
