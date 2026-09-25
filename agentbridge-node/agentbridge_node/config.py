@@ -71,6 +71,11 @@ def _defaults() -> dict:
             "default_context_tokens": 4096,
             "benchmark_timeout_seconds": 60,
             "allow_model_downloads": False,
+            "autofit_contexts": [2048, 4096, 8192],
+            "autofit_max_models": 3,
+            "autofit_regression_tolerance_pct": 20.0,
+            "gateway_host": "127.0.0.1",
+            "gateway_port": 11435,
             "auto_fit": False,
             "auto_apply": False
         },
