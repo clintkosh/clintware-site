@@ -29,7 +29,7 @@ The Control Plane accepts these fields:
   "objective": "What is being accomplished",
   "context_summary": "Only the context required to continue",
   "repository": {
-    "identity": "clintkosh|codefeddy|future-alias",
+    "identity": "clintkosh|external-lab|future-alias",
     "owner": "github-owner",
     "name": "repository-name",
     "branch": "working-branch"
@@ -56,7 +56,7 @@ A model must not infer that it has access to an account merely because another m
 A manifest identity maps to a Worker secret automatically:
 
 - `clintkosh` -> `GITHUB_TOKEN_CLINTKOSH`
-- `codefeddy` -> `GITHUB_TOKEN_CODEFEDDY`
+- `external-lab` -> `GITHUB_TOKEN_EXTERNAL_LAB`
 - `acme-labs` -> `GITHUB_TOKEN_ACME_LABS`
 
 Add future identities with `control-plane/add-github-identity.ps1`; no Control Plane source-code change is required.
