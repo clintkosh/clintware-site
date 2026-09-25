@@ -14,8 +14,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>QQ</AssemblyName>
     <RootNamespace>Clintware.QQ.PortableInstaller</RootNamespace>
-    <Version>1.1.0</Version>
-    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.1.1</Version>
+    <FileVersion>1.1.1.0</FileVersion>
     <Product>Clintware Quillgeist Lite Portable Installer</Product>
     <Company>Clintware</Company>
     <Description>Self-contained installer for the Clintware Quillgeist Lite local runner and device-authenticated control-plane connection.</Description>
