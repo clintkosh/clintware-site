@@ -1,10 +1,12 @@
-# Quillgeist local node alpha
+# Quillgeist local node alpha · self-hosted by default
 
 Quillgeist is a user-owned local runtime for AI agents.  The local node performs approved filesystem, shell, Python, PowerShell, Node.js, Git, validation, scheduling, rollback, logging, evidence collection, and account-scoped operational telemetry on the user's own machine.
 
 `AI planner → Quillgeist intent + user preferences → local policy/runtime → verified result → compact evidence`
 
 The model can change.  The user's local execution policy, explicit preferences, and result evidence remain with Quillgeist.
+
+**Public-distribution boundary:** Quillgeist starts local-only, has telemetry disabled, contains no Clintware server credential, and does not connect to Clintware infrastructure. Cloud features require an explicit URL for a cloud instance the user owns or controls.
 
 ## Windows alpha
 
@@ -15,11 +17,11 @@ First run:
 ```powershell
 .\Quillgeist-Windows-x64.exe init
 .\Quillgeist-Windows-x64.exe doctor
-.\Quillgeist-Windows-x64.exe pair --cloud https://quillgeist.clintware.com
+.\Quillgeist-Windows-x64.exe pair --cloud https://quillgeist.example.com
 .\Quillgeist-Windows-x64.exe daemon
 ```
 
-The pair command prints a short code.  Open Quillgeist Cloud, enter the code, and the computer appears in the Quillgeist control room.
+The pair command is optional and requires the URL of your own self-hosted Quillgeist Cloud. Without that explicit configuration, the node stays local-only and sends no Quillgeist telemetry.
 
 ## macOS and Linux alpha
 
@@ -37,7 +39,7 @@ source .venv/bin/activate
 pip install -e .
 quillgeist init
 quillgeist doctor
-quillgeist pair --cloud https://quillgeist.clintware.com
+quillgeist pair --cloud https://quillgeist.example.com
 quillgeist daemon
 ```
 
@@ -73,7 +75,8 @@ This provides the MVP cross-model loop:
 
 Quillgeist does not expose an unrestricted administrator shell to the internet.
 
-- The local node opens an outbound authenticated connection to Quillgeist Cloud.
+- By default the local node opens **no Quillgeist cloud connection**.
+- If the user explicitly configures a self-hosted cloud URL, the node opens an outbound authenticated connection only to that configured instance.
 - Every execution pack declares requested capabilities.
 - Local policy decides `always`, `ask`, or `never`.
 - Workspaces can be allow-listed.
@@ -103,7 +106,7 @@ The Help Center is stored under the Quillgeist home directory (`~/.quillgeist` b
 
 ## Operational telemetry
 
-Quillgeist records account-scoped operational metadata so the Cloud dashboard can report real usage and product quality.  Events can include connection/send/receive counts, run status and duration, Contextor token estimates, patch/file counts, node version, and redacted errors.
+Telemetry is **off by default** in public builds. If a user explicitly configures their own self-hosted cloud and chooses to enable telemetry, Quillgeist can send account-scoped operational metadata to that instance.  Events can include connection/send/receive counts, run status and duration, Contextor token estimates, patch/file counts, node version, and redacted errors.
 
 Prompt text and file contents are not included in telemetry events.  Telemetry can be inspected or disabled locally:
 
