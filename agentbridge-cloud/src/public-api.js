@@ -245,25 +245,25 @@ async function recordApiCompaction(env, metrics, source) {
   }));
 }
 
-function apiIndex() {
+function apiIndex(origin = "https://self-hosted.invalid") {
   return {
     name: "Quillgeist Public API",
     version: API_VERSION,
-    base_url: "https://quillgeist.clintware.com/api/v1",
-    mcp_url: "https://quillgeist.clintware.com/mcp",
+    base_url: origin + "/api/v1",
+    mcp_url: origin + "/mcp",
     endpoints: {
       compact: { method: "POST", path: "/api/v1/compact" },
       impact: { method: "GET", path: "/api/v1/impact?days=30" },
       openapi: { method: "GET", path: "/api/v1/openapi.json" },
     },
-    privacy: "https://quillgeist.clintware.com/privacy.html",
-    terms: "https://quillgeist.clintware.com/terms.html",
-    support: "https://quillgeist.clintware.com/support.html",
-    documentation: "https://quillgeist.clintware.com/developers.html",
+    privacy: origin + "/privacy.html",
+    terms: origin + "/terms.html",
+    support: origin + "/support.html",
+    documentation: origin + "/developers.html",
   };
 }
 
-function openApiDocument() {
+function openApiDocument(origin = "https://self-hosted.invalid") {
   return {
     openapi: "3.1.0",
     info: {
@@ -271,7 +271,7 @@ function openApiDocument() {
       version: API_VERSION,
       description: "Privacy-conscious prompt/context compaction and aggregate Quillgeist impact metrics. Do not submit access credentials, payment-card data, government identifiers, or protected health information.",
     },
-    servers: [{ url: "https://quillgeist.clintware.com" }],
+    servers: [{ url: origin }],
     paths: {
       "/api/v1/compact": {
         post: {
@@ -316,9 +316,9 @@ export async function handlePublicApi(request, env, ctx) {
   const url = new URL(request.url);
   const cors = { "access-control-allow-origin": "*" };
 
-  if (request.method === "GET" && url.pathname === "/api/v1") return json(apiIndex(), 200, cors);
+  if (request.method === "GET" && url.pathname === "/api/v1") return json(apiIndex(url.origin), 200, cors);
   if (request.method === "GET" && url.pathname === "/api/v1/openapi.json") {
-    return json(openApiDocument(), 200, { ...cors, "cache-control": "public, max-age=300" });
+    return json(openApiDocument(url.origin), 200, { ...cors, "cache-control": "public, max-age=300" });
   }
   if (request.method === "GET" && url.pathname === "/api/v1/impact") {
     try {
@@ -431,10 +431,11 @@ function createQuillgeistMcpServer(env) {
 }
 
 export function handleMcp(request, env, ctx) {
+  const host = new URL(request.url).hostname;
   const handler = createMcpHandler(() => createQuillgeistMcpServer(env), {
     route: "/mcp",
-    allowedHostnames: ["quillgeist.clintware.com"],
-    allowedOriginHostnames: MCP_ORIGINS,
+    allowedHostnames: [host],
+    allowedOriginHostnames: [...MCP_ORIGINS, host],
     responseMode: "auto",
   });
   return handler(request, env, ctx);
