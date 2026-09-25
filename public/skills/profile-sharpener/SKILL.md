@@ -1,6 +1,6 @@
 ---
 name: profile-sharpener-astro
-description: ASTRO-aligned workflow for sharpening LinkedIn and other public professional profiles so they are searchable, credible, evidence-backed, and coherent across hiring, founder, executive, consulting, and startup audiences without sounding desperate, inflated, or internally contradictory.
+description: ASTRO-aligned workflow for sharpening LinkedIn and other public professional profiles so they are searchable, credible, evidence-backed, and coherent across hiring, founder, executive, product, and startup audiences without sounding desperate, inflated, or internally contradictory.
 version: 1.0
 ---
 
