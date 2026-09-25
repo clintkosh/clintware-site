@@ -433,12 +433,12 @@ function base64UrlUtf8(value){
   const bytes=new TextEncoder().encode(String(value||""));
   let binary="";
   for(const b of bytes)binary+=String.fromCharCode(b);
-  return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"");
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
 }
 
 async function sendResponderEmail(env,{to,subject,body}={}){
   const recipient=String(to||"").trim();
-  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(recipient))return {ok:false,error:"invalid_recipient"};
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient))return {ok:false,error:"invalid_recipient"};
   const bridge=String(env.GOOGLE_DELEGATED_BRIDGE_SECRET||"");
   if(!bridge)return {ok:false,error:"google_bridge_not_configured"};
   const tokenResp=await fetch("https://auth.clintware.com/internal/google-access-token",{
@@ -448,7 +448,7 @@ async function sendResponderEmail(env,{to,subject,body}={}){
   const tokenData=await tokenResp.json().catch(()=>({}));
   if(!tokenResp.ok||!tokenData.access_token)return {ok:false,error:tokenData.error||"google_token_unavailable",status:tokenResp.status};
 
-  const safeSubject=String(subject||"Responder Daily").replace(/[\\r\\n]+/g," ").slice(0,200);
+  const safeSubject=String(subject||"Responder Daily").replace(/[\r\n]+/g," ").slice(0,200);
   const safeBody=String(body||"").slice(0,50000);
   const raw=[
     "To: "+recipient,
@@ -458,7 +458,7 @@ async function sendResponderEmail(env,{to,subject,body}={}){
     "Content-Transfer-Encoding: 8bit",
     "",
     safeBody
-  ].join("\\r\\n");
+  ].join("\r\n");
   const sendResp=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{
     method:"POST",
     headers:{
