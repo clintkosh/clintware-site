@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
-const p = new URL("../src/index.js", import.meta.url);
-const samplesPath = new URL("../src/sample-customers.js", import.meta.url);
+const p = new URL("./src/index.js", import.meta.url);
+const samplesPath = new URL("./src/sample-customers.js", import.meta.url);
 let src = fs.readFileSync(p, "utf8");
 let samples = fs.readFileSync(samplesPath, "utf8");
 if (samples.includes("SAMPLE_SEED_VERSION=3")) samples = samples.replace("SAMPLE_SEED_VERSION=3", "SAMPLE_SEED_VERSION=4");
