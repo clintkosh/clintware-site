@@ -15,6 +15,11 @@ async function waitStable() {
   assert(await page.locator(".startup-error").count() === 0, "Startup error is visible");
 }
 
+async function assertNoHorizontalOverflow(label) {
+  const overflow = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  assert(overflow.sw <= overflow.cw + 2, `${label} horizontal overflow: ${overflow.sw} > ${overflow.cw}`);
+}
+
 try {
   const response = await page.goto(base, { waitUntil: "networkidle", timeout: 60000 });
   assert(response && response.ok(), "DPLR homepage HTTP request failed");
@@ -52,7 +57,7 @@ try {
     assert(await page.locator("#theme").count() === 1, "Theme control missing on " + tab);
   }
 
-  // Guest customer create flow.
+  // Guest customer create flow should enter the selected customer's command center.
   await page.locator('[data-tab="customers"]').first().click();
   await page.locator("#newc").click();
   await page.waitForSelector(".overlay .modal");
@@ -61,6 +66,7 @@ try {
   await page.locator("#go").click();
   await page.waitForTimeout(500);
   await waitStable();
+  assert(await page.locator(".dplr-right").count() === 1, "Created customer did not enter customer workspace");
   assert((await page.locator(".dplr-right").innerText()).includes("Browser Smoke Customer"), "Created customer did not become selected");
 
   // First-class stakeholder CRUD from the persistent right context rail.
@@ -79,21 +85,27 @@ try {
   await page.locator("#dplr-search").press("Enter");
   await page.waitForTimeout(450);
   assert((await page.locator(".dplr-right").innerText()).includes("ACME GLOBAL"), "Customer search did not route to ACME GLOBAL");
-
   await page.screenshot({ path: "dplr-desktop-smoke.png", fullPage: true });
 
-  // Mobile usability and overflow pass.
+  // Mobile pass 1: portfolio is intentionally full-width and has no customer left rail.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: "networkidle" });
   await waitStable();
-  const overflow = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
-  assert(overflow.sw <= overflow.cw + 2, `Mobile horizontal overflow: ${overflow.sw} > ${overflow.cw}`);
-  assert(await page.locator(".dplr-left").count() === 1, "Responsive navigation is missing");
+  assert(await page.locator(".dplr-portfolio-grid").count() === 1, "Mobile portfolio did not render");
+  assert(await page.locator(".dplr-primary").count() === 1, "Mobile primary navigation is missing");
+  await assertNoHorizontalOverflow("Mobile portfolio");
+
+  // Mobile pass 2: a selected customer exposes the responsive horizontal workspace navigation.
+  await page.locator("[data-customer-open]").first().click();
+  await waitStable();
+  assert(await page.locator(".dplr-left").count() === 1, "Responsive customer navigation is missing");
+  assert(await page.locator(".dplr-left nav [data-tab]").count() >= 12, "Responsive customer navigation is incomplete");
+  await assertNoHorizontalOverflow("Mobile customer workspace");
   await page.screenshot({ path: "dplr-mobile-smoke.png", fullPage: true });
 
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
-  console.log("DPLR browser smoke passed: desktop modules, theme, create, stakeholder, search, and mobile overflow.");
+  console.log("DPLR browser smoke passed: desktop modules, theme, create, stakeholder, search, mobile portfolio, customer navigation, and overflow.");
 } catch (err) {
   try { await page.screenshot({ path: "dplr-failure.png", fullPage: true }); } catch {}
   console.error("DPLR browser smoke failure:", err);
