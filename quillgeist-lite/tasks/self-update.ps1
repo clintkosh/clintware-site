@@ -6,7 +6,25 @@ New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
 Write-Host "SYNC // refreshing qq self-heal engine" -ForegroundColor Cyan
 $temp = $RepairPath + ".new"
-Invoke-WebRequest -Uri ($Remote + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+
+# Prefer GitHub's contents API so self-update always reads the current default-branch
+# blob instead of a potentially stale raw.githubusercontent.com edge response.
+try {
+  $api = "https://api.github.com/repos/clintkosh/clintware-site/contents/quillgeist-lite/tasks/auto-repair-runtime.ps1?ref=main&cb=" + [Guid]::NewGuid().ToString("n")
+  $headers = @{
+    "Accept" = "application/vnd.github+json"
+    "User-Agent" = "Clintware-Quillgeist-Lite"
+    "Cache-Control" = "no-cache"
+  }
+  $meta = Invoke-RestMethod -Uri $api -Headers $headers -Method Get
+  if (-not $meta.content) { throw "GitHub contents API returned no file content." }
+  $bytes = [Convert]::FromBase64String(([string]$meta.content -replace '\s',''))
+  [IO.File]::WriteAllBytes($temp,$bytes)
+} catch {
+  Write-Host ("SYNC WARN // GitHub API fetch failed; using raw fallback: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  Invoke-WebRequest -Uri ($Remote + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+}
+
 $tokens = $null; $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $temp),[ref]$tokens,[ref]$errors) | Out-Null
 if ($errors.Count -gt 0) {
