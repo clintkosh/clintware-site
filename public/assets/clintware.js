@@ -260,7 +260,7 @@
     const routes = [
       ["Home", "/", currentPath === "/"],
       ["Products", "/tools/", currentPath.startsWith("/tools/")],
-      ["Services", "https://consulting.clintware.com/", false],
+      ["Client Work", "/client-work/", false],
       ["Skills", "/skills/", currentPath.startsWith("/skills/")],
       ["Build Notes", "/blog/", currentPath.startsWith("/blog/")],
       ["Fonts", "/fonts/", currentPath.startsWith("/fonts/")],
