@@ -437,8 +437,7 @@ function base64UrlUtf8(value){
 }
 
 async function sendResponderEmail(env,{to,subject,body}={}){
-  const recipient=String(to||"").trim();
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient))return {ok:false,error:"invalid_recipient"};
+  let recipient=String(to||"").trim();
   const bridge=String(env.GOOGLE_DELEGATED_BRIDGE_SECRET||"");
   if(!bridge)return {ok:false,error:"google_bridge_not_configured"};
   const tokenResp=await fetch("https://auth.clintware.com/internal/google-access-token",{
@@ -447,6 +446,12 @@ async function sendResponderEmail(env,{to,subject,body}={}){
   });
   const tokenData=await tokenResp.json().catch(()=>({}));
   if(!tokenResp.ok||!tokenData.access_token)return {ok:false,error:tokenData.error||"google_token_unavailable",status:tokenResp.status};
+  if(!recipient){
+    const infoResp=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{"authorization":"Bearer "+tokenData.access_token}});
+    const info=await infoResp.json().catch(()=>({}));
+    recipient=String(info.email||"").trim();
+  }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient))return {ok:false,error:"invalid_recipient"};
 
   const safeSubject=String(subject||"Responder Daily").replace(/[\r\n]+/g," ").slice(0,200);
   const safeBody=String(body||"").slice(0,50000);
