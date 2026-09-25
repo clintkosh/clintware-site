@@ -32,7 +32,7 @@ The GitHub Pages workflow is manual until the official domain move. It validates
 ## Domain boundaries
 
 - Keep RenewNudge on its existing Lovable deployment until that project is changed there.
-- Keep separate codeFEDDY properties outside the Clintware product map.
+- Keep unrelated creator-brand properties outside the Clintware product map and infrastructure.
 - Never deploy the retired Aggieland Media Lab address as the public Family Media Lab.
 
 ## ClintLink
