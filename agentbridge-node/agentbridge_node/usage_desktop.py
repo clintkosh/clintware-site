@@ -128,8 +128,8 @@ class QuillgeistDesktopWithUsage(QuillgeistDesktop):
         tk.Button(
             buttons, text="Open overall portal",
             command=lambda: webbrowser.open(
-                (self.cfg.data.get("cloud_url") or "https://quillgeist.clintware.com") + "/#usage"
-            ),
+                str(self.cfg.data.get("cloud_url") or "").rstrip("/") + "/#usage"
+            ) if self.cfg.data.get("cloud_url") else None,
             bg="#111a25", fg=fg, relief="flat", padx=10, pady=6,
         ).pack(side="left", padx=(8, 0))
 
