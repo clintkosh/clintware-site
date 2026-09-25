@@ -1,12 +1,6 @@
 {
-  "request_id": "chatgpt-qq-google-audience-inspect-20260925",
-  "task_id": "browser-work",
-  "args": {
-    "Action": "inspect",
-    "Url": "https://console.cloud.google.com/auth/audience",
-    "Approved": "false",
-    "Headless": "false",
-    "WaitMs": "1500"
-  },
-  "objective": "Open Google Auth Platform Audience in the persistent qq browser profile and inspect the current publishing/test-user controls. Read-only; do not change settings yet."
+  "request_id": "chatgpt-qq-persistent-repair-20260925",
+  "task_id": "repair-local-service",
+  "args": {},
+  "objective": "Upgrade the qq health service to the maintained build that force-cycles a stale runner when a wake arrives, then restart the supervised runner so queued QuillGeist Web jobs can execute."
 }
