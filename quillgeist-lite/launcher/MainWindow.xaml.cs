@@ -67,7 +67,7 @@ public sealed partial class MainWindow : Window
             _lastLog = text;
             LogBox.Text = text;
             LogBox.SelectionStart = LogBox.Text.Length;
-            LogBox.ScrollToVerticalOffset(double.MaxValue);
+            LogBox.SelectionLength = 0;
         }
     }
 
