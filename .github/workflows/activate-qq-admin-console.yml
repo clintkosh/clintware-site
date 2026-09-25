@@ -104,6 +104,41 @@ jobs:
           echo "Timed out waiting for qq refresh result" >&2
           exit 1
 
+      - name: Install and enable qq responder agent
+        env:
+          CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          dispatch_and_wait() {
+            action="$1"
+            response=""
+            for i in $(seq 1 60); do
+              response=$(curl -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs \
+                -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "{\"task_id\":\"responder-agent\",\"args\":{\"Action\":\"$action\"},\"objective\":\"Install and enable the local policy-aware responder agent requested by the owner.\"}" || true)
+              if echo "$response" | grep -Fq '"ok":true'; then break; fi
+              echo "Waiting for responder-agent capability ($i/60)"
+              sleep 5
+            done
+            echo "$response" | grep -Fq '"ok":true'
+            job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
+            for i in $(seq 1 90); do
+              state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
+              status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
+              if [ "$status" = "passed" ]; then echo "$state"; return 0; fi
+              if [ "$status" = "failed" ]; then echo "$state"; return 1; fi
+              sleep 4
+            done
+            echo "Timed out waiting for responder-agent $action" >&2
+            return 1
+          }
+
+          dispatch_and_wait install
+          dispatch_and_wait on
+          echo "qq responder scheduled task installed and enabled."
+
       - name: Ensure qq local browser runtime
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
