@@ -12,7 +12,7 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>Clintware-QQ-Portable-Installer</AssemblyName>
+    <AssemblyName>QQ</AssemblyName>
     <RootNamespace>Clintware.QQ.PortableInstaller</RootNamespace>
     <Version>1.0.0</Version>
     <FileVersion>1.0.0.0</FileVersion>
