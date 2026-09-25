@@ -27,6 +27,7 @@ import {
   filterSlotsAgainstGoogleBusy,
   googleBusyIntervals,
   googleCalendarConfigured,
+  getGoogleCalendarEvent,
   requestedTimeIsGoogleBusy,
   updateGoogleCalendarEvent,
 } from "./google-calendar.js";
@@ -684,6 +685,8 @@ async function apiBook(request, env) {
     configured: googleCalendarConfigured(env),
     synced: false,
     inviteSent: false,
+    meetLink: "",
+    eventUrl: "",
   };
 
   if (calendar.configured) {
@@ -700,6 +703,8 @@ async function apiBook(request, env) {
         configured: true,
         synced: true,
         inviteSent: true,
+        meetLink: event.hangoutLink || "",
+        eventUrl: event.htmlLink || "",
       };
     } catch (error) {
       console.error(JSON.stringify({
@@ -727,9 +732,40 @@ async function apiBook(request, env) {
 
 async function apiManage(env, token) {
   const booking = await lookupBooking(env, token);
-  return booking
-    ? json({ booking: publicBookingWithToken({ ...booking, manageToken: token }) })
-    : json({ error: "booking_not_found" }, 404);
+  if (!booking) return json({ error: "booking_not_found" }, 404);
+
+  let calendar = {
+    configured: googleCalendarConfigured(env),
+    synced: false,
+    inviteSent: false,
+    meetLink: "",
+    eventUrl: "",
+  };
+
+  if (calendar.configured && booking.googleEventId) {
+    try {
+      const event = await getGoogleCalendarEvent(env, booking);
+      calendar = {
+        configured: true,
+        synced: Boolean(event),
+        inviteSent: true,
+        meetLink: event?.hangoutLink || "",
+        eventUrl: event?.htmlLink || "",
+      };
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "google_calendar_event_read_failed",
+        bookingId: booking.id,
+        message: String(error),
+        code: error.code || "calendar_error",
+      }));
+    }
+  }
+
+  return json({
+    booking: publicBookingWithToken({ ...booking, manageToken: token }),
+    calendar,
+  });
 }
 
 async function apiReschedule(request, env, token) {
@@ -778,6 +814,8 @@ async function apiReschedule(request, env, token) {
     configured: googleCalendarConfigured(env),
     synced: false,
     inviteSent: false,
+    meetLink: "",
+    eventUrl: "",
   };
 
   if (calendar.configured) {
@@ -795,7 +833,13 @@ async function apiReschedule(request, env, token) {
         });
         if (!linked.ok) throw new Error("google_event_link_failed");
       }
-      calendar = { configured: true, synced: true, inviteSent: true };
+      calendar = {
+        configured: true,
+        synced: true,
+        inviteSent: true,
+        meetLink: event?.hangoutLink || "",
+        eventUrl: event?.htmlLink || "",
+      };
     } catch (error) {
       console.error(JSON.stringify({
         event: "google_calendar_event_update_failed",
@@ -827,6 +871,8 @@ async function apiCancel(env, token) {
     configured: googleCalendarConfigured(env),
     synced: false,
     inviteSent: false,
+    meetLink: "",
+    eventUrl: "",
   };
   if (calendar.configured && existing.googleEventId) {
     try {
