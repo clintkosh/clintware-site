@@ -33,7 +33,9 @@ deployment_card:[["title","Card"],["column","Kanban column"],["stageOrder","Stag
 sprint:[["name","Sprint"],["weeks","Planned weeks"],["goal","Goal"],["planned","Planned cards"],["completed","Completed cards"],["notes","Notes"]],
 jira_config:[["siteUrl","Jira site URL"],["projectKey","Project key"],["deploymentBoardId","Deployment board ID"],["issueBoardId","Issue board ID"],["connection","Connection status"],["mode","Integration mode"]],
 assistant_profile:[["title","Profile"],["playbook","Assistant playbook"],["updatedFrom","Updated from"]],
-assistant_session:[["title","Session"],["startedAt","Started"],["endedAt","Ended"],["source","Source"],["consentConfirmed","Consent"],["transcript","Transcript"],["suggestions","Suggestions"]]
+assistant_session:[["title","Session"],["startedAt","Started"],["endedAt","Ended"],["source","Source"],["consentConfirmed","Consent"],["transcript","Transcript"],["suggestions","Suggestions"]],
+call_prep:[["title","Prep title"],["meetingDate","Meeting date / time"],["meetingType","Meeting type"],["objective","Objective"],["attendees","Expected attendees"],["opening","Opening / framing"],["currentState","Current state"],["evidenceReady","Evidence to have ready"],["questions","Questions to ask"],["decisions","Decisions to land"],["escalationCriteria","Escalation criteria"],["followUp","Follow-up plan"],["technologyNotes","Technology reminders"],["assistantNotes","Live Assist guidance"]],
+email_draft:[["title","Draft title"],["kind","Type"],["to","To"],["cc","CC"],["subject","Subject"],["body","Body"],["status","Status"]]
 };
 let S={customer:null,customers:[],records:[],workspace:null,access:{authenticated:false,mode:"guest"}},K={articles:[],latest:[],trending:[],config:{},usageSignalAvailable:false},I={jira:null,confluence:null,controlPlane:null,ai:null},tab="customers",scen=new Set(),theme=localStorage.getItem("dpltheme")||"dark";
 document.documentElement.dataset.theme=theme;
