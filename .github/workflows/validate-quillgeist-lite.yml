@@ -121,7 +121,8 @@ jobs:
             "quillgeist-lite/tools/terminal_repair.py",
             "quillgeist-lite/tools/browser_agent.py",
             "quillgeist-lite/tools/oauth_verification_capture.py",
-            "quillgeist-lite/tools/local_ai.py"
+            "quillgeist-lite/tools/local_ai.py",
+            "quillgeist-lite/tools/local_ai_parity_check.py"
           )
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
@@ -143,6 +144,8 @@ jobs:
           if ($data.model_downloads_performed -ne $false) { throw "local_ai status unexpectedly downloaded a model." }
           if ($null -eq $data.memory) { throw "local_ai status omitted memory evidence." }
           Write-Host "LOCAL_AI_STATUS_OK"
+          python quillgeist-lite/tools/local_ai_parity_check.py
+          if ($LASTEXITCODE -ne 0) { throw "Lite/Full local AI parity check failed." }
 
 
       - name: Compile Windows health service
