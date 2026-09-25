@@ -157,7 +157,7 @@ if pdf_generator.is_file():
     subprocess.run([sys.executable, str(pdf_generator)], check=True)
 
 published_html = [Path("index.html")]
-for section in ("blog", "consulting", "public", "ranchledger", "tools"):
+for section in ("blog", "public", "ranchledger", "tools"):
     published_html.extend(Path(section).rglob("*.html"))
 
 missing_analytics = []
