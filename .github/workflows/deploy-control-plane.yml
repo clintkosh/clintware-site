@@ -126,6 +126,8 @@ jobs:
           fi
 
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
+          google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          put_secret GOOGLE_DELEGATED_BRIDGE_SECRET "$google_bridge_secret"
           put_secret CONTROL_PLANE_ADMIN_TOKEN "$CONTROL_PLANE_ADMIN_TOKEN"
           put_secret GITHUB_CONTROL_PLANE_TOKEN "$GITHUB_CONTROL_PLANE_TOKEN"
           # Per-identity aliases let one Control Plane route independent GitHub accounts.
