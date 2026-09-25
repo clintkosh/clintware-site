@@ -48,6 +48,7 @@ jobs:
             "quillgeist-lite/tasks/start-qq-window.ps1",
             "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
             "quillgeist-lite/tasks/browser-work.ps1",
+            "quillgeist-lite/tasks/responder-agent.ps1",
             "quillgeist-lite/tasks/bitnet-setup.ps1",
             "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
@@ -131,7 +132,8 @@ jobs:
             "quillgeist-lite/tools/browser_agent.py",
             "quillgeist-lite/tools/oauth_verification_capture.py",
             "quillgeist-lite/tools/local_ai.py",
-            "quillgeist-lite/tools/local_ai_parity_check.py"
+            "quillgeist-lite/tools/local_ai_parity_check.py",
+            "quillgeist-lite/tools/responder_agent.py"
           )
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
@@ -179,6 +181,23 @@ jobs:
           python quillgeist-lite/tools/local_ai_parity_check.py
           if ($LASTEXITCODE -ne 0) { throw "Lite/Full local AI parity check failed." }
 
+
+      - name: Smoke-test responder defaults
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $raw = @(python quillgeist-lite/tools/responder_agent.py status --json)
+          if ($LASTEXITCODE -ne 0) { throw "responder status failed." }
+          $data = ($raw -join "`n") | ConvertFrom-Json
+          if ($data.enabled -ne $false) { throw "Responder must default disabled." }
+          $source = Get-Content "quillgeist-lite/tools/responder_agent.py" -Raw
+          if ($source -notlike '*"mode": "RESEARCH_ONLY"*' -or $source -notlike '*HN prohibits generated or AI-edited comments*') {
+            throw "HN research-only policy guard is missing."
+          }
+          if ($source -notlike '*"stack_overflow"*' -or $source -notlike '*"enabled": False*') {
+            throw "Stack Overflow must remain disabled by default."
+          }
+          Write-Host "RESPONDER_DEFAULTS_OK"
 
       - name: Compile Windows health service
         shell: pwsh
