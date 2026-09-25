@@ -1,10 +1,6 @@
 {
-  "request_id": "chatgpt-local-ai-live-status-20260925",
-  "task_id": "local-ai",
-  "args": {
-    "Action": "status",
-    "ContextTokens": "4096",
-    "MaxTokens": "32"
-  },
-  "objective": "Inspect the live HP Windows local-AI runtimes, installed models, memory fit, and current local inference state. Read-only only; do not download or change anything."
+  "request_id": "chatgpt-qq-browser-setup-20260925",
+  "task_id": "browser-setup",
+  "args": {},
+  "objective": "Ensure the maintained QuillGeist Web browser runtime is installed and healthy so this chat can dispatch governed browser work through qq."
 }
