@@ -11,7 +11,7 @@ const assert = (cond, message) => { if (!cond) throw new Error(message); };
 
 async function waitStable() {
   await page.waitForSelector(".dplr-appbar", { timeout: 30000 });
-  await page.waitForTimeout(160);
+  await page.waitForTimeout(220);
   assert(await page.locator(".startup-error").count() === 0, "Startup error is visible");
 }
 
@@ -28,13 +28,16 @@ try {
   assert(await page.locator('link[href="/dplr-ui.css"]').count() === 1, "DPLR UI stylesheet is missing");
   assert(await page.locator('script[src="/dplr-shell.js"]').count() === 1, "DPLR shell script is missing");
   assert(await page.locator('script[src="/dplr-prep.js"]').count() === 1, "DPLR call-prep module is missing");
+  assert(await page.locator('script[src="/dplr-enrich.js"]').count() === 1, "DPLR enrichment module is missing");
   assert(await page.locator('link[href*="doppel-brand.css"]').count() === 0, "Old marketing stylesheet leaked into DPLR");
   assert(await page.locator('script[src*="doppel-polish.js"]').count() === 0, "Old marketing shell leaked into DPLR");
   assert(await page.locator(".top").count() === 0, "Legacy topbar is visible instead of DPLR shell");
   assert(await page.locator(".dplr-portfolio-grid").count() === 1, "N7-style portfolio grid did not render");
-  assert(await page.locator("[data-customer-open]").count() === 7, "Expected curated seven-account dataset");
+  assert(await page.locator("[data-customer-open]").count() === 10, "Expected curated ten-account dataset");
   const firstText = await page.locator("main").innerText();
-  assert(firstText.includes("Guest session") || firstText.includes("SSO durable"), "Retention state is not visible");
+  assert(firstText.includes("Browser-persistent"), "No-login browser persistence state is not visible");
+  assert(await page.locator('a[href="/auth/login"]').count() === 0, "SSO sign-in remains visible");
+  assert(await page.locator('form[action="/auth/logout"]').count() === 0, "SSO sign-out remains visible");
 
   // Theme controls exist in every view through the persistent app bar.
   await page.locator(".dplr-more summary").click();
@@ -51,19 +54,28 @@ try {
     const btn = page.locator('[data-tab="' + tab + '"]').first();
     assert(await btn.count() === 1, "Missing tab " + tab);
     await btn.click();
-    await page.waitForTimeout(130);
+    await page.waitForTimeout(160);
     assert(await page.locator(".dplr-main").count() === 1, "Main workspace missing after " + tab);
     const text = (await page.locator(".dplr-main").innerText()).trim();
     assert(text.length > 35, "Tab " + tab + " rendered too little content");
     assert(await page.locator("#theme").count() === 1, "Theme control missing on " + tab);
+    assert(await page.locator('a[href="/auth/login"]').count() === 0, "Sign-in surfaced on tab " + tab);
   }
 
-  // Call preparation is a real editable workflow, not a static presentation.
+  // Call preparation is a real editable workflow with evidence terminology and official training sources.
   await page.locator('[data-tab="prep"]').first().click();
-  await page.waitForTimeout(200);
-  assert((await page.locator(".dplr-main").innerText()).includes("Call Preparation"), "Call Preparation view did not render");
+  await page.waitForTimeout(260);
+  const prepViewText = await page.locator(".dplr-main").innerText();
+  assert(prepViewText.includes("Call Preparation"), "Call Preparation view did not render");
+  assert(prepViewText.includes("Common technical language"), "Common technical vocabulary is missing");
+  assert(prepViewText.includes("Evidence quality gate"), "Evidence quality gate is missing");
+  assert(prepViewText.includes("Support graduation gate"), "Support graduation gate is missing");
+  assert(prepViewText.includes("Official product + workflow refresh"), "Official training resources are missing");
   assert(await page.locator(".dplr-prep-flow article").count() === 6, "Preparation flow is incomplete");
-  assert(await page.locator(".dplr-tech-grid article").count() >= 1, "Technology quick reminders are missing");
+  assert(await page.locator(".dplr-tech-grid article").count() >= 7, "Training and technology refresh cards are incomplete");
+  assert(await page.locator('a[href*="/videos/doppel-platform-overview"]').count() === 1, "Doppel Platform Overview training link missing");
+  assert(await page.locator('a[href*="/docs/doppel-okta-setup-instructions"]').count() === 1, "Doppel Okta documentation link missing");
+  assert(await page.locator('a[href*="/docs/jira-integration"]').count() === 1, "Doppel Jira documentation link missing");
   await page.locator("[data-tech-guide]").first().click();
   await page.waitForSelector(".overlay .modal");
   assert((await page.locator(".overlay .modal").innerText()).includes("Preparation aid"), "Technology reminder modal did not open");
@@ -92,7 +104,19 @@ try {
   await page.locator(".overlay [data-close]").click();
 
   const prepText = await page.evaluate(() => window.DPLRPrep?.prepText?.() || "");
-  assert(prepText.includes("TECHNOLOGY QUICK REMINDERS") && prepText.includes("LIVE ASSIST"), "Printable call-prep material is incomplete");
+  for (const required of ["TECHNOLOGY QUICK REMINDERS","LIVE ASSIST","COMMON TECHNICAL LANGUAGE","EVIDENCE QUALITY GATE","SUPPORT GRADUATION GATE","OFFICIAL TRAINING / PRODUCT REFRESH","Known-good control","First point of divergence","Bounded specialist ask"]) {
+    assert(prepText.includes(required), "Printable call-prep material missing: " + required);
+  }
+
+  // Rich default scenario: verify the new synthetic financial-services scenario opens with seeded prep and playbook data.
+  await page.locator('[data-tab="customers"]').first().click();
+  await page.locator("#dplr-search").fill("Ironwood Bank");
+  await page.locator("#dplr-search").press("Enter");
+  await page.waitForTimeout(500);
+  assert((await page.locator(".dplr-right").innerText()).includes("Ironwood Bank"), "Ironwood Bank default scenario did not route");
+  await page.locator('[data-tab="prep"]').first().click();
+  await page.waitForTimeout(250);
+  assert((await page.locator(".dplr-main").innerText()).includes("Default technical review prep"), "Default sample call prep was not populated");
 
   // Guest customer create flow should enter the selected customer's command center.
   await page.locator('[data-tab="customers"]').first().click();
@@ -130,6 +154,7 @@ try {
   await waitStable();
   assert(await page.locator(".dplr-portfolio-grid").count() === 1, "Mobile portfolio did not render");
   assert(await page.locator(".dplr-primary").count() === 1, "Mobile primary navigation is missing");
+  assert(await page.locator('a[href="/auth/login"]').count() === 0, "Mobile sign-in should not be visible");
   await assertNoHorizontalOverflow("Mobile portfolio");
 
   // Mobile pass 2: a selected customer exposes the responsive horizontal workspace navigation.
@@ -142,7 +167,7 @@ try {
 
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
-  console.log("DPLR browser smoke passed: desktop modules, theme, call prep, modular editing, email draft, create, stakeholder, search, mobile portfolio, customer navigation, and overflow.");
+  console.log("DPLR browser smoke passed: ten defaults, no-login persistence, themes, rich call prep, training resources, modular editing, email draft, create, stakeholder, search, mobile navigation, and overflow.");
 } catch (err) {
   try { await page.screenshot({ path: "dplr-failure.png", fullPage: true }); } catch {}
   console.error("DPLR browser smoke failure:", err);
