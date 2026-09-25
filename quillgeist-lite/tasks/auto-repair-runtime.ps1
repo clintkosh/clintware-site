@@ -4,7 +4,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$BaseUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
 $LogPath = Join-Path $HomeDir "auto-repair.log"
 $TaskName = "Clintware Quillgeist Lite Runner"
 $PidPath = Join-Path $HomeDir "runner.pid"
@@ -56,22 +55,22 @@ $specs = @(
   @{ Remote = "tasks/browser-work.ps1"; Local = "browser-work.ps1"; Kind = "powershell"; Required = "browser_agent.py" }
 )
 
-if ($SourceRoot) {
-  $SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
-  Write-RepairLog ("AUTO_REPAIR // using local canonical source " + $SourceRoot)
+if (-not $SourceRoot) {
+  $SourceRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
 }
+if (-not (Test-Path $SourceRoot)) {
+  throw "Packaged QQ runtime is missing: $SourceRoot. Reinstall using QQ.exe."
+}
+$SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
+Write-RepairLog ("AUTO_REPAIR // using packaged local source " + $SourceRoot)
 
 foreach ($spec in $specs) {
   $target = Join-Path $HomeDir $spec.Local
   $temp = $target + ".new"
 
-  if ($SourceRoot) {
-    $sourcePath = Join-Path $SourceRoot ($spec.Remote -replace "/","\")
-    if (-not (Test-Path $sourcePath)) { throw "Auto-repair local source missing: $sourcePath" }
-    Copy-Item -LiteralPath $sourcePath -Destination $temp -Force
-  } else {
-    Invoke-WebRequest -Uri ($BaseUrl + "/" + $spec.Remote + "?v=" + [DateTime]::UtcNow.Ticks) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-  }
+  $sourcePath = Join-Path $SourceRoot ($spec.Remote -replace "/","\")
+  if (-not (Test-Path $sourcePath)) { throw "Auto-repair packaged source missing: $sourcePath" }
+  Copy-Item -LiteralPath $sourcePath -Destination $temp -Force
 
   if (-not (Test-Path $temp)) { throw "Auto-repair source materialization failed: $($spec.Remote)" }
   $raw = Get-Content $temp -Raw
