@@ -613,7 +613,7 @@ export class SchedulerState extends DurableObject {
       trigger: cleanText(input.trigger || "unknown", 100),
       code: cleanText(input.code || "calendar_error", 120),
       httpStatus: Number(input.httpStatus || 0),
-      reconnectRequired: Boolean(input.reconnectRequired),
+      reconnectRequired: Boolean((open && current.reconnectRequired) || input.reconnectRequired),
       attempts,
       failureEvents: open ? Number(current.failureEvents || 0) + 1 : 1,
       openedAt: open ? Number(current.openedAt || now) : now,
