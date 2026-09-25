@@ -71,6 +71,23 @@ This provides the MVP cross-model loop:
 
 `user correction → local Quillgeist preference → new task → preference injected → any connected model`
 
+
+## Local inference manager
+
+Quillgeist Full now includes a Windows-first local inference manager for installed runtimes and models. It inventories available RAM, detected GPU metadata, Ollama, llama.cpp binaries, ONNX Runtime GenAI when installed, Ollama models, and GGUF files from configured model directories. It then applies a conservative memory-fit guard before recommending local execution.
+
+```bash
+quillgeist local-ai status
+quillgeist local-ai fit MODEL
+quillgeist local-ai route --task coding --context-tokens 8192
+quillgeist local-ai route --task private-work --privacy-required
+quillgeist local-ai benchmark MODEL
+```
+
+The manager does not implicitly download a model, flash or tune hardware, or open a remote shell. Benchmarks run only against a model already proven to be installed. The current fit calculation is intentionally conservative and architecture-neutral; measured results should replace estimates when available.
+
+Public Quillgeist builds retain the existing isolation boundary: they start local-only, do not contain a Clintware credential, and cannot silently pair to Clintware infrastructure. Internal owner routing is maintained separately from this public runtime.
+
 ## Local authority
 
 Quillgeist does not expose an unrestricted administrator shell to the internet.
