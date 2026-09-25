@@ -55,6 +55,7 @@ async function brokerAccessToken(env) {
     const error = new Error(response.status === 404 ? "google_calendar_not_connected" : "google_calendar_broker_token_failed");
     error.code = response.status === 404 ? "google_calendar_not_connected" : "google_calendar_broker_token_failed";
     error.status = response.status;
+    error.detail = String(data.error || data.message || "").slice(0, 240);
     throw error;
   }
   return data.access_token;
@@ -76,6 +77,7 @@ async function directAccessToken(env) {
     const error = new Error("google_calendar_oauth_refresh_failed");
     error.code = "google_calendar_oauth_refresh_failed";
     error.status = response.status;
+    error.detail = String(data.error || data.error_description || "").slice(0, 240);
     throw error;
   }
   return data.access_token;
