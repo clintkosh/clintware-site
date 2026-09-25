@@ -41,7 +41,7 @@ Canonical sequence:
 - Use plain language that says what the thing does, why it exists, and what is true today.
 - One clear primary action is better than repeated CTA buttons.
 - Navigation should route by visitor intent, not expose every internal experiment equally.
-- Do not mix CodeFEDDY / FEDDY branding into professional Clintware material.
+- Keep unrelated creator brands completely outside professional Clintware material.
 
 ## Page test
 
