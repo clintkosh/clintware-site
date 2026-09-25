@@ -83,6 +83,7 @@ def default_config() -> dict:
         "minimum_score": 45,
         "draft_score": 72,
         "max_workers": 4,
+        "hard_cpu_cap_pct": 55,
         "cpu_pressure_pct": 85,
         "memory_pressure_available_pct": 15,
         "pressure_sustain_seconds": 30,
@@ -265,6 +266,38 @@ class ResourceGovernor:
         return 1 if self.state() == "PRESSURE" else max(1, min(8, int(self.cfg["max_workers"])))
 
 
+_JOB_HANDLE = None
+
+class CpuRateInfo(ctypes.Structure):
+    _fields_ = [("ControlFlags", ctypes.c_ulong), ("CpuRate", ctypes.c_ulong)]
+
+
+def apply_windows_job_cpu_cap(cfg: dict) -> bool:
+    """Apply a hard CPU ceiling to this process tree on supported Windows hosts."""
+    global _JOB_HANDLE
+    if os.name != "nt":
+        return False
+    try:
+        kernel32 = ctypes.windll.kernel32
+        job = kernel32.CreateJobObjectW(None, None)
+        if not job:
+            return False
+        info = CpuRateInfo()
+        info.ControlFlags = 0x1 | 0x4  # ENABLE | HARD_CAP
+        pct = max(10, min(80, int(cfg.get("hard_cpu_cap_pct", 55))))
+        info.CpuRate = pct * 100
+        if not kernel32.SetInformationJobObject(job, 15, ctypes.byref(info), ctypes.sizeof(info)):
+            kernel32.CloseHandle(job)
+            return False
+        if not kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess()):
+            kernel32.CloseHandle(job)
+            return False
+        _JOB_HANDLE = job
+        return True
+    except Exception:
+        return False
+
+
 def http_json(url: str, timeout: int = 15) -> object:
     req = urllib.request.Request(url, headers={"User-Agent": f"Clintware-Responder-Agent/{APP_VERSION}"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -320,27 +353,32 @@ def fetch_hn_ask(cfg: dict, gov: ResourceGovernor) -> list[dict]:
         except Exception:
             return None
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=gov.workers()) as pool:
-        for item in pool.map(one, ids):
-            if not item or item.get("dead") or item.get("deleted"):
-                continue
-            title = clean_html(item.get("title", ""))
-            body = clean_html(item.get("text", ""))
-            score, reasons = score_item(title, body, cfg, int(item.get("descendants", 0) or 0))
-            rows.append({
-                "platform": "hacker_news",
-                "community": "ask_hn",
-                "external_id": str(item.get("id")),
-                "revision": "1",
-                "title": title,
-                "body": body[:12000],
-                "url": f"https://news.ycombinator.com/item?id={item.get('id')}",
-                "author": str(item.get("by", "")),
-                "created_at": dt.datetime.fromtimestamp(int(item.get("time", 0)), dt.timezone.utc).isoformat() if item.get("time") else "",
-                "score": score,
-                "mode": "RESEARCH_ONLY",
-                "reasons": reasons,
-            })
+    for offset in range(0, len(ids), 12):
+        batch = ids[offset:offset + 12]
+        workers = min(gov.workers(), max(1, 1 + len(batch) // 4))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            for item in pool.map(one, batch):
+                if not item or item.get("dead") or item.get("deleted"):
+                    continue
+                title = clean_html(item.get("title", ""))
+                body = clean_html(item.get("text", ""))
+                score, reasons = score_item(title, body, cfg, int(item.get("descendants", 0) or 0))
+                rows.append({
+                    "platform": "hacker_news",
+                    "community": "ask_hn",
+                    "external_id": str(item.get("id")),
+                    "revision": "1",
+                    "title": title,
+                    "body": body[:12000],
+                    "url": f"https://news.ycombinator.com/item?id={item.get('id')}",
+                    "author": str(item.get("by", "")),
+                    "created_at": dt.datetime.fromtimestamp(int(item.get("time", 0)), dt.timezone.utc).isoformat() if item.get("time") else "",
+                    "score": score,
+                    "mode": "RESEARCH_ONLY",
+                    "reasons": reasons,
+                })
+        if gov.state() == "PRESSURE":
+            time.sleep(1.0)
     return rows
 
 
@@ -378,8 +416,8 @@ def fetch_discourse(site: str, cfg: dict) -> list[dict]:
             "author": "",
             "created_at": str(topic.get("created_at", "")),
             "score": score,
-            "mode": "APPROVAL_REQUIRED",
-            "reasons": reasons + ["community_policy_must_be_verified_before_write"],
+            "mode": "RESEARCH_ONLY",
+            "reasons": reasons + ["community_policy_and_scoped_write_path_must_be_verified_before_drafting"],
         })
     return rows
 
@@ -402,7 +440,7 @@ def ollama(prompt: str, model: str, timeout: int = 180) -> str:
 
 
 def qa_draft(row: dict, cfg: dict) -> tuple[str, dict]:
-    if row["mode"] == "RESEARCH_ONLY":
+    if row["mode"] in ("RESEARCH_ONLY", "SCAN_ONLY"):
         return "", {"result": "HUMAN_WRITE_REQUIRED", "reason": "platform_policy"}
     model = cfg.get("ollama_model", "").strip()
     if cfg.get("model_backend") != "ollama" or not ollama_available(model):
@@ -487,7 +525,7 @@ def build_report(conn: sqlite3.Connection, cfg: dict) -> tuple[str, str]:
             f"   Mode: {r['mode']} | Status: {r['status']}",
             f"   {r['url']}",
         ])
-    lines += ["", "POLICY", "HN remains research-only. Stack Overflow remains disabled by default. Discourse writes require per-site approval.", "",
+    lines += ["", "POLICY", "HN remains research-only. Stack Overflow remains disabled by default. Discourse remains research-only until per-site policy and scoped write access are verified.", "",
               "RUNTIME", f"CPU now: {cpu_percent(0.08):.1f}% | Available memory: {available_memory_pct():.1f}%",
               "", "NEXT ACTIONS", "Review highest-score approval items in the local UI. Keep AUTO_ALLOWED empty until a site's current rules and write path are verified."]
     body = "\n".join(lines)
@@ -503,6 +541,7 @@ def scan_once(force: bool = False) -> dict:
     if not cfg.get("enabled") and not force:
         return {"ok": True, "skipped": "disabled"}
 
+    hard_cap_applied = apply_windows_job_cpu_cap(cfg)
     conn = db()
     run_id = conn.execute("INSERT INTO runs(started_at,status) VALUES(?,?)", (now_iso(), "running")).lastrowid
     conn.commit()
@@ -538,7 +577,7 @@ def scan_once(force: bool = False) -> dict:
         )
         conn.commit()
         return {"ok": True, "run_id": run_id, "discovered": len(discovered), "kept": kept, "drafted": drafted,
-                "pressure_events": gov.pressure_events, "email_report": report}
+                "pressure_events": gov.pressure_events, "hard_cpu_cap_applied": hard_cap_applied, "email_report": report}
     except Exception as e:
         conn.execute("UPDATE runs SET completed_at=?,status=?,notes=? WHERE id=?", (now_iso(), "failed", str(e)[:4000], run_id))
         conn.commit()
@@ -565,6 +604,7 @@ def status() -> dict:
         "top": [dict(r) for r in top],
         "cpu_pct": round(cpu_percent(0.08), 1),
         "available_memory_pct": round(available_memory_pct(), 1),
+        "hard_cpu_cap_pct": int(cfg.get("hard_cpu_cap_pct", 55)),
     }
 
 
