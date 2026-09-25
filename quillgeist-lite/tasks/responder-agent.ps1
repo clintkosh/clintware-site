@@ -48,7 +48,7 @@ function Invoke-ResponderPython {
 
 function Send-DailyReport {
   param([object]$Report)
-  if (-not $Report -or -not [string]$Report.to) { return @{ ok=$false; skipped="report_to_not_configured" } }
+  if (-not $Report) { return @{ ok=$false; skipped="report_missing" } }
   if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { return @{ ok=$false; skipped="github_cli_unavailable" } }
   gh auth status 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) { return @{ ok=$false; skipped="github_auth_unavailable" } }
