@@ -1,6 +1,12 @@
 {
-  "request_id": "chatgpt-qq-browser-setup-20260925",
-  "task_id": "browser-setup",
-  "args": {},
-  "objective": "Ensure the maintained QuillGeist Web browser runtime is installed and healthy so this chat can dispatch governed browser work through qq."
+  "request_id": "chatgpt-qq-google-audience-inspect-20260925",
+  "task_id": "browser-work",
+  "args": {
+    "Action": "inspect",
+    "Url": "https://console.cloud.google.com/auth/audience",
+    "Approved": "false",
+    "Headless": "false",
+    "WaitMs": "1500"
+  },
+  "objective": "Open Google Auth Platform Audience in the persistent qq browser profile and inspect the current publishing/test-user controls. Read-only; do not change settings yet."
 }
