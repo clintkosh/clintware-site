@@ -357,3 +357,21 @@
     });
   }, { capture: true });
 })();
+
+/* Clintware live site agent loader */
+(() => {
+  if (document.body?.dataset.siteAgent === "off") return;
+  if (document.querySelector('script[data-cw-site-agent]')) return;
+
+  const style = document.createElement("link");
+  style.rel = "stylesheet";
+  style.href = "/assets/site-agent.css";
+  style.dataset.cwSiteAgent = "true";
+  document.head.appendChild(style);
+
+  const script = document.createElement("script");
+  script.src = "/assets/site-agent.js";
+  script.defer = true;
+  script.dataset.cwSiteAgent = "true";
+  document.head.appendChild(script);
+})();
