@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/activate-qq-admin-console.yml"
       - "quillgeist-lite/**"
+      - "!quillgeist-lite/dispatch/**"
   workflow_dispatch:
 
 permissions:
