@@ -9,6 +9,8 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $CacheDir = Join-Path $HomeDir "cache"
 $LogPath = Join-Path $HomeDir "runner.log"
 $StatePath = Join-Path $HomeDir "state.json"
+$UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
+$UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
 $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $LogoAssetUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/assets/clintware-terminal-logo.b64"
@@ -774,6 +776,29 @@ function Invoke-QQLocalShell {
   Show-QQPrompt
 }
 
+function Read-QQUiInput {
+  $items = New-Object System.Collections.Generic.List[string]
+  try {
+    if (-not (Test-Path $UiInputPath)) { return $items.ToArray() }
+    $lines = @(Get-Content $UiInputPath -ErrorAction Stop)
+    $cursor = 0
+    if (Test-Path $UiInputCursorPath) {
+      $raw = (Get-Content $UiInputCursorPath -Raw -ErrorAction SilentlyContinue).Trim()
+      [void][int]::TryParse($raw,[ref]$cursor)
+    }
+    if ($cursor -lt 0 -or $cursor -gt $lines.Count) { $cursor = 0 }
+    for ($i=$cursor; $i -lt $lines.Count; $i++) {
+      try {
+        $row = $lines[$i] | ConvertFrom-Json
+        $text = ([string]$row.text).Trim()
+        if ($text -and -not $text.StartsWith("!")) { $items.Add($text) }
+      } catch {}
+    }
+    Set-Content -Path $UiInputCursorPath -Value ([string]$lines.Count) -Encoding ASCII
+  } catch {}
+  return $items.ToArray()
+}
+
 function Send-QQQuestion {
   param([string]$Text)
 
@@ -791,6 +816,7 @@ function Send-QQQuestion {
     return
   }
 
+  try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [USER] " + $Text) -Encoding UTF8 } catch {}
   $questionId = [Guid]::NewGuid().ToString("n")
   $script:PendingQuestions[$questionId] = @{
     text = $Text
@@ -826,6 +852,7 @@ function Show-QQAnswer {
   Write-Host (" // " + $(if($questionId.Length -ge 8){$questionId.Substring(0,8)}else{$questionId})) -ForegroundColor Cyan
   Write-Host $answer -ForegroundColor White
   Write-Host ""
+  try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [ANSWER] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
 
   if ($questionId) {
     $script:PendingQuestions.Remove($questionId)
@@ -1093,7 +1120,7 @@ function Invoke-AllowlistedTask {
 $completed = Get-Completed
 
 try {
-  Show-QuillgeistSplash -Status "CONNECTING"
+  if ($env:QQ_HEADLESS -ne "1") { Show-QuillgeistSplash -Status "CONNECTING" }
 } catch {
   Write-Log ("Splash error: " + $_.Exception.Message) "ERROR"
 }
@@ -1153,6 +1180,10 @@ try {
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
+        }
+
+        foreach ($uiLine in @(Read-QQUiInput)) {
+          Invoke-QQLocalCommand ([string]$uiLine)
         }
 
         if (((Get-Date) - $script:LastQuestionPoll).TotalSeconds -ge 5) {
