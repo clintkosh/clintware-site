@@ -47,7 +47,8 @@ $specs = @(
   @{ Remote = "assets/clintware-terminal-logo.b64"; Local = "clintware-terminal-logo.b64"; Kind = "text"; Required = "iVBOR" },
   @{ Remote = "tools/terminal_repair.py"; Local = "terminal_repair.py"; Kind = "python"; Required = "Clintware Glass" },
   @{ Remote = "tools/browser_agent.py"; Local = "browser_agent.py"; Kind = "python"; Required = "local browser operator" },
-  @{ Remote = "tasks/start-qq-window.ps1"; Local = "start-qq-window.ps1"; Kind = "powershell"; Required = "QQWindowNative" },
+  @{ Remote = "tasks/start-qq-window.ps1"; Local = "start-qq-window.ps1"; Kind = "powershell"; Required = "MutexName" },
+  @{ Remote = "tasks/dedupe-qq-windows.ps1"; Local = "dedupe-qq-windows.ps1"; Kind = "powershell"; Required = "DEDUPE_QQ" },
   @{ Remote = "tasks/ensure-powershell.ps1"; Local = "ensure-powershell.ps1"; Kind = "powershell"; Required = "PWSH_READY" },
   @{ Remote = "tasks/repair-local-service.ps1"; Local = "repair-local-service.ps1"; Kind = "powershell"; Required = "Repair-ServiceRegistration" },
   @{ Remote = "tasks/ensure-browser-runtime.ps1"; Local = "ensure-browser-runtime.ps1"; Kind = "powershell"; Required = "Playwright" },
@@ -73,6 +74,16 @@ foreach ($spec in $specs) {
   }
   Move-Item $temp $target -Force
   Write-RepairLog ("AUTO_REPAIR // refreshed " + $spec.Local)
+}
+
+try {
+  $dedupePath = Join-Path $HomeDir "dedupe-qq-windows.ps1"
+  if (Test-Path $dedupePath) {
+    & $dedupePath -HomeDir $HomeDir
+    Write-RepairLog "AUTO_REPAIR // duplicate qq windows reconciled"
+  }
+} catch {
+  Write-RepairLog ("AUTO_REPAIR WARN // qq dedupe failed: " + $_.Exception.Message)
 }
 
 $pwsh = Resolve-Pwsh
