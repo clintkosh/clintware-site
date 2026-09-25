@@ -594,6 +594,7 @@ export class SchedulerState extends DurableObject {
         attempts: 0,
         failureEvents: 0,
         reconnectRequired: false,
+        alertSent: false,
         nextRetryMs: null,
       },
     });
@@ -614,6 +615,7 @@ export class SchedulerState extends DurableObject {
       code: cleanText(input.code || "calendar_error", 120),
       httpStatus: Number(input.httpStatus || 0),
       reconnectRequired: Boolean((open && current.reconnectRequired) || input.reconnectRequired),
+      alertSent: Boolean(open && current.alertSent),
       attempts,
       failureEvents: open ? Number(current.failureEvents || 0) + 1 : 1,
       openedAt: open ? Number(current.openedAt || now) : now,
@@ -622,6 +624,35 @@ export class SchedulerState extends DurableObject {
       nextRetryMs,
     };
     await this.ctx.storage.put(CALENDAR_INCIDENT_KEY, incident);
+
+    if (incident.reconnectRequired && !incident.alertSent) {
+      try {
+        await mail(this.env, {
+          to: [CONFIG.hostEmail],
+          reply_to: CONFIG.hostEmail,
+          subject: "ClintCal needs Google Calendar authorization",
+          text: [
+            "ClintCal detected that its delegated Google Calendar authorization is missing or no longer valid.",
+            "",
+            "Reconnect securely:",
+            "https://auth.clintware.com/delegated/google/start",
+            "",
+            "The event-driven repair listener will verify Calendar automatically after authorization and clear the incident when healthy.",
+          ].join("\n"),
+          html: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#080a0e;color:#f4f7fb"><div style="max-width:620px;margin:32px auto;padding:28px;background:#10151b;border:1px solid #28323d;border-radius:16px"><h1 style="font-size:24px">ClintCal needs Google Calendar authorization</h1><p style="color:#c2cbd7;line-height:1.55">The scheduler detected that its delegated Google Calendar authorization is missing or no longer valid.</p><p><a href="https://auth.clintware.com/delegated/google/start" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#68e4f6;color:#071115;font-weight:700;text-decoration:none">Reconnect Google Calendar</a></p><p style="color:#8290a1;font-size:13px;line-height:1.55">After authorization, the event-driven repair listener will verify Calendar automatically and clear the incident.</p></div></body></html>`,
+          category: "scheduler_calendar_reconnect",
+          idempotency_key: `calendar-reconnect-${incident.openedAt}`,
+        });
+        incident.alertSent = true;
+        await this.ctx.storage.put(CALENDAR_INCIDENT_KEY, incident);
+      } catch (alertError) {
+        console.error(JSON.stringify({
+          event: "google_calendar_reconnect_alert_failed",
+          message: String(alertError),
+        }));
+      }
+    }
+
     console.warn(JSON.stringify({
       event: "google_calendar_repair_queued",
       trigger: incident.trigger,
@@ -646,6 +677,7 @@ export class SchedulerState extends DurableObject {
       code: "",
       httpStatus: 0,
       reconnectRequired: false,
+      alertSent: false,
       attempts: Number(current.attempts || 0),
       failureEvents: Number(current.failureEvents || 0),
       openedAt: Number(current.openedAt || now),
