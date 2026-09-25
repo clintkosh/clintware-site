@@ -9,7 +9,7 @@ const DEFAULT_THRESHOLD_CHARS = 6_000;
 const DEFAULT_MAX_CHARS = 24_000;
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const ERROR_RE = /(error|exception|traceback|failed|failure|fatal|panic|denied|not found|syntax)/i;
-const MCP_ORIGINS = ["chatgpt.com", "chat.openai.com", "platform.openai.com", "quillgeist.clintware.com"];
+const MCP_ORIGINS = ["chatgpt.com", "chat.openai.com", "platform.openai.com"];
 
 const json = (value, status = 200, extra = {}) => new Response(JSON.stringify(value), {
   status,
