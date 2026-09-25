@@ -299,6 +299,7 @@ export class SchedulerState extends DurableObject {
     if (request.method === "POST" && url.pathname === "/reschedule") return this.reschedule(await request.json());
     if (request.method === "POST" && url.pathname === "/cancel") return this.cancel(await request.json());
     if (request.method === "POST" && url.pathname === "/self-test") return this.selfTest();
+    if (request.method === "POST" && url.pathname === "/cleanup-deployment-tests") return this.cleanupDeploymentTests();
     return json({ error: "not_found" }, 404);
   }
 
@@ -487,6 +488,26 @@ export class SchedulerState extends DurableObject {
     );
     await this.scheduleNextAlarm();
     return this.lookup(input.manageHash);
+  }
+
+  async cleanupDeploymentTests() {
+    const rows = this.sql.exec(
+      "SELECT id FROM bookings WHERE name=? AND email=? AND topic=? AND status='confirmed'",
+      "ClintCal Deployment Test",
+      CONFIG.hostEmail,
+      "Automated production booking verification",
+    ).toArray();
+    const now = Date.now();
+    for (const row of rows) {
+      this.sql.exec(
+        "UPDATE bookings SET status='canceled',sequence=sequence+1,updated_at=?,canceled_at=? WHERE id=?",
+        now,
+        now,
+        row.id,
+      );
+    }
+    await this.scheduleNextAlarm();
+    return json({ ok: true, canceled: rows.length });
   }
 
   async selfTest() {
@@ -940,6 +961,18 @@ async function health(env) {
   }, ok ? 200 : 503, { "Cache-Control": "no-store" });
 }
 
+async function adminCleanupDeploymentTests(request, env) {
+  const supplied = request.headers.get("x-clintware-admin-secret") || "";
+  if (!env.SCHEDULER_ADMIN_SECRET || supplied !== env.SCHEDULER_ADMIN_SECRET) {
+    return json({ error: "unauthorized" }, 401);
+  }
+  const response = await store(env).fetch("https://scheduler/cleanup-deployment-tests", { method: "POST" });
+  return new Response(response.body, {
+    status: response.status,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
 async function adminSelfTest(request, env) {
   const supplied = request.headers.get("x-clintware-admin-secret") || "";
   if (!env.SCHEDULER_ADMIN_SECRET || supplied !== env.SCHEDULER_ADMIN_SECRET) {
@@ -980,6 +1013,9 @@ export default {
       if (request.method === "GET" && url.pathname === "/health") return health(env);
       if (request.method === "POST" && url.pathname === "/api/admin/self-test") {
         return adminSelfTest(request, env);
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/cleanup-deployment-tests") {
+        return adminCleanupDeploymentTests(request, env);
       }
       if (request.method === "GET" && url.pathname === "/api/availability") {
         return apiAvailability(env);
