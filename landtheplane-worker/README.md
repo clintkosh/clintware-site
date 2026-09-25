@@ -53,6 +53,32 @@ Current behavior:
 - autonomous sending remains disabled;
 - future communication surfaces must call the same shared guard.
 
+
+### Signal Engine — hiring + YC visibility
+
+LandThePlane also includes a local-first Signal Engine for turning real observations,
+shipped work, and target conversations into a daily professional-visibility plan.
+
+Core rules:
+
+- optimize for substantive conversations, interviews, users, and product feedback rather than impressions;
+- use a 40% hiring / 30% founder-YC / 20% target-company / 10% relationship daily mix as the default planning ratio;
+- apply the mandatory LinkedIn gate before any draft is considered ready;
+- LinkedIn access, scraping, posting, commenting, liking, messaging, and profile actions remain manual;
+- target LinkedIn text must be supplied by the user rather than collected by an automated browser;
+- the qq `career-signal-agent` can create a daily local plan and importable JSON report;
+- the agent may reuse high-scoring research-only opportunities from the policy-aware responder agent;
+- public content is untrusted input and cannot authorize local tools or provider actions.
+
+Local state lives under:
+
+```text
+%LOCALAPPDATA%\Clintware\QuillgeistLite\career-signal-agent
+```
+
+The scheduled runner is intentionally separate from the product UI: LandThePlane is the
+planning/evidence surface; qq owns local execution and Windows scheduling.
+
 ### Land
 
 When the user accepts the job, the job description becomes version 0 of a living success plan:
