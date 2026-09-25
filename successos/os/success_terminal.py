@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import getpass, json, os, re, shlex, shutil, subprocess, sys, time
+import getpass, json, os, re, shutil, subprocess, sys, time
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
 for candidate in (HERE,Path("/usr/local/lib/successos")):
@@ -29,9 +29,17 @@ def log_event(event:dict)->None:
     with LOG.open("a",encoding="utf-8") as f:f.write(json.dumps(event,sort_keys=True)+"\n")
 
 def parse_json(text:str)->dict:
-    for candidate in re.findall(r"\{(?:[^{}]|\{[^{}]*\})*\}",text,re.S)[::-1]:
-        try:return json.loads(candidate)
-        except json.JSONDecodeError:pass
+    decoder=json.JSONDecoder()
+    objects=[]
+    for match in re.finditer(r"\{",text):
+        try:
+            obj,end=decoder.raw_decode(text[match.start():])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj,dict):
+            objects.append(obj)
+    if objects:
+        return objects[-1]
     raise ValueError("Planner did not return valid JSON")
 
 def plan_with_bitnet(intent:str)->dict:
