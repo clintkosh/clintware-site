@@ -106,6 +106,7 @@ jobs:
           exit 1
 
       - name: Install and enable qq responder agent
+        if: github.event_name == 'workflow_dispatch'
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
@@ -141,6 +142,7 @@ jobs:
           echo "qq responder scheduled task installed and enabled."
 
       - name: Install and enable LandThePlane career signal agent
+        if: github.event_name == 'workflow_dispatch'
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
@@ -183,6 +185,7 @@ jobs:
           echo "LandThePlane career signal agent installed, enabled, and scheduled for 08:00 local time."
 
       - name: Ensure qq local browser runtime
+        if: github.event_name == 'workflow_dispatch'
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
@@ -213,6 +216,7 @@ jobs:
           done
 
       - name: Verify qq local browser operator
+        if: github.event_name == 'workflow_dispatch'
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
