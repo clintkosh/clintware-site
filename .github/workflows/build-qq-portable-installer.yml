@@ -31,14 +31,14 @@ jobs:
           $ErrorActionPreference = "Stop"
           dotnet publish quillgeist-lite/bootstrapper/Clintware.QQ.PortableInstaller.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP\qq-portable"
 
-          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\Clintware-QQ-Portable-Installer.exe"
+          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\QQ.exe"
           if (-not (Test-Path $exe)) { throw "Portable installer executable was not produced." }
 
           $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $size = (Get-Item $exe).Length
 
           @(
-            "file=Clintware-QQ-Portable-Installer.exe"
+            "file=QQ.exe"
             "sha256=$hash"
             "bytes=$size"
             "commit=${{ github.sha }}"
@@ -52,7 +52,7 @@ jobs:
       - name: Verify PE header
         shell: pwsh
         run: |
-          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\Clintware-QQ-Portable-Installer.exe"
+          $exe = Join-Path $env:RUNNER_TEMP "qq-portable\QQ.exe"
           $bytes = [IO.File]::ReadAllBytes($exe)
           if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
             throw "Output is not a valid Windows PE executable."
@@ -63,7 +63,7 @@ jobs:
         with:
           name: qq-portable-installer-win-x64
           path: |
-            ${{ runner.temp }}\qq-portable\Clintware-QQ-Portable-Installer.exe
+            ${{ runner.temp }}\qq-portable\QQ.exe
             ${{ runner.temp }}\qq-portable\BUILDINFO.txt
           if-no-files-found: error
           retention-days: 30
