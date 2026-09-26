@@ -1,10 +1,147 @@
 {
-  "request_id": "chatgpt-memoria-self-update-20260926-0201",
-  "job_id": "18d6f7b8-06c0-4eab-ade3-8ef0395f41b4",
-  "task_id": "self-update",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 6387,
-  "recorded_at": 1790405982,
-  "output_tail": "[run] SYNC // reconciling QQ from the packaged runtime\r\n[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed clintware-terminal-logo.b64\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 33236\r\n[run] DEDUPE_QQ // closed duplicate PID 22612\r\n[run] DEDUPE_QQ_READY // kept=33236 closed=1\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.24.10\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // deterministic 70s/DOS boot image generated\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // boot image: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\clintware-boot-70s-dos.png\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n[run] SYNC // refreshing reviewed QQ runner from Clintware\r\n[run] RUNTIME // reviewed Miniconda-first Python resolver installed\r\n[run] SYNC // refreshing reviewed QQ task registry\r\n[run] REGISTRY // reviewed task registry v13 installed\r\n[run] SERVICE // aligning QQ health service with reviewed Clintware source\r\n[run] REPAIR // Quillgeist Lite self-heal 2026.09.25.12\r\n[run] SERVICE // refreshing stale-task recovery watchdog\r\n[run] CONFIG // health-service configuration validated\r\n[run] SERVICE // replacing watchdog binary\r\n[run] SERVICE // arming restart dead-man\r\n[run] TASK // runner task enabled\r\n[run] TASK // automatic runner recovery is configured\r\n[run] SERVICE // validating Windows service registration\r\n[run] SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\"\r\n[run] SERVICE // account LocalSystem / start Auto\r\n[run] SERVICE // native health watchdog running\r\n[run] FALLBACK // installing scheduled qq recovery watchdog\r\n[run] RECOVERY // fallback repair paths persisted\r\n[run] FALLBACK // recovery watchdog active every minute\r\n[run] FALLBACK // independent recovery layer ensured\r\n[run] TASK // runner restart deferred because an active qq job is using this session\r\n[run] SELF-HEAL // canonical repair logic cached locally\r\n[run] READY // qq recovery repaired; native service or scheduled fallback is supervising the runner.\r\n[run] READY // QQ runtime and Python resolver reconciled.\r\n[run] RESTART // canonical QQ runner restart queued after result delivery"
+  "request_id": "chatgpt-memoria-inspect-bitnet-20260926-0205",
+  "mode": "inspect",
+  "recorded_at": 1790406153,
+  "inspection": {
+    "online": 1,
+    "wake_online": 2,
+    "runner_version": "1.8.0",
+    "runner_last_seen": "2026-09-26T07:00:13.807Z",
+    "jobs": [
+      {
+        "job_id": "a4ea2049-b77e-47ba-bd30-143a269e86c3",
+        "task_id": "bitnet-setup",
+        "status": "running"
+      },
+      {
+        "job_id": "18d6f7b8-06c0-4eab-ade3-8ef0395f41b4",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "436de0d6-5ad1-4edf-99e1-65c7cbc7ec8a",
+        "task_id": "self-update",
+        "status": "failed"
+      },
+      {
+        "job_id": "696b94ed-d6b1-478f-8ecf-02b692a5577a",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "44d27d9e-f4c7-46a8-be0f-6f6ffe62a43f",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "1b266406-2742-4e5c-b8e5-44e19be85729",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "fee17f13-dc81-48f2-b579-f0f48d4e7197",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "b704195d-b81f-4bdd-8537-975fcb389d6d",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "e4377ea1-370c-4366-955a-f0a08b423efa",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "1dace6a2-f8de-40ad-bcb7-e11c90397858",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "bc03fe94-c40f-4962-94c2-0e5b117f8be0",
+        "task_id": "local-ai",
+        "status": "failed"
+      },
+      {
+        "job_id": "e1a1bcdd-ce07-40c2-be42-9932ce007d80",
+        "task_id": "self-update",
+        "status": "passed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:31.5552041Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:26.5428356Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:16.5248662Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:11.5154934Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:06.5046689Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:02:01.4891661Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:56.4745778Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:51.4731236Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:41.4541499Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:36.4543117Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:31.4455588Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:01:26.4403052Z"
+      }
+    ]
+  }
 }
