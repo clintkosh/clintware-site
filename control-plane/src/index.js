@@ -3121,7 +3121,11 @@ export default {
       if(request.method==="GET"&&url.pathname.startsWith("/api/v1/quillgeist-lite/runtime/")){
         const relative=decodeURIComponent(url.pathname.slice("/api/v1/quillgeist-lite/runtime/".length)).replace(/^\/+|\\/g,"");
         const repoPath="quillgeist-lite/"+relative;
-        if(!QUILLGEIST_RUNTIME_ASSETS.has(repoPath))return json({error:"runtime_asset_not_allowed"},404);
+        const reviewedRuntimePath =
+          QUILLGEIST_RUNTIME_ASSETS.has(repoPath) ||
+          /^quillgeist-lite\/tasks\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath) ||
+          /^quillgeist-lite\/tools\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath);
+        if(!reviewedRuntimePath)return json({error:"runtime_asset_not_allowed"},404);
         const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,"main");
         if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
         const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
