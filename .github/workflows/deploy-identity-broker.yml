@@ -30,6 +30,24 @@ jobs:
       - name: Install identity broker dependencies
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
 
+      - name: Verify delegated Google OAuth client pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl -sS -X POST https://oauth2.googleapis.com/token \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode "code=clintware-ci-intentionally-invalid-code" \
+            --data-urlencode "client_id=${GOOGLE_OAUTH_CLIENT_ID}" \
+            --data-urlencode "client_secret=${GOOGLE_OAUTH_CLIENT_SECRET}" \
+            --data-urlencode "redirect_uri=https://auth.clintware.com/callback" \
+            --data-urlencode "grant_type=authorization_code")
+          error=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",""))' <<< "$response")
+          if [ "$error" = "invalid_client" ]; then
+            echo "Google rejected GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET as a pair." >&2
+            exit 1
+          fi
+          echo "Google delegated OAuth credential pair passed client authentication preflight (token endpoint returned: ${error:-non-client-error})."
+
       - name: Syntax check
         run: npm run check --prefix identity-broker
 
@@ -66,6 +84,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
       MICROSOFT_ENTRA_CLIENT_ID: ${{ secrets.MICROSOFT_ENTRA_CLIENT_ID }}
       MICROSOFT_ENTRA_CLIENT_SECRET: ${{ secrets.MICROSOFT_ENTRA_CLIENT_SECRET }}
@@ -93,8 +112,9 @@ jobs:
           set -euo pipefail
           test -n "${CLOUDFLARE_API_TOKEN:-}"
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -n "${GOOGLE_OAUTH_CLIENT_ID:-}"
           test -n "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
-          echo "Google sign-in uses the canonical public Web client ID and signed OIDC ID tokens."
+          echo "Delegated Google access uses one stored OAuth client ID + secret pair."
           echo "The client secret is retained only for the separate delegated Gmail/Calendar grant flow."
 
       - name: Install identity broker dependencies
@@ -170,6 +190,7 @@ jobs:
             fi
           }
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
+          put_secret GOOGLE_OAUTH_CLIENT_ID "$GOOGLE_OAUTH_CLIENT_ID"
           put_secret GOOGLE_OAUTH_CLIENT_SECRET "$GOOGLE_OAUTH_CLIENT_SECRET"
           google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           put_secret GOOGLE_DELEGATED_BRIDGE_SECRET "$google_bridge_secret"
@@ -195,14 +216,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          client_id='378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com'
+          client_id="${GOOGLE_OAUTH_CLIENT_ID}"
           probe_url="https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=https%3A%2F%2Fauth.clintware.com%2Fcallback&response_type=id_token&response_mode=form_post&scope=openid%20email%20profile&state=clintware-ci-preflight&nonce=clintware-ci-preflight"
           curl -LsS --connect-timeout 8 --max-time 30 "$probe_url" -o /tmp/google-oauth-preflight.html
           if grep -Eqi 'OAuth client was not found|invalid_client|deleted_client|disabled_client' /tmp/google-oauth-preflight.html; then
             echo "Google rejected the canonical Clintware Web client ID." >&2
             exit 1
           fi
-          echo "Google recognizes the canonical Clintware Web client ID."
+          echo "Google recognizes the configured delegated OAuth client ID."
 
       - name: Verify identity broker
         shell: bash
