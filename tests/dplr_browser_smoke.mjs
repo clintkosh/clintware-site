@@ -34,6 +34,15 @@ try {
   assert(await page.locator(".top").count() === 0, "Legacy topbar is visible instead of DPLR shell");
   assert(await page.locator(".dplr-portfolio-grid").count() === 1, "N7-style portfolio grid did not render");
   assert(await page.locator("[data-customer-open]").count() === 10, "Expected curated ten-account dataset");
+  assert(await page.locator('[data-portfolio-layout="list"]').count() === 1, "Customer portfolio should default to list view");
+  assert(await page.locator('[data-portfolio-view="list"].active').count() === 1, "List toggle should be active by default");
+  await page.locator('[data-portfolio-view="tiles"]').click();
+  await page.waitForTimeout(120);
+  assert(await page.locator('[data-portfolio-layout="tiles"]').count() === 1, "Tiles view did not activate");
+  assert(await page.locator('[data-portfolio-view="tiles"].active').count() === 1, "Tiles toggle did not become active");
+  await page.locator('[data-portfolio-view="list"]').click();
+  await page.waitForTimeout(120);
+  assert(await page.locator('[data-portfolio-layout="list"]').count() === 1, "List view did not restore");
   const firstText = await page.locator("main").innerText();
   assert(firstText.includes("Browser-persistent"), "No-login browser persistence state is not visible");
   assert(await page.locator('a[href="/auth/login"]').count() === 0, "SSO sign-in remains visible");
