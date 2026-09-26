@@ -821,6 +821,7 @@ export class RegistryHub extends DurableObject {
     const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
     return {
       online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
+      recovery_online:this.ctx.getWebSockets("quillgeist-lite-recovery").filter(ws=>ws.readyState===1).length,
       wake_online:this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1).length,
       runner,
       jobs:index.slice(0,50),
@@ -928,6 +929,78 @@ export class RegistryHub extends DurableObject {
     try{
       const data=JSON.parse(typeof message==="string"?message:new TextDecoder().decode(message));
       const attachment=ws.deserializeAttachment()||{};
+      if(attachment.receiver==="quillgeist-lite-recovery"){
+        const recoveryJobId=clip(attachment.job_id||"",120);
+        if(data?.type==="hello"){
+          ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite-recovery/v1",recovery:true,time:nowIso()}));
+          return;
+        }
+
+        if(data?.job_id&&clip(data.job_id,120)!==recoveryJobId){
+          try{ws.close(1008,"recovery_job_mismatch");}catch{}
+          return;
+        }
+
+        if(data?.type==="ack"&&data.job_id){
+          const job=await this.ctx.storage.get(`quillgeist_lite_job:${recoveryJobId}`);
+          if(!job||String(job.task_id||"")!=="self-update"){
+            try{ws.close(1008,"recovery_task_not_allowed");}catch{}
+            return;
+          }
+          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
+          return;
+        }
+
+        if(data?.type==="log"&&data.job_id){
+          const job=await this.ctx.storage.get(`quillgeist_lite_job:${recoveryJobId}`);
+          if(!job||String(job.task_id||"")!=="self-update"){
+            try{ws.close(1008,"recovery_task_not_allowed");}catch{}
+            return;
+          }
+          const logs=Array.isArray(job.logs)?job.logs:[];
+          logs.push({seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)});
+          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",logs});
+          return;
+        }
+
+        if(data?.type==="result"&&data.job_id){
+          const job=await this.ctx.storage.get(`quillgeist_lite_job:${recoveryJobId}`);
+          if(!job||String(job.task_id||"")!=="self-update"){
+            try{ws.close(1008,"recovery_task_not_allowed");}catch{}
+            return;
+          }
+          const status=["passed","failed"].includes(String(data.status))?String(data.status):"failed";
+          await this.updateQuillgeistLiteJob(recoveryJobId,{
+            status,
+            completed_at:clip(data.completed_at||nowIso(),80),
+            result:{
+              task_id:"self-update",
+              runtime:clip(data.runtime||"",40),
+              status,
+              exit_code:Number(data.exit_code||0),
+              duration_ms:Number(data.duration_ms||0),
+              output:clip(data.output||"",40000),
+              log_lines:Number(data.log_lines||0),
+              recovery:true
+            }
+          });
+          await this.appendQuillgeistLiteDiagnostic({
+            device_id:clip(attachment.device_id||"unknown",120),
+            level:status==="passed"?"INFO":"ERROR",
+            phase:"runner-recovery",
+            message:"scoped_self_update_"+status,
+            runner_alive:true,
+            service_version:clip(data.service_version||"",80),
+            timestamp:nowIso()
+          });
+          try{ws.close(1000,"recovery_complete");}catch{}
+          return;
+        }
+
+        // Recovery sockets are intentionally one-purpose. Ignore normal
+        // interactive traffic and any unrelated saved result replay.
+        return;
+      }
       if(attachment.receiver==="quillgeist-lite"){
         if(data?.type==="hello"){
           const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),capabilities:clipList(data.capabilities,20,120),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
@@ -1126,8 +1199,9 @@ export class RegistryHub extends DurableObject {
       const pair=new WebSocketPair();
       const [client,server]=Object.values(pair);
       const deviceId=clip(request.headers.get("x-quillgeist-device")||"unknown",120);
+      const recoveryProof=clip(request.headers.get("x-quillgeist-recovery-proof")||"",128);
       this.ctx.acceptWebSocket(server,["quillgeist-lite-wake"]);
-      server.serializeAttachment({receiver:"quillgeist-lite-wake",device_id:deviceId,connected_at:nowIso()});
+      server.serializeAttachment({receiver:"quillgeist-lite-wake",device_id:deviceId,recovery_proof:recoveryProof,connected_at:nowIso()});
 
       const replayWake=async()=>{
         try{
@@ -1140,6 +1214,65 @@ export class RegistryHub extends DurableObject {
         }
       };
       try{this.ctx.waitUntil(replayWake());}catch{replayWake().catch(()=>{});}
+      return new Response(null,{status:101,webSocket:client});
+    }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-recovery-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
+      const deviceId=clip(request.headers.get("x-quillgeist-device")||"",120);
+      const recoveryProof=clip(request.headers.get("x-quillgeist-recovery-proof")||"",128);
+      if(!deviceId||!recoveryProof)return json({error:"qq_recovery_proof_missing"},401);
+
+      let wakeMatched=false;
+      for(const wake of this.ctx.getWebSockets("quillgeist-lite-wake")){
+        if(wake.readyState!==1)continue;
+        try{
+          const a=wake.deserializeAttachment()||{};
+          if(a.device_id===deviceId&&a.recovery_proof===recoveryProof){
+            wakeMatched=true;
+            break;
+          }
+        }catch{}
+      }
+      if(!wakeMatched)return json({error:"qq_recovery_wake_not_present"},401);
+
+      const diagnostics=await this.ctx.storage.get("quillgeist_lite_diagnostics")||[];
+      const cutoff=Date.now()-30_000;
+      const freshFailure=[...diagnostics].reverse().find(row=>
+        row&&row.device_id===deviceId&&
+        Date.parse(row.received_at||row.timestamp||"")>=cutoff&&
+        String(row.level||"").toUpperCase()==="ERROR"&&
+        /(?:401|unauthorized|connection[_ ]?error|websocket)/i.test(String(row.message||""))
+      );
+      if(!freshFailure)return json({error:"qq_recovery_failure_not_fresh"},409);
+
+      const pending=await this.pendingQuillgeistLiteJobs(20);
+      const job=pending.find(row=>String(row.task_id||"")==="self-update");
+      if(!job)return json({error:"qq_recovery_update_not_queued"},409);
+
+      const pair=new WebSocketPair();
+      const [client,server]=Object.values(pair);
+      this.ctx.acceptWebSocket(server,["quillgeist-lite-recovery"]);
+      server.serializeAttachment({
+        receiver:"quillgeist-lite-recovery",
+        device_id:deviceId,
+        job_id:job.job_id,
+        connected_at:nowIso()
+      });
+
+      const replayRecovery=async()=>{
+        try{
+          if(server.readyState===1){
+            server.send(JSON.stringify({
+              type:"job",
+              protocol:"clintware-quillgeist-lite-recovery/v1",
+              recovery:true,
+              job
+            }));
+          }
+        }catch(e){
+          console.error(JSON.stringify({event:"quillgeist_recovery_replay_error",message:String(e?.message||e)}));
+        }
+      };
+      try{this.ctx.waitUntil(replayRecovery());}catch{replayRecovery().catch(()=>{});}
       return new Response(null,{status:101,webSocket:client});
     }
     if(request.method==="POST"&&url.pathname==="/quillgeist-lite-device"){
@@ -3143,7 +3276,25 @@ export default {
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/stream"){
         if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
         const device=await verifyQuillgeistDeviceRequest(request,env);
-        if(!device.ok)return json({error:"unauthorized_device",reason:device.reason},401);
+        if(!device.ok){
+          const deviceId=clip(request.headers.get("x-quillgeist-device")||url.searchParams.get("device_id")||"",120);
+          const clientIp=clip(request.headers.get("cf-connecting-ip")||"",128);
+          if(device.reason!=="unauthorized_device"||!deviceId||!clientIp){
+            return json({error:"unauthorized_device",reason:device.reason},401);
+          }
+
+          // Bootstrap-only recovery: the durable relay independently requires
+          // a live, normally authenticated wake socket from this device, from
+          // the same Cloudflare-observed address, plus a fresh runner auth
+          // failure. The restricted socket can receive only one queued
+          // reviewed self-update job and cannot process interactive traffic.
+          const recoveryProof=await sha256("qq-recovery-v1|"+deviceId+"|"+clientIp);
+          const headers=new Headers();
+          headers.set("upgrade","websocket");
+          headers.set("x-quillgeist-device",deviceId);
+          headers.set("x-quillgeist-recovery-proof",recoveryProof);
+          return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-recovery-stream",{method:"GET",headers}));
+        }
         const headers=new Headers();
         headers.set("upgrade","websocket");
         headers.set("x-quillgeist-device",device.device_id);
@@ -3156,6 +3307,10 @@ export default {
         const headers=new Headers();
         headers.set("upgrade","websocket");
         headers.set("x-quillgeist-device",device.device_id);
+        const clientIp=clip(request.headers.get("cf-connecting-ip")||"",128);
+        if(clientIp){
+          headers.set("x-quillgeist-recovery-proof",await sha256("qq-recovery-v1|"+device.device_id+"|"+clientIp));
+        }
         return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-wake-stream",{method:"GET",headers}));
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/responder-report"){
