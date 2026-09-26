@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-bridge-check-20260926-0036",
+  "request_id": "chatgpt-qq-registry-restored-20260926-0059",
   "task_id": "clintware-doctor",
   "args": {},
-  "objective": "Verify the existing ChatGPT GitHub Actions to Clintware Control Plane to MEMORIA qq dispatch path and report local runtime/registry state. Read-only diagnostics only."
+  "objective": "Verify MEMORIA's restored qq task bundle and report local runtime, hardware, disk, and prerequisites for the full local AI server build. Read-only."
 }
