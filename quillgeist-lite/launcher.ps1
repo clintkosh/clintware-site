@@ -49,7 +49,7 @@ function Set-ClintwareBaseTheme {
   try {
     $Host.UI.RawUI.BackgroundColor = "Black"
     $Host.UI.RawUI.ForegroundColor = "White"
-    $Host.UI.RawUI.WindowTitle = "Clintware Quillgeist Lite"
+    $Host.UI.RawUI.WindowTitle = "Clintware™ QQ // LOCAL RESPONDER"
   } catch {}
 
   try { Clear-Host } catch {}
@@ -89,8 +89,8 @@ function Sync-LatestQQFunctionality {
     @{ Url = $SelfUpdateUrl; Path = (Join-Path $taskRoot "self-update.ps1"); Kind = "powershell"; Required = "RESTART // canonical QQ runner restart queued after result delivery" },
     @{ Url = $RestartWindowUrl; Path = (Join-Path $taskRoot "restart-window.ps1"); Kind = "powershell"; Required = "qq window restart queued" },
     @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" },
-    @{ Url = $StartWindowUrl; Path = (Join-Path $HomeDir "start-qq-window.ps1"); Kind = "powershell"; Required = "split-pane" },
-    @{ Url = $McpConsoleUrl; Path = (Join-Path $HomeDir "mcp-console.ps1"); Kind = "powershell"; Required = "LIVE ADMIN CONSOLE" },
+    @{ Url = $StartWindowUrl; Path = (Join-Path $HomeDir "start-qq-window.ps1"); Kind = "powershell"; Required = "Ensure-ClintwareTerminalFragment" },
+    @{ Url = $McpConsoleUrl; Path = (Join-Path $HomeDir "mcp-console.ps1"); Kind = "powershell"; Required = "Get-ClintwareLineColor" },
     @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "supplied Clintware eclipse image" },
     @{ Url = $LogoUrl; Path = (Join-Path $HomeDir "clintware-terminal-logo.b64"); Kind = "text"; Required = "iVBOR" }
   )

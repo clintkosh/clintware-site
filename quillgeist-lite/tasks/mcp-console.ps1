@@ -85,6 +85,17 @@ function Read-McpInput {
   return [pscustomobject]@{Ready=$false;Line=$null}
 }
 
+function Get-ClintwareLineColor([string]$Line){
+  $text=([string]$Line).ToUpperInvariant()
+  if($text -match '\[(THREAT|CRITICAL|FATAL|ERROR)\]' -or $text -match 'THREAT|FATAL'){return [ConsoleColor]::Red}
+  if($text -match '\[SECURITY\]' -or $text -match 'SECURITY'){return [ConsoleColor]::Magenta}
+  if($text -match '\[(WARN|WARNING)\]' -or $text -match 'DEGRADED|OFFLINE|WAITING'){return [ConsoleColor]::Yellow}
+  if($text -match '\[(OK|SUCCESS)\]' -or $text -match 'HEALTHY|CONNECTED|ACTIVE'){return [ConsoleColor]::Green}
+  if($text -match '\[(INFO|NOTICE)\]'){return [ConsoleColor]::Cyan}
+  if($text -match '\[(TRACE|DEBUG)\]'){return [ConsoleColor]::DarkGray}
+  return [ConsoleColor]::Gray
+}
+
 function Emit-NewLines([string]$Path,[ref]$Cursor,[string]$Label){
   if(-not(Test-Path $Path)){return}
   try{
@@ -93,7 +104,10 @@ function Emit-NewLines([string]$Path,[ref]$Cursor,[string]$Label){
     if($lines.Count -gt $Cursor.Value){
       for($i=$Cursor.Value;$i -lt $lines.Count;$i++){
         $line=[string]$lines[$i]
-        if($line){ Emit ("["+ $Label +"] "+$line) DarkGray }
+        if($line){
+          $lineColor=Get-ClintwareLineColor $line
+          Emit ("["+ $Label +"] "+$line) $lineColor
+        }
       }
       $Cursor.Value=$lines.Count
     }
@@ -138,11 +152,20 @@ function Invoke-AdminCommand([string]$Line){
 
 try{
   [Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
-  $Host.UI.RawUI.WindowTitle="Clintware MCP // ADMIN"
+  $Host.UI.RawUI.BackgroundColor="Black"
+  $Host.UI.RawUI.ForegroundColor="White"
+  $Host.UI.RawUI.WindowTitle="Clintware™ MCP // CONTROL PLANE"
 }catch{}
 try{Clear-Host}catch{}
-Write-Host "CLINTWARE MCP // LIVE ADMIN CONSOLE" -ForegroundColor White
-Write-Host "Health + qq/service activity stream. PowerShell commands execute locally in this pane." -ForegroundColor DarkGray
+Write-Host "CLINTWARE™ MCP" -ForegroundColor White -NoNewline
+Write-Host " // CONTROL PLANE" -ForegroundColor Cyan
+Write-Host "Live health + QQ/service activity. Local PowerShell executes in this pane." -ForegroundColor DarkGray
+Write-Host "LEVELS  " -ForegroundColor DarkGray -NoNewline
+Write-Host "OK" -ForegroundColor Green -NoNewline
+Write-Host "  INFO" -ForegroundColor Cyan -NoNewline
+Write-Host "  WARN" -ForegroundColor Yellow -NoNewline
+Write-Host "  SECURITY" -ForegroundColor Magenta -NoNewline
+Write-Host "  ERROR/THREAT" -ForegroundColor Red
 Write-Host ""
 Show-McpPrompt
 

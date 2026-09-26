@@ -61,6 +61,94 @@ function Stop-StaleMcpMonitor {
   }
 }
 
+function Resolve-ClintwareMono {
+  $candidates=@("Cascadia Code","Cascadia Mono","Consolas")
+  try {
+    $fontKeys=@(
+      "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+      "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+    )
+    $available=@()
+    foreach($key in $fontKeys){
+      if(Test-Path $key){
+        $props=Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+        if($props){$available += @($props.PSObject.Properties.Name)}
+      }
+    }
+    foreach($candidate in $candidates){
+      if($available -match ("^"+[Regex]::Escape($candidate))){return $candidate}
+    }
+  } catch {}
+  return "Cascadia Code"
+}
+
+function Ensure-ClintwareTerminalFragment {
+  try {
+    $fragmentDir=Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Clintware"
+    New-Item -ItemType Directory -Force -Path $fragmentDir | Out-Null
+    $font=Resolve-ClintwareMono
+    $scheme=[ordered]@{
+      name="Clintware Dark"
+      background="#05070B"
+      foreground="#F4F7FB"
+      black="#05070B"
+      red="#FF5C70"
+      green="#6EE7A5"
+      yellow="#F2C94C"
+      blue="#4DA3FF"
+      purple="#B69CFF"
+      cyan="#57E6FF"
+      white="#F4F7FB"
+      brightBlack="#526171"
+      brightRed="#FF8291"
+      brightGreen="#92F4BD"
+      brightYellow="#FFE08A"
+      brightBlue="#7DBBFF"
+      brightPurple="#D0C2FF"
+      brightCyan="#8EF0FF"
+      brightWhite="#FFFFFF"
+      selectionBackground="#163345"
+      cursorColor="#57E6FF"
+    }
+    $common=[ordered]@{
+      colorScheme="Clintware Dark"
+      font=[ordered]@{face=$font;size=10.5;weight="medium"}
+      background="#05070B"
+      foreground="#F4F7FB"
+      cursorColor="#57E6FF"
+      selectionBackground="#163345"
+      opacity=96
+      useAcrylic=$true
+      padding="10, 8, 10, 8"
+      suppressApplicationTitle=$true
+    }
+    $mcp=[ordered]@{
+      guid="{74B27442-1F1B-4A8F-9B25-2A3A0C6C4A01}"
+      name="Clintware MCP"
+      hidden=$false
+      tabColor="#17324A"
+    }
+    $qq=[ordered]@{
+      guid="{74B27442-1F1B-4A8F-9B25-2A3A0C6C4A02}"
+      name="Clintware QQ"
+      hidden=$false
+      tabColor="#0B3B42"
+    }
+    foreach($p in @($mcp,$qq)){
+      foreach($k in $common.Keys){$p[$k]=$common[$k]}
+    }
+    $fragment=[ordered]@{
+      profiles=@($mcp,$qq)
+      schemes=@($scheme)
+    }
+    $path=Join-Path $fragmentDir "clintware-terminal.json"
+    [IO.File]::WriteAllText($path,($fragment | ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($false)))
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 function Quote-Native([string]$Value) {
   if($null -eq $Value){return '""'}
   return '"' + ($Value -replace '"','\"') + '"'
@@ -94,6 +182,7 @@ try {
   }
   if(-not $exe -or -not(Test-Path $exe)){throw "No usable PowerShell executable was found."}
 
+  [void](Ensure-ClintwareTerminalFragment)
   $wt=Get-Command wt.exe -ErrorAction SilentlyContinue
   if($wt -and (Test-Path $McpConsolePath)){
     Stop-StaleMcpMonitor
@@ -105,13 +194,15 @@ try {
       '-w qq',
       '-F',
       'new-tab',
-      '--title ' + (Quote-Native 'Clintware MCP // ADMIN'),
+      '--profile ' + (Quote-Native 'Clintware MCP'),
+      '--title ' + (Quote-Native 'Clintware™ MCP // CONTROL PLANE'),
       '--',
       (Quote-Native $exe),
       '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File ' + (Quote-Native $McpConsolePath),
       ';',
       'split-pane -H --size 0.50',
-      '--title ' + (Quote-Native 'Quillgeist Lite'),
+      '--profile ' + (Quote-Native 'Clintware QQ'),
+      '--title ' + (Quote-Native 'Clintware™ QQ // LOCAL RESPONDER'),
       '--',
       (Quote-Native $exe),
       '-NoLogo -NoProfile -ExecutionPolicy Bypass -NoExit -File ' + (Quote-Native $LauncherPath) + ' -TerminalHost'

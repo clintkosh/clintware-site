@@ -74,8 +74,8 @@ Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -Fore
 
 Write-Host "SYNC // refreshing qq window, MCP monitor, splash, and logo assets" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "launcher.ps1" -Destination (Join-Path $HomeDir "launcher.ps1") -Required @("Sync-LatestQQFunctionality")
-Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Clintware MCP // ADMIN")
-Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("LIVE ADMIN CONSOLE","Show-McpPrompt")
+Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Ensure-ClintwareTerminalFragment","Clintware™ QQ // LOCAL RESPONDER")
+Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("Get-ClintwareLineColor","Clintware™ MCP // CONTROL PLANE","Show-McpPrompt")
 $pythonAssets = @(
   @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="supplied Clintware eclipse image" },
   @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="install_canonical_logo" }

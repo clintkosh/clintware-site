@@ -269,7 +269,7 @@ function Initialize-ClintwareTerminal {
     $raw.BackgroundColor = "Black"
     $raw.ForegroundColor = "White"
     $mode = if (Test-QQAdministrator) { "ADMIN" } else { "USER" }
-    $raw.WindowTitle = "Clintware Quillgeist Lite [$mode]"
+    $raw.WindowTitle = "Clintware™ QQ // LOCAL RESPONDER [$mode]"
 
     $targetWidth = [Math]::Min(118,[Math]::Max(92,$raw.MaxPhysicalWindowSize.Width))
     if ($raw.BufferSize.Width -lt $targetWidth) {
@@ -407,11 +407,19 @@ function Show-QuillgeistSplash {
 
   Write-Host ""
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
-  Write-ClintwareCentered "Go Furthest.™" Cyan
+  Write-ClintwareCentered "GO FURTHEST.™" Cyan
   Write-Host ""
 
   $statusLabel = ("STATUS  //  " + $Status.ToUpperInvariant())
-  $statusColor = if ($Status -match '(?i)active|ready|healthy|connected') { [ConsoleColor]::Cyan } else { [ConsoleColor]::DarkCyan }
+  $statusColor = if ($Status -match '(?i)active|ready|healthy|connected') {
+    [ConsoleColor]::Green
+  } elseif ($Status -match '(?i)degraded|error|failed|fatal|threat') {
+    [ConsoleColor]::Red
+  } elseif ($Status -match '(?i)warn|waiting|connecting|reconnect') {
+    [ConsoleColor]::Yellow
+  } else {
+    [ConsoleColor]::Cyan
+  }
   Write-ClintwareCentered $statusLabel $statusColor
   Write-ClintwareCentered "Local execution  •  Governed browser  •  Control Plane" DarkGray
   Write-Host ""
@@ -424,36 +432,35 @@ function Write-Log {
 
   Suspend-QQPrompt
   $stamp = (Get-Date).ToString("s")
-  $line = "{0} [{1}] {2}" -f $stamp,$Level,$Message
+  $severity = ([string]$Level).ToUpperInvariant()
+  if (-not $severity) { $severity = "INFO" }
+  $line = "{0} [{1}] {2}" -f $stamp,$severity,$Message
   Add-Content -Path $LogPath -Value $line
 
   $labelColor = "Cyan"
-  $messageColor = "Cyan"
-
-  switch ($Level.ToUpperInvariant()) {
-    "OK" {
-      $labelColor = "White"
-      $messageColor = "White"
-    }
-    "WARN" {
-      $labelColor = "DarkYellow"
-      $messageColor = "DarkYellow"
-    }
-    "ERROR" {
-      $labelColor = "Red"
-      $messageColor = "Red"
-    }
-    default {
-      $labelColor = "Cyan"
-      $messageColor = "Cyan"
-    }
+  $messageColor = "White"
+  switch ($severity) {
+    "TRACE"    { $labelColor = "DarkGray"; $messageColor = "DarkGray" }
+    "DEBUG"    { $labelColor = "DarkGray"; $messageColor = "Gray" }
+    "INFO"     { $labelColor = "Cyan";     $messageColor = "White" }
+    "NOTICE"   { $labelColor = "Blue";     $messageColor = "White" }
+    "OK"       { $labelColor = "Green";    $messageColor = "White" }
+    "SUCCESS"  { $labelColor = "Green";    $messageColor = "White" }
+    "WARN"     { $labelColor = "Yellow";   $messageColor = "Yellow" }
+    "WARNING"  { $labelColor = "Yellow";   $messageColor = "Yellow" }
+    "SECURITY" { $labelColor = "Magenta";  $messageColor = "White" }
+    "THREAT"   { $labelColor = "Red";      $messageColor = "Red" }
+    "ERROR"    { $labelColor = "Red";      $messageColor = "Red" }
+    "CRITICAL" { $labelColor = "Red";      $messageColor = "Red" }
+    "FATAL"    { $labelColor = "Red";      $messageColor = "Red" }
+    default    { $labelColor = "Cyan";      $messageColor = "White" }
   }
 
   Write-Host $stamp -ForegroundColor DarkGray -NoNewline
-  Write-Host (" [{0}] " -f $Level) -ForegroundColor $labelColor -NoNewline
+  Write-Host (" [{0}] " -f $severity) -ForegroundColor $labelColor -NoNewline
   Write-Host $Message -ForegroundColor $messageColor
 
-  try { Queue-RunnerDiagnostic $Level $Message "runner" } catch {}
+  try { Queue-RunnerDiagnostic $severity $Message "runner" } catch {}
   Show-QQPrompt
 }
 
