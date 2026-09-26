@@ -16,7 +16,11 @@ $AutoRepairUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks
 $RegistryUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json"
 $SelfUpdateUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/self-update.ps1"
 $RestartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/restart-window.ps1"
-$LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launcher.ps1"\n$StartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/start-qq-window.ps1"\n$McpConsoleUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/mcp-console.ps1"\n$BootSplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py"\n$LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64"
+$LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launcher.ps1"
+$StartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/start-qq-window.ps1"
+$McpConsoleUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/mcp-console.ps1"
+$BootSplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py"
+$LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
