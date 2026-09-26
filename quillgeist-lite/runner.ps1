@@ -574,15 +574,59 @@ function Test-QQCredentialConfig {
   return [bool]($Config -and $Config.DeviceId -and $Config.Token)
 }
 
-function Read-QQCredentialConfig {
+function Get-QQCredentialCandidates {
+  $rows = New-Object System.Collections.Generic.List[object]
+  $seen = @{}
   foreach ($path in @($DeviceConfigPath,$UserDeviceConfigPath)) {
     if (-not (Test-Path $path)) { continue }
     try {
       $config = Get-Content $path -Raw | ConvertFrom-Json
-      if (Test-QQCredentialConfig $config) {
-        return $config
-      }
+      if (-not (Test-QQCredentialConfig $config)) { continue }
+      $key = ([string]$config.DeviceId) + "|" + (Get-QQTokenHash ([string]$config.Token))
+      if ($seen.ContainsKey($key)) { continue }
+      $seen[$key] = $true
+      $rows.Add([pscustomobject]@{
+        DeviceId = [string]$config.DeviceId
+        Token = [string]$config.Token
+        Endpoint = $(if($config.Endpoint){[string]$config.Endpoint}else{"https://mcp.clintware.com"})
+        SourcePath = $path
+        HostMatch = ([string]$config.DeviceId -eq [string]$env:COMPUTERNAME)
+      })
     } catch {}
+  }
+  return @($rows | Sort-Object @{Expression="HostMatch";Descending=$true}, @{Expression={if($_.SourcePath -eq $DeviceConfigPath){0}else{1}}})
+}
+
+function Test-QQCredentialAgainstControlPlane {
+  param([Parameter(Mandatory=$true)][object]$Credential)
+
+  try {
+    $base = ([string]$Credential.Endpoint).TrimEnd("/")
+    if (-not $base -or $base -like "ws*") { $base = "https://mcp.clintware.com" }
+    $body = @{
+      device_id = [string]$Credential.DeviceId
+      level = "INFO"
+      phase = "runner-auth"
+      message = "credential_probe"
+      runner_alive = $true
+      service_version = "runner"
+      timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Compress
+    $response = Invoke-RestMethod -Method Post -Uri ($base + "/api/v1/quillgeist-lite/diagnostics") -Headers @{Authorization=("Bearer " + [string]$Credential.Token)} -ContentType "application/json" -Body $body -TimeoutSec 12 -ErrorAction Stop
+    return ($response.ok -eq $true)
+  } catch {
+    return $false
+  }
+}
+
+function Read-QQCredentialConfig {
+  foreach ($config in @(Get-QQCredentialCandidates)) {
+    if (Test-QQCredentialAgainstControlPlane $config) {
+      try {
+        Queue-RunnerDiagnostic "INFO" ("credential_selected device=" + [string]$config.DeviceId + " source=" + $(if($config.SourcePath -eq $DeviceConfigPath){"machine"}else{"user"})) "runner-auth"
+      } catch {}
+      return $config
+    }
   }
   return $null
 }
@@ -1775,7 +1819,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.3"
+        version = "1.9.4"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
