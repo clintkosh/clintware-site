@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -8,6 +9,7 @@ import urllib.request
 CONTROL_PLANE = os.environ.get("CONTROL_PLANE", "https://mcp.clintware.com").rstrip("/")
 TOKEN = os.environ.get("CONTROL_PLANE_MCP_TOKEN", "")
 REQUEST_FILE = os.environ.get("REQUEST_FILE", "quillgeist-lite/dispatch/request.json")
+RESULT_FILE = os.environ.get("RESULT_FILE", "quillgeist-lite/dispatch/result.json")
 
 ALLOWED = {
     "clintware-doctor": set(),
@@ -58,6 +60,31 @@ def request_json(method, path, body=None):
         except Exception:
             parsed = {"error": payload}
         return e.code, parsed
+
+def scrub(value):
+    text = str(value or "")
+    patterns = [
+        r"(?i)(client_secret|refresh_token|access_token|authorization|api[_-]?key|password)\s*[:=]\s*([^\s,;]+)",
+        r"gh[pousr]_[A-Za-z0-9_]{20,}",
+        r"github_pat_[A-Za-z0-9_]{20,}",
+        r"ya29\.[A-Za-z0-9._-]+",
+    ]
+    for pattern in patterns:
+        if pattern.startswith("(?i)"):
+            text = re.sub(pattern, r"\1=[REDACTED]", text)
+        else:
+            text = re.sub(pattern, "[REDACTED]", text)
+    return text[-30000:]
+
+
+def write_result(value):
+    os.makedirs(os.path.dirname(RESULT_FILE), exist_ok=True)
+    temp = RESULT_FILE + ".new"
+    with open(temp, "w", encoding="utf-8") as handle:
+        json.dump(value, handle, indent=2)
+        handle.write("\n")
+    os.replace(temp, RESULT_FILE)
+
 
 if not TOKEN:
     raise SystemExit("CONTROL_PLANE_MCP_TOKEN is missing")
@@ -119,6 +146,12 @@ if req.get("mode") == "inspect":
                 "duration_ms": result.get("duration_ms"), "exit_code": result.get("exit_code"),
                 "error_kind": error_kind(result.get("output")),
             }
+    write_result({
+        "request_id": req.get("request_id"),
+        "mode": "inspect",
+        "recorded_at": int(time.time()),
+        "inspection": public,
+    })
     print("INSPECT_OK " + json.dumps(public, indent=2), flush=True)
     sys.exit(0)
 
@@ -171,6 +204,16 @@ for _ in range(900):
         print(f"EXIT_CODE={result.get('exit_code')}", flush=True)
         print(f"DURATION_MS={result.get('duration_ms')}", flush=True)
         output = str(result.get("output") or "")
+        write_result({
+            "request_id": req.get("request_id"),
+            "job_id": job_id,
+            "task_id": task_id,
+            "status": state,
+            "exit_code": result.get("exit_code"),
+            "duration_ms": result.get("duration_ms"),
+            "recorded_at": int(time.time()),
+            "output_tail": scrub(output),
+        })
         if output:
             print("--- FINAL OUTPUT ---", flush=True)
             print(output[-20000:], flush=True)
