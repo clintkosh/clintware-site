@@ -217,6 +217,11 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
   "quillgeist-lite/tasks/repair-local-service.ps1",
   "quillgeist-lite/tasks/self-update.ps1",
+  "agentbridge-node/agentbridge_node/local_gateway.py",
+  "agentbridge-node/agentbridge_node/local_inference.py",
+  "agentbridge-node/agentbridge_node/__init__.py",
+  "quillgeist-lite/tasks/integrate-local-ai.ps1",
+  "quillgeist-lite/tasks.json",
   "quillgeist-lite/tasks/bitnet-setup.ps1",
   "quillgeist-lite/tools/local_ai.py",
   "quillgeist-lite/tools/boot_splash.py",
@@ -247,6 +252,7 @@ const QUILLGEIST_LITE_TASKS = {
   "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
   "responder-agent":{runtime:"powershell",parameters:["Action"]},
   "bitnet-setup":{runtime:"powershell",parameters:[]},
+  "local-ai-integrate":{runtime:"powershell",parameters:[]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
@@ -2343,7 +2349,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     title:"Run an allowlisted Clintware task on Quillgeist Lite",
     description:"Queue one reviewed local task by task ID. Raw shell/PowerShell text is not accepted. Failure is returned as a normal result so the caller can inspect logs and choose the next allowlisted action.",
     inputSchema:{
-      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","self-heal","browser-setup","browser-work","record-google-oauth-verification","local-ai","bitnet-setup"]),
+      task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","self-heal","browser-setup","browser-work","record-google-oauth-verification","local-ai","bitnet-setup","local-ai-integrate"]),
       args:z.record(z.string(),z.string()).optional(),
       objective:z.string().max(2000).optional()
     },
