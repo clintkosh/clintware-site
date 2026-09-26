@@ -23,6 +23,7 @@ $script:RunnerSocket = $null
 $script:RunnerDiagSeq = 0
 $script:PendingDiagnostics = @()
 $script:QQPromptVisible = $false
+$script:QQPromptStartTop = -1
 $script:QQInputBuffer = New-Object Text.StringBuilder
 $script:QQReceiveBuffer = New-Object byte[] 65536
 $script:QQReceiveStream = New-Object IO.MemoryStream
@@ -120,16 +121,25 @@ function Suspend-QQPrompt {
   if (-not $script:QQPromptVisible) { return }
   try {
     $width = [Math]::Max(20,[Console]::BufferWidth - 1)
-    Write-Host (([string][char]13) + (" " * $width) + ([string][char]13)) -NoNewline
+    $endTop = [Console]::CursorTop
+    $startTop = [int]$script:QQPromptStartTop
+    if ($startTop -lt 0 -or $startTop -gt $endTop) { $startTop = $endTop }
+    for ($row = $startTop; $row -le $endTop; $row++) {
+      [Console]::SetCursorPosition(0,$row)
+      [Console]::Write(" " * $width)
+    }
+    [Console]::SetCursorPosition(0,$startTop)
   } catch {
     Write-Host ""
   }
+  $script:QQPromptStartTop = -1
   $script:QQPromptVisible = $false
 }
 
 function Show-QQPrompt {
   if ($script:QQPromptVisible) { return }
   $mode = if (Test-QQAdministrator) { "admin" } else { "user" }
+  try { $script:QQPromptStartTop = [Console]::CursorTop } catch { $script:QQPromptStartTop = -1 }
   Write-Host "qq" -ForegroundColor Cyan -NoNewline
   Write-Host ("(" + $mode + ")") -ForegroundColor White -NoNewline
   Write-Host "> " -ForegroundColor Cyan -NoNewline
@@ -1064,6 +1074,15 @@ function Invoke-QQLocalCommand {
 
   if ($line.StartsWith("!")) {
     Invoke-QQLocalShell ($line.Substring(1).Trim())
+    return
+  }
+
+  # A damaged paste such as 'gg! $p=...' must never be relayed as a natural
+  # language question or mistaken for a successfully executed local command.
+  if ($line -match '!(?=\\s*\\$)' -or $line -match '(?i)Invoke-WebRequest\\s+-Uri\\s+[''\"]https://raw\\.githubusercontent\\.com') {
+    Suspend-QQPrompt
+    Write-Host "LOCAL INPUT REJECTED // malformed PowerShell paste. Use Administrator PowerShell for recovery commands." -ForegroundColor DarkYellow
+    Show-QQPrompt
     return
   }
 
