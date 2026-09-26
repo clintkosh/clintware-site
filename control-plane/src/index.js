@@ -707,6 +707,21 @@ export class RegistryHub extends DurableObject {
     try{await mirrorHandoffToPowerChatBridge(this.env,packet);}catch{}
     return realtime;
   }
+  async scheduleQuillgeistLiteRecovery(job){
+    if(job.task_id!=="self-update"||!/health service is not installed/i.test(String(job.result?.output||"")))return null;
+    const key="quillgeist_lite_recovery:health_service";
+    const previous=await this.ctx.storage.get(key)||{};
+    if(Date.now()-Date.parse(previous.created_at||0)<30*60*1000)return previous.job_id||null;
+    const created=await this.putQuillgeistLiteJob({
+      task_id:"repair-local-service",args:{},requested_by:"clintware-auto-recovery",
+      objective:"Restore the missing registered qq health service after failed self-update "+clip(job.job_id,120)
+    });
+    if(!created.ok)return null;
+    await this.ctx.storage.put(key,{job_id:created.job.job_id,source_job_id:job.job_id,created_at:nowIso()});
+    await this.broadcastQuillgeistLite(created.job);
+    await this.broadcastQuillgeistLiteWake(created.job);
+    return created.job.job_id;
+  }
   async broadcastQuillgeistLiteAnswer(question){
     let delivered=0;
     for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
@@ -982,7 +997,10 @@ export class RegistryHub extends DurableObject {
             const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
             const runner=await this.ctx.storage.get("quillgeist_lite_runner")||{};
             await this.appendQuillgeistLiteDiagnostic({device_id:runner.runner_id||"unknown",level:"ERROR",phase:"job",message:"job_failed id="+jobId+" task="+clip(data.task_id,120)+" exit="+Number(data.exit_code||0),runner_alive:true,service_version:runner.version||""});
-            if(job){try{await this.relayQuillgeistLiteFailure(job);}catch(e){console.error(JSON.stringify({event:"qq_failure_handoff_error",message:String(e?.message||e)}));}}
+            if(job){
+              try{await this.relayQuillgeistLiteFailure(job);}catch(e){console.error(JSON.stringify({event:"qq_failure_handoff_error",message:String(e?.message||e)}));}
+              try{await this.scheduleQuillgeistLiteRecovery(job);}catch(e){console.error(JSON.stringify({event:"qq_auto_recovery_error",message:String(e?.message||e)}));}
+            }
           }
           return;
         }
