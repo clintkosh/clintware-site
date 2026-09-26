@@ -824,17 +824,17 @@ function Get-TaskArguments {
 
 function Resolve-Python {
   $candidates = New-Object System.Collections.Generic.List[string]
-  $miniconda = Join-Path $env:USERPROFILE "Miniconda3\\python.exe"
+  $miniconda = Join-Path $env:USERPROFILE "Miniconda3\python.exe"
   if (Test-Path $miniconda) { $candidates.Add($miniconda) }
   foreach ($name in @("python.exe","py.exe","python3.exe")) {
     $cmd = Get-Command $name -ErrorAction SilentlyContinue
     if ($cmd -and $cmd.Source) { $candidates.Add([string]$cmd.Source) }
   }
   foreach ($candidate in ($candidates | Select-Object -Unique)) {
-    if ($candidate -match '(?i)\\\\WindowsApps\\\\') { continue }
+    if ($candidate -match '(?i)\\WindowsApps\\') { continue }
     try {
       $version = (& $candidate --version 2>&1 | Out-String).Trim()
-      if ($LASTEXITCODE -eq 0 -and $version -match '^Python 3\\.') { return $candidate }
+      if ($LASTEXITCODE -eq 0 -and $version -match '^Python 3\.') { return $candidate }
     } catch {}
   }
   throw "A working Python 3 runtime was not found; WindowsApps Store aliases are ignored."
