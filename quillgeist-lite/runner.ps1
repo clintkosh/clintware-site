@@ -39,6 +39,7 @@ $script:LastHeartbeatWrite = [DateTime]::MinValue
 $script:LastVisibleActivity = Get-Date
 $script:QQShortIdleShown = $false
 $script:QQLongIdleShown = $false
+$script:QQLocalResponderRepairAttempted = $false
 
 function Mark-QQVisibleActivity {
   $script:LastVisibleActivity = Get-Date
@@ -1199,11 +1200,77 @@ function Read-QQUiInput {
   return $items.ToArray()
 }
 
+function Test-QQLocalGateway {
+  try {
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:11435/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+    return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300)
+  } catch {
+    return $false
+  }
+}
+
+function Ensure-QQLocalResponder {
+  if (Test-QQLocalGateway) { return $true }
+
+  # Revive the maintained local inference services before escalating a typed
+  # prompt away from the owner's machine.
+  foreach ($taskName in @("MEMORIA BitNet Server","MEMORIA Quillgeist Local Gateway")) {
+    try {
+      $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+      if ($task) { Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue }
+    } catch {}
+  }
+
+  for ($i=0; $i -lt 24; $i++) {
+    if (Test-QQLocalGateway) {
+      try { Queue-RunnerDiagnostic "INFO" "local_responder_revived" "local-first" } catch {}
+      return $true
+    }
+    Start-Sleep -Milliseconds 500
+  }
+
+  # One bounded repair attempt per QQ process. This reuses the checkpointed
+  # MEMORIA local-AI task instead of spawning ad-hoc installers or loops.
+  if (-not $script:QQLocalResponderRepairAttempted) {
+    $script:QQLocalResponderRepairAttempted = $true
+    try {
+      $registry = Get-Registry
+      $task = Find-Task $registry "finish-local-ai"
+      if ($task) {
+        Suspend-QQPrompt
+        Write-Host "LOCAL RESPONDER // repairing local inference path" -ForegroundColor DarkCyan
+        $repairJob = [pscustomobject]@{
+          job_id = "local-responder-repair-" + [Guid]::NewGuid().ToString("n")
+          task_id = "finish-local-ai"
+          args = [pscustomobject]@{ MaxPasses = "1" }
+          objective = "Restore the QQ local live responder before remote fallback."
+        }
+        $result = Invoke-AllowlistedTask $repairJob $null
+        if ($result.status -eq "passed") {
+          for ($i=0; $i -lt 20; $i++) {
+            if (Test-QQLocalGateway) { return $true }
+            Start-Sleep -Milliseconds 500
+          }
+        }
+      }
+    } catch {
+      try { Queue-RunnerDiagnostic "WARN" ("local_responder_repair_failed: " + $_.Exception.Message) "local-first" } catch {}
+    }
+  }
+
+  return (Test-QQLocalGateway)
+}
+
 function Invoke-QQLocalFirstResponse {
   param([string]$Text)
 
   $Text = ([string]$Text).Trim()
   if (-not $Text) { return $false }
+
+  if (-not (Ensure-QQLocalResponder)) {
+    try { Queue-RunnerDiagnostic "INFO" "local_responder_unavailable_after_bounded_repair" "local-first" } catch {}
+    return $false
+  }
 
   # The local gateway is the cheapest inference path. It uses model=local-auto,
   # which selects the active/viable installed Ollama, BitNet, or llama.cpp model.

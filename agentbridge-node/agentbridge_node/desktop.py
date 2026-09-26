@@ -15,6 +15,7 @@ import webbrowser
 from . import __version__
 from .cloud import pair as cloud_pair
 from .config import Config, home_dir
+from .local_gateway import complete as local_complete
 from .prompt_planner import plan_prompt
 
 
@@ -184,7 +185,7 @@ class QuillgeistDesktop:
         ).pack(anchor="w")
         tk.Label(
             left,
-            text="Describe what you want Quillgeist to do. Ctrl+Enter prepares the command.",
+            text="Describe what you want Quillgeist to do. Ctrl+Enter runs the local responder first.",
             bg=panel, fg=muted, font=("Segoe UI", 9),
         ).pack(anchor="w", pady=(3, 8))
 
@@ -214,7 +215,7 @@ class QuillgeistDesktop:
         command_buttons.pack(fill="x", pady=(8, 12))
         tk.Button(
             command_buttons,
-            text="Prepare command",
+            text="Run / Respond",
             command=self.submit_command,
             bg="#1d4968",
             fg=fg,
@@ -255,7 +256,7 @@ class QuillgeistDesktop:
             pady=12,
         )
         self.output.pack(fill="both", expand=True, pady=(8, 0))
-        self._write_output("Ready. Enter your task above, then click Prepare command or press Ctrl+Enter.")
+        self._write_output("Ready. Enter your task above, then click Run / Respond or press Ctrl+Enter.")
 
         tk.Label(
             right, text="RECENT LOCAL ACTIVITY", bg=panel, fg=muted,
@@ -506,7 +507,7 @@ class QuillgeistDesktop:
 
     def clear_command(self) -> None:
         self.command_input.delete("1.0", "end")
-        self._write_output("Ready. Enter your next task above.")
+        self._write_output("Ready. Enter your next task above. Quillgeist will answer locally first.")
         self.focus_command()
 
     def focus_command(self) -> None:
@@ -519,6 +520,85 @@ class QuillgeistDesktop:
 
     def show_palette(self) -> None:
         self.focus_command()
+
+    def _prepare_connected_command(self, text: str, compiled: dict, reason: str = "") -> None:
+        payload = json.dumps(compiled, indent=2)
+        self.root.clipboard_clear()
+        self.root.clipboard_append(payload)
+        plan = compiled.get("prompt_plan", {})
+        plan_note = ""
+        if compiled.get("execution_mode") == "auto_continue":
+            plan_note = (
+                f"\nAuto-compact: ON · {plan.get('step_count', 1)} dependency-aware steps "
+                f"· trigger: {', '.join(plan.get('triggered_by') or ['complexity'])}\n"
+                "The copied master prompt tells the connected AI to QA each step and continue automatically across ordinary batch/tool limits.\n"
+            )
+        why = f"\nLocal responder escalation: {reason}\n" if reason else ""
+        self._write_output(
+            "REMOTE / CONNECTED EXECUTION REQUIRED.\n\n"
+            f"Action: {compiled.get('action', 'general')}\n"
+            f"Routing: {compiled.get('routing', 'local-first')}\n"
+            f"Execution: {compiled.get('execution_mode', 'single')}\n"
+            f"{plan_note}{why}\n"
+            "The compiled instruction is copied to the clipboard for the connected AI/planner. "
+            "Local policy remains authoritative when an execution pack is run."
+        )
+        self.ledger.add("escalation", compiled.get("action", "general"), text)
+        self.refresh()
+
+    def _run_local_responder(self, text: str, compiled: dict) -> None:
+        self._write_output("LOCAL RESPONDER // thinking…")
+
+        def worker():
+            system = (
+                "You are Quillgeist's local-first live responder running on the owner's machine. "
+                "Answer directly when the request can be handled with local reasoning. "
+                "If the request needs fresh external/private data or a mutation this model call cannot actually perform, "
+                "respond with exactly 'REMOTE_REQUIRED: <short reason>'. "
+                "Never claim a change happened unless it actually ran through an execution capability."
+            )
+            payload = {
+                "model": "local-auto",
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": text},
+                ],
+                "max_tokens": 900,
+                "temperature": 0.15,
+                "stream": False,
+            }
+            status = 0
+            response = {}
+            error = ""
+            try:
+                cfg = Config.load()
+                status, response = local_complete(payload, cfg.data.get("local_inference", {}))
+            except Exception as exc:
+                error = str(exc)
+
+            def finish():
+                try:
+                    answer = str((((response or {}).get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                    if status == 200 and answer and not answer.upper().startswith("REMOTE_REQUIRED:"):
+                        self._write_output("QUILLGEIST LOCAL\n\n" + answer)
+                        self.ledger.add("local_answer", compiled.get("action", "general"), text)
+                        self.refresh()
+                        return
+                    reason = error or answer or str(((response or {}).get("error") or {}).get("message") or f"local responder returned HTTP-style status {status}")
+                    if self.cfg.data.get("desktop", {}).get("local_only", False):
+                        self._write_output("LOCAL RESPONDER UNAVAILABLE\n\n" + reason)
+                        self.ledger.add("local_error", "responder unavailable", reason)
+                        self.refresh()
+                        return
+                    self._prepare_connected_command(text, compiled, reason)
+                except Exception as exc:
+                    self._write_output(f"Responder handoff failed: {exc}")
+                    self.ledger.add("error", "responder handoff failed", str(exc))
+                    self.refresh()
+
+            self.root.after(0, finish)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def execute_palette(self, text: str) -> None:
         lowered = text.lower().strip()
@@ -546,28 +626,8 @@ class QuillgeistDesktop:
                 self.toggle_local_only()
             return
         compiled = compile_intent(text, self.cfg)
-        payload = json.dumps(compiled, indent=2)
-        self.root.clipboard_clear()
-        self.root.clipboard_append(payload)
-        plan = compiled.get("prompt_plan", {})
-        plan_note = ""
-        if compiled.get("execution_mode") == "auto_continue":
-            plan_note = (
-                f"\nAuto-compact: ON · {plan.get('step_count', 1)} dependency-aware steps "
-                f"· trigger: {', '.join(plan.get('triggered_by') or ['complexity'])}\n"
-                "The copied master prompt tells the connected AI to QA each step and continue automatically across ordinary batch/tool limits.\n"
-            )
-        self._write_output(
-            "Command prepared.\n\n"
-            f"Action: {compiled.get('action', 'general')}\n"
-            f"Routing: {compiled.get('routing', 'local-first')}\n"
-            f"Execution: {compiled.get('execution_mode', 'single')}\n"
-            f"{plan_note}\n"
-            "The compiled instruction is copied to the clipboard for the connected AI/planner. "
-            "Quillgeist will enforce local policy when an execution pack is run."
-        )
         self.ledger.add("intent", compiled.get("action", "general"), text)
-        self.refresh()
+        self._run_local_responder(text, compiled)
 
     def show_window(self) -> None:
         self.root.deiconify()

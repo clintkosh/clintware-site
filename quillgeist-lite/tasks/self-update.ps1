@@ -66,7 +66,9 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
   "function Resolve-Python",
   "Miniconda3\python.exe",
   "\WindowsApps\",
-  "A working Python 3 runtime was not found"
+  "A working Python 3 runtime was not found",
+  "function Ensure-QQLocalResponder",
+  "LOCAL RESPONDER // repairing local inference path"
 )
 Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -ForegroundColor Green
 
