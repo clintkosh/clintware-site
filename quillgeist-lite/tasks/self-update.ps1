@@ -70,6 +70,24 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
 )
 Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -ForegroundColor Green
 
+$RegistryPath = Join-Path $HomeDir "tasks.json"
+$RegistryTemp = $RegistryPath + ".new"
+Write-Host "SYNC // refreshing reviewed QQ task registry" -ForegroundColor Cyan
+try {
+  Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json" -OutFile $RegistryTemp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
+  $registry = Get-Content -LiteralPath $RegistryTemp -Raw | ConvertFrom-Json
+  if (-not $registry.tasks) { throw "Reviewed QQ task registry is invalid." }
+  foreach ($requiredTask in @("self-update","local-ai","bitnet-setup","local-ai-integrate")) {
+    if (-not $registry.tasks.PSObject.Properties[$requiredTask]) {
+      throw ("Reviewed QQ task registry is missing: " + $requiredTask)
+    }
+  }
+  Move-Item -LiteralPath $RegistryTemp -Destination $RegistryPath -Force
+  Write-Host ("REGISTRY // reviewed task registry v" + [string]$registry.version + " installed") -ForegroundColor Green
+} finally {
+  Remove-Item -LiteralPath $RegistryTemp -Force -ErrorAction SilentlyContinue
+}
+
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 Write-Host "SERVICE // aligning QQ health service with reviewed Clintware source" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "tasks/repair-local-service.ps1" -Destination $ServiceRepairPath -Required @(
