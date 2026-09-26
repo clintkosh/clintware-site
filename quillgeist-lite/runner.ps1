@@ -932,6 +932,7 @@ function Show-QQHelp {
   Write-Host "  jira                         Connect/reconnect Jira." -ForegroundColor Cyan
   Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
   Write-Host "  update                       Update qq from Clintware source." -ForegroundColor Cyan
+  Write-Host "  rr                           Refresh qq to latest functionality, then restart it." -ForegroundColor Cyan
   Write-Host "  admin                        Upgrade/reopen qq as the supervised admin console." -ForegroundColor Cyan
   Write-Host "  heal                         Self-repair qq in place without stealing focus." -ForegroundColor Cyan
   Write-Host "  web setup                    Install/repair the local browser runtime." -ForegroundColor Cyan
@@ -1229,6 +1230,7 @@ function Invoke-QQLocalCommand {
     "doctor" { Invoke-QQLocalTask "clintware-doctor"; return }
     "update" { Invoke-QQLocalTask "self-update"; return }
     "update qq" { Invoke-QQLocalTask "self-update"; return }
+    "rr" { Invoke-QQLocalTask "self-update"; return }
     "admin" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
     "admin qq" { Invoke-QQLocalTask "bootstrap-admin-console"; return }
     "heal" { Invoke-QQLocalTask "self-heal"; return }
