@@ -302,7 +302,7 @@ function Ensure-ClintwareLogoAsset {
 }
 
 function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 22)
+  param([int]$MaxColumns = 14)
 
   try {
     $windowWidth = 100
@@ -314,14 +314,13 @@ function Write-ClintwareLogoImage {
     $white = "$esc[38;2;247;251;255m"
     $reset = "$esc[0m"
 
-    # Keep the terminal mark intentionally tiny. Block glyphs are used instead
-    # of Braille because their rendering is more consistent across terminals.
+    # Tiny block-glyph eclipse: deliberately minimal for consistent rendering.
     $art = @(
-      "      ▄▄████████▄▄      ",
-      "   ▄██▀          ▀██▄   ",
-      "  ██                ██  ",
-      "   ▀██▄          ▄██▀   ",
-      "      ▀▀████████▀▀      "
+      "   ▄██████▄   ",
+      " ▄█▀      ▀█▄ ",
+      " █          █ ",
+      " ▀█▄      ▄█▀ ",
+      "   ▀██████▀   "
     )
 
     for($i=0;$i -lt $art.Count;$i++){
@@ -350,7 +349,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 22
+  $rendered = Write-ClintwareLogoImage -MaxColumns 14
   if (-not $rendered) {
     Write-ClintwareCentered "CLINTWARE™" White
     Write-ClintwareCentered "EST. 2026" DarkGray
