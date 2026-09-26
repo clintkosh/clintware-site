@@ -1162,6 +1162,17 @@ function Invoke-QQLocalCommand {
     return
   }
 
+  # Common owner-machine intents should execute locally instead of being sent
+  # to an external chat receiver that may not be attached to this session.
+  if ($lower -match '(local\s+ai|ai\s+server)' -and $lower -match '(finish|resume|fix|repair|start|reconcile|continue)') {
+    Invoke-QQLocalTask "local-ai" @{Action="reconcile"}
+    return
+  }
+  if ($lower -match '(local\s+ai|ai\s+server)' -and $lower -match '(status|health|check|inspect)') {
+    Invoke-QQLocalTask "local-ai" @{Action="services"}
+    return
+  }
+
   switch ($lower) {
     "help" { Show-QQHelp; return }
     "?" { Show-QQHelp; return }
@@ -1547,8 +1558,20 @@ try {
         if ($msg.type -eq "question_ack") {
           Suspend-QQPrompt
           $qid = [string]$msg.question_id
-          Write-Host "RELAY QUEUED" -ForegroundColor DarkCyan -NoNewline
-          Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+          $receivers = 0
+          $mirrored = $false
+          try { $receivers = [int]$msg.delivery.realtime_receivers } catch {}
+          try { $mirrored = [bool]$msg.delivery.private_mirror.mirrored } catch {}
+
+          if ($receivers -gt 0 -or $mirrored) {
+            Write-Host "RELAY DELIVERED" -ForegroundColor Cyan -NoNewline
+            Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+          } else {
+            Write-Host "RELAY WAITING // NO CHAT RESPONDER ATTACHED" -ForegroundColor DarkYellow -NoNewline
+            Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "Use a reviewed local command/task or reconnect a ChatGPT receiver; this request was stored but has nobody to answer it." -ForegroundColor DarkGray
+          }
           Show-QQPrompt
           continue
         }
