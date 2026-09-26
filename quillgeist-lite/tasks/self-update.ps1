@@ -73,8 +73,22 @@ Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -Fore
 Write-Host "SYNC // refreshing qq window, MCP monitor, splash, and logo assets" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "launcher.ps1" -Destination (Join-Path $HomeDir "launcher.ps1") -Required @("Sync-LatestQQFunctionality")
 Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Clintware MCP // ADMIN")
-Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("LIVE ADMIN CONSOLE","mcp(admin)")
-Get-ReviewedQQAsset -Relative "tools/boot_splash.py" -Destination (Join-Path $HomeDir "boot_splash.py") -Required @("supplied Clintware eclipse image")
+Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("LIVE ADMIN CONSOLE","Show-McpPrompt")
+$pythonAssets = @(
+  @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="supplied Clintware eclipse image" },
+  @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="install_canonical_logo" }
+)
+foreach($asset in $pythonAssets){
+  $temp=$asset.Destination + ".new"
+  try {
+    Invoke-WebRequest -Uri ("https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/" + $asset.Relative) -OutFile $temp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
+    $body=Get-Content -LiteralPath $temp -Raw
+    if($body.Length -lt 500 -or -not $body.Contains([string]$asset.Required)){ throw ("Reviewed QQ Python asset failed validation: " + $asset.Relative) }
+    Move-Item -LiteralPath $temp -Destination $asset.Destination -Force
+  } finally {
+    Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+  }
+}
 
 $logoPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $logoTemp = $logoPath + ".new"
@@ -85,6 +99,17 @@ try {
   Move-Item -LiteralPath $logoTemp -Destination $logoPath -Force
 } finally {
   Remove-Item -LiteralPath $logoTemp -Force -ErrorAction SilentlyContinue
+}
+
+try {
+  $py=Get-Command py.exe -ErrorAction SilentlyContinue
+  if($py){ & $py.Source -3 (Join-Path $HomeDir "terminal_repair.py") }
+  else {
+    $python=Get-Command python.exe -ErrorAction SilentlyContinue
+    if($python -and $python.Source -notmatch '(?i)\\WindowsApps\\'){ & $python.Source (Join-Path $HomeDir "terminal_repair.py") }
+  }
+} catch {
+  Write-Host ("TERMINAL WARN // compact profile refresh deferred: " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
 
 
