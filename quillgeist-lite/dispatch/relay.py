@@ -120,7 +120,9 @@ if req.get("mode") == "inspect":
     jobs = payload.get("jobs") or []
     public = {
         "online": payload.get("online"),
+        "recovery_online": payload.get("recovery_online"),
         "wake_online": payload.get("wake_online"),
+        "recovery": payload.get("recovery"),
         "runner_version": (payload.get("runner") or {}).get("version"),
         "runner_last_seen": (payload.get("runner") or {}).get("last_seen"),
         "jobs": [
