@@ -224,24 +224,26 @@ try {
 } catch {}
 
 $bitnetStart = Join-Path $ScriptRoot "START-BITNET-SERVER.ps1"
-$bitnetStartBody = @"
-\$ErrorActionPreference = "Stop"
-\$server = "$bitnetServer"
-\$model = "$bitnetModel"
-if (-not (Test-Path \$server) -or -not (Test-Path \$model)) { throw "BitNet runtime is incomplete." }
-& \$server -m \$model -c 4096 -t ([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))) -ngl 0 --host 127.0.0.1 --port $BitNetPort
-"@
+$bitnetStartBody = @'
+$ErrorActionPreference = "Stop"
+$server = "__SERVER__"
+$model = "__MODEL__"
+if (-not (Test-Path $server) -or -not (Test-Path $model)) { throw "BitNet runtime is incomplete." }
+& $server -m $model -c 4096 -t ([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))) -ngl 0 --host 127.0.0.1 --port __PORT__
+'@
+$bitnetStartBody = $bitnetStartBody.Replace("__SERVER__",$bitnetServer).Replace("__MODEL__",$bitnetModel).Replace("__PORT__",[string]$BitNetPort)
 [IO.File]::WriteAllText($bitnetStart,$bitnetStartBody,(New-Object Text.UTF8Encoding($false)))
 
 $gatewayStart = Join-Path $ScriptRoot "START-QUILLGEIST-LOCAL-GATEWAY.ps1"
-$gatewayStartBody = @"
-\$ErrorActionPreference = "Stop"
-\$env:QUILLGEIST_GATEWAY_API_KEY = (Get-Content -LiteralPath "$GatewayKeyPath" -Raw).Trim()
-\$env:QUILLGEIST_BITNET_HOME = "$bitnetRoot"
-\$env:QUILLGEIST_BITNET_SERVER_URL = "http://127.0.0.1:$BitNetPort"
-\$env:PYTHONPATH = "$GatewayRoot"
-& "$python" -c "from agentbridge_node.local_gateway import serve; serve({}, host='0.0.0.0', port=$GatewayPort)"
-"@
+$gatewayStartBody = @'
+$ErrorActionPreference = "Stop"
+$env:QUILLGEIST_GATEWAY_API_KEY = (Get-Content -LiteralPath "__KEY__" -Raw).Trim()
+$env:QUILLGEIST_BITNET_HOME = "__BITNET__"
+$env:QUILLGEIST_BITNET_SERVER_URL = "http://127.0.0.1:__BITNET_PORT__"
+$env:PYTHONPATH = "__GATEWAY_ROOT__"
+& "__PYTHON__" -c "from agentbridge_node.local_gateway import serve; serve({}, host='0.0.0.0', port=__GATEWAY_PORT__)"
+'@
+$gatewayStartBody = $gatewayStartBody.Replace("__KEY__",$GatewayKeyPath).Replace("__BITNET__",$bitnetRoot).Replace("__BITNET_PORT__",[string]$BitNetPort).Replace("__GATEWAY_ROOT__",$GatewayRoot).Replace("__PYTHON__",$python).Replace("__GATEWAY_PORT__",[string]$GatewayPort)
 [IO.File]::WriteAllText($gatewayStart,$gatewayStartBody,(New-Object Text.UTF8Encoding($false)))
 
 Log "Registering hidden startup tasks"
