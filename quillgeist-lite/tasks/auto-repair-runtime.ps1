@@ -64,6 +64,18 @@ if (-not (Test-Path $SourceRoot)) {
 $SourceRoot = (Resolve-Path $SourceRoot -ErrorAction Stop).Path
 Write-RepairLog ("AUTO_REPAIR // using packaged local source " + $SourceRoot)
 
+$registrySource = Join-Path $SourceRoot "tasks.json"
+$registryTarget = Join-Path $HomeDir "tasks.json"
+if (-not (Test-Path $registrySource)) { throw "Packaged QQ task registry is missing: $registrySource" }
+$registry = Get-Content $registrySource -Raw | ConvertFrom-Json
+if (-not $registry.tasks) { throw "Packaged QQ task registry is invalid: $registrySource" }
+if (-not (Test-Path $registryTarget)) {
+  $registryTemp = $registryTarget + ".new"
+  Copy-Item -LiteralPath $registrySource -Destination $registryTemp -Force
+  Move-Item -LiteralPath $registryTemp -Destination $registryTarget -Force
+  Write-RepairLog "AUTO_REPAIR // restored missing local task registry"
+}
+
 foreach ($spec in $specs) {
   $target = Join-Path $HomeDir $spec.Local
   $temp = $target + ".new"
