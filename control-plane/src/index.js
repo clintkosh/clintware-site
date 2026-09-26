@@ -217,6 +217,7 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
   "quillgeist-lite/tasks/repair-local-service.ps1",
   "quillgeist-lite/tasks/self-update.ps1",
+  "quillgeist-lite/tasks/bitnet-setup.ps1",
   "quillgeist-lite/tools/local_ai.py",
   "quillgeist-lite/tools/boot_splash.py",
   "quillgeist-lite/assets/clintware-terminal-logo.b64"
