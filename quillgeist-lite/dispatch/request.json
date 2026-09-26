@@ -1,8 +1,5 @@
 {
-  "request_id": "chatgpt-memoria-local-ai-status-20260926-0100",
-  "task_id": "local-ai",
-  "args": {
-    "Action": "status"
-  },
-  "objective": "Read-only inventory of MEMORIA memory, installed local AI runtimes and models for local server build with switchable BitNet."
+  "request_id": "chatgpt-memoria-recovery-inspect-20260926-0119",
+  "mode": "inspect",
+  "objective": "Read current Control Plane qq status and classified diagnostics without exposing raw local paths or credentials in public workflow logs."
 }
