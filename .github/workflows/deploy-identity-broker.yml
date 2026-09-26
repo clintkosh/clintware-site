@@ -31,6 +31,10 @@ jobs:
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
 
       - name: Verify delegated Google OAuth client pair
+        if: github.event_name != 'pull_request'
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
