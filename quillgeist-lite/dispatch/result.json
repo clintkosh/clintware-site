@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-qq-two-pane-runtime-test-20260926",
-  "job_id": "0f8635b2-1ff2-4c1e-88d8-e0c15ae9a463",
-  "task_id": "restart-window",
+  "request_id": "chatgpt-qq-postrestart-connectivity-20260926",
+  "job_id": "a550f3b5-4fdf-4588-93f0-5ae2e4bfa4af",
+  "task_id": "python-runtime-check",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 1075,
-  "recorded_at": 1790420021,
-  "output_tail": "[run] READY // qq window restart queued; launcher splash will run on reopen."
+  "duration_ms": 394,
+  "recorded_at": 1790420198,
+  "output_tail": "[run] QUILLGEIST_LITE_PYTHON_OK\r\n[run] python=3.11.9\r\n[run] platform=Windows-10-10.0.26200-SP0\r\n[run] message=QQ_POST_RESTART_OK"
 }
