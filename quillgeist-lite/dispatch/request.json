@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-relay-fix-20260926",
+  "request_id": "chatgpt-qq-autocontinue-local-ai-20260926",
   "task_id": "self-update",
   "args": {},
-  "objective": "Update the local qq runner so local AI server commands execute the reviewed local-ai task directly and relay acknowledgements show whether an actual responder is attached."
+  "objective": "Pull the new QQ auto-continue runner and checkpointed finish-local-ai workflow, then restart cleanly."
 }
