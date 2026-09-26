@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-memoria-inspect-bitnet-logs-20260926-0209",
+  "request_id": "chatgpt-memoria-inspect-bitnet-logs-20260926-0211",
   "mode": "inspect",
-  "recorded_at": 1790406234,
+  "recorded_at": 1790406283,
   "inspection": {
     "online": 1,
     "wake_online": 2,
@@ -71,6 +71,66 @@
     ],
     "diagnostics": [
       {
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "timestamp": "2026-09-26T07:04:44.9682845Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:41.7477457Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:36.7452122Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:31.7324526Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:26.7241565Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:16.7113662Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:11.7204015Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:06.6977171Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:04:01.6943965Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T07:03:56.6918139Z"
+      },
+      {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
@@ -81,66 +141,6 @@
         "phase": "runner-log",
         "kind": "connection_error",
         "timestamp": "2026-09-26T07:03:41.6686486Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:36.6594699Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:31.6576806Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:26.6505818Z"
-      },
-      {
-        "level": "INFO",
-        "phase": "heartbeat",
-        "kind": "other",
-        "timestamp": "2026-09-26T07:03:16.7014523Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:16.6206348Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:11.6206751Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:06.6078240Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:03:01.6003942Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:02:56.5925209Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T07:02:46.5781112Z"
       }
     ],
     "selected_job": {
