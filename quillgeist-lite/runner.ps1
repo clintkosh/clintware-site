@@ -1286,6 +1286,7 @@ function Invoke-AllowlistedTask {
     "repair-local-service" = @{ Relative = "tasks/repair-local-service.ps1"; Required = "SERVICE_DEFERRED" }
     "self-update" = @{ Relative = "tasks/self-update.ps1"; Required = "SYNC // reconciling QQ" }
     "local-ai" = @{ Relative = "tools/local_ai.py"; Required = "def gguf_files" }
+    "bitnet-setup" = @{ Relative = "tasks/bitnet-setup.ps1"; Required = "Running temporary BitNet HTTP server round trip" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
