@@ -63,7 +63,7 @@ async function secureEq(a, b) {
 }
 
 async function cryptoKey(env, purpose) {
-  const secret = String(env.CONTROL_PLANE_MCP_TOKEN || env.OAUTH_STATE_SECRET || "");
+  const secret = String(env.GOOGLE_OAUTH_CLIENT_SECRET || env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN || "");
   if (!secret) throw new Error("delegated_crypto_secret_missing");
   const raw = await crypto.subtle.digest(
     "SHA-256",
