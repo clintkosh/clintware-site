@@ -40,6 +40,10 @@ jobs:
           set -euo pipefail
           client_id=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | tr -d '\r\n')
           client_secret=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | tr -d '\r\n')
+          echo "Google OAuth diagnostics: client_id_length=${#client_id} client_secret_length=${#client_secret}"
+          if [ "$client_id" = "$client_secret" ]; then
+            echo "Google OAuth diagnostics: client ID and client secret are identical (invalid configuration)." >&2
+          fi
           response=$(curl -sS -X POST https://oauth2.googleapis.com/token \
             -H 'Content-Type: application/x-www-form-urlencoded' \
             --data-urlencode "code=clintware-ci-intentionally-invalid-code" \
