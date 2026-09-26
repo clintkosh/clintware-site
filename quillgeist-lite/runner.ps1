@@ -33,6 +33,7 @@ $script:QQReceiveStream = New-Object IO.MemoryStream
 $script:QQReceiveTask = $null
 $script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
+$script:LastPendingNotice = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
 $script:LastVisibleActivity = Get-Date
 $script:QQShortIdleShown = $false
@@ -58,6 +59,31 @@ function Show-QQIdleNotice {
     $script:QQShortIdleShown=$true
     Show-QQPrompt
   }
+}
+
+function Show-QQPendingQuestions {
+  if($script:PendingQuestions.Count -eq 0){return}
+  if(((Get-Date)-$script:LastPendingNotice).TotalSeconds -lt 15){return}
+
+  $oldest=$null
+  foreach($id in @($script:PendingQuestions.Keys)){
+    $row=$script:PendingQuestions[$id]
+    if(-not $row){continue}
+    if(-not $oldest -or [DateTime]::Parse([string]$row.created_at) -lt [DateTime]::Parse([string]$oldest.created_at)){
+      $oldest=[pscustomobject]@{id=$id;created_at=$row.created_at;text=$row.text;accepted=$row.accepted}
+    }
+  }
+  if(-not $oldest){return}
+
+  $age=[int]((Get-Date).ToUniversalTime()-[DateTime]::Parse([string]$oldest.created_at).ToUniversalTime()).TotalSeconds
+  Suspend-QQPrompt
+  if($oldest.accepted){
+    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // responder accepted; waiting for answer (" + $age + "s)") -ForegroundColor DarkCyan
+  } else {
+    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // preserved and still polling; no live responder yet (" + $age + "s)") -ForegroundColor DarkYellow
+  }
+  $script:LastPendingNotice=Get-Date
+  Show-QQPrompt
 }
 
 function Write-RunnerHeartbeat {
@@ -302,38 +328,60 @@ function Ensure-ClintwareLogoAsset {
 }
 
 function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 14)
+  param([int]$MaxColumns = 24)
 
+  $asset = Join-Path $HomeDir "clintware-terminal-logo.b64"
   try {
-    $windowWidth = 100
-    try { $windowWidth = [Console]::WindowWidth } catch {}
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+    if(-not(Test-Path $asset)){throw "logo asset missing"}
 
-    $esc = [char]27
-    $cyan1 = "$esc[38;2;14;139;211m"
-    $cyan2 = "$esc[38;2;88;222;255m"
-    $white = "$esc[38;2;247;251;255m"
-    $reset = "$esc[0m"
+    $raw=(Get-Content -LiteralPath $asset -Raw -ErrorAction Stop).Trim()
+    $bytes=[Convert]::FromBase64String($raw)
+    $stream=New-Object IO.MemoryStream(,$bytes)
+    $source=New-Object Drawing.Bitmap($stream)
 
-    # Tiny block-glyph eclipse: deliberately minimal for consistent rendering.
-    $art = @(
-      "   ▄██████▄   ",
-      " ▄█▀      ▀█▄ ",
-      " █          █ ",
-      " ▀█▄      ▄█▀ ",
-      "   ▀██████▀   "
-    )
+    $columns=[Math]::Max(12,[Math]::Min($MaxColumns,32))
+    # A terminal cell is roughly twice as tall as it is wide. Render two image
+    # rows per Unicode half-block character to preserve the eclipse proportions.
+    $pixelHeight=[Math]::Max(8,[int][Math]::Round(($source.Height/$source.Width)*$columns*0.95))
+    if(($pixelHeight % 2)-ne 0){$pixelHeight++}
 
-    for($i=0;$i -lt $art.Count;$i++){
-      $line=$art[$i]
-      $pad=" " * [Math]::Max(0,[int](($windowWidth-$line.Length)/2))
-      $color=if($i -in @(0,4)){$cyan1}else{$cyan2}
-      [Console]::WriteLine($pad+$color+$line+$reset)
+    $scaled=New-Object Drawing.Bitmap($columns,$pixelHeight)
+    $g=[Drawing.Graphics]::FromImage($scaled)
+    $g.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.DrawImage($source,0,0,$columns,$pixelHeight)
+    $g.Dispose()
+
+    $windowWidth=100
+    try{$windowWidth=[Console]::WindowWidth}catch{}
+    $pad=" " * [Math]::Max(0,[int](($windowWidth-$columns)/2))
+    $esc=[char]27
+    $reset="$esc[0m"
+
+    for($y=0;$y -lt $pixelHeight;$y+=2){
+      [Console]::Write($pad)
+      for($x=0;$x -lt $columns;$x++){
+        $top=$scaled.GetPixel($x,$y)
+        $bottom=$scaled.GetPixel($x,[Math]::Min($y+1,$pixelHeight-1))
+        [Console]::Write("$esc[38;2;$($top.R);$($top.G);$($top.B)m$esc[48;2;$($bottom.R);$($bottom.G);$($bottom.B)m▀")
+      }
+      [Console]::WriteLine($reset)
     }
-    $name="Clintware™"
-    $pad=" " * [Math]::Max(0,[int](($windowWidth-$name.Length)/2))
-    [Console]::WriteLine($pad+$white+$name+$reset)
+
+    $scaled.Dispose(); $source.Dispose(); $stream.Dispose()
     return $true
   } catch {
+    # Small deterministic fallback for terminals where System.Drawing is unavailable.
+    $windowWidth=100
+    try{$windowWidth=[Console]::WindowWidth}catch{}
+    $esc=[char]27; $cyan="$esc[38;2;53;203;255m"; $white="$esc[38;2;247;251;255m"; $reset="$esc[0m"
+    foreach($line in @("   ▄██████▄   "," ▄█▀      ▀█▄ "," █          █ "," ▀█▄      ▄█▀ ","   ▀██████▀   ")){
+      $pad=" " * [Math]::Max(0,[int](($windowWidth-$line.Length)/2))
+      [Console]::WriteLine($pad+$cyan+$line+$reset)
+    }
+    $name="Clintware™"; $pad=" " * [Math]::Max(0,[int](($windowWidth-$name.Length)/2))
+    [Console]::WriteLine($pad+$white+$name+$reset)
     return $false
   }
 }
@@ -349,7 +397,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 14
+  $rendered = Write-ClintwareLogoImage -MaxColumns 24
   if (-not $rendered) {
     Write-ClintwareCentered "CLINTWARE™" White
     Write-ClintwareCentered "EST. 2026" DarkGray
@@ -1602,7 +1650,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.0"
+        version = "1.9.1"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
@@ -1644,6 +1692,7 @@ try {
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
         Write-RunnerHeartbeat -State "connected"
         Show-QQIdleNotice
+        Show-QQPendingQuestions
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
@@ -1692,12 +1741,16 @@ try {
           $mirrored = $false
           try { $receivers = [int]$msg.delivery.realtime_receivers } catch {}
           try { $mirrored = [bool]$msg.delivery.private_mirror.mirrored } catch {}
+          if($script:PendingQuestions.ContainsKey($qid)){
+            $script:PendingQuestions[$qid].accepted = ($receivers -gt 0)
+            $script:PendingQuestions[$qid].mirrored = $mirrored
+          }
 
           if ($receivers -gt 0) {
             Write-Host "RELAY DELIVERED" -ForegroundColor Cyan -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } elseif ($mirrored) {
-            Write-Host "RELAY QUEUED // PRIVATE INBOX" -ForegroundColor DarkYellow -NoNewline
+            Write-Host "RELAY PENDING // PRIVATE INBOX; STILL POLLING" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } else {
             Write-Host "RELAY WAITING // NO CHAT RESPONDER ATTACHED" -ForegroundColor DarkYellow -NoNewline
