@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-recovery-inspect-20260926-0121",
-  "mode": "inspect",
-  "job_id": "456ec24c-2aa5-4d06-a5c1-559bc0508035",
-  "objective": "Check QQ runner connectivity and classify the most recent failed self-update without printing raw local logs."
+  "request_id": "chatgpt-launch-memoria-qq-20260926-0124",
+  "task_id": "bootstrap-admin-console",
+  "args": {},
+  "objective": "Restore and launch the supervised Quillgeist Lite admin console on MEMORIA from the existing packaged runtime and device registration. Verify service, managed task, runner connection, and visible console."
 }
