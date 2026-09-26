@@ -9,6 +9,7 @@ $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $CacheDir = Join-Path $HomeDir "cache"
 $LogPath = Join-Path $HomeDir "runner.log"
 $StatePath = Join-Path $HomeDir "state.json"
+$PendingResultPath = Join-Path $HomeDir "pending-results.json"
 $UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
 $UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
@@ -426,6 +427,27 @@ function Save-Completed {
   $copy | ConvertTo-Json -Depth 10 | Set-Content -Path $StatePath -Encoding UTF8
 }
 
+function Get-PendingResults {
+  if (-not (Test-Path $PendingResultPath)) { return @{} }
+  try {
+    $s = Get-Content $PendingResultPath -Raw | ConvertFrom-Json
+    $map = @{}
+    foreach ($p in $s.PSObject.Properties) { $map[$p.Name] = $p.Value }
+    return $map
+  } catch {
+    return @{}
+  }
+}
+
+function Save-PendingResults {
+  param([hashtable]$Map)
+  if ($Map.Count -eq 0) {
+    Remove-Item $PendingResultPath -Force -ErrorAction SilentlyContinue
+    return
+  }
+  $Map | ConvertTo-Json -Depth 10 | Set-Content -Path $PendingResultPath -Encoding UTF8
+}
+
 function New-QQDeviceToken {
   $bytes = New-Object byte[] 48
   $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
@@ -763,15 +785,22 @@ function Emit-TaskLine {
   Write-Host $safe -ForegroundColor $displayColor
   Show-QQPrompt
 
+  Write-RunnerHeartbeat -State "busy" -JobId ([string]$Job.job_id) -TaskId ([string]$Job.task_id)
+
   if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
-    Send-Json $Socket @{
-      type = "log"
-      job_id = [string]$Job.job_id
-      task_id = [string]$Job.task_id
-      seq = $Sequence.Value
-      phase = $Phase
-      line = $safe
-      timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    try {
+      Send-Json $Socket @{
+        type = "log"
+        job_id = [string]$Job.job_id
+        task_id = [string]$Job.task_id
+        seq = $Sequence.Value
+        phase = $Phase
+        line = $safe
+        timestamp = (Get-Date).ToUniversalTime().ToString("o")
+      }
+    } catch {
+      # Transport loss must never terminate the local child task. The result is
+      # persisted and replayed after reconnect.
     }
   }
 }
@@ -787,14 +816,44 @@ function Invoke-ExternalStreaming {
     [string]$Phase
   )
 
-  $global:LASTEXITCODE = 0
-  & $FilePath @Arguments *>&1 | ForEach-Object {
-    Emit-TaskLine $Socket $Job $Sequence $Captured ([string]$_) $Phase
-  }
+  $heartbeatWorker = $null
+  try {
+    $heartbeatWorker = Start-Job -ArgumentList $HeartbeatPath,$env:COMPUTERNAME,$PID,([string]$Job.job_id),([string]$Job.task_id) -ScriptBlock {
+      param($Path,$RunnerId,$RunnerPid,$JobId,$TaskId)
+      while ($true) {
+        try {
+          $now = (Get-Date).ToUniversalTime()
+          $payload = [ordered]@{
+            version = "1"
+            runner_id = $RunnerId
+            pid = $RunnerPid
+            state = "busy"
+            job_id = $JobId
+            task_id = $TaskId
+            timestamp = $now.ToString("o")
+          }
+          $temp = $Path + ".busy"
+          [IO.File]::WriteAllText($temp,($payload | ConvertTo-Json -Depth 4),(New-Object Text.UTF8Encoding($false)))
+          Move-Item $temp $Path -Force
+        } catch {}
+        Start-Sleep -Seconds 10
+      }
+    }
 
-  $code = $LASTEXITCODE
-  if ($null -eq $code) { $code = 0 }
-  return [int]$code
+    $global:LASTEXITCODE = 0
+    & $FilePath @Arguments *>&1 | ForEach-Object {
+      Emit-TaskLine $Socket $Job $Sequence $Captured ([string]$_) $Phase
+    }
+
+    $code = $LASTEXITCODE
+    if ($null -eq $code) { $code = 0 }
+    return [int]$code
+  } finally {
+    if ($heartbeatWorker) {
+      try { Stop-Job $heartbeatWorker -ErrorAction SilentlyContinue | Out-Null } catch {}
+      try { Remove-Job $heartbeatWorker -Force -ErrorAction SilentlyContinue | Out-Null } catch {}
+    }
+  }
 }
 
 function Get-TaskArguments {
@@ -1369,6 +1428,7 @@ function Invoke-AllowlistedTask {
 }
 
 $completed = Get-Completed
+$pendingResults = Get-PendingResults
 
 try {
   if ($env:QQ_HEADLESS -ne "1") { Show-QuillgeistSplash -Status "CONNECTING" }
@@ -1409,6 +1469,20 @@ try {
       }
 
       Flush-RunnerDiagnostics
+
+      if ($pendingResults.Count -gt 0) {
+        foreach ($pendingJobId in @($pendingResults.Keys)) {
+          try {
+            Send-Json $ws $pendingResults[$pendingJobId]
+            [void]$pendingResults.Remove($pendingJobId)
+            Save-PendingResults $pendingResults
+            Write-Log ("Replayed saved result for job " + $pendingJobId) "OK"
+          } catch {
+            break
+          }
+        }
+      }
+
       try { Show-QuillgeistSplash -Status "CONTROL PLANE LINK ACTIVE" } catch {}
       Write-RunnerHeartbeat -State "connected" -Force
       Write-Log "Connected to Clintware Control Plane." "OK"
@@ -1528,7 +1602,11 @@ try {
 
         $completed[$jobId] = $result
         Save-Completed $completed
+        $pendingResults[$jobId] = $result
+        Save-PendingResults $pendingResults
         Send-Json $ws $result
+        [void]$pendingResults.Remove($jobId)
+        Save-PendingResults $pendingResults
         Write-RunnerHeartbeat -State "connected" -Force
 
         $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
