@@ -305,8 +305,33 @@ $deadmanArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $DeadmanPa
 Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $deadmanArgs -WindowStyle Hidden
 Write-Host "SERVICE // arming restart dead-man" -ForegroundColor DarkCyan
 
-Stop-Service -Name $ServiceName -Force -ErrorAction Stop
-$service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(20))
+$stopped = $false
+try {
+  Stop-Service -Name $ServiceName -Force -ErrorAction Stop
+  $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(20))
+  $stopped = $true
+} catch {
+  Write-Host ("SERVICE WARN // Windows stop request failed: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  try {
+    & sc.exe stop $ServiceName | Out-Null
+    (Get-Service -Name $ServiceName -ErrorAction Stop).WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(12))
+    $stopped = $true
+  } catch {
+    Write-Host ("SERVICE WARN // SCM stop fallback failed: " + $_.Exception.Message) -ForegroundColor DarkYellow
+  }
+}
+if (-not $stopped) {
+  $currentService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  if ($currentService -and $currentService.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running) {
+    $pending = $ServiceExe + ".pending"
+    Move-Item -LiteralPath $tempExe -Destination $pending -Force
+    Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
+    Write-Host "SERVICE_DEFERRED // active watchdog retained; compiled replacement staged for a later safe retry" -ForegroundColor DarkYellow
+    return
+  }
+  Remove-Item $MaintenanceMarker -Force -ErrorAction SilentlyContinue
+  throw "qq health service could not stop and is not running; preserving the current binary for recovery."
+}
 
 $backup = $ServiceExe + ".previous"
 Remove-Item $backup -Force -ErrorAction SilentlyContinue
