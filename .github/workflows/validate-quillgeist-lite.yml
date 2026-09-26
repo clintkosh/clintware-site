@@ -52,6 +52,7 @@ jobs:
             "quillgeist-lite/tasks/responder-agent.ps1",
             "quillgeist-lite/tasks/career-signal-agent.ps1",
             "quillgeist-lite/tasks/bitnet-setup.ps1",
+            "quillgeist-lite/tasks/finish-local-ai.ps1",
             "quillgeist-lite/tasks/record-google-oauth-verification.ps1",
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
@@ -93,8 +94,8 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ($registry.version -ne 12) {
-            throw "Unexpected task registry version."
+          if ([int]$registry.version -lt 14) {
+            throw "Task registry version is older than the auto-continue baseline."
           }
 
           $extensions = @{
