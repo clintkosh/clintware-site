@@ -213,6 +213,8 @@ const DEFAULT_QUILLGEIST_LITE = {
 
 const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/runner.ps1",
+  "quillgeist-lite/launcher.ps1",
+  "quillgeist-lite/tasks/restart-window.ps1",
   "quillgeist-lite/tasks/ensure-powershell.ps1",
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
   "quillgeist-lite/tasks/repair-local-service.ps1",
