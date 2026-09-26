@@ -100,6 +100,37 @@ def _ollama_chat(model: str, messages: list[dict], *, context_tokens: int, max_t
     }
 
 
+def _bitnet_server_chat(model: dict, messages: list[dict], *, context_tokens: int, max_tokens: int, temperature: float, timeout: int, config: dict | None = None) -> dict:
+    settings = dict(config or {})
+    base = str(settings.get("bitnet_server_url") or os.environ.get("QUILLGEIST_BITNET_SERVER_URL") or "http://127.0.0.1:11436").rstrip("/")
+    payload = json.dumps({
+        "prompt": _flatten_messages(messages),
+        "n_predict": max_tokens,
+        "temperature": temperature,
+        "n_ctx": context_tokens,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        base + "/completion",
+        data=payload,
+        method="POST",
+        headers={"content-type": "application/json", "user-agent": "quillgeist-local-gateway"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": "bitnet_server_unavailable", "detail": str(exc)[:500]}
+    text = str(data.get("content") or "")
+    if not text:
+        return {"ok": False, "error": "bitnet_server_empty_response"}
+    return {
+        "ok": True,
+        "text": text,
+        "prompt_tokens": int(data.get("tokens_evaluated") or 0) or None,
+        "completion_tokens": int(data.get("tokens_predicted") or 0) or None,
+    }
+
+
 def _llama_cli_chat(model: dict, messages: list[dict], *, context_tokens: int, max_tokens: int, timeout: int) -> dict:
     exe = local_inference._bitnet_executable("llama-cli") if model.get("runtime") == "bitnet.cpp" else local_inference._which_any(["llama-cli", "llama-cli.exe", "main", "main.exe"])
     if not exe or not model.get("path"):
@@ -146,6 +177,18 @@ def complete(payload: dict, config: dict | None = None) -> tuple[int, dict]:
     started = time.perf_counter()
     if model["runtime"] == "ollama":
         generated = _ollama_chat(model["name"], messages, context_tokens=context_tokens, max_tokens=max_tokens, temperature=temperature, timeout=timeout)
+    elif model["runtime"] == "bitnet.cpp":
+        generated = _bitnet_server_chat(
+            model,
+            messages,
+            context_tokens=context_tokens,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            timeout=timeout,
+            config=config,
+        )
+        if not generated.get("ok"):
+            generated = _llama_cli_chat(model, messages, context_tokens=context_tokens, max_tokens=max_tokens, timeout=timeout)
     else:
         generated = _llama_cli_chat(model, messages, context_tokens=context_tokens, max_tokens=max_tokens, timeout=timeout)
     elapsed = max(0.001, time.perf_counter() - started)
