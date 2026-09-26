@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$KnownGoogleClientId = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com"
 if ($PSVersionTable.PSVersion.Major -ge 7) {
   $PSNativeCommandUseErrorActionPreference = $true
 }
@@ -81,7 +82,8 @@ Write-Host "Authorized redirect URI must be exactly:" -ForegroundColor White
 Write-Host "  https://auth.clintware.com/callback" -ForegroundColor Cyan
 Write-Host ""
 
-$ClientId = (Read-Host "Google OAuth Client ID").Trim()
+$ClientId = $KnownGoogleClientId
+Write-Host "Google OAuth Client ID: $ClientId" -ForegroundColor Cyan
 $ClientSecretSecure = Read-Host "Google OAuth Client Secret" -AsSecureString
 $ClientSecret = Secure-To-Plain $ClientSecretSecure
 
