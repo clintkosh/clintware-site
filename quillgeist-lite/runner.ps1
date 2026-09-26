@@ -512,8 +512,33 @@ function Request-QQSelfEnrollment {
     $safeNonce = [Uri]::EscapeDataString($nonce)
     $authorize = "https://mcp.clintware.com/admin/qq/enroll?device_id=$device&token_hash=$hash&label=$label&callback=$callback&nonce=$safeNonce"
 
-    Write-Log "DEVICE // local credential missing; opening Clintware Identity enrollment." "WARN"
-    try { Start-Process $authorize | Out-Null } catch { throw "Could not open Clintware Identity device enrollment." }
+    Write-Log "DEVICE // local credential missing; Clintware Identity enrollment required." "WARN"
+    $opened = $false
+    try {
+      Start-Process -FilePath $authorize -ErrorAction Stop | Out-Null
+      $opened = $true
+    } catch {
+      try {
+        Start-Process -FilePath "explorer.exe" -ArgumentList $authorize -ErrorAction Stop | Out-Null
+        $opened = $true
+      } catch {}
+    }
+    # A successful Start-Process does not prove a browser tab appeared. Always
+    # show the link and copy it locally so enrollment can continue if Windows
+    # silently drops the URL association.
+    Suspend-QQPrompt
+    Write-Host "DEVICE // Open this enrollment link on MEMORIA in your browser:" -ForegroundColor DarkYellow
+    Write-Host $authorize -ForegroundColor Cyan
+    try {
+      Set-Clipboard -Value $authorize -ErrorAction Stop
+      Write-Host "DEVICE // Link copied to clipboard. Paste it into the browser address bar." -ForegroundColor DarkYellow
+    } catch {
+      Write-Host "DEVICE // Copy the link above into the browser address bar." -ForegroundColor DarkYellow
+    }
+    if (-not $opened) {
+      Write-Host "DEVICE // Windows did not launch a browser automatically." -ForegroundColor DarkYellow
+    }
+    Show-QQPrompt
 
     $pending = $listener.AcceptTcpClientAsync()
     if (-not $pending.Wait([TimeSpan]::FromMinutes(5))) {
