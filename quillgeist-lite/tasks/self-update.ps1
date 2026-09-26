@@ -31,7 +31,18 @@ if (-not (Test-Path $ServiceRepairPath)) {
   throw "QQ self-heal did not materialize the health-service repair script."
 }
 
-Write-Host "SERVICE // aligning QQ health service with packaged source" -ForegroundColor Cyan
+Write-Host "SERVICE // aligning QQ health service with reviewed Clintware source" -ForegroundColor Cyan
+$repairUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/repair-local-service.ps1"
+$repairTemp = $ServiceRepairPath + ".new"
+Invoke-WebRequest -Uri $repairUrl -OutFile $repairTemp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
+if (-not (Select-String -LiteralPath $repairTemp -SimpleMatch "SERVICE_DEFERRED" -Quiet)) {
+  Remove-Item $repairTemp -Force -ErrorAction SilentlyContinue
+  throw "Current qq service repair did not pass structural validation."
+}
+$tokens = $null; $errors = $null
+[System.Management.Automation.Language.Parser]::ParseFile($repairTemp,[ref]$tokens,[ref]$errors) | Out-Null
+if ($errors.Count -gt 0) { Remove-Item $repairTemp -Force -ErrorAction SilentlyContinue; throw "Current qq service repair failed parse validation." }
+Move-Item -LiteralPath $repairTemp -Destination $ServiceRepairPath -Force
 & $ServiceRepairPath -SkipRunnerRestart
 if ($LASTEXITCODE -ne 0) { throw "QQ health-service alignment returned exit code $LASTEXITCODE." }
 
