@@ -10,6 +10,7 @@ $CacheDir = Join-Path $HomeDir "cache"
 $LogPath = Join-Path $HomeDir "runner.log"
 $StatePath = Join-Path $HomeDir "state.json"
 $PendingResultPath = Join-Path $HomeDir "pending-results.json"
+$PendingQuestionPath = Join-Path $HomeDir "pending-questions.json"
 $UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
 $UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
@@ -31,7 +32,7 @@ $script:QQInputBuffer = New-Object Text.StringBuilder
 $script:QQReceiveBuffer = New-Object byte[] 65536
 $script:QQReceiveStream = New-Object IO.MemoryStream
 $script:QQReceiveTask = $null
-$script:PendingQuestions = @{}
+$script:PendingQuestions = Get-PendingQuestions
 $script:LastQuestionPoll = [DateTime]::MinValue
 $script:LastPendingNotice = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
@@ -471,6 +472,33 @@ try {
 if (-not $ownsMutex) {
   Write-Log "Another Quillgeist Lite V3 runner is already active." "WARN"
   exit 0
+}
+
+function Get-PendingQuestions {
+  try {
+    if(Test-Path $PendingQuestionPath){
+      $raw=Get-Content $PendingQuestionPath -Raw | ConvertFrom-Json
+      $map=@{}
+      foreach($p in $raw.PSObject.Properties){
+        $map[$p.Name]=@{
+          text=[string]$p.Value.text
+          created_at=[string]$p.Value.created_at
+          accepted=[bool]$p.Value.accepted
+          mirrored=[bool]$p.Value.mirrored
+        }
+      }
+      return $map
+    }
+  } catch {}
+  return @{}
+}
+
+function Save-PendingQuestions([hashtable]$Map) {
+  try {
+    $temp=$PendingQuestionPath + ".new"
+    [IO.File]::WriteAllText($temp,($Map | ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding($false)))
+    Move-Item -LiteralPath $temp -Destination $PendingQuestionPath -Force
+  } catch {}
 }
 
 function Get-Completed {
@@ -1261,7 +1289,10 @@ function Send-QQQuestion {
   $script:PendingQuestions[$questionId] = @{
     text = $Text
     created_at = (Get-Date).ToUniversalTime().ToString("o")
+    accepted = $false
+    mirrored = $false
   }
+  Save-PendingQuestions $script:PendingQuestions
 
   Send-Json $script:RunnerSocket @{
     type = "question"
@@ -1296,6 +1327,7 @@ function Show-QQAnswer {
 
   if ($questionId) {
     $script:PendingQuestions.Remove($questionId)
+    Save-PendingQuestions $script:PendingQuestions
     try {
       Send-Json $script:RunnerSocket @{
         type = "answer_ack"
@@ -1351,6 +1383,25 @@ function Invoke-QQLocalCommand {
     "help" { Show-QQHelp; return }
     "?" { Show-QQHelp; return }
     "status" { Show-QQStatus; return }
+    "pending" {
+      Suspend-QQPrompt
+      Write-Host ""
+      Write-Host "PENDING QQ REQUESTS" -ForegroundColor White
+      if($script:PendingQuestions.Count -eq 0){
+        Write-Host "  none" -ForegroundColor DarkGray
+      } else {
+        foreach($id in @($script:PendingQuestions.Keys)){
+          $row=$script:PendingQuestions[$id]
+          $state=if([bool]$row.accepted){"accepted"}elseif([bool]$row.mirrored){"private-inbox"}else{"waiting"}
+          $preview=[string]$row.text
+          if($preview.Length -gt 90){$preview=$preview.Substring(0,90)+"..."}
+          Write-Host ("  " + $id.Substring(0,8) + " // " + $state + " // " + $preview) -ForegroundColor Cyan
+        }
+      }
+      Write-Host ""
+      Show-QQPrompt
+      return
+    }
     "health" {
       $healthStatus = if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) { "HEALTHY // CONTROL PLANE LINK ACTIVE" } else { "DEGRADED // RECONNECTING" }
       try { Show-QuillgeistSplash -Status $healthStatus } catch {}
@@ -1650,7 +1701,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.1"
+        version = "1.9.2"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
@@ -1744,6 +1795,7 @@ try {
           if($script:PendingQuestions.ContainsKey($qid)){
             $script:PendingQuestions[$qid].accepted = ($receivers -gt 0)
             $script:PendingQuestions[$qid].mirrored = $mirrored
+            Save-PendingQuestions $script:PendingQuestions
           }
 
           if ($receivers -gt 0) {
