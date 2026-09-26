@@ -139,12 +139,22 @@ if req.get("mode") == "inspect":
         if code == 200 and item.get("ok"):
             row = item.get("job") or {}
             result = row.get("result") or {}
+            recent_logs = row.get("logs") or []
             public["selected_job"] = {
                 "job_id": row.get("job_id"), "task_id": row.get("task_id"),
                 "status": row.get("status"), "requested_by": row.get("requested_by"),
                 "created_at": row.get("created_at"), "completed_at": row.get("completed_at"),
                 "duration_ms": result.get("duration_ms"), "exit_code": result.get("exit_code"),
                 "error_kind": error_kind(result.get("output")),
+                "recent_logs": [
+                    {
+                        "seq": log.get("seq"),
+                        "phase": log.get("phase"),
+                        "timestamp": log.get("timestamp"),
+                        "line": scrub(log.get("line")),
+                    }
+                    for log in recent_logs[-30:]
+                ],
             }
     write_result({
         "request_id": req.get("request_id"),
