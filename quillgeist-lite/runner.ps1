@@ -823,11 +823,21 @@ function Get-TaskArguments {
 }
 
 function Resolve-Python {
-  foreach ($candidate in @("python","python3","py")) {
-    $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
+  $candidates = New-Object System.Collections.Generic.List[string]
+  $miniconda = Join-Path $env:USERPROFILE "Miniconda3\\python.exe"
+  if (Test-Path $miniconda) { $candidates.Add($miniconda) }
+  foreach ($name in @("python.exe","py.exe","python3.exe")) {
+    $cmd = Get-Command $name -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) { $candidates.Add([string]$cmd.Source) }
   }
-  throw "Python runtime not found. Register/run an approved Python-runtime setup task, then retry."
+  foreach ($candidate in ($candidates | Select-Object -Unique)) {
+    if ($candidate -match '(?i)\\\\WindowsApps\\\\') { continue }
+    try {
+      $version = (& $candidate --version 2>&1 | Out-String).Trim()
+      if ($LASTEXITCODE -eq 0 -and $version -match '^Python 3\\.') { return $candidate }
+    } catch {}
+  }
+  throw "A working Python 3 runtime was not found; WindowsApps Store aliases are ignored."
 }
 
 function Resolve-CCompiler {
