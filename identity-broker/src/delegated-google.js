@@ -6,6 +6,7 @@ const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_JWKS = "https://www.googleapis.com/oauth2/v3/certs";
 const GRANT_KEY = "delegated:google:primary";
+const STATUS_KEY = "delegated:google:last-status";
 const BIND_COOKIE = "__Host-clintware-google-delegated";
 const STATE_TTL_MS = 10 * 60 * 1000;
 const SCOPES = [
@@ -115,6 +116,31 @@ function clearCookie() {
   return `${BIND_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
+async function recordDelegatedStatus(env, value = {}) {
+  if (!env.OAUTH_KV) return;
+  const safe = {
+    state: String(value.state || "unknown").slice(0, 40),
+    stage: String(value.stage || "").slice(0, 80),
+    error: String(value.error || "").slice(0, 120),
+    upstreamStatus: Number(value.upstreamStatus || 0),
+    refreshTokenReceived: Boolean(value.refreshTokenReceived),
+    idTokenReceived: Boolean(value.idTokenReceived),
+    updatedAt: new Date().toISOString(),
+  };
+  await env.OAUTH_KV.put(STATUS_KEY, JSON.stringify(safe), { expirationTtl: 7 * 24 * 60 * 60 });
+}
+
+async function readDelegatedStatus(env) {
+  if (!env.OAUTH_KV) return null;
+  const raw = await env.OAUTH_KV.get(STATUS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 const DEFAULT_DELEGATED_GOOGLE_EMAILS = Object.freeze(["clint.kosh@gmail.com", "fedfromchat@gmail.com", "clint@clintware.com", "clint.kosh@clintware.com", "clinton@clintware.com", "hello@clintware.com", "support@clintware.com", "sales@clintware.com", "billing@clintware.com", "abuse@clintware.com", "bb@clintware.com", "studio@clintware.com"]);
 
 function allowedEmails(env) {
@@ -134,6 +160,8 @@ export async function beginDelegatedGoogle(request, env) {
   if (!env.OAUTH_KV || !env.GOOGLE_OAUTH_CLIENT_SECRET) {
     return json({ error: "google_delegated_not_configured" }, 503);
   }
+
+  await recordDelegatedStatus(env, { state: "started", stage: "authorization_redirect" });
 
   const binding = randomToken(32);
   const verifier = randomToken(48);
@@ -175,16 +203,21 @@ export async function finishDelegatedGoogle(request, env) {
   const stateRaw = url.searchParams.get("state") || "";
   const upstreamError = url.searchParams.get("error") || "";
   if (upstreamError) {
+    await recordDelegatedStatus(env, { state: "error", stage: "google_authorization", error: upstreamError });
     return json({ error: "google_delegated_authorization_failed", google_error: upstreamError }, 400, {
       "set-cookie": clearCookie(),
     });
   }
-  if (!code || !stateRaw) return json({ error: "missing_google_delegated_response" }, 400, { "set-cookie": clearCookie() });
+  if (!code || !stateRaw) {
+    await recordDelegatedStatus(env, { state: "error", stage: "callback", error: "missing_google_delegated_response" });
+    return json({ error: "missing_google_delegated_response" }, 400, { "set-cookie": clearCookie() });
+  }
 
   let state;
   try {
     state = await unseal(env, stateRaw, "state");
   } catch {
+    await recordDelegatedStatus(env, { state: "error", stage: "state_unseal", error: "invalid_google_delegated_state" });
     return json({ error: "invalid_google_delegated_state" }, 400, { "set-cookie": clearCookie() });
   }
   const age = Date.now() - Number(state.createdAt || 0);
@@ -197,6 +230,7 @@ export async function finishDelegatedGoogle(request, env) {
     !binding ||
     !(await secureEq(await sha256(binding), state.bindingHash))
   ) {
+    await recordDelegatedStatus(env, { state: "error", stage: "state_validation", error: "google_delegated_state_expired" });
     return json({ error: "google_delegated_state_expired" }, 400, { "set-cookie": clearCookie() });
   }
 
@@ -214,10 +248,20 @@ export async function finishDelegatedGoogle(request, env) {
   });
   const tokens = await tokenResponse.json().catch(() => ({}));
   if (!tokenResponse.ok || !tokens.refresh_token || !tokens.id_token) {
+    await recordDelegatedStatus(env, {
+      state: "error",
+      stage: "token_exchange",
+      error: tokens.error || "google_delegated_token_exchange_failed",
+      upstreamStatus: tokenResponse.status,
+      refreshTokenReceived: Boolean(tokens.refresh_token),
+      idTokenReceived: Boolean(tokens.id_token),
+    });
     return json({
       error: "google_delegated_token_exchange_failed",
       status: tokenResponse.status,
       refresh_token_received: Boolean(tokens.refresh_token),
+      id_token_received: Boolean(tokens.id_token),
+      google_error: String(tokens.error || ""),
     }, 502, { "set-cookie": clearCookie() });
   }
 
@@ -229,10 +273,12 @@ export async function finishDelegatedGoogle(request, env) {
   });
   const claims = verified.payload;
   if (claims.nonce !== state.nonce) {
+    await recordDelegatedStatus(env, { state: "error", stage: "id_token_validation", error: "google_delegated_nonce_mismatch" });
     return json({ error: "google_delegated_nonce_mismatch" }, 400, { "set-cookie": clearCookie() });
   }
   const email = String(claims.email || "").toLowerCase();
   if (!email || !allowedEmails(env).includes(email) || !(claims.email_verified === true || claims.email_verified === "true")) {
+    await recordDelegatedStatus(env, { state: "error", stage: "account_validation", error: "google_delegated_account_not_allowed" });
     return json({ error: "google_delegated_account_not_allowed" }, 403, { "set-cookie": clearCookie() });
   }
 
@@ -244,6 +290,7 @@ export async function finishDelegatedGoogle(request, env) {
     createdAt: Date.now(),
   }, "grant");
   await env.OAUTH_KV.put(GRANT_KEY, grant);
+  await recordDelegatedStatus(env, { state: "connected", stage: "complete" });
 
   return new Response(null, {
     status: 302,
@@ -267,8 +314,12 @@ async function loadGrant(env) {
 }
 
 export async function delegatedGoogleStatus(env) {
-  const grant = await loadGrant(env);
-  return json({ connected: Boolean(grant), scopes: grant ? SCOPES.filter((x) => !["openid", "email", "profile"].includes(x)) : [] });
+  const [grant, last] = await Promise.all([loadGrant(env), readDelegatedStatus(env)]);
+  return json({
+    connected: Boolean(grant),
+    scopes: grant ? SCOPES.filter((x) => !["openid", "email", "profile"].includes(x)) : [],
+    last_status: last,
+  });
 }
 
 export async function internalGoogleAccessToken(request, env) {
