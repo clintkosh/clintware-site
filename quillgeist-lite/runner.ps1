@@ -1701,7 +1701,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.2"
+        version = "1.9.3"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
@@ -1820,6 +1820,23 @@ try {
         }
 
         if ($msg.type -eq "question_status") {
+          $changed=$false
+          try {
+            foreach($question in @($msg.pending_questions)){
+              $qid=[string]$question.question_id
+              if(-not $qid){continue}
+              if(-not $script:PendingQuestions.ContainsKey($qid)){
+                $script:PendingQuestions[$qid]=@{
+                  text=[string]$question.text
+                  created_at=[string]$question.created_at
+                  accepted=$false
+                  mirrored=$true
+                }
+                $changed=$true
+              }
+            }
+          } catch {}
+          if($changed){Save-PendingQuestions $script:PendingQuestions}
           continue
         }
 
