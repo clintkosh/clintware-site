@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import hmac
+import os
 import shutil
 import time
 import urllib.error
@@ -13,6 +15,13 @@ from . import local_inference
 
 _MAX_BODY = 1024 * 1024
 _LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+
+
+def _public_model_id(model: dict) -> str:
+    runtime = str(model.get("runtime") or "local")
+    name = str(model.get("name") or model.get("id") or "model")
+    prefix = {"ollama": "ollama", "bitnet.cpp": "bitnet", "llama.cpp": "llama"}.get(runtime, runtime.replace(".", "-"))
+    return f"{prefix}/{name}"
 
 
 def _flatten_messages(messages: list[dict]) -> str:
@@ -41,7 +50,13 @@ def _resolve_model(requested: str, config: dict | None = None) -> dict | None:
     models = local_inference.model_inventory(config)
     requested = str(requested or "").strip()
     if requested and requested not in {"auto", "local-auto"}:
-        return local_inference._find_model(requested, models)
+        direct = local_inference._find_model(requested, models)
+        if direct:
+            return direct
+        for row in models:
+            if requested == _public_model_id(row):
+                return row
+        return None
     profile = local_inference.active_profile()
     if profile.get("active"):
         found = local_inference._find_model(str(profile.get("model") or ""), models)
@@ -102,8 +117,6 @@ def _llama_cli_chat(model: dict, messages: list[dict], *, context_tokens: int, m
 
 
 def complete(payload: dict, config: dict | None = None) -> tuple[int, dict]:
-    if payload.get("stream"):
-        return 400, {"error": {"message": "Streaming is not enabled in the current Quillgeist local gateway.", "type": "unsupported_request"}}
     messages = payload.get("messages")
     if not isinstance(messages, list) or not messages:
         return 400, {"error": {"message": "messages must be a non-empty array", "type": "invalid_request"}}
@@ -183,20 +196,65 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _authorized(self) -> bool:
+        expected = str(getattr(self.server, "quillgeist_api_key", "") or "")
+        if not expected:
+            return True
+        header = str(self.headers.get("authorization") or "")
+        if not header.lower().startswith("bearer "):
+            return False
+        supplied = header[7:].strip()
+        return bool(supplied) and hmac.compare_digest(supplied, expected)
+
+    def _stream_chat(self, response: dict) -> None:
+        message = (((response.get("choices") or [{}])[0].get("message") or {}).get("content") or "")
+        base = {
+            "id": response.get("id"),
+            "object": "chat.completion.chunk",
+            "created": response.get("created"),
+            "model": response.get("model"),
+        }
+        chunks = [
+            {**base, "choices": [{"index": 0, "delta": {"role": "assistant", "content": str(message)}, "finish_reason": None}]},
+            {**base, "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]},
+        ]
+        body = "".join("data: " + json.dumps(item) + "\n\n" for item in chunks) + "data: [DONE]\n\n"
+        raw = body.encode("utf-8")
+        self.send_response(200)
+        self.send_header("content-type", "text/event-stream; charset=utf-8")
+        self.send_header("cache-control", "no-store")
+        self.send_header("connection", "close")
+        self.send_header("content-length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
     def do_GET(self) -> None:
         if self.path == "/health":
-            self._json(200, {"ok": True, "service": "Quillgeist Local Gateway", "loopback_only": True})
+            self._json(200, {
+                "ok": True,
+                "service": "Quillgeist Local Gateway",
+                "auth_required": bool(getattr(self.server, "quillgeist_api_key", "")),
+                "listen": str(getattr(self.server, "quillgeist_listen", "")),
+            })
+            return
+        if not self._authorized():
+            self._json(401, {"error": {"message": "invalid_api_key", "type": "authentication_error"}})
             return
         if self.path == "/v1/models":
             config = getattr(self.server, "quillgeist_config", {})
             rows = local_inference.model_inventory(config)
-            self._json(200, {"object": "list", "data": [{"id": r["id"], "object": "model", "owned_by": "local"} for r in rows]})
+            data = [{"id": "local-auto", "object": "model", "owned_by": "local"}]
+            data.extend({"id": _public_model_id(r), "object": "model", "owned_by": "local"} for r in rows)
+            self._json(200, {"object": "list", "data": data})
             return
         self._json(404, {"error": {"message": "not_found", "type": "not_found"}})
 
     def do_POST(self) -> None:
         if self.path != "/v1/chat/completions":
             self._json(404, {"error": {"message": "not_found", "type": "not_found"}})
+            return
+        if not self._authorized():
+            self._json(401, {"error": {"message": "invalid_api_key", "type": "authentication_error"}})
             return
         try:
             length = int(self.headers.get("content-length") or 0)
@@ -210,21 +268,39 @@ class GatewayHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._json(400, {"error": {"message": "invalid JSON", "type": "invalid_request"}})
             return
+        wants_stream = bool(payload.get("stream"))
+        if wants_stream:
+            payload = dict(payload)
+            payload["stream"] = False
         status, response = complete(payload, getattr(self.server, "quillgeist_config", {}))
+        if wants_stream and status == 200:
+            self._stream_chat(response)
+            return
         self._json(status, response)
 
     def log_message(self, fmt: str, *args) -> None:
         return
 
 
-def serve(config: dict | None = None, *, host: str = "127.0.0.1", port: int = 11435) -> None:
+def serve(config: dict | None = None, *, host: str = "127.0.0.1", port: int = 11435, api_key: str = "") -> None:
+    settings = dict(config or {})
     host = str(host or "127.0.0.1").strip().lower()
-    if host not in _LOOPBACK:
-        raise ValueError("Quillgeist local gateway may bind only to a loopback address.")
     port = max(1024, min(int(port or 11435), 65535))
+    key = str(api_key or settings.get("gateway_api_key") or os.environ.get("QUILLGEIST_GATEWAY_API_KEY") or "").strip()
+    loopback_only = host in _LOOPBACK
+    if not loopback_only and len(key) < 32:
+        raise ValueError("A non-loopback Quillgeist gateway requires a 32+ character bearer key.")
     server = ThreadingHTTPServer((host, port), GatewayHandler)
-    server.quillgeist_config = dict(config or {})
-    print(json.dumps({"ok": True, "service": "Quillgeist Local Gateway", "listen": f"http://{host}:{port}", "loopback_only": True}))
+    server.quillgeist_config = settings
+    server.quillgeist_api_key = key
+    server.quillgeist_listen = f"http://{host}:{port}"
+    print(json.dumps({
+        "ok": True,
+        "service": "Quillgeist Local Gateway",
+        "listen": server.quillgeist_listen,
+        "loopback_only": loopback_only,
+        "auth_required": bool(key),
+    }))
     server.serve_forever()
 
 
