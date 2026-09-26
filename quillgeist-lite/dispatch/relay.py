@@ -63,6 +63,43 @@ if not TOKEN:
 with open(REQUEST_FILE, "r", encoding="utf-8") as f:
     req = json.load(f)
 
+def error_kind(message):
+    line = str(message or "").lower()
+    if "task registry" in line:
+        return "task_registry_missing"
+    if "health service is not installed" in line:
+        return "health_service_missing"
+    if "scheduled task" in line and ("missing" in line or "cannot find" in line):
+        return "managed_task_missing"
+    if "packaged" in line and ("missing" in line or "not found" in line):
+        return "runtime_bundle_missing"
+    if "timed out" in line or "timeout" in line:
+        return "timeout"
+    return "other"
+
+if req.get("mode") == "inspect":
+    code, payload = request_json("GET", "/api/v1/quillgeist-lite/status")
+    if code != 200 or not payload.get("ok"):
+        raise SystemExit("status_inspection_failed")
+    diagnostics = payload.get("diagnostics") or []
+    jobs = payload.get("jobs") or []
+    public = {
+        "online": payload.get("online"),
+        "wake_online": payload.get("wake_online"),
+        "runner_version": (payload.get("runner") or {}).get("version"),
+        "jobs": [
+            {"job_id": row.get("job_id"), "task_id": row.get("task_id"), "status": row.get("status")}
+            for row in jobs[:12]
+        ],
+        "diagnostics": [
+            {"level": row.get("level"), "phase": row.get("phase"), "kind": error_kind(row.get("message")),
+             "timestamp": row.get("timestamp")}
+            for row in diagnostics[:12]
+        ],
+    }
+    print("INSPECT_OK " + json.dumps(public, indent=2), flush=True)
+    sys.exit(0)
+
 task_id = str(req.get("task_id") or "")
 args = req.get("args") or {}
 if task_id not in ALLOWED:
