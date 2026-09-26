@@ -10,6 +10,7 @@ verifies the resulting profile before returning success.
 from __future__ import annotations
 
 import argparse
+import base64
 import binascii
 import json
 import math
@@ -24,7 +25,7 @@ import urllib.request
 import uuid
 import zlib
 
-VERSION = "2026.09.24.10"
+VERSION = "2026.09.26.2"
 PROFILE_GUID = "{4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
 PROFILE_NAME = "Quillgeist Lite"
 LEGACY_PROFILE_GUID = "{5c7d2c59-4989-4f24-9f07-cbd0a38acb6d}"
@@ -183,6 +184,20 @@ def encode_png_rgb(width: int, height: int, rgb: bytes) -> bytes:
         + png_chunk(b"IEND", b"")
     )
 
+def install_canonical_logo(path: pathlib.Path, home: pathlib.Path) -> None:
+    """Use the supplied compact Clintware eclipse PNG; never upscale it."""
+    asset = home / "clintware-terminal-logo.b64"
+    try:
+        raw = asset.read_text(encoding="utf-8").strip()
+        data = base64.b64decode(raw, validate=True)
+        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise RuntimeError("decoded logo is not PNG")
+        atomic_write_bytes(path, data)
+        return
+    except Exception as exc:
+        log(f"WARN // canonical logo unavailable; using deterministic fallback: {exc}")
+    generate_boot_image(path)
+
 def generate_boot_image(path: pathlib.Path) -> None:
     width, height = 1280, 900
     buf = bytearray(width * height * 3)
@@ -294,14 +309,14 @@ def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: 
             "adjustIndistinguishableColors": "never",
             "backgroundImage": str(image_path),
             "backgroundImageAlignment": "center",
-            "backgroundImageOpacity": 0.16,
-            "backgroundImageStretchMode": "uniform",
+            "backgroundImageOpacity": 0.08,
+            "backgroundImageStretchMode": "none",
             "experimental.retroTerminalEffect": False,
             "font": {"face": "Cascadia Mono", "size": 11, "weight": "normal"},
             "unfocusedAppearance": {
                 "opacity": 84,
                 "useAcrylic": True,
-                "backgroundImageOpacity": 0.10,
+                "backgroundImageOpacity": 0.05,
             },
         }],
         "schemes": [{
@@ -336,7 +351,7 @@ def verify(fragment_path: pathlib.Path, image_path: pathlib.Path, launcher_path:
         raise RuntimeError("PowerShell executable verification failed.")
     if not launcher_path.is_file() or launcher_path.stat().st_size < 800:
         raise RuntimeError("Managed launcher verification failed.")
-    if not image_path.is_file() or image_path.stat().st_size < 20000:
+    if not image_path.is_file() or image_path.stat().st_size < 3000:
         raise RuntimeError("Retro boot image verification failed.")
     with image_path.open("rb") as handle:
         if handle.read(8) != b"\x89PNG\r\n\x1a\n":
@@ -378,8 +393,8 @@ def main() -> int:
 
         log(f"PYTHON // terminal self-repair {VERSION}")
         refresh_launcher(launcher_path)
-        generate_boot_image(image_path)
-        log("PYTHON // deterministic 70s/DOS boot image generated")
+        install_canonical_logo(image_path, home)
+        log("PYTHON // compact canonical Clintware logo installed")
         commandline = build_boot_command(ps_exe, launcher_path)
         write_fragment(fragment_path, home, image_path, commandline)
         log("PYTHON // Windows Terminal profile written atomically")
