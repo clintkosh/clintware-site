@@ -1,6 +1,4 @@
 {
-  "request_id": "chatgpt-memoria-bitnet-20260926-0203",
-  "task_id": "bitnet-setup",
-  "args": {},
-  "objective": "Install or refresh the existing official Microsoft BitNet runtime on MEMORIA using F:\\AI-Data when available, without moving or deleting user files and without touching D:. Use the real Miniconda Python rather than Windows Store aliases. Build both CLI and llama-server, run a real CLI generation, then run a temporary HTTP server completion round trip and return evidence."
+  "request_id": "chatgpt-memoria-inspect-bitnet-20260926-0205",
+  "mode": "inspect"
 }
