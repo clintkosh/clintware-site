@@ -75,6 +75,12 @@ def error_kind(message):
         return "runtime_bundle_missing"
     if "timed out" in line or "timeout" in line:
         return "timeout"
+    if "connection error" in line or "websocket" in line:
+        return "connection_error"
+    if "cannot find the file specified" in line:
+        return "file_not_found"
+    if "service" in line and ("missing" in line or "not installed" in line):
+        return "service_missing"
     return "other"
 
 if req.get("mode") == "inspect":
@@ -87,6 +93,7 @@ if req.get("mode") == "inspect":
         "online": payload.get("online"),
         "wake_online": payload.get("wake_online"),
         "runner_version": (payload.get("runner") or {}).get("version"),
+        "runner_last_seen": (payload.get("runner") or {}).get("last_seen"),
         "jobs": [
             {"job_id": row.get("job_id"), "task_id": row.get("task_id"), "status": row.get("status")}
             for row in jobs[:12]
@@ -97,6 +104,19 @@ if req.get("mode") == "inspect":
             for row in diagnostics[:12]
         ],
     }
+    job_id = str(req.get("job_id") or "")
+    if job_id and len(job_id) <= 120:
+        code, item = request_json("GET", "/api/v1/quillgeist-lite/jobs/" + job_id)
+        if code == 200 and item.get("ok"):
+            row = item.get("job") or {}
+            result = row.get("result") or {}
+            public["selected_job"] = {
+                "job_id": row.get("job_id"), "task_id": row.get("task_id"),
+                "status": row.get("status"), "requested_by": row.get("requested_by"),
+                "created_at": row.get("created_at"), "completed_at": row.get("completed_at"),
+                "duration_ms": result.get("duration_ms"), "exit_code": result.get("exit_code"),
+                "error_kind": error_kind(result.get("output")),
+            }
     print("INSPECT_OK " + json.dumps(public, indent=2), flush=True)
     sys.exit(0)
 
