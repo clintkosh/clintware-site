@@ -1268,6 +1268,36 @@ function Invoke-AllowlistedTask {
     throw "Task source escaped the packaged QQ runtime."
   }
 
+  # These reviewed maintenance sources are served by the same Clintware
+  # repository-backed runtime endpoint used by the launcher. Refresh them
+  # before execution so a packaged older repair can recover without another
+  # local PowerShell paste or a new device enrollment.
+  $freshSources = @{
+    "repair-local-service" = @{ Relative = "tasks/repair-local-service.ps1"; Required = "SERVICE_DEFERRED" }
+    "self-update" = @{ Relative = "tasks/self-update.ps1"; Required = "SYNC // reconciling QQ" }
+    "local-ai" = @{ Relative = "tools/local_ai.py"; Required = "def gguf_files" }
+  }
+  $fresh = $freshSources[[string]$Job.task_id]
+  if ($fresh) {
+    $uri = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/" + $fresh.Relative
+    $tempSource = $localSource + ".new"
+    try {
+      Invoke-WebRequest -Uri $uri -OutFile $tempSource -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
+      $body = Get-Content -LiteralPath $tempSource -Raw
+      if ($body.Length -lt 500 -or -not $body.Contains($fresh.Required)) { throw "Reviewed task source failed structural validation." }
+      if ($runtime -eq "powershell") {
+        $tokens = $null; $parseErrors = $null
+        [Management.Automation.Language.Parser]::ParseFile($tempSource,[ref]$tokens,[ref]$parseErrors) | Out-Null
+        if ($parseErrors.Count -gt 0) { throw "Reviewed task source failed PowerShell parse validation." }
+      }
+      Move-Item -LiteralPath $tempSource -Destination $localSource -Force
+      Write-Log ("Refreshed reviewed task source: " + [string]$Job.task_id) "OK"
+    } catch {
+      Remove-Item -LiteralPath $tempSource -Force -ErrorAction SilentlyContinue
+      throw ("Could not refresh reviewed " + [string]$Job.task_id + " source from Clintware: " + $_.Exception.Message)
+    }
+  }
+
   $taskArgs = Get-TaskArguments $task $Job $runtime
   Write-Log ("Running task {0} [{1}] ({2})" -f $Job.task_id,$runtime,$scriptPath)
 
