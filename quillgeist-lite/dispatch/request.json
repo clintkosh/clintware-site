@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-crisp-ascii-logo-20260925",
-  "task_id": "self-update",
+  "request_id": "chatgpt-qq-bridge-check-20260926-0036",
+  "task_id": "clintware-doctor",
   "args": {},
-  "objective": "Pull the new terminal-native Clintware eclipse mark into the local qq install and restart cleanly so the blurry bitmap logo is no longer rendered."
+  "objective": "Verify the existing ChatGPT GitHub Actions to Clintware Control Plane to MEMORIA qq dispatch path and report local runtime/registry state. Read-only diagnostics only."
 }
