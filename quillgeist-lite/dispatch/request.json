@@ -1,6 +1,8 @@
 {
-  "request_id": "chatgpt-qq-registry-restored-20260926-0059",
-  "task_id": "clintware-doctor",
-  "args": {},
-  "objective": "Verify MEMORIA's restored qq task bundle and report local runtime, hardware, disk, and prerequisites for the full local AI server build. Read-only."
+  "request_id": "chatgpt-memoria-local-ai-status-20260926-0100",
+  "task_id": "local-ai",
+  "args": {
+    "Action": "status"
+  },
+  "objective": "Read-only inventory of MEMORIA memory, installed local AI runtimes and models for local server build with switchable BitNet."
 }
