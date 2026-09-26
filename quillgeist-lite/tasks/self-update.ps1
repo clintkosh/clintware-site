@@ -35,4 +35,9 @@ Write-Host "SERVICE // aligning QQ health service with packaged source" -Foregro
 & $ServiceRepairPath -SkipRunnerRestart
 if ($LASTEXITCODE -ne 0) { throw "QQ health-service alignment returned exit code $LASTEXITCODE." }
 
-Write-Host "READY // QQ reconciled locally. Distribution upgrades are delivered through the maintained QQ.exe package." -ForegroundColor Green
+$pendingBinary = Join-Path $env:ProgramData "Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe.pending"
+if (Test-Path $pendingBinary) {
+  Write-Host "PARTIAL // QQ runner is reconciled; Windows deferred the health-service binary replacement." -ForegroundColor DarkYellow
+} else {
+  Write-Host "READY // QQ reconciled locally. Distribution upgrades are delivered through the maintained QQ.exe package." -ForegroundColor Green
+}
