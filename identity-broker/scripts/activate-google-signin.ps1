@@ -25,7 +25,7 @@ function Secure-To-Plain {
 function Set-GitHubSecret {
   param([string]$Name,[string]$Value)
   if ([string]::IsNullOrWhiteSpace($Value)) { throw "$Name is empty." }
-  $Value | gh secret set $Name --repo $Repo --body -
+  gh secret set $Name --repo $Repo --body "$Value"
   if ($LASTEXITCODE -ne 0) { throw "Could not save GitHub secret $Name." }
 }
 
