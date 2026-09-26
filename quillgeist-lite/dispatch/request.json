@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-launch-memoria-qq-20260926-0124",
-  "task_id": "bootstrap-admin-console",
+  "request_id": "chatgpt-show-memoria-qq-window-20260926-0125",
+  "task_id": "restart-window",
   "args": {},
-  "objective": "Restore and launch the supervised Quillgeist Lite admin console on MEMORIA from the existing packaged runtime and device registration. Verify service, managed task, runner connection, and visible console."
+  "objective": "Reopen the supervised visible Quillgeist Lite admin console on MEMORIA using its existing scheduled task; verify the runner reconnects afterward."
 }
