@@ -102,6 +102,16 @@ def error_kind(message):
         return "managed_task_missing"
     if "packaged" in line and ("missing" in line or "not found" in line):
         return "runtime_bundle_missing"
+    if "enrollment" in line and ("timed out" in line or "timeout" in line):
+        return "device_enrollment_timeout"
+    if "address already in use" in line or "only one usage of each socket address" in line:
+        return "local_listener_conflict"
+    if "unauthorizedaccessexception" in line or "access is denied" in line:
+        return "local_access_denied"
+    if "401" in line and ("websocket" in line or "server returned" in line or "status code" in line):
+        return "websocket_401"
+    if "start-process" in line and ("fail" in line or "error" in line):
+        return "browser_launch_failed"
     if "timed out" in line or "timeout" in line:
         return "timeout"
     if "connection error" in line or "websocket" in line:
