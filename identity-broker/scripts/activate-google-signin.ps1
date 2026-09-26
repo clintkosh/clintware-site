@@ -41,6 +41,29 @@ function Get-LatestWorkflowRunId {
   return [string]$rows[0].databaseId
 }
 
+function Test-GoogleClientPair {
+  param([string]$ClientId,[string]$ClientSecret)
+
+  $Body = @{
+    code = "clintware-local-intentionally-invalid-code"
+    client_id = $ClientId
+    client_secret = $ClientSecret
+    redirect_uri = "https://auth.clintware.com/callback"
+    grant_type = "authorization_code"
+  }
+
+  try {
+    Invoke-RestMethod -Method Post -Uri "https://oauth2.googleapis.com/token" -ContentType "application/x-www-form-urlencoded" -Body $Body | Out-Null
+    return $true
+  } catch {
+    $Message = $_.ErrorDetails.Message
+    if ([string]::IsNullOrWhiteSpace($Message)) { $Message = $_.Exception.Message }
+    if ($Message -match '"error"\s*:\s*"invalid_client"') { return $false }
+    if ($Message -match '"error"\s*:\s*"invalid_grant"') { return $true }
+    throw "Unexpected Google token preflight response: $Message"
+  }
+}
+
 Require-Command gh
 
 gh auth status 2>$null
@@ -50,9 +73,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "=== ACTIVATE CLINTWARE GOOGLE SIGN-IN ===" -ForegroundColor Cyan
-Write-Host "Identity scopes only: openid + email + profile." -ForegroundColor Green
-Write-Host "No Gmail/Calendar scopes, offline access, or Google refresh token are requested." -ForegroundColor Yellow
+Write-Host "=== REPAIR CLINTWARE GOOGLE + CALENDAR AUTH ===" -ForegroundColor Cyan
+Write-Host "This verifies one Web OAuth client ID + secret pair, deploys the broker, then authorizes Calendar/Meet." -ForegroundColor Green
 Write-Host ""
 Write-Host "Use the Google Web application OAuth client from the EXISTING Clintware Google Cloud project." -ForegroundColor White
 Write-Host "Authorized redirect URI must be exactly:" -ForegroundColor White
@@ -72,23 +94,11 @@ if ($ClientId -notmatch '^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$')
 }
 
 Write-Host ""
-Write-Host "Checking whether Google recognizes the client ID..." -ForegroundColor Cyan
-$ProbeUrl = "https://accounts.google.com/o/oauth2/v2/auth?client_id=$([uri]::EscapeDataString($ClientId))&redirect_uri=$([uri]::EscapeDataString('https://auth.clintware.com/callback'))&response_type=code&scope=openid%20email%20profile&state=clintware-preflight&nonce=clintware-preflight"
-
-$ProbeFile = Join-Path $env:TEMP "clintware-google-oauth-probe.html"
-try {
-  & curl.exe -L -sS --max-time 20 $ProbeUrl -o $ProbeFile
-  if ($LASTEXITCODE -eq 0 -and (Test-Path $ProbeFile)) {
-    $ProbeBody = Get-Content $ProbeFile -Raw
-    if ($ProbeBody -match 'OAuth client was not found|Error 401:\s*invalid_client|invalid_client') {
-      throw "Google reports this OAuth client is not found. Create/select the Web application client in Google Auth Platform > Clients for the EXISTING Clintware project."
-    }
-  }
-} finally {
-  Remove-Item $ProbeFile -Force -ErrorAction SilentlyContinue
+Write-Host "Checking Google OAuth client ID + secret as a pair..." -ForegroundColor Cyan
+if (-not (Test-GoogleClientPair -ClientId $ClientId -ClientSecret $ClientSecret)) {
+  throw "Google rejected this OAuth client ID + secret pair with invalid_client. Nothing was saved."
 }
-
-Write-Host "Google client preflight did not report invalid_client." -ForegroundColor Green
+Write-Host "PASS // Google accepts the client credentials as a pair." -ForegroundColor Green
 Write-Host ""
 Write-Host "Saving credentials as encrypted GitHub Actions secrets..." -ForegroundColor Cyan
 
@@ -131,12 +141,29 @@ if ($Mail.client_id -ne "https://auth.clintware.com/client/clintware-web") {
 }
 
 Write-Host ""
-Write-Host "==========================================" -ForegroundColor Green
-Write-Host " CLINTWARE GOOGLE SIGN-IN IS ACTIVE" -ForegroundColor Green
-Write-Host "==========================================" -ForegroundColor Green
-Write-Host "Authority : https://auth.clintware.com"
-Write-Host "N7 login  : https://n7.clintware.com/operator"
-Write-Host "MCP admin : https://mcp.clintware.com/admin"
+Write-Host "Opening delegated Gmail/Calendar authorization..." -ForegroundColor Cyan
+$DelegatedUrl = "https://auth.clintware.com/delegated/google/start"
+Start-Process $DelegatedUrl
+Write-Host "Approve Gmail send, Calendar events, and Calendar free/busy using the account that owns the calendar." -ForegroundColor Yellow
+
+$Deadline = (Get-Date).AddMinutes(4)
+do {
+  Start-Sleep -Seconds 2
+  $Delegated = Invoke-RestMethod "https://auth.clintware.com/delegated/google/status"
+  if ($Delegated.connected) { break }
+} while ((Get-Date) -lt $Deadline)
+
+if (-not $Delegated.connected) {
+  $Delegated | ConvertTo-Json -Depth 6
+  throw "Delegated Google authorization did not reach connected state."
+}
+
 Write-Host ""
-Write-Host "The Google upstream client is separate from Clintware's internal first-party client ID." -ForegroundColor Yellow
-Write-Host "Gmail/Calendar delegated access remains separate." -ForegroundColor Yellow
+Write-Host "==========================================" -ForegroundColor Green
+Write-Host " GOOGLE CALENDAR AUTH IS CONNECTED" -ForegroundColor Green
+Write-Host "==========================================" -ForegroundColor Green
+Write-Host "Authority  : https://auth.clintware.com"
+Write-Host "Scheduler  : https://meet.clintware.com"
+Write-Host "Host invite: clint@clintware.com"
+Write-Host ""
+$Delegated | ConvertTo-Json -Depth 6
