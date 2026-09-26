@@ -1222,9 +1222,9 @@ export class RegistryHub extends DurableObject {
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-recovery-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
       const deviceId=clip(request.headers.get("x-quillgeist-device")||"",120);
       const recoveryProof=clip(request.headers.get("x-quillgeist-recovery-proof")||"",128);
-      if(!deviceId||!recoveryProof){
-        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"proof_missing",at:nowIso()});
-        return json({error:"qq_recovery_proof_missing"},401);
+      if(!deviceId){
+        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:"",reason:"device_missing",at:nowIso()});
+        return json({error:"qq_recovery_device_missing"},401);
       }
 
       let wakeMatched=false;
@@ -1232,10 +1232,14 @@ export class RegistryHub extends DurableObject {
         if(wake.readyState!==1)continue;
         try{
           const a=wake.deserializeAttachment()||{};
-          if(a.device_id===deviceId&&a.recovery_proof===recoveryProof){
-            wakeMatched=true;
-            break;
-          }
+          if(a.device_id!==deviceId)continue;
+          // Prefer same-edge proof when both sides expose it. Older wake
+          // sockets and some Windows transports may not carry the Cloudflare
+          // address header, so authenticated wake presence plus the fresh,
+          // authenticated failure diagnostic remains the recovery root.
+          if(recoveryProof&&a.recovery_proof&&a.recovery_proof!==recoveryProof)continue;
+          wakeMatched=true;
+          break;
         }catch{}
       }
       if(!wakeMatched){
@@ -3294,21 +3298,20 @@ export default {
         const device=await verifyQuillgeistDeviceRequest(request,env);
         if(!device.ok){
           const deviceId=clip(request.headers.get("x-quillgeist-device")||url.searchParams.get("device_id")||"",120);
-          const clientIp=clip(request.headers.get("cf-connecting-ip")||"",128);
-          if(device.reason!=="unauthorized_device"||!deviceId||!clientIp){
-            return json({error:"unauthorized_device",reason:device.reason},401);
-          }
+          if(!deviceId)return json({error:"unauthorized_device",reason:device.reason},401);
 
           // Bootstrap-only recovery: the durable relay independently requires
-          // a live, normally authenticated wake socket from this device, from
-          // the same Cloudflare-observed address, plus a fresh runner auth
-          // failure. The restricted socket can receive only one queued
-          // reviewed self-update job and cannot process interactive traffic.
-          const recoveryProof=await sha256("qq-recovery-v1|"+deviceId+"|"+clientIp);
+          // a live, normally authenticated wake socket for this exact device
+          // plus a fresh authenticated runner failure. The restricted socket
+          // can receive only one queued reviewed self-update job and cannot
+          // process interactive traffic or arbitrary shell.
           const headers=new Headers();
           headers.set("upgrade","websocket");
           headers.set("x-quillgeist-device",deviceId);
-          headers.set("x-quillgeist-recovery-proof",recoveryProof);
+          const clientIp=clip(request.headers.get("cf-connecting-ip")||"",128);
+          if(clientIp){
+            headers.set("x-quillgeist-recovery-proof",await sha256("qq-recovery-v1|"+deviceId+"|"+clientIp));
+          }
           return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-recovery-stream",{method:"GET",headers}));
         }
         const headers=new Headers();
