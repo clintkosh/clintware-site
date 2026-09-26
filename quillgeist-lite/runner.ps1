@@ -1287,6 +1287,7 @@ function Invoke-AllowlistedTask {
     "self-update" = @{ Relative = "tasks/self-update.ps1"; Required = "SYNC // reconciling QQ" }
     "local-ai" = @{ Relative = "tools/local_ai.py"; Required = "def gguf_files" }
     "bitnet-setup" = @{ Relative = "tasks/bitnet-setup.ps1"; Required = "Running temporary BitNet HTTP server round trip" }
+    "local-ai-integrate" = @{ Relative = "tasks/integrate-local-ai.ps1"; Required = "Running n8n-path generation through BitNet" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
