@@ -1,8 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-ai-services-20260926-0131",
-  "task_id": "local-ai",
-  "args": {
-    "Action": "services"
-  },
-  "objective": "Read-only check of existing MEMORIA local AI server endpoints: Open WebUI, Ollama, SearXNG, n8n, pipelines, and optional agents. Use bounded current reviewed local_ai.py source."
+  "request_id": "chatgpt-memoria-self-update-20260926-0136",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Refresh the running MEMORIA Quillgeist Lite runtime from the current reviewed package/source so the corrected Python resolver ignores WindowsApps aliases and prefers the installed Miniconda3 Python. Preserve the healthy watchdog and avoid duplicate windows."
 }
