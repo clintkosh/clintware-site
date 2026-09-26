@@ -192,7 +192,8 @@ function Read-QQConsoleLine {
         $null = $script:QQInputBuffer.Clear()
         Write-Host ""
         $script:QQPromptVisible = $false
-        Mark-QQVisibleActivity\n        return [pscustomobject]@{Ready=$true;Line=$line}
+        Mark-QQVisibleActivity
+        return [pscustomobject]@{Ready=$true;Line=$line}
       }
 
       if ($key.Key -eq [ConsoleKey]::Backspace) {
@@ -801,7 +802,8 @@ function Emit-TaskLine {
   }
 
   Suspend-QQPrompt
-  Write-Host $safe -ForegroundColor $displayColor\n  Mark-QQVisibleActivity
+  Write-Host $safe -ForegroundColor $displayColor
+  Mark-QQVisibleActivity
   Show-QQPrompt
 
   Write-RunnerHeartbeat -State "busy" -JobId ([string]$Job.job_id) -TaskId ([string]$Job.task_id)
@@ -1641,7 +1643,8 @@ try {
       Show-QQPrompt
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
-        Write-RunnerHeartbeat -State "connected"\n        Show-QQIdleNotice
+        Write-RunnerHeartbeat -State "connected"
+        Show-QQIdleNotice
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
@@ -1668,7 +1671,8 @@ try {
           continue
         }
         if ($incoming.State -eq "closed") { break }
-        $msg = $incoming.Message\n        Mark-QQVisibleActivity
+        $msg = $incoming.Message
+        Mark-QQVisibleActivity
         if ($null -eq $msg) {
           Start-Sleep -Milliseconds 35
           continue
