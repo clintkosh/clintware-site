@@ -2,7 +2,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$revision = 'a21a868305ebd1b3cdf7b7851e1957649c11343e'
+$revision = 'eef4e6bf7d3295dc29acc69a1fe5bab2ab9e09d4'
 $qqDir = Join-Path $env:LOCALAPPDATA 'Clintware\QuillgeistLite'
 $runtime = Join-Path $qqDir 'runtime'
 $registry = Join-Path $qqDir 'tasks.json'
@@ -73,6 +73,12 @@ try {
     $registryTemp = $registry + '.new'
     Copy-Item -LiteralPath (Join-Path $runtime 'quillgeist-lite\tasks.json') -Destination $registryTemp -Force
     Move-Item -LiteralPath $registryTemp -Destination $registry -Force
+    foreach ($name in @('runner.ps1','launcher.ps1')) {
+        $target = Join-Path $qqDir $name
+        $temp = $target + '.new'
+        Copy-Item -LiteralPath (Join-Path $runtime ('quillgeist-lite\' + $name)) -Destination $temp -Force
+        Move-Item -LiteralPath $temp -Destination $target -Force
+    }
     Write-Output ("QQ RUNTIME RESTORED // $(@($taskMap.tasks.PSObject.Properties).Count) reviewed tasks")
     Write-Output 'QQ DEVICE CONNECTION PRESERVED // retry a fresh job'
 } catch {
