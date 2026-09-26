@@ -1,8 +1,5 @@
 {
-  "request_id": "chatgpt-qq-postrestart-connectivity-20260926",
-  "task_id": "python-runtime-check",
-  "args": {
-    "Message": "QQ_POST_RESTART_OK"
-  },
-  "objective": "Verify the newly restarted Memoria qq runner is connected and can execute a fresh reviewed task after the two-pane launcher repair."
+  "request_id": "chatgpt-qq-auth-recovery-inspect-20260926",
+  "mode": "inspect",
+  "job_id": "6f4ddd73-bfaf-4222-8f85-dcc3c48a5c85"
 }
