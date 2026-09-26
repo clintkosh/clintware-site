@@ -82,7 +82,46 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tempExe)) {
 $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if (-not $service) {
   Remove-Item $tempExe -Force -ErrorAction SilentlyContinue
-  throw "The qq health service is not installed; run the maintained qq installer instead."
+  Write-Host "SERVICE // missing health service; restoring from the existing QQ device registration" -ForegroundColor DarkYellow
+  $configPath = Join-Path $ProgramDir "service.json"
+  if (-not (Test-Path $configPath)) { $configPath = Join-Path $HomeDir "device.json" }
+  if (-not (Test-Path $configPath)) { throw "QQ device registration is missing; cannot create a trusted health service." }
+  $existing = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+  if (-not $existing.DeviceId -or -not $existing.Token -or -not $existing.Endpoint) {
+    throw "Existing QQ device registration is incomplete; health service was not installed."
+  }
+
+  foreach ($file in @(
+    @{ Repo = "quillgeist-lite/launcher.ps1"; Local = (Join-Path $HomeDir "launcher.ps1") },
+    @{ Repo = "quillgeist-lite/tasks/start-qq-window.ps1"; Local = $WindowHostPath },
+    @{ Repo = "quillgeist-lite/service/install-service.ps1"; Local = (Join-Path $ServiceDir "install-service.ps1") }
+  )) {
+    if (-not (Test-Path $file.Local)) { Get-PackagedQQFile -RepoPath $file.Repo -Destination $file.Local }
+  }
+  $installer = Join-Path $ServiceDir "install-service.ps1"
+  $bootstrap = Join-Path $ProgramDir ("service-bootstrap-" + [guid]::NewGuid().ToString("n") + ".json")
+  & icacls.exe $ProgramDir /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Could not secure the temporary QQ service bootstrap directory." }
+  try {
+    [IO.File]::WriteAllText($bootstrap,([ordered]@{
+      HomeDir = $HomeDir
+      DeviceId = [string]$existing.DeviceId
+      DeviceToken = [string]$existing.Token
+      Endpoint = [string]$existing.Endpoint
+      UserName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    } | ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($false)))
+    & $installer -BootstrapPath $bootstrap
+  } finally {
+    Remove-Item -LiteralPath $bootstrap -Force -ErrorAction SilentlyContinue
+  }
+  if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
+    throw "QQ service restoration did not register the health service."
+  }
+  if (-not (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) {
+    throw "QQ service restoration did not register the managed runner task."
+  }
+  Write-Host "READY // qq health service and managed task restored from existing registration" -ForegroundColor Green
+  return
 }
 
 function Test-ServiceConfiguration {
