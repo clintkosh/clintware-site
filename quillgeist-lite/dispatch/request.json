@@ -1,6 +1,8 @@
 {
-  "request_id": "chatgpt-qq-two-pane-runtime-test-20260926",
-  "task_id": "restart-window",
-  "args": {},
-  "objective": "Restart the visible qq window on Memoria using the repaired fully quoted Windows Terminal two-pane launcher and verify both MCP admin and Quillgeist Lite panes start."
+  "request_id": "chatgpt-qq-postrestart-connectivity-20260926",
+  "task_id": "python-runtime-check",
+  "args": {
+    "Message": "QQ_POST_RESTART_OK"
+  },
+  "objective": "Verify the newly restarted Memoria qq runner is connected and can execute a fresh reviewed task after the two-pane launcher repair."
 }
