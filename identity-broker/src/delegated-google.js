@@ -25,6 +25,10 @@ function googleClientId(env) {
   return String(env.GOOGLE_OAUTH_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
 }
 
+function googleClientSecret(env) {
+  return String(env.GOOGLE_OAUTH_CLIENT_SECRET || "").trim();
+}
+
 function json(value, status = 200, extra = {}) {
   return new Response(JSON.stringify(value), {
     status,
@@ -67,7 +71,7 @@ async function secureEq(a, b) {
 }
 
 async function cryptoKey(env, purpose) {
-  const secret = String(env.GOOGLE_OAUTH_CLIENT_SECRET || env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN || "");
+  const secret = googleClientSecret(env) || String(env.OAUTH_STATE_SECRET || env.CONTROL_PLANE_MCP_TOKEN || "").trim();
   if (!secret) throw new Error("delegated_crypto_secret_missing");
   const raw = await crypto.subtle.digest(
     "SHA-256",
@@ -244,7 +248,7 @@ export async function finishDelegatedGoogle(request, env) {
     body: new URLSearchParams({
       code,
       client_id: googleClientId(env),
-      client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+      client_secret: googleClientSecret(env),
       redirect_uri: GOOGLE_CALLBACK,
       grant_type: "authorization_code",
       code_verifier: state.verifier,
@@ -340,7 +344,7 @@ export async function internalGoogleAccessToken(request, env) {
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: googleClientId(env),
-      client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+      client_secret: googleClientSecret(env),
       refresh_token: grant.refreshToken,
       grant_type: "refresh_token",
     }),
