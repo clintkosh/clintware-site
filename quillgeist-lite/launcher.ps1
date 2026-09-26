@@ -13,6 +13,10 @@ $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
 $EnsurePwshUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/ensure-powershell.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $AutoRepairUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/auto-repair-runtime.ps1"
+$RegistryUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json"
+$SelfUpdateUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/self-update.ps1"
+$RestartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/restart-window.ps1"
+$LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launcher.ps1"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -68,6 +72,47 @@ function Update-LocalRunner {
     if (-not (Test-Path $RunnerPath)) { throw }
     return $false
   }
+}
+
+function Sync-LatestQQFunctionality {
+  $runtimeRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
+  $taskRoot = Join-Path $runtimeRoot "tasks"
+  New-Item -ItemType Directory -Force -Path $runtimeRoot,$taskRoot | Out-Null
+
+  $specs = @(
+    @{ Url = $RegistryUrl; Path = (Join-Path $HomeDir "tasks.json"); Kind = "json"; Required = '"tasks"' },
+    @{ Url = $RegistryUrl; Path = (Join-Path $runtimeRoot "tasks.json"); Kind = "json"; Required = '"tasks"' },
+    @{ Url = $SelfUpdateUrl; Path = (Join-Path $taskRoot "self-update.ps1"); Kind = "powershell"; Required = "RESTART // canonical QQ runner restart queued after result delivery" },
+    @{ Url = $RestartWindowUrl; Path = (Join-Path $taskRoot "restart-window.ps1"); Kind = "powershell"; Required = "qq window restart queued" },
+    @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" }
+  )
+
+  foreach ($spec in $specs) {
+    $temp = $spec.Path + ".boot-refresh"
+    try {
+      Invoke-WebRequest -Uri ($spec.Url + $(if($spec.Url.Contains("?")){"&"}else{"?"}) + "cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -TimeoutSec 20 -Headers @{"Cache-Control"="no-cache"} -ErrorAction Stop
+      $raw = Get-Content -LiteralPath $temp -Raw
+      if (-not $raw.Contains([string]$spec.Required)) { throw ("QQ boot refresh structural validation failed: " + $spec.Path) }
+
+      if ($spec.Kind -eq "powershell") {
+        $tokens = $null
+        $errors = $null
+        [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $temp),[ref]$tokens,[ref]$errors) | Out-Null
+        if ($errors.Count -gt 0) { throw ("QQ boot refresh PowerShell validation failed: " + $spec.Path) }
+      } elseif ($spec.Kind -eq "json") {
+        $parsed = $raw | ConvertFrom-Json
+        if (-not $parsed.tasks) { throw ("QQ boot refresh registry validation failed: " + $spec.Path) }
+      }
+
+      Move-Item -LiteralPath $temp -Destination $spec.Path -Force
+    } catch {
+      Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+      Add-Content -Path $CrashLog -Value ("{0} BOOT_REFRESH_WARN {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
+    }
+  }
+
+  Write-Host "SYNC" -ForegroundColor White -NoNewline
+  Write-Host " // latest qq functionality checked at boot" -ForegroundColor Cyan
 }
 
 function Ensure-ModernPowerShell {
@@ -147,6 +192,7 @@ function Show-WindowLoadSplash {
 Set-ClintwareBaseTheme
 Ensure-QuillgeistHealthService
 Ensure-ModernPowerShell
+Sync-LatestQQFunctionality
 Show-WindowLoadSplash
 
 try {
