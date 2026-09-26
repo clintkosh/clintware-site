@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-show-memoria-qq-window-20260926-0125",
-  "task_id": "restart-window",
+  "request_id": "chatgpt-memoria-service-repair-20260926-0129",
+  "task_id": "repair-local-service",
   "args": {},
-  "objective": "Reopen the supervised visible Quillgeist Lite admin console on MEMORIA using its existing scheduled task; verify the runner reconnects afterward."
+  "objective": "Repair MEMORIA qq health service using current reviewed task source. Preserve the running connection if Windows refuses service stop; report deferred binary replacement accurately."
 }
