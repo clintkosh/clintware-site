@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-qq-last-good-selfupdate-inspect-20260926",
+  "request_id": "chatgpt-qq-recovery-status-20260926",
   "mode": "inspect",
-  "recorded_at": 1790423033,
+  "recorded_at": 1790423656,
   "inspection": {
     "online": 0,
     "wake_online": 2,
@@ -74,267 +74,74 @@
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:51.7800026Z"
+        "timestamp": "2026-09-26T11:54:17.8800188Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:46.7752985Z"
+        "timestamp": "2026-09-26T11:54:12.8658410Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:41.7633227Z"
+        "timestamp": "2026-09-26T11:54:07.8561383Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:36.7614878Z"
+        "timestamp": "2026-09-26T11:54:02.8395960Z"
       },
       {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:31.7583092Z"
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:58.2526138Z"
       },
       {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:26.7507550Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:21.7404854Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:16.7329286Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:11.7233855Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:06.7082795Z"
-      },
-      {
-        "level": "ERROR",
-        "phase": "runner-log",
-        "kind": "connection_error",
-        "timestamp": "2026-09-26T11:43:01.7013110Z"
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:59.6049289Z"
       },
       {
         "level": "INFO",
-        "phase": "heartbeat",
+        "phase": "wake",
         "kind": "other",
-        "timestamp": "2026-09-26T11:42:56.8041717Z"
+        "timestamp": "2026-09-26T11:53:59.4813455Z"
+      },
+      {
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:58.1511218Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:53:57.8397042Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:55.1836877Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:56.4214533Z"
+      },
+      {
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-26T11:53:54.9448213Z"
       }
-    ],
-    "selected_job": {
-      "job_id": "4a50906a-bbfa-4ceb-a4a5-cb2f17fbb3e7",
-      "task_id": "self-update",
-      "status": "passed",
-      "requested_by": "root",
-      "created_at": "2026-09-26T10:57:37.824Z",
-      "completed_at": "2026-09-26T10:57:51.7443365Z",
-      "duration_ms": 10905,
-      "exit_code": 0,
-      "error_kind": "task_registry_missing",
-      "recent_logs": [
-        {
-          "seq": 38,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1270882Z",
-          "line": "PYTHON // compact canonical Clintware logo installed"
-        },
-        {
-          "seq": 39,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1310286Z",
-          "line": "PYTHON // Windows Terminal profile written atomically"
-        },
-        {
-          "seq": 40,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1411216Z",
-          "line": "VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
-        },
-        {
-          "seq": 41,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1431094Z",
-          "line": "VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
-        },
-        {
-          "seq": 42,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1451921Z",
-          "line": "VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json"
-        },
-        {
-          "seq": 43,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1471383Z",
-          "line": "VERIFY // boot image: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\clintware-boot-70s-dos.png"
-        },
-        {
-          "seq": 44,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1498292Z",
-          "line": "READY // Quillgeist Lite terminal profile self-test passed"
-        },
-        {
-          "seq": 45,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.1623727Z",
-          "line": "SYNC // refreshing reviewed QQ task registry"
-        },
-        {
-          "seq": 46,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.4962507Z",
-          "line": "REGISTRY // reviewed task registry v14 installed"
-        },
-        {
-          "seq": 47,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.4980180Z",
-          "line": "SERVICE // aligning QQ health service with reviewed Clintware source"
-        },
-        {
-          "seq": 48,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.8322896Z",
-          "line": "REPAIR // Quillgeist Lite self-heal 2026.09.25.12"
-        },
-        {
-          "seq": 49,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:47.8411637Z",
-          "line": "SERVICE // refreshing stale-task recovery watchdog"
-        },
-        {
-          "seq": 50,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:48.0404534Z",
-          "line": "CONFIG // health-service configuration validated"
-        },
-        {
-          "seq": 51,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:48.0730170Z",
-          "line": "SERVICE // replacing watchdog binary"
-        },
-        {
-          "seq": 52,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:48.1403914Z",
-          "line": "SERVICE // arming restart dead-man"
-        },
-        {
-          "seq": 53,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:49.4937748Z",
-          "line": "TASK // runner task enabled"
-        },
-        {
-          "seq": 54,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:49.4956526Z",
-          "line": "TASK // automatic runner recovery is configured"
-        },
-        {
-          "seq": 55,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:49.4977765Z",
-          "line": "SERVICE // validating Windows service registration"
-        },
-        {
-          "seq": 56,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:49.8757874Z",
-          "line": "SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\""
-        },
-        {
-          "seq": 57,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:49.8778521Z",
-          "line": "SERVICE // account LocalSystem / start Auto"
-        },
-        {
-          "seq": 58,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.1523982Z",
-          "line": "SERVICE // native health watchdog running"
-        },
-        {
-          "seq": 59,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.1557909Z",
-          "line": "FALLBACK // installing scheduled qq recovery watchdog"
-        },
-        {
-          "seq": 60,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.1651610Z",
-          "line": "RECOVERY // fallback repair paths persisted"
-        },
-        {
-          "seq": 61,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.2885904Z",
-          "line": "FALLBACK // recovery watchdog active every minute"
-        },
-        {
-          "seq": 62,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.2908092Z",
-          "line": "FALLBACK // independent recovery layer ensured"
-        },
-        {
-          "seq": 63,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.2928947Z",
-          "line": "TASK // runner restart deferred because an active qq job is using this session"
-        },
-        {
-          "seq": 64,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.3537344Z",
-          "line": "SELF-HEAL // canonical repair logic cached locally"
-        },
-        {
-          "seq": 65,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.3561082Z",
-          "line": "READY // qq recovery repaired; native service or scheduled fallback is supervising the runner."
-        },
-        {
-          "seq": 66,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.3778459Z",
-          "line": "READY // QQ runtime and Python resolver reconciled."
-        },
-        {
-          "seq": 67,
-          "phase": null,
-          "timestamp": "2026-09-26T10:57:51.3803559Z",
-          "line": "RESTART // canonical QQ runner restart queued after result delivery"
-        }
-      ]
-    }
+    ]
   }
 }
