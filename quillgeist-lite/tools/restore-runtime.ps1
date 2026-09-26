@@ -2,7 +2,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$revision = 'f7642c64f8ff1fc98b69b75a774f8ac7385e44a0'
+$revision = 'a21a868305ebd1b3cdf7b7851e1957649c11343e'
 $qqDir = Join-Path $env:LOCALAPPDATA 'Clintware\QuillgeistLite'
 $runtime = Join-Path $qqDir 'runtime'
 $registry = Join-Path $qqDir 'tasks.json'
@@ -50,6 +50,18 @@ try {
             [Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
             if ($errors.Count) { throw "Invalid PowerShell task source: $($task.Name)" }
         }
+    }
+
+    # A previous unbounded model inventory may still be running. Stop only that
+    # qq-owned status probe after the replacement bundle has passed validation.
+    Get-CimInstance Win32_Process | Where-Object {
+        $_.Name -match '^python(?:\.exe)?$' -and
+        $_.CommandLine -match 'Clintware\\QuillgeistLite\\runtime' -and
+        $_.CommandLine -match 'local_ai\.py' -and
+        $_.CommandLine -match '(?i)--Action\s+status'
+    } | ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        Write-Output 'QQ STALLED INVENTORY STOPPED'
     }
 
     if (Test-Path $runtime) {
