@@ -109,6 +109,30 @@ def bitnet_executable(name):
     return ""
 
 
+def gguf_files(root, max_seconds=8, max_entries=20000):
+    """Bound model discovery so a large or offline drive cannot hold a qq job."""
+    deadline = time.monotonic() + max_seconds
+    stack = [root]
+    seen = 0
+    while stack and seen < max_entries and time.monotonic() < deadline:
+        directory = stack.pop()
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    seen += 1
+                    if seen >= max_entries or time.monotonic() >= deadline:
+                        break
+                    try:
+                        if entry.is_file(follow_symlinks=False) and entry.name.lower().endswith(".gguf"):
+                            yield Path(entry.path)
+                        elif entry.is_dir(follow_symlinks=False):
+                            stack.append(Path(entry.path))
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+
+
 def bitnet_models():
     rows, seen = [], set()
     for root in bitnet_roots():
@@ -118,7 +142,7 @@ def bitnet_models():
             if not base.exists():
                 continue
             try:
-                for path in base.rglob("*.gguf"):
+                for path in gguf_files(base):
                     key = os.path.normcase(str(path))
                     if key in seen:
                         continue
@@ -155,7 +179,7 @@ def models():
         if not root.exists() or not root.is_dir():
             continue
         try:
-            for path in root.rglob("*.gguf"):
+            for path in gguf_files(root):
                 try:
                     size = path.stat().st_size
                 except OSError:
@@ -316,6 +340,12 @@ def main():
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "services":
+        print(json.dumps({"services": services()}, indent=2))
+        return
+    if a.Action == "reconcile":
+        print(json.dumps(reconcile(), indent=2))
+        return
     snap = snapshot(a.ContextTokens)
     if a.Action == "status":
         out = snap
