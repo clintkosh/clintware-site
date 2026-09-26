@@ -614,7 +614,18 @@ function Get-QQDeviceCredential {
 }
 
 function Get-Registry {
-  if (-not (Test-Path $RegistryPath)) { throw "Local QQ task registry is missing: $RegistryPath" }
+  if (-not (Test-Path $RegistryPath)) {
+    $packaged = Join-Path $RuntimeRoot "quillgeist-lite\tasks.json"
+    if (-not (Test-Path $packaged)) {
+      throw "Local QQ task registry and packaged runtime are missing. Reinstall QQ.exe to restore the complete reviewed task bundle."
+    }
+    $candidate = Get-Content $packaged -Raw | ConvertFrom-Json
+    if (-not $candidate.tasks) { throw "Packaged QQ task registry is invalid: $packaged" }
+    $temp = $RegistryPath + ".new"
+    Copy-Item -LiteralPath $packaged -Destination $temp -Force
+    Move-Item -LiteralPath $temp -Destination $RegistryPath -Force
+    Write-Log "Recovered local task registry from the packaged QQ runtime." "OK"
+  }
   $registry = Get-Content $RegistryPath -Raw | ConvertFrom-Json
   if (-not $registry.tasks) { throw "Quillgeist Lite task registry is invalid." }
   return $registry
