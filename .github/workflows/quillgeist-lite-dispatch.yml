@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 
 jobs:
@@ -25,3 +25,22 @@ jobs:
 
       - name: Dispatch and stream Quillgeist Lite task
         run: python3 quillgeist-lite/dispatch/relay.py
+
+      - name: Persist sanitized QQ evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -f quillgeist-lite/dispatch/result.json ]; then
+            echo "No QQ result file was produced."
+            exit 0
+          fi
+          git config user.name "clintware-qq"
+          git config user.email "qq@users.noreply.github.com"
+          git add quillgeist-lite/dispatch/result.json
+          if git diff --cached --quiet; then
+            echo "QQ result is unchanged."
+            exit 0
+          fi
+          git commit -m "Record sanitized QQ dispatch result"
+          git pull --rebase origin main
+          git push origin HEAD:main
