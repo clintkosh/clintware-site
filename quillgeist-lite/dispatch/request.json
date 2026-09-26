@@ -1,6 +1,8 @@
 {
-  "request_id": "chatgpt-memoria-service-repair-20260926-0129",
-  "task_id": "repair-local-service",
-  "args": {},
-  "objective": "Repair MEMORIA qq health service using current reviewed task source. Preserve the running connection if Windows refuses service stop; report deferred binary replacement accurately."
+  "request_id": "chatgpt-memoria-ai-services-20260926-0131",
+  "task_id": "local-ai",
+  "args": {
+    "Action": "services"
+  },
+  "objective": "Read-only check of existing MEMORIA local AI server endpoints: Open WebUI, Ollama, SearXNG, n8n, pipelines, and optional agents. Use bounded current reviewed local_ai.py source."
 }
