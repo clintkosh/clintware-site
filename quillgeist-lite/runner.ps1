@@ -17,6 +17,8 @@ $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $RuntimeRoot = Join-Path $HomeDir "runtime"
 $DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service.json"
 $UserDeviceConfigPath = Join-Path $HomeDir "device.json"
+$LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
+$LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -274,45 +276,39 @@ function Ensure-ClintwareLogoAsset {
 }
 
 function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 58)
+  param([int]$MaxColumns = 32)
 
   try {
     $windowWidth = 100
     try { $windowWidth = [Console]::WindowWidth } catch {}
 
     $esc = [char]27
-    $cyan1 = "$esc[38;2;24;115;170m"
-    $cyan2 = "$esc[38;2;41;199;255m"
-    $cyan3 = "$esc[38;2;114;230;255m"
+    $cyan = "$esc[38;2;41;199;255m"
+    $cyanDim = "$esc[38;2;24;115;170m"
     $white = "$esc[38;2;247;251;255m"
-    $dim = "$esc[38;2;72;104;128m"
     $reset = "$esc[0m"
 
-    # Deliberately draw the mark as terminal-native text instead of rasterizing
-    # a PNG. This stays crisp at any DPI/terminal zoom and cannot become the
-    # giant pixelated block image that the old bitmap renderer produced.
+    # Micro Braille eclipse derived from the canonical Clintware eclipse mark.
+    # Braille packs 2x4 source pixels per character, so it stays crisp while
+    # taking far less vertical space than the previous block-ASCII renderer.
     $art = @(
-      @{ c=$dim;   t="              .  .  .  .  .              " },
-      @{ c=$cyan1; t="         .:*##############*:.         " },
-      @{ c=$cyan2; t="      .:*##*:          :*##*:.      " },
-      @{ c=$cyan2; t="     :##*.                .*##:     " },
-      @{ c=$cyan3; t="    *##:                    :##*    " },
-      @{ c=$cyan3; t="   :##.                      .##:   " },
-      @{ c=$white; t="   ##:      Clintware(TM)     :##   " },
-      @{ c=$cyan3; t="   :##.                      .##:   " },
-      @{ c=$cyan3; t="    *##:                    :##*    " },
-      @{ c=$cyan2; t="     :##*.                .*##:     " },
-      @{ c=$cyan2; t="      .:*##*:          :*##*:.      " },
-      @{ c=$cyan1; t="         .:*##############*:.         " },
-      @{ c=$dim;   t="              .  .  .  .  .              " }
+      "     ⢀⣀⣤⣤⣴⣶⣶⣶⣶⣿⣿⣶⣶⣶⣶⣦⣤⣤⣀⡀",
+      "  ⣠⣴⣾⣿⡿⠿⠛⠉⠉⠁      ⠈⠉⠉⠛⠿⢿⣿⣷⣦⣄",
+      "⢠⣾⣿⣿⡟⠉                  ⠉⢻⣿⣿⣷⡄",
+      "⢾⣿⣿⣿                      ⣿⣿⣿⡷",
+      "⠘⢿⣿⣿⣧⣀                  ⣀⣼⣿⣿⡿⠃",
+      "  ⠙⠻⢿⣿⣷⣶⣤⣀⣀⡀      ⢀⣀⣀⣤⣶⣾⣿⡿⠟⠋",
+      "     ⠈⠉⠛⠛⠻⠿⠿⠿⠿⣿⣿⠿⠿⠿⠿⠟⠛⠛⠉⠁"
     )
 
-    $contentWidth = 44
-    $padCount = [Math]::Max(0,[int](($windowWidth - $contentWidth) / 2))
-    $pad = " " * $padCount
-    foreach ($row in $art) {
-      [Console]::WriteLine($pad + $row.c + $row.t + $reset)
+    foreach ($line in $art) {
+      $pad = " " * [Math]::Max(0,[int](($windowWidth - $line.Length) / 2))
+      [Console]::WriteLine($pad + $cyan + $line + $reset)
     }
+
+    $name = "Clintware™"
+    $namePad = " " * [Math]::Max(0,[int](($windowWidth - $name.Length) / 2))
+    [Console]::WriteLine($namePad + $white + $name + $reset)
     return $true
   } catch {
     return $false
@@ -330,7 +326,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 58
+  $rendered = Write-ClintwareLogoImage -MaxColumns 32
   if (-not $rendered) {
     Write-ClintwareCentered "CLINTWARE™" White
     Write-ClintwareCentered "EST. 2026" DarkGray
@@ -926,8 +922,8 @@ function Show-QQHelp {
   Write-Host "  status                       Show local runner, service, and admin state." -ForegroundColor Cyan
   Write-Host "  health                       Recheck the live link and redraw the Clintware welcome." -ForegroundColor Cyan
   Write-Host "  tasks                        List reviewed qq tasks." -ForegroundColor Cyan
-  Write-Host "  <natural language>           Relay a question/instruction to Clintware for an LLM response." -ForegroundColor Cyan
-  Write-Host "  ask <text>                   Explicitly relay a question/instruction." -ForegroundColor Cyan
+  Write-Host "  <natural language>           Local task/model first; remote LLM only when required." -ForegroundColor Cyan
+  Write-Host "  ask <text>                   Explicitly bypass local-first and relay remotely." -ForegroundColor Cyan
   Write-Host "  run <task> [Name=Value ...]  Run an allowlisted task locally." -ForegroundColor Cyan
   Write-Host "  jira                         Connect/reconnect Jira." -ForegroundColor Cyan
   Write-Host "  doctor                       Run Clintware local diagnostics." -ForegroundColor Cyan
@@ -951,7 +947,7 @@ function Show-QQHelp {
   Write-Host "  clear                        Clear the terminal." -ForegroundColor Cyan
   Write-Host "  ! <PowerShell>               Local-only admin shell escape." -ForegroundColor DarkYellow
   Write-Host ""
-  Write-Host "Natural-language input is relayed through the Clintware Control Plane. Remote MCP callers still cannot send arbitrary shell commands; the ! escape exists only for text physically entered in this local console." -ForegroundColor DarkGray
+  Write-Host "Routing order: reviewed local task -> local-auto model -> remote relay only when required. Remote MCP callers still cannot send arbitrary shell commands; the ! escape exists only for text physically entered in this local console." -ForegroundColor DarkGray
   Write-Host ""
   Show-QQPrompt
 }
@@ -1090,6 +1086,74 @@ function Read-QQUiInput {
     Set-Content -Path $UiInputCursorPath -Value ([string]$lines.Count) -Encoding ASCII
   } catch {}
   return $items.ToArray()
+}
+
+function Invoke-QQLocalFirstResponse {
+  param([string]$Text)
+
+  $Text = ([string]$Text).Trim()
+  if (-not $Text) { return $false }
+
+  # The local gateway is the cheapest inference path. It uses model=local-auto,
+  # which selects the active/viable installed Ollama, BitNet, or llama.cpp model.
+  # It is deliberately not allowed to pretend that a requested mutation happened.
+  $system = @"
+You are Quillgeist Lite's LOCAL-FIRST decision and response layer running on the owner's Windows machine.
+Use local reasoning whenever the request can be answered correctly without current external/private data or an action you cannot actually execute.
+Be concise and useful.
+
+If the user asks to change code, files, services, accounts, websites, repositories, or other state and this model-only call cannot actually perform that mutation, respond with exactly:
+REMOTE_REQUIRED: <short reason>
+
+Also use REMOTE_REQUIRED when fresh web/private account data is required.
+Do not claim an action ran unless it really ran through a local reviewed qq task.
+For ordinary questions, brainstorming, explanations, calculations, and local guidance, answer directly.
+"@
+
+  try {
+    $headers = @{"Content-Type"="application/json"}
+    if (Test-Path $LocalGatewayKeyPath) {
+      $key = (Get-Content -LiteralPath $LocalGatewayKeyPath -Raw -ErrorAction Stop).Trim()
+      if ($key) { $headers["Authorization"] = "Bearer " + $key }
+    }
+
+    $payload = @{
+      model = "local-auto"
+      messages = @(
+        @{role="system";content=$system},
+        @{role="user";content=$Text}
+      )
+      max_tokens = 700
+      temperature = 0.15
+      stream = $false
+    } | ConvertTo-Json -Depth 8 -Compress
+
+    $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec 75 -ErrorAction Stop
+    $answer = [string]$response.choices[0].message.content
+    if (-not $answer) { return $false }
+
+    if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
+      Suspend-QQPrompt
+      Write-Host "LOCAL-FIRST" -ForegroundColor Cyan -NoNewline
+      Write-Host " // local model requested remote execution/context" -ForegroundColor DarkGray
+      return $false
+    }
+
+    Suspend-QQPrompt
+    Write-Host ""
+    Write-Host "QUILLGEIST LOCAL" -ForegroundColor White -NoNewline
+    Write-Host " // local-auto" -ForegroundColor Cyan
+    Write-Host $answer.Trim() -ForegroundColor White
+    Write-Host ""
+    try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [LOCAL_ANSWER] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
+    Show-QQPrompt
+    return $true
+  } catch {
+    # Missing/down local inference is a normal escalation condition, not a fatal
+    # qq error. The remote relay remains the bounded fallback.
+    try { Queue-RunnerDiagnostic "INFO" ("local_first_unavailable: " + $_.Exception.Message) "local-first" } catch {}
+    return $false
+  }
 }
 
 function Send-QQQuestion {
@@ -1328,7 +1392,7 @@ function Invoke-QQLocalCommand {
     }
   } catch {}
 
-  Send-QQQuestion $line
+  if (-not (Invoke-QQLocalFirstResponse $line)) { Send-QQQuestion $line }
 }
 
 function Invoke-AllowlistedTask {
@@ -1592,14 +1656,17 @@ try {
           try { $receivers = [int]$msg.delivery.realtime_receivers } catch {}
           try { $mirrored = [bool]$msg.delivery.private_mirror.mirrored } catch {}
 
-          if ($receivers -gt 0 -or $mirrored) {
+          if ($receivers -gt 0) {
             Write-Host "RELAY DELIVERED" -ForegroundColor Cyan -NoNewline
+            Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+          } elseif ($mirrored) {
+            Write-Host "RELAY QUEUED // PRIVATE INBOX" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } else {
             Write-Host "RELAY WAITING // NO CHAT RESPONDER ATTACHED" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
             Write-Host ""
-            Write-Host "Use a reviewed local command/task or reconnect a ChatGPT receiver; this request was stored but has nobody to answer it." -ForegroundColor DarkGray
+            Write-Host "The request is stored, but no live responder accepted it." -ForegroundColor DarkGray
           }
           Show-QQPrompt
           continue
