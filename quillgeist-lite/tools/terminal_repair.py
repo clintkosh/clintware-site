@@ -188,8 +188,14 @@ def install_canonical_logo(path: pathlib.Path, home: pathlib.Path) -> None:
     """Use the supplied compact Clintware eclipse PNG; never upscale it."""
     asset = home / "clintware-terminal-logo.b64"
     try:
-        raw = asset.read_text(encoding="utf-8").strip()
-        data = base64.b64decode(raw, validate=True)
+        raw = asset.read_text(encoding="utf-8-sig").strip()
+        clean = "".join(raw.split())
+        marker = clean.find("iVBOR")
+        if marker > 0:
+            clean = clean[marker:]
+        clean = clean.rstrip("=")
+        clean += "=" * ((4 - (len(clean) % 4)) % 4)
+        data = base64.b64decode(clean, validate=False)
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError("decoded logo is not PNG")
         atomic_write_bytes(path, data)
