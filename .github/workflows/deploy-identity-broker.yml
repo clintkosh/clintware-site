@@ -38,11 +38,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          client_id=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | tr -d '\r\n')
+          client_secret=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | tr -d '\r\n')
           response=$(curl -sS -X POST https://oauth2.googleapis.com/token \
             -H 'Content-Type: application/x-www-form-urlencoded' \
             --data-urlencode "code=clintware-ci-intentionally-invalid-code" \
-            --data-urlencode "client_id=${GOOGLE_OAUTH_CLIENT_ID}" \
-            --data-urlencode "client_secret=${GOOGLE_OAUTH_CLIENT_SECRET}" \
+            --data-urlencode "client_id=${client_id}" \
+            --data-urlencode "client_secret=${client_secret}" \
             --data-urlencode "redirect_uri=https://auth.clintware.com/callback" \
             --data-urlencode "grant_type=authorization_code")
           error=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",""))' <<< "$response")
@@ -194,8 +196,10 @@ jobs:
             fi
           }
           put_secret CONTROL_PLANE_MCP_TOKEN "$CONTROL_PLANE_MCP_TOKEN"
-          put_secret GOOGLE_OAUTH_CLIENT_ID "$GOOGLE_OAUTH_CLIENT_ID"
-          put_secret GOOGLE_OAUTH_CLIENT_SECRET "$GOOGLE_OAUTH_CLIENT_SECRET"
+          google_oauth_client_id=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | tr -d '\r\n')
+          google_oauth_client_secret=$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | tr -d '\r\n')
+          put_secret GOOGLE_OAUTH_CLIENT_ID "$google_oauth_client_id"
+          put_secret GOOGLE_OAUTH_CLIENT_SECRET "$google_oauth_client_secret"
           google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           put_secret GOOGLE_DELEGATED_BRIDGE_SECRET "$google_bridge_secret"
           sync_optional_secret MICROSOFT_ENTRA_CLIENT_ID "$MICROSOFT_ENTRA_CLIENT_ID"
