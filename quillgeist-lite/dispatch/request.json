@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-self-update-20260926-0201",
-  "task_id": "self-update",
+  "request_id": "chatgpt-memoria-bitnet-20260926-0203",
+  "task_id": "bitnet-setup",
   "args": {},
-  "objective": "Refresh MEMORIA QQ in place from reviewed Clintware runtime assets. Install the corrected Miniconda-first runner, refresh the reviewed task registry including BitNet and local AI integration, preserve the existing watchdog and singleton window policy, return the result, then restart only the canonical QQ runner."
+  "objective": "Install or refresh the existing official Microsoft BitNet runtime on MEMORIA using F:\\AI-Data when available, without moving or deleting user files and without touching D:. Use the real Miniconda Python rather than Windows Store aliases. Build both CLI and llama-server, run a real CLI generation, then run a temporary HTTP server completion round trip and return evidence."
 }
