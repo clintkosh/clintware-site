@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -224,6 +224,12 @@
       "parameters": [],
       "approval": "pre-approved",
       "timeout_seconds": 120
+    },
+    "local-ai-integrate": {
+      "title": "Connect the existing MEMORIA Open WebUI and n8n stack to the authenticated local Ollama and BitNet gateway",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/integrate-local-ai.ps1",
+      "parameters": []
     }
   }
 }
