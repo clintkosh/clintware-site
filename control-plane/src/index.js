@@ -823,6 +823,7 @@ export class RegistryHub extends DurableObject {
       online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
       recovery_online:this.ctx.getWebSockets("quillgeist-lite-recovery").filter(ws=>ws.readyState===1).length,
       wake_online:this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1).length,
+      recovery:await this.ctx.storage.get("quillgeist_lite_recovery_last")||null,
       runner,
       jobs:index.slice(0,50),
       questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
@@ -984,8 +985,9 @@ export class RegistryHub extends DurableObject {
               recovery:true
             }
           });
+          const recoveryDeviceId=clip(attachment.device_id||"unknown",120);
           await this.appendQuillgeistLiteDiagnostic({
-            device_id:clip(attachment.device_id||"unknown",120),
+            device_id:recoveryDeviceId,
             level:status==="passed"?"INFO":"ERROR",
             phase:"runner-recovery",
             message:"scoped_self_update_"+status,
@@ -993,6 +995,7 @@ export class RegistryHub extends DurableObject {
             service_version:clip(data.service_version||"",80),
             timestamp:nowIso()
           });
+          await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:recoveryDeviceId,reason:"completed_"+status,job_id:recoveryJobId,at:nowIso()});
           try{ws.close(1000,"recovery_complete");}catch{}
           return;
         }
@@ -1219,7 +1222,10 @@ export class RegistryHub extends DurableObject {
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-recovery-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
       const deviceId=clip(request.headers.get("x-quillgeist-device")||"",120);
       const recoveryProof=clip(request.headers.get("x-quillgeist-recovery-proof")||"",128);
-      if(!deviceId||!recoveryProof)return json({error:"qq_recovery_proof_missing"},401);
+      if(!deviceId||!recoveryProof){
+        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"proof_missing",at:nowIso()});
+        return json({error:"qq_recovery_proof_missing"},401);
+      }
 
       let wakeMatched=false;
       for(const wake of this.ctx.getWebSockets("quillgeist-lite-wake")){
@@ -1232,7 +1238,10 @@ export class RegistryHub extends DurableObject {
           }
         }catch{}
       }
-      if(!wakeMatched)return json({error:"qq_recovery_wake_not_present"},401);
+      if(!wakeMatched){
+        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"wake_not_present",at:nowIso()});
+        return json({error:"qq_recovery_wake_not_present"},401);
+      }
 
       const diagnostics=await this.ctx.storage.get("quillgeist_lite_diagnostics")||[];
       const cutoff=Date.now()-30_000;
@@ -1242,12 +1251,19 @@ export class RegistryHub extends DurableObject {
         String(row.level||"").toUpperCase()==="ERROR"&&
         /(?:401|unauthorized|connection[_ ]?error|websocket)/i.test(String(row.message||""))
       );
-      if(!freshFailure)return json({error:"qq_recovery_failure_not_fresh"},409);
+      if(!freshFailure){
+        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"failure_not_fresh",at:nowIso()});
+        return json({error:"qq_recovery_failure_not_fresh"},409);
+      }
 
       const pending=await this.pendingQuillgeistLiteJobs(20);
       const job=pending.find(row=>String(row.task_id||"")==="self-update");
-      if(!job)return json({error:"qq_recovery_update_not_queued"},409);
+      if(!job){
+        await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"update_not_queued",at:nowIso()});
+        return json({error:"qq_recovery_update_not_queued"},409);
+      }
 
+      await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"accepted",job_id:job.job_id,at:nowIso()});
       const pair=new WebSocketPair();
       const [client,server]=Object.values(pair);
       this.ctx.acceptWebSocket(server,["quillgeist-lite-recovery"]);
