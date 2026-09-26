@@ -997,9 +997,35 @@ function Invoke-QQLocalTask {
   Suspend-QQPrompt
   Write-Host ("LOCAL TASK // " + $TaskId) -ForegroundColor Cyan
   try {
-    $result = Invoke-AllowlistedTask $job $null
+    $task = Find-Task $registry $TaskId
+    $autoContinue = $true
+    $maxAttempts = 3
+    try {
+      if ($null -ne $task.auto_continue) { $autoContinue = [bool]$task.auto_continue }
+      if ($task.max_attempts) { $maxAttempts = [Math]::Max(1,[Math]::Min(8,[int]$task.max_attempts)) }
+    } catch {}
+
+    # Browser automation and explicit approval flows are never blindly retried.
+    if ($TaskId -in @("browser-work","finish-google-oauth","google-cloud-support-access")) {
+      $autoContinue = $false
+      $maxAttempts = 1
+    }
+
+    $attempt = 0
+    do {
+      $attempt++
+      if ($attempt -gt 1) {
+        Write-Host ("AUTO-CONTINUE // chunk " + $attempt + "/" + $maxAttempts + " // " + $TaskId) -ForegroundColor DarkCyan
+        Start-Sleep -Seconds ([Math]::Min(15,3*$attempt))
+      }
+
+      $result = Invoke-AllowlistedTask $job $null
+      if ($result.status -eq "passed") { break }
+      if (-not $autoContinue -or $attempt -ge $maxAttempts) { break }
+    } while ($true)
+
     $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
-    Write-Log ("Local task {0} finished with status {1}" -f $TaskId,$result.status) $level
+    Write-Log ("Local task {0} finished with status {1} after {2} chunk(s)" -f $TaskId,$result.status,$attempt) $level
     if ($result.output) {
       Suspend-QQPrompt
       Write-Host "--- RESULT ---" -ForegroundColor DarkCyan
@@ -1164,8 +1190,8 @@ function Invoke-QQLocalCommand {
 
   # Common owner-machine intents should execute locally instead of being sent
   # to an external chat receiver that may not be attached to this session.
-  if ($lower -match '(local\s+ai|ai\s+server)' -and $lower -match '(finish|resume|fix|repair|start|reconcile|continue)') {
-    Invoke-QQLocalTask "local-ai" @{Action="reconcile"}
+  if ($lower -match '(local\s+ai|ai\s+server)' -and $lower -match '(finish|resume|fix|repair|start|reconcile|continue|complete)') {
+    Invoke-QQLocalTask "finish-local-ai" @{MaxPasses="4"}
     return
   }
   if ($lower -match '(local\s+ai|ai\s+server)' -and $lower -match '(status|health|check|inspect)') {
@@ -1358,6 +1384,7 @@ function Invoke-AllowlistedTask {
     "local-ai" = @{ Relative = "tools/local_ai.py"; Required = "def gguf_files" }
     "bitnet-setup" = @{ Relative = "tasks/bitnet-setup.ps1"; Required = "Running temporary BitNet HTTP server round trip" }
     "local-ai-integrate" = @{ Relative = "tasks/integrate-local-ai.ps1"; Required = "Running n8n-path generation through BitNet" }
+    "finish-local-ai" = @{ Relative = "tasks/finish-local-ai.ps1"; Required = "AUTOPILOT COMPLETE" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
