@@ -34,6 +34,31 @@ $script:QQReceiveTask = $null
 $script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
+$script:LastVisibleActivity = Get-Date
+$script:QQShortIdleShown = $false
+$script:QQLongIdleShown = $false
+
+function Mark-QQVisibleActivity {
+  $script:LastVisibleActivity = Get-Date
+  $script:QQShortIdleShown = $false
+  $script:QQLongIdleShown = $false
+}
+
+function Show-QQIdleNotice {
+  $seconds=((Get-Date)-$script:LastVisibleActivity).TotalSeconds
+  if($seconds -ge 90 -and -not $script:QQLongIdleShown){
+    Suspend-QQPrompt
+    Write-Host "IDLE // long standby expected; Control Plane link, health checks, and job listener remain active." -ForegroundColor DarkGray
+    $script:QQLongIdleShown=$true
+    $script:QQShortIdleShown=$true
+    Show-QQPrompt
+  } elseif($seconds -ge 12 -and -not $script:QQShortIdleShown){
+    Suspend-QQPrompt
+    Write-Host "IDLE // short quiet period; qq is waiting for input, a local task result, or Control Plane work." -ForegroundColor DarkGray
+    $script:QQShortIdleShown=$true
+    Show-QQPrompt
+  }
+}
 
 function Write-RunnerHeartbeat {
   param(
@@ -167,7 +192,7 @@ function Read-QQConsoleLine {
         $null = $script:QQInputBuffer.Clear()
         Write-Host ""
         $script:QQPromptVisible = $false
-        return [pscustomobject]@{Ready=$true;Line=$line}
+        Mark-QQVisibleActivity\n        return [pscustomobject]@{Ready=$true;Line=$line}
       }
 
       if ($key.Key -eq [ConsoleKey]::Backspace) {
@@ -276,39 +301,37 @@ function Ensure-ClintwareLogoAsset {
 }
 
 function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 32)
+  param([int]$MaxColumns = 22)
 
   try {
     $windowWidth = 100
     try { $windowWidth = [Console]::WindowWidth } catch {}
 
     $esc = [char]27
-    $cyan = "$esc[38;2;41;199;255m"
-    $cyanDim = "$esc[38;2;24;115;170m"
+    $cyan1 = "$esc[38;2;14;139;211m"
+    $cyan2 = "$esc[38;2;88;222;255m"
     $white = "$esc[38;2;247;251;255m"
     $reset = "$esc[0m"
 
-    # Micro Braille eclipse derived from the canonical Clintware eclipse mark.
-    # Braille packs 2x4 source pixels per character, so it stays crisp while
-    # taking far less vertical space than the previous block-ASCII renderer.
+    # Keep the terminal mark intentionally tiny. Block glyphs are used instead
+    # of Braille because their rendering is more consistent across terminals.
     $art = @(
-      "     ⢀⣀⣤⣤⣴⣶⣶⣶⣶⣿⣿⣶⣶⣶⣶⣦⣤⣤⣀⡀",
-      "  ⣠⣴⣾⣿⡿⠿⠛⠉⠉⠁      ⠈⠉⠉⠛⠿⢿⣿⣷⣦⣄",
-      "⢠⣾⣿⣿⡟⠉                  ⠉⢻⣿⣿⣷⡄",
-      "⢾⣿⣿⣿                      ⣿⣿⣿⡷",
-      "⠘⢿⣿⣿⣧⣀                  ⣀⣼⣿⣿⡿⠃",
-      "  ⠙⠻⢿⣿⣷⣶⣤⣀⣀⡀      ⢀⣀⣀⣤⣶⣾⣿⡿⠟⠋",
-      "     ⠈⠉⠛⠛⠻⠿⠿⠿⠿⣿⣿⠿⠿⠿⠿⠟⠛⠛⠉⠁"
+      "      ▄▄████████▄▄      ",
+      "   ▄██▀          ▀██▄   ",
+      "  ██                ██  ",
+      "   ▀██▄          ▄██▀   ",
+      "      ▀▀████████▀▀      "
     )
 
-    foreach ($line in $art) {
-      $pad = " " * [Math]::Max(0,[int](($windowWidth - $line.Length) / 2))
-      [Console]::WriteLine($pad + $cyan + $line + $reset)
+    for($i=0;$i -lt $art.Count;$i++){
+      $line=$art[$i]
+      $pad=" " * [Math]::Max(0,[int](($windowWidth-$line.Length)/2))
+      $color=if($i -in @(0,4)){$cyan1}else{$cyan2}
+      [Console]::WriteLine($pad+$color+$line+$reset)
     }
-
-    $name = "Clintware™"
-    $namePad = " " * [Math]::Max(0,[int](($windowWidth - $name.Length) / 2))
-    [Console]::WriteLine($namePad + $white + $name + $reset)
+    $name="Clintware™"
+    $pad=" " * [Math]::Max(0,[int](($windowWidth-$name.Length)/2))
+    [Console]::WriteLine($pad+$white+$name+$reset)
     return $true
   } catch {
     return $false
@@ -326,7 +349,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 32
+  $rendered = Write-ClintwareLogoImage -MaxColumns 22
   if (-not $rendered) {
     Write-ClintwareCentered "CLINTWARE™" White
     Write-ClintwareCentered "EST. 2026" DarkGray
@@ -778,7 +801,7 @@ function Emit-TaskLine {
   }
 
   Suspend-QQPrompt
-  Write-Host $safe -ForegroundColor $displayColor
+  Write-Host $safe -ForegroundColor $displayColor\n  Mark-QQVisibleActivity
   Show-QQPrompt
 
   Write-RunnerHeartbeat -State "busy" -JobId ([string]$Job.job_id) -TaskId ([string]$Job.task_id)
@@ -993,6 +1016,17 @@ function Invoke-QQLocalTask {
 
   Suspend-QQPrompt
   Write-Host ("LOCAL TASK // " + $TaskId) -ForegroundColor Cyan
+  try {
+    $meta = Find-Task (Get-Registry) $TaskId
+    $timeout = 0
+    if($meta -and $meta.timeout_seconds){$timeout=[int]$meta.timeout_seconds}
+    if($timeout -ge 600){
+      Write-Host ("EXPECT // long-running local work; quiet stretches are normal. Maximum reviewed window: " + [Math]::Ceiling($timeout/60) + " min.") -ForegroundColor DarkGray
+    } elseif($timeout -ge 120){
+      Write-Host "EXPECT // this task can be quiet for a short while; qq will report the final result." -ForegroundColor DarkGray
+    }
+  } catch {}
+  Mark-QQVisibleActivity
   try {
     $task = Find-Task $registry $TaskId
     $autoContinue = $true
@@ -1567,7 +1601,7 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.8.0"
+        version = "1.9.0"
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
       }
@@ -1607,7 +1641,7 @@ try {
       Show-QQPrompt
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
-        Write-RunnerHeartbeat -State "connected"
+        Write-RunnerHeartbeat -State "connected"\n        Show-QQIdleNotice
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
@@ -1634,7 +1668,7 @@ try {
           continue
         }
         if ($incoming.State -eq "closed") { break }
-        $msg = $incoming.Message
+        $msg = $incoming.Message\n        Mark-QQVisibleActivity
         if ($null -eq $msg) {
           Start-Sleep -Milliseconds 35
           continue
@@ -1702,6 +1736,10 @@ try {
         }
 
         Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$job.task_id) -Force
+        Suspend-QQPrompt
+        Write-Host ("WORKING // " + [string]$job.task_id + " // live task output follows when available") -ForegroundColor DarkCyan
+        Mark-QQVisibleActivity
+        Show-QQPrompt
         try {
           $result = Invoke-AllowlistedTask $job $ws
         } catch {
