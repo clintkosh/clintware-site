@@ -1,6 +1,4 @@
 {
-  "request_id": "chatgpt-qq-scoped-recovery-selfupdate-20260926",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Activate the scoped QQ bootstrap recovery path and install the current reviewed runtime after runner credential drift."
+  "request_id": "chatgpt-qq-recovery-live-inspect-20260926",
+  "mode": "inspect"
 }
