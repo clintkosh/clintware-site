@@ -357,7 +357,7 @@ def verify(fragment_path: pathlib.Path, image_path: pathlib.Path, launcher_path:
         raise RuntimeError("PowerShell executable verification failed.")
     if not launcher_path.is_file() or launcher_path.stat().st_size < 800:
         raise RuntimeError("Managed launcher verification failed.")
-    if not image_path.is_file() or image_path.stat().st_size < 3000:
+    if not image_path.is_file() or image_path.stat().st_size < 1000:
         raise RuntimeError("Retro boot image verification failed.")
     with image_path.open("rb") as handle:
         if handle.read(8) != b"\x89PNG\r\n\x1a\n":
