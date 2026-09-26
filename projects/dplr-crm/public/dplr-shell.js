@@ -21,6 +21,8 @@
   const countOpen=(type,field='status')=>R(type).filter(r=>openLike(r.data?.[field])).length;
   const aiResearchReady=()=>Boolean(I?.ai?.research?.configured);
   const currentLabel=()=>TABS.find(([id])=>id===tab)?.[1]||'Workspace';
+  const portfolioView=()=>{try{return localStorage.getItem('dplrPortfolioView')==='tiles'?'tiles':'list'}catch{return 'list'}};
+  const setPortfolioView=v=>{try{localStorage.setItem('dplrPortfolioView',v==='tiles'?'tiles':'list')}catch{}};
 
   function appHeader(){
     const auth=S.access?.authenticated===true;
@@ -93,12 +95,13 @@
     const syntheticCount=S.customers.filter(c=>sourceType(c)==='synthetic').length;
     const userCount=S.customers.filter(c=>sourceType(c)==='workspace').length;
     const auth=S.access?.authenticated===true;
+    const view=portfolioView();
     const cards=S.customers.map(c=>{
       const type=sourceType(c),facts=c.facts||{},sourceUrl=type==='public'?safeUrl(c.sourceFile):'';
       return '<article class="dplr-customer" data-customer-open="'+e(c.id)+'"><div class="dplr-card-top"><div><span class="dplr-source '+type+'">'+e(sourceLabel(c))+'</span><h2>'+e(c.name)+'</h2><p>'+e(c.industry||'Industry not recorded')+'</p></div><span class="dplr-stage">'+e(c.stage||'Unstaged')+'</span></div><div class="dplr-customer-grid"><div><span>Use case</span><strong>'+e(facts.product||facts.businessGoal||facts.users||'Not recorded')+'</strong></div><div><span>Timeline</span><strong>'+e(facts.committedTimeline||'Not recorded')+'</strong></div><div><span>Success target</span><strong>'+e(facts.roiTarget||facts.successMetrics||'Not recorded')+'</strong></div><div><span>Current systems</span><strong>'+e(facts.currentSystems||'Discovery required')+'</strong></div></div>'+(sourceUrl?'<a class="dplr-source-link" href="'+e(sourceUrl)+'" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Open public source ↗</a>':'')+'</article>';
     }).join('');
-    return head('Customer portfolio','Customer Portfolio','Operational accounts and training scenarios. Public Doppel references are labeled separately from synthetic or workspace data.','<button class="btn primary" id="import-customers">Import customer</button><button class="btn" id="newc2">Add customer</button>')+
-      '<div class="dplr-kpis"><article><span>Total accounts</span><b>'+S.customers.length+'</b><small>current workspace</small></article><article><span>Public references</span><b>'+publicCount+'</b><small>Doppel-published evidence only</small></article><article><span>Synthetic scenarios</span><b>'+syntheticCount+'</b><small>clearly labeled training data</small></article><article><span>Retention</span><b class="text">'+(auth?'SSO durable':'Guest session')+'</b><small>'+userCount+' user/imported account'+(userCount===1?'':'s')+'</small></article></div>'+persistenceBanner()+'<div class="dplr-portfolio-grid">'+(cards||'<div class="empty">No customers yet. Import a customer or populate the curated demo from Data & Persistence.</div>')+'</div>';
+    return head('Customer portfolio','Customer Portfolio','Operational accounts and training scenarios. Public Doppel references are labeled separately from synthetic or workspace data.','<div class="dplr-view-toggle" role="group" aria-label="Customer view"><button class="btn '+(view==='list'?'active':'')+'" data-portfolio-view="list" aria-pressed="'+(view==='list')+'">List</button><button class="btn '+(view==='tiles'?'active':'')+'" data-portfolio-view="tiles" aria-pressed="'+(view==='tiles')+'">Tiles</button></div><button class="btn primary" id="import-customers">Import customer</button><button class="btn" id="newc2">Add customer</button>')+
+      '<div class="dplr-kpis"><article><span>Total accounts</span><b>'+S.customers.length+'</b><small>current workspace</small></article><article><span>Public references</span><b>'+publicCount+'</b><small>Doppel-published evidence only</small></article><article><span>Synthetic scenarios</span><b>'+syntheticCount+'</b><small>clearly labeled training data</small></article><article><span>Retention</span><b class="text">'+(auth?'SSO durable':'Guest session')+'</b><small>'+userCount+' user/imported account'+(userCount===1?'':'s')+'</small></article></div>'+persistenceBanner()+'<div class="dplr-portfolio-grid '+view+'" data-portfolio-layout="'+view+'">'+(cards||'<div class="empty">No customers yet. Import a customer or populate the curated demo from Data & Persistence.</div>')+'</div>';
   };
 
   accounts=function(){
@@ -158,6 +161,11 @@
     document.querySelectorAll('[data-row-edit]').forEach(row=>row.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const rec=S.records.find(x=>x.id===row.dataset.rowEdit);if(rec)edit(rec.type,rec)});
     document.querySelectorAll('.kanban-card[data-card]').forEach(card=>card.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const rec=S.records.find(x=>x.id===card.dataset.card);if(rec)edit(rec.type,rec)});
     document.querySelectorAll('.stakeholder-card').forEach(card=>card.onclick=ev=>{if(ev.target.closest('button,a,input,select,textarea,label'))return;const b=card.querySelector('[data-edit]'),rec=b?S.records.find(x=>x.id===b.dataset.edit):null;if(rec)edit(rec.type,rec)});
+    document.querySelectorAll('[data-portfolio-view]').forEach(btn=>btn.onclick=()=>{
+      const view=btn.dataset.portfolioView==='tiles'?'tiles':'list';
+      setPortfolioView(view);
+      render();
+    });
     if(window.DPLRPrep)window.DPLRPrep.bind();
   }
 
