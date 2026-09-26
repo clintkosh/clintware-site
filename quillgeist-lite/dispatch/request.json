@@ -1,8 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-ai-reconcile-20260926-0138",
-  "task_id": "local-ai",
-  "args": {
-    "Action": "reconcile"
-  },
-  "objective": "Resume the existing MEMORIA local AI stack in place. Read current service state; only start the existing canonical local-AI launcher when required; then recheck Open WebUI, Ollama, SearXNG, n8n, Pipelines, Web Search Agent, Media Agent, and ComfyUI and return the bounded runtime/model snapshot. Preserve C:\\AI\\LOCAL-CHATGPT and F:\\AI-Data, do not touch D:, and do not rebuild working components."
+  "request_id": "chatgpt-memoria-self-update-20260926-0201",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Refresh MEMORIA QQ in place from reviewed Clintware runtime assets. Install the corrected Miniconda-first runner, refresh the reviewed task registry including BitNet and local AI integration, preserve the existing watchdog and singleton window policy, return the result, then restart only the canonical QQ runner."
 }
