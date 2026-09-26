@@ -26,48 +26,6 @@ function Get-QQLauncherProcesses {
 
 function Test-RunnerAlive {
   try {
-    if (-not (Test-Path $PidPath)) { return $false }
-    $raw = (Get-Content $PidPath -Raw).Trim()
-    $runnerPid = 0
-    if (-not [int]::TryParse($raw,[ref]$runnerPid) -or $runnerPid -le 0) { return $false }
-    return -not (Get-Process -Id $runnerPid -ErrorAction Stop).HasExited
-  } catch { return $false }
-}
-
-function Repair-RunnerPidFromExistingProcess {
-  $existing = @(Get-QQLauncherProcesses)
-  if ($existing.Count -eq 0) { return $false }
-
-  $keepPid = 0
-  try {
-    if (Test-Path $HeartbeatPath) {
-      $heartbeat = Get-Content $HeartbeatPath -Raw | ConvertFrom-Json
-      $candidate = [int]$heartbeat.pid
-      $stamp = [DateTime]::Parse([string]$heartbeat.timestamp).ToUniversalTime()
-      if (((Get-Date).ToUniversalTime() - $stamp).TotalSeconds -le 180 -and ($existing.ProcessId -contains $candidate)) {
-        $keepPid = $candidate
-      }
-    }
-  } catch {}
-
-  if ($keepPid -le 0) {
-    try {
-      if (Test-Path $PidPath) {
-        $candidate = 0
-        $raw = (Get-Content $PidPath -Raw).Trim()
-        if ([int]::TryParse($raw,[ref]$candidate) -and ($existing.ProcessId -contains $candidate)) {
-          $keepPid = $candidate
-        }
-      }
-    } catch {}
-  }
-
-  if ($keepPid -le 0) { $keepPid = [int]$existing[0].ProcessId }
-  [IO.File]::WriteAllText($PidPath,[string]$keepPid,(New-Object Text.UTF8Encoding($false)))
-  return $true
-}
-
-try {
   try {
     $acquired = $mutex.WaitOne(0)
   } catch [Threading.AbandonedMutexException] {
@@ -76,26 +34,15 @@ try {
 
   if (-not $acquired) { exit 0 }
 
-  # Re-check only after acquiring the singleton gate. This closes the race where
-  # the service, fallback watchdog, scheduled task, and a manual launch all saw a
-  # missing runner.pid before the first launcher had time to create it.
   if (Test-RunnerAlive) { exit 0 }
   if (Repair-RunnerPidFromExistingProcess) { exit 0 }
-
   if (-not (Test-Path $LauncherPath)) { throw "qq launcher is missing: $LauncherPath" }
 
-  Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class QQWindowNative {
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
-  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-}
-"@ -ErrorAction SilentlyContinue
-
-  $previous = [IntPtr]::Zero
-  try { $previous = [QQWindowNative]::GetForegroundWindow() } catch {}
+  $McpConsolePath = Join-Path $HomeDir "mcp-console.ps1"
+  if (-not (Test-Path $McpConsolePath)) {
+    $runtimeCopy = Join-Path $HomeDir "runtime\quillgeist-lite\tasks\mcp-console.ps1"
+    if (Test-Path $runtimeCopy) { Copy-Item -LiteralPath $runtimeCopy -Destination $McpConsolePath -Force }
+  }
 
   $pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
   if (-not $pwsh) {
@@ -103,29 +50,41 @@ public static class QQWindowNative {
     if (Test-Path $candidate) { $pwsh = Get-Item $candidate }
   }
   $exe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+
+  $wt = Get-Command wt.exe -ErrorAction SilentlyContinue
+  if ($wt -and (Test-Path $McpConsolePath)) {
+    # Native Windows Terminal split: first pane remains top; -H creates the
+    # second pane below it. The named window prevents accidental extra tabs.
+    $args = @(
+      "-w","qq",
+      "-F",
+      "new-tab",
+      "--title","Clintware MCP // ADMIN",
+      $exe,"-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$McpConsolePath,
+      ";",
+      "split-pane","-H","--size","0.50",
+      "--title","Quillgeist Lite",
+      $exe,"-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$LauncherPath,"-TerminalHost"
+    )
+    Start-Process -FilePath $wt.Source -ArgumentList $args -WorkingDirectory $HomeDir | Out-Null
+
+    # Wait for launcher.ps1 to write the real runner PID. This closes the
+    # watchdog race without recording wt.exe as the runner.
+    $deadline=(Get-Date).AddSeconds(10)
+    do {
+      Start-Sleep -Milliseconds 150
+      if(Test-RunnerAlive){break}
+      [void](Repair-RunnerPidFromExistingProcess)
+      if(Test-RunnerAlive){break}
+    } while((Get-Date)-lt $deadline)
+
+    exit 0
+  }
+
+  # Fallback for machines where Windows Terminal is unavailable.
   $args = @("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-NoExit","-File",$LauncherPath,"-TerminalHost")
   $child = Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $HomeDir -PassThru
-
-  # Reserve the canonical runner PID immediately. launcher.ps1 later writes the
-  # same PID after initialization, but watchdogs can now see a live process during
-  # that startup gap instead of opening another window.
   [IO.File]::WriteAllText($PidPath,[string]$child.Id,(New-Object Text.UTF8Encoding($false)))
-
-  $deadline = (Get-Date).AddSeconds(3)
-  do {
-    Start-Sleep -Milliseconds 80
-    try { $child.Refresh() } catch {}
-    $hwnd = try { $child.MainWindowHandle } catch { [IntPtr]::Zero }
-    if ($hwnd -ne [IntPtr]::Zero) {
-      try { [void][QQWindowNative]::ShowWindowAsync($hwnd,4) } catch {}
-      break
-    }
-  } while ((Get-Date) -lt $deadline)
-
-  if ($previous -ne [IntPtr]::Zero) {
-    Start-Sleep -Milliseconds 80
-    try { [void][QQWindowNative]::SetForegroundWindow($previous) } catch {}
-  }
 }
 finally {
   if ($acquired) {
