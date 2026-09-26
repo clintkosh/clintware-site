@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -230,6 +230,17 @@
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/integrate-local-ai.ps1",
       "parameters": []
+    },
+    "finish-local-ai": {
+      "title": "Continue the full MEMORIA local AI server build in checkpointed chunks until verified complete or a hard blocker remains",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/finish-local-ai.ps1",
+      "parameters": [
+        "MaxPasses"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 7200,
+      "auto_continue": false
     }
   }
 }
