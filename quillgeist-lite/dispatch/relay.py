@@ -24,6 +24,8 @@ ALLOWED = {
     "install-desktop-app": {"NoLaunch"},
     "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs"},
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
+    "bitnet-setup": set(),
+    "local-ai-integrate": set(),
     "restart-window": set(),
     "repair-local-service": set(),
     "apply-terminal-glass": set(),
