@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
-const GOOGLE_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
+const DEFAULT_GOOGLE_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
 const GOOGLE_CALLBACK = "https://auth.clintware.com/callback";
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
@@ -20,6 +20,10 @@ const SCOPES = [
 
 const te = new TextEncoder();
 const td = new TextDecoder();
+
+function googleClientId(env) {
+  return String(env.GOOGLE_OAUTH_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
+}
 
 function json(value, status = 200, extra = {}) {
   return new Response(JSON.stringify(value), {
@@ -157,7 +161,7 @@ async function codeChallenge(verifier) {
 }
 
 export async function beginDelegatedGoogle(request, env) {
-  if (!env.OAUTH_KV || !env.GOOGLE_OAUTH_CLIENT_SECRET) {
+  if (!env.OAUTH_KV || !env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) {
     return json({ error: "google_delegated_not_configured" }, 503);
   }
 
@@ -175,7 +179,7 @@ export async function beginDelegatedGoogle(request, env) {
   }, "state");
 
   const auth = new URL(GOOGLE_AUTH);
-  auth.searchParams.set("client_id", GOOGLE_CLIENT_ID);
+  auth.searchParams.set("client_id", googleClientId(env));
   auth.searchParams.set("redirect_uri", GOOGLE_CALLBACK);
   auth.searchParams.set("response_type", "code");
   auth.searchParams.set("scope", SCOPES.join(" "));
@@ -239,7 +243,7 @@ export async function finishDelegatedGoogle(request, env) {
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: googleClientId(env),
       client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
       redirect_uri: GOOGLE_CALLBACK,
       grant_type: "authorization_code",
@@ -268,7 +272,7 @@ export async function finishDelegatedGoogle(request, env) {
   const jwks = createRemoteJWKSet(new URL(GOOGLE_JWKS));
   const verified = await jwtVerify(tokens.id_token, jwks, {
     issuer: ["https://accounts.google.com", "accounts.google.com"],
-    audience: GOOGLE_CLIENT_ID,
+    audience: googleClientId(env),
     clockTolerance: 10,
   });
   const claims = verified.payload;
@@ -326,7 +330,7 @@ export async function internalGoogleAccessToken(request, env) {
   const expected = String(env.GOOGLE_DELEGATED_BRIDGE_SECRET || "");
   const supplied = request.headers.get("x-clintware-google-secret") || "";
   if (!expected || !(await secureEq(expected, supplied))) return json({ error: "unauthorized" }, 401);
-  if (!env.GOOGLE_OAUTH_CLIENT_SECRET) return json({ error: "google_client_secret_missing" }, 503);
+  if (!env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) return json({ error: "google_client_credentials_missing" }, 503);
 
   const grant = await loadGrant(env);
   if (!grant?.refreshToken) return json({ error: "google_delegated_grant_missing" }, 404);
@@ -335,7 +339,7 @@ export async function internalGoogleAccessToken(request, env) {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: googleClientId(env),
       client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET,
       refresh_token: grant.refreshToken,
       grant_type: "refresh_token",
