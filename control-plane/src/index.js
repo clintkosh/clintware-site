@@ -686,6 +686,27 @@ export class RegistryHub extends DurableObject {
     try{mirror=await mirrorHandoffToPowerChatBridge(this.env,packet);}catch(e){mirror={ok:false,mirrored:false,error:clip(e?.message||e,1000)};}
     return {realtime_receivers:realtime,private_mirror:mirror};
   }
+  async relayQuillgeistLiteFailure(job){
+    const packet=normalizeHandoff({
+      handoff_id:"qq-failure-"+clip(job.job_id,100),
+      from_client:"qq",
+      target_client:"chatgpt",
+      product:"quillgeist-lite",
+      project:"quillgeist-lite",
+      objective:"Diagnose and recover the failed allowlisted qq task "+clip(job.task_id,120)+" on the registered Windows device.",
+      context_summary:"Quillgeist Lite job "+clip(job.job_id,120)+" failed with exit code "+Number(job.result?.exit_code||0)+". Read its protected job result and diagnostics through the Clintware MCP before choosing a scoped repair.",
+      constraints:[
+        "Never dispatch arbitrary shell or reveal device credentials.",
+        "Use reviewed qq tasks and verify the outcome; avoid unbounded retry loops."
+      ],
+      next_actions:["Read job "+clip(job.job_id,120)+" using clintware_quillgeist_lite_job.","Choose one bounded recovery action and check its final status."],
+      notes:"job_id="+clip(job.job_id,120)+"; task_id="+clip(job.task_id,120)
+    });
+    await this.fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
+    const realtime=await this.broadcastHandoff(packet);
+    try{await mirrorHandoffToPowerChatBridge(this.env,packet);}catch{}
+    return realtime;
+  }
   async broadcastQuillgeistLiteAnswer(question){
     let delivered=0;
     for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
@@ -911,6 +932,19 @@ export class RegistryHub extends DurableObject {
           await this.markQuillgeistLiteAnswerDelivered(data.question_id,clip(data.runner_id||"",120));
           return;
         }
+        if(data?.type==="runner_log"){
+          const runner=await this.ctx.storage.get("quillgeist_lite_runner")||{};
+          await this.appendQuillgeistLiteDiagnostic({
+            device_id:runner.runner_id||"unknown",
+            level:data.level,
+            phase:data.phase||"runner",
+            message:data.line,
+            runner_alive:true,
+            service_version:runner.version||"",
+            timestamp:data.timestamp
+          });
+          return;
+        }
         if(data?.type==="ack"&&data.job_id){
           const jobId=clip(data.job_id,120);
           await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
@@ -944,6 +978,12 @@ export class RegistryHub extends DurableObject {
             }
           });
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          if(status==="failed"){
+            const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+            const runner=await this.ctx.storage.get("quillgeist_lite_runner")||{};
+            await this.appendQuillgeistLiteDiagnostic({device_id:runner.runner_id||"unknown",level:"ERROR",phase:"job",message:"job_failed id="+jobId+" task="+clip(data.task_id,120)+" exit="+Number(data.exit_code||0),runner_alive:true,service_version:runner.version||""});
+            if(job){try{await this.relayQuillgeistLiteFailure(job);}catch(e){console.error(JSON.stringify({event:"qq_failure_handoff_error",message:String(e?.message||e)}));}}
+          }
           return;
         }
         if(data?.type==="pong"){
