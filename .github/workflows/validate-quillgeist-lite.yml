@@ -140,6 +140,26 @@ jobs:
             "quillgeist-lite/tools/responder_agent.py",
             "quillgeist-lite/tools/career_signal_agent.py"
           )
+          $logoB64 = (Get-Content "quillgeist-lite/assets/clintware-terminal-logo.b64" -Raw).Trim()
+          if (($logoB64.Length % 4) -ne 0) {
+            throw "Clintware logo base64 length is invalid."
+          }
+          try {
+            $logoBytes = [Convert]::FromBase64String($logoB64)
+          } catch {
+            throw "Clintware logo asset is not valid base64."
+          }
+          if ($logoBytes.Length -lt 1000) {
+            throw "Clintware logo PNG is unexpectedly small."
+          }
+          $pngSignature = [byte[]](137,80,78,71,13,10,26,10)
+          for ($i=0; $i -lt $pngSignature.Length; $i++) {
+            if ($logoBytes[$i] -ne $pngSignature[$i]) {
+              throw "Clintware logo asset does not decode to a PNG."
+            }
+          }
+          Write-Host "CLINTWARE_LOGO_OK bytes=$($logoBytes.Length)"
+
           foreach ($pyFile in $pythonFiles) {
             python -m py_compile $pyFile
             if ($LASTEXITCODE -ne 0) {
