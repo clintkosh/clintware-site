@@ -1,5 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-inspect-bitnet-logs-20260926-0248",
-  "mode": "inspect",
-  "job_id": "a4ea2049-b77e-47ba-bd30-143a269e86c3"
+  "request_id": "chatgpt-qq-relay-fix-20260926",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Update the local qq runner so local AI server commands execute the reviewed local-ai task directly and relay acknowledgements show whether an actual responder is attached."
 }
