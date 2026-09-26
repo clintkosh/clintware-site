@@ -16,7 +16,7 @@ $AutoRepairUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks
 $RegistryUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json"
 $SelfUpdateUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/self-update.ps1"
 $RestartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/restart-window.ps1"
-$LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launcher.ps1"
+$LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launcher.ps1"\n$StartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/start-qq-window.ps1"\n$McpConsoleUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/mcp-console.ps1"\n$BootSplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py"\n$LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -84,7 +84,11 @@ function Sync-LatestQQFunctionality {
     @{ Url = $RegistryUrl; Path = (Join-Path $runtimeRoot "tasks.json"); Kind = "json"; Required = '"tasks"' },
     @{ Url = $SelfUpdateUrl; Path = (Join-Path $taskRoot "self-update.ps1"); Kind = "powershell"; Required = "RESTART // canonical QQ runner restart queued after result delivery" },
     @{ Url = $RestartWindowUrl; Path = (Join-Path $taskRoot "restart-window.ps1"); Kind = "powershell"; Required = "qq window restart queued" },
-    @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" }
+    @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" },
+    @{ Url = $StartWindowUrl; Path = (Join-Path $HomeDir "start-qq-window.ps1"); Kind = "powershell"; Required = "split-pane" },
+    @{ Url = $McpConsoleUrl; Path = (Join-Path $HomeDir "mcp-console.ps1"); Kind = "powershell"; Required = "LIVE ADMIN CONSOLE" },
+    @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "supplied Clintware eclipse image" },
+    @{ Url = $LogoUrl; Path = (Join-Path $HomeDir "clintware-terminal-logo.b64"); Kind = "text"; Required = "iVBOR" }
   )
 
   foreach ($spec in $specs) {
