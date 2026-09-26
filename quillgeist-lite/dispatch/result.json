@@ -1,13 +1,18 @@
 {
-  "request_id": "chatgpt-qq-recovery-status-20260926",
+  "request_id": "chatgpt-qq-recovery-live-inspect-20260926",
   "mode": "inspect",
-  "recorded_at": 1790423656,
+  "recorded_at": 1790423755,
   "inspection": {
     "online": 0,
     "wake_online": 2,
     "runner_version": "1.9.1",
     "runner_last_seen": "2026-09-26T10:57:49.277Z",
     "jobs": [
+      {
+        "job_id": "da4023b0-945c-46a8-871e-c94554be07ca",
+        "task_id": "self-update",
+        "status": "queued"
+      },
       {
         "job_id": "6f4ddd73-bfaf-4222-8f85-dcc3c48a5c85",
         "task_id": "self-update",
@@ -62,11 +67,6 @@
         "job_id": "a6046189-174f-4591-af5b-0446755f4970",
         "task_id": "self-update",
         "status": "failed"
-      },
-      {
-        "job_id": "60deff1d-de98-4261-b35b-16092c44bd3a",
-        "task_id": "self-update",
-        "status": "failed"
       }
     ],
     "diagnostics": [
@@ -74,73 +74,73 @@
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:54:17.8800188Z"
+        "timestamp": "2026-09-26T11:55:53.0556310Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:54:12.8658410Z"
+        "timestamp": "2026-09-26T11:55:48.0531846Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:54:07.8561383Z"
+        "timestamp": "2026-09-26T11:55:43.0446764Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:54:02.8395960Z"
-      },
-      {
-        "level": "WARN",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:58.2526138Z"
-      },
-      {
-        "level": "WARN",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:59.6049289Z"
-      },
-      {
-        "level": "INFO",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:59.4813455Z"
-      },
-      {
-        "level": "INFO",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:58.1511218Z"
+        "timestamp": "2026-09-26T11:55:38.0362920Z"
       },
       {
         "level": "ERROR",
         "phase": "runner-log",
         "kind": "connection_error",
-        "timestamp": "2026-09-26T11:53:57.8397042Z"
+        "timestamp": "2026-09-26T11:55:33.0308775Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:28.0285045Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:23.0140875Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:18.0042562Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:12.9939307Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:07.9878821Z"
+      },
+      {
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-26T11:55:02.9696308Z"
       },
       {
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
-        "timestamp": "2026-09-26T11:53:55.1836877Z"
-      },
-      {
-        "level": "WARN",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:56.4214533Z"
-      },
-      {
-        "level": "INFO",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-26T11:53:54.9448213Z"
+        "timestamp": "2026-09-26T11:54:59.6182033Z"
       }
     ]
   }
