@@ -1,5 +1,6 @@
 {
-  "request_id": "chatgpt-memoria-recovery-inspect-20260926-0119",
+  "request_id": "chatgpt-memoria-recovery-inspect-20260926-0121",
   "mode": "inspect",
-  "objective": "Read current Control Plane qq status and classified diagnostics without exposing raw local paths or credentials in public workflow logs."
+  "job_id": "456ec24c-2aa5-4d06-a5c1-559bc0508035",
+  "objective": "Check QQ runner connectivity and classify the most recent failed self-update without printing raw local logs."
 }
