@@ -952,7 +952,15 @@ export class RegistryHub extends DurableObject {
           for(const question of pendingAnswers){
             try{ws.send(JSON.stringify({type:"answer",protocol:"clintware-quillgeist-lite-interactive/v1",question_id:question.question_id,answer:question.answer,answered_by:question.answered_by,answered_at:question.answered_at,poll:true}));}catch{}
           }
-          ws.send(JSON.stringify({type:"question_status",pending_answers:pendingAnswers.length,time:nowIso()}));
+          const pendingQuestions=(await this.quillgeistLiteQuestions("pending",100))
+            .filter(question=>!runnerId||!question.runner_id||question.runner_id===runnerId)
+            .map(question=>({
+              question_id:question.question_id,
+              text:question.text,
+              created_at:question.created_at,
+              updated_at:question.updated_at
+            }));
+          ws.send(JSON.stringify({type:"question_status",pending_answers:pendingAnswers.length,pending_questions:pendingQuestions,time:nowIso()}));
           return;
         }
         if(data?.type==="answer_ack"&&data.question_id){
