@@ -32,7 +32,7 @@ $script:QQInputBuffer = New-Object Text.StringBuilder
 $script:QQReceiveBuffer = New-Object byte[] 65536
 $script:QQReceiveStream = New-Object IO.MemoryStream
 $script:QQReceiveTask = $null
-$script:PendingQuestions = Get-PendingQuestions
+$script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
 $script:LastPendingNotice = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
@@ -508,6 +508,8 @@ function Save-PendingQuestions([hashtable]$Map) {
     Move-Item -LiteralPath $temp -Destination $PendingQuestionPath -Force
   } catch {}
 }
+
+$script:PendingQuestions = Get-PendingQuestions
 
 function Get-Completed {
   if (-not (Test-Path $StatePath)) { return @{} }
