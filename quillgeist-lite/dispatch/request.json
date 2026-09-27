@@ -1,10 +1,6 @@
 {
-  "request_id": "qq-msft-clintware-tenant-login-20260927",
-  "task_id": "browser-work",
-  "args": {
-    "Action": "login",
-    "Url": "https://azure.microsoft.com/en-us/free/",
-    "Headless": "false",
-    "WaitMs": 700
-  }
+  "request_id": "qq-cloudflare-quota-hotfix-20260927",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Apply the Cloudflare quota hotfix now: bounded exponential QQ reconnect backoff, stable-connection reset, reduced health heartbeat telemetry, and updated health-service wake reconnect behavior. Verify runner and health service are active after restart."
 }
