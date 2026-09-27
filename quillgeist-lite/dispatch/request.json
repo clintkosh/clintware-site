@@ -1,9 +1,9 @@
 {
-  "request_id": "chatgpt-qq-provider-responder-smoke-20260927",
+  "request_id": "chatgpt-qq-provider-responder-smoke-retry-20260927",
   "task_id": "local-ai",
   "args": {
     "Action": "provider-test",
     "Prompt": "Reply exactly QQ_RESPONDER_OK. Do not use tools."
   },
-  "objective": "Verify that the newly installed QQ subscription responder can obtain a live answer from an already-authenticated provider client without remote handoff."
+  "objective": "Retry the live QQ subscription responder test after fixing the diagnostic bridge imports. Verify a real authenticated provider returns QQ_RESPONDER_OK."
 }
