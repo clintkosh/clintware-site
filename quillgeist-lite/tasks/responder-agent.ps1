@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("install","update","status","on","off","run","scan","ui","kill","unkill","report","uninstall")]
+  [ValidateSet("install","update","status","on","off","run","scan","ui","kill","unkill","report","uninstall","live-test")]
   [string]$Action = "status"
 )
 
@@ -136,6 +136,17 @@ switch ($Action) {
     }
     Start-Process $url
     @{ ok=$true; ui=$url; already_running=$already } | ConvertTo-Json -Compress
+  }
+  "live-test" {
+    $qqHome = Split-Path $HomeDir -Parent
+    $uiInput = Join-Path $qqHome "ui-input.jsonl"
+    $payload = @{
+      text = "Reply exactly QQ_LIVE_RESPONDER_OK. Do not use tools."
+      source = "responder-live-test"
+      created_at = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Compress
+    Add-Content -LiteralPath $uiInput -Value $payload -Encoding UTF8
+    @{ ok=$true; queued=$true; path=$uiInput; expected="QQ_LIVE_RESPONDER_OK" } | ConvertTo-Json -Compress
   }
   "uninstall" {
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
