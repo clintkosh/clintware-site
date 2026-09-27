@@ -178,18 +178,20 @@ def read_page(page,max_chars):
         text:clean(root?.innerText||''),
         description:document.querySelector('meta[name="description"]')?.content||'',
         headings:Array.from(document.querySelectorAll('h1,h2,h3')).slice(0,80).map(x=>clean(x.innerText||x.textContent||'')).filter(Boolean),
-        links:Array.from((root||document).querySelectorAll('a[href]')).slice(0,300).map(a=>({text:clean(a.innerText||a.textContent||'').replace(/\\s+/g,' '),url:a.href||''})).filter(x=>x.text&&x.url)
+        links:Array.from((root||document).querySelectorAll('a[href]')).slice(0,300).map(a=>({text:clean(a.innerText||a.textContent||'').replace(/\\s+/g,' '),url:a.href||''})).filter(x=>x.text&&x.url),
+        images:Array.from(document.querySelectorAll('img')).slice(0,80).map(img=>({src:img.currentSrc||img.src||'',alt:img.alt||'',naturalWidth:img.naturalWidth||0,naturalHeight:img.naturalHeight||0}))
       };
     }""")
     text=str(snap.get("text") or "")
     headings=[clip(x,300) for x in (snap.get("headings") or [])]
+    images=[{"src":str(x.get("src") or ""),"alt":clip(x.get("alt") or "",240),"naturalWidth":int(x.get("naturalWidth") or 0),"naturalHeight":int(x.get("naturalHeight") or 0)} for x in (snap.get("images") or [])]
     links=[]; seen=set()
     for row in snap.get("links") or []:
         href=str(row.get("url") or ""); label=str(row.get("text") or "")
         if href in seen or urlparse(href).scheme not in {"http","https"}: continue
         links.append({"text":clip(label,240),"url":href}); seen.add(href)
         if len(links)>=50: break
-    return {"title":clip(page.title(),500),"url":page.url,"description":clip(snap.get("description") or "",1000),"headings":headings,"text":clip(text,limit),"links":links,"truncated":len(text)>limit}
+    return {"title":clip(page.title(),500),"url":page.url,"description":clip(snap.get("description") or "",1000),"headings":headings,"text":clip(text,limit),"links":links,"images":images,"truncated":len(text)>limit}
 
 def run_steps(page,steps,wait_ms,policy,approved,max_chars):
     results=[]
