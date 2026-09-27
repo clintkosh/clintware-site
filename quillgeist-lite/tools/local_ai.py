@@ -332,9 +332,63 @@ def reconcile():
     return {"before": before, "after": services(), "launcher_used": launcher, "snapshot": snapshot(4096)}
 
 
+def provider_responder_path() -> Path:
+    return Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Clintware" / "QuillgeistLite" / "provider_responder.py"
+
+
+def provider_status():
+    script = provider_responder_path()
+    if not script.exists():
+        return {"ok": False, "error": "provider_responder_missing", "path": str(script)}
+    cp = subprocess.run(
+        [sys.executable, str(script), "status"],
+        text=True,
+        capture_output=True,
+        timeout=30,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    text = (cp.stdout or cp.stderr or "").strip()
+    if cp.returncode != 0:
+        return {"ok": False, "error": "provider_status_failed", "detail": text[-2000:]}
+    try:
+        return json.loads(text)
+    except Exception:
+        return {"ok": False, "error": "provider_status_invalid_json", "detail": text[-2000:]}
+
+
+def provider_test(prompt: str):
+    script = provider_responder_path()
+    if not script.exists():
+        return {"ok": False, "error": "provider_responder_missing", "path": str(script)}
+    prompt = (prompt or "Reply exactly QQ_RESPONDER_OK.").strip()[:4000]
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as handle:
+        handle.write(prompt)
+        prompt_path = handle.name
+    try:
+        cp = subprocess.run(
+            [sys.executable, str(script), "respond", "--prompt-file", prompt_path],
+            text=True,
+            capture_output=True,
+            timeout=150,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        text = (cp.stdout or cp.stderr or "").strip()
+        if cp.returncode != 0:
+            return {"ok": False, "error": "provider_test_failed", "detail": text[-2000:]}
+        try:
+            return json.loads(text)
+        except Exception:
+            return {"ok": False, "error": "provider_test_invalid_json", "detail": text[-2000:]}
+    finally:
+        try:
+            os.unlink(prompt_path)
+        except OSError:
+            pass
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
@@ -345,6 +399,12 @@ def main():
         return
     if a.Action == "reconcile":
         print(json.dumps(reconcile(), indent=2))
+        return
+    if a.Action == "providers":
+        print(json.dumps(provider_status(), indent=2))
+        return
+    if a.Action == "provider-test":
+        print(json.dumps(provider_test(a.Prompt), indent=2))
         return
     snap = snapshot(a.ContextTokens)
     if a.Action == "status":
