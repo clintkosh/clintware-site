@@ -1314,20 +1314,102 @@ function Ensure-QQLocalResponder {
   return (Test-QQLocalGateway)
 }
 
+function Get-QQPortableLocalTarget {
+  # Portable fallback for QQ machines that do not have the full MEMORIA gateway.
+  # Prefer an already-running Ollama service, then an already-running BitNet/llama.cpp server.
+  try {
+    $tags = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:11434/api/tags" -TimeoutSec 2 -ErrorAction Stop
+    $models = @($tags.models | ForEach-Object { [string]$_.name } | Where-Object { $_ -and $_ -notmatch '(?i)(embed|embedding)' })
+    if ($models.Count -gt 0) {
+      $preferred = @($models | Sort-Object {
+        if($_ -match '(?i)qwen'){0}
+        elseif($_ -match '(?i)llama'){1}
+        elseif($_ -match '(?i)mistral'){2}
+        elseif($_ -match '(?i)gemma'){3}
+        elseif($_ -match '(?i)phi'){4}
+        else{10}
+      })[0]
+      return [pscustomobject]@{ Kind="ollama"; Model=$preferred; Url="http://127.0.0.1:11434/api/chat" }
+    }
+  } catch {}
+
+  try {
+    $health = Invoke-WebRequest -Uri "http://127.0.0.1:11436/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+    if ($health.StatusCode -ge 200 -and $health.StatusCode -lt 500) {
+      return [pscustomobject]@{ Kind="openai"; Model="local"; Url="http://127.0.0.1:11436/v1/chat/completions" }
+    }
+  } catch {}
+
+  return $null
+}
+
+function Invoke-QQPortableLocalResponse {
+  param(
+    [string]$Text,
+    [string]$SystemPrompt
+  )
+
+  $target = Get-QQPortableLocalTarget
+  if (-not $target) { return $false }
+
+  try {
+    if ($target.Kind -eq "ollama") {
+      $payload = @{
+        model = $target.Model
+        messages = @(
+          @{role="system";content=$SystemPrompt},
+          @{role="user";content=$Text}
+        )
+        stream = $false
+        options = @{ temperature = 0.15; num_predict = 700 }
+      } | ConvertTo-Json -Depth 8 -Compress
+      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec 90 -ErrorAction Stop
+      $answer = [string]$response.message.content
+    } else {
+      $payload = @{
+        model = $target.Model
+        messages = @(
+          @{role="system";content=$SystemPrompt},
+          @{role="user";content=$Text}
+        )
+        max_tokens = 700
+        temperature = 0.15
+        stream = $false
+      } | ConvertTo-Json -Depth 8 -Compress
+      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec 90 -ErrorAction Stop
+      $answer = [string]$response.choices[0].message.content
+    }
+
+    if (-not $answer) { return $false }
+    if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
+      Suspend-QQPrompt
+      Write-Host "LOCAL-FIRST" -ForegroundColor Cyan -NoNewline
+      Write-Host " // local model requested remote execution/context" -ForegroundColor DarkGray
+      return $false
+    }
+
+    Suspend-QQPrompt
+    Write-Host ""
+    Write-Host "QUILLGEIST LOCAL" -ForegroundColor White -NoNewline
+    Write-Host (" // " + $target.Kind + "/" + $target.Model) -ForegroundColor Cyan
+    Write-Host $answer.Trim() -ForegroundColor White
+    Write-Host ""
+    try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [LOCAL_ANSWER] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
+    try { Queue-RunnerDiagnostic "INFO" ("portable_local_responder=" + $target.Kind + "/" + $target.Model) "local-first" } catch {}
+    Show-QQPrompt
+    return $true
+  } catch {
+    try { Queue-RunnerDiagnostic "INFO" ("portable_local_responder_unavailable: " + $_.Exception.Message) "local-first" } catch {}
+    return $false
+  }
+}
+
 function Invoke-QQLocalFirstResponse {
   param([string]$Text)
 
   $Text = ([string]$Text).Trim()
   if (-not $Text) { return $false }
 
-  if (-not (Ensure-QQLocalResponder)) {
-    try { Queue-RunnerDiagnostic "INFO" "local_responder_unavailable_after_bounded_repair" "local-first" } catch {}
-    return $false
-  }
-
-  # The local gateway is the cheapest inference path. It uses model=local-auto,
-  # which selects the active/viable installed Ollama, BitNet, or llama.cpp model.
-  # It is deliberately not allowed to pretend that a requested mutation happened.
   $system = @"
 You are Quillgeist Lite's LOCAL-FIRST decision and response layer running on the owner's Windows machine.
 Use local reasoning whenever the request can be answered correctly without current external/private data or an action you cannot actually execute.
@@ -1341,50 +1423,61 @@ Do not claim an action ran unless it really ran through a local reviewed qq task
 For ordinary questions, brainstorming, explanations, calculations, and local guidance, answer directly.
 "@
 
-  try {
-    $headers = @{"Content-Type"="application/json"}
-    if (Test-Path $LocalGatewayKeyPath) {
-      $key = (Get-Content -LiteralPath $LocalGatewayKeyPath -Raw -ErrorAction Stop).Trim()
-      if ($key) { $headers["Authorization"] = "Bearer " + $key }
+  # Preferred path: the maintained authenticated local gateway. This can route
+  # among the installed local providers and preserves the existing MEMORIA stack.
+  if (Ensure-QQLocalResponder) {
+    try {
+      $headers = @{"Content-Type"="application/json"}
+      if (Test-Path $LocalGatewayKeyPath) {
+        $key = (Get-Content -LiteralPath $LocalGatewayKeyPath -Raw -ErrorAction Stop).Trim()
+        if ($key) { $headers["Authorization"] = "Bearer " + $key }
+      }
+
+      $payload = @{
+        model = "local-auto"
+        messages = @(
+          @{role="system";content=$system},
+          @{role="user";content=$Text}
+        )
+        max_tokens = 700
+        temperature = 0.15
+        stream = $false
+      } | ConvertTo-Json -Depth 8 -Compress
+
+      $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec 75 -ErrorAction Stop
+      $answer = [string]$response.choices[0].message.content
+      if ($answer) {
+        if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
+          Suspend-QQPrompt
+          Write-Host "LOCAL-FIRST" -ForegroundColor Cyan -NoNewline
+          Write-Host " // local model requested remote execution/context" -ForegroundColor DarkGray
+          return $false
+        }
+
+        Suspend-QQPrompt
+        Write-Host ""
+        Write-Host "QUILLGEIST LOCAL" -ForegroundColor White -NoNewline
+        Write-Host " // local-auto" -ForegroundColor Cyan
+        Write-Host $answer.Trim() -ForegroundColor White
+        Write-Host ""
+        try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [LOCAL_ANSWER] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
+        Show-QQPrompt
+        return $true
+      }
+    } catch {
+      try { Queue-RunnerDiagnostic "INFO" ("local_gateway_response_failed: " + $_.Exception.Message) "local-first" } catch {}
     }
-
-    $payload = @{
-      model = "local-auto"
-      messages = @(
-        @{role="system";content=$system},
-        @{role="user";content=$Text}
-      )
-      max_tokens = 700
-      temperature = 0.15
-      stream = $false
-    } | ConvertTo-Json -Depth 8 -Compress
-
-    $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec 75 -ErrorAction Stop
-    $answer = [string]$response.choices[0].message.content
-    if (-not $answer) { return $false }
-
-    if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
-      Suspend-QQPrompt
-      Write-Host "LOCAL-FIRST" -ForegroundColor Cyan -NoNewline
-      Write-Host " // local model requested remote execution/context" -ForegroundColor DarkGray
-      return $false
-    }
-
-    Suspend-QQPrompt
-    Write-Host ""
-    Write-Host "QUILLGEIST LOCAL" -ForegroundColor White -NoNewline
-    Write-Host " // local-auto" -ForegroundColor Cyan
-    Write-Host $answer.Trim() -ForegroundColor White
-    Write-Host ""
-    try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [LOCAL_ANSWER] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
-    Show-QQPrompt
-    return $true
-  } catch {
-    # Missing/down local inference is a normal escalation condition, not a fatal
-    # qq error. The remote relay remains the bounded fallback.
-    try { Queue-RunnerDiagnostic "INFO" ("local_first_unavailable: " + $_.Exception.Message) "local-first" } catch {}
-    return $false
   }
+
+  # Portable path: do not require C:\AI, F:\AI-Data, Docker, Open WebUI,
+  # or a MEMORIA-specific layout. Any QQ machine with Ollama or the maintained
+  # BitNet server can answer locally before the remote relay is used.
+  if (Invoke-QQPortableLocalResponse -Text $Text -SystemPrompt $system) {
+    return $true
+  }
+
+  try { Queue-RunnerDiagnostic "INFO" "local_first_unavailable_all_local_paths" "local-first" } catch {}
+  return $false
 }
 
 function Send-QQQuestion {
