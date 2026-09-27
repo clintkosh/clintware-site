@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-qq-provider-responder-smoke-20260927",
-  "job_id": "df847a82-15b9-455b-8f73-674974e3e4dd",
+  "request_id": "chatgpt-qq-provider-responder-smoke-retry-20260927",
+  "job_id": "ca919039-3085-45ff-bedc-69307afeb339",
   "task_id": "local-ai",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 452,
-  "recorded_at": 1790533155,
-  "output_tail": "[run] Traceback (most recent call last):\r\n[run]   File \"C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tools\\local_ai.py\", line 433, in <module>\r\n[run]     main()\r\n[run]     ~~~~^^\r\n[run]   File \"C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tools\\local_ai.py\", line 407, in main\r\n[run]     print(json.dumps(provider_test(a.Prompt), indent=2))\r\n[run]                      ~~~~~~~~~~~~~^^^^^^^^^^\r\n[run]   File \"C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tools\\local_ai.py\", line 364, in provider_test\r\n[run]     with tempfile.NamedTemporaryFile(\"w\", encoding=\"utf-8\", suffix=\".txt\", delete=False) as handle:\r\n[run]          ^^^^^^^^\r\n[run] NameError: name 'tempfile' is not defined. Did you mean: 'compile'? Or did you forget to import 'tempfile'?"
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 614,
+  "recorded_at": 1790533226,
+  "output_tail": "[run] {\r\n[run]   \"ok\": false,\r\n[run]   \"error\": \"no_authenticated_provider_answer\",\r\n[run]   \"attempts\": [],\r\n[run]   \"ready_providers\": [],\r\n[run]   \"usage_estimates\": []\r\n[run] }"
 }
