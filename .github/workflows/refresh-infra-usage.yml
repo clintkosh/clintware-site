@@ -1,0 +1,55 @@
+name: Refresh QQ Infrastructure Usage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/refresh-infra-usage.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CONTROL_PLANE: https://mcp.clintware.com
+      CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+    steps:
+      - name: Refresh event-driven quota snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CONTROL_PLANE_MCP_TOKEN"
+
+          curl --fail-with-body -sS \
+            -X POST "$CONTROL_PLANE/api/v1/quillgeist-lite/infra-usage/refresh" \
+            -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            -o /tmp/usage-refresh.json
+
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/usage-refresh.json',encoding='utf-8'))
+          assert p.get('ok') is True, p
+          s=p.get('snapshot') or {}
+          out={
+            'generated_at':s.get('generated_at'),
+            'reset_services':p.get('reset_services') or [],
+            'delivered':p.get('delivered'),
+            'cloudflare':s.get('cloudflare'),
+            'github':s.get('github'),
+          }
+          print(json.dumps(out,indent=2))
+          with open('/tmp/usage-safe.json','w',encoding='utf-8') as f:
+              json.dump(out,f,indent=2)
+          PY
+
+          {
+            echo "## QQ infrastructure usage"
+            echo
+            cat /tmp/usage-safe.json
+          } >> "$GITHUB_STEP_SUMMARY"
