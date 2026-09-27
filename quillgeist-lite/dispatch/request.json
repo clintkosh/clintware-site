@@ -1,7 +1,11 @@
 {
-  "request_id": "chatgpt-finish-google-20260927-final",
-  "task_id": "finish-google-oauth",
+  "request_id": "inspect-clint-portfolio-image-20260927",
+  "task_id": "browser-work",
   "args": {
-    "Repo": "clintkosh/clintware-site"
+    "Action": "run",
+    "Url": "https://clintkosh.clintware.com/",
+    "StepsJson": "{\"steps\":[{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"},{\"op\":\"screenshot\",\"path\":\"clintkosh-portfolio.png\",\"full_page\":false}]}",
+    "Headless": "true",
+    "WaitMs": 700
   }
 }
