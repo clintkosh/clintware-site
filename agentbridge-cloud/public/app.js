@@ -104,13 +104,15 @@ function reportQuery(includeFormat){const q=new URLSearchParams({limit:"1000"});
 async function loadReport(){report=await api(`/api/telemetry/report?${reportQuery().toString()}`);renderActivity();return report}
 async function refresh(){
   if(!token())return;
-  const [s,t,h,r]=await Promise.all([
+  const needReport=currentView==="activity";
+  const pending=[
     api("/api/state"),
-    api("/api/telemetry/summary").catch(()=>({metrics:{},bugs:[]})),
-    api("/api/help").catch(()=>({help:helpData})),
-    api(`/api/telemetry/report?${reportQuery().toString()}`).catch(()=>report)
-  ]);
-  state=s;telemetry=t||{metrics:{},bugs:[]};helpData=h.help||helpData;report=r||report;
+    api("/api/telemetry/summary").catch(()=>({metrics:{},bugs:[]}))
+  ];
+  if(needReport)pending.push(api(`/api/telemetry/report?${reportQuery().toString()}`).catch(()=>report));
+  const [s,t,r]=await Promise.all(pending);
+  state=s;telemetry=t||{metrics:{},bugs:[]};
+  if(needReport&&r)report=r;
   renderDevices();renderJobs();renderSchedules();renderMetrics();renderBugs();renderActivity();renderHelp();
 }
 async function filePayload(input){const f=input.files[0];if(!f)return{};if(f.name.toLowerCase().endsWith(".abpack")){const bytes=new Uint8Array(await f.arrayBuffer());let bin="";for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return{pack_name:f.name,pack_b64:btoa(bin)}}return{pack_name:f.name,pack_text:await f.text()}}
@@ -160,5 +162,5 @@ addEventListener("unhandledrejection",e=>toast(e.reason?.message||String(e.reaso
   const hash=location.hash.slice(1);if(["home","run","automate","activity","help"].includes(hash))setView(hash);
   if(token())try{await refresh()}catch(e){localStorage.removeItem(TOKEN_KEY);show();toast("Control key could not be restored. Create a new account or paste a valid key.","error")}
   if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-  setInterval(()=>{if(token()&&!document.hidden)refresh().catch(()=>{})},20000);
+  setInterval(()=>{if(token()&&!document.hidden)refresh().catch(()=>{})},60000);
 })();
