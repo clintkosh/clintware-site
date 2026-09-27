@@ -138,6 +138,7 @@ jobs:
             "quillgeist-lite/tools/local_ai.py",
             "quillgeist-lite/tools/local_ai_parity_check.py",
             "quillgeist-lite/tools/responder_agent.py",
+            "quillgeist-lite/tools/provider_responder.py",
             "quillgeist-lite/tools/career_signal_agent.py"
           )
           $logoB64 = (Get-Content "quillgeist-lite/assets/clintware-terminal-logo.b64" -Raw).Trim()
@@ -223,6 +224,13 @@ jobs:
             throw "Stack Overflow must remain disabled by default."
           }
           Write-Host "RESPONDER_DEFAULTS_OK"
+
+          $providerRaw = @(python quillgeist-lite/tools/provider_responder.py status)
+          if ($LASTEXITCODE -ne 0) { throw "provider responder status failed." }
+          $providerData = ($providerRaw -join "`n") | ConvertFrom-Json
+          if ($providerData.ok -ne $true) { throw "provider responder status did not return ok." }
+          if ($providerData.exact_provider_subscription_quota_available -ne $false) { throw "provider responder must not claim exact subscription quota when providers do not expose it." }
+          Write-Host "SUBSCRIPTION_RESPONDER_STATUS_OK"
 
       - name: Smoke-test career signal defaults
         shell: pwsh
