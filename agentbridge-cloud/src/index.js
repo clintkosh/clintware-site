@@ -187,6 +187,20 @@ export class DeviceHub extends DurableObject {
     catch { ws.send(JSON.stringify({type:"error",error:"invalid_json"})); return; }
     const attachment=ws.deserializeAttachment()||{}; await this.ctx.storage.put("last_seen",nowIso());
     if (data.type==="hello"||data.type==="heartbeat") { ws.send(JSON.stringify({type:"ack",ts:Date.now()})); return; }
+    if (data.type==="telemetry_batch"&&attachment.account_id) {
+      const events=Array.isArray(data.events)?data.events.slice(0,50):[];
+      if (events.length&&JSON.stringify(events).length<=250000) {
+        const telemetry=this.env.TELEMETRY_HUB.getByName(attachment.account_id);
+        for (const event of events) {
+          if (!event||typeof event!=="object") continue;
+          const body={...event,device_id:attachment.device_id||event.device_id};
+          try {
+            await telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}));
+          } catch {}
+        }
+      }
+      return;
+    }
     if (data.type==="result"&&attachment.account_id) {
       const account=this.env.ACCOUNT_HUB.getByName(attachment.account_id);
       await account.fetch(new Request("https://internal/result",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(data.result)}));
