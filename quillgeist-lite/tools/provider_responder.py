@@ -174,6 +174,22 @@ def provider_rows() -> list[dict]:
     estimates = read_json(EST_PATH)
     counters = estimates.get("providers") if isinstance(estimates.get("providers"), dict) else {}
     plans = plan_map()
+
+    # A subscription plan may be configured even when its CLI is not installed
+    # on this machine. Keep it visible in the usage gauge instead of dropping it.
+    labels = {"chatgpt": "ChatGPT/Codex", "claude": "Claude", "gemini": "Gemini"}
+    existing = {row.get("id") for row in rows}
+    for key, plan in plans.items():
+        if key in existing:
+            continue
+        rows.append({
+            "id": key,
+            "provider": labels.get(key, str(plan.get("plan_name") or key)),
+            "client": "",
+            "exe": "",
+            "ready": False,
+            "auth": "usage plan configured; local provider client not authenticated",
+        })
     for row in rows:
         counter = counters.get(row["id"]) if isinstance(counters.get(row["id"]), dict) else {}
         row["estimated_calls"] = int(counter.get("calls") or 0)
