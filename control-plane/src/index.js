@@ -831,6 +831,36 @@ export class RegistryHub extends DurableObject {
       diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse()
     };
   }
+
+  async infraUsageSnapshot(){
+    return await this.ctx.storage.get("infra_usage_snapshot")||null;
+  }
+  async putInfraUsageSnapshot(snapshot){
+    const previous=await this.ctx.storage.get("infra_usage_snapshot")||null;
+    const next={
+      schema_version:1,
+      generated_at:clip(snapshot?.generated_at||nowIso(),80),
+      cloudflare:snapshot?.cloudflare&&typeof snapshot.cloudflare==="object"?snapshot.cloudflare:{provider:"cloudflare",available:false},
+      github:snapshot?.github&&typeof snapshot.github==="object"?snapshot.github:{provider:"github",available:false}
+    };
+    const reset_services=[];
+    for(const key of ["cloudflare","github"]){
+      const before=String(previous?.[key]?.period_id||"");
+      const after=String(next?.[key]?.period_id||"");
+      if(before&&after&&before!==after)reset_services.push(key);
+    }
+    await this.ctx.storage.put("infra_usage_snapshot",next);
+    let delivered=0;
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
+      try{
+        if(ws.readyState===1){
+          ws.send(JSON.stringify({type:"infra_usage",protocol:"clintware-infra-usage/v1",snapshot:next,reset_services,time:nowIso()}));
+          delivered++;
+        }
+      }catch{}
+    }
+    return {ok:true,snapshot:next,reset_services,delivered};
+  }
   async putQuillgeistLiteDevice(device){
     const device_id=clip(device.device_id||"",120);
     const token_hash=String(device.token_hash||"").toLowerCase();
@@ -1009,6 +1039,10 @@ export class RegistryHub extends DurableObject {
           const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),capabilities:clipList(data.capabilities,20,120),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
           await this.ctx.storage.put("quillgeist_lite_runner",runner);
           ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite/v1",time:nowIso()}));
+          const usage=await this.infraUsageSnapshot();
+          if(usage){
+            try{ws.send(JSON.stringify({type:"infra_usage",protocol:"clintware-infra-usage/v1",snapshot:usage,reset_services:[],welcome:true,time:nowIso()}));}catch{}
+          }
           const pendingAnswers=await this.pendingQuillgeistLiteAnswers(runner.runner_id);
           for(const question of pendingAnswers){
             try{ws.send(JSON.stringify({type:"answer",protocol:"clintware-quillgeist-lite-interactive/v1",question_id:question.question_id,answer:question.answer,answered_by:question.answered_by,answered_at:question.answered_at,backlog:true}));}catch{}
@@ -1330,6 +1364,13 @@ export class RegistryHub extends DurableObject {
     }
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-status"){
       return json({ok:true,...await this.quillgeistLiteStatus()});
+    }
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-infra-usage"){
+      return json({ok:true,snapshot:await this.infraUsageSnapshot()});
+    }
+    if(request.method==="POST"&&url.pathname==="/quillgeist-lite-infra-usage"){
+      const body=await reqJson(request,64_000);
+      return json(await this.putInfraUsageSnapshot(body));
     }
     if(request.method==="GET"&&url.pathname.startsWith("/quillgeist-lite-job/")){
       const id=clip(decodeURIComponent(url.pathname.slice("/quillgeist-lite-job/".length)),120);
@@ -2043,6 +2084,117 @@ async function cfRequest(env,path,init={}){
   if(!env.CLOUDFLARE_CONTROL_PLANE_TOKEN)return null;
   const headers=new Headers(init.headers||{});headers.set("authorization",`Bearer ${env.CLOUDFLARE_CONTROL_PLANE_TOKEN}`);headers.set("content-type","application/json");
   return fetch(`https://api.cloudflare.com/client/v4${path}`,{...init,headers});
+}
+
+function quotaNumber(value,fallback=0){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,n):fallback;
+}
+function quotaProjection(used,limit,elapsedSeconds,windowSeconds){
+  used=quotaNumber(used);limit=quotaNumber(limit);elapsedSeconds=Math.max(1,quotaNumber(elapsedSeconds,1));windowSeconds=Math.max(elapsedSeconds,quotaNumber(windowSeconds,elapsedSeconds));
+  const projected=used/elapsedSeconds*windowSeconds;
+  const usedPct=limit>0?used/limit*100:null;
+  const projectedPct=limit>0?projected/limit*100:null;
+  return {
+    used,
+    limit,
+    remaining:limit>0?Math.max(0,limit-used):null,
+    used_pct:usedPct,
+    projected_at_reset:projected,
+    projected_pct:projectedPct,
+    allowance_gap:limit>0?limit-projected:null,
+    warning:Boolean(limit>0&&(used>limit||projected>limit))
+  };
+}
+async function githubInfraUsage(env){
+  try{
+    const manifest={repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site"}};
+    const r=await github(env,manifest,"/rate_limit");
+    if(!r?.ok)return {provider:"github",available:false,error:"github_rate_limit_unavailable",status:r?.status||503};
+    const data=await r.json();
+    const core=data?.resources?.core||{};
+    const nowSec=Date.now()/1000;
+    const resetSec=quotaNumber(core.reset);
+    const limit=quotaNumber(core.limit);
+    const used=quotaNumber(core.used);
+    const remaining=quotaNumber(core.remaining);
+    const windowSeconds=3600;
+    const elapsed=Math.max(1,windowSeconds-Math.max(0,resetSec-nowSec));
+    const p=quotaProjection(used,limit,elapsed,windowSeconds);
+    const expectedRemaining=limit>0?Math.max(0,limit-used):remaining;
+    return {
+      provider:"github",
+      metric:"control_plane_api_core",
+      available:true,
+      ...p,
+      remaining,
+      reset_at:resetSec?new Date(resetSec*1000).toISOString():"",
+      period_id:String(resetSec||""),
+      reported_remaining_mismatch:Math.abs(expectedRemaining-remaining)>1,
+      source:"GitHub REST /rate_limit"
+    };
+  }catch(e){
+    return {provider:"github",available:false,error:"github_rate_limit_error",detail:clip(e?.message||e,300)};
+  }
+}
+async function cloudflareAccountId(env){
+  if(env.CLOUDFLARE_ACCOUNT_ID)return String(env.CLOUDFLARE_ACCOUNT_ID);
+  if(!env.CLOUDFLARE_ZONE_ID)return "";
+  try{
+    const r=await cfRequest(env,`/zones/${env.CLOUDFLARE_ZONE_ID}`);
+    if(!r?.ok)return "";
+    const data=await r.json();
+    return String(data?.result?.account?.id||"");
+  }catch{return "";}
+}
+async function cloudflareInfraUsage(env){
+  try{
+    if(!env.CLOUDFLARE_CONTROL_PLANE_TOKEN)return {provider:"cloudflare",available:false,error:"cloudflare_token_unavailable"};
+    const accountTag=await cloudflareAccountId(env);
+    if(!accountTag)return {provider:"cloudflare",available:false,error:"cloudflare_account_unavailable"};
+    const now=new Date();
+    const start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+    const reset=new Date(start.getTime()+86400000);
+    const query=`query GetWorkersUsage($accountTag: string, $datetimeStart: string, $datetimeEnd: string) {
+      viewer {
+        accounts(filter: {accountTag: $accountTag}) {
+          workersInvocationsAdaptive(
+            limit: 10000
+            filter: {datetime_geq: $datetimeStart, datetime_leq: $datetimeEnd}
+          ) { sum { requests } }
+        }
+      }
+    }`;
+    const r=await cfRequest(env,"/graphql",{method:"POST",body:JSON.stringify({query,variables:{
+      accountTag,
+      datetimeStart:start.toISOString(),
+      datetimeEnd:now.toISOString()
+    }})});
+    if(!r?.ok)return {provider:"cloudflare",available:false,error:"cloudflare_analytics_http",status:r?.status||503};
+    const data=await r.json();
+    if(Array.isArray(data?.errors)&&data.errors.length)return {provider:"cloudflare",available:false,error:"cloudflare_analytics_query",detail:clip(data.errors[0]?.message||"",300)};
+    const rows=data?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive||[];
+    const used=rows.reduce((sum,row)=>sum+quotaNumber(row?.sum?.requests),0);
+    const limit=quotaNumber(env.CLOUDFLARE_WORKERS_DAILY_LIMIT,100000);
+    const elapsed=Math.max(1,(now.getTime()-start.getTime())/1000);
+    const p=quotaProjection(used,limit,elapsed,86400);
+    return {
+      provider:"cloudflare",
+      metric:"workers_requests_daily",
+      available:true,
+      ...p,
+      reset_at:reset.toISOString(),
+      period_id:start.toISOString().slice(0,10),
+      projection_confidence:elapsed<1800?"low":"normal",
+      source:"Cloudflare workersInvocationsAdaptive"
+    };
+  }catch(e){
+    return {provider:"cloudflare",available:false,error:"cloudflare_analytics_error",detail:clip(e?.message||e,300)};
+  }
+}
+async function collectInfraUsage(env){
+  const [cloudflare,githubUsage]=await Promise.all([cloudflareInfraUsage(env),githubInfraUsage(env)]);
+  return {schema_version:1,generated_at:nowIso(),cloudflare,github:githubUsage};
 }
 async function ensureDns(env,manifest,{name,type="CNAME",content,proxied=true}){
   if(!env.CLOUDFLARE_CONTROL_PLANE_TOKEN||!env.CLOUDFLARE_ZONE_ID)return {ok:false,status:503,error:"cloudflare_dns_not_configured"};
@@ -3380,6 +3532,19 @@ export default {
         if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
         return await registryHub(env).fetch("https://internal/quillgeist-lite-status");
       }
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/infra-usage"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        return await registryHub(env).fetch("https://internal/quillgeist-lite-infra-usage");
+      }
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/infra-usage/refresh"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const snapshot=await collectInfraUsage(env);
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-infra-usage",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(snapshot)}));
+      }
 
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/questions"){
         const mcpAuth=await mcpAuthContext(request,env);
@@ -3697,5 +3862,15 @@ export default {
       console.error(JSON.stringify({event:"control_plane_error",path:url.pathname,error:String(error),stack:error?.stack}));
       return json({error:"internal_error",message:String(error?.message||error)},Number(error?.status||500));
     }
+  },
+  async scheduled(controller,env,ctx){
+    const scheduledAt=Number(controller?.scheduledTime||Date.now());
+    const minute=new Date(scheduledAt).getUTCMinutes();
+    if(minute!==0)return;
+    const refresh=async()=>{
+      const snapshot=await collectInfraUsage(env);
+      await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-infra-usage",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(snapshot)}));
+    };
+    try{ctx.waitUntil(refresh());}catch{await refresh();}
   }
 };
