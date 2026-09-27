@@ -740,6 +740,15 @@ export class RegistryHub extends DurableObject {
       const current=await this.ctx.storage.get(`quillgeist_lite_question:${question.question_id}`);
       if(!current||String(current.status)!=="pending")return {ok:true,skipped:"already_answered"};
       const saved=await this.answerQuillgeistLiteQuestion(question.question_id,answer,"clintware-workers-ai");
+      await this.appendQuillgeistLiteDiagnostic({
+        device_id:clip(question.runner_id||"unknown",120),
+        level:"INFO",
+        phase:"interactive-responder",
+        message:"workers_ai_responder_passed question="+clip(question.question_id||"",120)+" delivered="+Number(saved?.delivered||0),
+        runner_alive:true,
+        service_version:"",
+        timestamp:nowIso()
+      });
       return {ok:Boolean(saved?.ok),provider:"clintware-workers-ai",model:SYNTHESIS_MODEL,delivered:Number(saved?.delivered||0)};
     }catch(e){
       await this.appendQuillgeistLiteDiagnostic({
