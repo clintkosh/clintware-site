@@ -1,6 +1,8 @@
 {
-  "request_id": "qq-cloudflare-quota-hotfix-20260927",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Apply the Cloudflare quota hotfix now: bounded exponential QQ reconnect backoff, stable-connection reset, reduced health heartbeat telemetry, and updated health-service wake reconnect behavior. Verify runner and health service are active after restart."
+  "request_id": "memoria-qq-desktop-refresh-20260927",
+  "task_id": "install-desktop-app",
+  "args": {
+    "NoLaunch": "false"
+  },
+  "objective": "On MEMORIA, build and install the current single-pane Quillgeist Lite desktop app and Guardian, migrate away from legacy competing supervisors, install the one-minute Guardian ensure task, and launch the current UI."
 }
