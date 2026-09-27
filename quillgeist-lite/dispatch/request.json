@@ -1,8 +1,6 @@
 {
-  "request_id": "memoria-qq-finish-local-ai-after-desktop-20260927",
-  "task_id": "finish-local-ai",
-  "args": {
-    "MaxPasses": "4"
-  },
-  "objective": "On MEMORIA, continue the local AI server build in checkpointed chunks until all expected services and integrations are verified healthy or a hard blocker remains. Do not stop after one reconcile step; preserve workflow state and resume until complete."
+  "request_id": "qq-budget-telemetry-conservation-20260927",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "On MEMORIA, inspect the current Quillgeist Lite/QQ provider usage gauge and all related telemetry/polling paths. Implement a budget-safe usage governor so displaying provider balances never invokes an LLM/model request. Use provider billing/admin/quota endpoints or locally recorded usage only; cache results locally; have all QQ instances share one state instead of independent pollers; refresh on actual usage events plus a bounded reconciliation interval; remove 5-second or other aggressive polling; prohibit model-backed health checks; add provider/model/token/cost ledgering and LOW/WARN/CRITICAL circuit breakers; with Claude at roughly $1 remaining, enable Claude API conservation mode so discretionary paid Claude calls stop and deterministic/local/BitNet/Ollama paths are preferred. Preserve the existing event-driven Control Plane/QQ architecture and secrets behind the control plane. Inspect first, make the smallest correct changes, verify runner/Guardian/health service remain healthy, verify the gauge itself causes zero model calls, and write verification evidence plus changed files/settings to the normal QQ dispatch result/handoff."
 }
