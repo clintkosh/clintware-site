@@ -136,11 +136,12 @@ namespace Clintware.QuillgeistLite
 
         private void WakeLoop()
         {
-            int backoffSeconds = 2;
+            int backoffSeconds = 10;
 
             while (wakeCancellation != null && !wakeCancellation.IsCancellationRequested)
             {
                 ClientWebSocket socket = null;
+                DateTime connectedUtc = DateTime.MinValue;
                 try
                 {
                     string baseEndpoint = config.Endpoint.TrimEnd('/');
@@ -154,9 +155,8 @@ namespace Clintware.QuillgeistLite
 
                     LocalLog("wake_channel_connecting");
                     socket.ConnectAsync(new Uri(wakeUrl), wakeCancellation.Token).GetAwaiter().GetResult();
+                    connectedUtc = DateTime.UtcNow;
                     LocalLog("wake_channel_connected");
-                    TryPost("INFO", "wake", "wake_channel_connected", RunnerAlive());
-                    backoffSeconds = 2;
 
                     byte[] buffer = new byte[8192];
                     ArraySegment<byte> segment = new ArraySegment<byte>(buffer);
@@ -224,13 +224,25 @@ namespace Clintware.QuillgeistLite
 
                 if (wakeCancellation == null || wakeCancellation.IsCancellationRequested) break;
 
-                int delay = Math.Max(2, Math.Min(60, backoffSeconds));
+                bool stableConnection = connectedUtc != DateTime.MinValue &&
+                    (DateTime.UtcNow - connectedUtc).TotalMinutes >= 5;
+
+                if (stableConnection)
+                {
+                    backoffSeconds = 10;
+                }
+                else
+                {
+                    backoffSeconds = Math.Min(300, Math.Max(20, backoffSeconds * 2));
+                }
+
+                int delay = Math.Max(10, Math.Min(300, backoffSeconds));
+                LocalLog("wake_channel_reconnect_backoff_seconds=" + delay);
                 try
                 {
                     if (wakeCancellation.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(delay))) break;
                 }
                 catch { }
-                backoffSeconds = Math.Min(60, backoffSeconds * 2);
             }
 
             LocalLog("wake_channel_stopped");
@@ -259,7 +271,7 @@ namespace Clintware.QuillgeistLite
                     EnsureRunner(false);
                 }
 
-                if ((DateTime.UtcNow - lastHeartbeat).TotalMinutes >= 5)
+                if ((DateTime.UtcNow - lastHeartbeat).TotalMinutes >= 30)
                 {
                     TryPost("INFO", "heartbeat", alive ? "runner_alive" : "runner_down", alive);
                     lastHeartbeat = DateTime.UtcNow;
