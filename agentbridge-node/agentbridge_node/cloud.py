@@ -13,7 +13,7 @@ from .config import Config, home_dir
 from .dlp import sanitize as sanitize_dlp
 from .runner import execute_pack_path
 from .pack import save_abpack
-from .telemetry import emit_error, emit_event, emit_run_result, flush as flush_telemetry
+from .telemetry import build_run_event, emit_error, emit_event, flush as flush_telemetry
 
 
 def _request(method: str, url: str, body: dict | None = None, token: str | None = None) -> dict:
@@ -105,6 +105,19 @@ def _sanitize_outbound_result(config: Config, result: dict) -> dict:
     return safe
 
 
+def _send_telemetry_batch(ws, config: Config, events: list[dict]) -> None:
+    batch = [event for event in events if isinstance(event, dict)]
+    if not batch:
+        return
+    try:
+        ws.send(json.dumps({"type": "telemetry_batch", "events": batch[:50]}, separators=(",", ":"), default=str))
+    except Exception:
+        # Preserve telemetry on transport failure. HTTP is now a recovery path,
+        # not the steady-state path while the WebSocket is healthy.
+        for event in batch[:50]:
+            emit_event(config, event)
+
+
 def daemon(config: Config) -> None:
     try:
         from websockets.sync.client import connect
@@ -134,7 +147,7 @@ def daemon(config: Config) -> None:
                     if msg.get("type") != "job":
                         continue
                     job = msg["job"]
-                    emit_event(config, {
+                    receive_event = {
                         "event_id": f"cloud-receive:{job.get('id') or secrets.token_hex(8)}",
                         "type": "cloud_receive",
                         "ts": int(time.time() * 1000),
@@ -142,7 +155,7 @@ def daemon(config: Config) -> None:
                         "job_id": job.get("id"),
                         "status": "received",
                         "node_version": __version__,
-                    })
+                    }
                     try:
                         path = materialize_job(job)
                         result = execute_pack_path(
@@ -168,9 +181,8 @@ def daemon(config: Config) -> None:
                             "node_version": __version__,
                         }
                     outbound_result = _sanitize_outbound_result(config, result)
-                    emit_run_result(config, outbound_result)
                     ws.send(json.dumps({"type": "result", "result": outbound_result}, default=str))
-                    emit_event(config, {
+                    send_event = {
                         "event_id": f"device-send:{job.get('id') or secrets.token_hex(8)}:{outbound_result.get('run_id') or 'result'}",
                         "type": "device_send",
                         "ts": int(time.time() * 1000),
@@ -179,7 +191,12 @@ def daemon(config: Config) -> None:
                         "run_id": outbound_result.get("run_id"),
                         "status": outbound_result.get("status"),
                         "node_version": __version__,
-                    })
+                    }
+                    _send_telemetry_batch(
+                        ws,
+                        config,
+                        [receive_event, build_run_event(outbound_result, config.data["device_id"]), send_event],
+                    )
         except Exception as exc:
             now = time.time()
             if now - last_connection_error_at >= 60:
