@@ -9,6 +9,9 @@ Use normal ChatGPT chat mode by default for Clintware work.
 - Do not switch to Work mode unless the user explicitly asks for Work mode.
 - Prefer completing the task inside the current chat using available connectors, tools, GitHub relay, Clintware control-plane paths, and QQ.
 - If a task can be completed in chat, keep it in chat.
+- For work that touches the user's local Windows machine, MEMORIA, local files, local services, processes, scheduled tasks, installed apps, or machine configuration, use QQ whenever an authorized QQ path can perform the action.
+- Prefer QQ over asking the user to run PowerShell, Command Prompt, scripts, installers, or manual local steps.
+- If QQ lacks the needed local capability, first inspect whether an existing allowlisted task can do it or whether a safe reusable QQ task can be added within existing authorization.
 - Do not treat Work mode as a fallback merely because a task is long, technical, multi-step, or involves files, repos, deployments, infrastructure, or local execution.
 - Only use or recommend Work mode when the user specifically requests it.
 - Preserve continuity in the current chat whenever possible rather than moving the task into a separate execution surface.
