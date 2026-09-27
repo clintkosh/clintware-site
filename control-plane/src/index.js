@@ -685,6 +685,19 @@ export class RegistryHub extends DurableObject {
     return {ok:true,question:row};
   }
   async relayQuillgeistLiteQuestion(question){
+    // Guaranteed response path: local QQ inference is tried before a question
+    // reaches the Control Plane. Once here, Workers AI is authoritative when
+    // available. Do not depend on the presence/health of a separate ChatGPT
+    // receiver socket and do not mirror routine chat into GitHub.
+    if(this.env.AI){
+      return {
+        realtime_receivers:0,
+        private_mirror:{ok:true,mirrored:false,reason:"workers_ai_primary_responder"},
+        auto_responder:"workers-ai"
+      };
+    }
+
+    // Compatibility fallback only for deployments without the AI binding.
     const packet=normalizeHandoff({
       handoff_id:question.handoff_id,
       from_client:"qq",
@@ -703,15 +716,6 @@ export class RegistryHub extends DurableObject {
     });
     await this.fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
     const realtime=await this.broadcastHandoff(packet);
-
-    // Workers AI is the built-in responder fallback. When it is available there
-    // is no reason to create a private GitHub-inbox mirror for every QQ question.
-    // This keeps intentional chat responsive while avoiding another provider/API
-    // request on the steady path.
-    if(realtime===0&&this.env.AI){
-      return {realtime_receivers:0,private_mirror:{ok:true,mirrored:false,reason:"workers_ai_responder"},auto_responder:"workers-ai"};
-    }
-
     let mirror={ok:true,mirrored:false};
     try{mirror=await mirrorHandoffToPowerChatBridge(this.env,packet);}catch(e){mirror={ok:false,mirrored:false,error:clip(e?.message||e,1000)};}
     return {realtime_receivers:realtime,private_mirror:mirror,auto_responder:null};
