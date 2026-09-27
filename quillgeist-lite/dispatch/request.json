@@ -1,4 +1,8 @@
 {
-  "request_id": "chatgpt-qq-workers-ai-live-test-inspect-20260927",
-  "mode": "inspect"
+  "request_id": "chatgpt-finish-google-oauth-20260927",
+  "task_id": "finish-google-oauth",
+  "args": {
+    "Repo": "clintkosh/clintware-site"
+  },
+  "objective": "Complete the one-time delegated Google Gmail/Calendar consent through the Clintware Identity Broker, then redeploy and verify shared mail and ClintCal."
 }
