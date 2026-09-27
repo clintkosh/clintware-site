@@ -68,7 +68,8 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
   "\WindowsApps\",
   "A working Python 3 runtime was not found",
   "function Ensure-QQLocalResponder",
-  "LOCAL RESPONDER // repairing local inference path"
+  "function Invoke-QQSubscriptionProviderResponse",
+  "provider_usage_estimates"
 )
 Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -ForegroundColor Green
 
@@ -78,7 +79,8 @@ Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Pat
 Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("Get-ClintwareLineColor","Clintware™ MCP // CONTROL PLANE","Show-McpPrompt")
 $pythonAssets = @(
   @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="[ CLINTWARE // QQ ]" },
-  @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="ASCII-only terminal branding active" }
+  @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="ASCII-only terminal branding active" },
+  @{ Relative="tools/provider_responder.py"; Destination=(Join-Path $HomeDir "provider_responder.py"); Required="Quillgeist subscription-provider responder" }
 )
 foreach($asset in $pythonAssets){
   $temp=$asset.Destination + ".new"
