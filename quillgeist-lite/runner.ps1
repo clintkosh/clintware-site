@@ -495,7 +495,7 @@ function Show-QQInfraUsage {
     Write-Host ("  RESET // " + (($resetServices | ForEach-Object { ([string]$_).ToUpperInvariant() }) -join ", ") + " allowance window renewed.") -ForegroundColor Green
   }
 
-  $subscriptionRows = @(Get-QQSubscriptionUsage | Where-Object { [bool]$_.ready -or [double]$_.plan.allowance -gt 0 })
+  $subscriptionRows = @(Get-QQSubscriptionUsage)
   if ($subscriptionRows.Count -gt 0) {
     Write-Host ""
     Write-Host "  SUBSCRIPTIONS // EST = QQ fallback calls observed locally; exact provider quota shown only when a configured/provider-synced plan exists." -ForegroundColor DarkGray
