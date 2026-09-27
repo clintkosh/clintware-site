@@ -338,6 +338,13 @@ function Write-ClintwareEclipseLogo {
   )) { Write-ClintwareCentered $line Cyan }
 }
 
+function Write-ClintwareAsciiSignature {
+  Write-ClintwareCentered "+---------------------------------------------------+" DarkCyan
+  Write-ClintwareCentered "|              C L I N T W A R E                    |" White
+  Write-ClintwareCentered "|                   // QQ                           |" Cyan
+  Write-ClintwareCentered "+---------------------------------------------------+" DarkCyan
+}
+
 function Show-QuillgeistSplash {
   param(
     [string]$Status = "CONNECTING"
@@ -351,8 +358,8 @@ function Show-QuillgeistSplash {
   Write-Host ""
   Write-ClintwareEclipseLogo
   Write-ClintwareCentered "EST. 2026" DarkGray
-
   Write-Host ""
+  Write-ClintwareAsciiSignature
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
   Write-ClintwareCentered "GO FURTHEST.™" Cyan
   Write-Host ""
@@ -1861,9 +1868,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.4"
+        version = "1.9.5"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference")
       }
 
       Flush-RunnerDiagnostics
