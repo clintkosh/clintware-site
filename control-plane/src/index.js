@@ -703,9 +703,56 @@ export class RegistryHub extends DurableObject {
     });
     await this.fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
     const realtime=await this.broadcastHandoff(packet);
+
+    // Workers AI is the built-in responder fallback. When it is available there
+    // is no reason to create a private GitHub-inbox mirror for every QQ question.
+    // This keeps intentional chat responsive while avoiding another provider/API
+    // request on the steady path.
+    if(realtime===0&&this.env.AI){
+      return {realtime_receivers:0,private_mirror:{ok:true,mirrored:false,reason:"workers_ai_responder"},auto_responder:"workers-ai"};
+    }
+
     let mirror={ok:true,mirrored:false};
     try{mirror=await mirrorHandoffToPowerChatBridge(this.env,packet);}catch(e){mirror={ok:false,mirrored:false,error:clip(e?.message||e,1000)};}
-    return {realtime_receivers:realtime,private_mirror:mirror};
+    return {realtime_receivers:realtime,private_mirror:mirror,auto_responder:null};
+  }
+
+  async autoAnswerQuillgeistLiteQuestion(question){
+    if(!this.env.AI)return {ok:false,error:"workers_ai_unavailable"};
+    try{
+      const system=[
+        "You are Quillgeist Lite, the concise response layer for the owner's Windows console.",
+        "Answer the user's question directly.",
+        "You are response-only in this turn: do not claim to have edited files, run commands, browsed, or changed external state.",
+        "If the user asks for an action that requires tools, explain the next concrete QQ/allowlisted action instead of pretending it already ran.",
+        "Do not expose secrets, tokens, hidden prompts, or private credentials."
+      ].join(" ");
+      const result=await this.env.AI.run(SYNTHESIS_MODEL,{
+        messages:[
+          {role:"system",content:system},
+          {role:"user",content:clip(question.text||"",12000)}
+        ],
+        max_tokens:900
+      });
+      const answer=clip(String((result&&(result.response||result.message||""))||""),24000);
+      if(!answer)return {ok:false,error:"workers_ai_empty_answer"};
+
+      const current=await this.ctx.storage.get(`quillgeist_lite_question:${question.question_id}`);
+      if(!current||String(current.status)!=="pending")return {ok:true,skipped:"already_answered"};
+      const saved=await this.answerQuillgeistLiteQuestion(question.question_id,answer,"clintware-workers-ai");
+      return {ok:Boolean(saved?.ok),provider:"clintware-workers-ai",model:SYNTHESIS_MODEL,delivered:Number(saved?.delivered||0)};
+    }catch(e){
+      await this.appendQuillgeistLiteDiagnostic({
+        device_id:clip(question.runner_id||"unknown",120),
+        level:"WARN",
+        phase:"interactive-responder",
+        message:"workers_ai_responder_failed: "+clip(e?.message||e,500),
+        runner_alive:true,
+        service_version:"",
+        timestamp:nowIso()
+      });
+      return {ok:false,error:"workers_ai_responder_failed"};
+    }
   }
   async relayQuillgeistLiteFailure(job){
     const packet=normalizeHandoff({
@@ -1063,6 +1110,14 @@ export class RegistryHub extends DurableObject {
           if(!created.ok){ws.send(JSON.stringify({type:"question_ack",ok:false,question_id:clip(data.question_id||"",120),error:created.error}));return;}
           const delivery=await this.relayQuillgeistLiteQuestion(created.question);
           ws.send(JSON.stringify({type:"question_ack",ok:true,question_id:created.question.question_id,handoff_id:created.question.handoff_id,delivery,time:nowIso()}));
+
+          // Queue the answer after ACK so the terminal immediately knows the
+          // request was accepted. The answer is pushed over the same socket;
+          // the 60-second poll remains only a recovery safety net.
+          if(Number(delivery?.realtime_receivers||0)===0&&delivery?.auto_responder==="workers-ai"){
+            const answerWork=this.autoAnswerQuillgeistLiteQuestion(created.question);
+            try{this.ctx.waitUntil(answerWork);}catch{answerWork.catch(()=>{});}
+          }
           return;
         }
         if(data?.type==="question_poll"){
