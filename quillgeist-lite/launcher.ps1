@@ -91,8 +91,7 @@ function Sync-LatestQQFunctionality {
     @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" },
     @{ Url = $StartWindowUrl; Path = (Join-Path $HomeDir "start-qq-window.ps1"); Kind = "powershell"; Required = "Ensure-ClintwareTerminalFragment" },
     @{ Url = $McpConsoleUrl; Path = (Join-Path $HomeDir "mcp-console.ps1"); Kind = "powershell"; Required = "Get-ClintwareLineColor" },
-    @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "supplied Clintware eclipse image" },
-    @{ Url = $LogoUrl; Path = (Join-Path $HomeDir "clintware-terminal-logo.b64"); Kind = "text"; Required = "iVBOR" }
+    @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "CLINTWARE // QQ" }
   )
 
   foreach ($spec in $specs) {
@@ -160,16 +159,9 @@ function Ensure-ModernPowerShell {
 function Show-WindowLoadSplash {
   $SplashPath = Join-Path $HomeDir "boot_splash.py"
   $SplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py?cb=$([Guid]::NewGuid().ToString('n'))"
-  $LogoPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
-  $LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64?cb=$([Guid]::NewGuid().ToString('n'))"
-
   try {
     Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-    Invoke-WebRequest -Uri $LogoUrl -OutFile ($LogoPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-    $logoRaw = (Get-Content ($LogoPath + ".new") -Raw).Trim()
-    if (-not $logoRaw.StartsWith("iVBOR")) { throw "Downloaded Clintware logo asset is invalid." }
     Move-Item ($SplashPath + ".new") $SplashPath -Force
-    Move-Item ($LogoPath + ".new") $LogoPath -Force
 
     $pyw = Get-Command pyw.exe -ErrorAction SilentlyContinue
     if ($pyw) {
@@ -192,7 +184,6 @@ function Show-WindowLoadSplash {
     }
   } catch {
     Remove-Item ($SplashPath + ".new") -Force -ErrorAction SilentlyContinue
-    Remove-Item ($LogoPath + ".new") -Force -ErrorAction SilentlyContinue
     Add-Content -Path $CrashLog -Value ("{0} SPLASH_FAILED {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
   }
 }
