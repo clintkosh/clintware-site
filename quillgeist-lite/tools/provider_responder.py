@@ -175,6 +175,19 @@ def provider_rows() -> list[dict]:
     counters = estimates.get("providers") if isinstance(estimates.get("providers"), dict) else {}
     plans = plan_map()
 
+    # ChatGPT is always shown in QQ's estimate surface because it is a known
+    # owner-facing provider. Without a supported provider quota API, this row
+    # remains explicitly local/estimated rather than inventing an allowance.
+    if not any(row.get("id") == "chatgpt" for row in rows):
+        rows.append({
+            "id": "chatgpt",
+            "provider": "ChatGPT",
+            "client": "",
+            "exe": "",
+            "ready": False,
+            "auth": "account usage estimate only; no authenticated local Codex client detected",
+        })
+
     # A subscription plan may be configured even when its CLI is not installed
     # on this machine. Keep it visible in the usage gauge instead of dropping it.
     labels = {"chatgpt": "ChatGPT/Codex", "claude": "Claude", "gemini": "Gemini"}
