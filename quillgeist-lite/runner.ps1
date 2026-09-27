@@ -319,73 +319,17 @@ function Write-ClintwareSplitLine {
   Write-Host $Right -ForegroundColor Cyan
 }
 
-function Ensure-ClintwareLogoAsset {
-  if (-not (Test-Path $LogoAssetPath)) { return $false }
-  try {
-    $raw = (Get-Content $LogoAssetPath -Raw).Trim()
-    return $raw.StartsWith("iVBOR")
-  } catch {
-    return $false
-  }
-}
-
-function Write-ClintwareLogoImage {
-  param([int]$MaxColumns = 24)
-
-  $asset = Join-Path $HomeDir "clintware-terminal-logo.b64"
-  try {
-    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-    if(-not(Test-Path $asset)){throw "logo asset missing"}
-
-    $raw=(Get-Content -LiteralPath $asset -Raw -ErrorAction Stop).Trim()
-    $bytes=[Convert]::FromBase64String($raw)
-    $stream=New-Object IO.MemoryStream(,$bytes)
-    $source=New-Object Drawing.Bitmap($stream)
-
-    $columns=[Math]::Max(12,[Math]::Min($MaxColumns,32))
-    # A terminal cell is roughly twice as tall as it is wide. Render two image
-    # rows per Unicode half-block character to preserve the eclipse proportions.
-    $pixelHeight=[Math]::Max(8,[int][Math]::Round(($source.Height/$source.Width)*$columns*0.95))
-    if(($pixelHeight % 2)-ne 0){$pixelHeight++}
-
-    $scaled=New-Object Drawing.Bitmap($columns,$pixelHeight)
-    $g=[Drawing.Graphics]::FromImage($scaled)
-    $g.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $g.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $g.DrawImage($source,0,0,$columns,$pixelHeight)
-    $g.Dispose()
-
-    $windowWidth=100
-    try{$windowWidth=[Console]::WindowWidth}catch{}
-    $pad=" " * [Math]::Max(0,[int](($windowWidth-$columns)/2))
-    $esc=[char]27
-    $reset="$esc[0m"
-
-    for($y=0;$y -lt $pixelHeight;$y+=2){
-      [Console]::Write($pad)
-      for($x=0;$x -lt $columns;$x++){
-        $top=$scaled.GetPixel($x,$y)
-        $bottom=$scaled.GetPixel($x,[Math]::Min($y+1,$pixelHeight-1))
-        [Console]::Write("$esc[38;2;$($top.R);$($top.G);$($top.B)m$esc[48;2;$($bottom.R);$($bottom.G);$($bottom.B)m▀")
-      }
-      [Console]::WriteLine($reset)
-    }
-
-    $scaled.Dispose(); $source.Dispose(); $stream.Dispose()
-    return $true
-  } catch {
-    # Small deterministic fallback for terminals where System.Drawing is unavailable.
-    $windowWidth=100
-    try{$windowWidth=[Console]::WindowWidth}catch{}
-    $esc=[char]27; $cyan="$esc[38;2;53;203;255m"; $white="$esc[38;2;247;251;255m"; $reset="$esc[0m"
-    foreach($line in @("   ▄██████▄   "," ▄█▀      ▀█▄ "," █          █ "," ▀█▄      ▄█▀ ","   ▀██████▀   ")){
-      $pad=" " * [Math]::Max(0,[int](($windowWidth-$line.Length)/2))
-      [Console]::WriteLine($pad+$cyan+$line+$reset)
-    }
-    $name="Clintware™"; $pad=" " * [Math]::Max(0,[int](($windowWidth-$name.Length)/2))
-    [Console]::WriteLine($pad+$white+$name+$reset)
-    return $false
-  }
+function Write-ClintwareAsciiLogo {
+  $lines = @(
+    "   _____ _      _____ _   _ _______        ___    ____  _____ ",
+    "  / ____| |    |_   _| \ | |__   __|      / / |  |  _ \|  __ \",
+    " | |    | |      | | |  \| |  | |        / /| |  | |_) | |__) |",
+    " | |    | |      | | | . ` |  | |       / / | |  |  _ <|  ___/",
+    " | |____| |____ _| |_| |\  |  | |      / /  | |__| |_) | |    ",
+    "  \_____|______|_____|_| \_|  |_|     /_/    \____/|____/|_|    "
+  )
+  foreach($line in $lines){ Write-ClintwareCentered $line Cyan }
+  Write-ClintwareCentered "CLINTWARE // QQ" White
 }
 
 function Show-QuillgeistSplash {
@@ -399,11 +343,8 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  $rendered = Write-ClintwareLogoImage -MaxColumns 24
-  if (-not $rendered) {
-    Write-ClintwareCentered "CLINTWARE™" White
-    Write-ClintwareCentered "EST. 2026" DarkGray
-  }
+  Write-ClintwareAsciiLogo
+  Write-ClintwareCentered "EST. 2026" DarkGray
 
   Write-Host ""
   Write-ClintwareCentered "Q U I L L G E I S T   L I T E" White
