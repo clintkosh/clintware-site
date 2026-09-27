@@ -5,7 +5,7 @@ import ctypes
 import os
 import time
 
-VERSION = "2026.09.27.1"
+VERSION = "2026.09.27.2"
 
 def enable_glass(root):
     try:
@@ -47,22 +47,29 @@ def main():
             c.create_line(sx,wh-m,sx+sign*seg,wh-m,fill=deep,width=1)
             c.create_line(sx,wh-m,sx,wh-m-seg,fill=deep,width=1)
 
-        ascii_logo=[
-            "  ____ _     ___ _   _ _____",
-            " / ___| |   |_ _| \ | |_   _|",
-            "| |   | |    | ||  \| | | |",
-            "| |___| |___ | || |\  | | |",
-            " \____|_____|___|_| \_| |_|"
+        eclipse=[
+            "          .-------------------.",
+            "      .--'                     '--.",
+            "    .'                             '.",
+            "   /                                 \\",
+            "  |                                   |",
+            "  |                                   |",
+            "  |                                   |",
+            "   \\                                 /",
+            "    '.                             .'",
+            "      '--.                     .--'",
+            "          '-------------------'"
         ]
-        y=42
-        for line in ascii_logo:
-            c.create_text(ww//2,y,text=line,fill=cyan,font=("Cascadia Mono",10,"bold"))
-            y+=18
-        c.create_text(ww//2,136,text="CLINTWARE // QQ",fill="#F7FBFF",font=("Cascadia Mono",9,"bold"))
-        c.create_text(ww//2,157,text="Q U I L L G E I S T   L I T E",fill="#F7FBFF",font=("Cascadia Mono",10,"bold"))
-        c.create_text(ww//2,176,text="Go Furthest.™",fill=cyan,font=("Cascadia Mono",8))
-        c.create_line(35,190,ww-35,190,fill="#113447",width=1)
-        c.create_text(ww//2,203,text="LOCAL FIRST  •  CONTROL PLANE READY",fill=dim,font=("Cascadia Mono",7,"bold"))
+        y=8
+        for line in eclipse:
+            c.create_text(ww//2,y,text=line,fill=cyan,font=("Cascadia Mono",9))
+            y+=12
+        c.create_rectangle(104,62,236,88,fill="#02060A",outline="")
+        c.create_text(ww//2,75,text="Clintware™",fill="#F7FBFF",font=("Cascadia Mono",18,"bold"))
+        c.create_text(ww//2,145,text="Q U I L L G E I S T   L I T E",fill="#F7FBFF",font=("Cascadia Mono",10,"bold"))
+        c.create_text(ww//2,162,text="Go Furthest.™",fill=cyan,font=("Cascadia Mono",8))
+        c.create_line(35,181,ww-35,181,fill="#113447",width=1)
+        c.create_text(ww//2,191,text="LOCAL FIRST  •  CONTROL PLANE READY",fill=dim,font=("Cascadia Mono",7,"bold"))
 
         root.update_idletasks(); enable_glass(root); root.deiconify(); enable_glass(root)
         root.after(900,root.destroy)
