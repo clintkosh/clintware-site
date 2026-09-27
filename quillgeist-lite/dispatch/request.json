@@ -1,11 +1,11 @@
 {
-  "request_id": "read-live-portfolio-images-small-20260927",
+  "request_id": "extract-live-portrait-src-20260927",
   "task_id": "browser-work",
   "args": {
-    "Action": "read",
+    "Action": "run",
     "Url": "https://clintkosh.clintware.com/",
-    "MaxChars": 1000,
+    "StepsJson": "{\"steps\":[{\"op\":\"wait\",\"ms\":1200},{\"op\":\"attr\",\"selector\":\"img[alt*='Clinton']\",\"name\":\"src\"}]}",
     "Headless": "true",
-    "WaitMs": 1000
+    "WaitMs": 500
   }
 }
