@@ -42,6 +42,8 @@ $script:QQLongIdleShown = $false
 $script:QQLocalResponderRepairAttempted = $false
 $script:LatestInfraUsage = $null
 $script:LastInfraUsageAlertSignature = ""
+$script:ReconnectBackoffSeconds = 5
+$script:ConnectedSince = $null
 
 function Mark-QQVisibleActivity {
   $script:LastVisibleActivity = Get-Date
@@ -2076,6 +2078,7 @@ try {
       ).GetAwaiter().GetResult()
 
       $script:RunnerSocket = $ws
+      $script:ConnectedSince = Get-Date
 
       Send-Json $ws @{
         type = "hello"
@@ -2292,6 +2295,21 @@ try {
       } catch {}
     } finally {
       Write-RunnerHeartbeat -State "disconnected" -Force
+
+      $stableSeconds = 0
+      try {
+        if ($script:ConnectedSince) {
+          $stableSeconds = ((Get-Date) - $script:ConnectedSince).TotalSeconds
+        }
+      } catch {}
+
+      if ($stableSeconds -ge 300) {
+        $script:ReconnectBackoffSeconds = 5
+      } else {
+        $script:ReconnectBackoffSeconds = [Math]::Min(300,[Math]::Max(10,$script:ReconnectBackoffSeconds * 2))
+      }
+
+      $script:ConnectedSince = $null
       $script:RunnerSocket = $null
       Reset-QQReceiveState
       if ($ws) {
@@ -2299,8 +2317,9 @@ try {
       }
     }
 
-    Write-Log "Disconnected. Reconnecting in 5 seconds..." "WARN"
-    Start-Sleep -Seconds 5
+    $reconnectDelay = [int]$script:ReconnectBackoffSeconds
+    Write-Log ("Disconnected. Reconnecting in " + $reconnectDelay + " seconds; bounded backoff prevents Cloudflare request storms.") "WARN"
+    Start-Sleep -Seconds $reconnectDelay
   }
 } finally {
   try { $mutex.ReleaseMutex() } catch {}
