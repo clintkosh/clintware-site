@@ -1,11 +1,11 @@
 {
-  "request_id": "read-live-portfolio-images-20260927",
+  "request_id": "read-live-portfolio-images-small-20260927",
   "task_id": "browser-work",
   "args": {
     "Action": "read",
     "Url": "https://clintkosh.clintware.com/",
-    "MaxChars": 12000,
+    "MaxChars": 1000,
     "Headless": "true",
-    "WaitMs": 1200
+    "WaitMs": 1000
   }
 }
