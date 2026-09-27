@@ -14,7 +14,6 @@ $PendingQuestionPath = Join-Path $HomeDir "pending-questions.json"
 $UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
 $UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
-$LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
 $RuntimeRoot = Join-Path $HomeDir "runtime"
 $DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service.json"
 $UserDeviceConfigPath = Join-Path $HomeDir "device.json"
@@ -319,17 +318,24 @@ function Write-ClintwareSplitLine {
   Write-Host $Right -ForegroundColor Cyan
 }
 
-function Write-ClintwareAsciiLogo {
-  $lines = @(
-    "   _____ _      _____ _   _ _______        ___    ____  _____ ",
-    "  / ____| |    |_   _| \ | |__   __|      / / |  |  _ \|  __ \",
-    " | |    | |      | | |  \| |  | |        / /| |  | |_) | |__) |",
-    " | |    | |      | | | . ` |  | |       / / | |  |  _ <|  ___/",
-    " | |____| |____ _| |_| |\  |  | |      / /  | |__| |_) | |    ",
-    "  \_____|______|_____|_| \_|  |_|     /_/    \____/|____/|_|    "
-  )
-  foreach($line in $lines){ Write-ClintwareCentered $line Cyan }
-  Write-ClintwareCentered "CLINTWARE // QQ" White
+function Write-ClintwareEclipseLogo {
+  foreach($line in @(
+    "          .-------------------.",
+    "      .--'                     '--.",
+    "    .'                             '.",
+    "   /                                 \",
+    "  |                                   |"
+  )) { Write-ClintwareCentered $line Cyan }
+
+  Write-ClintwareSplitLine "  |             " "Clintware™" "            |" White
+  Write-ClintwareCentered "  |                                   |" Cyan
+
+  foreach($line in @(
+    "   \                                 /",
+    "    '.                             .'",
+    "      '--.                     .--'",
+    "          '-------------------'"
+  )) { Write-ClintwareCentered $line Cyan }
 }
 
 function Show-QuillgeistSplash {
@@ -343,7 +349,7 @@ function Show-QuillgeistSplash {
   try { Clear-Host } catch {}
 
   Write-Host ""
-  Write-ClintwareAsciiLogo
+  Write-ClintwareEclipseLogo
   Write-ClintwareCentered "EST. 2026" DarkGray
 
   Write-Host ""
