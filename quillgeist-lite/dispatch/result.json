@@ -1,10 +1,149 @@
 {
-  "request_id": "chatgpt-qq-workers-ai-live-test-retry-20260927",
-  "job_id": "d946bcf7-e232-4b01-9577-927df88ec392",
-  "task_id": "responder-agent",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 844,
-  "recorded_at": 1790533783,
-  "output_tail": "[run] {\"path\":\"C:\\\\Users\\\\batman\\\\AppData\\\\Local\\\\Clintware\\\\QuillgeistLite\\\\ui-input.jsonl\",\"queued\":true,\"ok\":true,\"expected\":\"QQ_LIVE_RESPONDER_OK\"}"
+  "request_id": "chatgpt-qq-workers-ai-live-test-inspect-20260927",
+  "mode": "inspect",
+  "recorded_at": 1790533827,
+  "inspection": {
+    "online": 2,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.9.8",
+    "runner_last_seen": "2026-09-27T18:29:41.833Z",
+    "jobs": [
+      {
+        "job_id": "d946bcf7-e232-4b01-9577-927df88ec392",
+        "task_id": "responder-agent",
+        "status": "passed"
+      },
+      {
+        "job_id": "114e05d4-27af-4718-9f4c-c8b7467497c4",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "2277d2c5-e7c3-4267-9989-24fd7eed46d8",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "e978c033-3028-4a06-9190-1e09cc313acd",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "8cbec5ed-a85c-4bbe-a65f-ce2ec4f3da3e",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "8733a9bb-0517-4849-8170-206f97cbc7bf",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "ca919039-3085-45ff-bedc-69307afeb339",
+        "task_id": "local-ai",
+        "status": "passed"
+      },
+      {
+        "job_id": "76f6defb-6045-4874-ad9d-56d9419f231d",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "df847a82-15b9-455b-8f73-674974e3e4dd",
+        "task_id": "local-ai",
+        "status": "failed"
+      },
+      {
+        "job_id": "1cb1faf2-cb05-4fd6-ab76-b46414a8055a",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "76e3c5bf-9d96-4e48-b5c5-d53d2bfdb5a9",
+        "task_id": "self-update",
+        "status": "passed"
+      },
+      {
+        "job_id": "04bd76a5-43d0-4c30-b1d1-dfb5049496f6",
+        "task_id": "self-update",
+        "status": "passed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:26.2003104Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:21.1896613Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:16.1889258Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:11.1875760Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:06.1773375Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:30:01.1639644Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:29:56.1502744Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:29:51.1353185Z"
+      },
+      {
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "timestamp": "2026-09-27T18:29:46.1242158Z"
+      },
+      {
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-27T18:29:49.5609052Z"
+      },
+      {
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-27T18:29:43.2451167Z"
+      },
+      {
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "timestamp": "2026-09-27T18:29:41.2456411Z"
+      }
+    ]
+  }
 }
