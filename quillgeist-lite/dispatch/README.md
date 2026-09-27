@@ -2,6 +2,17 @@
 
 This file is the durable routing contract for ChatGPT sessions working on Clintware, Quillgeist Lite, QQ, MEMORIA, local execution, deployments, infrastructure, or recovery work.
 
+## Chat mode default
+
+Use normal ChatGPT chat mode by default for Clintware work.
+
+- Do not switch to Work mode unless the user explicitly asks for Work mode.
+- Prefer completing the task inside the current chat using available connectors, tools, GitHub relay, Clintware control-plane paths, and QQ.
+- If a task can be completed in chat, keep it in chat.
+- Do not treat Work mode as a fallback merely because a task is long, technical, multi-step, or involves files, repos, deployments, infrastructure, or local execution.
+- Only use or recommend Work mode when the user specifically requests it.
+- Preserve continuity in the current chat whenever possible rather than moving the task into a separate execution surface.
+
 ## Mandatory routing rule
 
 Before saying Clintware, QQ, MEMORIA, or local execution is unavailable, inspect the currently authorized paths in this order:
