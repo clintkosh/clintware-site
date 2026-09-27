@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("install","update","status","on","off","run","scan","ui","kill","unkill","report","uninstall","live-test")]
+  [ValidateSet("install","update","status","on","off","run","scan","ui","kill","unkill","report","uninstall","live-test","live-verify")]
   [string]$Action = "status"
 )
 
@@ -147,6 +147,25 @@ switch ($Action) {
     } | ConvertTo-Json -Compress
     Add-Content -LiteralPath $uiInput -Value $payload -Encoding UTF8
     @{ ok=$true; queued=$true; path=$uiInput; expected="QQ_LIVE_RESPONDER_OK" } | ConvertTo-Json -Compress
+  }
+  "live-verify" {
+    $qqHome = Split-Path $HomeDir -Parent
+    $runnerLog = Join-Path $qqHome "runner.log"
+    $found = $false
+    $matches = @()
+    if (Test-Path $runnerLog) {
+      $tail = @(Get-Content -LiteralPath $runnerLog -Tail 800 -ErrorAction SilentlyContinue)
+      $matches = @($tail | Where-Object { $_ -match 'QQ_LIVE_RESPONDER_OK' })
+      $found = $matches.Count -gt 0
+    }
+    @{
+      ok=$found
+      expected="QQ_LIVE_RESPONDER_OK"
+      found=$found
+      matches=$matches.Count
+      runner_log=$runnerLog
+    } | ConvertTo-Json -Compress
+    if (-not $found) { exit 2 }
   }
   "uninstall" {
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
