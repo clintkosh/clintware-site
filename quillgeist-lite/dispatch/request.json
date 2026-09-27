@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-self-update-before-google-20260927",
+  "request_id": "chatgpt-qq-self-update-google-refresh-20260927",
   "task_id": "self-update",
   "args": {},
-  "objective": "Refresh the maintained Quillgeist Lite runtime and bundled identity-broker scripts from the current Clintware repository before rerunning delegated Google OAuth completion."
+  "objective": "Refresh QQ runner so finish-google-oauth is fetched from the reviewed control-plane runtime immediately before execution."
 }
