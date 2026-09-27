@@ -524,6 +524,7 @@ async function authorizeJiraControlRequest(request,env){
 }
 
 const HANDOFF_MAX_AGE_MS=7*24*60*60*1000;
+const QQ_QUESTION_MAX_AGE_MS=30*60*1000;
 const HANDOFF_MAX_ITEMS=200;
 const clip=(v,max=4000)=>String(v??"").slice(0,max);
 const clipList=(v,maxItems=50,maxLen=1000)=>Array.isArray(v)?v.slice(0,maxItems).map(x=>clip(x,maxLen)):[];
@@ -631,15 +632,23 @@ export class RegistryHub extends DurableObject {
   }
   async quillgeistLiteQuestions(status="pending",limit=50){
     const index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
-    const cutoff=Date.now()-HANDOFF_MAX_AGE_MS;
+    const cutoff=Date.now()-QQ_QUESTION_MAX_AGE_MS;
     const rows=[];
+    const keep=[];
     for(const item of index){
-      if(Date.parse(item.created_at||"")<cutoff)continue;
+      if(Date.parse(item.created_at||"")<cutoff){
+        try{await this.ctx.storage.delete(`quillgeist_lite_question:${item.question_id}`);}catch{}
+        continue;
+      }
+      keep.push(item);
       const row=await this.ctx.storage.get(`quillgeist_lite_question:${item.question_id}`);
       if(!row)continue;
       if(status&&status!=="all"&&String(row.status)!==status)continue;
       rows.push(row);
       if(rows.length>=Math.max(1,Math.min(200,Number(limit)||50)))break;
+    }
+    if(keep.length!==index.length){
+      await this.ctx.storage.put("quillgeist_lite_question_index",keep.slice(0,200));
     }
     return rows;
   }
@@ -671,7 +680,7 @@ export class RegistryHub extends DurableObject {
     let index=await this.ctx.storage.get("quillgeist_lite_question_index")||[];
     index=index.filter(x=>x.question_id!==question_id);
     index.unshift({question_id,runner_id:row.runner_id,status:row.status,created_at:row.created_at,updated_at:row.updated_at});
-    index=index.filter(x=>Date.parse(x.created_at||"")>=Date.now()-HANDOFF_MAX_AGE_MS).slice(0,200);
+    index=index.filter(x=>Date.parse(x.created_at||"")>=Date.now()-QQ_QUESTION_MAX_AGE_MS).slice(0,200);
     await this.ctx.storage.put("quillgeist_lite_question_index",index);
     return {ok:true,question:row};
   }
