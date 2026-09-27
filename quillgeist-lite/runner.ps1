@@ -1988,6 +1988,7 @@ function Invoke-AllowlistedTask {
     "repair-local-service" = @{ Relative = "tasks/repair-local-service.ps1"; Required = "SERVICE_DEFERRED" }
     "self-update" = @{ Relative = "tasks/self-update.ps1"; Required = "SYNC // reconciling QQ" }
     "local-ai" = @{ Relative = "tools/local_ai.py"; Required = "def gguf_files" }
+    "responder-agent" = @{ Relative = "tasks/responder-agent.ps1"; Required = "live-test" }
     "bitnet-setup" = @{ Relative = "tasks/bitnet-setup.ps1"; Required = "Running temporary BitNet HTTP server round trip" }
     "local-ai-integrate" = @{ Relative = "tasks/integrate-local-ai.ps1"; Required = "Running n8n-path generation through BitNet" }
     "finish-local-ai" = @{ Relative = "tasks/finish-local-ai.ps1"; Required = "AUTOPILOT COMPLETE" }
