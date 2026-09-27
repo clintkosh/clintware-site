@@ -18,13 +18,7 @@ Write-Host ""
 Invoke-WebRequest -Uri $SetupUrl -OutFile $SetupPath -UseBasicParsing
 if (-not (Test-Path $SetupPath)) { throw "Could not download the Clintware OAuth helper." }
 
-$Scopes = @(
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/calendar.freebusy",
-  "https://www.googleapis.com/auth/calendar.events"
-)
-
-$Args = @("-NoProfile","-ExecutionPolicy","Bypass","-File",$SetupPath,"-Repo",$Repo,"-Scopes") + $Scopes
+$Args = @("-NoProfile","-ExecutionPolicy","Bypass","-File",$SetupPath,"-Repo",$Repo,"-WaitSeconds","300")
 & powershell.exe @Args
 if ($LASTEXITCODE -ne 0) { throw "Clintware Google OAuth bootstrap failed." }
 
