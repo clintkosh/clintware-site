@@ -1,9 +1,6 @@
 {
-  "request_id": "chatgpt-qq-provider-responder-smoke-retry-20260927",
-  "task_id": "local-ai",
-  "args": {
-    "Action": "provider-test",
-    "Prompt": "Reply exactly QQ_RESPONDER_OK. Do not use tools."
-  },
-  "objective": "Retry the live QQ subscription responder test after fixing the diagnostic bridge imports. Verify a real authenticated provider returns QQ_RESPONDER_OK."
+  "request_id": "chatgpt-qq-workers-ai-rollout-20260927",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Roll out QQ runner 1.9.8 to all connected clients. This build recognizes the automatic Workers AI responder, shows reset countdowns, keeps subscription estimates, expires stale questions, and refreshes the end-to-end responder live-test task."
 }
