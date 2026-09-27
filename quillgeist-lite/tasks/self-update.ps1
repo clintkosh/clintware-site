@@ -72,13 +72,13 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
 )
 Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -ForegroundColor Green
 
-Write-Host "SYNC // refreshing qq window, MCP monitor, splash, and logo assets" -ForegroundColor Cyan
+Write-Host "SYNC // refreshing qq window, MCP monitor, and ASCII splash assets" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "launcher.ps1" -Destination (Join-Path $HomeDir "launcher.ps1") -Required @("Sync-LatestQQFunctionality")
 Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Ensure-ClintwareTerminalFragment","Clintware™ QQ // LOCAL RESPONDER")
 Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("Get-ClintwareLineColor","Clintware™ MCP // CONTROL PLANE","Show-McpPrompt")
 $pythonAssets = @(
-  @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="supplied Clintware eclipse image" },
-  @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="install_canonical_logo" }
+  @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="[ CLINTWARE // QQ ]" },
+  @{ Relative="tools/terminal_repair.py"; Destination=(Join-Path $HomeDir "terminal_repair.py"); Required="ASCII-only terminal branding active" }
 )
 foreach($asset in $pythonAssets){
   $temp=$asset.Destination + ".new"
@@ -92,16 +92,7 @@ foreach($asset in $pythonAssets){
   }
 }
 
-$logoPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
-$logoTemp = $logoPath + ".new"
-try {
-  Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64" -OutFile $logoTemp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
-  $logoRaw=(Get-Content -LiteralPath $logoTemp -Raw).Trim()
-  if(-not $logoRaw.StartsWith("iVBOR")){ throw "Reviewed QQ logo asset is invalid." }
-  Move-Item -LiteralPath $logoTemp -Destination $logoPath -Force
-} finally {
-  Remove-Item -LiteralPath $logoTemp -Force -ErrorAction SilentlyContinue
-}
+Remove-Item -LiteralPath (Join-Path $HomeDir "clintware-terminal-logo.b64") -Force -ErrorAction SilentlyContinue
 
 try {
   $py=Get-Command py.exe -ErrorAction SilentlyContinue
