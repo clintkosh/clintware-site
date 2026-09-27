@@ -495,7 +495,7 @@ function Show-QQInfraUsage {
     Write-Host ("  RESET // " + (($resetServices | ForEach-Object { ([string]$_).ToUpperInvariant() }) -join ", ") + " allowance window renewed.") -ForegroundColor Green
   }
 
-  $subscriptionRows = @(Get-QQSubscriptionUsage | Where-Object { [bool]$_.ready })
+  $subscriptionRows = @(Get-QQSubscriptionUsage | Where-Object { [bool]$_.ready -or [double]$_.plan.allowance -gt 0 })
   if ($subscriptionRows.Count -gt 0) {
     Write-Host ""
     Write-Host "  SUBSCRIPTIONS // EST = QQ fallback calls observed locally; exact provider quota shown only when a configured/provider-synced plan exists." -ForegroundColor DarkGray
@@ -2107,9 +2107,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.7"
+        version = "1.9.8"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder")
       }
 
       Flush-RunnerDiagnostics
@@ -2203,25 +2203,29 @@ try {
           $qid = [string]$msg.question_id
           $receivers = 0
           $mirrored = $false
+          $autoResponder = ""
           try { $receivers = [int]$msg.delivery.realtime_receivers } catch {}
           try { $mirrored = [bool]$msg.delivery.private_mirror.mirrored } catch {}
+          try { $autoResponder = [string]$msg.delivery.auto_responder } catch {}
+          $accepted = ($receivers -gt 0 -or -not [string]::IsNullOrWhiteSpace($autoResponder))
           if($script:PendingQuestions.ContainsKey($qid)){
-            $script:PendingQuestions[$qid].accepted = ($receivers -gt 0)
+            $script:PendingQuestions[$qid].accepted = $accepted
             $script:PendingQuestions[$qid].mirrored = $mirrored
             Save-PendingQuestions $script:PendingQuestions
           }
 
-          if ($receivers -gt 0) {
+          if ($autoResponder) {
+            Write-Host "RESPONDER ACTIVE" -ForegroundColor Green -NoNewline
+            Write-Host (" // " + $autoResponder.ToUpperInvariant() + " // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor Cyan
+          } elseif ($receivers -gt 0) {
             Write-Host "RELAY DELIVERED" -ForegroundColor Cyan -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } elseif ($mirrored) {
-            Write-Host "RELAY PENDING // PRIVATE INBOX; STILL POLLING" -ForegroundColor DarkYellow -NoNewline
+            Write-Host "RELAY PENDING // PRIVATE INBOX; SAFETY CHECK ACTIVE" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } else {
-            Write-Host "RELAY WAITING // NO CHAT RESPONDER ATTACHED" -ForegroundColor DarkYellow -NoNewline
+            Write-Host "RELAY WAITING // NO RESPONSE PATH AVAILABLE" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
-            Write-Host ""
-            Write-Host "The request is stored, but no live responder accepted it." -ForegroundColor DarkGray
           }
           Show-QQPrompt
           continue
