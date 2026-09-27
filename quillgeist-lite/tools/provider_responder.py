@@ -253,8 +253,21 @@ def choose_ready(rows: list[dict]) -> list[dict]:
 def respond(prompt: str) -> dict:
     attempts = []
     rows = provider_rows()
+    ready_rows = choose_ready(rows)
+    usage = [
+        {
+            "provider": row.get("provider"),
+            "provider_id": row.get("id"),
+            "estimated_calls": int(row.get("estimated_calls") or 0),
+            "usage_pct": row.get("usage_pct"),
+            "reset_at": row.get("reset_at") or "",
+            "plan_name": (row.get("plan") or {}).get("plan_name") or "",
+            "unit": (row.get("plan") or {}).get("unit") or "",
+        }
+        for row in ready_rows
+    ]
     with tempfile.TemporaryDirectory(prefix="qq-responder-") as tmp:
-        for row in choose_ready(rows):
+        for row in ready_rows:
             argv = provider_command(row, prompt, tmp)
             code, output = run(argv, timeout=120, cwd=tmp)
             attempts.append({"provider": row["provider"], "exit_code": code})
@@ -274,8 +287,16 @@ def respond(prompt: str) -> dict:
                 "provider_id": row["id"],
                 "answer": answer[-12000:],
                 "attempts": attempts,
+                "ready_providers": [r.get("provider") for r in ready_rows],
+                "usage_estimates": usage,
             }
-    return {"ok": False, "error": "no_authenticated_provider_answer", "attempts": attempts}
+    return {
+        "ok": False,
+        "error": "no_authenticated_provider_answer",
+        "attempts": attempts,
+        "ready_providers": [r.get("provider") for r in ready_rows],
+        "usage_estimates": usage,
+    }
 
 
 def status() -> dict:
