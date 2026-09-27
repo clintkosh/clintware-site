@@ -19,6 +19,7 @@ $DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service
 $UserDeviceConfigPath = Join-Path $HomeDir "device.json"
 $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
 $LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
+$ProviderResponderPath = Join-Path $HomeDir "provider_responder.py"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -66,7 +67,30 @@ function Show-QQIdleNotice {
 
 function Show-QQPendingQuestions {
   if($script:PendingQuestions.Count -eq 0){return}
-  if(((Get-Date)-$script:LastPendingNotice).TotalSeconds -lt 15){return}
+
+  # A missing remote responder must never strand QQ forever. Answers normally
+  # arrive by push; safety polling is secondary. Expire ancient relay state.
+  $expired = New-Object System.Collections.Generic.List[string]
+  foreach($id in @($script:PendingQuestions.Keys)){
+    $row=$script:PendingQuestions[$id]
+    if(-not $row){$expired.Add($id);continue}
+    try {
+      $age=[int]((Get-Date).ToUniversalTime()-[DateTime]::Parse([string]$row.created_at).ToUniversalTime()).TotalSeconds
+      if($age -gt 1800){$expired.Add($id)}
+    } catch {$expired.Add($id)}
+  }
+  if($expired.Count -gt 0){
+    Suspend-QQPrompt
+    foreach($id in @($expired)){
+      $script:PendingQuestions.Remove($id)
+      Write-Host ("EXPIRED // " + $(if($id.Length -ge 8){$id.Substring(0,8)}else{$id}) + " // no responder after 30m; cleared from active queue") -ForegroundColor DarkYellow
+      try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [EXPIRED_QUESTION] " + $id) -Encoding UTF8 } catch {}
+    }
+    Save-PendingQuestions $script:PendingQuestions
+    Show-QQPrompt
+  }
+  if($script:PendingQuestions.Count -eq 0){return}
+  if(((Get-Date)-$script:LastPendingNotice).TotalSeconds -lt 60){return}
 
   $oldest=$null
   foreach($id in @($script:PendingQuestions.Keys)){
@@ -81,9 +105,9 @@ function Show-QQPendingQuestions {
   $age=[int]((Get-Date).ToUniversalTime()-[DateTime]::Parse([string]$oldest.created_at).ToUniversalTime()).TotalSeconds
   Suspend-QQPrompt
   if($oldest.accepted){
-    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // responder accepted; waiting for answer (" + $age + "s)") -ForegroundColor DarkCyan
+    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // responder accepted; push answer pending (" + $age + "s)") -ForegroundColor DarkCyan
   } else {
-    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // preserved and still polling; no live responder yet (" + $age + "s)") -ForegroundColor DarkYellow
+    Write-Host ("PENDING // " + $oldest.id.Substring(0,8) + " // remote fallback unavailable; safety check active (" + $age + "s)") -ForegroundColor DarkYellow
   }
   $script:LastPendingNotice=Get-Date
   Show-QQPrompt
@@ -368,6 +392,35 @@ function Format-QQUsageReset {
   }
 }
 
+function Format-QQResetRemaining {
+  param([string]$Value)
+  if (-not $Value) { return "provider-managed" }
+  try {
+    $d = [DateTimeOffset]::Parse($Value)
+    $span = $d - [DateTimeOffset]::UtcNow
+    if ($span.TotalSeconds -le 0) { return "reset due" }
+    if ($span.TotalDays -ge 1) { return ("{0}d {1}h" -f [int][Math]::Floor($span.TotalDays),$span.Hours) }
+    if ($span.TotalHours -ge 1) { return ("{0}h {1}m" -f [int][Math]::Floor($span.TotalHours),$span.Minutes) }
+    return ("{0}m {1}s" -f [Math]::Max(0,$span.Minutes),[Math]::Max(0,$span.Seconds))
+  } catch {
+    return "provider-managed"
+  }
+}
+
+function Get-QQSubscriptionUsage {
+  if (-not (Test-Path $ProviderResponderPath)) { return @() }
+  try {
+    $python = Resolve-Python
+    $raw = (& $python $ProviderResponderPath status 2>$null | Out-String).Trim()
+    if (-not $raw) { return @() }
+    $status = $raw | ConvertFrom-Json
+    return @($status.providers)
+  } catch {
+    try { Queue-RunnerDiagnostic "INFO" ("provider_usage_status_unavailable: " + $_.Exception.Message) "usage" } catch {}
+    return @()
+  }
+}
+
 function Get-QQUsageBar {
   param(
     [object]$Percent,
@@ -413,7 +466,7 @@ function Show-QQInfraUsage {
   Write-Host ""
   $reason = if ([bool]$Message.welcome) { "WELCOME" } elseif ($resetServices.Count -gt 0) { "RESET" } else { "WARNING" }
   Write-Host ("USAGE // " + $reason) -ForegroundColor White
-  Write-Host "  PROVIDER     GAUGE               USED / LIMIT       RESET             EST @ RESET" -ForegroundColor DarkGray
+  Write-Host "  PROVIDER     GAUGE               USED / LIMIT       RESET             RESET IN      EST @ RESET" -ForegroundColor DarkGray
 
   foreach ($entry in @(
     [pscustomobject]@{Name="CLOUDFLARE"; Row=$cloud},
@@ -431,14 +484,43 @@ function Show-QQInfraUsage {
     $used = Format-QQUsageNumber $row.used
     $limit = Format-QQUsageNumber $row.limit
     $reset = Format-QQUsageReset ([string]$row.reset_at)
+    $resetIn = Format-QQResetRemaining ([string]$row.reset_at)
     $estimate = Format-QQUsageNumber $row.projected_at_reset
     $color = if ([bool]$row.warning -or [bool]$row.reported_remaining_mismatch) { [ConsoleColor]::Yellow } elseif ($pct -ge 80) { [ConsoleColor]::DarkYellow } else { [ConsoleColor]::Cyan }
 
-    Write-Host ("  {0,-12} {1} {2,5:0}%  {3,7} / {4,-7}  {5,-17} {6,10}" -f $entry.Name,$bar,$pct,$used,$limit,$reset,$estimate) -ForegroundColor $color
+    Write-Host ("  {0,-12} {1} {2,5:0}%  {3,7} / {4,-7}  {5,-17} {6,-12} {7,10}" -f $entry.Name,$bar,$pct,$used,$limit,$reset,$resetIn,$estimate) -ForegroundColor $color
   }
 
   if ($resetServices.Count -gt 0) {
     Write-Host ("  RESET // " + (($resetServices | ForEach-Object { ([string]$_).ToUpperInvariant() }) -join ", ") + " allowance window renewed.") -ForegroundColor Green
+  }
+
+  $subscriptionRows = @(Get-QQSubscriptionUsage | Where-Object { [bool]$_.ready })
+  if ($subscriptionRows.Count -gt 0) {
+    Write-Host ""
+    Write-Host "  SUBSCRIPTIONS // EST = QQ fallback calls observed locally; exact provider quota shown only when a configured/provider-synced plan exists." -ForegroundColor DarkGray
+    Write-Host "  PROVIDER          GAUGE / EST         USED / LIMIT       RESET             RESET IN" -ForegroundColor DarkGray
+    foreach ($sub in $subscriptionRows) {
+      $plan = $sub.plan
+      $name = [string]$sub.provider
+      if ($name.Length -gt 16) { $name = $name.Substring(0,16) }
+      $allowance = 0.0
+      $used = 0.0
+      try { $allowance = [double]$plan.allowance } catch {}
+      try { $used = [double]$plan.used } catch {}
+      if ($allowance -gt 0) {
+        $pct = [Math]::Max(0,[Math]::Min(100,($used/$allowance*100)))
+        $bar = Get-QQUsageBar $pct
+        $reset = Format-QQUsageReset ([string]$sub.reset_at)
+        $resetIn = Format-QQResetRemaining ([string]$sub.reset_at)
+        Write-Host ("  {0,-17} {1} {2,5:0}%  {3,7} / {4,-7}  {5,-17} {6}" -f $name,$bar,$pct,(Format-QQUsageNumber $used),(Format-QQUsageNumber $allowance),$reset,$resetIn) -ForegroundColor Cyan
+      } else {
+        $calls = 0
+        try { $calls = [int]$sub.estimated_calls } catch {}
+        $resetIn = Format-QQResetRemaining ([string]$sub.reset_at)
+        Write-Host ("  {0,-17} {1,-21} {2,-20} {3}" -f $name,("EST " + $calls + " QQ calls"),"quota provider-managed",$resetIn) -ForegroundColor DarkCyan
+      }
+    }
   }
 
   if ($cloudWarn) {
@@ -1471,6 +1553,43 @@ function Invoke-QQPortableLocalResponse {
   }
 }
 
+function Invoke-QQSubscriptionProviderResponse {
+  param([string]$Text)
+
+  if (-not (Test-Path $ProviderResponderPath)) { return $false }
+  $temp = Join-Path $env:TEMP ("qq-provider-prompt-" + [Guid]::NewGuid().ToString("n") + ".txt")
+  try {
+    Set-Content -LiteralPath $temp -Value $Text -Encoding UTF8
+    $python = Resolve-Python
+    $raw = (& $python $ProviderResponderPath respond --prompt-file $temp 2>$null | Out-String).Trim()
+    if (-not $raw) { return $false }
+    $result = $raw | ConvertFrom-Json
+    if (-not [bool]$result.ok) { return $false }
+    $answer = [string]$result.answer
+    if (-not $answer) { return $false }
+    if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
+      try { Queue-RunnerDiagnostic "INFO" ("subscription_responder_remote_required=" + [string]$result.provider) "local-first" } catch {}
+      return $false
+    }
+
+    Suspend-QQPrompt
+    Write-Host ""
+    Write-Host "QUILLGEIST SUBSCRIPTION" -ForegroundColor White -NoNewline
+    Write-Host (" // " + [string]$result.provider) -ForegroundColor Cyan
+    Write-Host $answer.Trim() -ForegroundColor White
+    Write-Host ""
+    try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [SUBSCRIPTION_ANSWER:" + [string]$result.provider + "] " + (Redact-LogLine $answer)) -Encoding UTF8 } catch {}
+    try { Queue-RunnerDiagnostic "INFO" ("subscription_responder=" + [string]$result.provider) "local-first" } catch {}
+    Show-QQPrompt
+    return $true
+  } catch {
+    try { Queue-RunnerDiagnostic "INFO" ("subscription_responder_unavailable: " + $_.Exception.Message) "local-first" } catch {}
+    return $false
+  } finally {
+    Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Invoke-QQLocalFirstResponse {
   param([string]$Text)
 
@@ -1543,7 +1662,14 @@ For ordinary questions, brainstorming, explanations, calculations, and local gui
     return $true
   }
 
-  try { Queue-RunnerDiagnostic "INFO" "local_first_unavailable_all_local_paths" "local-first" } catch {}
+  # Subscription fallback: authenticated ChatGPT/Codex, Claude Code, or Gemini
+  # clients can answer immediately without creating a stranded Control Plane
+  # question. Provider CLIs run in read-only/plan modes from an empty temp dir.
+  if (Invoke-QQSubscriptionProviderResponse -Text $Text) {
+    return $true
+  }
+
+  try { Queue-RunnerDiagnostic "INFO" "local_first_unavailable_all_local_and_subscription_paths" "local-first" } catch {}
   return $false
 }
 
@@ -1981,9 +2107,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.6"
+        version = "1.9.7"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown")
       }
 
       Flush-RunnerDiagnostics
@@ -2033,7 +2159,7 @@ try {
           Invoke-QQLocalCommand ([string]$uiLine)
         }
 
-        if (((Get-Date) - $script:LastQuestionPoll).TotalSeconds -ge 5) {
+        if ($script:PendingQuestions.Count -gt 0 -and ((Get-Date) - $script:LastQuestionPoll).TotalSeconds -ge 60) {
           try {
             Send-Json $ws @{
               type = "question_poll"
