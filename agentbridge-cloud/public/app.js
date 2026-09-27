@@ -5,6 +5,7 @@ let report={events:[],bugs:[],metrics:{}};
 let helpData={getting_started:[],setup_removal:[],faq:[],glossary:[],fixes:[]};
 let activeHelpSection="all";
 let currentView="home";
+let lastRefreshAt=0;
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const token=()=>localStorage.getItem(TOKEN_KEY)||"";
@@ -106,13 +107,14 @@ async function refresh(){
   if(!token())return;
   const needReport=currentView==="activity";
   const pending=[
-    api("/api/state"),
-    api("/api/telemetry/summary").catch(()=>({metrics:{},bugs:[]}))
+    api("/api/dashboard/snapshot")
   ];
   if(needReport)pending.push(api(`/api/telemetry/report?${reportQuery().toString()}`).catch(()=>report));
-  const [s,t,r]=await Promise.all(pending);
-  state=s;telemetry=t||{metrics:{},bugs:[]};
+  const [snapshot,r]=await Promise.all(pending);
+  state=snapshot.state||{devices:[],jobs:[],schedules:[],metrics:{}};
+  telemetry=snapshot.telemetry||{metrics:{},bugs:[]};
   if(needReport&&r)report=r;
+  lastRefreshAt=Date.now();
   renderDevices();renderJobs();renderSchedules();renderMetrics();renderBugs();renderActivity();renderHelp();
 }
 async function filePayload(input){const f=input.files[0];if(!f)return{};if(f.name.toLowerCase().endsWith(".abpack")){const bytes=new Uint8Array(await f.arrayBuffer());let bin="";for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return{pack_name:f.name,pack_b64:btoa(bin)}}return{pack_name:f.name,pack_text:await f.text()}}
@@ -162,5 +164,10 @@ addEventListener("unhandledrejection",e=>toast(e.reason?.message||String(e.reaso
   const hash=location.hash.slice(1);if(["home","run","automate","activity","help"].includes(hash))setView(hash);
   if(token())try{await refresh()}catch(e){localStorage.removeItem(TOKEN_KEY);show();toast("Control key could not be restored. Create a new account or paste a valid key.","error")}
   if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-  setInterval(()=>{if(token()&&!document.hidden)refresh().catch(()=>{})},60000);
+  // User actions refresh immediately. Idle tabs reconcile slowly instead of
+  // polling Cloudflare every minute.
+  setInterval(()=>{if(token()&&!document.hidden)refresh().catch(()=>{})},900000);
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden&&token()&&Date.now()-lastRefreshAt>300000)refresh().catch(()=>{});
+  });
 })();
