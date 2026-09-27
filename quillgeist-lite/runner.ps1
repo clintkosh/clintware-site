@@ -1963,6 +1963,7 @@ function Invoke-AllowlistedTask {
     "bitnet-setup" = @{ Relative = "tasks/bitnet-setup.ps1"; Required = "Running temporary BitNet HTTP server round trip" }
     "local-ai-integrate" = @{ Relative = "tasks/integrate-local-ai.ps1"; Required = "Running n8n-path generation through BitNet" }
     "finish-local-ai" = @{ Relative = "tasks/finish-local-ai.ps1"; Required = "AUTOPILOT COMPLETE" }
+    "finish-google-oauth" = @{ Relative = "tasks/finish-google-oauth.ps1"; Required = "FINISH CLINTWARE GOOGLE OAUTH" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
