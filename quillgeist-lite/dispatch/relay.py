@@ -28,6 +28,7 @@ ALLOWED = {
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
+    "responder-agent": {"Action"},
     "restart-window": set(),
     "repair-local-service": set(),
     "apply-terminal-glass": set(),
@@ -94,6 +95,10 @@ with open(REQUEST_FILE, "r", encoding="utf-8") as f:
 
 def error_kind(message):
     line = str(message or "").lower()
+    if "workers_ai_responder_passed" in line:
+        return "workers_ai_responder_passed"
+    if "workers_ai_responder_failed" in line:
+        return "workers_ai_responder_failed"
     if "task registry" in line:
         return "task_registry_missing"
     if "health service is not installed" in line:
