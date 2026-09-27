@@ -5,7 +5,7 @@ import ctypes
 import os
 import time
 
-VERSION = "2026.09.27.2"
+VERSION = "2026.09.27.3"
 
 def enable_glass(root):
     try:
@@ -66,10 +66,11 @@ def main():
             y+=12
         c.create_rectangle(104,62,236,88,fill="#02060A",outline="")
         c.create_text(ww//2,75,text="Clintware™",fill="#F7FBFF",font=("Cascadia Mono",18,"bold"))
-        c.create_text(ww//2,145,text="Q U I L L G E I S T   L I T E",fill="#F7FBFF",font=("Cascadia Mono",10,"bold"))
-        c.create_text(ww//2,162,text="Go Furthest.™",fill=cyan,font=("Cascadia Mono",8))
+        c.create_text(ww//2,132,text="[ CLINTWARE // QQ ]",fill=cyan,font=("Cascadia Mono",8,"bold"))
+        c.create_text(ww//2,149,text="Q U I L L G E I S T   L I T E",fill="#F7FBFF",font=("Cascadia Mono",9,"bold"))
+        c.create_text(ww//2,165,text="Go Furthest.™",fill=cyan,font=("Cascadia Mono",8))
         c.create_line(35,181,ww-35,181,fill="#113447",width=1)
-        c.create_text(ww//2,191,text="LOCAL FIRST  •  CONTROL PLANE READY",fill=dim,font=("Cascadia Mono",7,"bold"))
+        c.create_text(ww//2,193,text="LOCAL FIRST // EVENT DRIVEN // CONTROL PLANE",fill=dim,font=("Cascadia Mono",7,"bold"))
 
         root.update_idletasks(); enable_glass(root); root.deiconify(); enable_glass(root)
         root.after(900,root.destroy)
