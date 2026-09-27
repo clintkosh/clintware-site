@@ -1,8 +1,8 @@
 {
-  "request_id": "chatgpt-qq-workers-ai-live-test-20260927",
+  "request_id": "chatgpt-qq-workers-ai-live-test-retry-20260927",
   "task_id": "responder-agent",
   "args": {
     "Action": "live-test"
   },
-  "objective": "Inject one harmless QQ console prompt through the existing ui-input path to verify the full live responder chain. Expected terminal answer: QQ_LIVE_RESPONDER_OK."
+  "objective": "Run the full QQ live responder path after relay allowlist repair. Inject one harmless console prompt and verify it receives QQ_LIVE_RESPONDER_OK through the active responder."
 }
