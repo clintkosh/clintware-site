@@ -63,7 +63,12 @@ def run(argv: list[str], *, timeout: int = 90, cwd: str | None = None) -> tuple[
             cwd=cwd,
             creationflags=flags,
         )
-        text = "\n".join(part for part in (cp.stdout.strip(), cp.stderr.strip()) if part).strip()
+        stdout = cp.stdout.strip()
+        stderr = cp.stderr.strip()
+        # Response-capable CLIs place the final answer on stdout and progress
+        # or diagnostics on stderr. Prefer stdout so terminal progress cannot
+        # replace the model's final answer.
+        text = stdout if stdout else stderr
         return cp.returncode, text[-MAX_OUTPUT:]
     except (OSError, subprocess.TimeoutExpired) as exc:
         return 127, str(exc)[:1000]
