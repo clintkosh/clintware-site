@@ -1,6 +1,9 @@
 {
-  "request_id": "chatgpt-qq-responder-final-rollout-20260927",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Final QQ 1.9.7 rollout: refresh provider_responder.py with authenticated ChatGPT/Codex, Claude Code and Gemini fallback; keep provider usage/reset countdown display; preserve 30-minute stale relay expiry and low-frequency pending safety checks."
+  "request_id": "chatgpt-qq-provider-responder-smoke-20260927",
+  "task_id": "local-ai",
+  "args": {
+    "Action": "provider-test",
+    "Prompt": "Reply exactly QQ_RESPONDER_OK. Do not use tools."
+  },
+  "objective": "Verify that the newly installed QQ subscription responder can obtain a live answer from an already-authenticated provider client without remote handoff."
 }
