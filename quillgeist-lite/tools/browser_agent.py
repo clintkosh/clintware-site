@@ -226,6 +226,8 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
                 d=pathlib.Path(os.environ.get("LOCALAPPDATA","."))/"Clintware"/"QuillgeistLite"/"screenshots"; d.mkdir(parents=True,exist_ok=True); p=d/p.name
             page.screenshot(path=str(p),full_page=bool(step.get("full_page",False))); r["path"]=str(p)
         elif op=="extract": r["text"]=clip(resolve(page,step).inner_text(timeout=timeout),int(step.get("max_chars") or 4000))
+        elif op=="attr":
+            loc=resolve(page,step); name=str(step.get("name") or "src"); r["value"]=loc.get_attribute(name,timeout=timeout)
         elif op=="inspect": r["page"]=inspect_page(page)
         elif op=="read":
             if step.get("url"): safe_goto(page,str(step["url"]),policy,timeout)
