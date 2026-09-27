@@ -28,6 +28,7 @@ ALLOWED = {
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
+    "finish-local-ai": {"MaxPasses"},
     "responder-agent": {"Action"},
     "restart-window": set(),
     "repair-local-service": set(),
