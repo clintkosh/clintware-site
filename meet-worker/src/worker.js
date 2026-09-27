@@ -1303,12 +1303,33 @@ async function adminSelfTest(request, env) {
   }, ok ? 200 : 503);
 }
 
+async function portraitAsset() {
+  const origin = "https://clintkosh.clintware.com";
+  let assetPath = "/assets/clint-portrait-BHCWPDBm.jpg";
+  try {
+    const page = await fetch(origin + "/", { headers: { "user-agent": "ClintCal/1.0" } });
+    if (page.ok) {
+      const htmlText = await page.text();
+      const match = htmlText.match(/\/assets\/clint-portrait-[A-Za-z0-9_-]+\.jpg/);
+      if (match) assetPath = match[0];
+    }
+  } catch {}
+  const image = await fetch(origin + assetPath, { headers: { "user-agent": "ClintCal/1.0" } });
+  if (!image.ok) return new Response("Portrait unavailable", { status: 502, headers: securityHeaders({ "Cache-Control": "no-store" }) });
+  const headers = securityHeaders({
+    "Content-Type": image.headers.get("content-type") || "image/jpeg",
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+  });
+  return new Response(image.body, { status: 200, headers });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     try {
       if (request.method === "GET" && url.pathname === "/health") return health(env);
+      if (request.method === "GET" && url.pathname === "/assets/clint-portrait.jpg") return portraitAsset();
       if (request.method === "POST" && url.pathname === "/api/admin/self-test") {
         return adminSelfTest(request, env);
       }
