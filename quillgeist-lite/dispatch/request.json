@@ -1,11 +1,11 @@
 {
-  "request_id": "inspect-clint-portfolio-image-20260927",
+  "request_id": "read-live-portfolio-images-20260927",
   "task_id": "browser-work",
   "args": {
-    "Action": "run",
+    "Action": "read",
     "Url": "https://clintkosh.clintware.com/",
-    "StepsJson": "{\"steps\":[{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"},{\"op\":\"screenshot\",\"path\":\"clintkosh-portfolio.png\",\"full_page\":false}]}",
+    "MaxChars": 12000,
     "Headless": "true",
-    "WaitMs": 700
+    "WaitMs": 1200
   }
 }
