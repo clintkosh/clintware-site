@@ -45,6 +45,7 @@ $specs = @(
   @{ Remote = "launcher.ps1"; Local = "launcher.ps1"; Kind = "powershell"; Required = "Show-WindowLoadSplash" },
   @{ Remote = "tools/boot_splash.py"; Local = "boot_splash.py"; Kind = "python"; Required = "No-focus acrylic HUD splash" },
   @{ Remote = "tools/terminal_repair.py"; Local = "terminal_repair.py"; Kind = "python"; Required = "ASCII-only terminal branding active" },
+  @{ Remote = "tools/provider_responder.py"; Local = "provider_responder.py"; Kind = "python"; Required = "Quillgeist subscription-provider responder" },
   @{ Remote = "tools/browser_agent.py"; Local = "browser_agent.py"; Kind = "python"; Required = "local browser operator" },
   @{ Remote = "tasks/start-qq-window.ps1"; Local = "start-qq-window.ps1"; Kind = "powershell"; Required = "MutexName" },
   @{ Remote = "tasks/dedupe-qq-windows.ps1"; Local = "dedupe-qq-windows.ps1"; Kind = "powershell"; Required = "DEDUPE_QQ" },
