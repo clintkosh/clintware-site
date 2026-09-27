@@ -3,8 +3,8 @@
 Quillgeist Lite terminal self-repair.
 
 Pure Python / standard library only. It owns the error-prone Windows Terminal JSON,
-creates the deterministic retro DOS boot image, refreshes the managed launcher, and
-verifies the resulting profile before returning success.
+keeps QQ branding ASCII-only, refreshes the managed launcher, and verifies the
+resulting profile before returning success.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import urllib.request
 import uuid
 import zlib
 
-VERSION = "2026.09.26.3"
+VERSION = "2026.09.27.4"
 PROFILE_GUID = "{4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
 PROFILE_NAME = "Clintware QQ (Recovery)"
 LEGACY_PROFILE_GUID = "{5c7d2c59-4989-4f24-9f07-cbd0a38acb6d}"
@@ -288,7 +288,7 @@ def build_boot_command(ps_exe: pathlib.Path, launcher_path: pathlib.Path) -> str
         "-TerminalHost",
     ])
 
-def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: pathlib.Path, commandline: str) -> None:
+def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, commandline: str) -> None:
     fragment = {
         "profiles": [{
             "guid": PROFILE_GUID,
@@ -313,16 +313,11 @@ def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: 
             "scrollbarState": "hidden",
             "intenseTextStyle": "bright",
             "adjustIndistinguishableColors": "never",
-            "backgroundImage": str(image_path),
-            "backgroundImageAlignment": "center",
-            "backgroundImageOpacity": 0.08,
-            "backgroundImageStretchMode": "none",
             "experimental.retroTerminalEffect": False,
             "font": {"face": "Cascadia Code", "size": 10.5, "weight": "medium"},
             "unfocusedAppearance": {
                 "opacity": 92,
                 "useAcrylic": True,
-                "backgroundImageOpacity": 0.05,
             },
         }],
         "schemes": [{
@@ -352,16 +347,11 @@ def write_fragment(fragment_path: pathlib.Path, home: pathlib.Path, image_path: 
     payload = json.dumps(fragment, indent=2, ensure_ascii=False) + "\n"
     atomic_write_text(fragment_path, payload)
 
-def verify(fragment_path: pathlib.Path, image_path: pathlib.Path, launcher_path: pathlib.Path, ps_exe: pathlib.Path) -> None:
+def verify(fragment_path: pathlib.Path, launcher_path: pathlib.Path, ps_exe: pathlib.Path) -> None:
     if not ps_exe.is_file():
         raise RuntimeError("PowerShell executable verification failed.")
     if not launcher_path.is_file() or launcher_path.stat().st_size < 800:
         raise RuntimeError("Managed launcher verification failed.")
-    if not image_path.is_file() or image_path.stat().st_size < 1000:
-        raise RuntimeError("Retro boot image verification failed.")
-    with image_path.open("rb") as handle:
-        if handle.read(8) != b"\x89PNG\r\n\x1a\n":
-            raise RuntimeError("Retro boot image is not a valid PNG.")
     with fragment_path.open("r", encoding="utf-8-sig") as handle:
         fragment = json.load(handle)
     profile = fragment["profiles"][0]
@@ -371,8 +361,8 @@ def verify(fragment_path: pathlib.Path, image_path: pathlib.Path, launcher_path:
         raise RuntimeError("Terminal commandline does not use the absolute PowerShell path.")
     if "launcher.ps1" not in profile.get("commandline", ""):
         raise RuntimeError("Terminal commandline does not contain launcher self-recovery.")
-    if pathlib.Path(profile.get("backgroundImage", "")) != image_path:
-        raise RuntimeError("Terminal boot image binding verification failed.")
+    if "backgroundImage" in profile:
+        raise RuntimeError("ASCII-only terminal branding must not bind a raster background image.")
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -399,10 +389,14 @@ def main() -> int:
 
         log(f"PYTHON // terminal self-repair {VERSION}")
         refresh_launcher(launcher_path)
-        install_canonical_logo(image_path, home)
-        log("PYTHON // compact canonical Clintware logo installed")
+        try:
+            image_path.unlink()
+            log("PYTHON // removed legacy raster terminal background")
+        except FileNotFoundError:
+            pass
         commandline = build_boot_command(ps_exe, launcher_path)
-        write_fragment(fragment_path, home, image_path, commandline)
+        write_fragment(fragment_path, home, commandline)
+        log("PYTHON // ASCII-only terminal branding active")
         log("PYTHON // Windows Terminal profile written atomically")
 
         # Remove the previous fragment so a stale broken command line cannot win
@@ -414,13 +408,13 @@ def main() -> int:
         except FileNotFoundError:
             pass
 
-    verify(fragment_path, image_path, launcher_path, ps_exe)
+    verify(fragment_path, launcher_path, ps_exe)
     atomic_write_text(marker, VERSION + "\n")
 
     log("VERIFY // PowerShell absolute path: " + str(ps_exe))
     log("VERIFY // profile GUID: " + PROFILE_GUID)
     log("VERIFY // fragment: " + str(fragment_path))
-    log("VERIFY // boot image: " + str(image_path))
+    log("VERIFY // branding: ASCII-only; raster background disabled")
     log("READY // Quillgeist Lite terminal profile self-test passed")
     return 0
 
