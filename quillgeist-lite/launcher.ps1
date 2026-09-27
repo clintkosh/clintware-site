@@ -20,7 +20,6 @@ $LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launche
 $StartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/start-qq-window.ps1"
 $McpConsoleUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/mcp-console.ps1"
 $BootSplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py"
-$LogoUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/assets/clintware-terminal-logo.b64"
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
@@ -91,7 +90,7 @@ function Sync-LatestQQFunctionality {
     @{ Url = $LauncherUrl; Path = $PSCommandPath; Kind = "powershell"; Required = "Sync-LatestQQFunctionality" },
     @{ Url = $StartWindowUrl; Path = (Join-Path $HomeDir "start-qq-window.ps1"); Kind = "powershell"; Required = "Ensure-ClintwareTerminalFragment" },
     @{ Url = $McpConsoleUrl; Path = (Join-Path $HomeDir "mcp-console.ps1"); Kind = "powershell"; Required = "Get-ClintwareLineColor" },
-    @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "CLINTWARE // QQ" }
+    @{ Url = $BootSplashUrl; Path = (Join-Path $HomeDir "boot_splash.py"); Kind = "python"; Required = "Clintware™" }
   )
 
   foreach ($spec in $specs) {
