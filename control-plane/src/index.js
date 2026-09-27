@@ -255,6 +255,8 @@ const QUILLGEIST_LITE_TASKS = {
   "responder-agent":{runtime:"powershell",parameters:["Action"]},
   "bitnet-setup":{runtime:"powershell",parameters:[]},
   "local-ai-integrate":{runtime:"powershell",parameters:[]},
+  "install-desktop-app":{runtime:"powershell",parameters:["NoLaunch"]},
+  "finish-local-ai":{runtime:"powershell",parameters:["MaxPasses"]},
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
