@@ -1414,8 +1414,8 @@ function Test-QQLocalGateway {
 function Ensure-QQLocalResponder {
   if (Test-QQLocalGateway) { return $true }
 
-  # Revive the maintained local inference services before escalating a typed
-  # prompt away from the owner's machine.
+  # Fast revival only. A typed question must never trigger a long local-AI
+  # rebuild before it can be answered. Full repair remains an explicit task.
   foreach ($taskName in @("MEMORIA BitNet Server","MEMORIA Quillgeist Local Gateway")) {
     try {
       $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -1423,44 +1423,15 @@ function Ensure-QQLocalResponder {
     } catch {}
   }
 
-  for ($i=0; $i -lt 24; $i++) {
+  for ($i=0; $i -lt 4; $i++) {
     if (Test-QQLocalGateway) {
       try { Queue-RunnerDiagnostic "INFO" "local_responder_revived" "local-first" } catch {}
       return $true
     }
-    Start-Sleep -Milliseconds 500
+    Start-Sleep -Milliseconds 350
   }
 
-  # One bounded repair attempt per QQ process. This reuses the checkpointed
-  # MEMORIA local-AI task instead of spawning ad-hoc installers or loops.
-  if (-not $script:QQLocalResponderRepairAttempted) {
-    $script:QQLocalResponderRepairAttempted = $true
-    try {
-      $registry = Get-Registry
-      $task = Find-Task $registry "finish-local-ai"
-      if ($task) {
-        Suspend-QQPrompt
-        Write-Host "LOCAL RESPONDER // repairing local inference path" -ForegroundColor DarkCyan
-        $repairJob = [pscustomobject]@{
-          job_id = "local-responder-repair-" + [Guid]::NewGuid().ToString("n")
-          task_id = "finish-local-ai"
-          args = [pscustomobject]@{ MaxPasses = "1" }
-          objective = "Restore the QQ local live responder before remote fallback."
-        }
-        $result = Invoke-AllowlistedTask $repairJob $null
-        if ($result.status -eq "passed") {
-          for ($i=0; $i -lt 20; $i++) {
-            if (Test-QQLocalGateway) { return $true }
-            Start-Sleep -Milliseconds 500
-          }
-        }
-      }
-    } catch {
-      try { Queue-RunnerDiagnostic "WARN" ("local_responder_repair_failed: " + $_.Exception.Message) "local-first" } catch {}
-    }
-  }
-
-  return (Test-QQLocalGateway)
+  return $false
 }
 
 function Get-QQPortableLocalTarget {
@@ -2108,9 +2079,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.8"
+        version = "1.9.9"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback")
       }
 
       Flush-RunnerDiagnostics
