@@ -1,8 +1,8 @@
 {
-  "request_id": "memoria-qq-desktop-refresh-retry-20260927",
-  "task_id": "install-desktop-app",
+  "request_id": "memoria-qq-finish-local-ai-after-desktop-20260927",
+  "task_id": "finish-local-ai",
   "args": {
-    "NoLaunch": "false"
+    "MaxPasses": "4"
   },
-  "objective": "On MEMORIA, build and install the current single-pane Quillgeist Lite desktop app and Guardian, migrate away from legacy competing supervisors, install the one-minute Guardian ensure task, and launch the current UI."
+  "objective": "On MEMORIA, continue the local AI server build in checkpointed chunks until all expected services and integrations are verified healthy or a hard blocker remains. Do not stop after one reconcile step; preserve workflow state and resume until complete."
 }
