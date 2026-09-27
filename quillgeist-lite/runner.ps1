@@ -39,6 +39,8 @@ $script:LastVisibleActivity = Get-Date
 $script:QQShortIdleShown = $false
 $script:QQLongIdleShown = $false
 $script:QQLocalResponderRepairAttempted = $false
+$script:LatestInfraUsage = $null
+$script:LastInfraUsageAlertSignature = ""
 
 function Mark-QQVisibleActivity {
   $script:LastVisibleActivity = Get-Date
@@ -343,6 +345,117 @@ function Write-ClintwareAsciiSignature {
   Write-ClintwareCentered "|              C L I N T W A R E                    |" White
   Write-ClintwareCentered "|                   // QQ                           |" Cyan
   Write-ClintwareCentered "+---------------------------------------------------+" DarkCyan
+}
+
+function Format-QQUsageNumber {
+  param([object]$Value)
+  $n = 0.0
+  if (-not [double]::TryParse([string]$Value,[ref]$n)) { return "N/A" }
+  if ($n -ge 1000000000) { return ("{0:0.0}B" -f ($n/1000000000)).Replace(".0B","B") }
+  if ($n -ge 1000000) { return ("{0:0.0}M" -f ($n/1000000)).Replace(".0M","M") }
+  if ($n -ge 1000) { return ("{0:0.0}K" -f ($n/1000)).Replace(".0K","K") }
+  return ("{0:0}" -f $n)
+}
+
+function Format-QQUsageReset {
+  param([string]$Value)
+  if (-not $Value) { return "unknown" }
+  try {
+    $d = [DateTimeOffset]::Parse($Value)
+    return ($d.ToLocalTime().ToString("MM-dd HH:mm") + " local")
+  } catch {
+    return "unknown"
+  }
+}
+
+function Get-QQUsageBar {
+  param(
+    [object]$Percent,
+    [int]$Width = 16
+  )
+  $pct = 0.0
+  if (-not [double]::TryParse([string]$Percent,[ref]$pct)) {
+    return ("[" + ("?" * $Width) + "]")
+  }
+  $pct = [Math]::Max(0,[Math]::Min(100,$pct))
+  $fill = [Math]::Min($Width,[Math]::Max(0,[int][Math]::Round($pct/100*$Width)))
+  return ("[" + ("#" * $fill) + ("." * ($Width-$fill)) + "]")
+}
+
+function Show-QQInfraUsage {
+  param([object]$Message)
+
+  $snapshot = $Message.snapshot
+  if (-not $snapshot) { return }
+
+  $resetServices = @($Message.reset_services)
+  $cloud = $snapshot.cloudflare
+  $github = $snapshot.github
+  $cloudWarn = [bool]($cloud -and $cloud.available -and $cloud.warning)
+  $githubWarn = [bool]($github -and $github.available -and ($github.warning -or $github.reported_remaining_mismatch))
+  $alertSignature = ([string]$cloudWarn + "|" + [string]$githubWarn + "|" + ($resetServices -join ","))
+
+  $shouldShow = [bool]$Message.welcome -or $resetServices.Count -gt 0 -or $cloudWarn -or $githubWarn
+  if (-not $shouldShow) {
+    $script:LatestInfraUsage = $snapshot
+    return
+  }
+
+  if (-not [bool]$Message.welcome -and $resetServices.Count -eq 0 -and $alertSignature -eq $script:LastInfraUsageAlertSignature) {
+    $script:LatestInfraUsage = $snapshot
+    return
+  }
+
+  $script:LatestInfraUsage = $snapshot
+  $script:LastInfraUsageAlertSignature = $alertSignature
+
+  Suspend-QQPrompt
+  Write-Host ""
+  $reason = if ([bool]$Message.welcome) { "WELCOME" } elseif ($resetServices.Count -gt 0) { "RESET" } else { "WARNING" }
+  Write-Host ("USAGE // " + $reason) -ForegroundColor White
+  Write-Host "  PROVIDER     GAUGE               USED / LIMIT       RESET             EST @ RESET" -ForegroundColor DarkGray
+
+  foreach ($entry in @(
+    [pscustomobject]@{Name="CLOUDFLARE"; Row=$cloud},
+    [pscustomobject]@{Name="GITHUB"; Row=$github}
+  )) {
+    $row = $entry.Row
+    if (-not $row -or -not [bool]$row.available) {
+      $err = if ($row -and $row.error) { [string]$row.error } else { "unavailable" }
+      Write-Host ("  {0,-12} {1} {2}" -f $entry.Name,("[????????????????]"),$err) -ForegroundColor DarkYellow
+      continue
+    }
+
+    $pct = [double]$row.used_pct
+    $bar = Get-QQUsageBar $pct
+    $used = Format-QQUsageNumber $row.used
+    $limit = Format-QQUsageNumber $row.limit
+    $reset = Format-QQUsageReset ([string]$row.reset_at)
+    $estimate = Format-QQUsageNumber $row.projected_at_reset
+    $color = if ([bool]$row.warning -or [bool]$row.reported_remaining_mismatch) { [ConsoleColor]::Yellow } elseif ($pct -ge 80) { [ConsoleColor]::DarkYellow } else { [ConsoleColor]::Cyan }
+
+    Write-Host ("  {0,-12} {1} {2,5:0}%  {3,7} / {4,-7}  {5,-17} {6,10}" -f $entry.Name,$bar,$pct,$used,$limit,$reset,$estimate) -ForegroundColor $color
+  }
+
+  if ($resetServices.Count -gt 0) {
+    Write-Host ("  RESET // " + (($resetServices | ForEach-Object { ([string]$_).ToUpperInvariant() }) -join ", ") + " allowance window renewed.") -ForegroundColor Green
+  }
+
+  if ($cloudWarn) {
+    $gap = [Math]::Abs([double]$cloud.allowance_gap)
+    Write-Host ("  WARNING // CLOUDFLARE projected usage exceeds allowance by ~" + (Format-QQUsageNumber $gap) + " requests before reset.") -ForegroundColor Yellow
+  }
+  if ($githubWarn) {
+    if ([bool]$github.reported_remaining_mismatch) {
+      Write-Host "  WARNING // GITHUB reported remaining quota does not match limit minus used; treating provider counters as authoritative." -ForegroundColor Yellow
+    } else {
+      $gap = [Math]::Abs([double]$github.allowance_gap)
+      Write-Host ("  WARNING // GITHUB projected API usage exceeds allowance by ~" + (Format-QQUsageNumber $gap) + " requests before reset.") -ForegroundColor Yellow
+    }
+  }
+
+  Write-Host ""
+  Show-QQPrompt
 }
 
 function Show-QuillgeistSplash {
@@ -1868,9 +1981,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.5"
+        version = "1.9.6"
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage")
       }
 
       Flush-RunnerDiagnostics
@@ -1941,6 +2054,13 @@ try {
         Mark-QQVisibleActivity
         if ($null -eq $msg) {
           Start-Sleep -Milliseconds 35
+          continue
+        }
+
+        if ($msg.type -eq "infra_usage") {
+          try { Show-QQInfraUsage $msg } catch {
+            try { Queue-RunnerDiagnostic "WARN" ("infra_usage_render_failed: " + $_.Exception.Message) "usage" } catch {}
+          }
           continue
         }
 
