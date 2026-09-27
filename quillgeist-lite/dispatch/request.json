@@ -1,6 +1,4 @@
 {
-  "request_id": "chatgpt-qq-responder-rollout-retry-20260927",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Retry canonical QQ rollout after removing stale raster-logo validation. Install runner 1.9.6 with portable local responder, ASCII eclipse/signature branding, no terminal raster background, and event-driven Cloudflare/GitHub usage gauges on all currently connected QQ clients."
+  "request_id": "chatgpt-qq-responder-post-rollout-verify-20260927",
+  "mode": "inspect"
 }
