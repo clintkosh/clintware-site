@@ -207,6 +207,12 @@ jobs:
           python quillgeist-lite/tools/local_ai_parity_check.py
           if ($LASTEXITCODE -ne 0) { throw "Lite/Full local AI parity check failed." }
 
+          $providerTestRaw = @(python quillgeist-lite/tools/local_ai.py --Action provider-test --Prompt "Reply exactly QQ_RESPONDER_OK.")
+          if ($LASTEXITCODE -ne 0) { throw "provider-test diagnostic path crashed." }
+          $providerTest = ($providerTestRaw -join "`n") | ConvertFrom-Json
+          if ($null -eq $providerTest.ok) { throw "provider-test diagnostic path did not return structured JSON." }
+          Write-Host "PROVIDER_TEST_PATH_OK"
+
 
       - name: Smoke-test responder defaults
         shell: pwsh
