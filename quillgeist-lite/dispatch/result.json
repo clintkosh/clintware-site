@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-finish-google-oauth-20260927",
-  "job_id": "4b380695-b48d-4f23-81e2-ce6e656ebbe5",
+  "request_id": "chatgpt-finish-google-oauth-retry-20260927",
+  "job_id": "f9d54a10-1bbb-4457-bdb4-da94364f7745",
   "task_id": "finish-google-oauth",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 1171,
-  "recorded_at": 1790533932,
+  "duration_ms": 1023,
+  "recorded_at": 1790533984,
   "output_tail": "[run] === FINISH CLINTWARE GOOGLE OAUTH ===\r\n[run] Clintware identity scope only.\r\n[run] F:\\AI-Data\\Temp\\clintware-google-oauth.ps1 : Cannot process argument transformation on parameter \r\n[run] 'WaitSeconds'. Cannot convert value \"https://www.googleapis.com/auth/calendar.freebusy\" to type \r\n[run] \"System.Int32\". Error: \"Input string was not in a correct format.\"\r\n[run]     + CategoryInfo          : InvalidData: (:) [clintware-google-oauth.ps1], ParentContainsErrorRe \r\n[run]    cordException\r\n[run]     + FullyQualifiedErrorId : ParameterArgumentTransformationError,clintware-google-oauth.ps1\r\n[run]  \r\n[run] \u001b[31;1mNativeCommandExitException: \u001b[0mC:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\identity-broker\\scripts\\finish-google-oauth.ps1:28\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  28 | \u001b[0m \u001b[36;1m& powershell.exe @Args\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m ~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mProgram \"powershell.exe\" ended with non-zero exit code: 1 (0x00000001).\u001b[0m"
 }
