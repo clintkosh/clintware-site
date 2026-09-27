@@ -1,6 +1,6 @@
 {
-  "request_id": "chatgpt-qq-responder-usage-rollout-20260927",
+  "request_id": "chatgpt-qq-responder-final-rollout-20260927",
   "task_id": "self-update",
   "args": {},
-  "objective": "Roll out QQ runner 1.9.7 to all currently connected QQ clients. Includes authenticated ChatGPT/Codex, Claude Code and Gemini subscription responder fallback, provider usage estimates with reset countdowns, 30-minute stale pending expiry, and 60-second safety polling only while pending."
+  "objective": "Final QQ 1.9.7 rollout: refresh provider_responder.py with authenticated ChatGPT/Codex, Claude Code and Gemini fallback; keep provider usage/reset countdown display; preserve 30-minute stale relay expiry and low-frequency pending safety checks."
 }
