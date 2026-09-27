@@ -73,7 +73,7 @@ async function publicProductStats(env,days=30){
     passed:Number(m.passed||0),failed:Number(m.failed||0),patches_applied:Number(m.patches_applied||0),files_changed:Number(m.files_changed||0)
   };
   const trends=(data.trends||[]).map(row=>({date:String(row.date||""),prompts_compiled:Number(row.prompts_compiled||0),runs:Number(row.runs||0),compactions:Number(row.compactions||0),api_compactions:Number(row.api_compactions||0),raw_tokens_est:Number(row.raw_tokens_est||0),sent_tokens_est:Number(row.sent_tokens_est||0),gross_tokens_removed_est:Number(row.tokens_avoided_est||0),net_tokens_saved_est:Number(row.net_tokens_saved_est||0),local_tokens_est:Number(row.local_tokens_est||0),compaction_rate_pct:Number(row.compaction_rate_pct||0),net_savings_pct:Number(row.net_savings_pct||0)}));
-  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs and API/MCP calls with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=120, s-maxage=300"});
+  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs and API/MCP calls with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=600, s-maxage=1800"});
 }
 
 export default{
@@ -87,6 +87,7 @@ export default{
         url.pathname.startsWith("/api/pair/") ||
         url.pathname.startsWith("/api/device/") ||
         url.pathname === "/api/state" ||
+        url.pathname === "/api/dashboard/snapshot" ||
         url.pathname === "/api/jobs" || url.pathname.startsWith("/api/jobs/") ||
         url.pathname === "/api/schedules" || url.pathname.startsWith("/api/schedules/") ||
         url.pathname === "/api/help" || url.pathname.startsWith("/api/help/") ||
@@ -116,6 +117,17 @@ export default{
       if(request.method==="GET"&&url.pathname==="/api/health")return onClintwareDistribution
         ? json({ok:true,service:"Quillgeist Distribution Site",runtime:"static-self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:false,self_host_required:true,time:new Date().toISOString()})
         : json({ok:true,service:"Quillgeist Cloud",runtime:"self-hosted",version:"0.4.0-selfhost-alpha",public_runtime:true,self_host_required:false,time:new Date().toISOString()});
+      if(request.method==="GET"&&url.pathname==="/api/dashboard/snapshot"){
+        const auth=await accountContext(request,env);if(!auth)return json({error:"unauthorized"},401);
+        const [stateResp,telemetryResp]=await Promise.all([
+          auth.account.fetch("https://internal/state"),
+          auth.telemetry.fetch("https://internal/summary")
+        ]);
+        if(!stateResp.ok)return new Response(stateResp.body,{status:stateResp.status,headers:JSON_HEADERS});
+        const state=await stateResp.json();
+        const telemetry=telemetryResp.ok?await telemetryResp.json():{metrics:{},bugs:[]};
+        return json({state,telemetry,generated_at:new Date().toISOString()});
+      }
       if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
