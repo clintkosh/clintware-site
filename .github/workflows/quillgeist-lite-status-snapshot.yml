@@ -32,7 +32,7 @@ jobs:
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" -o /tmp/qq-health.cs
           python3 - <<'PY'
-          import hashlib, json
+          import hashlib, json, os, urllib.request
           from datetime import datetime, timezone
           with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
           with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
@@ -41,10 +41,47 @@ jobs:
           codex_text=codex_bytes.decode("utf-8","replace")
           with open("/tmp/qq-health.cs","rb") as f: health_bytes=f.read()
           health_text=health_bytes.decode("utf-8","replace")
+          job_details={}
+          token=os.environ.get("CONTROL_PLANE_MCP_TOKEN","")
+          base=os.environ.get("CONTROL_PLANE","").rstrip("/")
+          for row in (status.get("jobs") or [])[:40]:
+            if row.get("task_id") not in {"finish-local-ai","repair-codex-org-identity"}:
+              continue
+            if row.get("target_device") not in {"MEMORIA","DRIZNET"}:
+              continue
+            jid=str(row.get("job_id") or "")
+            if not jid or jid in job_details:
+              continue
+            try:
+              req=urllib.request.Request(
+                f"{base}/api/v1/quillgeist-lite/jobs/{jid}",
+                headers={"Authorization":f"Bearer {token}","Accept":"application/json"}
+              )
+              with urllib.request.urlopen(req,timeout=15) as resp:
+                detail=json.load(resp)
+              job=detail.get("job") or detail
+              result=job.get("result") or {}
+              output=str(result.get("output") or "")
+              job_details[jid]={
+                "task_id":job.get("task_id"),
+                "target_device":job.get("target_device"),
+                "status":job.get("status"),
+                "created_at":job.get("created_at"),
+                "updated_at":job.get("updated_at"),
+                "completed_at":job.get("completed_at"),
+                "exit_code":result.get("exit_code"),
+                "duration_ms":result.get("duration_ms"),
+                "output_tail":output[-8000:],
+                "recent_logs":(job.get("logs") or [])[-20:]
+              }
+            except Exception as exc:
+              job_details[jid]={"error":str(exc)[:500]}
+
           out={
             "checked_at":datetime.now(timezone.utc).isoformat(),
             "status":status,
             "diagnostics":diag,
+            "job_details":job_details,
             "runtime_registry":{"version":tasks.get("version"),"task_ids":sorted((tasks.get("tasks") or {}).keys())},
             "runtime_probe":{
               "repair_codex_org_identity_sha256":hashlib.sha256(codex_bytes).hexdigest(),
