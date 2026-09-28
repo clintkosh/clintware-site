@@ -1,10 +1,6 @@
 {
-  "request_id": "qq-msft-clintware-tenant-login-reopen-20260928",
-  "task_id": "browser-work",
-  "args": {
-    "Action": "login",
-    "Url": "https://entra.microsoft.com/",
-    "Headless": "false",
-    "WaitMs": 700
-  }
+  "request_id": "qq-self-update-edge-new-tab-20260928",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Refresh QQ task registry so the existing-Edge new-tab task is available."
 }
