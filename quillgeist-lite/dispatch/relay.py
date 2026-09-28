@@ -521,46 +521,21 @@ if unknown:
 
 print(f"REQUEST_OK task={task_id} request_id={req.get('request_id','')}", flush=True)
 
-status, created = request_json("POST", "/api/v1/quillgeist-lite/jobs", {
+job_request = {
     "task_id": task_id,
     "args": args,
     "objective": str(req.get("objective") or ""),
     "target_device": str(req.get("target_device") or ""),
     "resume_after": bool(req.get("resume_after", False)),
-})
+}
+status, created = create_job_with_settle(job_request)
 print(json.dumps(created, indent=2), flush=True)
 if status not in (200, 201, 202) or not created.get("ok"):
     raise SystemExit("dispatch_failed")
 
 job_id = created["job_id"]
 print(f"JOB_ID={job_id}", flush=True)
-
-try:
-    job, confirmation_transport = stream_job_events(job_id, max_seconds=1800)
-except Exception as event_error:
-    # Compatibility safety net for a control-plane deployment that has not yet
-    # picked up the event-stream endpoint. This is deliberately low-frequency
-    # and only activates after the event path fails.
-    print(f"EVENT_STREAM_FALLBACK reason={event_error}", flush=True)
-    job = None
-    deadline = time.time() + 1800
-    last_seq = 0
-    while time.time() < deadline:
-        status_code, payload = request_json("GET", f"/api/v1/quillgeist-lite/jobs/{job_id}")
-        if status_code == 200 and payload.get("ok"):
-            current = payload.get("job") or {}
-            for row in current.get("logs") or []:
-                seq = int(row.get("seq") or 0)
-                if seq > last_seq:
-                    print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
-                    last_seq = max(last_seq, seq)
-            if str(current.get("status") or "") in {"passed", "failed"}:
-                job = current
-                break
-        time.sleep(20)
-    if not job:
-        raise SystemExit(f"timed_out_waiting_for_job:{job_id}")
-    confirmation_transport = "bounded-fallback"
+job, confirmation_transport = wait_for_job(job_id, max_seconds=1800)
 
 state = str(job.get("status") or "unknown")
 result = job.get("result") or {}
