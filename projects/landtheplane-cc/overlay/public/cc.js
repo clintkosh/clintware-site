@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 const STAGES=["Applied","Responded","Recruiter / Interview","Hiring Manager","Panel","Final","Offer","Paused","Closed / Rejected"];
-const state={view:"board",data:{customers:[],records:[]},me:null,google:null,query:"",stage:"all",selected:null};
+const state={view:"board",data:{customers:[],records:[]},me:null,google:null,atlassian:null,query:"",stage:"all",selected:null};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const date=v=>{if(!v)return "—";const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"—"};
@@ -11,7 +11,7 @@ const api=async(path,opt={})=>{const r=await fetch(path,{credentials:"same-origi
 function toast(msg){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast";e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),3600)}
 function records(type){return state.data.records.filter(r=>r.type===type)}
 function profiles(){return records("job_profile").map(r=>({...r.data,_recordId:r.id,_customerId:r.customerId})).filter(x=>x.company)}
-function digest(){return records("search_digest")[0]?.data||null}
+function digest(){return records("search_digest")[0]?.data||null}\nfunction jiraConfig(){return records("jira_config")[0]?.data||null}
 function activeRole(){return records("active_role").find(r=>r.data?.status!=="archived")||null}
 function customer(id){return state.data.customers.find(c=>c.id===id)}
 function median(values){const a=values.filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
@@ -25,14 +25,14 @@ function visibleProfiles(){
  return profiles().filter(x=>(!q||[x.company,x.role,x.stage,x.estimatedPay,x.nextAction].join(" ").toLowerCase().includes(q))&&(stage==="all"||x.stage===stage));
 }
 function nav(){
- const items=[["board","Board"],["companies","Companies"],["interviews","Interviews"],["sync","Google Sync"],["active","Active Job"],["settings","Settings"]];
+ const items=[["board","Board"],["companies","Companies"],["interviews","Interviews"],["sync","Google Sync"],["atlassian","Jira + KB"],["active","Active Job"],["settings","Settings"]];
  return items.map(([id,label])=>`<button data-nav="${id}" class="${state.view===id?"active":""}">${label}</button>`).join("");
 }
 function shell(content){
  const email=state.me?.user?.email||"Authorized Google identity";
  return `<div class="shell">
  <aside class="side"><div class="brand"><div class="eyebrow">CLINTWARE // LANDTHEPLANE</div><strong>Command Center</strong><small>Application pipeline → interviews → offer → active role.</small></div><nav class="nav">${nav()}</nav><div class="side-foot"><span class="pill good">PRIVATE WORKSPACE</span><small class="muted">${esc(email)}</small><button class="btn small" data-action="new">+ New opportunity</button></div></aside>
- <section class="main"><header class="top"><div><div class="eyebrow">LANDTHEPLANE</div><strong>Career Operating System</strong></div><div class="spacer"></div><span class="pill status-text ${state.google?.connected?"good":"warn"}">${state.google?.connected?"GOOGLE EVIDENCE READY":"GOOGLE EVIDENCE NEEDS ACCESS"}</span><button class="btn small" data-action="sync">Sync</button><form method="post" action="/auth/logout"><button class="btn small" type="submit">Sign out</button></form></header><main class="content">${content}</main></section>
+ <section class="main"><header class="top"><div><div class="eyebrow">LANDTHEPLANE</div><strong>Career Operating System</strong></div><div class="spacer"></div><span class="pill status-text ${state.google?.connected?"good":"warn"}">${state.google?.connected?"GOOGLE EVIDENCE READY":"GOOGLE EVIDENCE NEEDS ACCESS"}</span><span class="pill status-text ${state.atlassian?.connected&&!state.atlassian?.reauthorizationRequired?"good":"warn"}">${state.atlassian?.connected&&!state.atlassian?.reauthorizationRequired?"ATLASSIAN READY":"ATLASSIAN SETUP"}</span><button class="btn small" data-action="sync">Sync</button><form method="post" action="/auth/logout"><button class="btn small" type="submit">Sign out</button></form></header><main class="content">${content}</main></section>
  <nav class="mobile-nav">${nav()}</nav></div>`;
 }
 function reportedStats(){
@@ -76,7 +76,7 @@ function boardView(){
  <div class="section"><div><h2>Application board</h2><p>${p.length} company-role tickets in current filter.</p></div></div><div class="kanban">${cards}</div>`;
 }
 function ticket(x){
- return `<article class="ticket" data-profile="${esc(x._recordId)}"><div class="eyebrow">${esc(x.company)}</div><h3>${esc(x.role||"Role not identified")}</h3><p>${esc(x.estimatedPay||"Pay not observed")} · Fit ${esc(x.fitScore??"—")}${x.fitScore!=null?"%":""}</p><div class="ticket-meta"><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span><span class="pill">Applied ${shortDate(x.applicationDate)}</span><span class="pill">1st interview ${shortDate(x.firstInterviewDate)}</span></div>${x.nextAction?`<div class="next">Next: ${esc(x.nextAction)}</div>`:""}</article>`;
+ return `<article class="ticket" data-profile="${esc(x._recordId)}"><div class="eyebrow">${esc(x.company)}</div><h3>${esc(x.role||"Role not identified")}</h3><p>${esc(x.estimatedPay||"Pay not observed")} · Fit ${esc(x.fitScore??"—")}${x.fitScore!=null?"%":""}</p><div class="ticket-meta"><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span>${x.jiraKey?`<span class="pill">${esc(x.jiraKey)}</span>`:""}<span class="pill">Applied ${shortDate(x.applicationDate)}</span><span class="pill">1st interview ${shortDate(x.firstInterviewDate)}</span></div>${x.nextAction?`<div class="next">Next: ${esc(x.nextAction)}</div>`:""}</article>`;
 }
 function companiesView(){
  const p=visibleProfiles().sort((a,b)=>String(b.lastActivityDate||"").localeCompare(String(a.lastActivityDate||"")));
