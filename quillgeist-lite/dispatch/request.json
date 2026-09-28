@@ -1,8 +1,9 @@
 {
-  "request_id": "qq-open-entra-existing-edge-final-20260928",
-  "task_id": "open-edge-tab",
-  "target_device": "DRIZNET",
+  "request_id": "qq-live-event-confirmation-memoria-smoke-20260928",
+  "task_id": "python-runtime-check",
   "args": {
-    "Url": "https://entra.microsoft.com/"
-  }
+    "Message": "Verify live event-driven local-agent confirmation on MEMORIA."
+  },
+  "target_device": "MEMORIA",
+  "objective": "Run a harmless deterministic local runtime check to verify that ACK/log/result events are pushed live from the MEMORIA QQ agent through the Clintware job-event WebSocket and that the relay records explicit qq-local-agent confirmation provenance. Do not invoke an LLM."
 }
