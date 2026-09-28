@@ -30,6 +30,7 @@ jobs:
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=20" -o /tmp/diag.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" -o /tmp/tasks.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" -o /tmp/qq-health.cs
           python3 - <<'PY'
           import hashlib, json
           from datetime import datetime, timezone
@@ -38,6 +39,8 @@ jobs:
           with open("/tmp/tasks.json",encoding="utf-8") as f: tasks=json.load(f)
           with open("/tmp/codex-task.ps1","rb") as f: codex_bytes=f.read()
           codex_text=codex_bytes.decode("utf-8","replace")
+          with open("/tmp/qq-health.cs","rb") as f: health_bytes=f.read()
+          health_text=health_bytes.decode("utf-8","replace")
           out={
             "checked_at":datetime.now(timezone.utc).isoformat(),
             "status":status,
@@ -47,7 +50,9 @@ jobs:
               "repair_codex_org_identity_sha256":hashlib.sha256(codex_bytes).hexdigest(),
               "repair_codex_org_identity_header":codex_text.splitlines()[:30],
               "contains_invalid_home_guard":"codexHomeValid" in codex_text,
-              "contains_memoria_header":"MEMORIA CODEX / ORG IDENTITY REPAIR" in codex_text
+              "contains_memoria_header":"MEMORIA CODEX / ORG IDENTITY REPAIR" in codex_text,
+              "health_service_sha256":hashlib.sha256(health_bytes).hexdigest(),
+              "health_preserves_busy_jobs":"wake_deferred_runner_busy" in health_text and "FreshBusyHeartbeatActive" in health_text
             }
           }
           with open("ops/quillgeist-lite-live-status.json","w",encoding="utf-8") as f:
