@@ -1,9 +1,8 @@
 {
-  "request_id": "memoria-independent-recovery-20260928-2056",
-  "task_id": "finish-local-ai",
+  "request_id": "memoria-linkage-update-20260928-2102",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "MaxPasses": "1"
-  },
-  "objective": "Recover existing Docker AI services and locate/restore existing Immich while independently recording BitNet compile and gateway blockers. Preserve data and do not touch D:."
+  "resume_after": true,
+  "args": {},
+  "objective": "Install validated pinned recovery revision 14e953f on MEMORIA, retaining enrollment and existing local data."
 }
