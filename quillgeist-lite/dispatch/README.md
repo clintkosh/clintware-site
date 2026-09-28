@@ -64,6 +64,18 @@ QQ execution is event-driven. The local agent is the authority for execution sta
 - If local-agent confirmation is absent, report the action as unconfirmed rather than completed.
 - Preserve this event path for chat-mode execution so future sessions can obtain concrete local evidence instead of assuming what happened.
 
+## Browser-control and authentication rule
+
+Visible QQ browser automation must clearly indicate when the local agent is controlling the page. Use the maintained blue/cyan/purple edge glow and `QQ // CONTROL` badge during automated interaction; use a distinct user-handoff state when the user is expected to act.
+
+Provider authentication is a separate security boundary:
+
+- Never automate Google, Microsoft, or other identity-provider sign-in UI with Playwright/CDP.
+- Never type passwords, passkeys, MFA/OTP values, security codes, or provider tokens.
+- Open provider sign-in/consent in the user's normal supported system Edge session with no QQ automation flags.
+- After authentication returns to a Clintware-owned application, QQ may resume governed automation on the application page.
+- A provider rejection such as an "insecure browser/app" error is a routing defect: repair the auth handoff path rather than repeatedly asking the user to sign in through the automated browser.
+
 ## Execution philosophy
 
 Use:
