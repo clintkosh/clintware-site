@@ -49,7 +49,6 @@ function userCanWrite(u){const ctx=Array.isArray(u?.application_context)?u.appli
 s=s.replace(/function loginPage\(\)\{return '[^\n]+'\}/,
   `function loginPage(){return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LandThePlane Command Center · Sign in</title><link rel="stylesheet" href="/cc.css"></head><body><main class="boot"><section class="card" style="max-width:560px"><div class="eyebrow">CLINTWARE IDENTITY</div><h1>LandThePlane Command Center</h1><p class="muted">Private application, interview, and active-role workspace.</p><a class="btn primary" href="/auth/login">Continue with Google</a></section></main></body></html>'}`);
 
-mustReplace('ctx.includes("dpl-crm:write")','ctx.includes("landtheplane-cc:write")',"write scope fallback");
 s=s.replaceAll("Doppel Technical Customer Engineering CRM Team","LandThePlane Command Center");
 s=s.replaceAll("Doppel Guest Demo","Unauthorized workspace");
 s=s.replace('feature:"dpl_crm"','feature:"landtheplane_cc"');
