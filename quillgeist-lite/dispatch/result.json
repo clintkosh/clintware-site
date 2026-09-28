@@ -1,15 +1,228 @@
 {
-  "request_id": "bottom-launcher-codefeddy-github-inspect-20260928-2201",
-  "job_id": "48ae4172-cf33-43e8-8e0b-40217444e888",
-  "task_id": "browser-work",
-  "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 19748,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T21:05:51.9108159Z",
-  "recorded_at": 1790629544,
-  "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"run\",\"title\":\"GitHub - codeFEDDY/codeFEDDY.github.io \\u00b7 GitHub\",\"url\":\"https://github.com/codeFEDDY/codeFEDDY.github.io\",\"results\":[{\"index\":0,\"op\":\"goto\",\"ok\":true,\"url\":\"https://github.com/codeFEDDY/codeFEDDY.github.io\"},{\"index\":1,\"op\":\"inspect\",\"ok\":true,\"page\":{\"title\":\"GitHub - codeFEDDY/codeFEDDY.github.io \\u00b7 GitHub\",\"url\":\"https://github.com/codeFEDDY/codeFEDDY.github.io\",\"interactive\":[{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Skip to content\",\"value\":\"\",\"index\":0,\"selector\":\"a\"},{\"tag\":\"button\",\"type\":\"button\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"Close navigation menu\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"\",\"value\":\"\",\"index\":1,\"selector\":\"[aria-label=\\\"Close navigation menu\\\"]\"},{\"tag\":\"button\",\"type\":\"button\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"Toggle navigation\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"\",\"value\":\"\",\"index\":2,\"selector\":\"[aria-label=\\\"Toggle navigation\\\"]\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"Homepage\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"\",\"value\":\"\",\"index\":3,\"selector\":\"[aria-label=\\\"Homepage\\\"]\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Sign in\",\"value\":\"\",\"index\":4,\"selector\":\"a\"},{\"tag\":\"button\",\"type\":\"button\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"\",\"value\":\"\",\"index\":5,\"selector\":\"button\"},{\"tag\":\"button\",\"type\":\"button\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Platform\",\"value\":\"\",\"index\":6,\"selector\":\"button\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"GitHub CopilotWrite better code with AI\",\"value\":\"\",\"index\":7,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"GitHub Copilot appDirect agents from issue to merge\",\"value\":\"\",\"index\":8,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"MCP RegistryIntegrate external tools\",\"value\":\"\",\"index\":9,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"ActionsAutomate any workflow\",\"value\":\"\",\"index\":10,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"CodespacesInstant dev environments\",\"value\":\"\",\"index\":11,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"IssuesPlan and track work\",\"value\":\"\",\"index\":12,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Code ReviewManage code changes\",\"value\":\"\",\"index\":13,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Code QualityEnforce quality at merge\",\"value\":\"\",\"index\":14,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"GitHub Advanced SecurityFind and fix vulnerabilities\",\"value\":\"\",\"index\":15,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Code securitySecure your code as you build\",\"value\":\"\",\"index\":16,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Secret protectionStop leaks before they start\",\"value\":\"\",\"index\":17,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Why GitHub\",\"value\":\"\",\"index\":18,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"autocomplete\":\"\",\"text\":\"Documentation\",\"value\":\"\",\"index\":19,\"selector\":\"a\"},{\"tag\":\"a\",\"type\":\"\",\"id\":\"\",\"name\":\"\",\"placeholder\":\"\",\"aria\":\"\",\"role\":\"\",\"a ...[truncated]"
+  "request_id": "bottom-launcher-device-inspect-20260928-2107",
+  "mode": "inspect",
+  "recorded_at": 1790629593,
+  "inspection": {
+    "online": 0,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.10.0",
+    "runner_last_seen": "2026-09-28T21:05:44.756Z",
+    "runner": {
+      "runner_id": "DRIZNET",
+      "version": "1.10.0",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback",
+        "capability_inventory",
+        "capability_aware_routing"
+      ],
+      "connected_at": "2026-09-28T21:04:52.884Z",
+      "last_seen": "2026-09-28T21:05:44.756Z",
+      "source_revision": "0a701a78dfb035acc1a9d32ff989e25349fbfc00",
+      "registry_version": "16"
+    },
+    "connected_devices": [],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "b8f696e9-bdd6-4795-a794-118ad9addef3",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "running"
+      },
+      {
+        "job_id": "48ae4172-cf33-43e8-8e0b-40217444e888",
+        "task_id": "browser-work",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
+        "task_id": "record-google-oauth-verification",
+        "target_device": "DRIZNET",
+        "status": "running"
+      },
+      {
+        "job_id": "6e1e5e7d-8193-49bd-a952-5645fd478b14",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "22f9b2fa-1ae2-44bc-9151-eac7418d1cde",
+        "task_id": "browser-setup",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "b62e7ef0-0842-4698-a172-81a23fbd0dbc",
+        "task_id": "finish-local-ai",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "eddb649a-55dc-44dd-8dbf-8a8b01be067a",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "41a5ed40-1c9b-4043-a2ba-ce2fd767fb89",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "1c8d7114-fbe3-4ae2-aee3-8bac39d195bc",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "1300d1e2-81ae-4ba0-a9a4-f72b1df7522e",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "41974347-f6be-4266-af98-d096b34f4320",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "fe27fc53-b3ae-40fc-8f5f-a5c89c52bda0",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:06:26.0696497Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:06:18.6982619Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:06:25.1885413Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:06:25.0640936Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:06:17.8123836Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:06:17.6884218Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-09-28T21:06:17.5506551Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "connection_error",
+        "message": "2026-09-28T16:06:15 [WARN] Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\nFULL_EXCEPTION System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\n ---> System.IO.IOException: Unable to write data to the transport connection: An established connection was aborted by the software in your host machine..\n ---> System.Net.Sockets.SocketException (10053): An established connection was aborted by the software in your host machine.\n   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.CreateException(SocketError error, Boolean forAsyncThrow)\n   --- End of inner exception stack trace ---\n   --- End of inner exception stack trace ---\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\n2026-09-28T16:06:15 [WARN] Disconnected. Reconnecting in 40 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-28T21:06:20.0292850Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_down",
+        "timestamp": "2026-09-28T21:06:15.1133081Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=down",
+        "timestamp": "2026-09-28T21:06:15.0138700Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_started",
+        "timestamp": "2026-09-28T21:06:14.0012023Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_stopped",
+        "timestamp": "2026-09-28T21:06:13.3636165Z"
+      }
+    ]
+  }
 }
