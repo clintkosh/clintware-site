@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-09-28T21:49:40.839682+00:00",
+  "checked_at": "2026-09-28T21:52:20.317307+00:00",
   "status": {
     "ok": true,
-    "online": 1,
+    "online": 2,
     "recovery_online": 0,
-    "wake_online": 1,
+    "wake_online": 0,
     "recovery": null,
     "runner": {
       "runner_id": "DRIZNET",
@@ -31,15 +31,47 @@
         "capability_inventory",
         "capability_aware_routing"
       ],
-      "connected_at": "2026-09-28T21:49:29.426Z",
-      "last_seen": "2026-09-28T21:49:29.469Z",
+      "connected_at": "2026-09-28T21:52:10.095Z",
+      "last_seen": "2026-09-28T21:52:16.422Z",
       "source_revision": "53689ba9838c38994f15b22d833cb4c7cdf529e7",
       "registry_version": "17"
     },
     "connected_devices": [
       {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-09-28T21:51:52.299Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.9.10",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback"
+          ],
+          "connected_at": "2026-09-28T21:51:52.299Z",
+          "last_seen": "2026-09-28T21:51:52.332Z",
+          "source_revision": "5ec03eb8bad139be411c73eb0217a295e5858881",
+          "registry_version": "17"
+        }
+      },
+      {
         "device_id": "DRIZNET",
-        "connected_at": "2026-09-28T21:49:29.426Z",
+        "connected_at": "2026-09-28T21:52:10.095Z",
         "runner": {
           "runner_id": "DRIZNET",
           "version": "1.10.0",
@@ -65,14 +97,86 @@
             "capability_inventory",
             "capability_aware_routing"
           ],
-          "connected_at": "2026-09-28T21:49:29.426Z",
-          "last_seen": "2026-09-28T21:49:29.469Z",
+          "connected_at": "2026-09-28T21:52:10.095Z",
+          "last_seen": "2026-09-28T21:52:10.144Z",
           "source_revision": "53689ba9838c38994f15b22d833cb4c7cdf529e7",
           "registry_version": "17"
         }
       }
     ],
     "jobs": [
+      {
+        "job_id": "9bb02e85-eb04-4ade-9e35-cb6ecfaefb72",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "queued",
+        "created_at": "2026-09-28T21:52:19.562Z",
+        "updated_at": "2026-09-28T21:52:19.562Z"
+      },
+      {
+        "job_id": "aa92ff81-3519-4094-9e8c-d15cbd06fa69",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "resume_after": false,
+        "status": "queued",
+        "created_at": "2026-09-28T21:52:16.395Z",
+        "updated_at": "2026-09-28T21:52:16.395Z"
+      },
+      {
+        "job_id": "592b6156-8278-4b02-9e99-a662583c0111",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "resume_after": false,
+        "status": "running",
+        "created_at": "2026-09-28T21:52:11.145Z",
+        "updated_at": "2026-09-28T21:52:18.535Z"
+      },
+      {
+        "job_id": "b623b5b0-8f39-4d59-aa21-22080169479b",
+        "task_id": "repair-local-service",
+        "target_device": "MEMORIA",
+        "resume_after": false,
+        "status": "passed",
+        "created_at": "2026-09-28T21:51:53.274Z",
+        "updated_at": "2026-09-28T21:52:16.395Z"
+      },
+      {
+        "job_id": "df7416a5-e437-4cf1-aba6-31557b99d8c7",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "resume_after": false,
+        "status": "running",
+        "created_at": "2026-09-28T21:51:53.162Z",
+        "updated_at": "2026-09-28T21:52:18.667Z"
+      },
+      {
+        "job_id": "fb967219-0a4a-47c6-a5aa-67bffe46b005",
+        "task_id": "repair-local-service",
+        "target_device": "MEMORIA",
+        "resume_after": false,
+        "status": "passed",
+        "created_at": "2026-09-28T21:51:52.465Z",
+        "updated_at": "2026-09-28T21:52:11.019Z"
+      },
+      {
+        "job_id": "b313c1c4-009d-485d-b0cd-4148c8747098",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "passed",
+        "created_at": "2026-09-28T21:51:44.460Z",
+        "updated_at": "2026-09-28T21:52:05.772Z"
+      },
+      {
+        "job_id": "d2b39610-c519-435d-80dc-41326072cdd3",
+        "task_id": "repair-codex-org-identity",
+        "target_device": "DRIZNET",
+        "resume_after": false,
+        "status": "failed",
+        "created_at": "2026-09-28T21:50:04.209Z",
+        "updated_at": "2026-09-28T21:50:05.408Z"
+      },
       {
         "job_id": "6d04729c-2fd9-42cf-9a45-ab7d73f05102",
         "task_id": "self-update",
@@ -141,9 +245,9 @@
         "task_id": "finish-local-ai",
         "target_device": "MEMORIA",
         "resume_after": false,
-        "status": "running",
+        "status": "failed",
         "created_at": "2026-09-28T21:38:57.354Z",
-        "updated_at": "2026-09-28T21:41:39.275Z"
+        "updated_at": "2026-09-28T21:52:05.824Z"
       },
       {
         "job_id": "c9599f20-7e13-41ec-a771-7f8398daada8",
@@ -450,78 +554,6 @@
         "status": "failed",
         "created_at": "2026-09-28T20:59:42.016Z",
         "updated_at": "2026-09-28T20:59:58.800Z"
-      },
-      {
-        "job_id": "123521fc-e457-4de3-a392-2503e2eb6015",
-        "task_id": "self-update",
-        "target_device": "",
-        "resume_after": false,
-        "status": "passed",
-        "created_at": "2026-09-28T20:58:22.222Z",
-        "updated_at": "2026-09-28T20:58:48.043Z"
-      },
-      {
-        "job_id": "e2bbe1d8-d13d-4367-a666-f17ae0bb9312",
-        "task_id": "finish-local-ai",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "failed",
-        "created_at": "2026-09-28T20:54:40.000Z",
-        "updated_at": "2026-09-28T20:54:40.242Z"
-      },
-      {
-        "job_id": "48058c80-712a-44f7-a1f8-350d76c25b96",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "passed",
-        "created_at": "2026-09-28T20:54:30.982Z",
-        "updated_at": "2026-09-28T20:54:40.000Z"
-      },
-      {
-        "job_id": "3f71223f-c784-4a59-a945-5661b614169b",
-        "task_id": "finish-local-ai",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "failed",
-        "created_at": "2026-09-28T20:54:29.606Z",
-        "updated_at": "2026-09-28T20:54:30.016Z"
-      },
-      {
-        "job_id": "58e41589-6de0-473b-89f1-42fa3eeb8913",
-        "task_id": "finish-local-ai",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "failed",
-        "created_at": "2026-09-28T20:54:07.488Z",
-        "updated_at": "2026-09-28T20:54:17.358Z"
-      },
-      {
-        "job_id": "9bc6991c-4a59-47d4-bd02-f1c86e3a189c",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "passed",
-        "created_at": "2026-09-28T20:53:55.020Z",
-        "updated_at": "2026-09-28T20:54:17.192Z"
-      },
-      {
-        "job_id": "364e9e8b-8b2e-4a7c-98bb-e27e649c97d6",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "passed",
-        "created_at": "2026-09-28T20:53:55.008Z",
-        "updated_at": "2026-09-28T20:54:07.488Z"
-      },
-      {
-        "job_id": "3ed6aa9f-a8e8-436d-964b-0f0ba351a940",
-        "task_id": "finish-local-ai",
-        "target_device": "MEMORIA",
-        "resume_after": false,
-        "status": "failed",
-        "created_at": "2026-09-28T20:53:53.418Z",
-        "updated_at": "2026-09-28T20:53:54.119Z"
       }
     ],
     "questions": [],
@@ -539,224 +571,224 @@
     ],
     "diagnostics": [
       {
-        "diagnostic_id": "6d34f1a0-261e-4df7-86e0-089aa7b82bf5",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:31.8105863Z",
-        "received_at": "2026-09-28T21:49:31.725Z"
-      },
-      {
-        "diagnostic_id": "2f75af55-f015-48f4-b562-d645fc3cfb4a",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay channel initialized.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.7503540Z",
-        "received_at": "2026-09-28T21:49:29.584Z"
-      },
-      {
-        "diagnostic_id": "c6fdab3e-1b8a-4775-9c00-fd26496d32ea",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Connected to Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.7341941Z",
-        "received_at": "2026-09-28T21:49:29.572Z"
-      },
-      {
-        "diagnostic_id": "563cfacc-2568-422c-9b20-d4938d553790",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.4740776Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "f40cb7c2-b1d4-4ba5-bdc8-f0b1a09fa182",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2414448Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "249c49e0-cec9-4cc4-b10c-03bb30eed4b6",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtimes enabled: PowerShell, Python, C.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2255038Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "b07a31de-5b7a-408b-869d-0074481db380",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtime host: PowerShell 7.6.6 / Core.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2106072Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "a1c866b8-d25b-4e84-82a6-590b33717320",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Clintware Quillgeist Lite starting.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.1713707Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "45df2945-c9ff-4962-93eb-ac48f82ffb0d",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T21:49:29.3284137Z",
-        "received_at": "2026-09-28T21:49:29.283Z"
-      },
-      {
-        "diagnostic_id": "c3d73e10-6cb0-4120-88fd-a3fc02ecb27f",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_state=down",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:26.8081986Z",
-        "received_at": "2026-09-28T21:49:26.723Z"
-      },
-      {
-        "diagnostic_id": "762e014c-40a4-4ff1-9d82-0ec8a56a0a05",
-        "device_id": "DRIZNET",
+        "diagnostic_id": "00da84ae-52fe-48e2-9e4d-055ad440ea31",
+        "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:17.2489511Z",
-        "received_at": "2026-09-28T21:49:17.147Z"
+        "timestamp": "2026-09-28T21:52:24.7296293Z",
+        "received_at": "2026-09-28T21:52:17.527Z"
       },
       {
-        "diagnostic_id": "3ee5db60-a059-403c-b436-3f2aa4e38491",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "heartbeat",
-        "message": "runner_alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.9317243Z",
-        "received_at": "2026-09-28T21:49:16.815Z"
-      },
-      {
-        "diagnostic_id": "a3916ee9-0356-4d07-b156-5eb857428060",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.8001741Z",
-        "received_at": "2026-09-28T21:49:16.705Z"
-      },
-      {
-        "diagnostic_id": "42cfcf38-eb0a-4b3f-8679-d5328f3cd15d",
+        "diagnostic_id": "e69f7c76-e53b-49fc-a50b-5fdac6636a26",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
-        "message": "Job 6d04729c-2fd9-42cf-9a45-ab7d73f05102 finished with status passed",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
         "runner_alive": true,
         "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:16.7224023Z",
-        "received_at": "2026-09-28T21:49:16.566Z"
+        "timestamp": "2026-09-28T21:52:23.9684373Z",
+        "received_at": "2026-09-28T21:52:16.710Z"
       },
       {
-        "diagnostic_id": "2ac70a24-d2a6-4354-81cb-735d374d58c0",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.3306279Z",
-        "received_at": "2026-09-28T21:49:16.223Z"
-      },
-      {
-        "diagnostic_id": "8591cd93-e57c-4039-90f9-684aaafef2c6",
+        "diagnostic_id": "c6788428-9c44-4558-8304-86ef6a3534f4",
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.1652515Z",
-        "received_at": "2026-09-28T21:49:16.073Z"
-      },
-      {
-        "diagnostic_id": "1d7e3c1c-b6d4-4723-8294-8414e89aa5d0",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "wake",
-        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: self-update",
         "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:15.9737921Z",
-        "received_at": "2026-09-28T21:49:15.905Z"
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:23.9485632Z",
+        "received_at": "2026-09-28T21:52:16.690Z"
       },
       {
-        "diagnostic_id": "a846bc4b-0735-4635-a80c-33c234e4b6ea",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "service",
-        "message": "health_service_started",
-        "runner_alive": null,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:15.7858402Z",
-        "received_at": "2026-09-28T21:49:15.792Z"
-      },
-      {
-        "diagnostic_id": "5461a31f-b6ef-46c4-ab1a-00302cf663cb",
+        "diagnostic_id": "951d55d3-5e07-4ed3-b7d5-346199530975",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "service",
         "message": "health_service_stopped",
         "runner_alive": true,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:12.0898799Z",
-        "received_at": "2026-09-28T21:49:11.991Z"
+        "timestamp": "2026-09-28T21:52:16.8222216Z",
+        "received_at": "2026-09-28T21:52:16.690Z"
       },
       {
-        "diagnostic_id": "26fce29b-5c7c-42b9-a6d6-5ae0d575e5c3",
-        "device_id": "DRIZNET",
+        "diagnostic_id": "a94d8e29-2730-4552-91ac-aa8fbfd7930f",
+        "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:05.9124381Z",
-        "received_at": "2026-09-28T21:49:05.812Z"
+        "timestamp": "2026-09-28T21:52:23.8629033Z",
+        "received_at": "2026-09-28T21:52:16.636Z"
+      },
+      {
+        "diagnostic_id": "01c86ed1-4fd7-4174-a7fb-b64c5866f9d9",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.7309922Z",
+        "received_at": "2026-09-28T21:52:16.531Z"
+      },
+      {
+        "diagnostic_id": "bd5e0d1e-519f-486d-a074-830240bb6aeb",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Job b623b5b0-8f39-4d59-aa21-22080169479b finished with status passed",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:23.6696240Z",
+        "received_at": "2026-09-28T21:52:16.418Z"
+      },
+      {
+        "diagnostic_id": "9c6b171b-2b4f-4fc2-8c63-7d69ad629238",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "auto-recovery",
+        "message": "queued stage=refresh_after_service task=self-update source_job=0ec566f9-5e31-4126-b923-640f93ab8a6e",
+        "runner_alive": null,
+        "service_version": "",
+        "timestamp": "2026-09-28T21:52:16.395Z",
+        "received_at": "2026-09-28T21:52:16.395Z"
+      },
+      {
+        "diagnostic_id": "512a110d-b4a3-437a-9ab1-2bcf2691d37c",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.1514011Z",
+        "received_at": "2026-09-28T21:52:15.942Z"
+      },
+      {
+        "diagnostic_id": "3c0c9101-7b47-45d0-a63c-9e418de9193e",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_state=down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.0635632Z",
+        "received_at": "2026-09-28T21:52:15.863Z"
+      },
+      {
+        "diagnostic_id": "0cb0814c-ce7a-47be-b1fb-2f00607421d3",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "message": "health_service_started",
+        "runner_alive": null,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:22.0574338Z",
+        "received_at": "2026-09-28T21:52:14.939Z"
+      },
+      {
+        "diagnostic_id": "8149e88b-f85a-4518-9418-d7ae9db7f98c",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "message": "health_service_stopped",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:20.0223328Z",
+        "received_at": "2026-09-28T21:52:12.823Z"
+      },
+      {
+        "diagnostic_id": "8e04ecb8-117c-469b-a5cd-831c92aea798",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=INFO: scheduled task \"Clintware Quillgeist Lite Runner\" is currently running.\r\nSUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:19.5993552Z",
+        "received_at": "2026-09-28T21:52:12.388Z"
+      },
+      {
+        "diagnostic_id": "57ebf3ab-68af-4533-9897-56ec536c6ea9",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_state=alive",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:12.1247353Z",
+        "received_at": "2026-09-28T21:52:12.028Z"
+      },
+      {
+        "diagnostic_id": "9b6562b3-e723-4581-b19a-beca3f12734c",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:18.6788049Z",
+        "received_at": "2026-09-28T21:52:11.469Z"
+      },
+      {
+        "diagnostic_id": "749c872b-d0b3-4d3f-bffb-a18d0f16a5a1",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:18.5328489Z",
+        "received_at": "2026-09-28T21:52:11.328Z"
+      },
+      {
+        "diagnostic_id": "12dd5fc2-857e-458a-b2f8-6027bbf94321",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task repair-local-service [powershell] (quillgeist-lite/tasks/repair-local-service.ps1)",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.5708683Z",
+        "received_at": "2026-09-28T21:52:11.315Z"
+      },
+      {
+        "diagnostic_id": "31892872-6181-4fa0-ba45-909f109ca0b3",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: repair-local-service",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.5458975Z",
+        "received_at": "2026-09-28T21:52:11.291Z"
+      },
+      {
+        "diagnostic_id": "e6f82e32-fed6-4af1-bbbf-5120376e3da6",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Job fb967219-0a4a-47c6-a5aa-67bffe46b005 finished with status passed",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.3094485Z",
+        "received_at": "2026-09-28T21:52:11.067Z"
+      },
+      {
+        "diagnostic_id": "0d57a786-bff0-405d-ae22-cdf8e5d63f29",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:17.7621538Z",
+        "received_at": "2026-09-28T21:52:10.536Z"
       }
     ]
   },
@@ -764,224 +796,224 @@
     "ok": true,
     "diagnostics": [
       {
-        "diagnostic_id": "6d34f1a0-261e-4df7-86e0-089aa7b82bf5",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:31.8105863Z",
-        "received_at": "2026-09-28T21:49:31.725Z"
-      },
-      {
-        "diagnostic_id": "2f75af55-f015-48f4-b562-d645fc3cfb4a",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay channel initialized.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.7503540Z",
-        "received_at": "2026-09-28T21:49:29.584Z"
-      },
-      {
-        "diagnostic_id": "c6fdab3e-1b8a-4775-9c00-fd26496d32ea",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Connected to Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.7341941Z",
-        "received_at": "2026-09-28T21:49:29.572Z"
-      },
-      {
-        "diagnostic_id": "563cfacc-2568-422c-9b20-d4938d553790",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.4740776Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "f40cb7c2-b1d4-4ba5-bdc8-f0b1a09fa182",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2414448Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "249c49e0-cec9-4cc4-b10c-03bb30eed4b6",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtimes enabled: PowerShell, Python, C.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2255038Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "b07a31de-5b7a-408b-869d-0074481db380",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtime host: PowerShell 7.6.6 / Core.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.2106072Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "a1c866b8-d25b-4e84-82a6-590b33717320",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Clintware Quillgeist Lite starting.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:29.1713707Z",
-        "received_at": "2026-09-28T21:49:29.486Z"
-      },
-      {
-        "diagnostic_id": "45df2945-c9ff-4962-93eb-ac48f82ffb0d",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T21:49:29.3284137Z",
-        "received_at": "2026-09-28T21:49:29.283Z"
-      },
-      {
-        "diagnostic_id": "c3d73e10-6cb0-4120-88fd-a3fc02ecb27f",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_state=down",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:26.8081986Z",
-        "received_at": "2026-09-28T21:49:26.723Z"
-      },
-      {
-        "diagnostic_id": "762e014c-40a4-4ff1-9d82-0ec8a56a0a05",
-        "device_id": "DRIZNET",
+        "diagnostic_id": "00da84ae-52fe-48e2-9e4d-055ad440ea31",
+        "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:17.2489511Z",
-        "received_at": "2026-09-28T21:49:17.147Z"
+        "timestamp": "2026-09-28T21:52:24.7296293Z",
+        "received_at": "2026-09-28T21:52:17.527Z"
       },
       {
-        "diagnostic_id": "3ee5db60-a059-403c-b436-3f2aa4e38491",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "heartbeat",
-        "message": "runner_alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.9317243Z",
-        "received_at": "2026-09-28T21:49:16.815Z"
-      },
-      {
-        "diagnostic_id": "a3916ee9-0356-4d07-b156-5eb857428060",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.8001741Z",
-        "received_at": "2026-09-28T21:49:16.705Z"
-      },
-      {
-        "diagnostic_id": "42cfcf38-eb0a-4b3f-8679-d5328f3cd15d",
+        "diagnostic_id": "e69f7c76-e53b-49fc-a50b-5fdac6636a26",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
-        "message": "Job 6d04729c-2fd9-42cf-9a45-ab7d73f05102 finished with status passed",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
         "runner_alive": true,
         "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:49:16.7224023Z",
-        "received_at": "2026-09-28T21:49:16.566Z"
+        "timestamp": "2026-09-28T21:52:23.9684373Z",
+        "received_at": "2026-09-28T21:52:16.710Z"
       },
       {
-        "diagnostic_id": "2ac70a24-d2a6-4354-81cb-735d374d58c0",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.3306279Z",
-        "received_at": "2026-09-28T21:49:16.223Z"
-      },
-      {
-        "diagnostic_id": "8591cd93-e57c-4039-90f9-684aaafef2c6",
+        "diagnostic_id": "c6788428-9c44-4558-8304-86ef6a3534f4",
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:16.1652515Z",
-        "received_at": "2026-09-28T21:49:16.073Z"
-      },
-      {
-        "diagnostic_id": "1d7e3c1c-b6d4-4723-8294-8414e89aa5d0",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "wake",
-        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: self-update",
         "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:15.9737921Z",
-        "received_at": "2026-09-28T21:49:15.905Z"
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:23.9485632Z",
+        "received_at": "2026-09-28T21:52:16.690Z"
       },
       {
-        "diagnostic_id": "a846bc4b-0735-4635-a80c-33c234e4b6ea",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "service",
-        "message": "health_service_started",
-        "runner_alive": null,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:15.7858402Z",
-        "received_at": "2026-09-28T21:49:15.792Z"
-      },
-      {
-        "diagnostic_id": "5461a31f-b6ef-46c4-ab1a-00302cf663cb",
+        "diagnostic_id": "951d55d3-5e07-4ed3-b7d5-346199530975",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "service",
         "message": "health_service_stopped",
         "runner_alive": true,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:12.0898799Z",
-        "received_at": "2026-09-28T21:49:11.991Z"
+        "timestamp": "2026-09-28T21:52:16.8222216Z",
+        "received_at": "2026-09-28T21:52:16.690Z"
       },
       {
-        "diagnostic_id": "26fce29b-5c7c-42b9-a6d6-5ae0d575e5c3",
-        "device_id": "DRIZNET",
+        "diagnostic_id": "a94d8e29-2730-4552-91ac-aa8fbfd7930f",
+        "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:49:05.9124381Z",
-        "received_at": "2026-09-28T21:49:05.812Z"
+        "timestamp": "2026-09-28T21:52:23.8629033Z",
+        "received_at": "2026-09-28T21:52:16.636Z"
+      },
+      {
+        "diagnostic_id": "01c86ed1-4fd7-4174-a7fb-b64c5866f9d9",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.7309922Z",
+        "received_at": "2026-09-28T21:52:16.531Z"
+      },
+      {
+        "diagnostic_id": "bd5e0d1e-519f-486d-a074-830240bb6aeb",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Job b623b5b0-8f39-4d59-aa21-22080169479b finished with status passed",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:23.6696240Z",
+        "received_at": "2026-09-28T21:52:16.418Z"
+      },
+      {
+        "diagnostic_id": "9c6b171b-2b4f-4fc2-8c63-7d69ad629238",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "auto-recovery",
+        "message": "queued stage=refresh_after_service task=self-update source_job=0ec566f9-5e31-4126-b923-640f93ab8a6e",
+        "runner_alive": null,
+        "service_version": "",
+        "timestamp": "2026-09-28T21:52:16.395Z",
+        "received_at": "2026-09-28T21:52:16.395Z"
+      },
+      {
+        "diagnostic_id": "512a110d-b4a3-437a-9ab1-2bcf2691d37c",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.1514011Z",
+        "received_at": "2026-09-28T21:52:15.942Z"
+      },
+      {
+        "diagnostic_id": "3c0c9101-7b47-45d0-a63c-9e418de9193e",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_state=down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:23.0635632Z",
+        "received_at": "2026-09-28T21:52:15.863Z"
+      },
+      {
+        "diagnostic_id": "0cb0814c-ce7a-47be-b1fb-2f00607421d3",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "message": "health_service_started",
+        "runner_alive": null,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:22.0574338Z",
+        "received_at": "2026-09-28T21:52:14.939Z"
+      },
+      {
+        "diagnostic_id": "8149e88b-f85a-4518-9418-d7ae9db7f98c",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "message": "health_service_stopped",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:20.0223328Z",
+        "received_at": "2026-09-28T21:52:12.823Z"
+      },
+      {
+        "diagnostic_id": "8e04ecb8-117c-469b-a5cd-831c92aea798",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=INFO: scheduled task \"Clintware Quillgeist Lite Runner\" is currently running.\r\nSUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:19.5993552Z",
+        "received_at": "2026-09-28T21:52:12.388Z"
+      },
+      {
+        "diagnostic_id": "57ebf3ab-68af-4533-9897-56ec536c6ea9",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_state=alive",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:12.1247353Z",
+        "received_at": "2026-09-28T21:52:12.028Z"
+      },
+      {
+        "diagnostic_id": "9b6562b3-e723-4581-b19a-beca3f12734c",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:18.6788049Z",
+        "received_at": "2026-09-28T21:52:11.469Z"
+      },
+      {
+        "diagnostic_id": "749c872b-d0b3-4d3f-bffb-a18d0f16a5a1",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:18.5328489Z",
+        "received_at": "2026-09-28T21:52:11.328Z"
+      },
+      {
+        "diagnostic_id": "12dd5fc2-857e-458a-b2f8-6027bbf94321",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task repair-local-service [powershell] (quillgeist-lite/tasks/repair-local-service.ps1)",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.5708683Z",
+        "received_at": "2026-09-28T21:52:11.315Z"
+      },
+      {
+        "diagnostic_id": "31892872-6181-4fa0-ba45-909f109ca0b3",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: repair-local-service",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.5458975Z",
+        "received_at": "2026-09-28T21:52:11.291Z"
+      },
+      {
+        "diagnostic_id": "e6f82e32-fed6-4af1-bbbf-5120376e3da6",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Job fb967219-0a4a-47c6-a5aa-67bffe46b005 finished with status passed",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:52:18.3094485Z",
+        "received_at": "2026-09-28T21:52:11.067Z"
+      },
+      {
+        "diagnostic_id": "0d57a786-bff0-405d-ae22-cdf8e5d63f29",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "message": "runner_down",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:52:17.7621538Z",
+        "received_at": "2026-09-28T21:52:10.536Z"
       }
     ]
   },
