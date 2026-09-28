@@ -1,14 +1,14 @@
 {
-  "request_id": "qq-open-entra-existing-edge-after-server-fix-20260928",
-  "job_id": "8432849c-2997-4c63-b4f3-30753ffea5f6",
+  "request_id": "qq-open-entra-existing-edge-process-path-20260928",
+  "job_id": "b4c20eec-5ece-4833-b635-f75662cbcf57",
   "task_id": "open-edge-tab",
   "target_device": "DRIZNET",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 964,
+  "duration_ms": 980,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T18:03:36.9539035Z",
-  "recorded_at": 1790618618,
-  "output_tail": "[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\open-edge-tab.ps1:18\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  18 | \u001b[0m \u2026 not $edgeCandidates) { \u001b[36;1mthrow \"Microsoft Edge executable not found.\"\u001b[0m }\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mMicrosoft Edge executable not found.\u001b[0m"
+  "confirmed_at": "2026-09-28T18:05:23.8219415Z",
+  "recorded_at": 1790618725,
+  "output_tail": "[run] \u001b[31;1mStart-Process: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\open-edge-tab.ps1:21\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  21 | \u001b[0m \u001b[36;1mStart-Process -FilePath $edge -ArgumentList @(\"--new-tab\", $uri.Absol\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mThis command cannot be run due to the error: An error occurred trying to start process 'C' with working\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mdirectory 'C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite'. The system cannot find the file specified.\u001b[0m"
 }
