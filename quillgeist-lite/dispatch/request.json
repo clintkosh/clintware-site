@@ -1,6 +1,7 @@
 {
-  "request_id": "verify-legacy-oauth-recorder-ended-20260928",
-  "mode": "inspect",
-  "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
-  "objective": "Verify the legacy automated Google OAuth recorder has ended and is no longer controlling any provider sign-in surface after the secure-auth rollout."
+  "request_id": "chatgpt-memoria-identity-preflight-20260928-1558",
+  "task_id": "clintware-doctor",
+  "target_device": "MEMORIA",
+  "args": {},
+  "objective": "Inspect MEMORIA local QQ/runtime state before repairing Codex and Microsoft organization profile. Confirm target device, runner/task registry health, and local prerequisites. Make no identity or credential changes."
 }
