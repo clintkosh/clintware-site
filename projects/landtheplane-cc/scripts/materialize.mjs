@@ -69,7 +69,11 @@ const pkgPath=path.join(out,"package.json");
 const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
 pkg.name="clintware-landtheplane-cc";
 pkg.description="LandThePlane private career command center";
+pkg.scripts.check="node --check src/index.js && node --check src/sample-customers.js && node --check src/cc-entry.js && node --check public/cc.js";
+pkg.scripts.deploy="npm run check && wrangler deploy";
+delete pkg.scripts["prepare:prod"];
 fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+"\n");
+fs.rmSync(path.join(out,"prepare-production.mjs"),{force:true});
 
 for(const file of ["public/doppel-brand.css","public/doppel-polish.js"]){
   fs.rmSync(path.join(out,file),{force:true});
