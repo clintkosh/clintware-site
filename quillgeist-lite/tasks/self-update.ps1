@@ -69,6 +69,8 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
   "A working Python 3 runtime was not found",
   "function Ensure-QQLocalResponder",
   "function Get-QQRequestEnvelope",
+  "function Get-QQCapabilityInventory",
+  "capability_inventory",
   "function Invoke-QQSubscriptionProviderResponse",
   "provider_usage_estimates"
 )
@@ -116,7 +118,7 @@ try {
   Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json" -OutFile $RegistryTemp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
   $registry = Get-Content -LiteralPath $RegistryTemp -Raw | ConvertFrom-Json
   if (-not $registry.tasks) { throw "Reviewed QQ task registry is invalid." }
-  foreach ($requiredTask in @("self-update","local-ai","bitnet-setup","local-ai-integrate")) {
+  foreach ($requiredTask in @("self-update","local-ai","bitnet-setup","local-ai-integrate","browser-work")) {
     if (-not $registry.tasks.PSObject.Properties[$requiredTask]) {
       throw ("Reviewed QQ task registry is missing: " + $requiredTask)
     }
