@@ -11,7 +11,8 @@ const api=async(path,opt={})=>{const r=await fetch(path,{credentials:"same-origi
 function toast(msg){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast";e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),3600)}
 function records(type){return state.data.records.filter(r=>r.type===type)}
 function profiles(){return records("job_profile").map(r=>({...r.data,_recordId:r.id,_customerId:r.customerId})).filter(x=>x.company)}
-function digest(){return records("search_digest")[0]?.data||null}\nfunction jiraConfig(){return records("jira_config")[0]?.data||null}
+function digest(){return records("search_digest")[0]?.data||null}
+function jiraConfig(){return records("jira_config")[0]?.data||null}
 function activeRole(){return records("active_role").find(r=>r.data?.status!=="archived")||null}
 function customer(id){return state.data.customers.find(c=>c.id===id)}
 function median(values){const a=values.filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
