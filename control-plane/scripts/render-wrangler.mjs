@@ -13,6 +13,9 @@ if (!/^[a-fA-F0-9]{32}$/.test(namespaceId)) {
 
 const base = JSON.parse(fs.readFileSync(path.join(root, "wrangler.jsonc"), "utf8"));
 base.kv_namespaces = [{ binding: "OAUTH_KV", id: namespaceId }];
+if (/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA || "")) {
+  base.vars = { ...base.vars, QUILLGEIST_RUNTIME_REF: process.env.GITHUB_SHA };
+}
 
 if (!Array.isArray(base.compatibility_flags)) base.compatibility_flags = [];
 if (!base.compatibility_flags.includes("global_fetch_strictly_public")) {

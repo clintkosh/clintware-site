@@ -1,6 +1,7 @@
 param(
   [string]$HomeDir = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"),
-  [string]$SourceRoot = ""
+  [string]$SourceRoot = "",
+  [switch]$SkipRunnerRestart
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,6 +58,15 @@ $specs = @(
 
 if (-not $SourceRoot) {
   $SourceRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
+  $restorePath = Join-Path $HomeDir "restore-runtime.ps1"
+  $restoreTemp = $restorePath + ".new"
+  Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/restore-runtime.ps1" -OutFile $restoreTemp -UseBasicParsing -TimeoutSec 25
+  $tokens = $null
+  $errors = $null
+  [Management.Automation.Language.Parser]::ParseFile($restoreTemp,[ref]$tokens,[ref]$errors) | Out-Null
+  if ($errors.Count -gt 0) { throw "QQ runtime sync helper failed parse validation." }
+  Move-Item -LiteralPath $restoreTemp -Destination $restorePath -Force
+  & $restorePath -HomeDir $HomeDir
 }
 if (-not (Test-Path $SourceRoot)) {
   throw "Packaged QQ runtime is missing: $SourceRoot. Reinstall using QQ.exe."
@@ -148,7 +158,7 @@ try {
   Write-RepairLog ("AUTO_REPAIR WARN // health service restart failed: " + $_.Exception.Message)
 }
 
-if (-not (Test-RunnerAlive)) {
+if (-not $SkipRunnerRestart -and -not (Test-RunnerAlive)) {
   try {
     Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
     Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop

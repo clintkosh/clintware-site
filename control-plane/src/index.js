@@ -8,7 +8,7 @@ import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDi
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-27-qq-router-focus.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-27-router-focus-v1";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-recovery-v2";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -925,6 +925,10 @@ export class RegistryHub extends DurableObject {
       wake_online:this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1).length,
       recovery:await this.ctx.storage.get("quillgeist_lite_recovery_last")||null,
       runner,
+      connected_devices:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).map(ws=>{
+        const attachment=ws.deserializeAttachment()||{};
+        return {device_id:attachment.device_id,connected_at:attachment.connected_at,runner:attachment.runner||null};
+      }),
       jobs:index.slice(0,50),
       questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
       service_devices:(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20),
@@ -1142,6 +1146,9 @@ export class RegistryHub extends DurableObject {
       if(attachment.receiver==="quillgeist-lite"){
         if(data?.type==="hello"){
           const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),capabilities:clipList(data.capabilities,20,120),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
+          runner.source_revision=clip(data.source_revision||"",40);
+          runner.registry_version=clip(data.registry_version||"",40);
+          ws.serializeAttachment({...attachment,runner});
           await this.ctx.storage.put("quillgeist_lite_runner",runner);
           ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite/v1",time:nowIso()}));
           const usage=await this.infraUsageSnapshot();
@@ -2788,10 +2795,12 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     inputSchema:{
       task_id:z.enum(["clintware-doctor","ensure-powershell","update-powerchatbridge","google-cloud-support-access","finish-google-oauth","python-runtime-check","c-runtime-check","ensure-c-runtime","self-update","restart-window","repair-local-service","apply-terminal-glass","connect-jira","connect-confluence","enable-admin-console","bootstrap-admin-console","gimp-clintware-eclipse","self-heal","browser-setup","browser-work","record-google-oauth-verification","local-ai","bitnet-setup","local-ai-integrate"]),
       args:z.record(z.string(),z.string()).optional(),
-      objective:z.string().max(2000).optional()
+      objective:z.string().max(2000).optional(),
+      target_device:z.string().min(1).max(120).optional(),
+      resume_after:z.boolean().optional()
     },
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
-  },async({task_id,args,objective})=>{
+  },async({task_id,args,objective,target_device,resume_after})=>{
     if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     const task=QUILLGEIST_LITE_TASKS[task_id];
     if(!task)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"task_not_allowed"})}]};
@@ -2804,7 +2813,9 @@ function createMcpServer(env,mcpRequest,mcpAuth){
       task_id,
       args:args||{},
       objective:objective||"",
-      requested_by:mcpAuth?.client_id||"mcp"
+      requested_by:mcpAuth?.client_id||"mcp",
+      target_device:target_device||"",
+      resume_after:Boolean(resume_after)
     })}));
     const created=await createdResp.json();
     if(!createdResp.ok||!created.ok)return {isError:true,content:[{type:"text",text:JSON.stringify(created)}]};
@@ -3554,14 +3565,14 @@ export default {
       }
 
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/runtime-version"){
-        return json({ok:true,runtime_version:QUILLGEIST_RUNTIME_VERSION,control_plane_version:VERSION,time:nowIso()},200,{"cache-control":"public, max-age=300"});
+        return json({ok:true,runtime_version:QUILLGEIST_RUNTIME_VERSION,source_revision:env.QUILLGEIST_RUNTIME_REF||"",control_plane_version:VERSION,time:nowIso()},200,{"cache-control":"public, max-age=300"});
       }
       if(request.method==="GET"&&url.pathname.startsWith("/api/v1/quillgeist-lite/runtime/")){
         const relative=decodeURIComponent(url.pathname.slice("/api/v1/quillgeist-lite/runtime/".length)).replace(/^\/+|\\/g,"");
         const repoPath="quillgeist-lite/"+relative;
         const cacheUrl=new URL(request.url);
         cacheUrl.search="";
-        cacheUrl.searchParams.set("runtime_version",QUILLGEIST_RUNTIME_VERSION);
+        cacheUrl.searchParams.set("runtime_version",env.QUILLGEIST_RUNTIME_REF||QUILLGEIST_RUNTIME_VERSION);
         const cacheKey=new Request(cacheUrl.toString(),{method:"GET"});
         try{
           const cached=await caches.default.match(cacheKey);
@@ -3572,7 +3583,7 @@ export default {
           /^quillgeist-lite\/tasks\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath) ||
           /^quillgeist-lite\/tools\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath);
         if(!reviewedRuntimePath)return json({error:"runtime_asset_not_allowed"},404);
-        const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,"main");
+        const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,env.QUILLGEIST_RUNTIME_REF||"main");
         if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
         const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
         const response=new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"public, max-age=300","x-clintware-runtime-sha":asset.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});

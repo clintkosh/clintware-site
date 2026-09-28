@@ -30,6 +30,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test recovery sequencing and credential outages
+        shell: pwsh
+        run: ./quillgeist-lite/tests/recovery.Tests.ps1
+
       - name: Parse PowerShell scripts
         shell: pwsh
         run: |

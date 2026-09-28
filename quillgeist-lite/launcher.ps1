@@ -103,6 +103,17 @@ function Update-LocalRunner {
 }
 
 function Sync-LatestQQFunctionality {
+  $restorePath = Join-Path $HomeDir "restore-runtime.ps1"
+  if (-not (Test-Path $restorePath) -or $script:QQRuntimeRefreshRequired) {
+    $temp = $restorePath + ".new"
+    Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/restore-runtime.ps1" -OutFile $temp -UseBasicParsing -TimeoutSec 25
+    $tokens = $null
+    $errors = $null
+    [Management.Automation.Language.Parser]::ParseFile($temp,[ref]$tokens,[ref]$errors) | Out-Null
+    if ($errors.Count -gt 0) { throw "QQ runtime sync helper failed parse validation." }
+    Move-Item -LiteralPath $temp -Destination $restorePath -Force
+  }
+  & $restorePath -HomeDir $HomeDir
   if (-not $script:QQRuntimeRefreshRequired) {
     Write-Host "CACHE" -ForegroundColor White -NoNewline
     Write-Host " // QQ runtime version unchanged; remote asset sync skipped" -ForegroundColor DarkCyan
@@ -218,6 +229,8 @@ function Show-WindowLoadSplash {
   }
 }
 
+Set-Content -Path $PidPath -Value $PID -Encoding ASCII
+@{state="starting";pid=$PID;runner_id=$env:COMPUTERNAME;timestamp=(Get-Date).ToUniversalTime().ToString("o")} | ConvertTo-Json | Set-Content -Path (Join-Path $HomeDir "runner-heartbeat.json") -Encoding UTF8
 Set-ClintwareBaseTheme
 Ensure-QuillgeistHealthService
 $script:QQRuntimeRefreshRequired = Initialize-QQRuntimeVersion

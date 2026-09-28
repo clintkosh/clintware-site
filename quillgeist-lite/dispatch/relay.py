@@ -141,12 +141,15 @@ if req.get("mode") == "inspect":
         "recovery": payload.get("recovery"),
         "runner_version": (payload.get("runner") or {}).get("version"),
         "runner_last_seen": (payload.get("runner") or {}).get("last_seen"),
+        "runner": payload.get("runner"),
+        "connected_devices": payload.get("connected_devices") or [],
+        "service_devices": payload.get("service_devices") or [],
         "jobs": [
-            {"job_id": row.get("job_id"), "task_id": row.get("task_id"), "status": row.get("status")}
+            {"job_id": row.get("job_id"), "task_id": row.get("task_id"), "target_device": row.get("target_device"), "status": row.get("status")}
             for row in jobs[:12]
         ],
         "diagnostics": [
-            {"level": row.get("level"), "phase": row.get("phase"), "kind": error_kind(row.get("message")),
+            {"device_id": row.get("device_id"), "level": row.get("level"), "phase": row.get("phase"), "kind": error_kind(row.get("message")),
              "timestamp": row.get("timestamp")}
             for row in diagnostics[:12]
         ],
@@ -221,6 +224,7 @@ if req.get("mode") == "rollout":
             state = str(job.get("status") or "unknown")
             result = job.get("result") or {}
             states[job_id] = {
+                "job_id": job_id,
                 "target_device": row.get("target_device"),
                 "status": state,
                 "exit_code": result.get("exit_code"),
@@ -269,6 +273,8 @@ status, created = request_json("POST", "/api/v1/quillgeist-lite/jobs", {
     "task_id": task_id,
     "args": args,
     "objective": str(req.get("objective") or ""),
+    "target_device": str(req.get("target_device") or ""),
+    "resume_after": bool(req.get("resume_after", False)),
 })
 print(json.dumps(created, indent=2), flush=True)
 if status not in (200, 201, 202) or not created.get("ok"):

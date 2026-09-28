@@ -45,9 +45,9 @@ function Get-ReviewedQQAsset {
   }
 }
 
-if (-not (Test-Path $PackagedRoot)) {
-  throw "Packaged QQ runtime is missing. Install the current QQ.exe distribution."
-}
+$restorePath = Join-Path $HomeDir "restore-runtime.ps1"
+Get-ReviewedQQAsset -Relative "tools/restore-runtime.ps1" -Destination $restorePath -Required @("Test-RuntimeBundle","source_revision")
+& $restorePath -HomeDir $HomeDir
 
 $packagedRepair = Join-Path $PackagedRoot "tasks\auto-repair-runtime.ps1"
 if (-not (Test-Path $packagedRepair)) {
@@ -58,7 +58,7 @@ Write-Host "SYNC // reconciling QQ from the packaged runtime" -ForegroundColor C
 Copy-Item -LiteralPath $packagedRepair -Destination $RepairPath -Force
 Test-PowerShellFile -Path $RepairPath -Required @("AUTO_REPAIR_READY")
 
-& $RepairPath -HomeDir $HomeDir -SourceRoot $PackagedRoot
+& $RepairPath -HomeDir $HomeDir -SourceRoot $PackagedRoot -SkipRunnerRestart
 if ($LASTEXITCODE -ne 0) { throw "QQ self-heal returned exit code $LASTEXITCODE." }
 
 Write-Host "SYNC // refreshing reviewed QQ runner from Clintware" -ForegroundColor Cyan

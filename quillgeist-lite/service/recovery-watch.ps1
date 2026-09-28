@@ -117,11 +117,17 @@ function Get-RunnerHeartbeatHealth {
 
   try {
     $heartbeat = Get-Content $heartbeatPath -Raw | ConvertFrom-Json
-    $stamp = [DateTime]::Parse([string]$heartbeat.timestamp).ToUniversalTime()
+    $stamp = ([DateTime]$heartbeat.timestamp).ToUniversalTime()
     $ageSeconds = ((Get-Date).ToUniversalTime() - $stamp).TotalSeconds
     $state = [string]$heartbeat.state
     $result.State = $state
     $result.AgeSeconds = $ageSeconds
+
+    if ($state -in @("starting","enrolling") -and $ageSeconds -lt 600) {
+      $result.Healthy = $true
+      $result.Reason = "startup_in_progress"
+      return [pscustomobject]$result
+    }
 
     if ($state -eq "busy") {
       if ($ageSeconds -le ($RunnerBusyMaxMinutes * 60)) {
@@ -237,6 +243,18 @@ $autoRepairPath = if ($serviceConfig) { [string]$serviceConfig.AutoRepairPath } 
 $serviceRepairPath = if ($recoveryConfig) { [string]$recoveryConfig.ServiceRepairPath } else { $null }
 
 Write-RecoveryLog "watch_start"
+if ($runnerPidPath) {
+  $runtimeLock = Join-Path (Split-Path $runnerPidPath -Parent) "runtime-sync.lock"
+  if (Test-Path $runtimeLock) {
+    try {
+      $probe = [IO.File]::Open($runtimeLock,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+      $probe.Dispose()
+    } catch [IO.IOException] {
+      Write-RecoveryLog "runtime_sync_in_progress"
+      return
+    }
+  }
+}
 
 $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 

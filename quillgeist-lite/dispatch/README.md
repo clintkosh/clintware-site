@@ -63,6 +63,10 @@ Provider usage/balance gauges must not create model inference calls just to meas
 
 ## Native ChatGPT connection
 
+For client maintenance, stay in the current chat. Read status and diagnostics, then use `clintware_quillgeist_lite_run` with `task_id: self-update`, an explicit `target_device`, and `resume_after: true`. Inspect the returned job until it passes or fails, then check that device's post-restart connection. A queued update or another device's heartbeat is not success. The same fields are supported by the GitHub dispatch fallback. Missing credentials require restoration of the authorized device registration; recovery must not launch enrollment browsers in the background.
+
+Runtime updates stage and validate the complete task bundle from the deployment's pinned source revision before publishing its registry. Unchanged complete bundles stay cached. Interrupted startup and temporary network failures retain credentials and use bounded retries. This route does not depend on ChatGPT Work; it requires an authorized native MCP connection or the established writable GitHub relay in that chat.
+
 When a native Clintware capability is available, prefer it over the GitHub relay. The personal OAuth MCP endpoint remains:
 
 `https://mcp.clintware.com/mcp`

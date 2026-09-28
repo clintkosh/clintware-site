@@ -733,8 +733,8 @@ function Get-QQCredentialCandidates {
   $rows = New-Object System.Collections.Generic.List[object]
   $seen = @{}
   foreach ($path in @($DeviceConfigPath,$UserDeviceConfigPath)) {
-    if (-not (Test-Path $path)) { continue }
     try {
+      if (-not (Test-Path $path -ErrorAction Stop)) { continue }
       $config = Get-Content $path -Raw | ConvertFrom-Json
       if (-not (Test-QQCredentialConfig $config)) { continue }
       $key = ([string]$config.DeviceId) + "|" + (Get-QQTokenHash ([string]$config.Token))
@@ -770,7 +770,10 @@ function Test-QQCredentialAgainstControlPlane {
     $response = Invoke-RestMethod -Method Post -Uri ($base + "/api/v1/quillgeist-lite/diagnostics") -Headers @{Authorization=("Bearer " + [string]$Credential.Token)} -ContentType "application/json" -Body $body -TimeoutSec 12 -ErrorAction Stop
     return ($response.ok -eq $true)
   } catch {
-    return $false
+    $statusCode = 0
+    try { $statusCode = [int]$_.Exception.Response.StatusCode } catch {}
+    if ($statusCode -in @(401,403)) { return $false }
+    throw "QQ credential verification unavailable; retaining existing credentials and retrying without enrollment."
   }
 }
 
@@ -829,6 +832,8 @@ function Save-QQUserCredential {
 }
 
 function Request-QQSelfEnrollment {
+  if ($env:QQ_HEADLESS -eq "1") { throw "QQ enrollment requires an explicitly opened interactive session." }
+  Write-RunnerHeartbeat -State "enrolling" -Force
   $deviceId = $env:COMPUTERNAME
   if (-not $deviceId) { $deviceId = "qq-" + [Guid]::NewGuid().ToString("n").Substring(0,12) }
   $deviceToken = New-QQDeviceToken
@@ -875,7 +880,11 @@ function Request-QQSelfEnrollment {
     Show-QQPrompt
 
     $pending = $listener.AcceptTcpClientAsync()
-    if (-not $pending.Wait([TimeSpan]::FromMinutes(5))) {
+    $deadline = (Get-Date).AddMinutes(5)
+    while (-not $pending.Wait(1000) -and (Get-Date) -lt $deadline) {
+      Write-RunnerHeartbeat -State "enrolling"
+    }
+    if (-not $pending.IsCompleted) {
       throw "Clintware device enrollment timed out."
     }
 
@@ -944,7 +953,7 @@ function Get-QQDeviceCredential {
     }
   }
 
-  return Request-QQSelfEnrollment
+  throw "QQ device credential unavailable or rejected; background enrollment is disabled. Restore the existing supervised device registration."
 }
 
 function Get-Registry {
@@ -962,6 +971,11 @@ function Get-Registry {
   }
   $registry = Get-Content $RegistryPath -Raw | ConvertFrom-Json
   if (-not $registry.tasks) { throw "Quillgeist Lite task registry is invalid." }
+  foreach ($task in $registry.tasks.PSObject.Properties) {
+    $relative = [string]$task.Value.script
+    if ($relative -notmatch '^(quillgeist-lite|identity-broker)/[A-Za-z0-9_./-]+$' -or $relative.Contains('..')) { throw "Invalid packaged QQ task path." }
+    if (-not (Test-Path -LiteralPath (Join-Path $RuntimeRoot $relative) -PathType Leaf)) { throw "QQ runtime is incomplete; restore the reviewed bundle before connecting." }
+  }
   return $registry
 }
 
@@ -2201,6 +2215,8 @@ try {
     $ws = $null
 
     try {
+      $readyRegistry = Get-Registry
+      Write-RunnerHeartbeat -State "connecting" -Force
       $credential = Get-QQDeviceCredential
       $ws = New-Object System.Net.WebSockets.ClientWebSocket
       $ws.Options.SetRequestHeader("Authorization","Bearer " + $credential.Token)
@@ -2208,10 +2224,11 @@ try {
       $ws.Options.SetRequestHeader("X-Quillgeist-Device",$credential.DeviceId)
       $connectUri = $Endpoint + $(if($Endpoint.Contains("?")){"&"}else{"?"}) + "device_id=" + [Uri]::EscapeDataString($credential.DeviceId)
 
-      $null = $ws.ConnectAsync(
-        [Uri]$connectUri,
-        [Threading.CancellationToken]::None
-      ).GetAwaiter().GetResult()
+      $connectTimeout = New-Object Threading.CancellationTokenSource
+      try {
+        $connectTimeout.CancelAfter(30000)
+        $null = $ws.ConnectAsync([Uri]$connectUri,$connectTimeout.Token).GetAwaiter().GetResult()
+      } finally { $connectTimeout.Dispose() }
 
       $script:RunnerSocket = $ws
       $script:ConnectedSince = Get-Date
@@ -2219,7 +2236,9 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.9"
+        version = "1.9.10"
+        source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
+        registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
         capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback")
       }
@@ -2471,7 +2490,10 @@ try {
 
     $reconnectDelay = [int]$script:ReconnectBackoffSeconds
     Write-Log ("Disconnected. Reconnecting in " + $reconnectDelay + " seconds; bounded backoff prevents Cloudflare request storms.") "WARN"
-    Start-Sleep -Seconds $reconnectDelay
+    for ($remaining = $reconnectDelay; $remaining -gt 0; $remaining--) {
+      Write-RunnerHeartbeat -State "disconnected"
+      Start-Sleep -Seconds 1
+    }
   }
 } finally {
   try { $mutex.ReleaseMutex() } catch {}

@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.ServiceProcess;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Clintware.QuillgeistLite
@@ -293,6 +294,21 @@ namespace Clintware.QuillgeistLite
         {
             try
             {
+                string home = Path.GetDirectoryName(config.RunnerPidPath);
+                string runtimeLock = Path.Combine(home, "runtime-sync.lock");
+                if (File.Exists(runtimeLock))
+                {
+                    try { using (File.Open(runtimeLock, FileMode.Open, FileAccess.Read, FileShare.None)) { } }
+                    catch (IOException) { return true; }
+                }
+                string heartbeat = Path.Combine(home, "runner-heartbeat.json");
+                if (RunnerAlive() && File.Exists(heartbeat))
+                {
+                    string state = File.ReadAllText(heartbeat);
+                    double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat)).TotalSeconds;
+                    if (age < 600 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"(starting|enrolling)\"")) return true;
+                    if (age < 2700 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return true;
+                }
                 string marker = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "Clintware", "QuillgeistLite", "maintenance.lock");
@@ -349,6 +365,7 @@ namespace Clintware.QuillgeistLite
 
         private void EnsureRunner(bool forceWake = false)
         {
+            if (MaintenanceModeActive()) return;
             DateTime now = DateTime.UtcNow;
             if ((now - lastRestartAttemptUtc).TotalSeconds < 15) return;
 
@@ -530,6 +547,7 @@ namespace Clintware.QuillgeistLite
 
         private void TryAutoRepair(string reason)
         {
+            if (MaintenanceModeActive()) return;
             DateTime now = DateTime.UtcNow;
             if ((now - lastAutoRepairAttemptUtc).TotalMinutes < 30) return;
 
