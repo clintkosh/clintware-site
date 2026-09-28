@@ -20,6 +20,8 @@ $UserDeviceConfigPath = Join-Path $HomeDir "device.json"
 $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
 $LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
 $ProviderResponderPath = Join-Path $HomeDir "provider_responder.py"
+$RoutingLearningPath = Join-Path $HomeDir "routing-learning.json"
+$PreprocessorVersion = "2026-09-27-local-preprocessor-v1"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -1646,15 +1648,139 @@ For ordinary questions, brainstorming, explanations, calculations, and local gui
   return $false
 }
 
+
+function Get-QQRouteLearningHint {
+  param([string]$Text)
+  try {
+    if (-not (Test-Path $RoutingLearningPath)) { return "" }
+    $state = Get-Content -LiteralPath $RoutingLearningPath -Raw | ConvertFrom-Json
+    $key = [regex]::Match(([string]$Text).ToLowerInvariant(),'[a-z0-9@._-]+').Value
+    if (-not $key) { return "" }
+    $rows = @($state.events | Where-Object { [string]$_.key -eq $key } | Select-Object -Last 20)
+    if ($rows.Count -lt 3) { return "" }
+    $groups = @($rows | Group-Object route_class | Sort-Object Count -Descending)
+    if ($groups.Count -eq 0) { return "" }
+    $top = $groups[0]
+    if (($top.Count / [double]$rows.Count) -ge 0.70) { return [string]$top.Name }
+  } catch {}
+  return ""
+}
+
+function Update-QQRouteLearning {
+  param([string]$Text,[string]$RouteClass)
+  try {
+    $route = ([string]$RouteClass).Trim().ToLowerInvariant()
+    if (-not $route) { return }
+    $key = [regex]::Match(([string]$Text).ToLowerInvariant(),'[a-z0-9@._-]+').Value
+    if (-not $key) { return }
+    $events = @()
+    if (Test-Path $RoutingLearningPath) {
+      try { $events = @((Get-Content -LiteralPath $RoutingLearningPath -Raw | ConvertFrom-Json).events) } catch { $events = @() }
+    }
+    $events += [pscustomobject]@{key=$key;route_class=$route;at=(Get-Date).ToUniversalTime().ToString("o")}
+    $events = @($events | Select-Object -Last 100)
+    $temp = $RoutingLearningPath + ".new"
+    [IO.File]::WriteAllText($temp,(@{version=1;events=$events} | ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding($false)))
+    Move-Item -LiteralPath $temp -Destination $RoutingLearningPath -Force
+  } catch {}
+}
+
+function Get-QQRequestEnvelope {
+  param([string]$Text)
+
+  $raw = ([string]$Text).Trim()
+  $normalized = (($raw -replace '\s+',' ').Trim())
+  $intent = New-Object System.Collections.Generic.List[string]
+  $actionPattern = '(?i)\b(fix|implement|install|deploy|push|update|change|modify|repair|configure|create|delete|remove|move|rename|start|stop|restart|resume|send|route|run|execute|open|close|test|verify|inspect|build|restore|connect|publish|sync)\b'
+  $freshPattern = '(?i)\b(latest|current|today|tonight|now|email|calendar|github|cloudflare|jira|confluence|repo|repository|deployment|dns|account|private|live)\b'
+  $requiresAction = [bool]($normalized -match $actionPattern)
+  $requiresFresh = [bool]($normalized -match $freshPattern)
+  $routeHint = if ($requiresAction -or $requiresFresh) { "control_plane" } else { "llm" }
+  $confidence = if ($requiresAction) { 0.88 } elseif ($requiresFresh) { 0.80 } else { 0.62 }
+  if ($requiresAction) { [void]$intent.Add("state_change_or_execution") }
+  if ($requiresFresh) { [void]$intent.Add("fresh_private_or_control_plane_context") }
+
+  $learned = Get-QQRouteLearningHint -Text $raw
+  if ($learned) { [void]$intent.Add("learned_route:" + $learned) }
+
+  if (Test-QQLocalGateway) {
+    try {
+      $headers = @{"Content-Type"="application/json"}
+      if (Test-Path $LocalGatewayKeyPath) {
+        $key = (Get-Content -LiteralPath $LocalGatewayKeyPath -Raw -ErrorAction Stop).Trim()
+        if ($key) { $headers["Authorization"] = "Bearer " + $key }
+      }
+      $system = @"
+You are the local Quillgeist request preprocessor. Return JSON only.
+Do not answer the request and do not claim actions.
+Normalize obvious typos and shorthand while preserving meaning.
+Classify route_hint as llm, control_plane, hybrid, local, or approval.
+Set requires_action and requires_fresh_or_private booleans.
+Provide intent_hints as a short string array and confidence from 0 to 1.
+Never include credentials or secrets.
+"@
+      $promptText = "Prompt: " + $raw
+      if($learned){$promptText += [Environment]::NewLine + "Learned route hint: " + $learned}
+      $payload = @{
+        model = "local-auto"
+        messages = @(
+          @{role="system";content=$system},
+          @{role="user";content=$promptText}
+        )
+        max_tokens = 350
+        temperature = 0.05
+        stream = $false
+      } | ConvertTo-Json -Depth 8 -Compress
+      $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec 8 -ErrorAction Stop
+      $answer = ([string]$response.choices[0].message.content).Trim()
+      $p = $answer | ConvertFrom-Json
+      if ($p.normalized_prompt -and ([string]$p.normalized_prompt).Length -le 12000) {
+        $normalized = ([string]$p.normalized_prompt).Trim()
+      }
+      foreach($h in @($p.intent_hints)) {
+        $safe = ([string]$h).Trim()
+        if ($safe -and $safe.Length -le 120) { [void]$intent.Add($safe) }
+      }
+      $candidate = ([string]$p.route_hint).Trim().ToLowerInvariant()
+      if (@("llm","control_plane","hybrid","local","approval") -contains $candidate) {
+        if (-not $requiresAction -and -not $requiresFresh) { $routeHint = $candidate }
+      }
+      if ([bool]$p.requires_action) { $requiresAction = $true; $routeHint = "control_plane" }
+      if ([bool]$p.requires_fresh_or_private) { $requiresFresh = $true; if($routeHint -eq "llm"){$routeHint="control_plane"} }
+      try { $confidence = [Math]::Max($confidence,[Math]::Min(1.0,[Math]::Max(0.0,[double]$p.confidence))) } catch {}
+    } catch {
+      try { Queue-RunnerDiagnostic "INFO" ("preprocessor_local_rewrite_unavailable: " + $_.Exception.Message) "preprocessor" } catch {}
+    }
+  }
+
+  $cwd = $(try { (Get-Location).Path } catch { "" })
+  return [pscustomobject]@{
+    raw_prompt = $raw
+    normalized_prompt = $normalized
+    intent_hints = @($intent | Select-Object -Unique)
+    route_hint = $routeHint
+    requires_action = $requiresAction
+    requires_fresh_or_private = $requiresFresh
+    confidence = $confidence
+    preprocessor_version = $PreprocessorVersion
+    local_context = [ordered]@{
+      machine = $env:COMPUTERNAME
+      cwd = $cwd
+      shell = ("PowerShell " + $PSVersionTable.PSVersion.ToString())
+      learned_route_hint = $learned
+    }
+  }
+}
+
 function Send-QQQuestion {
   param([string]$Text)
 
   $Text = ([string]$Text).Trim()
   if (-not $Text) { Show-QQPrompt; return }
 
-  # Natural-language relay follows the same local redaction boundary as task logs.
-  # Obvious credential/token assignments are replaced before text leaves Windows.
-  $Text = Redact-LogLine $Text
+  $envelope = Get-QQRequestEnvelope -Text $Text
+  $wireRaw = Redact-LogLine ([string]$envelope.raw_prompt)
+  $wireNormalized = Redact-LogLine ([string]$envelope.normalized_prompt)
 
   if (-not $script:RunnerSocket -or $script:RunnerSocket.State -ne [Net.WebSockets.WebSocketState]::Open) {
     Suspend-QQPrompt
@@ -1663,22 +1789,32 @@ function Send-QQQuestion {
     return
   }
 
-  try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [USER] " + $Text) -Encoding UTF8 } catch {}
+  try { Add-Content -Path $LogPath -Value (((Get-Date).ToString("s")) + " [USER] " + $wireNormalized) -Encoding UTF8 } catch {}
   $questionId = [Guid]::NewGuid().ToString("n")
   $script:PendingQuestions[$questionId] = @{
-    text = $Text
+    text = $wireNormalized
     created_at = (Get-Date).ToUniversalTime().ToString("o")
     accepted = $false
     mirrored = $false
+    route_hint = [string]$envelope.route_hint
   }
   Save-PendingQuestions $script:PendingQuestions
 
   Send-Json $script:RunnerSocket @{
     type = "question"
-    protocol = "clintware-quillgeist-lite-interactive/v1"
+    protocol = "clintware-quillgeist-lite-interactive/v2"
     question_id = $questionId
     runner_id = $env:COMPUTERNAME
-    text = $Text
+    text = $wireNormalized
+    raw_prompt = $wireRaw
+    normalized_prompt = $wireNormalized
+    intent_hints = @($envelope.intent_hints)
+    route_hint = [string]$envelope.route_hint
+    requires_action = [bool]$envelope.requires_action
+    requires_fresh_or_private = [bool]$envelope.requires_fresh_or_private
+    confidence = [double]$envelope.confidence
+    preprocessor_version = [string]$envelope.preprocessor_version
+    local_context = $envelope.local_context
     cwd = $(try { (Get-Location).Path } catch { "" })
     shell = ("PowerShell " + $PSVersionTable.PSVersion.ToString())
     timestamp = (Get-Date).ToUniversalTime().ToString("o")
@@ -1686,7 +1822,7 @@ function Send-QQQuestion {
 
   Suspend-QQPrompt
   Write-Host "RELAY" -ForegroundColor White -NoNewline
-  Write-Host (" // " + $questionId.Substring(0,8) + " -> Clintware") -ForegroundColor Cyan
+  Write-Host (" // " + $questionId.Substring(0,8) + " -> Clintware // " + ([string]$envelope.route_hint).ToUpperInvariant()) -ForegroundColor Cyan
   Show-QQPrompt
 }
 
@@ -1905,7 +2041,7 @@ function Invoke-QQLocalCommand {
     }
   } catch {}
 
-  if (-not (Invoke-QQLocalFirstResponse $line)) { Send-QQQuestion $line }
+  Send-QQQuestion $line
 }
 
 function Invoke-AllowlistedTask {
@@ -2180,13 +2316,17 @@ try {
           $receivers = 0
           $mirrored = $false
           $autoResponder = ""
+          $routeClass = ""
           try { $receivers = [int]$msg.delivery.realtime_receivers } catch {}
           try { $mirrored = [bool]$msg.delivery.private_mirror.mirrored } catch {}
           try { $autoResponder = [string]$msg.delivery.auto_responder } catch {}
-          $accepted = ($receivers -gt 0 -or -not [string]::IsNullOrWhiteSpace($autoResponder))
+          try { $routeClass = [string]$msg.delivery.route_class } catch {}
+          $accepted = ($receivers -gt 0 -or -not [string]::IsNullOrWhiteSpace($autoResponder) -or -not [string]::IsNullOrWhiteSpace($routeClass))
           if($script:PendingQuestions.ContainsKey($qid)){
             $script:PendingQuestions[$qid].accepted = $accepted
             $script:PendingQuestions[$qid].mirrored = $mirrored
+            if($routeClass){$script:PendingQuestions[$qid].route_class = $routeClass}
+            try { if($routeClass){ Update-QQRouteLearning -Text ([string]$script:PendingQuestions[$qid].text) -RouteClass $routeClass } } catch {}
             Save-PendingQuestions $script:PendingQuestions
           }
 
@@ -2196,13 +2336,25 @@ try {
           } elseif ($receivers -gt 0) {
             Write-Host "RELAY DELIVERED" -ForegroundColor Cyan -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
+          } elseif ($routeClass) {
+            Write-Host "ROUTE ACCEPTED" -ForegroundColor Cyan -NoNewline
+            Write-Host (" // " + $routeClass.ToUpperInvariant() + " // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } elseif ($mirrored) {
             Write-Host "RELAY PENDING // PRIVATE INBOX; SAFETY CHECK ACTIVE" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           } else {
-            Write-Host "RELAY WAITING // NO RESPONSE PATH AVAILABLE" -ForegroundColor DarkYellow -NoNewline
+            Write-Host "RELAY WAITING // CONTROL PLANE RETAINED REQUEST" -ForegroundColor DarkYellow -NoNewline
             Write-Host (" // " + $(if($qid.Length -ge 8){$qid.Substring(0,8)}else{$qid})) -ForegroundColor DarkGray
           }
+          Show-QQPrompt
+          continue
+        }
+
+        if ($msg.type -eq "resume_work") {
+          Suspend-QQPrompt
+          Write-Host "RESUME" -ForegroundColor Green -NoNewline
+          Write-Host (" // " + $(if($msg.reason){[string]$msg.reason}else{"control-plane"}) + " // queued work continues under current policy") -ForegroundColor Cyan
+          try { Queue-RunnerDiagnostic "INFO" ("resume_work job=" + [string]$msg.job_id) "control-plane" } catch {}
           Show-QQPrompt
           continue
         }
