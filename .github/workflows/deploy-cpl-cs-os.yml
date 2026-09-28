@@ -122,7 +122,7 @@ jobs:
             h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
             j=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/cpl.js" || true)
-            if grep -Fq '"service":"clintware-cpl-cs-os"' <<< "$h"               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h"               && grep -Fq '"oauthApp":"none"' <<< "$h"               && grep -Fq 'CPL // CS OPERATING SYSTEM' <<< "$p"               && grep -Fq 'Customer Success CRM' <<< "$j"; then
+            if grep -Fq '"service":"clintware-cpl-cs-os"' <<< "$h"               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h"               && grep -Fq '"oauthApp":"none"' <<< "$h"               && grep -Fq 'CPL // CUSTOMER SUCCESS CRM' <<< "$p"               && grep -Fq 'Customer Success CRM' <<< "$j"; then
               ready=1
               break
             fi
