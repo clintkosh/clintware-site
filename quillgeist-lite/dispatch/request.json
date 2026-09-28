@@ -1,5 +1,9 @@
 {
-  "request_id": "memoria-ai-assess-20260928-1749",
-  "mode": "inspect",
-  "job_id": "a24102a4-6503-4e1c-98a7-c443dfe6d81b"
+  "request_id": "memoria-ai-services-20260928-1751",
+  "task_id": "local-ai",
+  "args": {
+    "Action": "services"
+  },
+  "target_device": "MEMORIA",
+  "objective": "Read-only service health inventory for MEMORIA AI recovery including existing n8n. Do not modify applications or data."
 }
