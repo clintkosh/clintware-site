@@ -1,7 +1,7 @@
 {
-  "request_id": "inspect-driznet-wake-20260928",
+  "request_id": "inspect-driznet-restart-job-20260928",
   "mode": "inspect",
-  "recorded_at": 1790615665,
+  "recorded_at": 1790615710,
   "inspection": {
     "online": 0,
     "recovery_online": 0,
@@ -209,6 +209,18 @@
         "kind": "other",
         "timestamp": "2026-09-28T17:09:35.2539010Z"
       }
-    ]
+    ],
+    "selected_job": {
+      "job_id": "c652fae5-cbc2-437b-be77-2692ee2d5a0f",
+      "task_id": "restart-window",
+      "status": "queued",
+      "requested_by": "root",
+      "created_at": "2026-09-28T17:13:16.276Z",
+      "completed_at": null,
+      "duration_ms": null,
+      "exit_code": null,
+      "error_kind": "other",
+      "recent_logs": []
+    }
   }
 }
