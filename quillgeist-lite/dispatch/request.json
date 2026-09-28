@@ -1,7 +1,8 @@
 {
-  "request_id": "qq-refresh-driznet-edge-task-retry-20260928",
-  "task_id": "self-update",
+  "request_id": "qq-open-entra-existing-edge-final-20260928",
+  "task_id": "open-edge-tab",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET QQ so open-edge-tab is fetched from the reviewed runtime before execution."
+  "args": {
+    "Url": "https://entra.microsoft.com/"
+  }
 }
