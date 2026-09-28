@@ -10,7 +10,7 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.25.1"
+VERSION="2026.09.28.2"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
@@ -218,6 +218,31 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
             loc.press(key,timeout=timeout)
         elif op=="wait": page.wait_for_timeout(max(0,min(int(step.get("ms") or wait_ms),60000)))
         elif op=="wait_for": resolve(page,step).wait_for(state=str(step.get("state") or "visible"),timeout=timeout)
+        elif op=="wait_for_url":
+            pattern=str(step.get("pattern") or step.get("url_contains") or "").strip()
+            if not pattern: raise ValueError("wait_for_url requires pattern or url_contains")
+            deadline=time.time()+min(max(timeout,1),600000)/1000
+            matched=False
+            while time.time()<deadline:
+                current=str(page.url or "")
+                try: matched=bool(re.search(pattern,current,re.I))
+                except re.error: matched=pattern.lower() in current.lower()
+                if matched: break
+                page.wait_for_timeout(200)
+            if not matched: raise TimeoutError(f"wait_for_url timed out: {pattern}")
+            r["url"]=page.url
+        elif op=="wait_for_text":
+            pattern=str(step.get("pattern") or step.get("text") or "").strip()
+            if not pattern: raise ValueError("wait_for_text requires pattern or text")
+            deadline=time.time()+min(max(timeout,1),600000)/1000
+            matched=False
+            while time.time()<deadline:
+                body=page.locator("body").inner_text(timeout=min(timeout,5000))
+                try: matched=bool(re.search(pattern,body,re.I))
+                except re.error: matched=pattern.lower() in body.lower()
+                if matched: break
+                page.wait_for_timeout(200)
+            if not matched: raise TimeoutError(f"wait_for_text timed out: {pattern}")
         elif op=="back": page.go_back(wait_until="domcontentloaded",timeout=timeout); policy.validate(page.url); r["url"]=page.url
         elif op=="reload": page.reload(wait_until="domcontentloaded",timeout=timeout); policy.validate(page.url); r["url"]=page.url
         elif op=="screenshot":
@@ -244,12 +269,24 @@ def main():
     ap.add_argument("--value",default=""); ap.add_argument("--steps-json",default=""); ap.add_argument("--query",default="")
     ap.add_argument("--engine",default="auto"); ap.add_argument("--max-results",type=int,default=DEFAULT_SEARCH_RESULTS)
     ap.add_argument("--max-chars",type=int,default=DEFAULT_MAX_CHARS); ap.add_argument("--headless",default="true")
-    ap.add_argument("--wait-ms",type=int,default=700); ap.add_argument("--approved",default="false"); ap.add_argument("--allow-private",default="false")
+    ap.add_argument("--wait-ms",type=int,default=700); ap.add_argument("--user-wait-ms",type=int,default=0)
+    ap.add_argument("--approved",default="false"); ap.add_argument("--allow-private",default="false")
     a=ap.parse_args()
     from playwright.sync_api import sync_playwright
     local=pathlib.Path(os.environ.get("LOCALAPPDATA",pathlib.Path.home())); profile=local/"Clintware"/"QuillgeistLite"/"browser-profile"; profile.mkdir(parents=True,exist_ok=True)
     headless=as_bool(a.headless); approved=as_bool(a.approved); policy=NetworkPolicy(allow_private=as_bool(a.allow_private)); action=a.action.lower().strip()
-    if action=="login": headless=False
+    if action in {"login","assist"}: headless=False
+    state_path=local/"Clintware"/"QuillgeistLite"/"browser-state.json"
+    state={}
+    try:
+        if state_path.exists(): state=json.loads(state_path.read_text(encoding="utf-8"))
+    except Exception: state={}
+    def save_state(pg):
+        try:
+            payload={"version":2,"last_url":str(pg.url or ""),"title":clip(pg.title(),300),"updated_at":time.time()}
+            state_path.parent.mkdir(parents=True,exist_ok=True)
+            state_path.write_text(json.dumps(payload,separators=(",",":")),encoding="utf-8")
+        except Exception: pass
     with sync_playwright() as p:
         opts={"user_data_dir":str(profile),"headless":headless,"viewport":{"width":1440,"height":1000},"accept_downloads":False,"args":["--disable-session-crashed-bubble","--no-first-run"]}
         try: ctx=p.chromium.launch_persistent_context(channel="msedge",**opts)
@@ -257,17 +294,38 @@ def main():
         install_network_guard(ctx,policy)
         try:
             page=ctx.pages[0] if ctx.pages else ctx.new_page(); page.set_default_timeout(15000)
-            if a.url: safe_goto(page,a.url,policy,30000); page.wait_for_timeout(max(0,min(a.wait_ms,5000)))
+            target=str(a.url or "").strip()
+            if not target and action in {"resume","inspect","run","assist","fill","click","read"}:
+                target=str(state.get("last_url") or "").strip()
+            if target: safe_goto(page,target,policy,30000); page.wait_for_timeout(max(0,min(a.wait_ms,5000)))
             if action in {"open","login"}:
                 emit({"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"headless":headless})
                 if action=="login":
                     while ctx.pages: time.sleep(.5)
+                else:
+                    save_state(page)
                 return 0
+            if action=="assist":
+                wait_ms=max(0,min(int(a.user_wait_ms or 0),600000))
+                emit({"ok":True,"action":"assist","phase":"ready_for_user","title":clip(page.title()),"url":page.url,"headless":False,"user_wait_ms":wait_ms})
+                deadline=time.time()+wait_ms/1000
+                while wait_ms>0 and time.time()<deadline and ctx.pages:
+                    time.sleep(.25)
+                    if ctx.pages: page=ctx.pages[-1]
+                if ctx.pages:
+                    page=ctx.pages[-1]
+                    save_state(page)
+                    emit({"ok":True,"action":"assist","phase":"complete","page":inspect_page(page)})
+                else:
+                    emit({"ok":True,"action":"assist","phase":"window_closed","last_url":str(state.get("last_url") or "")})
+                return 0
+            if action=="resume":
+                save_state(page); emit({"ok":True,"action":"resume",**inspect_page(page)}); return 0
             if action=="search": emit({"ok":True,"action":action,**search_web(page,a.query,a.engine,a.max_results,policy)}); return 0
             if action=="read":
-                if not a.url: raise ValueError("--url is required for read")
-                emit({"ok":True,"action":action,"page":read_page(page,a.max_chars)}); return 0
-            if action=="inspect": emit({"ok":True,"action":action,**inspect_page(page)}); return 0
+                if not target: raise ValueError("--url is required for read when no browser continuation state exists")
+                save_state(page); emit({"ok":True,"action":action,"page":read_page(page,a.max_chars)}); return 0
+            if action=="inspect": save_state(page); emit({"ok":True,"action":action,**inspect_page(page)}); return 0
             if action=="fill":
                 if not a.selector: raise ValueError("--selector is required for fill")
                 loc=page.locator(a.selector).first; ensure_not_sensitive(loc); loc.fill(a.value); emit({"ok":True,"action":action,"url":page.url}); return 0
@@ -278,6 +336,7 @@ def main():
                 parsed=json.loads(a.steps_json); steps=parsed.get("steps") if isinstance(parsed,dict) else parsed
                 if not isinstance(steps,list) or len(steps)>MAX_STEPS: raise ValueError(f"steps-json must contain a list of at most {MAX_STEPS} steps")
                 results=run_steps(page,steps,a.wait_ms,policy,approved,a.max_chars)
+                save_state(page)
                 emit({"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"results":results,"final":inspect_page(page)}); return 0
             raise ValueError(f"unsupported action '{action}'")
         finally:
