@@ -149,7 +149,7 @@ jobs:
           d=json.load(open('/tmp/cpl-state.json'))
           assert d['access']['authenticated'] is False
           assert d['access']['mode'] == 'browser-persistent'
-          assert len(d['customers']) == 12, len(d['customers'])
+          assert len(d['customers']) == 13, len(d['customers'])
           assert d['customer']['name'] == 'Northstar Financial Group'
           assert sum(1 for c in d['customers'] if c.get('isGoldenExample')) == 1
           assert all(c.get('isSynthetic') is True for c in d['customers'])
