@@ -275,3 +275,5 @@ PowerChatBridge authenticates the receiver connection with the machine's existin
 
 The private GitHub handoff mirror remains a best-effort audit/fallback copy; it is no longer the primary delivery mechanism.
 <!-- deployment marker 2026-09-28: publish QQ Codex identity repair task registration -->
+
+<!-- deployment marker 2026-09-28T21:58Z: publish QQ busy-job watchdog protection -->
