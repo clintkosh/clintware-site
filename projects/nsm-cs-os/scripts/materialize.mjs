@@ -177,9 +177,9 @@ const checks=[
  ['src/index.js','identity:"disabled-no-login-demo",oauthApp:"none"'],
  ['src/index.js','persistence:"browser-persistent"'],
  ['src/index.js','Aegis Federal Programs'],
- ['src/sample-customers.js','SAMPLE_SEED_VERSION=8'],
- ['public/index.html','NSM // CS OPERATING SYSTEM'],
- ['public/nsm.js','Application Narrative']
+ ['src/sample-customers.js','SAMPLE_SEED_VERSION=1'],
+ ['public/index.html','NSM ServiceNow Customer Outcomes OS'],
+ ['public/nsm.js','Post-implementation command view']
 ];
 for(const [f,s] of checks) if(!read(f).includes(s)) throw new Error("Missing build contract: "+f+" :: "+s);
-console.log("NSM CS Operating System materialized at "+out);
+console.log("NSM ServiceNow Customer Outcomes OS materialized at "+out);
