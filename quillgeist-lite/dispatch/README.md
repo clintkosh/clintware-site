@@ -49,6 +49,21 @@ When ChatGPT has GitHub access but no native Clintware MCP capability, use the e
    - verified
 8. For recoverable failures, inspect result/log evidence and continue through another safe allowlisted task rather than immediately asking the user to run commands.
 
+## Live local confirmation
+
+QQ execution is event-driven. The local agent is the authority for execution state.
+
+- A queued request is not execution evidence.
+- MEMORIA/QQ sends ACK, log, and final result frames over its authenticated Control Plane WebSocket.
+- The Control Plane publishes those frames on the scoped job-event stream.
+- The GitHub relay subscribes to that stream and records completion only when it receives local-agent confirmation provenance.
+- A valid final relay result includes `confirmation_source: qq-local-agent` (or its scoped recovery equivalent), the confirmed device, confirmation timestamp, and transport.
+- Never infer success from a commit, queue response, heartbeat, another device, elapsed time, or an old `result.json`.
+- Match `request_id`, `job_id`, and target device before reporting completion.
+- Polling is only a bounded compatibility fallback when the event stream is unavailable; it is not the normal execution path.
+- If local-agent confirmation is absent, report the action as unconfirmed rather than completed.
+- Preserve this event path for chat-mode execution so future sessions can obtain concrete local evidence instead of assuming what happened.
+
 ## Execution philosophy
 
 Use:
