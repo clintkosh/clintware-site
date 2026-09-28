@@ -634,6 +634,9 @@ if (-not $ownsMutex) {
   Write-Log "Another Quillgeist Lite V3 runner is already active." "WARN"
   exit 0
 }
+# Direct launches also own their PID evidence; duplicates never reach this line.
+$RunnerOwnerPidPath = Join-Path $HomeDir "runner.pid"
+Set-Content -LiteralPath $RunnerOwnerPidPath -Value $PID -Encoding ASCII
 
 function Get-PendingQuestions {
   try {
@@ -2496,6 +2499,11 @@ try {
     }
   }
 } finally {
+  try {
+    if ((Test-Path $RunnerOwnerPidPath) -and (Get-Content $RunnerOwnerPidPath -Raw).Trim() -eq [string]$PID) {
+      Remove-Item -LiteralPath $RunnerOwnerPidPath -Force -ErrorAction SilentlyContinue
+    }
+  } catch {}
   try { $mutex.ReleaseMutex() } catch {}
   $mutex.Dispose()
 }

@@ -61,3 +61,6 @@ try {
     if (-not $resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe fixture path' }
     Remove-Item -LiteralPath $resolved -Recurse -Force
 }
+
+& (Join-Path $PSScriptRoot 'launcher-ownership.Tests.ps1')
+

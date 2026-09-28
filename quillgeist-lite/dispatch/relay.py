@@ -30,6 +30,7 @@ ALLOWED = {
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
     "finish-local-ai": {"MaxPasses"},
+    "restore-immich": set(),
     "responder-agent": {"Action"},
     "restart-window": set(),
     "repair-local-service": set(),

@@ -82,6 +82,16 @@ foreach($p in @($reconcilePy,$parityPy,$bitnetPs,$integratePs,$immichPs)){
 $pass=0
 $complete=$false
 $lastMissing=@()
+$stageFailures=New-Object System.Collections.Generic.List[string]
+
+function Run-Independent([string]$Label,[scriptblock]$Body) {
+  try { Run-Checked $Label $Body }
+  catch {
+    $stageFailures.Add($Label)
+    Save-State $Label "failed" $_.Exception.Message
+    Log ("BLOCKED " + $Label + " // " + $_.Exception.Message)
+  }
+}
 
 while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
   $pass++
@@ -92,30 +102,30 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
     & $python $reconcilePy --Action reconcile
   }
 
+  # Recover independent services before attempting a potentially failing model build.
+  Push-Location $DockerRoot
+  try {
+    Run-Independent "compose-existing-services" {
+      & $docker compose -f $ComposePath up -d --no-build --pull never
+    }
+  } finally { Pop-Location }
+  Run-Independent "restore-immich" {
+    & $pwsh -NoProfile -ExecutionPolicy Bypass -File $immichPs
+  }
+
   if(-not (Test-Url "http://127.0.0.1:11436/health" 3)){
-    Run-Checked "bitnet-setup" {
+    Run-Independent "bitnet-setup" {
       & $pwsh -NoProfile -ExecutionPolicy Bypass -File $bitnetPs
     }
   } else {
     Log "PASS bitnet already healthy"
   }
 
-  Run-Checked "local-ai-integrate" {
+  Run-Independent "local-ai-integrate" {
     & $pwsh -NoProfile -ExecutionPolicy Bypass -File $integratePs
   }
 
-  Push-Location $DockerRoot
-  try {
-    Run-Checked "compose-all-services" {
-      & $docker compose -f $ComposePath up -d
-    }
-  } finally { Pop-Location }
-
-  Run-Checked "restore-immich" {
-    & $pwsh -NoProfile -ExecutionPolicy Bypass -File $immichPs
-  }
-
-  Run-Checked "local-ai-parity" {
+  Run-Independent "local-ai-parity" {
     & $python $parityPy
   }
 
@@ -141,7 +151,7 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
 
   if($missing.Count -eq 0){
     $complete=$true
-    Save-State "verify-all-services" "passed" "All expected local AI services are healthy."
+    Save-State "verify-all-services" "passed" "Service endpoints respond; user workflow acceptance remains separate."
     break
   }
 
@@ -161,7 +171,7 @@ if(-not $complete){
   exit 2
 }
 
-Save-State "complete" "passed" "Local AI stack completed and verified."
+Save-State "service-health" "passed" "Service endpoints respond; generation, n8n execution, and Immich library checks still required."
 Write-Host ""
-Write-Host "AUTOPILOT COMPLETE // local AI server work verified end-to-end."
+Write-Host "SERVICE HEALTH PASS // complete user workflow acceptance before declaring completion."
 exit 0

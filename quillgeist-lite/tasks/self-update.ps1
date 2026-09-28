@@ -146,6 +146,18 @@ try {
 } catch {}
 
 $restartHelper = Join-Path $HomeDir "apply-self-update.ps1"
+if ($runnerPid -le 0) {
+  try {
+    $heartbeat = Get-Content -LiteralPath (Join-Path $HomeDir "runner-heartbeat.json") -Raw | ConvertFrom-Json
+    $candidatePid = [int]$heartbeat.pid
+    if ($candidatePid -gt 0) {
+      $candidate = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $candidatePid) -ErrorAction Stop
+      if ([string]$candidate.CommandLine -like ("*" + $HomeDir + "*") -and [string]$candidate.CommandLine -match '(?i)(launcher|runner)\.ps1') {
+        $runnerPid = $candidatePid
+      }
+    }
+  } catch {}
+}
 $helperContent = @'
 param(
   [int]$RunnerPid,

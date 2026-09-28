@@ -199,6 +199,9 @@ function Ensure-ModernPowerShell {
     if ($resolved -and (Test-Path $resolved) -and $PSVersionTable.PSEdition -ne "Core") {
       Write-Host "PWSH // switching qq runtime to PowerShell 7" -ForegroundColor Cyan
       $env:QUILLGEIST_PWSH_BOOTSTRAPPED = "1"
+      # The child is a different process and must be able to claim ownership.
+      $launcherMutex.ReleaseMutex()
+      $script:launcherOwnsMutex = $false
       & $resolved -NoLogo -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
       exit $LASTEXITCODE
     }
@@ -229,6 +232,17 @@ function Show-WindowLoadSplash {
   }
 }
 
+# Claim the same OS-owned mutex as runner.ps1 before publishing PID/heartbeat
+# or syncing files. A rejected duplicate must never erase the active owner.
+$launcherMutex = New-Object System.Threading.Mutex($false, "Local\ClintwareQuillgeistLiteV3")
+$launcherOwnsMutex = $false
+try { $launcherOwnsMutex = $launcherMutex.WaitOne(0,$false) }
+catch [System.Threading.AbandonedMutexException] { $launcherOwnsMutex = $true }
+if (-not $launcherOwnsMutex) {
+  $launcherMutex.Dispose()
+  return
+}
+try {
 Set-Content -Path $PidPath -Value $PID -Encoding ASCII
 @{state="starting";pid=$PID;runner_id=$env:COMPUTERNAME;timestamp=(Get-Date).ToUniversalTime().ToString("o")} | ConvertTo-Json | Set-Content -Path (Join-Path $HomeDir "runner-heartbeat.json") -Encoding UTF8
 Set-ClintwareBaseTheme
@@ -238,7 +252,6 @@ Ensure-ModernPowerShell
 Sync-LatestQQFunctionality
 if($env:QQ_HEADLESS -ne "1"){Show-WindowLoadSplash}
 
-try {
   $updated = Update-LocalRunner
   Set-Content -Path $PidPath -Value $PID -Encoding ASCII
 
@@ -264,5 +277,12 @@ catch {
   exit 1
 }
 finally {
-  Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
+  try {
+    if ((Test-Path $PidPath) -and (Get-Content $PidPath -Raw).Trim() -eq [string]$PID) {
+      Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
+    }
+  } finally {
+    if ($launcherOwnsMutex) { try { $launcherMutex.ReleaseMutex() } catch {} }
+    $launcherMutex.Dispose()
+  }
 }

@@ -216,7 +216,7 @@ def snapshot(context_tokens=4096):
     if shutil.which("ollama"):
         code, _ = run([shutil.which("ollama"), "list"], 6)
         runtimes.append({"runtime": "ollama", "ready": code == 0, "path": shutil.which("ollama")})
-    llama = next((shutil.which(x) for x in ["llama-cli", "llama-cli.exe", "main", "main.exe"] if shutil.which(x)), None)
+    llama = next((shutil.which(x) for x in (["llama-cli.exe"] if os.name == "nt" else ["llama-cli", "main"]) if shutil.which(x)), None)
     if llama:
         runtimes.append({"runtime": "llama.cpp", "ready": True, "path": llama})
     bitnet_cli = bitnet_executable("llama-cli")
@@ -261,7 +261,7 @@ def benchmark(selector, prompt, max_tokens=48):
             return {"ok": False, "error": "bitnet_cli_not_available"}
         code, output = run([exe, "-m", model["path"], "-p", prompt, "-n", str(max_tokens), "-c", "4096", "-t", str(max(1, (os.cpu_count() or 4) // 2)), "--no-display-prompt"], 120)
     else:
-        exe = next((shutil.which(x) for x in ["llama-cli", "llama-cli.exe", "main", "main.exe"] if shutil.which(x)), None)
+        exe = next((shutil.which(x) for x in (["llama-cli.exe"] if os.name == "nt" else ["llama-cli", "main"]) if shutil.which(x)), None)
         if not exe:
             return {"ok": False, "error": "llama_cli_not_available"}
         code, output = run([exe, "-m", model["path"], "-p", prompt, "-n", str(max_tokens), "--no-display-prompt"], 60)
@@ -338,6 +338,42 @@ def provider_responder_path() -> Path:
     return Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Clintware" / "QuillgeistLite" / "provider_responder.py"
 
 
+def diagnostics():
+    """Bounded existing-stack evidence. Never return container environments or .env files."""
+    result = {"host": platform.node(), "services": services(), "containers": [], "bitnet_build_logs": [], "launchers": []}
+    docker = shutil.which("docker")
+    if docker:
+        code, output = run([docker, "ps", "-a", "--format", "{{json .}}"], 15)
+        if code == 0:
+            for line in output.splitlines()[:50]:
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                name = row.get("Names", "")
+                if not re.search(r"immich|n8n|webui|searx|pipeline", name, re.I):
+                    continue
+                item = {k: row.get(k) for k in ("ID", "Names", "Image", "Status", "Ports")}
+                rc, detail = run([docker, "inspect", "--format", '{{json .Mounts}}', row["ID"]], 10)
+                if rc == 0:
+                    try:
+                        item["mounts"] = json.loads(detail)
+                    except ValueError:
+                        pass
+                result["containers"].append(item)
+    for root in (Path(r"F:\AI-Data\BitNet"), Path(r"C:\AI\BitNet")):
+        log = root / "logs" / "compile.log"
+        if log.is_file():
+            with log.open("rb") as handle:
+                handle.seek(max(0, log.stat().st_size - 10000))
+                result["bitnet_build_logs"].append({"path": str(log), "tail": handle.read(10000).decode("utf-8", errors="replace")})
+    root = Path(r"C:\AI\LOCAL-CHATGPT")
+    for folder in (root, root / "scripts"):
+        if folder.is_dir():
+            result["launchers"].extend(str(p) for p in list(folder.iterdir())[:100] if p.is_file() and p.suffix.lower() in {".ps1", ".bat", ".cmd"})
+    return result
+
+
 def provider_status():
     script = provider_responder_path()
     if not script.exists():
@@ -390,12 +426,15 @@ def provider_test(prompt: str):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "diagnostics":
+        print(json.dumps(diagnostics(), indent=2))
+        return
     if a.Action == "services":
         print(json.dumps({"services": services()}, indent=2))
         return
