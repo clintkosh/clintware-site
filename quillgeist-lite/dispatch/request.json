@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-memoria-identity-preflight-20260928-1558",
-  "task_id": "clintware-doctor",
+  "request_id": "chatgpt-memoria-selfupdate-codexrepair-20260928-1602",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
   "args": {},
-  "objective": "Inspect MEMORIA local QQ/runtime state before repairing Codex and Microsoft organization profile. Confirm target device, runner/task registry health, and local prerequisites. Make no identity or credential changes."
+  "objective": "Update MEMORIA Quillgeist Lite to the latest reviewed runtime and task registry so the new repair-codex-org-identity task is locally available. Resume after restart and verify the MEMORIA agent reconnects."
 }
