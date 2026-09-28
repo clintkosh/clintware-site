@@ -49,3 +49,14 @@ test("native chat maintenance still enforces product scope and task arguments", 
   assert.equal((await harness.handler({ task_id: "self-update", args: { shell: "unreviewed" } })).isError, true);
   assert.equal(harness.requests.length, 0);
 });
+
+test("QQ autonomous recovery remains bounded and excludes interactive approval flows", () => {
+  assert.match(source, /async scheduleQuillgeistLiteRecovery\(job\)/);
+  assert.match(source, /async continueQuillgeistLiteRecovery\(job\)/);
+  assert.match(source, /queueQuillgeistLiteRecoveryStep\("self-update"/);
+  assert.match(source, /queueQuillgeistLiteRecoveryStep\("repair-local-service"/);
+  assert.match(source, /followup\.stage==="retry"/);
+  assert.match(source, /startsWith\("clintware-auto-recovery"\)/);
+  assert.match(source, /\["browser-work","finish-google-oauth","google-cloud-support-access"\]/);
+});
+
