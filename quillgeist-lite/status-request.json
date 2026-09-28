@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-28T21:49:20Z",
-  "reason": "verify MEMORIA self-update recovery delivery and DRIZNET connectivity after control-plane redeploy trigger"
+  "requested_at": "2026-09-28T21:52:10Z",
+  "reason": "verify DRIZNET received Codex home fix and MEMORIA recovery state"
 }
