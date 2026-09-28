@@ -1,9 +1,9 @@
 {
-  "request_id": "memoria-docker-build-diagnostics-20260928-2054",
-  "task_id": "local-ai",
+  "request_id": "memoria-independent-recovery-20260928-2056",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "diagnostics"
+    "MaxPasses": "1"
   },
-  "objective": "Read-only MEMORIA Docker mount and BitNet compile failure diagnostics; preserve all data and D: exclusion."
+  "objective": "Recover existing Docker AI services and locate/restore existing Immich while independently recording BitNet compile and gateway blockers. Preserve data and do not touch D:."
 }
