@@ -370,9 +370,52 @@ namespace Clintware.QuillgeistLite
             }
         }
 
+        private bool FreshBusyHeartbeatActive()
+        {
+            try
+            {
+                string home = Path.GetDirectoryName(config.RunnerPidPath);
+                string heartbeat = Path.Combine(home, "runner-heartbeat.json");
+                if (!File.Exists(heartbeat)) return false;
+
+                double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat)).TotalSeconds;
+                if (age < 0 || age > 120) return false;
+
+                string state = File.ReadAllText(heartbeat);
+                if (!Regex.IsMatch(state, "\\"state\\"\\s*:\\s*\\"busy\\"")) return false;
+
+                Match pidMatch = Regex.Match(state, "\\"pid\\"\\s*:\\s*(\\d+)");
+                if (!pidMatch.Success) return false;
+
+                int pid;
+                if (!Int32.TryParse(pidMatch.Groups[1].Value, out pid) || pid <= 0) return false;
+                Process p = Process.GetProcessById(pid);
+                return !p.HasExited;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void EnsureRunner(bool forceWake = false)
         {
-            if (MaintenanceModeActive(forceWake)) return;
+            // A long-running allowlisted task can keep the runner's WebSocket
+            // quiet enough for the control plane to emit a wake. The task's
+            // local busy heartbeat is authoritative execution evidence; never
+            // terminate that runner merely to satisfy a reconnect wake.
+            if (FreshBusyHeartbeatActive())
+            {
+                if (forceWake)
+                {
+                    string deferred = "wake_deferred_runner_busy";
+                    LocalLog(deferred);
+                    TryPost("INFO", "wake", deferred, true);
+                }
+                return;
+            }
+
+            if (MaintenanceModeActive(false)) return;
             DateTime now = DateTime.UtcNow;
             if ((now - lastRestartAttemptUtc).TotalSeconds < 15) return;
 
