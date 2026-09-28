@@ -10,6 +10,13 @@ on:
       - "quillgeist-lite/tasks.json"
       - "quillgeist-lite/tasks/**"
       - "quillgeist-lite/tools/**"
+      - "quillgeist-lite/install.ps1"
+      - "quillgeist-lite/launch-visible.ps1"
+      - "quillgeist-lite/uninstall.ps1"
+      - "quillgeist-lite/bootstrapper/**"
+      - "quillgeist-lite/service/**"
+      - "quillgeist-lite/assets/**"
+      - "identity-broker/scripts/**"
       - ".github/workflows/deploy-control-plane.yml"
   pull_request:
     paths:
@@ -19,6 +26,13 @@ on:
       - "quillgeist-lite/tasks.json"
       - "quillgeist-lite/tasks/**"
       - "quillgeist-lite/tools/**"
+      - "quillgeist-lite/install.ps1"
+      - "quillgeist-lite/launch-visible.ps1"
+      - "quillgeist-lite/uninstall.ps1"
+      - "quillgeist-lite/bootstrapper/**"
+      - "quillgeist-lite/service/**"
+      - "quillgeist-lite/assets/**"
+      - "identity-broker/scripts/**"
       - ".github/workflows/deploy-control-plane.yml"
   workflow_dispatch:
 
