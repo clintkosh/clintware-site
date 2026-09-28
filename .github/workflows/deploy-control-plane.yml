@@ -5,10 +5,20 @@ on:
     branches: [main]
     paths:
       - "control-plane/**"
+      - "quillgeist-lite/runner.ps1"
+      - "quillgeist-lite/launcher.ps1"
+      - "quillgeist-lite/tasks.json"
+      - "quillgeist-lite/tasks/**"
+      - "quillgeist-lite/tools/**"
       - ".github/workflows/deploy-control-plane.yml"
   pull_request:
     paths:
       - "control-plane/**"
+      - "quillgeist-lite/runner.ps1"
+      - "quillgeist-lite/launcher.ps1"
+      - "quillgeist-lite/tasks.json"
+      - "quillgeist-lite/tasks/**"
+      - "quillgeist-lite/tools/**"
       - ".github/workflows/deploy-control-plane.yml"
   workflow_dispatch:
 
