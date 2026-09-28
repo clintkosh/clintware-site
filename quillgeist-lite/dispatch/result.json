@@ -1,14 +1,14 @@
 {
-  "request_id": "qq-open-entra-existing-edge-process-path-20260928",
-  "job_id": "b4c20eec-5ece-4833-b635-f75662cbcf57",
+  "request_id": "qq-open-entra-existing-edge-runtime-v1-20260928",
+  "job_id": "3f0649d1-1af9-4b8e-a491-7400cf229bea",
   "task_id": "open-edge-tab",
   "target_device": "DRIZNET",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 980,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 1004,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T18:05:23.8219415Z",
-  "recorded_at": 1790618725,
-  "output_tail": "[run] \u001b[31;1mStart-Process: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\open-edge-tab.ps1:21\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  21 | \u001b[0m \u001b[36;1mStart-Process -FilePath $edge -ArgumentList @(\"--new-tab\", $uri.Absol\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mThis command cannot be run due to the error: An error occurred trying to start process 'C' with working\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mdirectory 'C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite'. The system cannot find the file specified.\u001b[0m"
+  "confirmed_at": "2026-09-28T18:08:36.1371196Z",
+  "recorded_at": 1790618917,
+  "output_tail": "[run] OPENED EDGE TAB // https://entra.microsoft.com/"
 }
