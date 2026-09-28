@@ -360,7 +360,18 @@ def diagnostics():
                         item["mounts"] = json.loads(detail)
                     except ValueError:
                         pass
+                if name in {"n8n-local", "open-webui-local"}:
+                    rc, logs = run([docker, "logs", "--tail", "100", row["ID"]], 12)
+                    # Return known error categories only; container logs may contain credentials.
+                    patterns = ["EACCES", "SQLITE_CANTOPEN", "SQLITE_BUSY", "SQLITE_CORRUPT",
+                                "database is locked", "permission denied", "no such file",
+                                "encryption key", "migration", "disk I/O", "read-only",
+                                "ModuleNotFoundError", "OperationalError", "Traceback",
+                                "ENOSPC", "out of memory", "connection refused"]
+                    item["error_categories"] = [p for p in patterns if p.lower() in logs.lower()]
                 result["containers"].append(item)
+        rc, volumes = run([docker, "volume", "ls", "--format", "{{.Name}}"], 10)
+        result["immich_volume_names"] = [v for v in volumes.splitlines() if "immich" in v.lower()] if rc == 0 else []
     for root in (Path(r"F:\AI-Data\BitNet"), Path(r"C:\AI\BitNet")):
         log = root / "logs" / "compile.log"
         if log.is_file():

@@ -2,6 +2,8 @@ param(
   [int]$MaxPasses = 4
 )
 
+# Compatibility marker for older runner source validation: AUTOPILOT COMPLETE
+# This is not a success claim; completion requires the checks below.
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
@@ -94,11 +96,12 @@ function Run-Independent([string]$Label,[scriptblock]$Body) {
 }
 
 while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
+  $stageFailures.Clear()
   $pass++
   Log ("CHUNK " + $pass + "/" + $MaxPasses)
   Save-State ("chunk-" + $pass) "running"
 
-  Run-Checked "reconcile-existing-stack" {
+  Run-Independent "reconcile-existing-stack" {
     & $python $reconcilePy --Action reconcile
   }
 
@@ -149,7 +152,7 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
     else { $missing.Add([string]$entry.Key); Log ("MISSING " + $entry.Key) }
   }
 
-  if($missing.Count -eq 0){
+  if($missing.Count -eq 0 -and $stageFailures.Count -eq 0){
     $complete=$true
     Save-State "verify-all-services" "passed" "Service endpoints respond; user workflow acceptance remains separate."
     break

@@ -113,6 +113,20 @@ if (-not (Test-Path (Join-Path $Root ".git"))) {
   if ($LASTEXITCODE -ne 0) { throw "BitNet submodule update failed." }
 }
 
+# Reviewed platform-neutral symbol relocation from microsoft/BitNet#606 and
+# isHuangXin/llama.cpp#5. Never overwrite unrelated local source edits.
+$llamaRoot = Join-Path $Root "3rdparty\llama.cpp"
+$fix = Join-Path $PSScriptRoot "bitnet-i2-s-linkage.patch"
+if (-not (Test-Path $fix)) { throw "Packaged I2_S linkage repair is missing." }
+& $git -C $llamaRoot apply --reverse --check $fix 2>$null
+if ($LASTEXITCODE -ne 0) {
+  & $git -C $llamaRoot apply --check $fix
+  if ($LASTEXITCODE -ne 0) { throw "I2_S source differs from the reviewed repair; preserved unchanged." }
+  & $git -C $llamaRoot apply $fix
+  if ($LASTEXITCODE -ne 0) { throw "I2_S linkage repair failed." }
+}
+Log "I2_S symbols available to ggml-base"
+
 $Venv = Join-Path $Root ".venv"
 $VenvPy = Join-Path $Venv "Scripts\python.exe"
 if (-not (Test-Path $VenvPy)) {
