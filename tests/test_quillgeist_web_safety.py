@@ -48,6 +48,24 @@ class QuillgeistWebSafetyTests(unittest.TestCase):
         text = (ROOT / "quillgeist-lite" / "tasks" / "browser-work.ps1").read_text(encoding="utf-8")
         self.assertIn('"auto","google","brave","bing","duckduckgo"', text)
 
+    def test_browser_wrapper_routes_runtime_through_control_plane(self):
+        text = (ROOT / "quillgeist-lite" / "tasks" / "browser-work.ps1").read_text(encoding="utf-8")
+        self.assertIn("https://mcp.clintware.com/api/v1/quillgeist-lite/runtime", text)
+        self.assertNotIn("raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite", text)
+
+    def test_browser_registry_supports_auth_assist_without_private_network_override(self):
+        data = json.loads((ROOT / "quillgeist-lite" / "tasks.json").read_text(encoding="utf-8"))
+        params = data["tasks"]["browser-work"]["parameters"]
+        self.assertIn("UserWaitMs", params)
+        self.assertNotIn("AllowPrivate", params)
+
+    def test_browser_agent_has_continuation_and_safe_wait_steps(self):
+        text = AGENT_PATH.read_text(encoding="utf-8")
+        self.assertIn('action=="assist"', text)
+        self.assertIn('action=="resume"', text)
+        self.assertIn('op=="wait_for_url"', text)
+        self.assertIn('op=="wait_for_text"', text)
+
 
 if __name__ == "__main__":
     unittest.main()
