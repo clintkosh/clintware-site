@@ -1,7 +1,7 @@
 {
   "version": 16,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq inventories local capabilities before routing, self-heals canonical runtime files, provides governed persistent Playwright web automation with safe user-auth handoff, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq inventories local capabilities before routing, self-heals canonical runtime files, provides governed persistent browser automation with visible takeover signaling, hands provider authentication to the user's normal system browser, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
     "powershell",
     "python",
@@ -133,7 +133,7 @@
       "parameters": []
     },
     "browser-work": {
-      "title": "Search/read the live web or operate the governed persistent browser, including visible user-auth assist and continuation",
+      "title": "Operate the governed persistent QQ browser with visible control signaling; provider sign-in UI is never automated",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/browser-work.ps1",
       "parameters": [
@@ -252,7 +252,7 @@
       "timeout_seconds": 900
     },
     "open-edge-tab": {
-      "title": "Open an HTTPS URL as a new tab in the user's existing Microsoft Edge session",
+      "title": "Open an HTTPS URL in the user's normal Microsoft Edge session without QQ automation flags",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/open-edge-tab.ps1",
       "parameters": [
