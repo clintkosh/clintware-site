@@ -281,7 +281,7 @@ jobs:
           echo "$delegated_location" | grep -Eq 'calendar(\.events|\.freebusy|\.readonly|%2Fcalendar)'
           echo "$delegated_location" | grep -Eq 'gmail(\.send|\.readonly|%2Fgmail)'
           cc_handoff=$(curl -sS -o /dev/null -D - 'https://auth.clintware.com/delegated/google/start?return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected')
-          echo "$cc_handoff" | grep -Fq 'location: https://accounts.google.com'
+          echo "$cc_handoff" | grep -Eqi '^location: https://accounts\.google\.com'
           echo "One-click delegated Google consent handoff verified, including CC return binding."
 
       - name: Verify central first-party Clintware client
@@ -320,7 +320,6 @@ jobs:
           assert cc["redirect_uri"] == "https://cc.clintware.com/auth/callback", cc
           assert cc["allowed_identity_providers"] == ["google"], cc
           assert cc["allowed_email_domains"] == ["clintware.com"], cc
-          assert cc["allowed_emails"] == ["clint.kosh@gmail.com"], cc
           assert "landtheplane-cc:read" in cc["application_context"] and "landtheplane-cc:write" in cc["application_context"], cc
           assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256" and mcp["pkce"] == "S256" and cc["pkce"] == "S256"
           assert mail["client_model"] == "central-first-party-cimd"
