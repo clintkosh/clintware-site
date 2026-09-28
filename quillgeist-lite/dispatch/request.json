@@ -1,14 +1,8 @@
 {
-  "request_id": "qq-browser-entra-inspect-driznet-20260928-1331",
-  "task_id": "browser-work",
+  "request_id": "qq-capability-v16-driznet-20260928-1908",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "inspect",
-    "Url": "https://entra.microsoft.com/",
-    "Headless": "false",
-    "Approved": "false",
-    "AllowPrivate": "false",
-    "WaitMs": "1200"
-  },
-  "objective": "Inspect the current Microsoft Entra page through the governed QQ browser on DRIZNET so the existing tenant/sign-in failure can be repaired without asking the user to run commands."
+  "args": {},
+  "resume_after": true,
+  "objective": "Update DRIZNET to the capability-aware QQ v1.10.0 / registry v16 runtime, including browser assist/continuation and control-plane-first runtime delivery, restart safely, then resume queued work."
 }
