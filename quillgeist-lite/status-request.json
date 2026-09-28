@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-28T21:47:30Z",
-  "reason": "reconcile DRIZNET Codex identity repair registration and MEMORIA finish-local-ai execution; report both devices and current jobs"
+  "requested_at": "2026-09-28T21:49:20Z",
+  "reason": "verify MEMORIA self-update recovery delivery and DRIZNET connectivity after control-plane redeploy trigger"
 }
