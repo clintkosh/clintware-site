@@ -1,9 +1,9 @@
 {
-  "request_id": "oauth-recorder-new-job-check-20260928",
+  "request_id": "landtheplane-atlassian-status-20260928-1631",
   "mode": "inspect",
-  "recorded_at": 1790630895,
+  "recorded_at": 1790630989,
   "inspection": {
-    "online": 1,
+    "online": 0,
     "recovery_online": 0,
     "wake_online": 1,
     "recovery": null,
@@ -37,40 +37,7 @@
       "source_revision": "4bf756bf99dfe2d44b8d0bde0999007fc44ad0cc",
       "registry_version": "16"
     },
-    "connected_devices": [
-      {
-        "device_id": "MEMORIA",
-        "connected_at": "2026-09-28T21:27:10.600Z",
-        "runner": {
-          "runner_id": "MEMORIA",
-          "version": "1.9.10",
-          "capabilities": [
-            "interactive_relay",
-            "question_poll",
-            "allowlisted_tasks",
-            "local_shell_escape",
-            "web_search",
-            "web_read",
-            "browser_automation",
-            "manual_browser_login",
-            "responder_agent",
-            "portable_local_responder",
-            "local_first_inference",
-            "infra_usage_gauge",
-            "event_driven_usage",
-            "subscription_responder",
-            "provider_usage_estimates",
-            "reset_countdown",
-            "workers_ai_responder",
-            "fast_responder_fallback"
-          ],
-          "connected_at": "2026-09-28T21:27:10.600Z",
-          "last_seen": "2026-09-28T21:27:10.628Z",
-          "source_revision": "4bf756bf99dfe2d44b8d0bde0999007fc44ad0cc",
-          "registry_version": "16"
-        }
-      }
-    ],
+    "connected_devices": [],
     "service_devices": [
       {
         "device_id": "MEMORIA",
@@ -159,84 +126,36 @@
     ],
     "diagnostics": [
       {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:28:22.2124070Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:28:22.0904955Z"
-      },
-      {
-        "device_id": "MEMORIA",
+        "device_id": "DRIZNET",
         "level": "WARN",
         "phase": "health",
         "kind": "other",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:28:06.7565778Z"
+        "timestamp": "2026-09-28T21:29:35.4722783Z"
       },
       {
-        "device_id": "MEMORIA",
+        "device_id": "DRIZNET",
         "level": "WARN",
         "phase": "health",
         "kind": "other",
         "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:28:05.8601123Z"
+        "timestamp": "2026-09-28T21:29:34.5666335Z"
       },
       {
-        "device_id": "MEMORIA",
+        "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "health",
         "kind": "other",
         "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:28:05.7415833Z"
+        "timestamp": "2026-09-28T21:29:34.4035858Z"
       },
       {
-        "device_id": "MEMORIA",
+        "device_id": "DRIZNET",
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
-        "message": "wake_bypassing_stale_restart_limit",
-        "timestamp": "2026-09-28T21:28:05.6287272Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "auto-repair",
-        "kind": "other",
-        "message": "auto_repair_complete exit=0 output=AUTO_REPAIR // reconciling qq against canonical Clintware source\r\nQQ RUNTIME RESTORED VIA CONTROL PLANE // 32 reviewed tasks\r\nQQ DEVICE CONNECTION PRESERVED // retry a fresh job\r\nAUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\nAUTO_REPAIR // refreshed runner.ps1\r\nAUTO_REPAIR // refreshed launcher.ps1\r\nAUTO_REPAIR // refreshed boot_splash.py\r\nAUTO_REPAIR // refreshed terminal_repair.py\r\nAUTO_REPAIR // refreshed provider_responder.py\r\nAUTO_REPAIR // refreshed browser_agent.py\r\nAUTO_REPAIR // refreshed start-qq-window.ps1\r\nAUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\nAUTO_REPAIR // refreshed ensure-powershell.ps1\r\nAUTO_REPAIR // refreshed repair-local-service.ps1\r\nAUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\nAUTO_REPAIR // refreshed browser-work.ps1\r\nDEDUPE_QQ // inspecting Clintware-owned qq windows\r\nDEDUPE_QQ // no duplicate qq launcher processes found\r\nAUTO_REPAIR // duplicate qq windows reconciled\r\nAUTO_REPAIR // no-focus supervised launch action verified\r\nAUTO_REPAIR WARN // terminal profile repair failed: Program 'py.exe' failed to run: An error occurred trying to start process 'C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\py.exe' with working directory 'C:\\Windows\\System32'. The file cannot be accessed by the system.At C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\auto-repair-runtime.ps1:143 char:71\r\n+ . af).ToLowerInvariant() -eq \"py.exe\") { & $python -3 $terminalRepair }\r\n+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~.\r\nAUTO_REPAIR // runner was down; no-focus recovery requested\r\nAUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n",
-        "timestamp": "2026-09-28T21:28:02.4906248Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "auto-repair",
-        "kind": "other",
-        "message": "auto_repair_started reason=restart_limit",
-        "timestamp": "2026-09-28T21:27:42.1129808Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "ERROR",
-        "phase": "health",
-        "kind": "other",
-        "message": "restart_suppressed_after_5_attempts_in_10_minutes",
-        "timestamp": "2026-09-28T21:27:41.9958342Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Running task connect-jira [powershell] (quillgeist-lite/tasks/connect-jira.ps1)",
-        "timestamp": "2026-09-28T21:27:25.5608530Z"
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-09-28T21:29:34.0127505Z"
       },
       {
         "device_id": "MEMORIA",
@@ -244,7 +163,7 @@
         "phase": "health",
         "kind": "other",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:27:23.0029850Z"
+        "timestamp": "2026-09-28T21:29:23.2341916Z"
       },
       {
         "device_id": "MEMORIA",
@@ -252,15 +171,63 @@
         "phase": "health",
         "kind": "other",
         "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:27:22.1246386Z"
+        "timestamp": "2026-09-28T21:29:22.3404469Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:29:22.2071423Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:29:03.3699647Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:29:02.4640242Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:29:02.1735389Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:28:43.1430811Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:28:42.2680163Z"
       }
     ],
     "selected_job": {
-      "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
-      "task_id": "record-google-oauth-verification",
+      "job_id": "24197a7a-d197-4ce6-9465-22d857f443bc",
+      "task_id": "connect-jira",
       "status": "running",
       "requested_by": "root",
-      "created_at": "2026-09-28T21:20:03.420Z",
+      "created_at": "2026-09-28T21:27:18.223Z",
       "completed_at": null,
       "duration_ms": null,
       "exit_code": null,
@@ -269,38 +236,32 @@
         {
           "seq": 1,
           "phase": null,
-          "timestamp": "2026-09-28T21:20:04.8723278Z",
-          "line": "READY // qq browser runtime already installed"
+          "timestamp": "2026-09-28T21:27:26.5005475Z",
+          "line": "Jira provider configuration is already active in the Control Plane."
         },
         {
           "seq": 2,
           "phase": null,
-          "timestamp": "2026-09-28T21:20:04.8759275Z",
-          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\browser-runtime\\Scripts\\python.exe"
+          "timestamp": "2026-09-28T21:27:26.5050223Z",
+          "line": "Requesting a scoped Jira authorization link from the Clintware Control Plane..."
         },
         {
           "seq": 3,
           "phase": null,
-          "timestamp": "2026-09-28T21:20:04.8795157Z",
-          "line": "CAPTURE // A maximized browser will open for the real Google OAuth consent flow."
+          "timestamp": "2026-09-28T21:27:26.8243921Z",
+          "line": "Opening Atlassian authorization in your default browser."
         },
         {
           "seq": 4,
           "phase": null,
-          "timestamp": "2026-09-28T21:20:04.8862877Z",
-          "line": "ACTION // Complete Google sign-in/consent in that browser. The rest of the demo is automatic."
+          "timestamp": "2026-09-28T21:27:26.8279751Z",
+          "line": "Approve the Jira site you want Clintware to use."
         },
         {
           "seq": 5,
           "phase": null,
-          "timestamp": "2026-09-28T21:20:05.3667827Z",
-          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\oauth_verification_capture.py:61: DeprecationWarning: mss.mss is deprecated and will be removed in a future release; use mss.MSS instead"
-        },
-        {
-          "seq": 6,
-          "phase": null,
-          "timestamp": "2026-09-28T21:20:05.3699713Z",
-          "line": "  with mss.mss() as sct:"
+          "timestamp": "2026-09-28T21:27:26.8316325Z",
+          "line": "qq never receives the Jira access token, refresh token, or client secret."
         }
       ]
     }
