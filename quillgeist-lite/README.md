@@ -75,6 +75,14 @@ The console opens with the Clintware/Quillgeist terminal treatment and remains a
 
 The task registry can grow as new Clintware local automations are needed.
 
+## Capability-aware routing
+
+Every QQ install now inventories its reviewed local task registry and runtime features before relaying natural-language work. The request envelope carries the available task IDs, locally recommended task IDs, local-service/model features, and the routing policy to the Control Plane.
+
+The default decision order is quality-first. Once candidate paths can meet the required correctness and fidelity, QQ prefers deterministic local tasks, then local services, local models, included provider capabilities, and only then progressively more expensive remote inference. This is routing guidance, not a permission bypass: normal task allowlists, approvals, and provider boundaries still apply.
+
+Use `capabilities`, `inventory`, or `abilities` in the local console to inspect the current inventory. The durable browser aliases are `browser skill → browser-work` and `open URL only → open-edge-tab`.
+
 ## Interactive local console
 
 The visible qq window accepts local commands while its Control Plane WebSocket remains active:
@@ -205,6 +213,8 @@ qq now provides a TinyFish-class live-web surface using the existing local Playw
 - `web read <url>` — structured page text, headings, and links.
 - `web run <json>` — bounded multi-step navigation, form, click, wait, inspect, extraction, search, and read actions.
 - `web login <url>` — visible local authentication into the persistent browser profile; credentials stay on the Windows device.
+- `web assist <url>` — visible bounded authentication/consent handoff; the user enters protected credentials locally and QQ returns the final inspected page.
+- `web resume` — reopen and inspect the last governed browser URL from local continuation state.
 
 The authenticated plugin/MCP endpoint is `https://mcp.clintware.com/mcp`. It uses the existing Clintware OAuth/PKCE flow, so a compatible client can connect through browser authorization without asking the user to paste a Control Plane API key. The current OAuth policy remains owner/admin scoped; this is not a general public remote-control grant.
 
