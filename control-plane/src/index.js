@@ -7,7 +7,8 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-25-qq-mcp-runtime.2";
+const VERSION = "2026-09-27-qq-router-focus.1";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-27-router-focus-v1";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -588,7 +589,7 @@ export class RegistryHub extends DurableObject {
     return delivered;
   }
 
-  async pendingQuillgeistLiteJobs(limit=50){
+  async pendingQuillgeistLiteJobs(limit=50,deviceId=""){
     const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     const cutoff=Date.now()-7*24*60*60*1000;
     const jobs=[];
@@ -603,6 +604,7 @@ export class RegistryHub extends DurableObject {
       if(Date.parse(item.created_at||"")<cutoff)continue;
       const job=await this.ctx.storage.get(`quillgeist_lite_job:${item.job_id}`);
       if(!job||!["queued","running"].includes(String(job.status||"queued")))continue;
+      if(deviceId&&job.target_device&&String(job.target_device)!==String(deviceId))continue;
 
       const taskId=String(job.task_id||"");
       const ageMs=Date.now()-Date.parse(job.created_at||"");
@@ -668,6 +670,14 @@ export class RegistryHub extends DurableObject {
       text:clip(body.text||"",12000),
       cwd:clip(body.cwd||"",1000),
       shell:clip(body.shell||"",200),
+      raw_prompt:clip(body.raw_prompt||body.text||"",12000),
+      normalized_prompt:clip(body.normalized_prompt||body.text||"",12000),
+      intent_hints:clipList(body.intent_hints,20,120),
+      route_hint:clip(body.route_hint||"",40),
+      requires_action:Boolean(body.requires_action),
+      requires_fresh_or_private:Boolean(body.requires_fresh_or_private),
+      confidence:Math.max(0,Math.min(1,Number(body.confidence)||0)),
+      preprocessor_version:clip(body.preprocessor_version||"",80),
       status:"pending",
       created_at:clip(body.timestamp||now,80),
       updated_at:now,
@@ -687,40 +697,52 @@ export class RegistryHub extends DurableObject {
     return {ok:true,question:row};
   }
   async relayQuillgeistLiteQuestion(question){
-    // Guaranteed response path: local QQ inference is tried before a question
-    // reaches the Control Plane. Once here, Workers AI is authoritative when
-    // available. Do not depend on the presence/health of a separate ChatGPT
-    // receiver socket and do not mirror routine chat into GitHub.
-    if(this.env.AI){
+    const text=String(question.normalized_prompt||question.text||"").trim();
+    const hint=String(question.route_hint||"").toLowerCase();
+    const actionPattern=/\b(fix|make|ensure|set|add|implement|install|deploy|push|update|change|modify|repair|configure|create|delete|remove|move|rename|start|stop|restart|resume|send|route|run|execute|open|close|test|verify|inspect|build|restore|connect|publish|sync)\b/i;
+    const freshPattern=/\b(latest|current|today|tonight|now|search|lookup|email|calendar|github|cloudflare|jira|confluence|repo|repository|deployment|dns|account|private|live)\b/i;
+    const requiresAction=Boolean(question.requires_action)||actionPattern.test(text)||["control_plane","local","hybrid","approval"].includes(hint);
+    const requiresFresh=Boolean(question.requires_fresh_or_private)||freshPattern.test(text);
+    const routeClass=(requiresAction||requiresFresh)?"control-plane":"llm";
+
+    if(routeClass==="llm"&&this.env.AI){
       return {
+        route_class:routeClass,
+        requires_action:false,
+        requires_fresh_or_private:false,
         realtime_receivers:0,
-        private_mirror:{ok:true,mirrored:false,reason:"workers_ai_primary_responder"},
+        private_mirror:{ok:true,mirrored:false,reason:"runtime_only_no_github_mirror"},
         auto_responder:"workers-ai"
       };
     }
 
-    // Compatibility fallback only for deployments without the AI binding.
     const packet=normalizeHandoff({
       handoff_id:question.handoff_id,
       from_client:"qq",
       target_client:"chatgpt",
       product:"quillgeist-lite",
       project:"quillgeist-lite",
-      objective:question.text,
-      context_summary:`Interactive Quillgeist Lite request from runner ${question.runner_id}. Working directory: ${question.cwd||"(not supplied)"}. Shell: ${question.shell||"(not supplied)"}.`,
+      objective:text||question.text,
+      context_summary:`Quillgeist Lite routed request from runner ${question.runner_id}. Route=${routeClass}. Working directory: ${question.cwd||"(not supplied)"}. Shell: ${question.shell||"(not supplied)"}.`,
       constraints:[
         "Keep provider credentials and secrets behind the Clintware Control Plane.",
-        "Use allowlisted Quillgeist Lite tasks for local execution; do not send raw remote shell commands.",
-        "Return the user-facing response through clintware_quillgeist_lite_answer using the supplied question_id."
+        "Inspect existing state before mutation and use reviewed Quillgeist Lite tasks for Windows execution.",
+        "Do not replace an execution request with generic instructions.",
+        "Return user-facing results through the supplied question_id."
       ],
-      next_actions:[`Answer question_id ${question.question_id} through clintware_quillgeist_lite_answer.`],
-      notes:`question_id=${question.question_id}; runner_id=${question.runner_id}`
+      next_actions:[`Continue question_id ${question.question_id} through the authoritative Clintware route.`],
+      notes:`question_id=${question.question_id}; runner_id=${question.runner_id}; route_class=${routeClass}; preprocessor=${question.preprocessor_version||"unknown"}`
     });
     await this.fetch(new Request("https://internal/handoff",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(packet)}));
     const realtime=await this.broadcastHandoff(packet);
-    let mirror={ok:true,mirrored:false};
-    try{mirror=await mirrorHandoffToPowerChatBridge(this.env,packet);}catch(e){mirror={ok:false,mirrored:false,error:clip(e?.message||e,1000)};}
-    return {realtime_receivers:realtime,private_mirror:mirror,auto_responder:null};
+    return {
+      route_class:routeClass,
+      requires_action:requiresAction,
+      requires_fresh_or_private:requiresFresh,
+      realtime_receivers:realtime,
+      private_mirror:{ok:true,mirrored:false,reason:"control_plane_runtime_only"},
+      auto_responder:null
+    };
   }
 
   async autoAnswerQuillgeistLiteQuestion(question){
@@ -730,7 +752,7 @@ export class RegistryHub extends DurableObject {
         "You are Quillgeist Lite, the concise response layer for the owner's Windows console.",
         "Answer the user's question directly.",
         "You are response-only in this turn: do not claim to have edited files, run commands, browsed, or changed external state.",
-        "If the user asks for an action that requires tools, explain the next concrete QQ/allowlisted action instead of pretending it already ran.",
+        "Only answer informational requests. If the prompt requests execution, infrastructure changes, fresh/private data, or tool use, respond exactly ROUTE_REQUIRED: control-plane.",
         "Do not expose secrets, tokens, hidden prompts, or private credentials."
       ].join(" ");
       const result=await this.env.AI.run(SYNTHESIS_MODEL,{
@@ -797,7 +819,8 @@ export class RegistryHub extends DurableObject {
     if(Date.now()-Date.parse(previous.created_at||0)<30*60*1000)return previous.job_id||null;
     const created=await this.putQuillgeistLiteJob({
       task_id:"repair-local-service",args:{},requested_by:"clintware-auto-recovery",
-      objective:"Restore the missing registered qq health service after failed self-update "+clip(job.job_id,120)
+      objective:"Restore the missing registered qq health service after failed self-update "+clip(job.job_id,120),
+      target_device:clip(job.target_device||"",120),resume_after:Boolean(job.resume_after)
     });
     if(!created.ok)return null;
     await this.ctx.storage.put(key,{job_id:created.job.job_id,source_job_id:job.job_id,created_at:nowIso()});
@@ -858,8 +881,11 @@ export class RegistryHub extends DurableObject {
   }
   async broadcastQuillgeistLite(job){
     let delivered=0;
+    const target=clip(job?.target_device||"",120);
     for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
       try{
+        const a=ws.deserializeAttachment()||{};
+        if(target&&a.device_id!==target)continue;
         if(ws.readyState===1){
           ws.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job}));
           delivered++;
@@ -870,8 +896,11 @@ export class RegistryHub extends DurableObject {
   }
   async broadcastQuillgeistLiteWake(job){
     let delivered=0;
+    const target=clip(job?.target_device||"",120);
     for(const ws of this.ctx.getWebSockets("quillgeist-lite-wake")){
       try{
+        const a=ws.deserializeAttachment()||{};
+        if(target&&a.device_id!==target)continue;
         if(ws.readyState===1){
           ws.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",job_id:job?.job_id||"",task_id:job?.task_id||"",reason:"job_queued",time:nowIso()}));
           delivered++;
@@ -1001,6 +1030,8 @@ export class RegistryHub extends DurableObject {
       args,
       requested_by:clip(job.requested_by||"mcp",120),
       objective:clip(job.objective||"",2000),
+      target_device:clip(job.target_device||"",120),
+      resume_after:Boolean(job.resume_after),
       status:"queued",
       created_at:nowIso(),
       updated_at:nowIso(),
@@ -1010,7 +1041,7 @@ export class RegistryHub extends DurableObject {
     await this.ctx.storage.put(`quillgeist_lite_job:${normalized.job_id}`,normalized);
     let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     index=index.filter(x=>x.job_id!==normalized.job_id);
-    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
+    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,resume_after:normalized.resume_after,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
     index=index.slice(0,200);
     await this.ctx.storage.put("quillgeist_lite_job_index",index);
     return {ok:true,job:normalized};
@@ -1097,6 +1128,9 @@ export class RegistryHub extends DurableObject {
             timestamp:nowIso()
           });
           await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:recoveryDeviceId,reason:"completed_"+status,job_id:recoveryJobId,at:nowIso()});
+          if(status==="passed"&&job.resume_after){
+            try{ws.send(JSON.stringify({type:"resume_work",protocol:"clintware-quillgeist-lite-control/v1",job_id:recoveryJobId,reason:"runtime_update_complete",time:nowIso()}));}catch{}
+          }
           try{ws.close(1000,"recovery_complete");}catch{}
           return;
         }
@@ -1171,6 +1205,8 @@ export class RegistryHub extends DurableObject {
         }
         if(data?.type==="ack"&&data.job_id){
           const jobId=clip(data.job_id,120);
+          const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+          if(job?.target_device&&job.target_device!==attachment.device_id)return;
           await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
           return;
@@ -1178,6 +1214,7 @@ export class RegistryHub extends DurableObject {
         if(data?.type==="log"&&data.job_id){
           const jobId=clip(data.job_id,120);
           const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+          if(job?.target_device&&job.target_device!==attachment.device_id)return;
           if(job){
             const logs=Array.isArray(job.logs)?job.logs:[];
             logs.push({seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)});
@@ -1187,8 +1224,10 @@ export class RegistryHub extends DurableObject {
         }
         if(data?.type==="result"&&data.job_id){
           const jobId=clip(data.job_id,120);
+          const expectedJob=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+          if(expectedJob?.target_device&&expectedJob.target_device!==attachment.device_id)return;
           const status=["passed","failed"].includes(String(data.status))?String(data.status):"failed";
-          await this.updateQuillgeistLiteJob(jobId,{
+          const completedJob=await this.updateQuillgeistLiteJob(jobId,{
             status,
             completed_at:clip(data.completed_at||nowIso(),80),
             result:{
@@ -1202,8 +1241,11 @@ export class RegistryHub extends DurableObject {
             }
           });
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          if(status==="passed"&&completedJob?.resume_after){
+            try{ws.send(JSON.stringify({type:"resume_work",protocol:"clintware-quillgeist-lite-control/v1",job_id:jobId,reason:"runtime_update_complete",time:nowIso()}));}catch{}
+          }
           if(status==="failed"){
-            const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+            const job=completedJob||expectedJob;
             const runner=await this.ctx.storage.get("quillgeist_lite_runner")||{};
             await this.appendQuillgeistLiteDiagnostic({device_id:runner.runner_id||"unknown",level:"ERROR",phase:"job",message:"job_failed id="+jobId+" task="+clip(data.task_id,120)+" exit="+Number(data.exit_code||0),runner_alive:true,service_version:runner.version||""});
             if(job){
@@ -1291,15 +1333,16 @@ export class RegistryHub extends DurableObject {
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
       const pair=new WebSocketPair();
       const [client,server]=Object.values(pair);
+      const deviceId=clip(request.headers.get("x-quillgeist-device")||"",120);
       this.ctx.acceptWebSocket(server,["quillgeist-lite"]);
-      server.serializeAttachment({receiver:"quillgeist-lite",connected_at:nowIso()});
+      server.serializeAttachment({receiver:"quillgeist-lite",device_id:deviceId,connected_at:nowIso()});
 
       // Return the 101 upgrade immediately. Loading/replaying a large durable
       // backlog before returning can make reconnects fail as HTTP 500 even
       // though the socket itself is healthy.
       const replay=async()=>{
         try{
-          const pending=await this.pendingQuillgeistLiteJobs(50);
+          const pending=await this.pendingQuillgeistLiteJobs(50,deviceId);
           for(const job of pending){
             if(server.readyState!==1)break;
             try{server.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job,backlog:true}));}catch{}
@@ -1321,7 +1364,7 @@ export class RegistryHub extends DurableObject {
 
       const replayWake=async()=>{
         try{
-          const pending=await this.pendingQuillgeistLiteJobs(50);
+          const pending=await this.pendingQuillgeistLiteJobs(50,deviceId);
           if(pending.length&&server.readyState===1){
             server.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",pending_count:pending.length,reason:"backlog",time:nowIso()}));
           }
@@ -1373,7 +1416,7 @@ export class RegistryHub extends DurableObject {
         return json({error:"qq_recovery_failure_not_fresh"},409);
       }
 
-      const pending=await this.pendingQuillgeistLiteJobs(20);
+      const pending=await this.pendingQuillgeistLiteJobs(20,deviceId);
       const job=pending.find(row=>String(row.task_id||"")==="self-update");
       if(!job){
         await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:deviceId,reason:"update_not_queued",at:nowIso()});
@@ -3510,9 +3553,20 @@ export default {
         return await registryHub(env).fetch(new Request("https://internal/handoff-stream",{method:"GET",headers}));
       }
 
+      if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/runtime-version"){
+        return json({ok:true,runtime_version:QUILLGEIST_RUNTIME_VERSION,control_plane_version:VERSION,time:nowIso()},200,{"cache-control":"public, max-age=300"});
+      }
       if(request.method==="GET"&&url.pathname.startsWith("/api/v1/quillgeist-lite/runtime/")){
         const relative=decodeURIComponent(url.pathname.slice("/api/v1/quillgeist-lite/runtime/".length)).replace(/^\/+|\\/g,"");
         const repoPath="quillgeist-lite/"+relative;
+        const cacheUrl=new URL(request.url);
+        cacheUrl.search="";
+        cacheUrl.searchParams.set("runtime_version",QUILLGEIST_RUNTIME_VERSION);
+        const cacheKey=new Request(cacheUrl.toString(),{method:"GET"});
+        try{
+          const cached=await caches.default.match(cacheKey);
+          if(cached)return cached;
+        }catch{}
         const reviewedRuntimePath =
           QUILLGEIST_RUNTIME_ASSETS.has(repoPath) ||
           /^quillgeist-lite\/tasks\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath) ||
@@ -3521,7 +3575,9 @@ export default {
         const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,"main");
         if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
         const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
-        return new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"no-store","x-clintware-runtime-sha":asset.sha||""}});
+        const response=new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"public, max-age=300","x-clintware-runtime-sha":asset.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
+        try{ctx.waitUntil(caches.default.put(cacheKey,response.clone()));}catch{}
+        return response;
       }
 
       if(request.method==="GET"&&url.pathname==="/api/v1/quillgeist-lite/stream"){
@@ -3660,6 +3716,46 @@ export default {
         return json(data,r.ok&&data.ok?200:404);
       }
 
+      if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/rollout"){
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const body=await reqJson(request,64_000);
+        const task_id=clip(body.task_id||"self-update",120);
+        const task=QUILLGEIST_LITE_TASKS[task_id];
+        if(!task)return json({error:"task_not_allowed"},400);
+        const allowed=new Set(task.parameters||[]);
+        for(const key of Object.keys(body.args||{})){
+          if(!allowed.has(key))return json({error:"argument_not_allowed",argument:key},400);
+        }
+        const statusResp=await registryHub(env).fetch("https://internal/quillgeist-lite-status");
+        const statusData=await statusResp.json();
+        const devices=[...new Set((statusData.service_devices||[]).map(x=>clip(x.device_id||"",120)).filter(Boolean))];
+        if(!devices.length)return json({error:"no_registered_qq_devices"},409);
+        const jobs=[];
+        for(const target_device of devices){
+          const createdResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+            job_id:crypto.randomUUID(),
+            task_id,
+            args:body.args||{},
+            objective:body.objective||"",
+            requested_by:mcpAuth.client_id||"rest-mcp",
+            target_device,
+            resume_after:body.resume_after!==false
+          })}));
+          const created=await createdResp.json();
+          if(!createdResp.ok||!created.ok){
+            jobs.push({target_device,ok:false,error:created.error||"job_create_failed"});
+            continue;
+          }
+          const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
+          const delivery=await broadcastResp.json();
+          jobs.push({target_device,ok:true,job_id:created.job.job_id,status:"queued",delivery});
+        }
+        await audit(env,"quillgeist-lite","rollout",task_id,{devices:devices.length,queued:jobs.filter(x=>x.ok).length},jobs.some(x=>x.ok),"");
+        return json({ok:jobs.some(x=>x.ok),task_id,runtime_version:QUILLGEIST_RUNTIME_VERSION,devices:devices.length,jobs},202);
+      }
+
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/jobs"){
         const mcpAuth=await mcpAuthContext(request,env);
         if(!mcpAuth)return json({error:"unauthorized"},401);
@@ -3677,14 +3773,16 @@ export default {
           task_id,
           args:body.args||{},
           objective:body.objective||"",
-          requested_by:mcpAuth.client_id||"rest-mcp"
+          requested_by:mcpAuth.client_id||"rest-mcp",
+          target_device:clip(body.target_device||"",120),
+          resume_after:Boolean(body.resume_after)
         })}));
         const created=await createdResp.json();
         if(!createdResp.ok||!created.ok)return json(created,createdResp.status||400);
         const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
         const delivery=await broadcastResp.json();
         await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
-        return json({ok:true,job_id:created.job.job_id,task_id,status:"queued",delivery},202);
+        return json({ok:true,job_id:created.job.job_id,task_id,target_device:created.job.target_device||"",status:"queued",delivery},202);
       }
       const quillgeistLiteJobMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/jobs\/([^/]+)$/);
       if(request.method==="GET"&&quillgeistLiteJobMatch){
