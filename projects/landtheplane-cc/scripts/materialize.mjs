@@ -38,7 +38,7 @@ s=s.replace(
 );
 s=s.replace(
   /const VALID_PROVENANCE=new Set\(\[[^\n]+\]\);/,
-  'const VALID_PROVENANCE=new Set(["customer_provided","internal_record","internal_proposal","derived_calculation","ai_suggestion","template","scenario","synthetic_sample","public_research","google_evidence","calendar_evidence","search_digest"]);'
+  'const VALID_PROVENANCE=new Set(["customer_provided","internal_record","internal_proposal","derived_calculation","ai_suggestion","template","scenario","synthetic_sample","public_research","google_evidence","calendar_evidence","search_digest","atlassian_sync"]);'
 );
 
 const userPolicy=/function userAllowed\(u\)\{[\s\S]*?\}\nfunction userCanWrite\(u\)\{[\s\S]*?\}/;
@@ -58,7 +58,7 @@ const seedNeedle='if(!v||Number(v.version)<SAMPLE_SEED_VERSION){this.seedDefault
 mustReplace(seedNeedle,'if(!v||Number(v.version)<SAMPLE_SEED_VERSION){this.sql.exec("INSERT OR REPLACE INTO workspace_seed(workspace_id,version,updated_at) VALUES(?,?,?)",workspace,SAMPLE_SEED_VERSION,t)}',"disable sample seed");
 
 const stateNeedle='if(m==="GET"&&p==="/state"){';
-const boardRoute=`if(m==="GET"&&p==="/career-board"){const wanted=new Set(["job_profile","application_event","interview","follow_up","offer","search_digest","active_role","role_goal","performance_evidence","stakeholder","action","document"]);const customers=[...this.sql.exec("SELECT * FROM customers WHERE workspace_id=? ORDER BY updated_at DESC",workspace)].map(r=>JSON.parse(r.data));const records=[...this.sql.exec("SELECT * FROM records WHERE workspace_id=? AND archived=0 ORDER BY updated_at DESC",workspace)].map(r=>this.row(r)).filter(r=>wanted.has(r.type));return j({customers,records,workspace:{id:workspace,name:"LandThePlane Command Center"},access:{authenticated:req.headers.get("x-authenticated")==="1",canWrite:req.headers.get("x-can-write")!=="0",mode:req.headers.get("x-persistence")||"account"}})}
+const boardRoute=`if(m==="GET"&&p==="/career-board"){const wanted=new Set(["job_profile","application_event","interview","follow_up","offer","search_digest","active_role","role_goal","performance_evidence","stakeholder","action","document","jira_config"]);const customers=[...this.sql.exec("SELECT * FROM customers WHERE workspace_id=? ORDER BY updated_at DESC",workspace)].map(r=>JSON.parse(r.data));const records=[...this.sql.exec("SELECT * FROM records WHERE workspace_id=? AND archived=0 ORDER BY updated_at DESC",workspace)].map(r=>this.row(r)).filter(r=>wanted.has(r.type));return j({customers,records,workspace:{id:workspace,name:"LandThePlane Command Center"},access:{authenticated:req.headers.get("x-authenticated")==="1",canWrite:req.headers.get("x-can-write")!=="0",mode:req.headers.get("x-persistence")||"account"}})}
   if(m==="GET"&&p==="/state"){`;
 mustReplace(stateNeedle,boardRoute,"career board route");
 
