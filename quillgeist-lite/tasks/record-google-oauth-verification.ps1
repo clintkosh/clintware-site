@@ -21,8 +21,8 @@ Refresh "tools/oauth_verification_capture.py" $Capture
 & $Setup
 if (-not (Test-Path $Python)) { throw "qq browser runtime is unavailable." }
 
-Write-Host "CAPTURE // A maximized browser will open for the real Google OAuth consent flow." -ForegroundColor Cyan
-Write-Host "ACTION // Complete Google sign-in/consent in that browser. The rest of the demo is automatic." -ForegroundColor Yellow
+Write-Host "CAPTURE // Google authorization opens in your normal system browser; QQ automation does not control provider sign-in." -ForegroundColor Cyan
+Write-Host "ACTION // Complete Google sign-in/consent in normal Edge. QQ resumes only after auth returns to Clintware." -ForegroundColor Yellow
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
 & $Python $Capture
