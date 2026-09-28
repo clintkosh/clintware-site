@@ -14,6 +14,8 @@ const SCOPES = [
   "email",
   "profile",
   "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
 ];
@@ -159,6 +161,20 @@ function allowedEmails(env) {
   return [...new Set([...DEFAULT_DELEGATED_GOOGLE_EMAILS, ...configured])];
 }
 
+function safeReturnTo(value) {
+  const fallback = "https://meet.clintware.com/?calendar=connected";
+  if (!value) return fallback;
+  try {
+    const u = new URL(String(value));
+    if (u.protocol !== "https:") return fallback;
+    if (!["cc.clintware.com", "meet.clintware.com"].includes(u.hostname)) return fallback;
+    if (u.username || u.password) return fallback;
+    return u.toString();
+  } catch {
+    return fallback;
+  }
+}
+
 async function codeChallenge(verifier) {
   const digest = await crypto.subtle.digest("SHA-256", te.encode(verifier));
   return base64url(new Uint8Array(digest));
@@ -171,6 +187,8 @@ export async function beginDelegatedGoogle(request, env) {
 
   await recordDelegatedStatus(env, { state: "started", stage: "authorization_redirect" });
 
+  const requestUrl = new URL(request.url);
+  const returnTo = safeReturnTo(requestUrl.searchParams.get("return_to"));
   const binding = randomToken(32);
   const verifier = randomToken(48);
   const nonce = randomToken(24);
@@ -180,6 +198,7 @@ export async function beginDelegatedGoogle(request, env) {
     bindingHash: await sha256(binding),
     verifier,
     nonce,
+    returnTo,
   }, "state");
 
   const auth = new URL(GOOGLE_AUTH);
@@ -303,7 +322,7 @@ export async function finishDelegatedGoogle(request, env) {
   return new Response(null, {
     status: 302,
     headers: {
-      location: "https://meet.clintware.com/?calendar=connected",
+      location: safeReturnTo(state.returnTo),
       "set-cookie": clearCookie(),
       "cache-control": "no-store",
     },
@@ -325,7 +344,7 @@ export async function delegatedGoogleStatus(env) {
   const [grant, last] = await Promise.all([loadGrant(env), readDelegatedStatus(env)]);
   return json({
     connected: Boolean(grant),
-    scopes: grant ? SCOPES.filter((x) => !["openid", "email", "profile"].includes(x)) : [],
+    scopes: grant ? String(grant.scope || "").split(/\s+/).filter((x) => x && !["openid", "email", "profile"].includes(x)) : [],
     last_status: last,
   });
 }
@@ -358,5 +377,6 @@ export async function internalGoogleAccessToken(request, env) {
     token_type: data.token_type || "Bearer",
     expires_in: Number(data.expires_in || 3600),
     scope: data.scope || grant.scope || "",
+    email: String(grant.email || "").toLowerCase(),
   });
 }
