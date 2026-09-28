@@ -1,7 +1,7 @@
 {
-  "request_id": "inspect-driznet-restart-job-20260928",
+  "request_id": "inspect-driznet-wake-message-20260928",
   "mode": "inspect",
-  "recorded_at": 1790615710,
+  "recorded_at": 1790615847,
   "inspection": {
     "online": 0,
     "recovery_online": 0,
@@ -126,10 +126,19 @@
     ],
     "diagnostics": [
       {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_alive",
+        "timestamp": "2026-09-28T17:15:48.1133644Z"
+      },
+      {
         "device_id": "DRIZNET",
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
         "timestamp": "2026-09-28T17:13:55.2401238Z"
       },
       {
@@ -137,6 +146,7 @@
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
         "timestamp": "2026-09-28T17:13:14.9102009Z"
       },
       {
@@ -144,6 +154,7 @@
         "level": "INFO",
         "phase": "heartbeat",
         "kind": "other",
+        "message": "runner_alive",
         "timestamp": "2026-09-28T17:11:12.0258583Z"
       },
       {
@@ -151,6 +162,7 @@
         "level": "INFO",
         "phase": "heartbeat",
         "kind": "other",
+        "message": "runner_alive",
         "timestamp": "2026-09-28T17:10:47.5651422Z"
       },
       {
@@ -158,6 +170,7 @@
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
         "timestamp": "2026-09-28T17:09:43.5232175Z"
       },
       {
@@ -165,6 +178,7 @@
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
         "timestamp": "2026-09-28T17:09:51.6029072Z"
       },
       {
@@ -172,6 +186,7 @@
         "level": "INFO",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_channel_connected",
         "timestamp": "2026-09-28T17:09:51.4844424Z"
       },
       {
@@ -179,6 +194,7 @@
         "level": "WARN",
         "phase": "health",
         "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "timestamp": "2026-09-28T17:09:49.2389228Z"
       },
       {
@@ -186,6 +202,7 @@
         "level": "WARN",
         "phase": "health",
         "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
         "timestamp": "2026-09-28T17:09:48.3543774Z"
       },
       {
@@ -193,6 +210,7 @@
         "level": "INFO",
         "phase": "health",
         "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
         "timestamp": "2026-09-28T17:09:48.2232196Z"
       },
       {
@@ -200,27 +218,9 @@
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
         "timestamp": "2026-09-28T17:09:48.0948740Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-28T17:09:35.2539010Z"
       }
-    ],
-    "selected_job": {
-      "job_id": "c652fae5-cbc2-437b-be77-2692ee2d5a0f",
-      "task_id": "restart-window",
-      "status": "queued",
-      "requested_by": "root",
-      "created_at": "2026-09-28T17:13:16.276Z",
-      "completed_at": null,
-      "duration_ms": null,
-      "exit_code": null,
-      "error_kind": "other",
-      "recent_logs": []
-    }
+    ]
   }
 }
