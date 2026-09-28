@@ -7,8 +7,8 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-28-qq-job-events.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-edge-existing-session-v1";
+const VERSION = "2026-09-28-capability-aware-runtime.1";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-capability-browser-v16";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -215,6 +215,13 @@ const DEFAULT_QUILLGEIST_LITE = {
 const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/runner.ps1",
   "quillgeist-lite/launcher.ps1",
+  "quillgeist-lite/install.ps1",
+  "quillgeist-lite/launch-visible.ps1",
+  "quillgeist-lite/uninstall.ps1",
+  "quillgeist-lite/bootstrapper/bootstrap.ps1",
+  "quillgeist-lite/service/QuillgeistLiteHealthService.cs",
+  "quillgeist-lite/service/install-service.ps1",
+  "quillgeist-lite/service/recovery-watch.ps1",
   "quillgeist-lite/tasks/restart-window.ps1",
   "quillgeist-lite/tasks/ensure-powershell.ps1",
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
@@ -3807,7 +3814,13 @@ export default {
       }
       if(request.method==="GET"&&url.pathname.startsWith("/api/v1/quillgeist-lite/runtime/")){
         const relative=decodeURIComponent(url.pathname.slice("/api/v1/quillgeist-lite/runtime/".length)).replace(/^\/+|\\/g,"");
-        const repoPath="quillgeist-lite/"+relative;
+        if(!relative||relative.includes(".."))return json({error:"runtime_asset_not_allowed"},404);
+        const repoPath =
+          relative.startsWith("quillgeist-lite/") ||
+          relative.startsWith("identity-broker/") ||
+          relative.startsWith("agentbridge-node/")
+            ? relative
+            : "quillgeist-lite/"+relative;
         const cacheUrl=new URL(request.url);
         cacheUrl.search="";
         cacheUrl.searchParams.set("runtime_version",env.QUILLGEIST_RUNTIME_REF||QUILLGEIST_RUNTIME_VERSION);
@@ -3819,7 +3832,10 @@ export default {
         const reviewedRuntimePath =
           QUILLGEIST_RUNTIME_ASSETS.has(repoPath) ||
           /^quillgeist-lite\/tasks\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath) ||
-          /^quillgeist-lite\/tools\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath);
+          /^quillgeist-lite\/tools\/[A-Za-z0-9._-]+\.(?:ps1|py|c)$/.test(repoPath) ||
+          /^quillgeist-lite\/service\/[A-Za-z0-9._-]+\.(?:ps1|cs)$/.test(repoPath) ||
+          /^identity-broker\/scripts\/[A-Za-z0-9._-]+\.ps1$/.test(repoPath) ||
+          /^agentbridge-node\/agentbridge_node\/[A-Za-z0-9._-]+\.py$/.test(repoPath);
         if(!reviewedRuntimePath)return json({error:"runtime_asset_not_allowed"},404);
         const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,env.QUILLGEIST_RUNTIME_REF||"main");
         if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
