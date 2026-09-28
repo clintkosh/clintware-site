@@ -1,4 +1,5 @@
-import base from "./index.js";
+import base,{DPLCRM} from "./index.js";
+export {DPLCRM};
 
 const ORIGIN="https://cc.clintware.com";
 const GOOGLE_TOKEN_URL="https://auth.clintware.com/internal/google-access-token";
@@ -138,7 +139,7 @@ function fitEstimate(role,text){
 function normalizeEvidence(x){
   return {
     source:x.source,status:x.status,id:safeText(x.id,180),at:iso(x.at),subject:safeText(x.subject,500),
-    from:safeText(x.from,300),snippet:safeText(x.snippet,700),url:safeText(x.url,1000)
+    from:safeText(x.from,300),snippet:safeText(x.snippet,700),context:safeText(x.context||x.snippet,2600),url:safeText(x.url,1000)
   };
 }
 function deriveOpportunity(company,role,evidence,extra={}){
@@ -147,7 +148,7 @@ function deriveOpportunity(company,role,evidence,extra={}){
   const responses=ev.filter(x=>!["applied","other"].includes(x.status));
   const firstResponseAt=minDate(responses.map(x=>x.at));
   const firstInterviewAt=minDate(ev.filter(x=>["interview","hiring_manager","panel","final"].includes(x.status)).map(x=>x.at));
-  const combined=ev.map(x=>x.subject+" "+x.snippet).join(" ");
+  const combined=ev.map(x=>x.subject+" "+x.snippet+" "+(x.context||"")).join(" ");
   const comp=compensationFrom(combined,role),fit=fitEstimate(role,combined);
   return {
     key:opportunityKey(company,role),company:safeText(company,160),role:safeText(role,180),
@@ -218,7 +219,7 @@ async function board(req,env,ctx){
   return r.json();
 }
 async function gmailPage(token,cursor){
-  const q='newer_than:365d {application interview "hiring manager" "next step" "not moving forward" "thank you for applying" unfortunately offer recruiter panel}';
+  const q='after:2026/04/14 {application interview "hiring manager" "next step" "not moving forward" "thank you for applying" "application received" "application has been received" unfortunately offer recruiter panel screening}';
   const u=new URL("https://gmail.googleapis.com/gmail/v1/users/me/messages");
   u.searchParams.set("maxResults","40");u.searchParams.set("q",q);if(cursor)u.searchParams.set("pageToken",cursor);
   const list=await gfetch(token,u.toString()),ids=(list.messages||[]).map(x=>x.id);
@@ -229,7 +230,7 @@ async function gmailPage(token,cursor){
     if(status==="other")continue;
     const at=m.internalDate?new Date(Number(m.internalDate)).toISOString():iso(h.date);
     const company=inferCompany(subject,h.from||"",snippet),role=inferRole(subject,snippet);
-    rows.push({company,role,evidence:{source:"Gmail",status,id:m.id,at,subject,from:h.from||"",snippet,url:"https://mail.google.com/mail/u/0/#all/"+m.id}});
+    rows.push({company,role,evidence:{source:"Gmail",status,id:m.id,at,subject,from:h.from||"",snippet,context:snippet,url:"https://mail.google.com/mail/u/0/#all/"+m.id}});
   }
   return {rows,nextCursor:list.nextPageToken||""};
 }
@@ -256,6 +257,48 @@ async function latestDigest(token){
   const cadence=all.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))\s+(?:DAILY\s+)?CADENCE/i);
   return {subject:h.subject||"Daily Job Finder Digest",date:best.internalDate?new Date(Number(best.internalDate)).toISOString():iso(h.date),jobsScanned:scanned?Number(scanned[1]):null,spreadsheetsMaintained:sheets?Number(sheets[1]):null,cadence:cadence?cadence[1]:"",snippet:safeText(best.snippet,900),source:"Gmail",messageId:best.id};
 }
+
+async function latestFieldReport(token){
+  const u=new URL("https://gmail.googleapis.com/gmail/v1/users/me/messages");
+  u.searchParams.set("maxResults","10");
+  u.searchParams.set("q",'after:2026/04/14 subject:"Job Search" "FIELD REPORT"');
+  const list=await gfetch(token,u.toString()),ids=(list.messages||[]).map(x=>x.id);let best=null;
+  for(const id of ids){
+    const m=await gfetch(token,"https://gmail.googleapis.com/gmail/v1/users/me/messages/"+encodeURIComponent(id)+"?format=full");
+    if(!best||Number(m.internalDate||0)>Number(best.internalDate||0))best=m;
+  }
+  if(!best)return null;
+  const h=headersOf(best.payload),body=payloadText(best.payload),all=body+" "+(best.snippet||"");
+  const number=(re)=>{const m=all.match(re);return m?Number(String(m[1]).replace(/,/g,"")):null};
+  const excerpt=(start,end)=>{
+    const a=body.toUpperCase().indexOf(start.toUpperCase());if(a<0)return "";
+    const b=end?body.toUpperCase().indexOf(end.toUpperCase(),a+start.length):-1;
+    return safeText(body.slice(a+(start.length),b>a?b:undefined),1800);
+  };
+  const searchDays=number(/search clock is now about\s+([\d.]+)\s+days/i);
+  const searchMonths=number(/(?:or|about)\s+([\d.]+)\s+months/i);
+  return {
+    subject:h.subject||"Job Search Field Report",
+    date:best.internalDate?new Date(Number(best.internalDate)).toISOString():iso(h.date),
+    searchStart:"2026-04-15",
+    searchDays,searchMonths,
+    applicationActions:number(/([\d,]+)\+?\s+APPLICATION ACTIONS/i),
+    distinctApplications:number(/([\d,]+)\+?\s+DISTINCT(?:\s+COMPANY-ROLE)?\s+APPLICATIONS/i),
+    interviewStageProcesses:number(/([\d,]+)\+?\s+INTERVIEW-STAGE PROCESSES/i),
+    completedLiveProcesses:number(/([\d,]+)\+?\s+COMPLETED LIVE(?:\s+DISTINCT)?\s+PROCESSES/i),
+    round2Plus:number(/([\d,]+)\+?\s+ROUND 2\s*\/\s*MANAGER\s*\/\s*PANEL/i),
+    offers:number(/([\d,]+)\+?\s+OFFERS/i),
+    funnelRead:excerpt("05 / WHAT THE FUNNEL SAYS","06 /"),
+    highSignalBoard:excerpt("06 / CURRENT HIGH-SIGNAL BOARD","07 /"),
+    source:"Gmail",messageId:best.id
+  };
+}
+async function latestSearchSnapshot(token){
+  const [daily,fieldReport]=await Promise.all([latestDigest(token),latestFieldReport(token)]);
+  if(!daily&&!fieldReport)return null;
+  return {...(daily||{subject:"LandThePlane Search Snapshot",date:fieldReport?.date||""}),fieldReport};
+}
+
 async function ensureSystemCustomer(req,env,ctx,data){
   let c=data.customers.find(x=>x.name==="LandThePlane Search Engine");
   if(c)return c;
@@ -310,7 +353,7 @@ async function syncGoogle(req,env,ctx){
     grouped.set(key,mergeOpportunity(current,next));
   }
   if(!cursor){
-    const [cal,digest]=await Promise.all([calendarEvidence(access.token),latestDigest(access.token)]);
+    const [cal,digest]=await Promise.all([calendarEvidence(access.token),latestSearchSnapshot(access.token)]);
     for(const row of cal){
       const key=opportunityKey(row.company,row.role),current=grouped.get(key);
       const next=deriveOpportunity(row.company,row.role,[row.evidence],{jobUrl:row.jobUrl,jobDescription:row.jobDescription});
