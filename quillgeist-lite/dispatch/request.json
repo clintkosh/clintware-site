@@ -1,6 +1,8 @@
 {
-  "request_id": "qq-self-update-edge-new-tab-20260928",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Refresh QQ task registry so the existing-Edge new-tab task is available."
+  "request_id": "qq-open-entra-existing-edge-20260928",
+  "task_id": "open-edge-tab",
+  "args": {
+    "Url": "https://entra.microsoft.com/"
+  },
+  "objective": "Open Microsoft Entra in a new tab in the user's already-running Microsoft Edge session, preserving the existing Shopify tab."
 }
