@@ -1,6 +1,6 @@
 {
-  "request_id": "oauth-recorder-status-after-security-fix-20260928",
+  "request_id": "oauth-recorder-new-job-check-20260928",
   "mode": "inspect",
-  "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
-  "objective": "Check whether the old automated Google OAuth verification recorder is still running after the user reported Google blocking the browser as insecure. Do not start any new browser."
+  "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
+  "objective": "Inspect the newer DRIZNET Google OAuth verification job after the secure-system-browser fix. Confirm whether it is still running and which local source revision it used. Do not start or interact with any provider sign-in browser."
 }
