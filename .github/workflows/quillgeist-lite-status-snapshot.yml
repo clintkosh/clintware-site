@@ -29,13 +29,27 @@ jobs:
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" -o /tmp/status.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=20" -o /tmp/diag.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" -o /tmp/tasks.json
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
           python3 - <<'PY'
-          import json
+          import hashlib, json
           from datetime import datetime, timezone
           with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
           with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
           with open("/tmp/tasks.json",encoding="utf-8") as f: tasks=json.load(f)
-          out={"checked_at":datetime.now(timezone.utc).isoformat(),"status":status,"diagnostics":diag,"runtime_registry":{"version":tasks.get("version"),"task_ids":sorted((tasks.get("tasks") or {}).keys())}}
+          with open("/tmp/codex-task.ps1","rb") as f: codex_bytes=f.read()
+          codex_text=codex_bytes.decode("utf-8","replace")
+          out={
+            "checked_at":datetime.now(timezone.utc).isoformat(),
+            "status":status,
+            "diagnostics":diag,
+            "runtime_registry":{"version":tasks.get("version"),"task_ids":sorted((tasks.get("tasks") or {}).keys())},
+            "runtime_probe":{
+              "repair_codex_org_identity_sha256":hashlib.sha256(codex_bytes).hexdigest(),
+              "repair_codex_org_identity_header":codex_text.splitlines()[:30],
+              "contains_invalid_home_guard":"codexHomeValid" in codex_text,
+              "contains_memoria_header":"MEMORIA CODEX / ORG IDENTITY REPAIR" in codex_text
+            }
+          }
           with open("ops/quillgeist-lite-live-status.json","w",encoding="utf-8") as f:
               json.dump(out,f,indent=2); f.write("\n")
           PY
