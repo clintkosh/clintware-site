@@ -1,17 +1,17 @@
 {
-  "request_id": "bottom-launcher-device-inspect-20260928-2107",
+  "request_id": "bottom-launcher-device-inspect-2-20260928-2108",
   "mode": "inspect",
-  "recorded_at": 1790629593,
+  "recorded_at": 1790629627,
   "inspection": {
-    "online": 0,
+    "online": 1,
     "recovery_online": 0,
     "wake_online": 2,
     "recovery": null,
-    "runner_version": "1.10.0",
-    "runner_last_seen": "2026-09-28T21:05:44.756Z",
+    "runner_version": "1.9.10",
+    "runner_last_seen": "2026-09-28T21:06:49.356Z",
     "runner": {
-      "runner_id": "DRIZNET",
-      "version": "1.10.0",
+      "runner_id": "MEMORIA",
+      "version": "1.9.10",
       "capabilities": [
         "interactive_relay",
         "question_poll",
@@ -30,16 +30,47 @@
         "provider_usage_estimates",
         "reset_countdown",
         "workers_ai_responder",
-        "fast_responder_fallback",
-        "capability_inventory",
-        "capability_aware_routing"
+        "fast_responder_fallback"
       ],
-      "connected_at": "2026-09-28T21:04:52.884Z",
-      "last_seen": "2026-09-28T21:05:44.756Z",
-      "source_revision": "0a701a78dfb035acc1a9d32ff989e25349fbfc00",
+      "connected_at": "2026-09-28T21:06:49.241Z",
+      "last_seen": "2026-09-28T21:06:49.356Z",
+      "source_revision": "8a939fa3f3ea024e125d36d407d2fbb5c9ae64b9",
       "registry_version": "16"
     },
-    "connected_devices": [],
+    "connected_devices": [
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-09-28T21:06:49.241Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.9.10",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback"
+          ],
+          "connected_at": "2026-09-28T21:06:49.241Z",
+          "last_seen": "2026-09-28T21:06:49.274Z",
+          "source_revision": "8a939fa3f3ea024e125d36d407d2fbb5c9ae64b9",
+          "registry_version": "16"
+        }
+      }
+    ],
     "service_devices": [
       {
         "device_id": "MEMORIA",
@@ -57,7 +88,7 @@
         "job_id": "b8f696e9-bdd6-4795-a794-118ad9addef3",
         "task_id": "self-update",
         "target_device": "",
-        "status": "running"
+        "status": "passed"
       },
       {
         "job_id": "48ae4172-cf33-43e8-8e0b-40217444e888",
@@ -133,15 +164,7 @@
         "phase": "health",
         "kind": "other",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:06:26.0696497Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:06:18.6982619Z"
+        "timestamp": "2026-09-28T21:07:06.1281427Z"
       },
       {
         "device_id": "MEMORIA",
@@ -149,7 +172,7 @@
         "phase": "health",
         "kind": "other",
         "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:06:25.1885413Z"
+        "timestamp": "2026-09-28T21:07:05.2333447Z"
       },
       {
         "device_id": "MEMORIA",
@@ -157,71 +180,79 @@
         "phase": "health",
         "kind": "other",
         "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:06:25.0640936Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:06:17.8123836Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:06:17.6884218Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "wake",
-        "kind": "other",
-        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
-        "timestamp": "2026-09-28T21:06:17.5506551Z"
+        "timestamp": "2026-09-28T21:07:05.1116653Z"
       },
       {
         "device_id": "MEMORIA",
-        "level": "ERROR",
+        "level": "WARN",
         "phase": "runner-log",
-        "kind": "connection_error",
-        "message": "2026-09-28T16:06:15 [WARN] Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\nFULL_EXCEPTION System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\n ---> System.IO.IOException: Unable to write data to the transport connection: An established connection was aborted by the software in your host machine..\n ---> System.Net.Sockets.SocketException (10053): An established connection was aborted by the software in your host machine.\n   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.CreateException(SocketError error, Boolean forAsyncThrow)\n   --- End of inner exception stack trace ---\n   --- End of inner exception stack trace ---\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\n2026-09-28T16:06:15 [WARN] Disconnected. Reconnecting in 40 seconds; bounded backoff prevents Cloudflare request storms.",
-        "timestamp": "2026-09-28T21:06:20.0292850Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "heartbeat",
         "kind": "other",
-        "message": "runner_down",
-        "timestamp": "2026-09-28T21:06:15.1133081Z"
+        "message": "2026-09-28T16:06:56 [WARN] Duplicate job b8f696e9-bdd6-4795-a794-118ad9addef3 ignored; returning the prior result.",
+        "timestamp": "2026-09-28T21:07:00.0947339Z"
       },
       {
         "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "health",
+        "phase": "runner",
         "kind": "other",
-        "message": "runner_state=down",
-        "timestamp": "2026-09-28T21:06:15.0138700Z"
+        "message": "Duplicate job b8f696e9-bdd6-4795-a794-118ad9addef3 ignored; returning the prior result.",
+        "timestamp": "2026-09-28T21:06:56.5742503Z"
       },
       {
         "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "service",
+        "phase": "runner",
         "kind": "other",
-        "message": "health_service_started",
-        "timestamp": "2026-09-28T21:06:14.0012023Z"
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-09-28T21:06:56.5452582Z"
       },
       {
         "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "service",
+        "phase": "runner",
         "kind": "other",
-        "message": "health_service_stopped",
-        "timestamp": "2026-09-28T21:06:13.3636165Z"
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-09-28T21:06:56.5268341Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Replayed saved result for job b8f696e9-bdd6-4795-a794-118ad9addef3",
+        "timestamp": "2026-09-28T21:06:56.4845486Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=MEMORIA source=machine",
+        "timestamp": "2026-09-28T21:06:56.3254291Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Disconnected. Reconnecting in 40 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-28T21:06:15.7095482Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "connection",
+        "kind": "connection_error",
+        "message": "System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\r\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\r\n ---> System.IO.IOException: Unable to write data to the transport connection: An established connection was aborted by the software in your host machine..\r\n ---> System.Net.Sockets.SocketException (10053): An established connection was aborted by the software in your host machine.\r\n   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.CreateException(SocketError error, Boolean forAsyncThrow)\r\n   at System.Net.Sockets.NetworkStream.WriteAsync(ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.Security.SslStream.WriteAsyncInternal[TIOAdapter](ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ReadOnlyMemory`1 buffer, WebSocketMessageType messageType, WebSocketMessageFlags messageFlags, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ArraySegment`1 buffer, WebSocketMessageType messageType, Boolean endOfMessage, CancellationToken cancellationToken)\r\n   at CallSite.Target(Closure, CallSite, ClientWebSocket, Object, WebSocketMessageType, Boolean, CancellationToken)\r\n   at Send-Json(Closure, FunctionContext)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.PipelineOps.InvokePipeline(Object input, Boolean ignoreInput, CommandParameterInternal[][] pipeElements, CommandBaseAst[] pipeElementAsts, CommandRedirection[][] commandRedirections, FunctionContext funcContext)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.Interpreter.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.LightLambda.RunVoid1[T0](T0 arg0)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.CommandProcessorBase.DoComplete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeHelper()\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeThreadProc()\r\n   at System.Management.Automation.Runspaces.PipelineThread.WorkerProc()\r\n   at System.Threading.Thread.StartHelper.Callback(Object state)\r\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\r\n--- End of stack trace from previous location ---\r\n\r\n   --- End of inner exception stack trace ---\r\n   at System.Net.Security.SslStream.<WriteSingleChunk>g__CompleteWriteAsync|166_1[TIOAdapter](ValueTask writeTask, ProtocolToken token)\r\n   at System.Net.Security.SslStream.WriteAsyncInternal[TIOAdapter](ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ReadOnlyMemory`1 buffer, WebSocketMessageType messageType, WebSocketMessageFlags messageFlags, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ArraySegment`1 buffer, WebSocketMessageType messageType, Boolean endOfMessage, CancellationToken cancellationToken)\r\n   at CallSite.Target(Closure, CallSite, ClientWebSocket, Object, WebSocketMessageType, Boolean, CancellationToken)\r\n   at Send-Json(Closure, FunctionContext)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.PipelineOps.InvokePipeline(Object input, Boolean ignoreInput, CommandParameterInternal[][] pipeElements, CommandBaseAst[] pipeElementAsts, CommandRedirection[][] commandRedirections, FunctionContext funcContext)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.Interpreter.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.LightLambda.RunVoid1[T0](T0 arg0)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.CommandProcessorBase.DoComplete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeHelper()\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeThreadProc()\r\n   at System.Management.Automation.Runspaces.PipelineThread.WorkerProc()\r\n   at System.Threading.Thread.StartHelper.Callback(Object state)\r\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\r\n--- End of stack trace from previous location ---\r\n   at CallSite.Target(Closure, CallSite, Object)\r\n   --- End of inner exception stack trace ---\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)",
+        "timestamp": "2026-09-28T21:06:15.6547718Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "connection_error",
+        "message": "Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"",
+        "timestamp": "2026-09-28T21:06:15.6496626Z"
       }
     ]
   }
