@@ -54,7 +54,7 @@ A new type of local work is added by committing a reviewed task script and regis
 ## One-time install
 
 ```powershell
-irm https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/install.ps1 | iex
+irm https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/bootstrap.ps1 | iex
 ```
 
 After that, the local runner starts at Windows sign-in and waits on the event-driven WebSocket. There is no recurring polling task. The Windows health service also reopens the console automatically if the runner disappears. The managed interactive scheduled task runs at **Highest** privilege, so qq is an administrator console after the one-time elevated install/upgrade.
