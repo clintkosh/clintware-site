@@ -1,0 +1,100 @@
+$ErrorActionPreference = "Stop"
+
+Write-Host "=== MEMORIA CODEX / ORG IDENTITY REPAIR ===" -ForegroundColor Cyan
+Write-Host ("DEVICE // " + $env:COMPUTERNAME) -ForegroundColor Cyan
+
+$state = (& dsregcmd.exe /status 2>&1 | Out-String)
+$workplaceJoined = $state -match 'WorkplaceJoined\s*:\s*YES'
+$azureJoined = $state -match 'AzureAdJoined\s*:\s*YES'
+$wamConsumers = $state -match 'WamDefaultAuthority\s*:\s*consumers'
+Write-Host ("WINDOWS // AzureAdJoined=" + $azureJoined + " WorkplaceJoined=" + $workplaceJoined + " WAMConsumers=" + $wamConsumers)
+
+$codexHome = [Environment]::GetEnvironmentVariable("CODEX_HOME","User")
+if (-not $codexHome) {
+  if (Test-Path "D:\") { $codexHome = "D:\AI\Codex\.codex" }
+  else { $codexHome = Join-Path $env:USERPROFILE ".codex" }
+  [Environment]::SetEnvironmentVariable("CODEX_HOME",$codexHome,"User")
+}
+New-Item -ItemType Directory -Force -Path $codexHome | Out-Null
+$env:CODEX_HOME = $codexHome
+Write-Host ("CODEX_HOME // " + $codexHome) -ForegroundColor Green
+
+$npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+if (-not $npm) { $npm = Get-Command npm.exe -ErrorAction SilentlyContinue }
+if (-not $npm) { throw "Node is present but npm was not found; Codex repair cannot continue safely." }
+
+$codex = Get-Command codex.cmd -ErrorAction SilentlyContinue
+if (-not $codex) { $codex = Get-Command codex.exe -ErrorAction SilentlyContinue }
+if (-not $codex) { $codex = Get-Command codex -ErrorAction SilentlyContinue }
+
+if (-not $codex) {
+  Write-Host "CODEX // CLI missing; installing official @openai/codex@latest" -ForegroundColor Yellow
+  & $npm.Source install -g "@openai/codex@latest"
+  if ($LASTEXITCODE -ne 0) { throw "npm failed to install @openai/codex@latest." }
+
+  $npmPrefix = (& $npm.Source prefix -g 2>$null | Out-String).Trim()
+  $candidatePaths = @(
+    (Join-Path $env:APPDATA "npm\codex.cmd"),
+    (Join-Path $npmPrefix "codex.cmd"),
+    (Join-Path $npmPrefix "codex.exe")
+  ) | Where-Object { $_ -and (Test-Path $_) }
+
+  if ($candidatePaths.Count -gt 0) {
+    $codexPath = $candidatePaths[0]
+  } else {
+    $codex = Get-Command codex.cmd -ErrorAction SilentlyContinue
+    if (-not $codex) { $codex = Get-Command codex -ErrorAction SilentlyContinue }
+    if (-not $codex) { throw "Codex package installed but executable was not found." }
+    $codexPath = $codex.Source
+  }
+} else {
+  $codexPath = $codex.Source
+}
+
+Write-Host ("CODEX_BIN // " + $codexPath) -ForegroundColor Green
+try {
+  $version = (& $codexPath --version 2>&1 | Out-String).Trim()
+  Write-Host ("CODEX_VERSION // " + $version) -ForegroundColor Green
+} catch {
+  throw ("Codex executable is present but failed to run: " + $_.Exception.Message)
+}
+
+$statusBefore = ""
+try { $statusBefore = (& $codexPath login status 2>&1 | Out-String).Trim() } catch {}
+if ($statusBefore) { Write-Host ("CODEX_AUTH_BEFORE // " + ($statusBefore -replace '\r?\n',' | ')) }
+
+# The user explicitly reported the current Codex profile is wrong. Clear only
+# Codex's own session. Do not delete CODEX_HOME configuration, projects, or
+# unrelated Windows/browser credentials.
+try {
+  & $codexPath logout 2>&1 | ForEach-Object { Write-Host ("CODEX_LOGOUT // " + $_) }
+} catch {
+  Write-Host ("CODEX_LOGOUT_WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+
+# Provider sign-in is a separate security boundary. Open only supported,
+# normal user surfaces; never automate passwords/MFA or identity-provider UI.
+try {
+  Start-Process "ms-settings:workplace"
+  Write-Host "ORG_HANDOFF // Windows Access work or school opened for user" -ForegroundColor Yellow
+} catch {
+  Write-Host ("ORG_HANDOFF_WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+
+$pwsh = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+$hostExe = if ($pwsh) { $pwsh.Source } else { "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
+$loginCommand = "& '" + ($codexPath -replace "'","''") + "' login; Write-Host ''; & '" + ($codexPath -replace "'","''") + "' login status"
+$args = @("-NoLogo","-NoExit","-Command",$loginCommand)
+Start-Process -FilePath $hostExe -ArgumentList $args
+Write-Host "CODEX_HANDOFF // interactive Codex login opened in a normal terminal/browser flow" -ForegroundColor Yellow
+
+$appx = Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object {
+  $_.Name -match '(?i)(OpenAI|ChatGPT|Codex)' -or $_.PackageFamilyName -match '(?i)(OpenAI|ChatGPT|Codex)'
+} | Select-Object Name,Version,PackageFamilyName
+if ($appx) {
+  Write-Host "APPX // installed OpenAI/ChatGPT/Codex packages:"
+  $appx | Format-Table -AutoSize | Out-String | Write-Host
+}
+
+Write-Host "STATUS // local repair complete; waiting only on user-controlled provider sign-in" -ForegroundColor Green
+Write-Host "VERIFY_AFTER_SIGNIN // run this QQ task again or use codex login status after completing the opened sign-in surfaces." -ForegroundColor Cyan
