@@ -1,15 +1,15 @@
 {
-  "request_id": "chatgpt-driznet-native-edge-skills-inspect-20260928-1831",
-  "job_id": "a6b49a76-4710-4249-9f7b-ff8496b05507",
+  "request_id": "chatgpt-driznet-native-edge-skills-inspect-20260928-1832",
+  "job_id": "b6c131c5-f974-4879-8a01-8b41c933f8c7",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 19806,
+  "duration_ms": 4893,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T23:40:00.1342039Z",
-  "recorded_at": 1790638799,
+  "confirmed_at": "2026-09-28T23:40:05.2014647Z",
+  "recorded_at": 1790638805,
   "recovery_history": [],
   "output_tail": "[run] {\"ok\":false,\"error\":\"ValueError\",\"detail\":\"unsupported action 'edge-uia-inspect'\"}\r\n[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\browser-work.ps1:43\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  43 | \u001b[0m \u2026 DE -ne 0) { \u001b[36;1mthrow \"qq browser agent failed with exit code $LASTEXITCO\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mqq browser agent failed with exit code 1.\u001b[0m"
 }
