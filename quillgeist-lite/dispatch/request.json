@@ -1,8 +1,13 @@
 {
-  "request_id": "driznet-secure-auth-glow-rollout-20260928",
-  "task_id": "self-update",
+  "request_id": "driznet-control-glow-smoke-20260928",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
-  "args": {},
-  "resume_after": true,
-  "objective": "After the currently running legacy OAuth recorder exits, update DRIZNET to the latest QQ runtime. This rollout must include: provider sign-in routed only through the normal system Edge session with no Playwright/CDP automation flags; QQ browser automation refusing Google/Microsoft provider login UI; the maintained blue/cyan/purple QQ // CONTROL edge glow during visible automated page control; and the revised OAuth verification recorder that opens Google authorization in the system browser and automates only the post-auth Clintware demo. Preserve normal Edge/Shopify state and resume queued work after restart."
+  "args": {
+    "Action": "resume",
+    "Url": "https://www.clintware.com/",
+    "Headless": "false",
+    "Approved": "false",
+    "WaitMs": "1200"
+  },
+  "objective": "Harmless visible-browser smoke test on DRIZNET. Open/resume the maintained QQ browser on clintware.com, show the blue/cyan/purple QQ // CONTROL edge glow while the local agent has control, then return a live inspected page result. Do not interact with authentication or consequential controls."
 }
