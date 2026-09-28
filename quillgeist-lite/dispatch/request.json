@@ -1,12 +1,13 @@
 {
-  "request_id": "chatgpt-driznet-paylocity-skill-inspect-20260928-1743",
+  "request_id": "chatgpt-driznet-paylocity-open-inspect-20260928-1819",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "resume",
+    "Action": "run",
     "Headless": "false",
     "Approved": "false",
-    "WaitMs": "500"
+    "WaitMs": "500",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://recruiting.paylocity.com/Recruiting/Jobs/Apply/4448194?ref=Simplify&src=Simplify&utm_source=Simplify\",\"settle_ms\":1200},{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"}]}"
   },
-  "objective": "Resume the existing visible governed QQ browser on DRIZNET and inspect the currently open page. Do not type, click, submit, navigate away, or modify the application. Return the page URL/title and interactive controls so ChatGPT can identify the Paylocity skills field safely."
+  "objective": "Open the Red Rover Paylocity application in the governed visible QQ browser on DRIZNET and inspect the page controls only. Do not fill, click submit, or change application data."
 }
