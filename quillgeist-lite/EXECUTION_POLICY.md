@@ -49,3 +49,30 @@ Quillgeist Web extends qq with live search, page reading, and bounded browser au
 - Downloads are disabled in the governed browser agent. File upload/download or other higher-risk capabilities require a separately reviewed task.
 - Search and read are preferred over automation when they satisfy the task. Automation is bounded to the registered step vocabulary; arbitrary JavaScript and remote shell text are not accepted.
 - The public-web policy is enforced again on redirects and browser subrequests. Private-network access is never enabled by the remote Quillgeist Web MCP tools.
+
+
+## Canonical request-routing policy
+
+Natural-language QQ input uses a local preprocessing envelope first. The preprocessor may normalize obvious typos and shorthand, attach local context and learned route hints, and redact credential-like material. It must preserve user intent and must never execute or answer merely because it rewrote the prompt.
+
+The cleaned request is then sent over the existing QQ Control Plane WebSocket. The Clintware Control Plane is authoritative for choosing the route:
+
+- deterministic explicit allowlisted QQ commands may use the local fast path;
+- state changes, infrastructure work, fresh/private data, or uncertain requests stay on the Control Plane/agent path;
+- informational requests may use an LLM response path;
+- Workers AI is response-only and must never replace an execution request with generic instructions;
+- routine interactive routing does not use GitHub as a message bus.
+
+Local route learning records prior Control Plane route outcomes as hints only. It never overrides authorization, safety gates, or the Control Plane's decision.
+
+## Runtime-load policy
+
+QQ keeps a small local runtime-version marker. A normal start performs one lightweight version check and skips asset downloads when the version is unchanged. Runtime assets are version-cached at the Control Plane, avoiding repeated repository reads across clients. GitHub remains the source/release plane, not the prompt-routing plane.
+
+Persistent event channels and wake signals are preferred to polling. Usage/status refreshes should be driven by meaningful activity or low-frequency boundaries.
+
+## Foreground-input safety invariant
+
+Background QQ execution must not steal foreground focus, activate a console, move/capture the pointer, capture keyboard input, or flash a transient shell. The scheduled runner, watchdog recovery, responders, updates, reconnects, health work, and child automation use hidden/no-console/no-activate execution by default.
+
+Only an explicit user-requested interactive launch may open the Windows Terminal UI. Background mode sets QQ_HEADLESS=1, bypasses the splash, and never starts Windows Terminal.
