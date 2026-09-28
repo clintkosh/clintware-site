@@ -8,7 +8,7 @@ import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDi
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-memoria-diagnostics-v19";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-memoria-complete-bundle-v20";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -235,6 +235,8 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/tasks/integrate-local-ai.ps1",
   "quillgeist-lite/tasks.json",
   "quillgeist-lite/tasks/bitnet-setup.ps1",
+  "quillgeist-lite/tasks/bitnet-i2-s-linkage.patch",
+  "quillgeist-lite/tools/local_ai_parity_check.py",
   "quillgeist-lite/tools/local_ai.py",
   "quillgeist-lite/tools/boot_splash.py",
   "quillgeist-lite/assets/clintware-terminal-logo.b64"
