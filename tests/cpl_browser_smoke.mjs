@@ -42,6 +42,7 @@ try{
   await page.getByText("The operating system is the application").waitFor();
   await page.screenshot({path:"cpl-desktop-smoke.png",fullPage:true});
 
+  await page.evaluate(()=>localStorage.setItem("cpl-route","command"));
   await page.setViewportSize({width:390,height:844});
   await page.goto(base,{waitUntil:"networkidle",timeout:60000});
   await page.getByText("Customer Success Command Center").waitFor();
