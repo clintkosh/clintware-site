@@ -1,7 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-codex-org-repair-retry-20260928-1658",
-  "task_id": "repair-codex-org-identity",
-  "target_device": "DRIZNET",
+  "request_id": "chatgpt-memoria-recover-resume-localai-20260928-1700",
+  "task_id": "self-update",
+  "target_device": "MEMORIA",
+  "resume_after": true,
   "args": {},
-  "objective": "Repair Codex CLI/auth on DRIZNET only. Preserve CODEX_HOME and unrelated browser/Windows credentials. Keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false; do not enroll or join the PC to Entra/MDM. Open only normal user-controlled browser/terminal sign-in surfaces for Microsoft work-account and Codex/ChatGPT authentication."
+  "objective": "Recover MEMORIA QQ after health-service restart suppression, refresh the reviewed runtime without losing local-AI state, reconnect to the control plane, and resume the already-running finish-local-ai job if recoverable. Do not touch DRIZNET. Preserve C:\\AI\\LOCAL-CHATGPT and existing Immich/data state; do not use D:."
 }
