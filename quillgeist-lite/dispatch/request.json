@@ -1,9 +1,9 @@
 {
-  "request_id": "memoria-ai-services-20260928-1751",
-  "task_id": "local-ai",
+  "request_id": "memoria-ai-recover-20260928-1753",
+  "task_id": "finish-local-ai",
   "args": {
-    "Action": "services"
+    "MaxPasses": "1"
   },
   "target_device": "MEMORIA",
-  "objective": "Read-only service health inventory for MEMORIA AI recovery including existing n8n. Do not modify applications or data."
+  "objective": "Resume existing MEMORIA local AI stack including n8n, selectable BitNet and existing Immich deployment. Preserve databases, media, credentials, existing volumes; never touch D:. Report concrete blockers and checkpoint results."
 }
