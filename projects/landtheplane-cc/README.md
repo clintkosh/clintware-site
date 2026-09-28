@@ -9,6 +9,8 @@ Private job-search and career operating system at `https://cc.clintware.com`.
 - Requires Clintware Identity with Google as the upstream identity provider.
 - Access policy is limited to `clint.kosh@gmail.com` and verified Google identities in the `clintware.com` domain.
 - Job-search evidence is synchronized from the existing delegated Google boundary. Raw mailbox content is not committed to source control.
+- Historical search totals are reconciled from the latest full Job Search field report, while the daily finder digest remains a separate acquisition metric.
+- Gmail and Calendar backfill starts at the April 15, 2026 search start and writes only normalized career evidence into the private workspace.
 - Application and interview records are stored only in the authenticated Durable Object workspace.
 - The search lifecycle can transition an accepted role into an active-job workspace without discarding the historical pipeline.
 
