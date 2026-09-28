@@ -14,9 +14,11 @@ try{
   const narrative=page.locator("#applicationPanel");
   if(!(await narrative.isVisible()))throw new Error("Application narrative should be visible on desktop");
   const narrativeText=await narrative.innerText();
-  for(const phrase of ["You asked for a zero-to-one builder","20–40 named accounts","dplrcrm.clintware.com"]){
+  for(const phrase of ["You asked for a zero-to-one builder","20–40 named accounts"]){
     if(!narrativeText.includes(phrase))throw new Error("Missing narrative proof: "+phrase);
   }
+  const recentCase=page.locator('#applicationPanel a[href="https://dplrcrm.clintware.com"]');
+  if(await recentCase.count()!==1)throw new Error("Missing recent-case link target");
 
   await page.click('[data-route="portfolio"]');
   await page.getByText("One operating view for every customer").waitFor();
