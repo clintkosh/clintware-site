@@ -1,15 +1,15 @@
 {
-  "request_id": "chatgpt-driznet-codex-org-repair-afterhomefix-20260928-1712",
-  "job_id": "afcecf9d-a0c8-4cf5-941c-b6a40a2b2dfe",
+  "request_id": "chatgpt-driznet-codex-org-repair-livebody-20260928-1714",
+  "job_id": "42089b2c-a3bb-4a05-815f-a3e7c262fa67",
   "task_id": "repair-codex-org-identity",
   "target_device": "DRIZNET",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 954,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 40020,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T21:52:47.9707517Z",
-  "recorded_at": 1790632367,
+  "confirmed_at": "2026-09-28T21:54:28.8552224Z",
+  "recorded_at": 1790632493,
   "recovery_history": [],
-  "output_tail": "[run] === MEMORIA CODEX / ORG IDENTITY REPAIR ===\r\n[run] DEVICE // DRIZNET\r\n[run] WINDOWS // AzureAdJoined=False WorkplaceJoined=False WAMConsumers=True\r\n[run] \u001b[31;1mNew-Item: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\repair-codex-org-identity.ps1:18\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  18 | \u001b[0m \u001b[36;1mNew-Item -ItemType Directory -Force -Path $codexHome\u001b[0m | Out-Null\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mCannot find drive. A drive with the name 'D' does not exist.\u001b[0m"
+  "output_tail": "[run] === CODEX / ORG APP IDENTITY REPAIR ===\r\n[run] DEVICE // DRIZNET\r\n[run] WINDOWS // AzureAdJoined=False WorkplaceJoined=False WAMConsumers=True\r\n[run] CODEX_HOME_REPAIR // invalid prior value replaced: D:\\AI\\Codex\\.codex\r\n[run] CODEX_HOME // C:\\Users\\batman\\.codex\r\n[run] CODEX // CLI missing; installing official @openai/codex@latest\r\n[run] added 2 packages in 20s\r\n[run] CODEX_BIN // C:\\Users\\batman\\AppData\\Roaming\\npm\\codex.cmd\r\n[run] CODEX_VERSION // codex-cli 0.158.0\r\n[run] CODEX_AUTH_BEFORE // Logged in using ChatGPT\r\n[run] CODEX_LOGOUT // Successfully logged out\r\n[run] ORG_HANDOFF // normal Edge work-account page opened; device join/enrollment not invoked\r\n[run] CODEX_HANDOFF // interactive Codex login opened in a normal terminal/browser flow\r\n[run] APPX // installed OpenAI/ChatGPT/Codex packages:\r\n[run] Name         Version       PackageFamilyName\r\n[run] ----         -------       -----------------\r\n[run] OpenAI.Codex 26.924.2738.0 OpenAI.Codex_2p2nqsd0c76g0\r\n[run] STATUS // local repair complete; waiting only on user-controlled provider sign-in\r\n[run] VERIFY_AFTER_SIGNIN // run this QQ task again or use codex login status after completing the opened sign-in surfaces."
 }
