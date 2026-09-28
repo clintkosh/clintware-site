@@ -204,6 +204,18 @@ def main() -> int:
             )
             page.goto("https://auth.clintware.com/delegated/google/start", wait_until="domcontentloaded", timeout=30000)
             page.bring_to_front()
+            if "auth.clintware.com" in (urlparse(page.url).hostname or ""):
+                recorder.set_caption(
+                    "2/6 - Clintware Google data-access disclosure",
+                    "The app explains the Google data it uses before opening Google's own authorization screen.",
+                )
+                try:
+                    page.get_by_role("link", name="Continue to Google").wait_for(state="visible", timeout=10000)
+                    sleep_visible(5)
+                    page.get_by_role("link", name="Continue to Google").click()
+                    page.wait_for_load_state("domcontentloaded")
+                except Exception:
+                    pass
 
             deadline = time.time() + 600
             while time.time() < deadline:
