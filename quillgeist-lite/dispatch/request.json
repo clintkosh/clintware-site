@@ -1,7 +1,12 @@
 {
-  "request_id": "chatgpt-driznet-codex-org-repair-livebody-20260928-1714",
-  "task_id": "repair-codex-org-identity",
+  "request_id": "chatgpt-driznet-paylocity-skill-inspect-20260928-1743",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Repair Codex CLI/auth on DRIZNET using the verified live task body. Replace only the invalid per-user CODEX_HOME if needed, preserve unrelated credentials/sessions, and keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false. Do not enroll or join this PC to Entra/MDM."
+  "args": {
+    "Action": "resume",
+    "Headless": "false",
+    "Approved": "false",
+    "WaitMs": "500"
+  },
+  "objective": "Resume the existing visible governed QQ browser on DRIZNET and inspect the currently open page. Do not type, click, submit, navigate away, or modify the application. Return the page URL/title and interactive controls so ChatGPT can identify the Paylocity skills field safely."
 }
