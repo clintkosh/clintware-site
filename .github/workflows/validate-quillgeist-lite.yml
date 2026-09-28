@@ -54,6 +54,7 @@ jobs:
             "quillgeist-lite/tasks/dedupe-qq-windows.ps1",
             "quillgeist-lite/tasks/ensure-browser-runtime.ps1",
             "quillgeist-lite/tasks/browser-work.ps1",
+            "quillgeist-lite/tasks/open-edge-tab.ps1",
             "quillgeist-lite/tasks/responder-agent.ps1",
             "quillgeist-lite/tasks/career-signal-agent.ps1",
             "quillgeist-lite/tasks/bitnet-setup.ps1",
@@ -143,7 +144,8 @@ jobs:
             "quillgeist-lite/tools/local_ai_parity_check.py",
             "quillgeist-lite/tools/responder_agent.py",
             "quillgeist-lite/tools/provider_responder.py",
-            "quillgeist-lite/tools/career_signal_agent.py"
+            "quillgeist-lite/tools/career_signal_agent.py",
+            "quillgeist-lite/dispatch/relay.py"
           )
           $logoB64 = (Get-Content "quillgeist-lite/assets/clintware-terminal-logo.b64" -Raw).Trim()
           if (($logoB64.Length % 4) -ne 0) {
