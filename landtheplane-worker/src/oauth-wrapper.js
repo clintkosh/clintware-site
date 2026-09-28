@@ -118,7 +118,7 @@ export default {
     if (url.pathname !== '/' || request.method === 'HEAD' || !String(response.headers.get('content-type') || '').includes('text/html')) return response;
 
     let html = await response.text();
-    if (!html.includes('href="#gmail"')) html = html.replace('<a href="#product">Lifecycle</a>', '<a href="#message-guard">Message Guard</a><a href="#gmail">Gmail</a><a href="#product">Lifecycle</a>');
+    if (!html.includes('href="#gmail"')) html = html.replace('<a href="#product">Lifecycle</a>', '<a href="https://cc.clintware.com">Command Center</a><a href="#message-guard">Message Guard</a><a href="#gmail">Gmail</a><a href="#product">Lifecycle</a>');
     if (!html.includes('id="gmail"')) html = html.replace('</main>', gmailSection + '</main>');
     if (!html.includes('ltp_gmail_mvp_view')) {
       html = html.replace('</body>', '<script src="https://accounts.google.com/gsi/client" async defer></script><script>' + communicationGuardJs + '</script><script>' + gmailClientJs + '</script><script>' + gmailDraftJs + '</script></body>');
