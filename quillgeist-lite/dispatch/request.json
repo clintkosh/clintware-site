@@ -1,8 +1,4 @@
 {
-  "request_id": "qq-open-entra-existing-edge-20260928",
-  "task_id": "open-edge-tab",
-  "args": {
-    "Url": "https://entra.microsoft.com/"
-  },
-  "objective": "Open Microsoft Entra in a new tab in the user's already-running Microsoft Edge session, preserving the existing Shopify tab."
+  "request_id": "inspect-qq-edge-tab-20260928",
+  "mode": "inspect"
 }
