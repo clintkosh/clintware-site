@@ -1,7 +1,7 @@
 {
-  "request_id": "bottom-launcher-device-inspect-2-20260928-2108",
+  "request_id": "bottom-launcher-oauth-job-check-20260928-2109",
   "mode": "inspect",
-  "recorded_at": 1790629627,
+  "recorded_at": 1790629647,
   "inspection": {
     "online": 1,
     "recovery_online": 0,
@@ -164,6 +164,30 @@
         "phase": "health",
         "kind": "other",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:07:26.1243367Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:07:25.2607218Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:07:25.1426891Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "timestamp": "2026-09-28T21:07:06.1281427Z"
       },
       {
@@ -229,31 +253,56 @@
         "kind": "other",
         "message": "credential_selected device=MEMORIA source=machine",
         "timestamp": "2026-09-28T21:06:56.3254291Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Disconnected. Reconnecting in 40 seconds; bounded backoff prevents Cloudflare request storms.",
-        "timestamp": "2026-09-28T21:06:15.7095482Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "connection",
-        "kind": "connection_error",
-        "message": "System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\r\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\r\n ---> System.IO.IOException: Unable to write data to the transport connection: An established connection was aborted by the software in your host machine..\r\n ---> System.Net.Sockets.SocketException (10053): An established connection was aborted by the software in your host machine.\r\n   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.CreateException(SocketError error, Boolean forAsyncThrow)\r\n   at System.Net.Sockets.NetworkStream.WriteAsync(ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.Security.SslStream.WriteAsyncInternal[TIOAdapter](ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ReadOnlyMemory`1 buffer, WebSocketMessageType messageType, WebSocketMessageFlags messageFlags, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ArraySegment`1 buffer, WebSocketMessageType messageType, Boolean endOfMessage, CancellationToken cancellationToken)\r\n   at CallSite.Target(Closure, CallSite, ClientWebSocket, Object, WebSocketMessageType, Boolean, CancellationToken)\r\n   at Send-Json(Closure, FunctionContext)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.PipelineOps.InvokePipeline(Object input, Boolean ignoreInput, CommandParameterInternal[][] pipeElements, CommandBaseAst[] pipeElementAsts, CommandRedirection[][] commandRedirections, FunctionContext funcContext)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.Interpreter.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.LightLambda.RunVoid1[T0](T0 arg0)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.CommandProcessorBase.DoComplete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeHelper()\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeThreadProc()\r\n   at System.Management.Automation.Runspaces.PipelineThread.WorkerProc()\r\n   at System.Threading.Thread.StartHelper.Callback(Object state)\r\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\r\n--- End of stack trace from previous location ---\r\n\r\n   --- End of inner exception stack trace ---\r\n   at System.Net.Security.SslStream.<WriteSingleChunk>g__CompleteWriteAsync|166_1[TIOAdapter](ValueTask writeTask, ProtocolToken token)\r\n   at System.Net.Security.SslStream.WriteAsyncInternal[TIOAdapter](ReadOnlyMemory`1 buffer, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendFrameLockAcquiredNonCancelableAsync(MessageOpcode opcode, Boolean endOfMessage, Boolean disableCompression, ReadOnlyMemory`1 payloadBuffer)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ReadOnlyMemory`1 buffer, WebSocketMessageType messageType, WebSocketMessageFlags messageFlags, CancellationToken cancellationToken)\r\n   at System.Net.WebSockets.ManagedWebSocket.SendAsync(ArraySegment`1 buffer, WebSocketMessageType messageType, Boolean endOfMessage, CancellationToken cancellationToken)\r\n   at CallSite.Target(Closure, CallSite, ClientWebSocket, Object, WebSocketMessageType, Boolean, CancellationToken)\r\n   at Send-Json(Closure, FunctionContext)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.PipelineOps.InvokePipeline(Object input, Boolean ignoreInput, CommandParameterInternal[][] pipeElements, CommandBaseAst[] pipeElementAsts, CommandRedirection[][] commandRedirections, FunctionContext funcContext)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.Interpreter.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.LightLambda.RunVoid1[T0](T0 arg0)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.RunClause(Action`1 clause, Object dollarUnderbar, Object inputToProcess)\r\n   at System.Management.Automation.DlrScriptCommandProcessor.Complete()\r\n   at System.Management.Automation.CommandProcessorBase.DoComplete()\r\n   at System.Management.Automation.Internal.PipelineProcessor.DoCompleteCore(CommandProcessorBase commandRequestingUpstreamCommandsToStop)\r\n   at System.Management.Automation.Internal.PipelineProcessor.SynchronousExecuteEnumerate(Object input)\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeHelper()\r\n   at System.Management.Automation.Runspaces.LocalPipeline.InvokeThreadProc()\r\n   at System.Management.Automation.Runspaces.PipelineThread.WorkerProc()\r\n   at System.Threading.Thread.StartHelper.Callback(Object state)\r\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\r\n--- End of stack trace from previous location ---\r\n   at CallSite.Target(Closure, CallSite, Object)\r\n   --- End of inner exception stack trace ---\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at lambda_method485(Closure, Object[], StrongBox`1[], InterpretedFrame)",
-        "timestamp": "2026-09-28T21:06:15.6547718Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "runner",
-        "kind": "connection_error",
-        "message": "Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"",
-        "timestamp": "2026-09-28T21:06:15.6496626Z"
       }
-    ]
+    ],
+    "selected_job": {
+      "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
+      "task_id": "record-google-oauth-verification",
+      "status": "running",
+      "requested_by": "root",
+      "created_at": "2026-09-28T21:05:03.820Z",
+      "completed_at": null,
+      "duration_ms": null,
+      "exit_code": null,
+      "error_kind": "other",
+      "recent_logs": [
+        {
+          "seq": 1,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:05.5066273Z",
+          "line": "READY // qq browser runtime already installed"
+        },
+        {
+          "seq": 2,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:05.5102849Z",
+          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\browser-runtime\\Scripts\\python.exe"
+        },
+        {
+          "seq": 3,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:05.5130716Z",
+          "line": "CAPTURE // A maximized browser will open for the real Google OAuth consent flow."
+        },
+        {
+          "seq": 4,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:05.5159211Z",
+          "line": "ACTION // Complete Google sign-in/consent in that browser. The rest of the demo is automatic."
+        },
+        {
+          "seq": 5,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:06.0285645Z",
+          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\oauth_verification_capture.py:60: DeprecationWarning: mss.mss is deprecated and will be removed in a future release; use mss.MSS instead"
+        },
+        {
+          "seq": 6,
+          "phase": null,
+          "timestamp": "2026-09-28T21:05:06.0316513Z",
+          "line": "  with mss.mss() as sct:"
+        }
+      ]
+    }
   }
 }
