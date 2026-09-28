@@ -1,13 +1,13 @@
 {
-  "request_id": "chatgpt-driznet-paylocity-skills-input-20260928-1823",
+  "request_id": "chatgpt-driznet-paylocity-skills-container-20260928-1824",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
     "Action": "run",
     "Headless": "false",
     "Approved": "false",
-    "WaitMs": "250",
-    "StepsJson": "{\"steps\":[{\"op\":\"wait_for_text\",\"pattern\":\"Skills?\",\"timeout_ms\":10000},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"name\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"placeholder\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"type\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"aria-label\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"class\"}]}"
+    "WaitMs": "200",
+    "StepsJson": "{\"steps\":[{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"max_chars\":500},{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[1]\",\"max_chars\":2500},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[1]\",\"name\":\"class\"},{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[2]\",\"max_chars\":4000},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[2]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[2]\",\"name\":\"class\"},{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[3]\",\"max_chars\":6000},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[3]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/ancestor::*[3]\",\"name\":\"class\"}]}"
   },
-  "objective": "Identify the actual input immediately following the Skills label in the Red Rover Paylocity application. Read attributes only; do not type, click, submit, or alter application data."
+  "objective": "Trace the DOM container around the visible Skills heading in the Red Rover Paylocity application so the correct skill-entry control can be identified. Read only; do not type, click, submit, upload, or alter any application data."
 }
