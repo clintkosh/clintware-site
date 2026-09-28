@@ -1,9 +1,9 @@
 {
-  "request_id": "memoria-recovery-with-linkage-20260928-2110",
-  "task_id": "finish-local-ai",
+  "request_id": "memoria-deep-diagnostics-20260928-2112",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "MaxPasses": "1"
+    "Action": "diagnostics"
   },
-  "objective": "Run installed recovery with reviewed BitNet linkage patch and packaged gateway fix; preserve original data, start only existing Immich, and report actual service failures."
+  "objective": "Identify exact safe error details, encryption-key match, qq PID paths and reviewed launcher dependencies without exposing keys or accessing D:."
 }
