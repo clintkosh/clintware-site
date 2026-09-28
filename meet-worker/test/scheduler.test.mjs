@@ -7,6 +7,7 @@ import {
   overlaps,
   zonedLocalToUtc,
   hostDateString,
+  followupEmail,
 } from "../src/lib.js";
 import {
   buildGoogleCalendarEventBody,
