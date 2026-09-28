@@ -1,13 +1,4 @@
 {
-  "request_id": "qq-entra-auth-assist-driznet-20260928",
-  "task_id": "browser-work",
-  "target_device": "DRIZNET",
-  "args": {
-    "Action": "assist",
-    "Headless": "false",
-    "UserWaitMs": "600000",
-    "Approved": "false",
-    "WaitMs": "500"
-  },
-  "objective": "Keep the existing persistent QQ Edge session on DRIZNET open at the current Microsoft passkey authentication step. The user will complete only the passkey/Windows Hello/MFA interaction locally. Preserve the browser profile and current Entra flow. After authentication completes, inspect and return the resulting page so the Clintware tenant and app-registration work can resume immediately without rebuilding state."
+  "request_id": "memoria-resume-assess-20260928-2053",
+  "mode": "inspect"
 }
