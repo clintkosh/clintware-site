@@ -1,6 +1,8 @@
 {
-  "request_id": "qq-budget-telemetry-conservation-20260927",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "On MEMORIA, inspect the current Quillgeist Lite/QQ provider usage gauge and all related telemetry/polling paths. Implement a budget-safe usage governor so displaying provider balances never invokes an LLM/model request. Use provider billing/admin/quota endpoints or locally recorded usage only; cache results locally; have all QQ instances share one state instead of independent pollers; refresh on actual usage events plus a bounded reconciliation interval; remove 5-second or other aggressive polling; prohibit model-backed health checks; add provider/model/token/cost ledgering and LOW/WARN/CRITICAL circuit breakers; with Claude at roughly $1 remaining, enable Claude API conservation mode so discretionary paid Claude calls stop and deterministic/local/BitNet/Ollama paths are preferred. Preserve the existing event-driven Control Plane/QQ architecture and secrets behind the control plane. Inspect first, make the smallest correct changes, verify runner/Guardian/health service remain healthy, verify the gauge itself causes zero model calls, and write verification evidence plus changed files/settings to the normal QQ dispatch result/handoff."
+  "request_id": "memoria-finish-local-ai-and-restore-immich-20260927",
+  "task_id": "finish-local-ai",
+  "args": {
+    "MaxPasses": "4"
+  },
+  "objective": "On MEMORIA, resume and finish the existing local AI server in checkpointed chunks and restore the existing Immich Docker deployment without replacing or detaching its media database. Preserve C:\\AI\\LOCAL-CHATGPT and F:\\AI-Data, do not touch D:, keep Ollama selectable alongside BitNet, use the existing Docker stack and data, restore Immich only from discovered existing compose/project/container state, verify Open WebUI, Ollama, n8n, gateway, BitNet, SearXNG, Pipelines, Web Search Agent, Media Agent, ComfyUI, and Immich end-to-end, and persist verification evidence. Do not stop after one reconcile step unless a hard blocker remains."
 }
