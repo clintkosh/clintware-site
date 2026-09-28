@@ -151,7 +151,7 @@ if req.get("mode") == "inspect":
         ],
         "diagnostics": [
             {"device_id": row.get("device_id"), "level": row.get("level"), "phase": row.get("phase"), "kind": error_kind(row.get("message")),
-             "timestamp": row.get("timestamp")}
+             "message": scrub(row.get("message")), "timestamp": row.get("timestamp")}
             for row in diagnostics[:12]
         ],
     }
