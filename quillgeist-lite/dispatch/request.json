@@ -1,8 +1,14 @@
 {
-  "request_id": "qq-open-entra-existing-edge-runtime-v1-20260928",
-  "task_id": "open-edge-tab",
+  "request_id": "qq-browser-entra-inspect-driznet-20260928-1331",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Url": "https://entra.microsoft.com/"
-  }
+    "Action": "inspect",
+    "Url": "https://entra.microsoft.com/",
+    "Headless": "false",
+    "Approved": "false",
+    "AllowPrivate": "false",
+    "WaitMs": "1200"
+  },
+  "objective": "Inspect the current Microsoft Entra page through the governed QQ browser on DRIZNET so the existing tenant/sign-in failure can be repaired without asking the user to run commands."
 }
