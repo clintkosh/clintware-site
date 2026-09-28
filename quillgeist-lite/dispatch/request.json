@@ -1,6 +1,8 @@
 {
-  "request_id": "bottom-launcher-oauth-job-check-20260928-2109",
-  "mode": "inspect",
-  "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
-  "objective": "Check the active DRIZNET Google OAuth recording job without interrupting it before Bottom Launcher repository work."
+  "request_id": "landtheplane-atlassian-connect-20260928-1628",
+  "mode": "run",
+  "task_id": "connect-jira",
+  "target_device": "MEMORIA",
+  "args": {},
+  "objective": "Connect the existing Clintware Control Plane Atlassian OAuth grant for LandThePlane so Jira and Confluence can be created and synchronized. Use existing credentials/configuration when present; do not expose secrets. Resume after authorization and report local-agent-confirmed connection state."
 }
