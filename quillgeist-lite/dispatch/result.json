@@ -1,15 +1,293 @@
 {
-  "request_id": "qq-entra-resume-inspect-driznet-20260928",
-  "job_id": "3fe8cbbb-7452-49b3-9c06-0763b0c13ea0",
-  "task_id": "browser-work",
-  "target_device": "DRIZNET",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 6438,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T19:14:40.8049956Z",
-  "recorded_at": 1790622882,
-  "recovery_history": [],
-  "output_tail": "[run] {\"ok\":false,\"error\":\"Error\",\"detail\":\"BrowserType.launch_persistent_context: Opening in existing browser session. This usually means that the profile is already in use by another instance of Chromium.\\nCall log:\\n  - <launching> C:\\\\Users\\\\batman\\\\AppData\\\\Local\\\\ms-playwright\\\\chromium-1243\\\\chrome-win64\\\\chrome.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --disable-session-crashed-bubble --no-first-run --user-data-dir=C:\\\\Users\\\\batman\\\\AppData\\\\Local\\\\Clintware\\\\QuillgeistLite\\\\browser-profile --remote-debugging-pipe about:blank\\n  - <launched> pid=39780\\n  - [pid=39780][err] [0928/141439.330:ERROR:third_party\\\\crashpad\\\\crashpad\\\\client\\\\settings.cc:231] Settings version is not 1\\n  - [pid\\u2026\"}\r\n[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\browser-work.ps1:43\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  43 | \u001b[0m \u2026 DE -ne 0) { \u001b[36;1mthrow \"qq browser agent failed with exit code $LASTEXITCO\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mqq browser agent failed with exit code 1.\u001b[0m"
+  "request_id": "qq-inspect-live-browser-jobs-20260928",
+  "mode": "inspect",
+  "recorded_at": 1790622920,
+  "inspection": {
+    "online": 2,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.9.10",
+    "runner_last_seen": "2026-09-28T19:14:42.144Z",
+    "runner": {
+      "runner_id": "MEMORIA",
+      "version": "1.9.10",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback"
+      ],
+      "connected_at": "2026-09-28T19:14:39.641Z",
+      "last_seen": "2026-09-28T19:14:42.144Z",
+      "source_revision": "fbdc7d184aa7074bb4c8e4689ef63028c1776409",
+      "registry_version": "16"
+    },
+    "connected_devices": [
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-09-28T19:12:11.631Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-09-28T19:12:11.631Z",
+          "last_seen": "2026-09-28T19:12:11.691Z",
+          "source_revision": "6f204c70927d3aaefb3bac04bbdffb4695c914c9",
+          "registry_version": "16"
+        }
+      },
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-09-28T19:14:39.641Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.9.10",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback"
+          ],
+          "connected_at": "2026-09-28T19:14:39.641Z",
+          "last_seen": "2026-09-28T19:14:39.681Z",
+          "source_revision": "fbdc7d184aa7074bb4c8e4689ef63028c1776409",
+          "registry_version": "16"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "3fe8cbbb-7452-49b3-9c06-0763b0c13ea0",
+        "task_id": "browser-work",
+        "target_device": "DRIZNET",
+        "status": "failed"
+      },
+      {
+        "job_id": "28b89f47-e35e-4285-abd7-a45e1fabd8fd",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "fbfebdc3-aa9e-457b-91f9-c82d4fa262c5",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "bc8cfce9-392a-4844-aab9-37b094ae306a",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "4a3c6f0e-31f0-4439-8616-7b337a81600b",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "f0b6ca72-72ce-4d36-8d1d-18bca144388e",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "0107ca8a-430b-4159-8a08-59468d013485",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "7961f8eb-494e-4e36-9992-56e180bfb95d",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "bd8a68ed-e7b1-494d-a7c4-117d5b7b0497",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "77ac09da-37e3-4c33-a537-65e395075ce2",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "99c6dfa2-44ac-40b7-966a-1cd264b63249",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "e639c2a2-8dc5-41e5-aea2-08b2cfe55435",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "runner-log",
+        "kind": "other",
+        "message": "2026-09-28T14:14:40 [ERROR] Job 3fe8cbbb-7452-49b3-9c06-0763b0c13ea0 finished with status failed",
+        "timestamp": "2026-09-28T19:14:41.3233346Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Job 3fe8cbbb-7452-49b3-9c06-0763b0c13ea0 finished with status failed",
+        "timestamp": "2026-09-28T19:14:40.8658701Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "job",
+        "kind": "other",
+        "message": "job_failed id=3fe8cbbb-7452-49b3-9c06-0763b0c13ea0 task=browser-work exit=1",
+        "timestamp": "2026-09-28T19:14:42.144Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-09-28T19:14:46.8292314Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-09-28T19:14:46.8073920Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=MEMORIA source=machine",
+        "timestamp": "2026-09-28T19:14:46.6301886Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Disconnected. Reconnecting in 300 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-28T19:09:43.3988542Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-09-28T19:14:46.4564964Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T19:14:35.4702139Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T19:14:34.5890079Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T19:14:34.4615085Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-09-28T19:14:34.2755199Z"
+      }
+    ]
+  }
 }
