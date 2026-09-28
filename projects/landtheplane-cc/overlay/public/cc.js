@@ -35,11 +35,26 @@ function shell(content){
  <section class="main"><header class="top"><div><div class="eyebrow">LANDTHEPLANE</div><strong>Career Operating System</strong></div><div class="spacer"></div><span class="pill status-text ${state.google?.connected?"good":"warn"}">${state.google?.connected?"GOOGLE EVIDENCE READY":"GOOGLE EVIDENCE NEEDS ACCESS"}</span><button class="btn small" data-action="sync">Sync</button><form method="post" action="/auth/logout"><button class="btn small" type="submit">Sign out</button></form></header><main class="content">${content}</main></section>
  <nav class="mobile-nav">${nav()}</nav></div>`;
 }
+function reportedStats(){
+ const r=digest()?.fieldReport;
+ if(!r)return '<div class="empty">No full Job Search field report has been synchronized yet.</div>';
+ const v=x=>x==null?"—":Number(x).toLocaleString()+"+";
+ const offers=r.offers==null?"—":Number(r.offers).toLocaleString();
+ return `<section class="grid metrics">
+ <article class="card metric"><b>${v(r.applicationActions)}</b><span>application actions in latest field report</span></article>
+ <article class="card metric"><b>${v(r.distinctApplications)}</b><span>distinct company-role applications</span></article>
+ <article class="card metric"><b>${v(r.interviewStageProcesses)}</b><span>interview-stage processes</span></article>
+ <article class="card metric"><b>${v(r.completedLiveProcesses)}</b><span>completed live processes</span></article>
+ <article class="card metric"><b>${v(r.round2Plus)}</b><span>round 2 / manager / panel</span></article>
+ <article class="card metric"><b>${offers}</b><span>offers in report</span></article></section>
+ <div class="split" style="margin-top:14px"><article class="card"><div class="eyebrow">LATEST FULL FIELD REPORT</div><h3>${esc(r.subject||"Job Search Field Report")}</h3><p class="muted">Report date ${date(r.date)} · Search start ${date(r.searchStart)}${r.searchDays!=null?" · "+esc(r.searchDays+" days"):""}${r.searchMonths!=null?" · "+esc(r.searchMonths+" months"):""}</p><p>${esc(r.funnelRead||"Historical funnel totals synchronized from the latest full job-search update.")}</p></article>
+ <article class="card"><div class="eyebrow">HIGH-SIGNAL BOARD AT REPORT DATE</div><p>${esc(r.highSignalBoard||"No high-signal summary was parsed from the report.")}</p></article></div>`;
+}
 function searchStats(){
  const d=digest();
  if(!d)return `<div class="empty">No Daily Job Finder digest has been synchronized yet.</div>`;
  return `<div class="grid searchstats">
- <article class="card digest-main"><div class="eyebrow">LATEST JOB SEARCH DIGEST</div><h3>${esc(d.subject||"Daily Job Finder Digest")}</h3><p>${esc(d.snippet||"Search throughput source synchronized from Gmail.")}</p><div style="margin-top:10px" class="muted">${date(d.date)}</div></article>
+ <article class="card digest-main"><div class="eyebrow">LATEST DAILY JOB FINDER DIGEST</div><h3>${esc(d.subject||"Daily Job Finder Digest")}</h3><p>${esc(d.snippet||"Search throughput source synchronized from Gmail.")}</p><div style="margin-top:10px" class="muted">${date(d.date)}</div></article>
  <article class="card metric"><b>${d.jobsScanned??"—"}</b><span>jobs scanned in latest digest</span></article>
  <article class="card metric"><b>${d.spreadsheetsMaintained??"—"}</b><span>maintained search sheets</span></article>
  <article class="card metric"><b>${esc(d.cadence||"—")}</b><span>daily search cadence</span></article></div>`;
@@ -55,7 +70,8 @@ function boardView(){
  <article class="card metric"><b>${m.offers}</b><span>offers</span></article>
  <article class="card metric"><b>${m.responseRate}%</b><span>response rate</span></article>
  <article class="card metric"><b>${m.median==null?"—":m.median+"d"}</b><span>median first response</span></article></section>
- <div class="section"><div><h2>Search engine telemetry</h2><p>Latest automation digest, not application count.</p></div></div>${searchStats()}
+ <div class="section"><div><h2>Reported search history</h2><p>Aggregate funnel totals from the latest full Job Search field report. These are kept separate from the reconstructed evidence tickets below.</p></div></div>${reportedStats()}
+ <div class="section"><div><h2>Search engine telemetry</h2><p>Latest acquisition digest, not application count.</p></div></div>${searchStats()}
  <div class="toolbar"><input class="input" id="search" value="${esc(state.query)}" placeholder="Search company, role, stage, next action…"><select class="select" id="stageFilter"><option value="all">All stages</option>${STAGES.map(x=>`<option ${state.stage===x?"selected":""}>${esc(x)}</option>`).join("")}</select><button class="btn" data-action="new">+ Add company-role</button></div>
  <div class="section"><div><h2>Application board</h2><p>${p.length} company-role tickets in current filter.</p></div></div><div class="kanban">${cards}</div>`;
 }
@@ -81,7 +97,7 @@ function syncView(){
  const g=state.google||{},d=digest();
  return `<div class="title"><div class="eyebrow">SOURCE RECONCILIATION</div><h1>Google Evidence Sync</h1><p>Identity and mailbox access stay separate. Sign-in proves who can enter the workspace; the delegated Google boundary provides scoped Gmail and Calendar evidence for synchronization.</p></div>
  <div class="split" style="margin-top:22px"><article class="card"><h2>Connection</h2><p class="muted">${g.connected?"Required Gmail read and Calendar read scopes are available.":"Evidence access needs authorization or renewed scopes."}</p><div class="actions"><button class="btn primary" data-action="sync">${g.connected?"Sync all evidence":"Connect Google evidence"}</button><a class="btn" href="/api/google/connect">Renew access</a></div><div class="callout" style="margin-top:14px">Raw mailbox content is not committed to the source repository. The private workspace stores only the job-search evidence needed to reconcile company-role processes.</div></article>
- <article class="card"><h2>What the sync builds</h2><div class="timeline"><div class="event"><strong>Company-role tickets</strong><small>Application receipt, first response, response time, first interview, stage, pay context, fit estimate, and next action.</small></div><div class="event"><strong>Calendar reconciliation</strong><small>Interview events supplement Gmail when scheduling evidence is more precise.</small></div><div class="event"><strong>Search throughput</strong><small>The latest job-finder digest remains a separate acquisition metric.</small></div></div></article></div>
+ <article class="card"><h2>What the sync builds</h2><div class="timeline"><div class="event"><strong>Company-role tickets</strong><small>Application receipt, first response, response time, first interview, stage, pay context, fit estimate, and next action.</small></div><div class="event"><strong>Calendar reconciliation</strong><small>Interview events supplement Gmail when scheduling evidence is more precise.</small></div><div class="event"><strong>Search history + throughput</strong><small>The latest full field report supplies aggregate application/interview history, while the daily job-finder digest remains a separate acquisition metric.</small></div></div></article></div>
  <div class="section"><div><h2>Latest digest</h2></div></div>${d?searchStats():'<div class="empty">Sync to load the latest job-search digest.</div>'}`;
 }
 function activeView(){
@@ -162,7 +178,7 @@ async function syncAll(){
  try{
   if(!state.google?.connected){location.href="/api/google/connect";return}
   let cursor="",pages=0,total=0;
-  do{const q=cursor?"?cursor="+encodeURIComponent(cursor):"";const x=await api("/api/google/sync"+q,{method:"POST",body:{}});pages++;total+=n(x.created)+n(x.updated);cursor=x.nextCursor||"";toast("Sync page "+pages+" complete · "+total+" tickets created/updated.");if(pages>=20)break}while(cursor);
+  do{const q=cursor?"?cursor="+encodeURIComponent(cursor):"";const x=await api("/api/google/sync"+q,{method:"POST",body:{}});pages++;total+=n(x.created)+n(x.updated);cursor=x.nextCursor||"";toast("Sync page "+pages+" complete · "+total+" tickets created/updated.");if(pages>=60)break}while(cursor);
   await reload();toast("Google evidence sync complete · "+total+" ticket updates.");
  }catch(err){if(err.status===428&&err.data?.connectUrl){location.href=err.data.connectUrl;return}toast("Sync failed: "+err.message)}
 }
