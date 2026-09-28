@@ -20,9 +20,33 @@ $LauncherUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/launche
 $StartWindowUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/start-qq-window.ps1"
 $McpConsoleUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/mcp-console.ps1"
 $BootSplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py"
+$RuntimeVersionUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version"
+$RuntimeVersionPath = Join-Path $HomeDir "runtime-version.txt"
+$script:QQRuntimeVersion = ""
+$script:QQRuntimeRefreshRequired = $true
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 
+
+
+function Initialize-QQRuntimeVersion {
+  $localVersion = ""
+  try { if(Test-Path $RuntimeVersionPath){$localVersion=(Get-Content -LiteralPath $RuntimeVersionPath -Raw).Trim()} } catch {}
+  try {
+    $remote = Invoke-RestMethod -Method Get -Uri $RuntimeVersionUrl -TimeoutSec 8 -ErrorAction Stop
+    $remoteVersion = ([string]$remote.runtime_version).Trim()
+    if($remoteVersion){
+      $script:QQRuntimeVersion = $remoteVersion
+      if($remoteVersion -eq $localVersion -and (Test-Path $RunnerPath) -and (Test-Path (Join-Path $HomeDir "tasks.json"))){
+        return $false
+      }
+      return $true
+    }
+  } catch {
+    Add-Content -Path $CrashLog -Value ("{0} RUNTIME_VERSION_WARN {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
+  }
+  return (-not (Test-Path $RunnerPath))
+}
 
 function Ensure-QuillgeistHealthService {
   $serviceName = "ClintwareQuillgeistLiteHealth"
@@ -55,6 +79,7 @@ function Set-ClintwareBaseTheme {
 }
 
 function Update-LocalRunner {
+  if (Test-Path $RunnerPath) { return $false }
   $temp = Join-Path $HomeDir "runner.next.ps1"
 
   try {
@@ -78,11 +103,18 @@ function Update-LocalRunner {
 }
 
 function Sync-LatestQQFunctionality {
+  if (-not $script:QQRuntimeRefreshRequired) {
+    Write-Host "CACHE" -ForegroundColor White -NoNewline
+    Write-Host " // QQ runtime version unchanged; remote asset sync skipped" -ForegroundColor DarkCyan
+    return
+  }
+  $syncFailed = $false
   $runtimeRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
   $taskRoot = Join-Path $runtimeRoot "tasks"
   New-Item -ItemType Directory -Force -Path $runtimeRoot,$taskRoot | Out-Null
 
   $specs = @(
+    @{ Url = $RunnerUrl; Path = $RunnerPath; Kind = "powershell"; Required = "function Get-QQRequestEnvelope" },
     @{ Url = $RegistryUrl; Path = (Join-Path $HomeDir "tasks.json"); Kind = "json"; Required = '"tasks"' },
     @{ Url = $RegistryUrl; Path = (Join-Path $runtimeRoot "tasks.json"); Kind = "json"; Required = '"tasks"' },
     @{ Url = $SelfUpdateUrl; Path = (Join-Path $taskRoot "self-update.ps1"); Kind = "powershell"; Required = "RESTART // canonical QQ runner restart queued after result delivery" },
@@ -96,7 +128,9 @@ function Sync-LatestQQFunctionality {
   foreach ($spec in $specs) {
     $temp = $spec.Path + ".boot-refresh"
     try {
-      Invoke-WebRequest -Uri ($spec.Url + $(if($spec.Url.Contains("?")){"&"}else{"?"}) + "cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -TimeoutSec 20 -Headers @{"Cache-Control"="no-cache"} -ErrorAction Stop
+      $requestUrl = $spec.Url
+      if($script:QQRuntimeVersion){$requestUrl += $(if($requestUrl.Contains("?")){"&"}else{"?"}) + "runtime_version=" + [Uri]::EscapeDataString($script:QQRuntimeVersion)}
+      Invoke-WebRequest -Uri $requestUrl -OutFile $temp -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
       $raw = Get-Content -LiteralPath $temp -Raw
       if (-not $raw.Contains([string]$spec.Required)) { throw ("QQ boot refresh structural validation failed: " + $spec.Path) }
 
@@ -112,9 +146,14 @@ function Sync-LatestQQFunctionality {
 
       Move-Item -LiteralPath $temp -Destination $spec.Path -Force
     } catch {
+      $syncFailed = $true
       Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
       Add-Content -Path $CrashLog -Value ("{0} BOOT_REFRESH_WARN {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
     }
+  }
+
+  if(-not $syncFailed -and $script:QQRuntimeVersion){
+    try {[IO.File]::WriteAllText($RuntimeVersionPath,$script:QQRuntimeVersion,(New-Object Text.UTF8Encoding($false)))} catch {}
   }
 
   Write-Host "SYNC" -ForegroundColor White -NoNewline
@@ -129,8 +168,11 @@ function Ensure-ModernPowerShell {
       @{ Url = $EnsurePwshUrl; Path = $EnsurePwshPath },
       @{ Url = $AutoRepairUrl; Path = $AutoRepairPath }
     )) {
+      if((Test-Path $asset.Path) -and -not $script:QQRuntimeRefreshRequired){continue}
       $temp = $asset.Path + ".new"
-      Invoke-WebRequest -Uri ($asset.Url + "?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $temp -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+      $requestUrl=$asset.Url
+      if($script:QQRuntimeVersion){$requestUrl += "?runtime_version=" + [Uri]::EscapeDataString($script:QQRuntimeVersion)}
+      Invoke-WebRequest -Uri $requestUrl -OutFile $temp -UseBasicParsing
 
       $tokens = $null
       $errors = $null
@@ -157,30 +199,19 @@ function Ensure-ModernPowerShell {
 
 function Show-WindowLoadSplash {
   $SplashPath = Join-Path $HomeDir "boot_splash.py"
-  $SplashUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tools/boot_splash.py?cb=$([Guid]::NewGuid().ToString('n'))"
   try {
-    Invoke-WebRequest -Uri $SplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-    Move-Item ($SplashPath + ".new") $SplashPath -Force
-
+    if(-not(Test-Path $SplashPath)){
+      Invoke-WebRequest -Uri $BootSplashUrl -OutFile ($SplashPath + ".new") -UseBasicParsing -TimeoutSec 20
+      Move-Item ($SplashPath + ".new") $SplashPath -Force
+    }
     $pyw = Get-Command pyw.exe -ErrorAction SilentlyContinue
-    if ($pyw) {
-      Start-Process -FilePath $pyw.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null
-      return
-    }
+    if ($pyw) { Start-Process -FilePath $pyw.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null; return }
     $pythonw = Get-Command pythonw.exe -ErrorAction SilentlyContinue
-    if ($pythonw) {
-      Start-Process -FilePath $pythonw.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null
-      return
-    }
+    if ($pythonw) { Start-Process -FilePath $pythonw.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null; return }
     $python = Get-Command py.exe -ErrorAction SilentlyContinue
-    if ($python) {
-      Start-Process -FilePath $python.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null
-      return
-    }
+    if ($python) { Start-Process -FilePath $python.Source -ArgumentList @("-3",$SplashPath) -WindowStyle Hidden | Out-Null; return }
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
-    if ($python) {
-      Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null
-    }
+    if ($python) { Start-Process -FilePath $python.Source -ArgumentList @($SplashPath) -WindowStyle Hidden | Out-Null }
   } catch {
     Remove-Item ($SplashPath + ".new") -Force -ErrorAction SilentlyContinue
     Add-Content -Path $CrashLog -Value ("{0} SPLASH_FAILED {1}" -f (Get-Date).ToUniversalTime().ToString("o"),$_.Exception.Message)
@@ -189,9 +220,10 @@ function Show-WindowLoadSplash {
 
 Set-ClintwareBaseTheme
 Ensure-QuillgeistHealthService
+$script:QQRuntimeRefreshRequired = Initialize-QQRuntimeVersion
 Ensure-ModernPowerShell
 Sync-LatestQQFunctionality
-Show-WindowLoadSplash
+if($env:QQ_HEADLESS -ne "1"){Show-WindowLoadSplash}
 
 try {
   $updated = Update-LocalRunner
