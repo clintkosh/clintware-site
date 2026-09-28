@@ -249,6 +249,16 @@
       "parameters": [],
       "approval": "pre-approved",
       "timeout_seconds": 900
+    },
+    "open-edge-tab": {
+      "title": "Open an HTTPS URL as a new tab in the user's existing Microsoft Edge session",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/open-edge-tab.ps1",
+      "parameters": [
+        "Url"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 60
     }
   }
 }
