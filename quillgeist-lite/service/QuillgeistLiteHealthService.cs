@@ -297,7 +297,7 @@ namespace Clintware.QuillgeistLite
             }
         }
 
-        private bool MaintenanceModeActive()
+        private bool MaintenanceModeActive(bool ignoreBusyHeartbeat = false)
         {
             try
             {
@@ -314,7 +314,7 @@ namespace Clintware.QuillgeistLite
                     string state = File.ReadAllText(heartbeat);
                     double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat)).TotalSeconds;
                     if (age < 600 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"(starting|enrolling)\"")) return true;
-                    if (age < 2700 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return true;
+                    if (!ignoreBusyHeartbeat && age < 2700 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return true;
                 }
                 string marker = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -372,7 +372,7 @@ namespace Clintware.QuillgeistLite
 
         private void EnsureRunner(bool forceWake = false)
         {
-            if (MaintenanceModeActive()) return;
+            if (MaintenanceModeActive(forceWake)) return;
             DateTime now = DateTime.UtcNow;
             if ((now - lastRestartAttemptUtc).TotalSeconds < 15) return;
 
