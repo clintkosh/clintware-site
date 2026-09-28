@@ -1,9 +1,8 @@
 {
-  "request_id": "memoria-ai-recover-20260928-1753",
-  "task_id": "finish-local-ai",
-  "args": {
-    "MaxPasses": "1"
-  },
+  "request_id": "memoria-qq-repair-v4-20260928-1800",
+  "task_id": "self-update",
+  "args": {},
   "target_device": "MEMORIA",
-  "objective": "Resume existing MEMORIA local AI stack including n8n, selectable BitNet and existing Immich deployment. Preserve databases, media, credentials, existing volumes; never touch D:. Report concrete blockers and checkpoint results."
+  "resume_after": true,
+  "objective": "Install validated recovery-v4 runtime on MEMORIA, repair PID ownership and complete bundle, preserve pairing and resume pending work after result delivery."
 }
