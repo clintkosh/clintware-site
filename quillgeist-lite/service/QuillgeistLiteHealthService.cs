@@ -59,6 +59,13 @@ namespace Clintware.QuillgeistLite
             try
             {
                 config = LoadConfig();
+                foreach (string path in new string[] { config.CrashLogPath, config.RunnerLogPath })
+                {
+                    if (!String.IsNullOrWhiteSpace(path))
+                    {
+                        offsets[path] = File.Exists(path) ? new FileInfo(path).Length : 0;
+                    }
+                }
                 serviceStartedUtc = DateTime.UtcNow;
                 LocalLog("service_started");
                 timer = new Timer(Tick, null, 1000, 5000);
