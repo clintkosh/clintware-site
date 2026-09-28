@@ -53,6 +53,9 @@ jobs:
 
           check_url "Cloudflare Pages origin" "https://clintware-site.pages.dev/tools/stockyard-signal/" "Stockyard Signal"
           check_url "Clintware public domain" "https://www.clintware.com/tools/stockyard-signal/" "Stockyard Signal"
+          check_url "Clintware Games hub" "https://www.clintware.com/games/" "GAMES · SYSTEMS YOU CAN PLAY"
+          check_url "QBRook live game" "https://www.clintware.com/games/qbrook/" "CUSTOMER SUCCESS × CHESS"
+          check_url "Rotorwash contribution proposal" "https://www.clintware.com/games/rotorwash-zombie-rescue/" "PROPOSED CONTRIBUTION · ROTORWASH"
 
       - name: Verify Clintware control plane
         shell: bash
