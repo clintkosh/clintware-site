@@ -815,21 +815,135 @@ export class RegistryHub extends DurableObject {
     try{await mirrorHandoffToPowerChatBridge(this.env,packet);}catch{}
     return realtime;
   }
-  async scheduleQuillgeistLiteRecovery(job){
-    if(job.task_id!=="self-update"||!/health service is not installed/i.test(String(job.result?.output||"")))return null;
-    const key="quillgeist_lite_recovery:health_service";
-    const previous=await this.ctx.storage.get(key)||{};
-    if(Date.now()-Date.parse(previous.created_at||0)<30*60*1000)return previous.job_id||null;
+  quillgeistLiteFailureKind(job){
+    const line=String(job?.result?.output||"").toLowerCase();
+    if(line.includes("health service is not installed"))return "health_service_missing";
+    if(line.includes("scheduled task")&&(line.includes("missing")||line.includes("cannot find")))return "managed_task_missing";
+    if(line.includes("packaged")&&(line.includes("missing")||line.includes("not found")))return "runtime_bundle_missing";
+    if(line.includes("task registry"))return "task_registry_missing";
+    if(line.includes("commandnotfoundexception")||line.includes("is not recognized as a name of a cmdlet"))return "command_not_found";
+    if(line.includes("cannot validate argument")&&(line.includes("null or empty")||line.includes("cannot convert null")))return "invalid_local_path";
+    if(line.includes("could not refresh reviewed")||line.includes("reviewed task source failed"))return "runtime_source_refresh_failed";
+    if((line.includes("start-process")&&(line.includes("fail")||line.includes("error")))||line.includes("microsoft edge executable not found"))return "browser_launch_failed";
+    if(line.includes("cannot find the file specified"))return "file_not_found";
+    if(line.includes("service")&&(line.includes("missing")||line.includes("not installed")))return "service_missing";
+    return "";
+  }
+  async queueQuillgeistLiteRecoveryStep(taskId,args,context,stage){
     const created=await this.putQuillgeistLiteJob({
-      task_id:"repair-local-service",args:{},requested_by:"clintware-auto-recovery",
-      objective:"Restore the missing registered qq health service after failed self-update "+clip(job.job_id,120),
-      target_device:clip(job.target_device||"",120),resume_after:Boolean(job.resume_after)
+      task_id:taskId,
+      args:args||{},
+      requested_by:"clintware-auto-recovery",
+      objective:"QQ autonomous recovery stage "+stage+" for "+clip(context.original_task_id||"",120)+" after "+clip(context.failure_kind||"",80),
+      target_device:clip(context.target_device||"",120),
+      resume_after:false
     });
     if(!created.ok)return null;
-    await this.ctx.storage.put(key,{job_id:created.job.job_id,source_job_id:job.job_id,created_at:nowIso()});
+    const followup={
+      source_job_id:clip(context.source_job_id||"",120),
+      original_task_id:clip(context.original_task_id||"",120),
+      original_args:context.original_args||{},
+      original_objective:clip(context.original_objective||"",2000),
+      target_device:clip(context.target_device||"",120),
+      original_resume_after:Boolean(context.original_resume_after),
+      failure_kind:clip(context.failure_kind||"",80),
+      stage,
+      created_at:nowIso()
+    };
+    await this.ctx.storage.put("quillgeist_lite_recovery_followup:"+created.job.job_id,followup);
     await this.broadcastQuillgeistLite(created.job);
     await this.broadcastQuillgeistLiteWake(created.job);
+    await this.appendQuillgeistLiteDiagnostic({
+      device_id:followup.target_device||"unknown",
+      level:"WARN",
+      phase:"auto-recovery",
+      message:"queued stage="+stage+" task="+taskId+" source_job="+followup.source_job_id,
+      runner_alive:null,
+      service_version:""
+    });
     return created.job.job_id;
+  }
+  async continueQuillgeistLiteRecovery(job){
+    const followup=await this.ctx.storage.get("quillgeist_lite_recovery_followup:"+clip(job?.job_id||"",120));
+    if(!followup)return null;
+    const status=String(job?.status||"");
+    const kind=this.quillgeistLiteFailureKind(job);
+    if(status!=="passed"){
+      if((followup.stage==="refresh"||followup.stage==="refresh_after_service")&&["health_service_missing","service_missing","managed_task_missing"].includes(kind)){
+        return await this.queueQuillgeistLiteRecoveryStep("repair-local-service",{},followup,"service");
+      }
+      await this.appendQuillgeistLiteDiagnostic({
+        device_id:followup.target_device||"unknown",
+        level:"ERROR",
+        phase:"auto-recovery",
+        message:"recovery_failed stage="+followup.stage+" task="+clip(job?.task_id||"",120)+" source_job="+followup.source_job_id+" kind="+clip(kind||"other",80),
+        runner_alive:null,
+        service_version:""
+      });
+      return null;
+    }
+
+    if(followup.stage==="service"){
+      return await this.queueQuillgeistLiteRecoveryStep("self-update",{},followup,"refresh_after_service");
+    }
+    if(followup.stage==="refresh"||followup.stage==="refresh_after_service"){
+      return await this.queueQuillgeistLiteRecoveryStep(
+        followup.original_task_id,
+        followup.original_args||{},
+        followup,
+        "retry"
+      );
+    }
+    if(followup.stage==="retry"){
+      await this.appendQuillgeistLiteDiagnostic({
+        device_id:followup.target_device||"unknown",
+        level:"INFO",
+        phase:"auto-recovery",
+        message:"recovery_passed task="+followup.original_task_id+" source_job="+followup.source_job_id+" retry_job="+clip(job?.job_id||"",120),
+        runner_alive:true,
+        service_version:""
+      });
+      await this.ctx.storage.put("quillgeist_lite_recovery_source:"+followup.source_job_id,{
+        status:"passed",
+        retry_job_id:clip(job?.job_id||"",120),
+        completed_at:nowIso()
+      });
+      return clip(job?.job_id||"",120);
+    }
+    return null;
+  }
+  async scheduleQuillgeistLiteRecovery(job){
+    if(!job||String(job.status)!=="failed")return null;
+    if(String(job.requested_by||"").startsWith("clintware-auto-recovery"))return null;
+    if(["browser-work","finish-google-oauth","google-cloud-support-access"].includes(String(job.task_id||"")))return null;
+
+    const kind=this.quillgeistLiteFailureKind(job);
+    const recoverable=new Set([
+      "health_service_missing","managed_task_missing","runtime_bundle_missing","task_registry_missing",
+      "command_not_found","invalid_local_path","runtime_source_refresh_failed","browser_launch_failed",
+      "file_not_found","service_missing"
+    ]);
+    if(!recoverable.has(kind))return null;
+
+    const sourceKey="quillgeist_lite_recovery_source:"+clip(job.job_id||"",120);
+    const previous=await this.ctx.storage.get(sourceKey);
+    if(previous)return previous.recovery_job_id||previous.retry_job_id||null;
+
+    const context={
+      source_job_id:clip(job.job_id||"",120),
+      original_task_id:clip(job.task_id||"",120),
+      original_args:job.args||{},
+      original_objective:clip(job.objective||"",2000),
+      target_device:clip(job.target_device||job.result?.device_id||"",120),
+      original_resume_after:Boolean(job.resume_after),
+      failure_kind:kind
+    };
+    const firstTask=(kind==="health_service_missing"||kind==="service_missing"||kind==="managed_task_missing")?"repair-local-service":"self-update";
+    const firstStage=firstTask==="repair-local-service"?"service":"refresh";
+    const recoveryJobId=await this.queueQuillgeistLiteRecoveryStep(firstTask,{},context,firstStage);
+    if(!recoveryJobId)return null;
+    await this.ctx.storage.put(sourceKey,{status:"recovering",recovery_job_id:recoveryJobId,created_at:nowIso(),failure_kind:kind});
+    return recoveryJobId;
   }
   async broadcastQuillgeistLiteAnswer(question){
     let delivered=0;
