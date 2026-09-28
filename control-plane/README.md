@@ -274,3 +274,4 @@ ChatGPT-targeted handoffs use a persistent WebSocket receiver at `wss://mcp.clin
 PowerChatBridge authenticates the receiver connection with the machine's existing GitHub CLI login for `clintkosh`. Clintware validates that GitHub identity live and does not persist the GitHub access token. Undelivered ChatGPT handoffs remain in RegistryHub and are replayed after reconnect until PowerChatBridge acknowledges local persistence.
 
 The private GitHub handoff mirror remains a best-effort audit/fallback copy; it is no longer the primary delivery mechanism.
+<!-- deployment marker 2026-09-28: publish QQ Codex identity repair task registration -->
