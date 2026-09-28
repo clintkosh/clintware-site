@@ -1,13 +1,15 @@
 {
-  "request_id": "chatgpt-driznet-paylocity-skills-editable-20260928-1826",
+  "request_id": "chatgpt-driznet-native-edge-skills-inspect-20260928-1829",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "run",
-    "Headless": "false",
+    "Action": "edge-uia-inspect",
+    "Selector": "Product Director - Core Platform Application",
+    "Query": "Skills",
+    "MaxResults": "40",
     "Approved": "false",
-    "WaitMs": "150",
-    "StepsJson": "{\"steps\":[{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"name\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"class\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"role\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"contenteditable\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"placeholder\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"aria-label\"}]}"
+    "Headless": "false",
+    "WaitMs": "350"
   },
-  "objective": "Identify the first editable textarea/contenteditable/textbox after the Skills heading in the Red Rover Paylocity application. Read attributes only; do not type, click, submit, upload, or alter application data."
+  "objective": "Inspect the already-open normal Microsoft Edge Red Rover Paylocity application through bounded Windows UI Automation. Locate the visible Skills anchor and nearby controls only. Do not type, click, submit, upload, navigate, or alter application data."
 }
