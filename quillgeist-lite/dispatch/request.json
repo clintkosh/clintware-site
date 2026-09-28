@@ -1,8 +1,9 @@
 {
-  "request_id": "memoria-finish-local-ai-and-restore-immich-20260927",
-  "task_id": "finish-local-ai",
-  "args": {
-    "MaxPasses": "4"
-  },
-  "objective": "On MEMORIA, resume and finish the existing local AI server in checkpointed chunks and restore the existing Immich Docker deployment without replacing or detaching its media database. Preserve C:\\AI\\LOCAL-CHATGPT and F:\\AI-Data, do not touch D:, keep Ollama selectable alongside BitNet, use the existing Docker stack and data, restore Immich only from discovered existing compose/project/container state, verify Open WebUI, Ollama, n8n, gateway, BitNet, SearXNG, Pipelines, Web Search Agent, Media Agent, ComfyUI, and Immich end-to-end, and persist verification evidence. Do not stop after one reconcile step unless a hard blocker remains."
+  "request_id": "qq-router-focus-rollout-20260927",
+  "mode": "rollout",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Install the latest canonical QQ runtime on every registered client: local request preprocessing, authoritative Clintware routing, reduced Cloudflare/GitHub runtime load, focus-safe hidden background execution, targeted per-device updates, and resume queued work after a successful update.",
+  "resume_after": true,
+  "verify_seconds": 240
 }
