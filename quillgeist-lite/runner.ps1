@@ -1691,8 +1691,8 @@ function Get-QQRequestEnvelope {
   $raw = ([string]$Text).Trim()
   $normalized = (($raw -replace '\s+',' ').Trim())
   $intent = New-Object System.Collections.Generic.List[string]
-  $actionPattern = '(?i)\b(fix|implement|install|deploy|push|update|change|modify|repair|configure|create|delete|remove|move|rename|start|stop|restart|resume|send|route|run|execute|open|close|test|verify|inspect|build|restore|connect|publish|sync)\b'
-  $freshPattern = '(?i)\b(latest|current|today|tonight|now|email|calendar|github|cloudflare|jira|confluence|repo|repository|deployment|dns|account|private|live)\b'
+  $actionPattern = '(?i)\b(fix|make|ensure|set|add|implement|install|deploy|push|update|change|modify|repair|configure|create|delete|remove|move|rename|start|stop|restart|resume|send|route|run|execute|open|close|test|verify|inspect|build|restore|connect|publish|sync)\b'
+  $freshPattern = '(?i)\b(latest|current|today|tonight|now|search|lookup|email|calendar|github|cloudflare|jira|confluence|repo|repository|deployment|dns|account|private|live)\b'
   $requiresAction = [bool]($normalized -match $actionPattern)
   $requiresFresh = [bool]($normalized -match $freshPattern)
   $routeHint = if ($requiresAction -or $requiresFresh) { "control_plane" } else { "llm" }
