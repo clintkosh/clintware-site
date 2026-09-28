@@ -135,12 +135,14 @@ jobs:
           rm -f /tmp/cpl.cookies /tmp/cpl.headers
           curl -fsS -D /tmp/cpl.headers -c /tmp/cpl.cookies "$base/" >/tmp/cpl.html
           grep -Fqi 'max-age=15552000' /tmp/cpl.headers
+          echo "CHECKPOINT static_and_persistent_cookie=ok"
 
           me=$(curl -fsS -b /tmp/cpl.cookies "$base/me")
           grep -Fq '"authenticated":false' <<< "$me"
           grep -Fq '"persistence":"browser-persistent"' <<< "$me"
           test "$(curl -sS -o /tmp/cpl-login.json -w '%{http_code}' "$base/auth/login" | tr -cd '0-9')" = "404"
           test "$(curl -sS -o /tmp/cpl-callback.json -w '%{http_code}' "$base/auth/callback" | tr -cd '0-9')" = "404"
+          echo "CHECKPOINT guest_identity_and_no_login=ok"
 
           state_code=$(curl -sS -o /tmp/cpl-state.json -w '%{http_code}' -b /tmp/cpl.cookies -c /tmp/cpl.cookies "$base/api/state" | tr -cd '0-9')
           test "$state_code" = "200"
@@ -158,10 +160,12 @@ jobs:
           for c in d['customers']:
               assert required <= set(c.get('portfolio',{})), (c['name'], c.get('portfolio',{}))
           PY
+          echo "CHECKPOINT portfolio_state=ok"
 
           customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/cpl-state.json"))["customer"]["id"])')
           note_code=$(curl -sS -o /tmp/cpl-note.json -w '%{http_code}' -b /tmp/cpl.cookies -H 'content-type: application/json'             --data '{"customerId":"'"$customer_id"'","type":"note","provenance":"internal_record","data":{"title":"CI human approval","status":"Approved","body":"Synthetic verification only"}}'             "$base/api/records" | tr -cd '0-9')
-          test "$note_code" = "201"
+          if [ "$note_code" != "201" ]; then echo "record_write_status=$note_code"; cat /tmp/cpl-note.json; exit 1; fi
+          echo "CHECKPOINT record_write=ok"
           curl -fsS -b /tmp/cpl.cookies "$base/api/state?customer=$customer_id" >/tmp/cpl-state-after.json
           python3 - <<'PY'
           import json
@@ -172,8 +176,11 @@ jobs:
           assert any(r['type']=='risk' for r in d['records'])
           assert any(r['type']=='kpi' for r in d['records'])
           PY
+          echo "CHECKPOINT record_readback=ok"
 
-          curl -fsS -b /tmp/cpl.cookies -H 'content-type: application/json' --data '{}' "$base/api/customers/reset-samples" >/tmp/cpl-reset.json
+          reset_code=$(curl -sS -o /tmp/cpl-reset.json -w '%{http_code}' -b /tmp/cpl.cookies -H 'content-type: application/json' --data '{}' "$base/api/customers/reset-samples" | tr -cd '0-9')
+          if [ "$reset_code" != "200" ]; then echo "reset_status=$reset_code"; cat /tmp/cpl-reset.json; exit 1; fi
+          echo "CHECKPOINT reset=ok"
 
           headers=$(curl -fsS -D - -o /dev/null "$base/")
           grep -Fqi 'strict-transport-security:' <<< "$headers"
@@ -183,17 +190,11 @@ jobs:
           grep -Fqi "script-src 'self'" <<< "$headers"
           grep -Fqi "form-action 'self'" <<< "$headers"
           ! grep -Fqi 'form-action.*auth.clintware.com' <<< "$headers"
+          echo "CHECKPOINT security_headers=ok"
 
           domains=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=cpl.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
-          python3 - <<'PY' <<< "$domains"
-          import json,sys
-          d=json.load(sys.stdin)
-          r=d.get('result',[])
-          assert d.get('success') is True and len(r)==1,d
-          x=r[0]
-          assert x.get('hostname')=='cpl.clintware.com',x
-          assert x.get('service')=='clintware-cpl-cs-os',x
-          PY
+          python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="cpl.clintware.com",x; assert x.get("service")=="clintware-cpl-cs-os",x' <<< "$domains"
+          echo "CHECKPOINT domain_binding=ok"
           echo "CPL live API/data/security/domain checks passed."
 
       - name: Real Chromium functional smoke
