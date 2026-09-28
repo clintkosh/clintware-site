@@ -1,0 +1,13 @@
+{
+  "name": "clintware-landtheplane-cc",
+  "main": "src/cc-entry.js",
+  "compatibility_date": "2026-09-28",
+  "assets": { "directory": "public", "binding": "ASSETS", "html_handling": "none", "not_found_handling": "single-page-application" },
+  "durable_objects": { "bindings": [{ "name": "CRM", "class_name": "DPLCRM" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DPLCRM"] }],
+  "services": [{ "binding": "CONTROL_PLANE", "service": "clintware-control-plane" }],
+  "observability": { "enabled": true },
+  "vars": {
+    "CRM_ANALYTICS_MODE": "first-party-control-plane"
+  }
+}
