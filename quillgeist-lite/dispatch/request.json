@@ -1,9 +1,5 @@
 {
-  "request_id": "qq-router-focus-rollout-20260927",
-  "mode": "rollout",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Install the latest canonical QQ runtime on every registered client: local request preprocessing, authoritative Clintware routing, reduced Cloudflare/GitHub runtime load, focus-safe hidden background execution, targeted per-device updates, and resume queued work after a successful update.",
-  "resume_after": true,
-  "verify_seconds": 240
+  "request_id": "qq-router-focus-post-rollout-verify-20260927",
+  "mode": "inspect",
+  "job_id": "70443adc-d7cc-4eac-86e4-38d1bddcb1fe"
 }
