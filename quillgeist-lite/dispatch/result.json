@@ -1,14 +1,14 @@
 {
-  "request_id": "bottom-launcher-oauth-job-check-20260928-2109",
+  "request_id": "oauth-recorder-status-after-security-fix-20260928",
   "mode": "inspect",
-  "recorded_at": 1790629647,
+  "recorded_at": 1790630858,
   "inspection": {
     "online": 1,
     "recovery_online": 0,
-    "wake_online": 2,
+    "wake_online": 0,
     "recovery": null,
     "runner_version": "1.9.10",
-    "runner_last_seen": "2026-09-28T21:06:49.356Z",
+    "runner_last_seen": "2026-09-28T21:27:18.338Z",
     "runner": {
       "runner_id": "MEMORIA",
       "version": "1.9.10",
@@ -32,15 +32,15 @@
         "workers_ai_responder",
         "fast_responder_fallback"
       ],
-      "connected_at": "2026-09-28T21:06:49.241Z",
-      "last_seen": "2026-09-28T21:06:49.356Z",
-      "source_revision": "8a939fa3f3ea024e125d36d407d2fbb5c9ae64b9",
+      "connected_at": "2026-09-28T21:27:10.600Z",
+      "last_seen": "2026-09-28T21:27:18.338Z",
+      "source_revision": "4bf756bf99dfe2d44b8d0bde0999007fc44ad0cc",
       "registry_version": "16"
     },
     "connected_devices": [
       {
         "device_id": "MEMORIA",
-        "connected_at": "2026-09-28T21:06:49.241Z",
+        "connected_at": "2026-09-28T21:27:10.600Z",
         "runner": {
           "runner_id": "MEMORIA",
           "version": "1.9.10",
@@ -64,9 +64,9 @@
             "workers_ai_responder",
             "fast_responder_fallback"
           ],
-          "connected_at": "2026-09-28T21:06:49.241Z",
-          "last_seen": "2026-09-28T21:06:49.274Z",
-          "source_revision": "8a939fa3f3ea024e125d36d407d2fbb5c9ae64b9",
+          "connected_at": "2026-09-28T21:27:10.600Z",
+          "last_seen": "2026-09-28T21:27:10.628Z",
+          "source_revision": "4bf756bf99dfe2d44b8d0bde0999007fc44ad0cc",
           "registry_version": "16"
         }
       }
@@ -85,142 +85,126 @@
     ],
     "jobs": [
       {
-        "job_id": "b8f696e9-bdd6-4795-a794-118ad9addef3",
+        "job_id": "ceef552d-1a90-45c8-9a91-f571fd820a1b",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "queued"
+      },
+      {
+        "job_id": "24197a7a-d197-4ce6-9465-22d857f443bc",
+        "task_id": "connect-jira",
+        "target_device": "MEMORIA",
+        "status": "running"
+      },
+      {
+        "job_id": "6720557b-9e65-4f86-b10d-00576e10538a",
         "task_id": "self-update",
         "target_device": "",
         "status": "passed"
       },
       {
-        "job_id": "48ae4172-cf33-43e8-8e0b-40217444e888",
-        "task_id": "browser-work",
-        "target_device": "MEMORIA",
+        "job_id": "a2009efe-510b-4782-b11b-aed1229a9817",
+        "task_id": "self-update",
+        "target_device": "",
         "status": "passed"
       },
       {
-        "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
+        "job_id": "26de84bc-a4b9-4dec-a304-2de76e818adb",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "a6506db8-087f-45c5-891c-d5fb2b24838b",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
         "task_id": "record-google-oauth-verification",
         "target_device": "DRIZNET",
         "status": "running"
       },
       {
-        "job_id": "6e1e5e7d-8193-49bd-a952-5645fd478b14",
-        "task_id": "local-ai",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "22f9b2fa-1ae2-44bc-9151-eac7418d1cde",
+        "job_id": "564ad8f0-0189-4f09-b829-2038ad81266b",
         "task_id": "browser-setup",
         "target_device": "DRIZNET",
         "status": "passed"
       },
       {
-        "job_id": "b62e7ef0-0842-4698-a172-81a23fbd0dbc",
-        "task_id": "finish-local-ai",
-        "target_device": "MEMORIA",
-        "status": "failed"
-      },
-      {
-        "job_id": "eddb649a-55dc-44dd-8dbf-8a8b01be067a",
+        "job_id": "c48f189f-b9d8-4992-866b-1d2299378f0b",
         "task_id": "self-update",
         "target_device": "DRIZNET",
         "status": "passed"
       },
       {
-        "job_id": "41a5ed40-1c9b-4043-a2ba-ce2fd767fb89",
+        "job_id": "67873f3f-d405-45b8-ba4b-6fa96730df6d",
         "task_id": "self-update",
         "target_device": "",
         "status": "passed"
       },
       {
-        "job_id": "1c8d7114-fbe3-4ae2-aee3-8bac39d195bc",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "1300d1e2-81ae-4ba0-a9a4-f72b1df7522e",
+        "job_id": "13b09f25-cf0d-4461-a3a8-c81939c4dab3",
         "task_id": "self-update",
         "target_device": "",
-        "status": "failed"
-      },
-      {
-        "job_id": "41974347-f6be-4266-af98-d096b34f4320",
-        "task_id": "local-ai",
-        "target_device": "MEMORIA",
         "status": "passed"
       },
       {
-        "job_id": "fe27fc53-b3ae-40fc-8f5f-a5c89c52bda0",
+        "job_id": "cd3412a0-33c8-4463-8933-6c3e73f3a4f5",
         "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "failed"
+        "target_device": "",
+        "status": "passed"
       }
     ],
     "diagnostics": [
       {
         "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "health",
+        "phase": "auto-repair",
         "kind": "other",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:07:26.1243367Z"
+        "message": "auto_repair_started reason=restart_limit",
+        "timestamp": "2026-09-28T21:27:42.1129808Z"
       },
       {
         "device_id": "MEMORIA",
-        "level": "WARN",
+        "level": "ERROR",
         "phase": "health",
         "kind": "other",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:07:25.2607218Z"
+        "message": "restart_suppressed_after_5_attempts_in_10_minutes",
+        "timestamp": "2026-09-28T21:27:41.9958342Z"
       },
       {
         "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:07:25.1426891Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-09-28T21:07:06.1281427Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "timestamp": "2026-09-28T21:07:05.2333447Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "timestamp": "2026-09-28T21:07:05.1116653Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "runner-log",
-        "kind": "other",
-        "message": "2026-09-28T16:06:56 [WARN] Duplicate job b8f696e9-bdd6-4795-a794-118ad9addef3 ignored; returning the prior result.",
-        "timestamp": "2026-09-28T21:07:00.0947339Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
         "phase": "runner",
         "kind": "other",
-        "message": "Duplicate job b8f696e9-bdd6-4795-a794-118ad9addef3 ignored; returning the prior result.",
-        "timestamp": "2026-09-28T21:06:56.5742503Z"
+        "message": "Running task connect-jira [powershell] (quillgeist-lite/tasks/connect-jira.ps1)",
+        "timestamp": "2026-09-28T21:27:25.5608530Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:27:23.0029850Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-28T21:27:22.1246386Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-28T21:27:22.0000017Z"
       },
       {
         "device_id": "MEMORIA",
@@ -228,7 +212,7 @@
         "phase": "runner",
         "kind": "other",
         "message": "Interactive relay channel initialized.",
-        "timestamp": "2026-09-28T21:06:56.5452582Z"
+        "timestamp": "2026-09-28T21:27:17.9045029Z"
       },
       {
         "device_id": "MEMORIA",
@@ -236,15 +220,7 @@
         "phase": "runner",
         "kind": "other",
         "message": "Connected to Clintware Control Plane.",
-        "timestamp": "2026-09-28T21:06:56.5268341Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Replayed saved result for job b8f696e9-bdd6-4795-a794-118ad9addef3",
-        "timestamp": "2026-09-28T21:06:56.4845486Z"
+        "timestamp": "2026-09-28T21:27:17.8870096Z"
       },
       {
         "device_id": "MEMORIA",
@@ -252,19 +228,43 @@
         "phase": "runner-auth",
         "kind": "other",
         "message": "credential_selected device=MEMORIA source=machine",
-        "timestamp": "2026-09-28T21:06:56.3254291Z"
+        "timestamp": "2026-09-28T21:27:17.6306164Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-28T21:27:07.1403029Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-09-28T21:27:17.2896029Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "other",
+        "message": "2026-09-28T16:27:07 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-28T21:27:11.9558786Z"
       }
     ],
     "selected_job": {
       "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
       "task_id": "record-google-oauth-verification",
-      "status": "running",
+      "status": "failed",
       "requested_by": "root",
       "created_at": "2026-09-28T21:05:03.820Z",
-      "completed_at": null,
-      "duration_ms": null,
-      "exit_code": null,
-      "error_kind": "other",
+      "completed_at": "2026-09-28T21:15:18.7326521Z",
+      "duration_ms": 614686,
+      "exit_code": 1,
+      "error_kind": "timeout",
       "recent_logs": [
         {
           "seq": 1,
