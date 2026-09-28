@@ -183,6 +183,75 @@ if req.get("mode") == "inspect":
     print("INSPECT_OK " + json.dumps(public, indent=2), flush=True)
     sys.exit(0)
 
+
+if req.get("mode") == "rollout":
+    task_id = str(req.get("task_id") or "self-update")
+    args = req.get("args") or {}
+    if task_id not in ALLOWED:
+        raise SystemExit(f"task_not_allowed: {task_id!r}")
+    if not isinstance(args, dict):
+        raise SystemExit("args must be an object")
+    unknown = set(args) - ALLOWED[task_id]
+    if unknown:
+        raise SystemExit(f"argument_not_allowed: {sorted(unknown)}")
+
+    status, created = request_json("POST", "/api/v1/quillgeist-lite/rollout", {
+        "task_id": task_id,
+        "args": args,
+        "objective": str(req.get("objective") or ""),
+        "resume_after": bool(req.get("resume_after", True)),
+    })
+    print(json.dumps(created, indent=2), flush=True)
+    if status not in (200, 201, 202) or not created.get("ok"):
+        raise SystemExit("rollout_dispatch_failed")
+
+    jobs = [row for row in (created.get("jobs") or []) if row.get("ok") and row.get("job_id")]
+    states = {row["job_id"]: {"target_device": row.get("target_device"), "status": "queued"} for row in jobs}
+    deadline = time.time() + int(req.get("verify_seconds") or 240)
+    last_printed = {}
+    while time.time() < deadline and jobs:
+        all_done = True
+        for row in jobs:
+            job_id = row["job_id"]
+            code, payload = request_json("GET", f"/api/v1/quillgeist-lite/jobs/{job_id}")
+            if code != 200 or not payload.get("ok"):
+                all_done = False
+                continue
+            job = payload.get("job") or {}
+            state = str(job.get("status") or "unknown")
+            result = job.get("result") or {}
+            states[job_id] = {
+                "target_device": row.get("target_device"),
+                "status": state,
+                "exit_code": result.get("exit_code"),
+                "duration_ms": result.get("duration_ms"),
+                "output_tail": scrub(result.get("output")) if state in {"passed", "failed"} else "",
+            }
+            if last_printed.get(job_id) != state:
+                print(f"ROLLOUT {row.get('target_device')} {job_id} {state}", flush=True)
+                last_printed[job_id] = state
+            if state not in {"passed", "failed"}:
+                all_done = False
+        if all_done:
+            break
+        time.sleep(4)
+
+    summary = {
+        "request_id": req.get("request_id"),
+        "mode": "rollout",
+        "task_id": task_id,
+        "runtime_version": created.get("runtime_version"),
+        "registered_devices": created.get("devices"),
+        "jobs": list(states.values()),
+        "recorded_at": int(time.time()),
+    }
+    write_result(summary)
+    completed = sum(1 for row in states.values() if row.get("status") in {"passed", "failed"})
+    passed = sum(1 for row in states.values() if row.get("status") == "passed")
+    pending = sum(1 for row in states.values() if row.get("status") not in {"passed", "failed"})
+    print(f"ROLLOUT_SUMMARY registered={created.get('devices')} completed={completed} passed={passed} pending={pending}", flush=True)
+    sys.exit(0)
+
 task_id = str(req.get("task_id") or "")
 args = req.get("args") or {}
 if task_id not in ALLOWED:
