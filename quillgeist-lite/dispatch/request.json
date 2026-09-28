@@ -1,12 +1,4 @@
 {
-  "request_id": "qq-entra-resume-inspect-driznet-20260928",
-  "task_id": "browser-work",
-  "target_device": "DRIZNET",
-  "args": {
-    "Action": "resume",
-    "Headless": "false",
-    "Approved": "false",
-    "WaitMs": "700"
-  },
-  "objective": "Resume and inspect the existing persistent QQ Edge browser state on DRIZNET for the in-progress Microsoft Entra setup. Preserve the Shopify tab/session and do not open a replacement workflow. Return the current page and interactive controls so the Clintware tenant/app registration work can continue. Stop only if credential or MFA entry is required."
+  "request_id": "qq-inspect-live-browser-jobs-20260928",
+  "mode": "inspect"
 }
