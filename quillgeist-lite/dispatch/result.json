@@ -1,7 +1,7 @@
 {
-  "request_id": "inspect-qq-edge-tab-20260928",
+  "request_id": "inspect-driznet-wake-20260928",
   "mode": "inspect",
-  "recorded_at": 1790615553,
+  "recorded_at": 1790615665,
   "inspection": {
     "online": 0,
     "recovery_online": 0,
@@ -51,6 +51,12 @@
       }
     ],
     "jobs": [
+      {
+        "job_id": "c652fae5-cbc2-437b-be77-2692ee2d5a0f",
+        "task_id": "restart-window",
+        "target_device": "DRIZNET",
+        "status": "queued"
+      },
       {
         "job_id": "6387a752-92e6-4eab-b5a6-25e58cb43e2a",
         "task_id": "self-update",
@@ -116,15 +122,23 @@
         "task_id": "self-update",
         "target_device": "DRIZNET",
         "status": "passed"
-      },
-      {
-        "job_id": "b75641ea-cd6e-47bb-ab4f-0dfab86c766a",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "passed"
       }
     ],
     "diagnostics": [
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-28T17:13:55.2401238Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "timestamp": "2026-09-28T17:13:14.9102009Z"
+      },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
@@ -194,20 +208,6 @@
         "phase": "wake",
         "kind": "other",
         "timestamp": "2026-09-28T17:09:35.2539010Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "wake",
-        "kind": "other",
-        "timestamp": "2026-09-28T17:09:35.1368112Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "timestamp": "2026-09-28T17:09:32.9020535Z"
       }
     ]
   }
