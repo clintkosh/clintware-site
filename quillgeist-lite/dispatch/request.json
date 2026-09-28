@@ -1,13 +1,13 @@
 {
-  "request_id": "chatgpt-driznet-paylocity-open-inspect-20260928-1819",
+  "request_id": "chatgpt-driznet-paylocity-skills-locate-20260928-1821",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
     "Action": "run",
     "Headless": "false",
     "Approved": "false",
-    "WaitMs": "500",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://recruiting.paylocity.com/Recruiting/Jobs/Apply/4448194?ref=Simplify&src=Simplify&utm_source=Simplify\",\"settle_ms\":1200},{\"op\":\"wait\",\"ms\":1500},{\"op\":\"inspect\"}]}"
+    "WaitMs": "250",
+    "StepsJson": "{\"steps\":[{\"op\":\"wait_for_text\",\"pattern\":\"Skills?\",\"timeout_ms\":10000},{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]\",\"max_chars\":1000},{\"op\":\"extract\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/ancestor::*[self::div or self::section][1]\",\"max_chars\":4000},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"name\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"placeholder\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"type\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::input[1]\",\"name\":\"role\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::*[@role='combobox'][1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills' or normalize-space()='Skill'])[1]/following::*[@role='combobox'][1]\",\"name\":\"aria-label\"}]}"
   },
-  "objective": "Open the Red Rover Paylocity application in the governed visible QQ browser on DRIZNET and inspect the page controls only. Do not fill, click submit, or change application data."
+  "objective": "Locate and characterize only the Skills entry widget in the already-open Red Rover Paylocity application. Do not type, click, submit, or change any application data."
 }
