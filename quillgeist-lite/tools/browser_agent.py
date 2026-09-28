@@ -10,12 +10,79 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.28.3"
+VERSION="2026.09.28.4"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
 SENSITIVE_RE=re.compile(r"(password|passwd|passcode|one.?time|otp|verification.?code|cvv|cvc|credit.?card|card.?number|security.?code|client.?secret|api.?key|access.?token|refresh.?token|private.?key|ssn|social.?security)",re.I)
 CONSEQUENTIAL_RE=re.compile(r"\b(delete|remove|destroy|purchase|buy|checkout|pay|transfer|wire|send money|place order|publish|post publicly|authorize|approve|confirm purchase|confirm payment|book now|reserve now|sign agreement|accept offer|invite user|remove user)\b",re.I)
+AUTH_INTERACTION_HOSTS=("accounts.google.com","login.microsoftonline.com","login.microsoft.com","login.live.com")
+CONTROL_VISUAL_JS=r"""
+(() => {
+  if (window.__clintwareQQVisualInstalled) return;
+  window.__clintwareQQVisualInstalled = true;
+  const ensure = () => {
+    if (!document.documentElement) return null;
+    let style = document.getElementById('cw-qq-control-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'cw-qq-control-style';
+      style.textContent = `
+        @keyframes cwQQGlow {
+          0%,100% { box-shadow: inset 0 0 0 1px rgba(86,210,255,.75), inset 0 0 32px rgba(58,166,255,.12), 0 0 24px rgba(79,190,255,.35); }
+          50% { box-shadow: inset 0 0 0 1px rgba(189,118,255,.85), inset 0 0 44px rgba(121,90,255,.14), 0 0 36px rgba(98,145,255,.48); }
+        }
+        #cw-qq-control-overlay {
+          position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;
+          border: 4px solid rgba(76,201,255,.92); border-radius: 8px;
+          animation: cwQQGlow 1.65s ease-in-out infinite;
+          transition: opacity .28s ease, border-color .28s ease;
+        }
+        #cw-qq-control-badge {
+          position: absolute; top: 14px; right: 16px; padding: 7px 11px;
+          border-radius: 999px; border: 1px solid rgba(153,224,255,.72);
+          background: linear-gradient(135deg, rgba(7,30,54,.94), rgba(38,24,78,.92));
+          color: #eaf8ff; font: 700 11px/1.2 ui-monospace,Consolas,monospace;
+          letter-spacing: .12em; text-transform: uppercase;
+          text-shadow: 0 0 10px rgba(116,214,255,.75);
+          box-shadow: 0 6px 26px rgba(22,120,255,.28);
+          backdrop-filter: blur(10px);
+        }
+      `;
+      document.documentElement.appendChild(style);
+    }
+    let overlay = document.getElementById('cw-qq-control-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'cw-qq-control-overlay';
+      const badge = document.createElement('div');
+      badge.id = 'cw-qq-control-badge';
+      overlay.appendChild(badge);
+      document.documentElement.appendChild(overlay);
+    }
+    return overlay;
+  };
+  window.__clintwareQQVisual = (mode) => {
+    const overlay = ensure();
+    if (!overlay) return;
+    const badge = overlay.querySelector('#cw-qq-control-badge');
+    overlay.style.opacity = '1';
+    if (mode === 'user') {
+      overlay.style.borderColor = 'rgba(92,150,255,.95)';
+      if (badge) badge.textContent = 'QQ // YOUR TURN';
+      return;
+    }
+    if (mode === 'done') {
+      if (badge) badge.textContent = 'QQ // DONE';
+      setTimeout(() => { try { overlay.style.opacity='0'; } catch {} }, 500);
+      setTimeout(() => { try { overlay.remove(); } catch {} }, 1100);
+      return;
+    }
+    overlay.style.borderColor = 'rgba(76,201,255,.95)';
+    if (badge) badge.textContent = 'QQ // CONTROL';
+  };
+})();
+"""
 
 def as_bool(v:Any)->bool: return str(v).strip().lower() not in {"","0","false","no","off","none"}
 def clip(v:Any,n:int=500)->str:
@@ -82,6 +149,28 @@ def element_meta(locator):
     try:
         return locator.evaluate(r"""el=>({tag:(el.tagName||'').toLowerCase(),type:el.getAttribute('type')||'',id:el.id||'',name:el.getAttribute('name')||'',placeholder:el.getAttribute('placeholder')||'',aria:el.getAttribute('aria-label')||'',role:el.getAttribute('role')||'',autocomplete:el.getAttribute('autocomplete')||'',text:(el.innerText||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,300),value:('value' in el?String(el.value||''):'')})""")
     except Exception: return {}
+def is_auth_interaction_url(raw:str)->bool:
+    try:
+        host=(urlparse(str(raw or "")).hostname or "").lower()
+    except Exception:
+        return False
+    return any(host==allowed or host.endswith("."+allowed) for allowed in AUTH_INTERACTION_HOSTS)
+
+def ensure_not_auth_interaction(page):
+    if is_auth_interaction_url(page.url):
+        raise PermissionError("provider sign-in pages require the normal system browser; QQ will not automate credentials, passkeys, MFA, or provider login UI")
+
+def install_control_visual(context):
+    try: context.add_init_script(CONTROL_VISUAL_JS)
+    except Exception: pass
+
+def set_control_visual(page,mode="agent"):
+    try:
+        page.evaluate(CONTROL_VISUAL_JS)
+        page.evaluate("(mode)=>window.__clintwareQQVisual && window.__clintwareQQVisual(mode)",mode)
+    except Exception:
+        pass
+
 def ensure_not_sensitive(locator):
     if is_sensitive_meta(element_meta(locator)):
         raise PermissionError("qq will not remotely type passwords, OTPs, payment-card data, API keys, tokens, or other credentials; use web login <url> locally for manual authentication")
@@ -201,18 +290,25 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
         step_approved=approved or as_bool(step.get("approved",False)); r={"index":i,"op":op,"ok":True}
         if op in {"goto","open","navigate"}: safe_goto(page,str(step.get("url") or ""),policy,timeout); r["url"]=page.url
         elif op=="fill":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_not_sensitive(loc); loc.fill(str(step.get("value") or ""),timeout=timeout)
         elif op=="type":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_not_sensitive(loc); loc.type(str(step.get("value") or ""),delay=int(step.get("delay_ms") or 20),timeout=timeout)
         elif op=="click":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_action_allowed(loc,step_approved); loc.click(timeout=timeout)
         elif op=="select":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_not_sensitive(loc); ensure_action_allowed(loc,step_approved); loc.select_option(value=step.get("value"),timeout=timeout)
         elif op=="check":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_action_allowed(loc,step_approved); loc.check(timeout=timeout)
         elif op=="uncheck":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); ensure_action_allowed(loc,step_approved); loc.uncheck(timeout=timeout)
         elif op=="press":
+            ensure_not_auth_interaction(page); set_control_visual(page,"agent")
             loc=resolve(page,step); key=str(step.get("key") or "Enter")
             if key.lower() in {"enter","return"}: ensure_action_allowed(loc,step_approved)
             loc.press(key,timeout=timeout)
@@ -382,6 +478,8 @@ def main():
             try: ctx=p.chromium.launch_persistent_context(channel="msedge",**opts)
             except Exception: ctx=p.chromium.launch_persistent_context(**opts)
         install_network_guard(ctx,policy)
+        if persistent_visible:
+            install_control_visual(ctx)
         try:
             page=ctx.pages[-1] if ctx.pages else ctx.new_page(); page.set_default_timeout(15000)
             target=str(a.url or "").strip()
@@ -398,6 +496,9 @@ def main():
                     save_state(page)
                 return 0
             if action=="assist":
+                if is_auth_interaction_url(page.url):
+                    raise PermissionError("authentication handoff must use the normal system browser; automated QQ browser sessions are not used for provider sign-in")
+                set_control_visual(page,"user")
                 wait_ms=max(0,min(int(a.user_wait_ms or 0),600000))
                 emit({"ok":True,"action":"assist","phase":"ready_for_user","title":clip(page.title()),"url":page.url,"headless":False,"user_wait_ms":wait_ms})
                 deadline=time.time()+wait_ms/1000
@@ -412,7 +513,10 @@ def main():
                     emit({"ok":True,"action":"assist","phase":"window_closed","last_url":str(state.get("last_url") or "")})
                 return 0
             if action=="resume":
-                save_state(page); emit({"ok":True,"action":"resume",**inspect_page(page)}); return 0
+                if persistent_visible and not is_auth_interaction_url(page.url): set_control_visual(page,"agent")
+                save_state(page); result={"ok":True,"action":"resume",**inspect_page(page)}
+                if persistent_visible and not is_auth_interaction_url(page.url): set_control_visual(page,"done")
+                emit(result); return 0
             if action=="search": emit({"ok":True,"action":action,**search_web(page,a.query,a.engine,a.max_results,policy)}); return 0
             if action=="read":
                 if not target: raise ValueError("--url is required for read when no browser continuation state exists")
@@ -420,16 +524,21 @@ def main():
             if action=="inspect": save_state(page); emit({"ok":True,"action":action,**inspect_page(page)}); return 0
             if action=="fill":
                 if not a.selector: raise ValueError("--selector is required for fill")
-                loc=page.locator(a.selector).first; ensure_not_sensitive(loc); loc.fill(a.value); emit({"ok":True,"action":action,"url":page.url}); return 0
+                ensure_not_auth_interaction(page); set_control_visual(page,"agent")
+                loc=page.locator(a.selector).first; ensure_not_sensitive(loc); loc.fill(a.value); set_control_visual(page,"done"); emit({"ok":True,"action":action,"url":page.url}); return 0
             if action=="click":
                 if not a.selector: raise ValueError("--selector is required for click")
-                loc=page.locator(a.selector).first; ensure_action_allowed(loc,approved); loc.click(); emit({"ok":True,"action":action,"url":page.url}); return 0
+                ensure_not_auth_interaction(page); set_control_visual(page,"agent")
+                loc=page.locator(a.selector).first; ensure_action_allowed(loc,approved); loc.click(); set_control_visual(page,"done"); emit({"ok":True,"action":action,"url":page.url}); return 0
             if action=="run":
                 parsed=json.loads(a.steps_json); steps=parsed.get("steps") if isinstance(parsed,dict) else parsed
                 if not isinstance(steps,list) or len(steps)>MAX_STEPS: raise ValueError(f"steps-json must contain a list of at most {MAX_STEPS} steps")
+                if persistent_visible and not is_auth_interaction_url(page.url): set_control_visual(page,"agent")
                 results=run_steps(page,steps,a.wait_ms,policy,approved,a.max_chars)
                 save_state(page)
-                emit({"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"results":results,"final":inspect_page(page)}); return 0
+                final={"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"results":results,"final":inspect_page(page)}
+                if persistent_visible and not is_auth_interaction_url(page.url): set_control_visual(page,"done")
+                emit(final); return 0
             raise ValueError(f"unsupported action '{action}'")
         finally:
             if not persistent_visible and action!="login":
