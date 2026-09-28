@@ -94,6 +94,7 @@ try {
     $core = @(
         'runner.ps1',
         'launcher.ps1',
+        'bootstrap.ps1',
         'install.ps1',
         'launch-visible.ps1',
         'uninstall.ps1',
