@@ -4,7 +4,7 @@ import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
-import { jiraAddComment, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
+import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
@@ -4199,7 +4199,7 @@ export default {
         if(!product)return json({error:"product_required"},400);
         const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
         const op=String(body.operation||"").toLowerCase();
-        const writeOps=new Set(["create","update","comment","transition","ensure_project","ensure_filter","ensure_board","ensure_sprint","ensure_dashboard"]);
+        const writeOps=new Set(["create","update","comment","transition","ensure_project","ensure_filter","ensure_board","ensure_sprint","ensure_dashboard","add_to_sprint"]);
         const capability=`jira.${writeOps.has(op)?"write":"read"}:${product}`;
         if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
         const args=body.args&&typeof body.args==="object"?body.args:{};
@@ -4214,6 +4214,7 @@ export default {
         else if(op==="ensure_board")result=await jiraEnsureBoard(env,args);
         else if(op==="sprints")result=await jiraSprints(env,args);
         else if(op==="ensure_sprint")result=await jiraEnsureSprint(env,args);
+        else if(op==="add_to_sprint")result=await jiraAddIssuesToSprint(env,args);
         else if(op==="ensure_dashboard")result=await jiraEnsureDashboard(env,args);
         else if(op==="search")result=await jiraSearch(env,args);
         else if(op==="get")result=await jiraGetIssue(env,args);
