@@ -2,8 +2,7 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Repo = "clintkosh/clintware-site"
-$Raw = "https://raw.githubusercontent.com/clintkosh/clintware-site/main"
+$RuntimeBase = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $LogPath = Join-Path $HomeDir "portable-installer.log"
 $ResultPath = Join-Path $HomeDir "portable-install-result.json"
@@ -32,70 +31,8 @@ function Test-PowerShellFile([string]$Path) {
   }
 }
 
-function Get-Gh {
-  $cmd = Get-Command gh.exe -ErrorAction SilentlyContinue
-  if ($cmd) { return $cmd.Source }
-  $known = Join-Path $env:ProgramFiles "GitHub CLI\gh.exe"
-  if (Test-Path $known) { return $known }
-  return $null
-}
-
-function Refresh-Path {
-  $machine = [Environment]::GetEnvironmentVariable("Path","Machine")
-  $user = [Environment]::GetEnvironmentVariable("Path","User")
-  $env:Path = ($machine + ";" + $user)
-}
-
-function Ensure-GitHubCli {
-  $gh = Get-Gh
-  if ($gh) { return $gh }
-
-  Write-Step "GITHUB // CLI missing; installing official GitHub CLI"
-  $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
-  if ($winget) {
-    & $winget.Source install --id GitHub.cli --exact --silent --disable-interactivity --accept-source-agreements --accept-package-agreements
-    Refresh-Path
-    $gh = Get-Gh
-    if ($gh) { return $gh }
-  }
-
-  Write-Step "GITHUB // winget unavailable; using official GitHub release MSI"
-  $release = Invoke-RestMethod -Uri "https://api.github.com/repos/cli/cli/releases/latest" -Headers @{
-    "User-Agent" = "Clintware-QQ"
-    "Accept" = "application/vnd.github+json"
-  }
-  $asset = $release.assets | Where-Object { $_.name -match "_windows_amd64\.msi$" } | Select-Object -First 1
-  if (-not $asset) { throw "Could not locate the official GitHub CLI Windows AMD64 MSI." }
-
-  $msi = Join-Path $env:TEMP $asset.name
-  Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $msi -UseBasicParsing
-  $p = Start-Process msiexec.exe -ArgumentList @("/i",$msi,"/qn","/norestart") -Wait -PassThru
-  Remove-Item $msi -Force -ErrorAction SilentlyContinue
-  if ($p.ExitCode -notin @(0,3010)) { throw "GitHub CLI MSI install failed with exit code $($p.ExitCode)." }
-
-  Refresh-Path
-  $gh = Get-Gh
-  if (-not $gh) { throw "GitHub CLI installed but gh.exe could not be resolved." }
-  return $gh
-}
-
-function Ensure-GitHubAuth([string]$Gh) {
-  & $Gh auth status --hostname github.com 1>$null 2>$null
-  if ($LASTEXITCODE -eq 0) {
-    Write-Step "GITHUB // existing authorized identity found"
-    return
-  }
-
-  Write-Step "GITHUB // one-time browser authorization required"
-  & $Gh auth login --hostname github.com --git-protocol https --web
-  if ($LASTEXITCODE -ne 0) { throw "GitHub authorization was not completed." }
-
-  & $Gh auth status --hostname github.com 1>$null 2>$null
-  if ($LASTEXITCODE -ne 0) { throw "GitHub authorization could not be verified." }
-}
-
-function Download-PS([string]$RepoPath,[string]$Destination) {
-  $url = $Raw + "/" + $RepoPath + "?cb=" + [Guid]::NewGuid().ToString("n")
+function Download-PS([string]$RuntimePath,[string]$Destination) {
+  $url = $RuntimeBase.TrimEnd("/") + "/" + $RuntimePath + "?cb=" + [Guid]::NewGuid().ToString("n")
   Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
   Test-PowerShellFile $Destination
 }
@@ -113,25 +50,27 @@ function Test-RunnerAlive {
 
 try {
   Write-Step "QQ // one-click install/repair starting"
+  Write-Step "CONTROL PLANE // staging reviewed runtime; GitHub CLI/auth not required"
 
-  $gh = Ensure-GitHubCli
-  Ensure-GitHubAuth $gh
+  $restore = Join-Path $env:TEMP ("clintware-qq-restore-" + [Guid]::NewGuid().ToString("n") + ".ps1")
+  Download-PS "tools/restore-runtime.ps1" $restore
+  & $restore -HomeDir $HomeDir
+  if ($LASTEXITCODE -ne 0) { throw "QQ runtime staging failed with exit code $LASTEXITCODE." }
+  Remove-Item $restore -Force -ErrorAction SilentlyContinue
 
-  $install = Join-Path $env:TEMP ("clintware-qq-install-" + [Guid]::NewGuid().ToString("n") + ".ps1")
-  Download-PS "quillgeist-lite/install.ps1" $install
+  $sourceRoot = Join-Path $HomeDir "runtime\quillgeist-lite"
+  $install = Join-Path $sourceRoot "install.ps1"
+  if (-not (Test-Path $install)) { throw "Packaged QQ installer is missing after Control Plane runtime staging." }
 
   Write-Step "QQ // installing canonical maintained runtime"
-  & $install
+  & $install -SourceRoot $sourceRoot
   if ($LASTEXITCODE -ne 0) { throw "Canonical qq installer failed with exit code $LASTEXITCODE." }
-  Remove-Item $install -Force -ErrorAction SilentlyContinue
 
-  $dedupe = Join-Path $HomeDir "dedupe-qq-windows.ps1"
-  Download-PS "quillgeist-lite/tasks/dedupe-qq-windows.ps1" $dedupe
+  $dedupe = Join-Path $sourceRoot "tasks\dedupe-qq-windows.ps1"
   Write-Step "QQ // closing stale duplicate qq launcher windows only"
   & $dedupe -HomeDir $HomeDir
 
-  $repair = Join-Path $HomeDir "auto-repair-runtime.ps1"
-  Download-PS "quillgeist-lite/tasks/auto-repair-runtime.ps1" $repair
+  $repair = Join-Path $sourceRoot "tasks\auto-repair-runtime.ps1"
   Write-Step "QQ // reconciling service, singleton launch gate, and maintained runtime"
   & $repair -HomeDir $HomeDir
 
