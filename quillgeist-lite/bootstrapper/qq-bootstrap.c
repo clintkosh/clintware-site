@@ -29,7 +29,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR cmd, int show) {
     swprintf_s(
         url,
         1024,
-        L"https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/bootstrapper/bootstrap.ps1?cb=%llu",
+        L"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/bootstrapper/bootstrap.ps1?cb=%llu",
         (unsigned long long)GetTickCount64()
     );
 
