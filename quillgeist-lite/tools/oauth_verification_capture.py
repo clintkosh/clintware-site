@@ -18,7 +18,6 @@ import threading
 import time
 import textwrap
 import urllib.request
-from urllib.parse import urlparse
 
 import cv2
 import mss
@@ -202,15 +201,6 @@ def fill_booking(page):
         "Google OAuth verification demonstration. This test meeting is created, "
         "updated, and cancelled during the recording."
     )
-
-
-def is_oauth_return(url: str) -> bool:
-    try:
-        u = urlparse(url)
-        q = parse_qs(u.query)
-        return u.hostname in {"meet.clintware.com", "www.meet.clintware.com"} and q.get("calendar") == ["connected"]
-    except Exception:
-        return False
 
 
 def main() -> int:
