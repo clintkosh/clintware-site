@@ -368,8 +368,14 @@ def error_kind(message):
         return "local_access_denied"
     if "401" in line and ("websocket" in line or "server returned" in line or "status code" in line):
         return "websocket_401"
-    if "start-process" in line and ("fail" in line or "error" in line):
+    if ("start-process" in line and ("fail" in line or "error" in line)) or "microsoft edge executable not found" in line:
         return "browser_launch_failed"
+    if "is not recognized as a name of a cmdlet" in line or "commandnotfoundexception" in line:
+        return "command_not_found"
+    if "cannot validate argument" in line and ("null or empty" in line or "cannot convert null" in line):
+        return "invalid_local_path"
+    if "could not refresh reviewed" in line or "reviewed task source failed" in line:
+        return "runtime_source_refresh_failed"
     if "timed out" in line or "timeout" in line:
         return "timeout"
     if "connection error" in line or "websocket" in line:
@@ -379,6 +385,98 @@ def error_kind(message):
     if "service" in line and ("missing" in line or "not installed" in line):
         return "service_missing"
     return "other"
+
+RECOVERABLE_TASK_FAILURES = {
+    "browser_launch_failed",
+    "command_not_found",
+    "invalid_local_path",
+    "file_not_found",
+    "runtime_bundle_missing",
+    "runtime_source_refresh_failed",
+    "task_registry_missing",
+    "health_service_missing",
+    "service_missing",
+    "managed_task_missing",
+}
+NO_AUTORETRY_TASKS = {
+    "self-update",
+    "repair-local-service",
+    "restart-window",
+    "browser-work",
+    "finish-google-oauth",
+    "google-cloud-support-access",
+}
+
+def auto_recover_failed_task(task_id, args, objective, target_device, state, result):
+    history = []
+    if state != "failed" or task_id in NO_AUTORETRY_TASKS:
+        return None, history
+    output = str(result.get("output") or "")
+    kind = error_kind(output)
+    if kind not in RECOVERABLE_TASK_FAILURES:
+        return None, history
+
+    chain = ["self-update"]
+    if kind in {"health_service_missing", "service_missing", "managed_task_missing"}:
+        chain = ["repair-local-service", "self-update"]
+
+    print(f"AUTO_RECOVERY task_failure kind={kind} task={task_id} device={target_device or 'auto'}", flush=True)
+    for repair_task in chain:
+        repair_body = {
+            "task_id": repair_task,
+            "args": {},
+            "objective": f"Autonomous QQ recovery for {task_id}: {kind}",
+            "target_device": target_device,
+            "resume_after": False,
+        }
+        status, created = create_job_with_settle(repair_body, settle_seconds=90)
+        if status not in (200, 201, 202) or not created.get("ok"):
+            history.append({"task": repair_task, "status": "dispatch_failed", "error": scrub(created)})
+            return None, history
+        repair_job, repair_transport = wait_for_job(created["job_id"], max_seconds=900)
+        repair_result = repair_job.get("result") or {}
+        repair_state = str(repair_job.get("status") or "unknown")
+        history.append({
+            "task": repair_task,
+            "job_id": created.get("job_id"),
+            "status": repair_state,
+            "exit_code": repair_result.get("exit_code"),
+            "transport": repair_transport,
+        })
+        if repair_state != "passed":
+            return None, history
+        if repair_task == "self-update":
+            # self-update delivers its result before the canonical runner restart.
+            time.sleep(12)
+
+    retry_body = {
+        "task_id": task_id,
+        "args": args,
+        "objective": objective,
+        "target_device": target_device,
+        "resume_after": False,
+    }
+    status, retry_created = create_job_with_settle(retry_body, settle_seconds=120)
+    if status not in (200, 201, 202) or not retry_created.get("ok"):
+        history.append({"task": task_id, "status": "retry_dispatch_failed", "error": scrub(retry_created)})
+        return None, history
+    retry_job, retry_transport = wait_for_job(retry_created["job_id"], max_seconds=1800)
+    retry_result = retry_job.get("result") or {}
+    retry_state = str(retry_job.get("status") or "unknown")
+    history.append({
+        "task": task_id,
+        "job_id": retry_created.get("job_id"),
+        "status": retry_state,
+        "exit_code": retry_result.get("exit_code"),
+        "transport": retry_transport,
+        "retry": True,
+    })
+    return {
+        "job_id": retry_created["job_id"],
+        "job": retry_job,
+        "transport": retry_transport,
+        "created": retry_created,
+    }, history
 
 if req.get("mode") == "inspect":
     code, payload = request_json("GET", "/api/v1/quillgeist-lite/status")
