@@ -74,7 +74,8 @@ $reconcilePy = Join-Path $ToolsDir "local_ai.py"
 $parityPy = Join-Path $ToolsDir "local_ai_parity_check.py"
 $bitnetPs = Join-Path $TasksDir "bitnet-setup.ps1"
 $integratePs = Join-Path $TasksDir "integrate-local-ai.ps1"
-foreach($p in @($reconcilePy,$parityPy,$bitnetPs,$integratePs)){
+$immichPs = Join-Path $TasksDir "restore-immich.ps1"
+foreach($p in @($reconcilePy,$parityPy,$bitnetPs,$integratePs,$immichPs)){
   if(-not (Test-Path $p)){ throw "Required reviewed workflow asset missing: $p" }
 }
 
@@ -110,6 +111,10 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
     }
   } finally { Pop-Location }
 
+  Run-Checked "restore-immich" {
+    & $pwsh -NoProfile -ExecutionPolicy Bypass -File $immichPs
+  }
+
   Run-Checked "local-ai-parity" {
     & $python $parityPy
   }
@@ -125,6 +130,7 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
     "Web Search Agent"="http://127.0.0.1:8788/health"
     "Media Agent"="http://127.0.0.1:8799/health"
     "ComfyUI"="http://127.0.0.1:8188/system_stats"
+    "Immich"="http://127.0.0.1:2283/api/server/ping"
   }
 
   $missing=New-Object System.Collections.Generic.List[string]
