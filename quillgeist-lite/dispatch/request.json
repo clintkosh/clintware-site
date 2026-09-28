@@ -1,9 +1,8 @@
 {
-  "request_id": "memoria-error-categories-20260928-2104",
-  "task_id": "local-ai",
+  "request_id": "memoria-validated-update-20260928-2107",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "diagnostics"
-  },
-  "objective": "Read service error categories and existing Immich volume names without exposing logs, secrets or accessing D:."
+  "resume_after": true,
+  "args": {},
+  "objective": "Install corrected revision 0a701a7 on MEMORIA; all PowerShell tasks now pass Windows parsing. Preserve enrollment and local data."
 }
