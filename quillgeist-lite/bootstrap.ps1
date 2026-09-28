@@ -6,8 +6,8 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$BootstrapUrl = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite/bootstrap.ps1"
-$ArchiveUrl = "https://codeload.github.com/clintkosh/clintware-site/zip/refs/heads/main"
+$BootstrapUrl = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/bootstrap.ps1"
+$RuntimeBase = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $ResultPath = Join-Path $HomeDir "bootstrap-result.json"
 $TaskName = "Clintware Quillgeist Lite Runner"
@@ -29,9 +29,7 @@ if (-not $NoElevate -and -not (Test-Administrator)) {
 
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 $work = Join-Path $env:TEMP ("Clintware-QQ-Bootstrap-" + [Guid]::NewGuid().ToString("n"))
-$zip = Join-Path $work "repo.zip"
-$src = Join-Path $work "src"
-New-Item -ItemType Directory -Force -Path $work,$src | Out-Null
+New-Item -ItemType Directory -Force -Path $work | Out-Null
 
 $steps = [System.Collections.Generic.List[object]]::new()
 function Record-Step([string]$Name,[bool]$Ok,[string]$Detail) {
@@ -77,28 +75,28 @@ function Test-RunnerAlive {
 }
 
 try {
-  Run-Step "download one canonical repository snapshot" {
-    Invoke-WebRequest -Uri $ArchiveUrl -OutFile $zip -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
-    if (-not (Test-Path $zip) -or (Get-Item $zip).Length -lt 1024) { throw "Repository snapshot download was empty." }
-    Expand-Archive -Path $zip -DestinationPath $src -Force
+  $restore = Join-Path $work "restore-runtime.ps1"
+
+  Run-Step "stage reviewed QQ runtime from Clintware" {
+    Invoke-WebRequest -Uri ($RuntimeBase + "/tools/restore-runtime.ps1?cb=" + [Guid]::NewGuid().ToString("n")) -OutFile $restore -UseBasicParsing -Headers @{"Cache-Control"="no-cache"}
+    Test-PowerShellFile $restore
+    & $restore -HomeDir $HomeDir
+    if ($LASTEXITCODE -ne 0) { throw "Control Plane runtime staging returned exit code $LASTEXITCODE." }
   }
 
-  $repoRoot = Get-ChildItem -Path $src -Directory | Where-Object { $_.Name -like "clintware-site-*" } | Select-Object -First 1
-  if (-not $repoRoot) { throw "Repository snapshot root was not found." }
-  $qq = Join-Path $repoRoot.FullName "quillgeist-lite"
-
+  $qq = Join-Path $HomeDir "runtime\quillgeist-lite"
   $install = Join-Path $qq "install.ps1"
   $dedupe = Join-Path $qq "tasks\dedupe-qq-windows.ps1"
   $heal = Join-Path $qq "tasks\auto-repair-runtime.ps1"
 
-  Run-Step "verify bootstrap files" {
+  Run-Step "verify staged bootstrap files" {
     foreach ($file in @($install,$dedupe,$heal)) {
       if (-not (Test-Path $file)) { throw "Missing required bootstrap file: $file" }
       Test-PowerShellFile $file
     }
   }
 
-  Run-Step "install or repair QQ from local snapshot" {
+  Run-Step "install or repair QQ from staged runtime" {
     & $install -SourceRoot $qq
   }
 
@@ -106,7 +104,7 @@ try {
     & $dedupe -HomeDir $HomeDir
   } -NonFatal
 
-  Run-Step "reconcile QQ runtime from local snapshot" {
+  Run-Step "reconcile QQ runtime from staged runtime" {
     & $heal -HomeDir $HomeDir -SourceRoot $qq
   }
 
@@ -132,17 +130,10 @@ try {
     if ($health.ok -ne $true) { throw "Control Plane health response was not OK." }
   } -NonFatal
 
-  Run-Step "request authenticated QQ status check-in" {
-    $gh = Get-Command gh.exe -ErrorAction SilentlyContinue
-    if (-not $gh) { $gh = Get-Command gh -ErrorAction SilentlyContinue }
-    if (-not $gh) { throw "GitHub CLI is unavailable for status workflow check-in." }
-    & $gh.Source workflow run qq-local-status.yml --repo clintkosh/clintware-site --ref main
-    if ($LASTEXITCODE -ne 0) { throw "Could not request qq-local-status workflow." }
-  } -NonFatal
 
   $failed = @($steps | Where-Object { -not $_.ok })
   $result = [ordered]@{
-    status = if (($steps | Where-Object { -not $_.ok -and $_.name -notin @("verify public Control Plane health","request authenticated QQ status check-in") }).Count -eq 0) { "ready" } else { "degraded" }
+    status = if (($steps | Where-Object { -not $_.ok -and $_.name -notin @("verify public Control Plane health") }).Count -eq 0) { "ready" } else { "degraded" }
     generated_at = (Get-Date).ToUniversalTime().ToString("o")
     service = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status.ToString()
     runner_alive = (Test-RunnerAlive)
