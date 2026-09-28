@@ -116,7 +116,7 @@ function compensationFrom(text,role){
   if(/director|head of/.test(r))return {value:"$160K–$220K est.",source:"role-band estimate"};
   if(/principal|senior|enterprise/.test(r)&&/customer success|success manager|cs\b/.test(r))return {value:"$140K–$185K est.",source:"role-band estimate"};
   if(/manager/.test(r)&&/success|support|operations|implementation/.test(r))return {value:"$135K–$180K est.",source:"role-band estimate"};
-  if(/implementation|professional services|solutions consultant|technical account/.test(r))return {value:"$130K–$175K est.",source:"role-band estimate"};
+  if(/implementation|professional services|solutions architect|technical account/.test(r))return {value:"$130K–$175K est.",source:"role-band estimate"};
   if(/customer success|support/.test(r))return {value:"$120K–$165K est.",source:"role-band estimate"};
   return {value:"Not observed",source:"needs job description"};
 }
