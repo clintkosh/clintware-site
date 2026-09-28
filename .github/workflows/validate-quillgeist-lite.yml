@@ -73,6 +73,8 @@ jobs:
             "identity-broker/scripts/finish-google-oauth.ps1"
           )
 
+          $files += @(Get-ChildItem "quillgeist-lite/tasks" -Filter "*.ps1" -File | ForEach-Object { $_.FullName })
+          $files = @($files | Select-Object -Unique)
           foreach ($file in $files) {
             if (-not (Test-Path $file)) {
               throw "Missing expected file: $file"

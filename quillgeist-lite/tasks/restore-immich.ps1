@@ -19,7 +19,7 @@ function Test-Immich {
   )){
     try {
       $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
-      if($r.StatusCode -ge 200 -and $r.StatusCode -lt 500){ return $true }
+      if($r.StatusCode -eq 200 -and $url.EndsWith("/api/server/ping") -and (($r.Content | ConvertFrom-Json).res -eq "pong")){ return $true }
     } catch {}
   }
   return $false
@@ -34,7 +34,7 @@ function Resolve-Docker {
 
 function Get-ExistingImmichContainers([string]$Docker) {
   try {
-    $ids = & $Docker ps -aq --filter "label=com.docker.compose.project=immich"
+    $ids = & $Docker ps -aq --filter "name=immich"
     if($LASTEXITCODE -ne 0){ return @() }
     return @($ids | Where-Object { $_ })
   } catch { return @() }
@@ -75,11 +75,31 @@ if($composeFiles.Count -gt 0){
   Log ("Found existing compose: " + $compose)
   Push-Location (Split-Path $compose -Parent)
   try {
-    & $docker compose -f $compose up -d
+    $rawConfig = & $docker compose -f $compose config --format json 2>$null | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "Existing Immich compose cannot be validated." }
+    $config = $rawConfig | ConvertFrom-Json
+    foreach ($service in $config.services.PSObject.Properties) {
+      foreach ($mount in @($service.Value.volumes)) {
+        if ($mount.type -eq "bind" -and [string]$mount.source -match '(?i)^(D:|/mnt/d/|/run/desktop/mnt/host/d/)') {
+          throw "Existing Immich compose depends on the excluded drive; preserved without starting."
+        }
+      }
+    }
+    # start never creates containers, volumes or an empty replacement database.
+    & $docker compose -f $compose start
     if($LASTEXITCODE -ne 0){ throw "Existing Immich compose failed to start." }
   } finally { Pop-Location }
 } elseif($containers.Count -gt 0) {
   Log ("No compose file found, but existing Immich containers exist: " + $containers.Count)
+  foreach($id in $containers){
+    $rawMounts = & $docker inspect --format '{{json .Mounts}}' $id | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect existing Immich mounts." }
+    foreach ($mount in @($rawMounts | ConvertFrom-Json)) {
+      if ([string]$mount.Source -match '(?i)^(D:|/mnt/d/|/run/desktop/mnt/host/d/)') {
+        throw "Existing Immich container depends on the excluded drive; preserved without starting."
+      }
+    }
+  }
   foreach($id in $containers){
     & $docker start $id | Out-Null
     if($LASTEXITCODE -ne 0){ throw "Failed starting existing Immich container $id" }
