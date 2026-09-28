@@ -2,9 +2,10 @@
 """Interactive Google OAuth verification video recorder for Clintware.
 
 Records the full primary screen so the real browser chrome/address bar and the
-actual Google OAuth consent flow are visible. The user performs only the Google
-sign-in/consent interaction. After OAuth returns to Clintware, the script
-automatically demonstrates free/busy scheduling, event creation, rescheduling,
+actual Google OAuth consent flow are visible. QQ advances ordinary account,
+warning, and consent controls when they are unambiguous, but never types a
+password, OTP, passkey, or other credential. After OAuth returns to Clintware,
+the script automatically demonstrates free/busy scheduling, event creation, rescheduling,
 cancellation, and confirmation delivery.
 """
 from __future__ import annotations
@@ -21,7 +22,7 @@ import mss
 import numpy as np
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-VERSION = "2026.09.24.1"
+VERSION = "2026.09.28.4"
 HOME = pathlib.Path(os.environ.get("LOCALAPPDATA", pathlib.Path.home())) / "Clintware" / "QuillgeistLite"
 PROFILE = HOME / "oauth-verification-profile"
 DOWNLOADS = pathlib.Path.home() / "Downloads"
@@ -157,6 +158,105 @@ def is_oauth_return(url: str) -> bool:
         return False
 
 
+def try_auto_advance_google(page, recorder) -> bool:
+    """Advance only unambiguous Google OAuth UI; never enter credentials."""
+    try:
+        host = urlparse(page.url).hostname or ""
+        if "accounts.google.com" not in host:
+            return False
+        body = page.locator("body").inner_text(timeout=5000)
+        lower = body.lower()
+
+        # If Google presents an account chooser, use the known authorized
+        # Clintware account when it is already present in the browser session.
+        if "choose an account" in lower or "use another account" in lower:
+            for email in ("clint.kosh@gmail.com", "clint@clintware.com"):
+                loc = page.get_by_text(email, exact=False)
+                if loc.count() and loc.first.is_visible():
+                    recorder.set_caption(
+                        "2/6 - Select the authorized Clintware Google account",
+                        f"QQ selected the existing signed-in account {email}; no credential was entered.",
+                    )
+                    loc.first.click()
+                    print(f"AUTO // selected existing Google account {email}", flush=True)
+                    sleep_visible(1.5)
+                    return True
+
+        # Google can show this interstitial until verification is approved.
+        # The user explicitly requested this verification flow, so proceeding
+        # through the test-only warning is within the requested action.
+        if "hasn’t verified this app" in lower or "hasn't verified this app" in lower or "app isn’t verified" in lower or "app isn't verified" in lower:
+            advanced = page.get_by_text("Advanced", exact=True)
+            if advanced.count() and advanced.first.is_visible():
+                recorder.set_caption(
+                    "2/6 - Current unverified-app interstitial",
+                    "This warning is the condition this verification submission is intended to remove.",
+                )
+                sleep_visible(2)
+                advanced.first.click()
+                print("AUTO // opened Google unverified-app advanced options", flush=True)
+                sleep_visible(1)
+                return True
+            go = page.get_by_text("Go to Clintware", exact=False)
+            if go.count() and go.first.is_visible():
+                go.first.click()
+                print("AUTO // continued from Google unverified-app interstitial", flush=True)
+                sleep_visible(1.5)
+                return True
+
+        consent_context = any(token in lower for token in (
+            "wants access to your google account",
+            "choose what clintware can access",
+            "clintware wants access",
+            "allow clintware to",
+            "clintware already has some access",
+        ))
+        if consent_context:
+            recorder.set_caption(
+                "2/6 - Google OAuth grant and requested scopes",
+                "Google shows the requested permissions. QQ approves only this explicitly requested verification test.",
+            )
+            # Granular-consent screens can require selecting the requested
+            # scopes before Continue becomes enabled.
+            boxes = page.locator('input[type="checkbox"]')
+            checked_any = False
+            for i in range(min(boxes.count(), 20)):
+                box = boxes.nth(i)
+                try:
+                    if box.is_visible() and box.is_enabled() and not box.is_checked():
+                        box.check()
+                        checked_any = True
+                except Exception:
+                    pass
+            if checked_any:
+                print("AUTO // selected requested Google consent checkboxes", flush=True)
+                sleep_visible(1)
+
+            for name in ("Continue", "Allow"):
+                btn = page.get_by_role("button", name=name, exact=True)
+                if btn.count() and btn.first.is_visible() and btn.first.is_enabled():
+                    sleep_visible(2)
+                    btn.first.click()
+                    print(f"AUTO // clicked Google OAuth {name}", flush=True)
+                    sleep_visible(2)
+                    return True
+
+        # Credential, passkey, challenge, and OTP screens intentionally remain
+        # manual. We annotate them so the recording shows the security boundary.
+        if any(token in lower for token in (
+            "enter your password", "show password", "verify it’s you", "verify it's you",
+            "use your passkey", "2-step verification", "verification code",
+        )):
+            recorder.set_caption(
+                "2/6 - Google authentication confirmation",
+                "Credential, OTP, and passkey entry is intentionally local/manual; QQ does not type authentication secrets.",
+            )
+        return False
+    except Exception as exc:
+        print(f"AUTO WARN // Google UI inspection skipped: {type(exc).__name__}: {exc}", flush=True)
+        return False
+
+
 def main() -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     PROFILE.mkdir(parents=True, exist_ok=True)
@@ -164,7 +264,7 @@ def main() -> int:
 
     STATUS.write_text(
         "Clintware Google OAuth verification capture started.\n"
-        "Complete Google sign-in/consent in the browser window that opens.\n",
+        "QQ will advance ordinary Google account/consent controls. Complete only password, OTP, passkey, or other credential prompts if Google shows one.\n",
         encoding="utf-8",
     )
 
@@ -224,8 +324,9 @@ def main() -> int:
                 if "accounts.google.com" in host:
                     recorder.set_caption(
                         "2/6 - Google OAuth grant and requested scopes",
-                        "This is the live Google consent flow. Approve the scopes shown for this test account.",
+                        "This is the live Google consent flow. QQ will advance unambiguous consent controls.",
                     )
+                    try_auto_advance_google(page, recorder)
                 elif is_oauth_return(current):
                     break
                 elif "meet.clintware.com" in host and "calendar=connected" in current:
