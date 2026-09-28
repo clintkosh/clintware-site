@@ -74,9 +74,40 @@ try {
 
 # Provider sign-in is a separate security boundary. Open only supported,
 # normal user surfaces; never automate passwords/MFA or identity-provider UI.
+# Keep DRIZNET unmanaged: do not open Access work or school and do not
+# invoke dsregcmd join/leave, workplace enrollment, MDM, or Entra device join.
+# If a Microsoft work-account browser session is needed, use the normal
+# supported system Edge session only.
 try {
-  Start-Process "ms-settings:workplace"
-  Write-Host "ORG_HANDOFF // Windows Access work or school opened for user" -ForegroundColor Yellow
+  $orgUrl = "https://myaccount.microsoft.com/"
+  $edge = $null
+  try {
+    $safeProc = Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.ExecutablePath -and (Test-Path $_.ExecutablePath) -and
+        ($_.CommandLine -notmatch 'Clintware\\QuillgeistLite\\browser-profile') -and
+        ($_.CommandLine -notmatch '--remote-debugging-(port|pipe)')
+      } | Select-Object -First 1
+    if ($safeProc) { $edge = $safeProc.ExecutablePath }
+  } catch {}
+  if (-not $edge) {
+    foreach ($regPath in @(
+      "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\msedge.exe",
+      "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\msedge.exe",
+      "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\App Paths\\msedge.exe"
+    )) {
+      try {
+        $candidate = Get-ItemPropertyValue -Path $regPath -Name "(default)" -ErrorAction Stop
+        if ($candidate -and (Test-Path $candidate)) { $edge = $candidate; break }
+      } catch {}
+    }
+  }
+  if ($edge) {
+    Start-Process -FilePath $edge -ArgumentList @("--new-tab",$orgUrl) -ErrorAction Stop
+  } else {
+    Start-Process -FilePath ("microsoft-edge:" + $orgUrl) -ErrorAction Stop
+  }
+  Write-Host "ORG_HANDOFF // normal Edge work-account page opened; device join/enrollment not invoked" -ForegroundColor Yellow
 } catch {
   Write-Host ("ORG_HANDOFF_WARN // " + $_.Exception.Message) -ForegroundColor DarkYellow
 }
