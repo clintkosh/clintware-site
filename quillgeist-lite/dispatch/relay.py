@@ -33,6 +33,7 @@ ALLOWED = {
     "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs", "UserWaitMs"},
     "record-google-oauth-verification": set(),
     "open-edge-tab": {"Url"},
+    "repair-codex-org-identity": set(),
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
