@@ -1,6 +1,6 @@
 {
-  "request_id": "oauth-recorder-new-job-check-20260928",
+  "request_id": "landtheplane-atlassian-status-20260928-1631",
   "mode": "inspect",
-  "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
-  "objective": "Inspect the newer DRIZNET Google OAuth verification job after the secure-system-browser fix. Confirm whether it is still running and which local source revision it used. Do not start or interact with any provider sign-in browser."
+  "job_id": "24197a7a-d197-4ce6-9465-22d857f443bc",
+  "objective": "Inspect the active LandThePlane Atlassian connection job without interrupting it. Return local-agent-confirmed status and recent logs."
 }
