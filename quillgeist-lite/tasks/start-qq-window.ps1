@@ -1,6 +1,7 @@
 param(
   [string]$LauncherPath = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite\launcher.ps1"),
-  [string]$HomeDir = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite")
+  [string]$HomeDir = (Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"),
+  [switch]$Interactive
 )
 
 $ErrorActionPreference = "Stop"
@@ -181,6 +182,22 @@ try {
     if(Test-Path $candidate){$exe=$candidate}
   }
   if(-not $exe -or -not(Test-Path $exe)){throw "No usable PowerShell executable was found."}
+
+
+  if(-not $Interactive){
+    $psi=New-Object Diagnostics.ProcessStartInfo
+    $psi.FileName=$exe
+    $psi.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File ' + (Quote-Native $LauncherPath) + ' -TerminalHost'
+    $psi.WorkingDirectory=$HomeDir
+    $psi.UseShellExecute=$false
+    $psi.CreateNoWindow=$true
+    $psi.WindowStyle=[Diagnostics.ProcessWindowStyle]::Hidden
+    $psi.EnvironmentVariables["QQ_HEADLESS"]="1"
+    $child=[Diagnostics.Process]::Start($psi)
+    if(-not $child){throw "Could not start the background qq runner."}
+    [IO.File]::WriteAllText($PidPath,[string]$child.Id,(New-Object Text.UTF8Encoding($false)))
+    exit 0
+  }
 
   [void](Ensure-ClintwareTerminalFragment)
   $wt=Get-Command wt.exe -ErrorAction SilentlyContinue
