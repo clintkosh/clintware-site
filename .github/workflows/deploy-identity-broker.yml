@@ -245,7 +245,7 @@ jobs:
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/health || true)
             if echo "$body" | grep -Fq '"service":"Clintware Identity Broker"' \
-              && echo "$body" | grep -Fq '"version":"2026-09-23.11"'; then
+              && echo "$body" | grep -Fq '"version":"2026-09-28.1"'; then
               echo "$body"
               ready=1
               break
@@ -264,8 +264,8 @@ jobs:
           echo "$body" | grep -Fq '"id":"auth0"'
           echo "$body" | grep -Fq '"id":"pingone"'
           echo "$body" | grep -Fq '"id":"oidc"'
-          echo "$body" | grep -Fq '"version":"2026-09-23.11"'
-          echo "Live identity broker version 2026-09-23.11 verified."
+          echo "$body" | grep -Fq '"version":"2026-09-28.1"'
+          echo "Live identity broker version 2026-09-28.1 verified."
           echo "Clintware Google sign-in is ACTIVE without a Google client secret."
           delegated=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/delegated/google/status)
           echo "$delegated" | grep -Fq '"connected":'
@@ -278,8 +278,11 @@ jobs:
           echo "$delegated_location" | grep -Eq '^https://accounts\.google\.com/'
           echo "$delegated_location" | grep -Fq 'access_type=offline'
           echo "$delegated_location" | grep -Fq 'code_challenge='
-          echo "$delegated_location" | grep -Eq 'calendar(\.events|\.freebusy|%2Fcalendar)'
-          echo "One-click delegated Google consent handoff verified."
+          echo "$delegated_location" | grep -Eq 'calendar(\.events|\.freebusy|\.readonly|%2Fcalendar)'
+          echo "$delegated_location" | grep -Eq 'gmail(\.send|\.readonly|%2Fgmail)'
+          cc_handoff=$(curl -sS -o /dev/null -D - 'https://auth.clintware.com/delegated/google/start?return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected')
+          echo "$cc_handoff" | grep -Eqi '^location: https://accounts\.google\.com'
+          echo "One-click delegated Google consent handoff verified, including CC return binding."
 
       - name: Verify central first-party Clintware client
         shell: bash
@@ -289,13 +292,15 @@ jobs:
           n7=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/neuron7-case)
           admin=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-admin)
           mcp=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/control-plane-mcp)
-          MAIL_JSON="$mail" N7_JSON="$n7" ADMIN_JSON="$admin" MCP_JSON="$mcp" python3 - <<'PY'
+          cc=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/client-config/landtheplane-cc)
+          MAIL_JSON="$mail" N7_JSON="$n7" ADMIN_JSON="$admin" MCP_JSON="$mcp" CC_JSON="$cc" python3 - <<'PY'
           import json, os
           mail=json.loads(os.environ["MAIL_JSON"])
           n7=json.loads(os.environ["N7_JSON"])
           admin=json.loads(os.environ["ADMIN_JSON"])
           mcp=json.loads(os.environ["MCP_JSON"])
-          assert mail["client_id"] == n7["client_id"] == admin["client_id"] == mcp["client_id"], (mail,n7,admin,mcp)
+          cc=json.loads(os.environ["CC_JSON"])
+          assert mail["client_id"] == n7["client_id"] == admin["client_id"] == mcp["client_id"] == cc["client_id"], (mail,n7,admin,mcp,cc)
           assert mail["client_name"] == "Clintware Web", mail
           assert n7["client_name"] == "Clintware Web", n7
           assert n7["allowed_email_domains"] == ["neuron7.ai"], n7
@@ -312,7 +317,11 @@ jobs:
           assert admin["redirect_uri"] == "https://mcp.clintware.com/admin/callback", admin
           assert mcp["redirect_uri"] == "https://mcp.clintware.com/oauth/callback", mcp
           assert mcp["allowed_identity_providers"] == ["google"], mcp
-          assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256" and mcp["pkce"] == "S256"
+          assert cc["redirect_uri"] == "https://cc.clintware.com/auth/callback", cc
+          assert cc["allowed_identity_providers"] == ["google"], cc
+          assert cc["allowed_email_domains"] == ["clintware.com"], cc
+          assert "landtheplane-cc:read" in cc["application_context"] and "landtheplane-cc:write" in cc["application_context"], cc
+          assert mail["pkce"] == "S256" and n7["pkce"] == "S256" and admin["pkce"] == "S256" and mcp["pkce"] == "S256" and cc["pkce"] == "S256"
           assert mail["client_model"] == "central-first-party-cimd"
           assert n7["client_model"] == "central-first-party-cimd"
           assert admin["client_model"] == "central-first-party-cimd"
@@ -331,7 +340,8 @@ jobs:
           assert "https://n7crm.clintware.com/auth/callback" in m["redirect_uris"], m
           assert "https://mcp.clintware.com/admin/callback" in m["redirect_uris"], m
           assert "https://mcp.clintware.com/oauth/callback" in m["redirect_uris"], m
-          print("CIMD metadata document verified, including ChatGPT MCP callback.")
+          assert "https://cc.clintware.com/auth/callback" in m["redirect_uris"], m
+          print("CIMD metadata document verified, including ChatGPT MCP and LandThePlane CC callbacks.")
           PY
 
       - name: Verify branded stateless authorization handoff
