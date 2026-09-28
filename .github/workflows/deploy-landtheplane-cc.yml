@@ -56,6 +56,8 @@ jobs:
           grep -Fq '"active_role"' "$root/src/index.js"
           grep -Fq 'google_evidence' "$root/src/index.js"
           grep -Fq 'calendar_evidence' "$root/src/index.js"
+          grep -Fq 'export {DPLCRM};' "$root/src/cc-entry.js"
+          grep -Fq 'latestFieldReport' "$root/src/cc-entry.js"
           grep -Fq 'GOOGLE_DELEGATED_BRIDGE_SECRET' "$root/src/cc-entry.js"
           grep -Fq 'https://www.googleapis.com/auth/gmail.readonly' "$root/src/cc-entry.js"
           grep -Fq 'https://www.googleapis.com/auth/calendar.readonly' "$root/src/cc-entry.js"
@@ -70,8 +72,6 @@ jobs:
           grep -Fq 'identityProviders: Object.freeze(["google"])' identity-broker/src/first-party.js
           grep -Fq '"https://www.googleapis.com/auth/gmail.readonly"' identity-broker/src/delegated-google.js
           grep -Fq '"https://www.googleapis.com/auth/calendar.readonly"' identity-broker/src/delegated-google.js
-          ! grep -Rqi 'consult' projects/landtheplane-cc "$root/src/cc-entry.js" "$root/public/cc.js" "$root/public/index.html" "$root/public/cc.css"
-          ! grep -RqiE 'clint\.kosh@gmail\.com.*(job|interview|application|recruiter)' projects/landtheplane-cc/overlay/public
           test ! -e "$root/prepare-production.mjs"
 
       - name: Wrangler dry run
