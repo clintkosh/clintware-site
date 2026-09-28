@@ -1,5 +1,8 @@
 {
-  "request_id": "qq-router-focus-post-rollout-verify-20260927",
-  "mode": "inspect",
-  "job_id": "70443adc-d7cc-4eac-86e4-38d1bddcb1fe"
+  "request_id": "memoria-finish-local-ai-with-immich-20260927",
+  "task_id": "finish-local-ai",
+  "args": {
+    "MaxPasses": "6"
+  },
+  "objective": "On MEMORIA, finish the full local AI server plan and include restoration/installation of Immich using the existing Docker architecture. First inspect and repair the current QQ runtime blockers shown in recent diagnostics (runtime_bundle_missing, task_registry_missing, connection/enrollment issues) using the existing self-update/runtime/task-registry recovery path; do not create a parallel architecture. Then continue the checkpointed local-AI completion workflow until all intended services are healthy or a hard blocker remains. Include Immich: inspect existing Docker volumes/config/data before changes, preserve existing photo/library/database data and credentials, restore the prior Immich deployment when present rather than replacing it, bring required containers/services up, verify web/API/container health and persistence, and record the local endpoint/state. Reconcile Ollama/local models/BitNet/N3WD@V1D and the rest of the previously planned local AI stack as applicable. Prefer deterministic local operations, avoid unnecessary paid model calls, keep secrets behind the control plane, do not take foreground focus, persist checkpoints/handoff, and return changed artifacts, service/container status, verification evidence, and any genuine blockers. Continue through recoverable failures rather than stopping after one failed step."
 }
