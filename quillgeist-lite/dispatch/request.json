@@ -1,9 +1,7 @@
 {
-  "request_id": "chatgpt-memoria-finish-local-ai-20260928-1642",
-  "task_id": "finish-local-ai",
-  "target_device": "MEMORIA",
-  "args": {
-    "MaxPasses": "8"
-  },
-  "objective": "Resume and finish the MEMORIA local AI server recovery on the correct device. Preserve existing data and configuration. Restore/verify Ollama, Open WebUI, n8n, SearXNG, Pipelines, local agents, BitNet integration, and locate/restore the existing Immich deployment without replacing or recreating its media database. Do not inspect or use D:. Continue through recoverable failures and report the hard blocker only if one remains."
+  "request_id": "chatgpt-driznet-refresh-for-codexrepair-20260928-1643",
+  "task_id": "self-update",
+  "target_device": "DRIZNET",
+  "args": {},
+  "objective": "Refresh DRIZNET QQ from the latest reviewed Clintware runtime so the Codex organization identity repair task is available locally. Preserve current browser sessions and do not join this PC to Entra or workplace management."
 }
