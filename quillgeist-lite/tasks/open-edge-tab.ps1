@@ -7,7 +7,7 @@ $uri = [Uri]$Url
 if ($uri.Scheme -ne "https") { throw "Only https URLs are allowed." }
 
 $edgeCandidates = @(
-  "$env:ProgramFiles(x86)\Microsoft\Edge\Application\msedge.exe",
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
 ) | Where-Object { $_ -and (Test-Path $_) }
 
