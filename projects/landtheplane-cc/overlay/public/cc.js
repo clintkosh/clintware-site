@@ -100,6 +100,16 @@ function syncView(){
  <article class="card"><h2>What the sync builds</h2><div class="timeline"><div class="event"><strong>Company-role tickets</strong><small>Application receipt, first response, response time, first interview, stage, pay context, fit estimate, and next action.</small></div><div class="event"><strong>Calendar reconciliation</strong><small>Interview events supplement Gmail when scheduling evidence is more precise.</small></div><div class="event"><strong>Search history + throughput</strong><small>The latest full field report supplies aggregate application/interview history, while the daily job-finder digest remains a separate acquisition metric.</small></div></div></article></div>
  <div class="section"><div><h2>Latest digest</h2></div></div>${d?searchStats():'<div class="empty">Sync to load the latest job-search digest.</div>'}`;
 }
+function atlassianView(){
+ const a=state.atlassian||{},cfg=jiraConfig(),jcfg=cfg?.jira||{},ccfg=cfg?.confluence||{};
+ const ready=a.connected&&!a.reauthorizationRequired;
+ return `<div class="title"><div class="eyebrow">EXECUTION + KNOWLEDGE LAYER</div><h1>Jira & Confluence</h1><p>The CRM owns company-role facts and interview stage. Jira owns work execution and sprint throughput. Confluence owns reusable operating knowledge.</p></div>
+ <div class="split" style="margin-top:22px"><article class="card"><div class="eyebrow">ATLASSIAN CONNECTION</div><h2>${ready?"Connected":"Authorization required"}</h2><p class="muted">${ready?"Jira and Confluence scopes are ready for LandThePlane reconciliation.":a.connected?"The grant exists but needs the expanded project/board/sprint scopes.":"Authorize the Atlassian site used for LandThePlane."}</p>${a.missingScopes?.length?`<p class="muted">Missing: ${esc(a.missingScopes.join(", "))}</p>`:""}<div class="actions"><a class="btn" href="/api/atlassian/connect">${a.connected?"Renew Atlassian access":"Connect Atlassian"}</a><button class="btn primary" data-action="reconcile-atlassian">Reconcile Jira + Confluence</button></div></article>
+ <article class="card"><div class="eyebrow">SYNC CONTRACT</div><h2>One source per responsibility</h2><div class="timeline"><div class="event"><strong>CRM</strong><small>Company-role identity, evidence dates, stage, pay, fit, next action.</small></div><div class="event"><strong>Jira</strong><small>Stable LTP ticket numbers, sprint work, backlog, throughput and velocity.</small></div><div class="event"><strong>Confluence</strong><small>Start-here guide, playbooks, lessons learned, reporting rules and templates.</small></div></div></article></div>
+ <div class="section"><div><h2>Provisioned workspace</h2><p>These IDs are written back into the persistent CRM so future reconciles reuse rather than duplicate Atlassian objects.</p></div></div>
+ <div class="tablewrap"><table class="table"><tbody><tr><th>Jira project</th><td>${esc(jcfg.projectKey||"Not provisioned")} · ${esc(jcfg.projectName||"")}</td></tr><tr><th>Scrum board</th><td>${esc(jcfg.boardName||"Not provisioned")} ${jcfg.boardId?"#"+esc(jcfg.boardId):""}</td></tr><tr><th>Current sprint</th><td>${esc(jcfg.sprintName||"Not provisioned")}</td></tr><tr><th>Dashboard</th><td>${jcfg.dashboardUrl?`<a class="source-link" target="_blank" rel="noopener" href="${esc(jcfg.dashboardUrl)}">Open dashboard ↗</a>`:"Not provisioned"}</td></tr><tr><th>Confluence space</th><td>${esc(ccfg.spaceKey||"Not provisioned")} · ${esc(ccfg.spaceName||"")}</td></tr><tr><th>KB pages</th><td>${Object.keys(ccfg.pages||{}).length}</td></tr></tbody></table></div>`;
+}
+
 function activeView(){
  const a=activeRole();
  if(!a)return `<div class="title"><div class="eyebrow">NEXT LIFECYCLE</div><h1>Active Job Workspace</h1><p>When an offer is accepted, the same system pivots from landing the role to managing it: 30/60/90 outcomes, stakeholders, projects, wins, feedback, and evidence for future reviews.</p></div><div class="card activehero" style="margin-top:22px"><h2>No active role yet</h2><p class="muted">Open a company ticket and choose “Activate accepted role” when appropriate. The application history remains intact.</p></div>`;
@@ -182,6 +192,20 @@ async function syncAll(){
   await reload();toast("Google evidence sync complete · "+total+" ticket updates.");
  }catch(err){if(err.status===428&&err.data?.connectUrl){location.href=err.data.connectUrl;return}toast("Sync failed: "+err.message)}
 }
+async function reconcileAtlassian(){
+ try{
+  if(!state.atlassian?.connected||state.atlassian?.reauthorizationRequired){location.href="/api/atlassian/connect";return}
+  let offset=0,total=0,loops=0;
+  do{
+   const x=await api("/api/atlassian/reconcile",{method:"POST",body:{offset,limit:25}});
+   total+=Number(x.syncedCount||0);loops++;toast("Atlassian reconcile "+loops+" · "+total+" Jira mappings synced.");
+   offset=x.nextOffset==null?null:Number(x.nextOffset);
+   if(loops>=80)break;
+  }while(offset!=null);
+  await reload();toast("Jira + Confluence reconciliation complete · "+total+" company-role tickets synced.");
+ }catch(err){if([409,428].includes(err.status)&&err.data?.connectUrl){location.href=err.data.connectUrl;return}toast("Atlassian reconcile failed: "+err.message)}
+}
+
 async function exportData(){try{const x=await api("/api/export");const blob=new Blob([JSON.stringify(x,null,2)],{type:"application/json"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="landtheplane-command-center-"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch(e){toast(e.message)}}
 async function reload(){state.data=await api("/api/career-board");state.google=await api("/api/google/status").catch(e=>({connected:false,error:e.message}));state.atlassian=await api("/api/atlassian/status").catch(e=>({connected:false,error:e.message}));render()}
 async function init(){
