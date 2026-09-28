@@ -68,6 +68,7 @@ Get-ReviewedQQAsset -Relative "runner.ps1" -Destination $RunnerPath -Required @(
   "\WindowsApps\",
   "A working Python 3 runtime was not found",
   "function Ensure-QQLocalResponder",
+  "function Get-QQRequestEnvelope",
   "function Invoke-QQSubscriptionProviderResponse",
   "provider_usage_estimates"
 )
@@ -75,7 +76,7 @@ Write-Host "RUNTIME // reviewed Miniconda-first Python resolver installed" -Fore
 
 Write-Host "SYNC // refreshing qq window, MCP monitor, and ASCII splash assets" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "launcher.ps1" -Destination (Join-Path $HomeDir "launcher.ps1") -Required @("Sync-LatestQQFunctionality")
-Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Ensure-ClintwareTerminalFragment","Clintware™ QQ // LOCAL RESPONDER")
+Get-ReviewedQQAsset -Relative "tasks/start-qq-window.ps1" -Destination (Join-Path $HomeDir "start-qq-window.ps1") -Required @("split-pane","Ensure-ClintwareTerminalFragment","[switch]$Interactive","CreateNoWindow")
 Get-ReviewedQQAsset -Relative "tasks/mcp-console.ps1" -Destination (Join-Path $HomeDir "mcp-console.ps1") -Required @("Get-ClintwareLineColor","Clintware™ MCP // CONTROL PLANE","Show-McpPrompt")
 $pythonAssets = @(
   @{ Relative="tools/boot_splash.py"; Destination=(Join-Path $HomeDir "boot_splash.py"); Required="[ CLINTWARE // QQ ]" },
