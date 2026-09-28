@@ -261,6 +261,7 @@
       ["Home", "/", currentPath === "/"],
       ["Products", "/tools/", currentPath.startsWith("/tools/")],
       ["Client Work", "/client-work/", false],
+      ["Games", "/games/", currentPath.startsWith("/games/")],
       ["Skills", "/skills/", currentPath.startsWith("/skills/")],
       ["Build Notes", "/blog/", currentPath.startsWith("/blog/")],
       ["Fonts", "/fonts/", currentPath.startsWith("/fonts/")],
