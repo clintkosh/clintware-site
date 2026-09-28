@@ -294,6 +294,27 @@ def stream_job_events(job_id, max_seconds=1800):
                     pass
     raise TimeoutError("timed_out_waiting_for_event_stream:" + job_id + (":" + last_error if last_error else ""))
 
+def wait_for_job(job_id, max_seconds=1800):
+    try:
+        return stream_job_events(job_id, max_seconds=max_seconds)
+    except Exception as event_error:
+        print(f"EVENT_STREAM_FALLBACK reason={event_error}", flush=True)
+        deadline = time.time() + max_seconds
+        last_seq = 0
+        while time.time() < deadline:
+            status_code, payload = request_json("GET", f"/api/v1/quillgeist-lite/jobs/{job_id}")
+            if status_code == 200 and payload.get("ok"):
+                current = payload.get("job") or {}
+                for row in current.get("logs") or []:
+                    seq = int(row.get("seq") or 0)
+                    if seq > last_seq:
+                        print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
+                        last_seq = max(last_seq, seq)
+                if str(current.get("status") or "") in {"passed", "failed"}:
+                    return current, "bounded-fallback"
+            time.sleep(8)
+        raise TimeoutError(f"timed_out_waiting_for_job:{job_id}")
+
 def scrub(value):
     text = str(value or "")
     patterns = [
