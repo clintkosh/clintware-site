@@ -215,6 +215,7 @@ const DEFAULT_QUILLGEIST_LITE = {
 const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/runner.ps1",
   "quillgeist-lite/launcher.ps1",
+  "quillgeist-lite/bootstrap.ps1",
   "quillgeist-lite/install.ps1",
   "quillgeist-lite/launch-visible.ps1",
   "quillgeist-lite/uninstall.ps1",
