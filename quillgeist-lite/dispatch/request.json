@@ -1,9 +1,10 @@
 {
-  "request_id": "qq-memoria-restart-20260928",
-  "task_id": "restart-window",
-  "target_device": "MEMORIA",
-  "args": {},
-  "resume_after": false,
-  "verify_seconds": 360,
-  "objective": "Restart only MEMORIA's supervised QQ runner through the existing hidden launch task so its freshly installed launcher and recovery runtime can load. Preserve credentials, queued work, and no-focus defaults."
+  "request_id": "qq-msft-clintware-tenant-login-reopen-20260928",
+  "task_id": "browser-work",
+  "args": {
+    "Action": "login",
+    "Url": "https://entra.microsoft.com/",
+    "Headless": "false",
+    "WaitMs": 700
+  }
 }
