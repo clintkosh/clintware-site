@@ -1421,6 +1421,7 @@ export class RegistryHub extends DurableObject {
               log_lines:Number(data.log_lines||0)
             }
           });
+          try{await this.continueQuillgeistLiteRecovery(completedJob||expectedJob);}catch(e){console.error(JSON.stringify({event:"qq_auto_recovery_continue_error",message:String(e?.message||e)}));}
           if(status==="passed"&&completedJob?.resume_after){
             try{ws.send(JSON.stringify({type:"resume_work",protocol:"clintware-quillgeist-lite-control/v1",job_id:jobId,reason:"runtime_update_complete",time:nowIso()}));}catch{}
           }
