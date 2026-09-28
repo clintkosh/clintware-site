@@ -2119,6 +2119,7 @@ function Invoke-AllowlistedTask {
     "local-ai-integrate" = @{ Relative = "tasks/integrate-local-ai.ps1"; Required = "Running n8n-path generation through BitNet" }
     "finish-local-ai" = @{ Relative = "tasks/finish-local-ai.ps1"; Required = "AUTOPILOT COMPLETE" }
     "finish-google-oauth" = @{ Relative = "tasks/finish-google-oauth.ps1"; Required = "FINISH CLINTWARE GOOGLE OAUTH" }
+    "open-edge-tab" = @{ Relative = "tasks/open-edge-tab.ps1"; Required = "OPENED EDGE TAB" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
