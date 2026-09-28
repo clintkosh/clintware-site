@@ -62,6 +62,17 @@ export const FIRST_PARTY_APPS = Object.freeze({
     contextScopes: Object.freeze(["dplr-crm:read", "dplr-crm:write"]),
     identityProviders: Object.freeze(["google", "microsoft", "okta", "auth0", "pingone", "oidc"]),
   }),
+  "landtheplane-cc": Object.freeze({
+    product: "landtheplane-cc",
+    name: "LandThePlane Command Center",
+    home: "https://cc.clintware.com",
+    redirectUri: "https://cc.clintware.com/auth/callback",
+    scopes: Object.freeze(["identity", "email", "profile"]),
+    allowedEmailDomains: Object.freeze(["clintware.com"]),
+    allowedEmails: Object.freeze(["clint.kosh@gmail.com"]),
+    contextScopes: Object.freeze(["landtheplane-cc:read", "landtheplane-cc:write"]),
+    identityProviders: Object.freeze(["google"]),
+  }),
   "control-plane-admin": Object.freeze({
     product: "control-plane-admin",
     name: "Clintware Control Plane Admin",
