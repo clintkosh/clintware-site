@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Quillgeist Lite local browser operator with governed live-web capabilities."""
 from __future__ import annotations
-import argparse, base64, ipaddress, json, os, pathlib, re, socket, sys, time
+import argparse, base64, ipaddress, json, os, pathlib, re, socket, subprocess, sys, time, urllib.request
 from typing import Any
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
 
@@ -10,7 +10,7 @@ try:
     if hasattr(sys.stderr,"reconfigure"): sys.stderr.reconfigure(encoding="utf-8",errors="backslashreplace")
 except Exception: pass
 
-VERSION="2026.09.28.2"
+VERSION="2026.09.28.3"
 MAX_STEPS=100
 DEFAULT_MAX_CHARS=20000
 DEFAULT_SEARCH_RESULTS=8
@@ -263,6 +263,188 @@ def run_steps(page,steps,wait_ms,policy,approved,max_chars):
         if settle>0 and op not in {"wait","wait_for","screenshot","extract","inspect","read","search"}: page.wait_for_timeout(min(settle,5000))
         results.append(r)
     return results
+
+VISIBLE_CDP_PORT=9227
+
+def cdp_ready(port:int=VISIBLE_CDP_PORT)->bool:
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version",timeout=1.5) as r:
+            data=json.loads(r.read().decode("utf-8","replace"))
+            return bool(data.get("webSocketDebuggerUrl"))
+    except Exception:
+        return False
+
+def find_edge_executable(playwright)->str:
+    candidates=[]
+    for base in (os.environ.get("PROGRAMFILES(X86)",""),os.environ.get("PROGRAMFILES",""),os.environ.get("LOCALAPPDATA","")):
+        if base:
+            candidates.append(pathlib.Path(base)/"Microsoft"/"Edge"/"Application"/"msedge.exe")
+    for pth in candidates:
+        if pth.exists(): return str(pth)
+    try:
+        exe=str(playwright.chromium.executable_path or "")
+        if exe and pathlib.Path(exe).exists(): return exe
+    except Exception:
+        pass
+    raise RuntimeError("no Edge/Chromium executable found for persistent QQ browser")
+
+def stop_qq_profile_processes(profile:pathlib.Path)->None:
+    # Only terminate browser processes whose command line explicitly owns the
+    # dedicated QQ browser profile. Never touch the user's ordinary Edge profile.
+    profile_text=str(profile)
+    ps=(
+        "$needle="+repr(profile_text)+";"
+        "Get-CimInstance Win32_Process | "
+        "Where-Object { $_.CommandLine -and $_.CommandLine.Contains($needle) -and "
+        "$_.Name -match '^(msedge|chrome|chromium)\\.exe    ap=argparse.ArgumentParser()
+    ap.add_argument("--action",required=True); ap.add_argument("--url",default=""); ap.add_argument("--selector",default="")
+    ap.add_argument("--value",default=""); ap.add_argument("--steps-json",default=""); ap.add_argument("--query",default="")
+    ap.add_argument("--engine",default="auto"); ap.add_argument("--max-results",type=int,default=DEFAULT_SEARCH_RESULTS)
+    ap.add_argument("--max-chars",type=int,default=DEFAULT_MAX_CHARS); ap.add_argument("--headless",default="true")
+    ap.add_argument("--wait-ms",type=int,default=700); ap.add_argument("--user-wait-ms",type=int,default=0)
+    ap.add_argument("--approved",default="false"); ap.add_argument("--allow-private",default="false")
+    a=ap.parse_args()
+    from playwright.sync_api import sync_playwright
+    local=pathlib.Path(os.environ.get("LOCALAPPDATA",pathlib.Path.home()))
+    headless=as_bool(a.headless); approved=as_bool(a.approved); policy=NetworkPolicy(allow_private=as_bool(a.allow_private)); action=a.action.lower().strip()
+    if action in {"login","assist"}: headless=False
+    visible_profile=local/"Clintware"/"QuillgeistLite"/"browser-profile"
+    headless_profile=local/"Clintware"/"QuillgeistLite"/"browser-headless-profile"
+    profile=visible_profile if not headless else headless_profile
+    profile.mkdir(parents=True,exist_ok=True)
+    state_path=local/"Clintware"/"QuillgeistLite"/("browser-state.json" if not headless else "browser-headless-state.json")
+    state={}
+    try:
+        if state_path.exists(): state=json.loads(state_path.read_text(encoding="utf-8"))
+    except Exception: state={}
+    def save_state(pg):
+        try:
+            payload={"version":3,"last_url":str(pg.url or ""),"title":clip(pg.title(),300),"updated_at":time.time()}
+            state_path.parent.mkdir(parents=True,exist_ok=True)
+            state_path.write_text(json.dumps(payload,separators=(",",":")),encoding="utf-8")
+        except Exception: pass
+    with sync_playwright() as p:
+        persistent_visible=not headless
+        browser=None
+        if persistent_visible:
+            browser,ctx=ensure_visible_browser(p,profile)
+        else:
+            opts={"user_data_dir":str(profile),"headless":True,"viewport":{"width":1440,"height":1000},"accept_downloads":False,"args":["--disable-session-crashed-bubble","--no-first-run"]}
+            try: ctx=p.chromium.launch_persistent_context(channel="msedge",**opts)
+            except Exception: ctx=p.chromium.launch_persistent_context(**opts)
+        install_network_guard(ctx,policy)
+        try:
+            page=ctx.pages[-1] if ctx.pages else ctx.new_page(); page.set_default_timeout(15000)
+            target=str(a.url or "").strip()
+            current_url=str(page.url or "")
+            if not target and action in {"resume","inspect","run","assist","fill","click","read"}:
+                if current_url in {"","about:blank"}:
+                    target=str(state.get("last_url") or "").strip()
+            if target and target!=current_url:
+                safe_goto(page,target,policy,30000); page.wait_for_timeout(max(0,min(a.wait_ms,5000)))
+            if action in {"open","login"}:
+                emit({"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"headless":headless})
+                if action=="login":
+                    while ctx.pages: time.sleep(.5)
+                else:
+                    save_state(page)
+                return 0
+            if action=="assist":
+                wait_ms=max(0,min(int(a.user_wait_ms or 0),600000))
+                emit({"ok":True,"action":"assist","phase":"ready_for_user","title":clip(page.title()),"url":page.url,"headless":False,"user_wait_ms":wait_ms})
+                deadline=time.time()+wait_ms/1000
+                while wait_ms>0 and time.time()<deadline and ctx.pages:
+                    time.sleep(.25)
+                    if ctx.pages: page=ctx.pages[-1]
+                if ctx.pages:
+                    page=ctx.pages[-1]
+                    save_state(page)
+                    emit({"ok":True,"action":"assist","phase":"complete","page":inspect_page(page)})
+                else:
+                    emit({"ok":True,"action":"assist","phase":"window_closed","last_url":str(state.get("last_url") or "")})
+                return 0
+            if action=="resume":
+                save_state(page); emit({"ok":True,"action":"resume",**inspect_page(page)}); return 0
+            if action=="search": emit({"ok":True,"action":action,**search_web(page,a.query,a.engine,a.max_results,policy)}); return 0
+            if action=="read":
+                if not target: raise ValueError("--url is required for read when no browser continuation state exists")
+                save_state(page); emit({"ok":True,"action":action,"page":read_page(page,a.max_chars)}); return 0
+            if action=="inspect": save_state(page); emit({"ok":True,"action":action,**inspect_page(page)}); return 0
+            if action=="fill":
+                if not a.selector: raise ValueError("--selector is required for fill")
+                loc=page.locator(a.selector).first; ensure_not_sensitive(loc); loc.fill(a.value); emit({"ok":True,"action":action,"url":page.url}); return 0
+            if action=="click":
+                if not a.selector: raise ValueError("--selector is required for click")
+                loc=page.locator(a.selector).first; ensure_action_allowed(loc,approved); loc.click(); emit({"ok":True,"action":action,"url":page.url}); return 0
+            if action=="run":
+                parsed=json.loads(a.steps_json); steps=parsed.get("steps") if isinstance(parsed,dict) else parsed
+                if not isinstance(steps,list) or len(steps)>MAX_STEPS: raise ValueError(f"steps-json must contain a list of at most {MAX_STEPS} steps")
+                results=run_steps(page,steps,a.wait_ms,policy,approved,a.max_chars)
+                save_state(page)
+                emit({"ok":True,"action":action,"title":clip(page.title()),"url":page.url,"results":results,"final":inspect_page(page)}); return 0
+            raise ValueError(f"unsupported action '{action}'")
+        finally:
+            # Visible QQ browsing is a singleton local session. Detach the
+            # Playwright client but leave Edge running so later chat turns can
+            # continue the same authenticated tab/profile without relaunching.
+            if not persistent_visible and action!="login":
+                ctx.close()
+if __name__=="__main__":
+    try: raise SystemExit(main())
+    except KeyboardInterrupt: raise
+    except Exception as exc:
+        emit({"ok":False,"error":type(exc).__name__,"detail":clip(exc,2000)}); raise SystemExit(1)
+ } | "
+        "ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }"
+    )
+    shells=[
+        os.path.join(os.environ.get("ProgramFiles",""),"PowerShell","7","pwsh.exe"),
+        os.path.join(os.environ.get("WINDIR","C:\\Windows"),"System32","WindowsPowerShell","v1.0","powershell.exe")
+    ]
+    for shell in shells:
+        if shell and os.path.exists(shell):
+            try:
+                subprocess.run([shell,"-NoLogo","-NoProfile","-NonInteractive","-Command",ps],
+                               stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=15,check=False)
+            except Exception:
+                pass
+            break
+    deadline=time.time()+8
+    while time.time()<deadline and not cdp_ready():
+        time.sleep(.25)
+
+def ensure_visible_browser(playwright,profile:pathlib.Path):
+    endpoint=f"http://127.0.0.1:{VISIBLE_CDP_PORT}"
+    if not cdp_ready():
+        # A pre-v16 Playwright process may still own the same dedicated QQ
+        # profile through a debugging pipe. Reclaim only that QQ-owned profile,
+        # preserving its cookies/storage/session data on disk.
+        stop_qq_profile_processes(profile)
+        exe=find_edge_executable(playwright)
+        flags=0
+        if os.name=="nt":
+            flags=getattr(subprocess,"CREATE_NEW_PROCESS_GROUP",0)|getattr(subprocess,"DETACHED_PROCESS",0)
+        subprocess.Popen([
+            exe,
+            f"--remote-debugging-port={VISIBLE_CDP_PORT}",
+            "--remote-debugging-address=127.0.0.1",
+            f"--user-data-dir={profile}",
+            "--no-first-run",
+            "--disable-session-crashed-bubble",
+            "--new-window",
+            "about:blank",
+        ],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+          close_fds=True,creationflags=flags)
+        deadline=time.time()+20
+        while time.time()<deadline and not cdp_ready():
+            time.sleep(.25)
+        if not cdp_ready():
+            raise RuntimeError("persistent QQ browser did not expose its loopback CDP endpoint")
+    browser=playwright.chromium.connect_over_cdp(endpoint)
+    if not browser.contexts:
+        raise RuntimeError("persistent QQ browser has no browser context")
+    return browser,browser.contexts[0]
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--action",required=True); ap.add_argument("--url",default=""); ap.add_argument("--selector",default="")
