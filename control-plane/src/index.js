@@ -2990,13 +2990,24 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   });
 
   server.registerTool("clintware_quillgeist_browser_assist",{
-    title:"Open the visible QQ browser for a user-authenticated continuation",
-    description:"Open the paired persistent QQ browser visibly and keep it available for a bounded user-authentication or consent step. Passwords, MFA codes, tokens, and other credentials stay local and are never returned. Read the resulting job afterward for the final inspected page.",
+    title:"Open the visible QQ browser for a bounded user handoff",
+    description:"Open the paired persistent QQ browser visibly for a bounded non-provider handoff. Provider sign-in pages such as Google and Microsoft login are intentionally excluded and must use the normal system browser. Passwords, MFA codes, tokens, and other credentials are never remotely typed.",
     inputSchema:{url:z.string().url().max(8000),user_wait_ms:z.number().int().min(1000).max(600000).optional()},
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
   },async({url,user_wait_ms})=>{
     if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     const data=await queueQuillgeistLiteMcpTask("browser-work",{Action:"assist",Url:url,Headless:"false",UserWaitMs:String(user_wait_ms||300000),Approved:"false"},"Open a visible persistent QQ browser so the user can complete any required local sign-in or consent step, then return the final inspected page.");
+    return {isError:!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
+  });
+
+  server.registerTool("clintware_quillgeist_system_auth_open",{
+    title:"Open provider authentication in the normal system browser",
+    description:"Open an HTTPS sign-in or consent URL in the user's ordinary Microsoft Edge session with no QQ Playwright/CDP automation flags. Use this for Google, Microsoft, and other identity-provider authentication surfaces that reject or should not use automated browsers.",
+    inputSchema:{url:z.string().url().max(8000)},
+    annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:true}
+  },async({url})=>{
+    if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const data=await queueQuillgeistLiteMcpTask("open-edge-tab",{Url:url},"Open the provider authentication URL in the user's normal Edge session without browser automation flags.");
     return {isError:!data.ok,content:[{type:"text",text:JSON.stringify(data)}]};
   });
 
@@ -3008,7 +3019,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
   },async()=>{
     if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
     const tasks=Object.entries(QUILLGEIST_LITE_TASKS).map(([task_id,meta])=>({task_id,runtime:meta.runtime,parameters:meta.parameters||[]}));
-    return {content:[{type:"text",text:JSON.stringify({ok:true,policy:"quality-first; then deterministic/local/service before model/remote when equally capable",cost_order:["deterministic-local","local-service","local-model","included-provider","low-cost-remote","higher-cost-remote"],aliases:{browser_skill:"browser-work",browser_manual_or_multistep:"browser-work",open_url_only:"open-edge-tab"},tasks})}]};
+    return {content:[{type:"text",text:JSON.stringify({ok:true,policy:"quality-first; then deterministic/local/service before model/remote when equally capable",cost_order:["deterministic-local","local-service","local-model","included-provider","low-cost-remote","higher-cost-remote"],aliases:{browser_skill:"browser-work",browser_manual_or_multistep:"browser-work",open_url_only:"open-edge-tab",provider_auth:"open-edge-tab"},visual_control_indicator:"blue-cyan-purple edge glow while QQ controls a visible page",provider_auth_policy:"Google/Microsoft/other IdP sign-in uses normal system Edge; QQ automation does not type credentials or operate provider login UI",tasks})}]};
   });
 
   server.registerTool("clintware_quillgeist_lite_status",{
