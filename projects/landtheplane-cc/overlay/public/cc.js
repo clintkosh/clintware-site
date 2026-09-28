@@ -47,7 +47,7 @@ function reportedStats(){
  <article class="card metric"><b>${v(r.completedLiveProcesses)}</b><span>completed live processes</span></article>
  <article class="card metric"><b>${v(r.round2Plus)}</b><span>round 2 / manager / panel</span></article>
  <article class="card metric"><b>${offers}</b><span>offers in report</span></article></section>
- <div class="split" style="margin-top:14px"><article class="card"><div class="eyebrow">LATEST FULL FIELD REPORT</div><h3>${esc(r.subject||"Job Search Field Report")}</h3><p class="muted">Report date ${date(r.date)} · Search start ${date(r.searchStart)}${r.searchDays!=null?" · "+esc(r.searchDays+" days"):""}${r.searchMonths!=null?" · "+esc(r.searchMonths+" months"):""}</p><p>${esc(r.funnelRead||"Historical funnel totals synchronized from the latest full job-search update.")}</p></article>
+ <div class="split" style="margin-top:14px"><article class="card"><div class="eyebrow">LATEST FULL FIELD REPORT</div><h3>${esc(r.subject||"Job Search Field Report")}</h3><p class="muted">Report date ${date(r.date)} · Search start ${date(r.searchStart+"T12:00:00")}${r.searchDays!=null?" · "+esc(r.searchDays+" days"):""}${r.searchMonths!=null?" · "+esc(r.searchMonths+" months"):""}</p><p>${esc(r.funnelRead||"Historical funnel totals synchronized from the latest full job-search update.")}</p></article>
  <article class="card"><div class="eyebrow">HIGH-SIGNAL BOARD AT REPORT DATE</div><p>${esc(r.highSignalBoard||"No high-signal summary was parsed from the report.")}</p></article></div>`;
 }
 function searchStats(){
