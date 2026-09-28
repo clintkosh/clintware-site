@@ -15,6 +15,12 @@ REQUIRED = [
     PUBLIC / "blog" / "the-runway-and-the-work" / "index.html",
     PUBLIC / "privacy" / "index.html",
     PUBLIC / "contact" / "index.html",
+    PUBLIC / "games" / "index.html",
+    PUBLIC / "games" / "qbrook" / "index.html",
+    PUBLIC / "games" / "qbrook" / "game.js",
+    PUBLIC / "games" / "qbrook" / "ai-worker.js",
+    PUBLIC / "games" / "qbrook" / "qbrook.css",
+    PUBLIC / "games" / "rotorwash-zombie-rescue" / "index.html",
     PUBLIC / "robots.txt",
     PUBLIC / "ads.txt",
     PUBLIC / "sitemap.xml",
@@ -23,6 +29,27 @@ REQUIRED = [
 missing = [str(p) for p in REQUIRED if not p.is_file() or not p.stat().st_size]
 if missing:
     raise SystemExit(f"Missing Clintware production files: {', '.join(missing)}")
+
+# QBRook / Games integration smoke checks.
+qbrook_html = (PUBLIC / "games" / "qbrook" / "index.html").read_text(encoding="utf-8")
+qbrook_js = (PUBLIC / "games" / "qbrook" / "game.js").read_text(encoding="utf-8")
+qbrook_worker = (PUBLIC / "games" / "qbrook" / "ai-worker.js").read_text(encoding="utf-8")
+games_html = (PUBLIC / "games" / "index.html").read_text(encoding="utf-8")
+rotorwash_html = (PUBLIC / "games" / "rotorwash-zombie-rescue" / "index.html").read_text(encoding="utf-8")
+qbrook_checks = {
+    "board": 'id="board"' in qbrook_html,
+    "promotion": 'id="promotion-modal"' in qbrook_html and 'data-promote="q"' in qbrook_html,
+    "browser AI": "new Worker('./ai-worker.js'" in qbrook_js,
+    "pinned chess rules": "chess.js@1.4.0" in qbrook_js and "chess.js@1.4.0" in qbrook_worker,
+    "CS learning layer": "CHESS ↔ CUSTOMER SUCCESS" in qbrook_html and "CS LENS" in qbrook_html,
+    "ownership split": "MY GAMES" in games_html and "GAMES I CONTRIBUTE TO" in games_html,
+    "Rotorwash attribution": "devnullnoop/rotorwash-game" in rotorwash_html,
+    "Rotorwash source boundary": "source is private" in rotorwash_html and "not merged functionality" in rotorwash_html,
+}
+failed_qbrook = [name for name, ok in qbrook_checks.items() if not ok]
+if failed_qbrook:
+    raise SystemExit(f"QBRook/Games smoke checks failed: {', '.join(failed_qbrook)}")
+print("QBRook/Games smoke checks passed.")
 
 for path in PUBLIC.rglob("*"):
     if path.is_file() and path.suffix.lower() in {".html", ".txt", ".xml", ".json", ".js", ".css"}:
