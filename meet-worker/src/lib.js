@@ -305,9 +305,13 @@ export function reminderEmail(booking, minutes) {
 }
 
 export function followupEmail(booking) {
+  const topic = cleanText(booking?.topic, 96);
+  const purpose = cleanText(booking?.purpose, 96);
+  const meetingSubject = topic || purpose || "Conversation";
+  const siteUrl = "https://clintware.com";
   return {
-    subject: "Thank you for your time",
-    text: "Thank you for meeting with Clinton. If there is feedback, a follow-up, or a deliverable to send, reply to this email and it will go directly to Clinton.",
-    html: `<!doctype html><html><body style="margin:0;background:#080a0e;color:#f4f7fb;font-family:Arial,sans-serif"><div style="max-width:600px;margin:32px auto;padding:28px;background:#10151b;border:1px solid #28323d;border-radius:16px"><div style="color:#82e7b4;font-size:12px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase">Thank you</div><h1 style="font-size:26px;margin:10px 0 16px">Thank you for your time.</h1><p style="color:#c2cbd7;line-height:1.6">If there is feedback, a follow-up, or a deliverable to send, reply to this email and it will go directly to Clinton.</p></div></body></html>`,
+    subject: `Thank you for your time — ${meetingSubject}`,
+    text: `Thank you for meeting with Clinton.\n\nMeeting: ${meetingSubject}\n\nIf there is feedback, a follow-up, or a deliverable to send, reply to this email and it will go directly to Clinton.\n\nClintware: ${siteUrl}`,
+    html: `<!doctype html><html><body style="margin:0;background:#080a0e;color:#f4f7fb;font-family:Arial,sans-serif"><div style="max-width:600px;margin:32px auto;padding:28px;background:#10151b;border:1px solid #28323d;border-radius:16px"><div style="color:#82e7b4;font-size:12px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase">Thank you</div><h1 style="font-size:26px;margin:10px 0 16px">Thank you for your time.</h1><p style="margin:0 0 14px;color:#f4f7fb;line-height:1.6"><strong>Meeting:</strong> ${escapeHtml(meetingSubject)}</p><p style="margin:0 0 18px;color:#c2cbd7;line-height:1.6">If there is feedback, a follow-up, or a deliverable to send, reply to this email and it will go directly to Clinton.</p><p style="margin:0;font-size:13px"><a href="${siteUrl}" style="color:#bdf7ff;text-decoration:none;font-weight:700">clintware.com</a></p></div></body></html>`,
   };
 }

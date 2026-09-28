@@ -52,6 +52,20 @@ test("host date is stable", () => {
 });
 
 
+test("follow-up email includes meeting subject and Clintware link", () => {
+  const message = followupEmail({
+    topic: "Technical Account Manager",
+    purpose: "Hiring / interview",
+  });
+  assert.equal(message.subject, "Thank you for your time — Technical Account Manager");
+  assert.match(message.text, /Meeting: Technical Account Manager/);
+  assert.match(message.text, /https:\/\/clintware\.com/);
+  assert.match(message.html, /<strong>Meeting:<\/strong> Technical Account Manager/);
+  assert.match(message.html, /href="https:\/\/clintware\.com"/);
+  assert.match(message.html, />clintware\.com<\/a>/);
+});
+
+
 test("Google Calendar busy windows remove mirrored availability", () => {
   const slots = [
     { startMs: 1000, endMs: 2000 },
