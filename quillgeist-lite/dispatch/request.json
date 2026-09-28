@@ -1,8 +1,6 @@
 {
-  "request_id": "landtheplane-atlassian-connect-20260928-1628",
-  "mode": "run",
-  "task_id": "connect-jira",
-  "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Connect the existing Clintware Control Plane Atlassian OAuth grant for LandThePlane so Jira and Confluence can be created and synchronized. Use existing credentials/configuration when present; do not expose secrets. Resume after authorization and report local-agent-confirmed connection state."
+  "request_id": "oauth-recorder-status-after-security-fix-20260928",
+  "mode": "inspect",
+  "job_id": "f12c93e5-61f6-48a7-bccd-3c1dd9cc5a13",
+  "objective": "Check whether the old automated Google OAuth verification recorder is still running after the user reported Google blocking the browser as insecure. Do not start any new browser."
 }
