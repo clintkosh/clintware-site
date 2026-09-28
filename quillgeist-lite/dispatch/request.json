@@ -1,4 +1,9 @@
 {
-  "request_id": "memoria-resume-assess-20260928-2053",
-  "mode": "inspect"
+  "request_id": "memoria-docker-build-diagnostics-20260928-2054",
+  "task_id": "local-ai",
+  "target_device": "MEMORIA",
+  "args": {
+    "Action": "diagnostics"
+  },
+  "objective": "Read-only MEMORIA Docker mount and BitNet compile failure diagnostics; preserve all data and D: exclusion."
 }
