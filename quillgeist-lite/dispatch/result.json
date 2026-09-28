@@ -1,15 +1,342 @@
 {
-  "request_id": "driznet-secure-google-auth-route-smoke-20260928",
-  "job_id": "e2052313-0184-4261-ad86-0f8a973670d2",
-  "task_id": "open-edge-tab",
-  "target_device": "DRIZNET",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 1305,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-28T21:32:30.4554978Z",
-  "recorded_at": 1790631150,
-  "recovery_history": [],
-  "output_tail": "[run] OPENED SYSTEM EDGE TAB // https://auth.clintware.com/delegated/google/start\r\n[run] AUTH MODE // normal browser session; no QQ automation flags"
+  "request_id": "verify-legacy-oauth-recorder-ended-20260928",
+  "mode": "inspect",
+  "recorded_at": 1790631187,
+  "inspection": {
+    "online": 2,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.9.10",
+    "runner_last_seen": "2026-09-28T21:33:04.650Z",
+    "runner": {
+      "runner_id": "MEMORIA",
+      "version": "1.9.10",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback"
+      ],
+      "connected_at": "2026-09-28T21:32:26.946Z",
+      "last_seen": "2026-09-28T21:33:04.650Z",
+      "source_revision": "9f4a47c8670dabb5c601486bead9ad0b2a3d99aa",
+      "registry_version": "16"
+    },
+    "connected_devices": [
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-09-28T21:31:38.642Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-09-28T21:31:38.642Z",
+          "last_seen": "2026-09-28T21:31:38.750Z",
+          "source_revision": "b62b62741131b352bccb1d634018ec97c10dbb6f",
+          "registry_version": "16"
+        }
+      },
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-09-28T21:32:26.946Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.9.10",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback"
+          ],
+          "connected_at": "2026-09-28T21:32:26.946Z",
+          "last_seen": "2026-09-28T21:32:26.971Z",
+          "source_revision": "9f4a47c8670dabb5c601486bead9ad0b2a3d99aa",
+          "registry_version": "16"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "39c828ca-eb08-4a42-8b0f-29b16347dc46",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "running"
+      },
+      {
+        "job_id": "41e4c466-1501-4f32-a72f-ffaa7524f8df",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "e2052313-0184-4261-ad86-0f8a973670d2",
+        "task_id": "open-edge-tab",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "a3b8538d-88d7-409d-8171-832307bdada8",
+        "task_id": "browser-work",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "01cbdd5f-4671-4e76-be69-3c875eb1b080",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "ceef552d-1a90-45c8-9a91-f571fd820a1b",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "24197a7a-d197-4ce6-9465-22d857f443bc",
+        "task_id": "connect-jira",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "6720557b-9e65-4f86-b10d-00576e10538a",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "a2009efe-510b-4782-b11b-aed1229a9817",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "26de84bc-a4b9-4dec-a304-2de76e818adb",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "a6506db8-087f-45c5-891c-d5fb2b24838b",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
+        "task_id": "record-google-oauth-verification",
+        "target_device": "DRIZNET",
+        "status": "failed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_down",
+        "timestamp": "2026-09-28T21:33:12.4688136Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=down",
+        "timestamp": "2026-09-28T21:33:12.3647639Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
+        "timestamp": "2026-09-28T21:33:12.0780102Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Refreshed reviewed task source: self-update",
+        "timestamp": "2026-09-28T21:33:12.0577900Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Job 41e4c466-1501-4f32-a72f-ffaa7524f8df finished with status passed",
+        "timestamp": "2026-09-28T21:33:11.8871084Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_started",
+        "timestamp": "2026-09-28T21:33:11.3492556Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_stopped",
+        "timestamp": "2026-09-28T21:33:09.5368438Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-28T21:33:02.0008744Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_alive",
+        "timestamp": "2026-09-28T21:33:01.6979559Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
+        "timestamp": "2026-09-28T21:33:01.6903355Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Refreshed reviewed task source: self-update",
+        "timestamp": "2026-09-28T21:33:01.6725917Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=alive",
+        "timestamp": "2026-09-28T21:33:01.5822607Z"
+      }
+    ],
+    "selected_job": {
+      "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
+      "task_id": "record-google-oauth-verification",
+      "status": "failed",
+      "requested_by": "root",
+      "created_at": "2026-09-28T21:20:03.420Z",
+      "completed_at": "2026-09-28T21:30:22.5384385Z",
+      "duration_ms": 618912,
+      "exit_code": 1,
+      "error_kind": "timeout",
+      "recent_logs": [
+        {
+          "seq": 1,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:04.8723278Z",
+          "line": "READY // qq browser runtime already installed"
+        },
+        {
+          "seq": 2,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:04.8759275Z",
+          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\browser-runtime\\Scripts\\python.exe"
+        },
+        {
+          "seq": 3,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:04.8795157Z",
+          "line": "CAPTURE // A maximized browser will open for the real Google OAuth consent flow."
+        },
+        {
+          "seq": 4,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:04.8862877Z",
+          "line": "ACTION // Complete Google sign-in/consent in that browser. The rest of the demo is automatic."
+        },
+        {
+          "seq": 5,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:05.3667827Z",
+          "line": "C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\oauth_verification_capture.py:61: DeprecationWarning: mss.mss is deprecated and will be removed in a future release; use mss.MSS instead"
+        },
+        {
+          "seq": 6,
+          "phase": null,
+          "timestamp": "2026-09-28T21:20:05.3699713Z",
+          "line": "  with mss.mss() as sct:"
+        }
+      ]
+    }
+  }
 }
