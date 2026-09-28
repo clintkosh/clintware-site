@@ -21,7 +21,7 @@ $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
 $LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
 $ProviderResponderPath = Join-Path $HomeDir "provider_responder.py"
 $RoutingLearningPath = Join-Path $HomeDir "routing-learning.json"
-$PreprocessorVersion = "2026-09-27-local-preprocessor-v1"
+$PreprocessorVersion = "2026-09-28-capability-aware-v2"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -1702,11 +1702,81 @@ function Update-QQRouteLearning {
   } catch {}
 }
 
+function Get-QQCapabilityInventory {
+  param([string]$Text = "")
+
+  $registryPath = $RegistryPath
+  if (-not (Test-Path $registryPath)) {
+    $packaged = Join-Path $RuntimeRoot "quillgeist-lite\tasks.json"
+    if (Test-Path $packaged) { $registryPath = $packaged }
+  }
+
+  $taskRows = @()
+  try {
+    if (Test-Path $registryPath) {
+      $registry = Get-Content -LiteralPath $registryPath -Raw | ConvertFrom-Json
+      foreach ($p in $registry.tasks.PSObject.Properties) {
+        $taskRows += [pscustomobject]@{
+          id = [string]$p.Name
+          runtime = [string]$p.Value.runtime
+          title = [string]$p.Value.title
+        }
+      }
+    }
+  } catch {}
+
+  $ids = @($taskRows | ForEach-Object { $_.id } | Sort-Object -Unique)
+  $recommended = New-Object System.Collections.Generic.List[string]
+  $q = ([string]$Text).ToLowerInvariant()
+
+  function Add-QQCapabilityRecommendation([string]$Id) {
+    if ($Id -and $ids -contains $Id -and -not $recommended.Contains($Id)) { [void]$recommended.Add($Id) }
+  }
+
+  if ($q -match '(browser|website|web page|webpage|edge|chrome|entra|azure portal|sign.?in|oauth|login)') {
+    Add-QQCapabilityRecommendation "browser-work"
+    if ($q -match '(just\s+)?open|new tab|launch.*url') { Add-QQCapabilityRecommendation "open-edge-tab" }
+    Add-QQCapabilityRecommendation "browser-setup"
+  }
+  if ($q -match '(local\s+ai|ollama|bitnet|model|inference|ai server)') {
+    Add-QQCapabilityRecommendation "local-ai"
+    Add-QQCapabilityRecommendation "finish-local-ai"
+    Add-QQCapabilityRecommendation "bitnet-setup"
+  }
+  if ($q -match '(repo|repository|source|code search|github code)') { Add-QQCapabilityRecommendation "repo-code-search" }
+  if ($q -match '(immich|photo server)') { Add-QQCapabilityRecommendation "restore-immich" }
+  if ($q -match '(repair|self.?heal|qq|quillgeist)') { Add-QQCapabilityRecommendation "self-heal" }
+
+  $features = New-Object System.Collections.Generic.List[string]
+  [void]$features.Add("event-driven-control-plane")
+  if ($ids.Count -gt 0) { [void]$features.Add("allowlisted-local-execution") }
+  if ($ids -contains "browser-work") { [void]$features.Add("governed-persistent-browser") }
+  if ($ids -contains "local-ai") { [void]$features.Add("local-ai") }
+  if (Test-Path $ProviderResponderPath) { [void]$features.Add("subscription-provider-fallback") }
+  if (Test-QQLocalGateway) { [void]$features.Add("local-model-gateway") }
+
+  return [pscustomobject]@{
+    version = "2"
+    policy = "quality-first; then deterministic/local/service before model/remote when equally capable"
+    cost_order = @("deterministic-local","local-service","local-model","included-provider","low-cost-remote","higher-cost-remote")
+    available_task_ids = @($ids)
+    recommended_task_ids = @($recommended)
+    features = @($features)
+    aliases = [ordered]@{
+      browser_skill = "browser-work"
+      browser_manual_or_multistep = "browser-work"
+      open_url_only = "open-edge-tab"
+      local_machine_execution = "allowlisted QQ task"
+    }
+  }
+}
+
 function Get-QQRequestEnvelope {
   param([string]$Text)
 
   $raw = ([string]$Text).Trim()
   $normalized = (($raw -replace '\s+',' ').Trim())
+  $capabilityInventory = Get-QQCapabilityInventory -Text $raw
   $intent = New-Object System.Collections.Generic.List[string]
   $actionPattern = '(?i)\b(fix|make|ensure|set|add|implement|install|deploy|push|update|change|modify|repair|configure|create|delete|remove|move|rename|start|stop|restart|resume|send|route|run|execute|open|close|test|verify|inspect|build|restore|connect|publish|sync)\b'
   $freshPattern = '(?i)\b(latest|current|today|tonight|now|search|lookup|email|calendar|github|cloudflare|jira|confluence|repo|repository|deployment|dns|account|private|live)\b'
@@ -1731,6 +1801,8 @@ function Get-QQRequestEnvelope {
 You are the local Quillgeist request preprocessor. Return JSON only.
 Do not answer the request and do not claim actions.
 Normalize obvious typos and shorthand while preserving meaning.
+Consult the supplied local capability inventory before choosing a route.
+Prefer an existing deterministic QQ task or local service when it can satisfy the request at the required quality; do not replace an execution request with generic advice.
 Classify route_hint as llm, control_plane, hybrid, local, or approval.
 Set requires_action and requires_fresh_or_private booleans.
 Provide intent_hints as a short string array and confidence from 0 to 1.
@@ -1738,6 +1810,7 @@ Never include credentials or secrets.
 "@
       $promptText = "Prompt: " + $raw
       if($learned){$promptText += [Environment]::NewLine + "Learned route hint: " + $learned}
+      try { $promptText += [Environment]::NewLine + "Capability inventory: " + ($capabilityInventory | ConvertTo-Json -Depth 6 -Compress) } catch {}
       $payload = @{
         model = "local-auto"
         messages = @(
@@ -1785,6 +1858,8 @@ Never include credentials or secrets.
       cwd = $cwd
       shell = ("PowerShell " + $PSVersionTable.PSVersion.ToString())
       learned_route_hint = $learned
+      capability_inventory = $capabilityInventory
+      routing_policy = "inspect capabilities first; quality/correctness gate; then prefer deterministic/local paths before paid or remote inference"
     }
   }
 }
@@ -1941,6 +2016,34 @@ function Invoke-QQLocalCommand {
       Show-QQPrompt
       return
     }
+    "capabilities" {
+      Suspend-QQPrompt
+      $inv = Get-QQCapabilityInventory
+      Write-Host ""
+      Write-Host "QQ CAPABILITY INVENTORY" -ForegroundColor White
+      Write-Host ("  policy // " + [string]$inv.policy) -ForegroundColor DarkGray
+      Write-Host ("  features // " + (@($inv.features) -join ", ")) -ForegroundColor Cyan
+      Write-Host ("  tasks // " + (@($inv.available_task_ids) -join ", ")) -ForegroundColor DarkCyan
+      Write-Host ""
+      Show-QQPrompt
+      return
+    }
+    "inventory" {
+      Suspend-QQPrompt
+      $inv = Get-QQCapabilityInventory
+      Write-Host ""
+      Write-Host "QQ CAPABILITY INVENTORY" -ForegroundColor White
+      Write-Host ("  policy // " + [string]$inv.policy) -ForegroundColor DarkGray
+      Write-Host ("  features // " + (@($inv.features) -join ", ")) -ForegroundColor Cyan
+      Write-Host ("  tasks // " + (@($inv.available_task_ids) -join ", ")) -ForegroundColor DarkCyan
+      Write-Host ""
+      Show-QQPrompt
+      return
+    }
+    "abilities" {
+      Invoke-QQLocalCommand "capabilities"
+      return
+    }
     "tasks" {
       Suspend-QQPrompt
       $registry = Get-Registry
@@ -1995,17 +2098,27 @@ function Invoke-QQLocalCommand {
   }
 
   if ($lower.StartsWith("web search ")) {
-    Invoke-QQLocalTask "browser-work" @{Action="search";Query=$line.Substring(11).Trim();Engine="auto";MaxResults="8";Headless="true";AllowPrivate="false"}
+    Invoke-QQLocalTask "browser-work" @{Action="search";Query=$line.Substring(11).Trim();Engine="auto";MaxResults="8";Headless="true"}
     return
   }
 
   if ($lower.StartsWith("web read ")) {
-    Invoke-QQLocalTask "browser-work" @{Action="read";Url=$line.Substring(9).Trim();MaxChars="20000";Headless="true";AllowPrivate="false"}
+    Invoke-QQLocalTask "browser-work" @{Action="read";Url=$line.Substring(9).Trim();MaxChars="20000";Headless="true"}
     return
   }
 
   if ($lower.StartsWith("web login ")) {
-    Invoke-QQLocalTask "browser-work" @{Action="login";Url=$line.Substring(10).Trim();Headless="false";AllowPrivate="false"}
+    Invoke-QQLocalTask "browser-work" @{Action="login";Url=$line.Substring(10).Trim();Headless="false"}
+    return
+  }
+
+  if ($lower.StartsWith("web assist ")) {
+    Invoke-QQLocalTask "browser-work" @{Action="assist";Url=$line.Substring(11).Trim();Headless="false";UserWaitMs="300000"}
+    return
+  }
+
+  if ($lower -eq "web resume") {
+    Invoke-QQLocalTask "browser-work" @{Action="resume";Headless="true"}
     return
   }
 
