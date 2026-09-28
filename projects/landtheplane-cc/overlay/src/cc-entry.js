@@ -8,7 +8,9 @@ const REQUIRED_GOOGLE_SCOPES=[
   "https://www.googleapis.com/auth/calendar.readonly"
 ];
 const APP_RECORD_TYPES=new Set(["job_profile","application_event","interview","follow_up","offer","search_digest","active_role","role_goal","performance_evidence"]);
-const JSON_HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","x-robots-tag":"noindex, nofollow, noarchive"};
+const SECURITY_HEADERS={"cache-control":"no-store","x-content-type-options":"nosniff","x-robots-tag":"noindex, nofollow, noarchive","strict-transport-security":"max-age=31536000; includeSubDomains","x-frame-options":"DENY","referrer-policy":"no-referrer","cross-origin-opener-policy":"same-origin","cross-origin-resource-policy":"same-origin"};
+const JSON_HEADERS={"content-type":"application/json; charset=utf-8",...SECURITY_HEADERS};
+function redirect(location,status=302){return new Response(null,{status,headers:{...SECURITY_HEADERS,location}})}
 
 function j(value,status=200,extra={}){return new Response(JSON.stringify(value),{status,headers:{...JSON_HEADERS,...extra}})}
 function safeText(value,max=5000){return String(value??"").replace(/\s+/g," ").trim().slice(0,max)}
@@ -270,7 +272,7 @@ async function persistDigest(req,env,ctx,data,digest){
   const sys=await ensureSystemCustomer(req,env,ctx,data);
   const old=data.records.find(r=>r.customerId===sys.id&&r.type==="search_digest");
   await putRecord(req,env,ctx,sys.id,"search_digest",digest,"search_digest",old);
-  if(old)old.data={...old.data,...digest};else data.records.push({id:"pending-digest",customerId:sys.id,type:"search_digest",data});
+  if(old)old.data={...old.data,...digest};else data.records.push({id:"pending-digest",customerId:sys.id,type:"search_digest",data:digest});
 }
 async function upsertOpportunity(req,env,ctx,data,opp){
   if(!opp.company||opp.company==="Unknown company")return {created:false,skipped:true};
@@ -328,7 +330,7 @@ export default {
     if(u.pathname.startsWith("/auth/")||publicAsset(u.pathname))return base.fetch(req,env,ctx);
     const session=await sessionInfo(req,env,ctx);
     if(!session){
-      if(u.pathname==="/")return new Response(null,{status:302,headers:{location:"/auth/login","cache-control":"no-store"}});
+      if(u.pathname==="/")return redirect("/auth/login");
       if(u.pathname.startsWith("/api/")||u.pathname==="/me")return j({error:"authentication_required"},401);
       return new Response("Not found",{status:404,headers:JSON_HEADERS});
     }
@@ -336,7 +338,7 @@ export default {
       const access=await googleAccess(env);
       return j({connected:access.ok,reauthorizationRequired:access.error==="google_reauthorization_required"||access.error==="google_delegated_grant_missing",error:access.ok?null:access.error,missing:access.missing||[],connectUrl:GOOGLE_CONNECT_URL});
     }
-    if(u.pathname==="/api/google/connect")return new Response(null,{status:302,headers:{location:GOOGLE_CONNECT_URL,"cache-control":"no-store"}});
+    if(u.pathname==="/api/google/connect")return redirect(GOOGLE_CONNECT_URL);
     if(u.pathname==="/api/google/sync"&&req.method==="POST")return syncGoogle(req,env,ctx);
     if(u.pathname.startsWith("/api/career/")&&!u.pathname.includes("board"))return j({error:"not_found"},404);
     return base.fetch(req,env,ctx);
