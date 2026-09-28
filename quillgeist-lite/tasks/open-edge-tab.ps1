@@ -6,17 +6,43 @@ $ErrorActionPreference = "Stop"
 $uri = [Uri]$Url
 if ($uri.Scheme -ne "https") { throw "Only https URLs are allowed." }
 
-$edgeCandidates = @(
-  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
-  "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
-) | Where-Object { $_ -and (Test-Path $_) }
+$edge = $null
+try {
+  $edge = Get-Process msedge -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and (Test-Path $_.Path) } |
+    Select-Object -First 1 -ExpandProperty Path
+} catch {}
 
-if (-not $edgeCandidates) {
-  $cmd = Get-Command msedge.exe -ErrorAction SilentlyContinue
-  if ($cmd) { $edgeCandidates = @($cmd.Source) }
+if (-not $edge) {
+  foreach ($regPath in @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe",
+    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"
+  )) {
+    try {
+      $candidate = Get-ItemPropertyValue -Path $regPath -Name "(default)" -ErrorAction Stop
+      if ($candidate -and (Test-Path $candidate)) { $edge = $candidate; break }
+    } catch {}
+  }
 }
-if (-not $edgeCandidates) { throw "Microsoft Edge executable not found." }
 
-$edge = $edgeCandidates[0]
-Start-Process -FilePath $edge -ArgumentList @("--new-tab", $uri.AbsoluteUri)
+if (-not $edge) {
+  $pf86 = [Environment]::GetFolderPath('ProgramFilesX86')
+  $pf64 = [Environment]::GetFolderPath('ProgramFiles')
+  foreach ($candidate in @(
+    (Join-Path $pf86 'Microsoft\Edge\Application\msedge.exe'),
+    (Join-Path $pf64 'Microsoft\Edge\Application\msedge.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\Application\msedge.exe')
+  )) {
+    if ($candidate -and (Test-Path $candidate)) { $edge = $candidate; break }
+  }
+}
+
+if (-not $edge) {
+  Start-Process -FilePath ("microsoft-edge:" + $uri.AbsoluteUri) -ErrorAction Stop
+  Write-Host "OPENED EDGE TAB // $($uri.AbsoluteUri)" -ForegroundColor Green
+  exit 0
+}
+
+Start-Process -FilePath $edge -ArgumentList @("--new-tab", $uri.AbsoluteUri) -ErrorAction Stop
 Write-Host "OPENED EDGE TAB // $($uri.AbsoluteUri)" -ForegroundColor Green
