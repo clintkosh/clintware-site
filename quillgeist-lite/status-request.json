@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-28T19:11:00Z",
-  "reason": "verify DRIZNET self-update completion and fresh runner version"
+  "requested_at": "2026-09-28T21:08:00Z",
+  "reason": "inspect DRIZNET Google OAuth verification recording state without interrupting the active recorder"
 }
