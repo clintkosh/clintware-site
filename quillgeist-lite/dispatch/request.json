@@ -1,14 +1,13 @@
 {
-  "request_id": "qq-entra-enter-account-driznet-20260928",
+  "request_id": "qq-entra-auth-assist-driznet-20260928",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "run",
-    "StepsJson": "{\"steps\":[{\"op\":\"fill\",\"selector\":\"#i0116\",\"value\":\"clint.kosh@gmail.com\"},{\"op\":\"click\",\"selector\":\"#idSIButton9\"},{\"op\":\"wait\",\"ms\":1800},{\"op\":\"inspect\"}]}",
+    "Action": "assist",
     "Headless": "false",
+    "UserWaitMs": "600000",
     "Approved": "false",
-    "WaitMs": "500",
-    "MaxChars": "20000"
+    "WaitMs": "500"
   },
-  "objective": "Continue the current persistent Entra sign-in flow by entering the known account identifier clint.kosh@gmail.com and advancing to the next page. Do not enter or retrieve any password, MFA code, token, or other credential. Inspect the resulting page so setup can continue autonomously if no user-only authentication is required."
+  "objective": "Keep the existing persistent QQ Edge session on DRIZNET open at the current Microsoft passkey authentication step. The user will complete only the passkey/Windows Hello/MFA interaction locally. Preserve the browser profile and current Entra flow. After authentication completes, inspect and return the resulting page so the Clintware tenant and app-registration work can resume immediately without rebuilding state."
 }
