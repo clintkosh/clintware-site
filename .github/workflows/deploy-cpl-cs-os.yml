@@ -1,0 +1,216 @@
+name: Deploy CPL CS Operating System
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/cpl-cs-os/**"
+      - "projects/dpl-crm/**"
+      - "tests/cpl_browser_smoke.mjs"
+      - ".github/workflows/deploy-cpl-cs-os.yml"
+  pull_request:
+    paths:
+      - "projects/cpl-cs-os/**"
+      - "projects/dpl-crm/**"
+      - "tests/cpl_browser_smoke.mjs"
+      - ".github/workflows/deploy-cpl-cs-os.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-cpl-cs-os
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Materialize and validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node projects/cpl-cs-os/scripts/materialize.mjs
+          cd .build/cpl-cs-os
+          npm install --no-audit --no-fund
+          npm run check
+
+          grep -Fq '"name":"clintware-cpl-cs-os"' wrangler.jsonc
+          grep -Fq 'const APP_ID="cpl-cs-os"' src/index.js
+          grep -Fq 'const WORKSPACE_ID="cpl-compyl-demo"' src/index.js
+          grep -Fq 'idFromName("cpl-cs-main")' src/index.js
+          grep -Fq 'identity:"disabled-no-login-demo",oauthApp:"none"' src/index.js
+          grep -Fq 'const session=null;' src/index.js
+          grep -Fq 'setCookie(GUEST_COOKIE,id,15552000)' src/index.js
+          grep -Fq 'persistence:"browser-persistent"' src/index.js
+          grep -Fq 'SAMPLE_SEED_VERSION=8' src/sample-customers.js
+          grep -Fq 'Northstar Financial Group' src/index.js
+          grep -Fq 'CPL // CS OPERATING SYSTEM' public/index.html
+          grep -Fq 'Application Narrative' public/cpl.js
+          grep -Fq 'You asked for a zero-to-one builder' public/cpl.js
+          grep -Fq '20–40 named accounts' public/cpl.js
+          grep -Fq 'dplrcrm.clintware.com' public/cpl.js
+          grep -Fq 'RenewNudge' public/cpl.js
+          grep -Fq 'Segmentation that changes the service motion' public/cpl.js
+          grep -Fq 'Explainable health' public/cpl.js
+          grep -Fq 'Renewal forecasting tied to value evidence' public/cpl.js
+          grep -Fq 'Voice of Customer with evidence and closure' public/cpl.js
+          grep -Fq 'Hire from the operating data' public/cpl.js
+          grep -Fq 'One operating truth, not another data island' public/cpl.js
+          ! grep -Rqi 'consult' public src
+          ! grep -Rqi 'doppel' public src
+          ! grep -Rqi '<img' public
+          test ! -e public/doppel-brand.css
+          test ! -e public/doppel-polish.js
+
+      - name: Wrangler dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .build/cpl-cs-os
+          npx wrangler deploy --dry-run
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build deployable Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          node projects/cpl-cs-os/scripts/materialize.mjs
+          cd .build/cpl-cs-os
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/cpl-cs-os
+
+      - name: Attach cpl.clintware.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             -H "Content-Type: application/json"             --data '{"hostname":"cpl.clintware.com","service":"clintware-cpl-cs-os","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
+
+      - name: Live API, data, security, and persistence verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=https://cpl.clintware.com
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
+            j=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/cpl.js" || true)
+            if grep -Fq '"service":"clintware-cpl-cs-os"' <<< "$h"               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h"               && grep -Fq '"oauthApp":"none"' <<< "$h"               && grep -Fq 'CPL // CS OPERATING SYSTEM' <<< "$p"               && grep -Fq 'Application Narrative' <<< "$j"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for cpl.clintware.com ($i/48)"
+            sleep 5
+          done
+          test "$ready" = "1"
+
+          rm -f /tmp/cpl.cookies /tmp/cpl.headers
+          curl -fsS -D /tmp/cpl.headers -c /tmp/cpl.cookies "$base/" >/tmp/cpl.html
+          grep -Fqi 'max-age=15552000' /tmp/cpl.headers
+
+          me=$(curl -fsS -b /tmp/cpl.cookies "$base/me")
+          grep -Fq '"authenticated":false' <<< "$me"
+          grep -Fq '"persistence":"browser-persistent"' <<< "$me"
+          test "$(curl -sS -o /tmp/cpl-login.json -w '%{http_code}' "$base/auth/login" | tr -cd '0-9')" = "404"
+          test "$(curl -sS -o /tmp/cpl-callback.json -w '%{http_code}' "$base/auth/callback" | tr -cd '0-9')" = "404"
+
+          state_code=$(curl -sS -o /tmp/cpl-state.json -w '%{http_code}' -b /tmp/cpl.cookies -c /tmp/cpl.cookies "$base/api/state" | tr -cd '0-9')
+          test "$state_code" = "200"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/cpl-state.json'))
+          assert d['access']['authenticated'] is False
+          assert d['access']['mode'] == 'browser-persistent'
+          assert len(d['customers']) == 12, len(d['customers'])
+          assert d['customer']['name'] == 'Northstar Financial Group'
+          assert sum(1 for c in d['customers'] if c.get('isGoldenExample')) == 1
+          assert all(c.get('isSynthetic') is True for c in d['customers'])
+          assert {'Strategic','Enterprise','Growth'} <= {c.get('portfolio',{}).get('segment') for c in d['customers']}
+          required={'arr','renewalDate','health','healthScore','adoption','expansionPotential','renewalForecast','nextAction'}
+          for c in d['customers']:
+              assert required <= set(c.get('portfolio',{})), (c['name'], c.get('portfolio',{}))
+          PY
+
+          customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/cpl-state.json"))["customer"]["id"])')
+          note_code=$(curl -sS -o /tmp/cpl-note.json -w '%{http_code}' -b /tmp/cpl.cookies -H 'content-type: application/json'             --data '{"customerId":"'"$customer_id"'","type":"note","provenance":"internal_record","data":{"title":"CI human approval","status":"Approved","body":"Synthetic verification only"}}'             "$base/api/records" | tr -cd '0-9')
+          test "$note_code" = "201"
+          curl -fsS -b /tmp/cpl.cookies "$base/api/state?customer=$customer_id" >/tmp/cpl-state-after.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/cpl-state-after.json'))
+          assert any(r['type']=='note' and r.get('data',{}).get('title')=='CI human approval' for r in d['records'])
+          assert any(r['type']=='renewal' for r in d['records'])
+          assert any(r['type']=='stakeholder' for r in d['records'])
+          assert any(r['type']=='risk' for r in d['records'])
+          assert any(r['type']=='kpi' for r in d['records'])
+          PY
+
+          curl -fsS -b /tmp/cpl.cookies -H 'content-type: application/json' --data '{}' "$base/api/customers/reset-samples" >/tmp/cpl-reset.json
+
+          headers=$(curl -fsS -D - -o /dev/null "$base/")
+          grep -Fqi 'strict-transport-security:' <<< "$headers"
+          grep -Fqi 'x-frame-options: DENY' <<< "$headers"
+          grep -Fqi 'x-robots-tag: noindex' <<< "$headers"
+          grep -Fqi 'content-security-policy:' <<< "$headers"
+          grep -Fqi "script-src 'self'" <<< "$headers"
+          grep -Fqi "form-action 'self'" <<< "$headers"
+          ! grep -Fqi 'form-action.*auth.clintware.com' <<< "$headers"
+
+          domains=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=cpl.clintware.com"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          python3 - <<'PY' <<< "$domains"
+          import json,sys
+          d=json.load(sys.stdin)
+          r=d.get('result',[])
+          assert d.get('success') is True and len(r)==1,d
+          x=r[0]
+          assert x.get('hostname')=='cpl.clintware.com',x
+          assert x.get('service')=='clintware-cpl-cs-os',x
+          PY
+          echo "CPL live API/data/security/domain checks passed."
+
+      - name: Real Chromium functional smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node tests/cpl_browser_smoke.mjs
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpl-browser-evidence
+          path: |
+            cpl-desktop-smoke.png
+            cpl-mobile-smoke.png
+            cpl-failure.png
+          if-no-files-found: ignore
