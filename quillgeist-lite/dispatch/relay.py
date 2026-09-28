@@ -644,6 +644,28 @@ if state not in {"passed", "failed"}:
 if not confirmation_source.startswith("qq-local-agent"):
     raise SystemExit(f"final_state_missing_local_agent_confirmation:{job_id}")
 
+recovery_history = []
+recovered, recovery_history = auto_recover_failed_task(
+    task_id,
+    args,
+    str(req.get("objective") or ""),
+    confirmed_device or str(req.get("target_device") or ""),
+    state,
+    result,
+)
+if recovered:
+    job_id = recovered["job_id"]
+    job = recovered["job"]
+    confirmation_transport = recovered["transport"]
+    created = recovered["created"]
+    state = str(job.get("status") or "unknown")
+    result = job.get("result") or {}
+    confirmation_source = str(result.get("confirmation_source") or "")
+    confirmed_device = str(result.get("device_id") or created.get("target_device") or confirmed_device)
+    if not confirmation_source.startswith("qq-local-agent"):
+        raise SystemExit(f"recovered_final_state_missing_local_agent_confirmation:{job_id}")
+    print(f"AUTO_RECOVERY_COMPLETE task={task_id} final_status={state}", flush=True)
+
 print("", flush=True)
 print(f"FINAL_STATUS={state}", flush=True)
 print(f"CONFIRMATION_SOURCE={confirmation_source}", flush=True)
@@ -664,6 +686,7 @@ write_result({
     "confirmation_transport": confirmation_transport,
     "confirmed_at": result.get("confirmed_at") or job.get("completed_at"),
     "recorded_at": int(time.time()),
+    "recovery_history": recovery_history,
     "output_tail": scrub(output),
 })
 if output:
