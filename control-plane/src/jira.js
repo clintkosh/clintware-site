@@ -181,7 +181,7 @@ async function callJiraSoftware(env, {cloud_id,method="GET",path,body}) {
   let selected = selectSite(auth.grant,cloud_id);
   if (!selected.ok) return selected;
   const doFetch = token => fetch(
-    `${API_ORIGIN}/ex/jira/${encodeURIComponent(selected.site.id)}/rest/agile/1.0/${String(path||"").replace(/^\\/+/, "")}`,
+    `${API_ORIGIN}/ex/jira/${encodeURIComponent(selected.site.id)}/rest/agile/1.0/${String(path||"").replace(/^\/+/, "")}`,
     {
       method,
       headers:{
