@@ -36,11 +36,34 @@ jobs:
           fi
           git config user.name "clintware-qq"
           git config user.email "qq@users.noreply.github.com"
-          git add quillgeist-lite/dispatch/result.json
-          if git diff --cached --quiet; then
-            echo "QQ result is unchanged."
-            exit 0
-          fi
-          git commit -m "Record sanitized QQ dispatch result"
-          git pull --rebase origin main
-          git push origin HEAD:main
+
+          result_tmp="$(mktemp)"
+          cp quillgeist-lite/dispatch/result.json "$result_tmp"
+
+          # result.json is a single-slot evidence file and concurrent pushes are
+          # expected. Never rebase a generated result commit across another
+          # generated result commit; preserve this run's local-agent evidence,
+          # move to the latest main, then apply the evidence on top.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$result_tmp" quillgeist-lite/dispatch/result.json
+            git add quillgeist-lite/dispatch/result.json
+
+            if git diff --cached --quiet; then
+              echo "QQ result is already current."
+              exit 0
+            fi
+
+            git commit -m "Record sanitized QQ dispatch result"
+            if git push origin HEAD:main; then
+              echo "QQ result persisted without rebase conflict."
+              exit 0
+            fi
+
+            echo "Concurrent main update detected; retrying result persistence ($attempt/5)."
+            sleep $((attempt * 2))
+          done
+
+          echo "Could not persist QQ result after bounded retries." >&2
+          exit 1
