@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-28T19:09:00Z",
-  "reason": "verify DRIZNET capability-aware self-update execution"
+  "requested_at": "2026-09-28T19:10:00Z",
+  "reason": "verify DRIZNET watchdog recovery and targeted self-update"
 }
