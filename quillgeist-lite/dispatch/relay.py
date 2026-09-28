@@ -30,7 +30,7 @@ ALLOWED = {
     "self-heal": set(),
     "browser-setup": set(),
     "install-desktop-app": {"NoLaunch"},
-    "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs"},
+    "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs", "UserWaitMs"},
     "open-edge-tab": {"Url"},
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
     "bitnet-setup": set(),
