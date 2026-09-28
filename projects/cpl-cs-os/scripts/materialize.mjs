@@ -181,8 +181,8 @@ const checks=[
  ['src/index.js','persistence:"browser-persistent"'],
  ['src/index.js','Northstar Financial Group'],
  ['src/sample-customers.js','SAMPLE_SEED_VERSION=8'],
- ['public/index.html','CPL // CS OPERATING SYSTEM'],
+ ['public/index.html','CPL // CUSTOMER SUCCESS CRM'],
  ['public/cpl.js','Customer Success CRM']
 ];
 for(const [f,s] of checks) if(!read(f).includes(s)) throw new Error("Missing build contract: "+f+" :: "+s);
-console.log("CPL CS Operating System materialized at "+out);
+console.log("CPL Customer Success CRM materialized at "+out);
