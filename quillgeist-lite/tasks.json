@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 17,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq inventories local capabilities before routing, self-heals canonical runtime files, provides governed persistent browser automation with visible takeover signaling, hands provider authentication to the user's normal system browser, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
@@ -260,6 +260,14 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 60
+    },
+    "repair-codex-org-identity": {
+      "title": "Repair Codex CLI and hand off Microsoft organization sign-in safely",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/repair-codex-org-identity.ps1",
+      "parameters": [],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
     }
   }
 }
