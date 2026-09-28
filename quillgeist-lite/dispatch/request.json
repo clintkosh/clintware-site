@@ -1,9 +1,6 @@
 {
-  "request_id": "driznet-secure-google-auth-route-smoke-20260928",
-  "task_id": "open-edge-tab",
-  "target_device": "DRIZNET",
-  "args": {
-    "Url": "https://auth.clintware.com/delegated/google/start"
-  },
-  "objective": "Verify the repaired Google authorization handoff by opening the Clintware Google connection start page in the user's normal supported Microsoft Edge session with no QQ Playwright/CDP automation flags. Do not click Continue to Google or submit any authentication; this is only a route verification."
+  "request_id": "verify-legacy-oauth-recorder-ended-20260928",
+  "mode": "inspect",
+  "job_id": "191f3481-686f-4b36-8ede-ad57b14ce626",
+  "objective": "Verify the legacy automated Google OAuth recorder has ended and is no longer controlling any provider sign-in surface after the secure-auth rollout."
 }
