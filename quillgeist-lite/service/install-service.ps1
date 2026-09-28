@@ -113,10 +113,10 @@ $taskArgs = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Fil
 
 $action = New-ScheduledTaskAction -Execute $psExe -Argument $taskArgs -WorkingDirectory $HomeDir
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserName
-# The service cannot display UI from Session 0. It launches this interactive task
-# in the signed-in user's session instead. RunLevel Highest makes qq an admin
-# console after this one-time elevated installation while the remote MCP surface
-# remains constrained to the reviewed task allowlist.
+# The service launches the runner in the signed-in user session because local user
+# resources may be required, but start-qq-window defaults to headless/no-activate.
+# RunLevel Highest preserves the reviewed local task capability while the remote MCP
+# surface remains constrained to the reviewed task allowlist.
 $principal = New-ScheduledTaskPrincipal -UserId $UserName -LogonType Interactive -RunLevel Highest
 # Use a policy actually supported by this machine. The watchdog itself ends stale
 # wrappers before restarting the task, so StopExisting is neither required nor portable.
@@ -136,7 +136,7 @@ if ($multi -and $multi.ParameterType -and $multi.ParameterType.IsEnum) {
 }
 $settings = New-ScheduledTaskSettingsSet @settingsArgs
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Interactive ADMIN Clintware Quillgeist Lite glass console. Supervised by the local health service; stale instances are replaced without stealing foreground focus." | Out-Null
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Background Clintware Quillgeist Lite runner. Supervised by the local health service; no console activation or foreground focus changes by default." | Out-Null
 Enable-ScheduledTask -TaskName $TaskName -ErrorAction Stop | Out-Null
 
 Write-Host "Registering Windows health service..." -ForegroundColor Cyan
