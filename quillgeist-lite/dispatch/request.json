@@ -1,13 +1,9 @@
 {
-  "request_id": "driznet-control-glow-smoke-20260928",
-  "task_id": "browser-work",
+  "request_id": "driznet-secure-google-auth-route-smoke-20260928",
+  "task_id": "open-edge-tab",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "resume",
-    "Url": "https://www.clintware.com/",
-    "Headless": "false",
-    "Approved": "false",
-    "WaitMs": "1200"
+    "Url": "https://auth.clintware.com/delegated/google/start"
   },
-  "objective": "Harmless visible-browser smoke test on DRIZNET. Open/resume the maintained QQ browser on clintware.com, show the blue/cyan/purple QQ // CONTROL edge glow while the local agent has control, then return a live inspected page result. Do not interact with authentication or consequential controls."
+  "objective": "Verify the repaired Google authorization handoff by opening the Clintware Google connection start page in the user's normal supported Microsoft Edge session with no QQ Playwright/CDP automation flags. Do not click Continue to Google or submit any authentication; this is only a route verification."
 }
