@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-driznet-refresh-codexhomefix-20260928-1710",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-codex-org-repair-afterhomefix-20260928-1712",
+  "task_id": "repair-codex-org-identity",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Refresh DRIZNET QQ from the latest reviewed runtime after the per-device CODEX_HOME repair. Preserve all browser sessions and keep the PC unmanaged. Do not change Microsoft identity state."
+  "objective": "Repair Codex CLI and app authentication on DRIZNET only after the invalid CODEX_HOME fix. Preserve unrelated browser and Windows credentials. Keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false; do not enroll or join the PC to Entra/MDM. Open only normal user-controlled browser/terminal authentication surfaces."
 }
