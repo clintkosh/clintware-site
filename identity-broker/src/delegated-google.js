@@ -178,6 +178,42 @@ async function codeChallenge(verifier) {
   return base64url(new Uint8Array(digest));
 }
 
+function delegatedGoogleDisclosure(returnTo) {
+  const next = `/delegated/google/start?confirm=1&return_to=${encodeURIComponent(returnTo)}`;
+  return new Response(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Connect Google | Clintware</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#07090d;color:#f4f7fb;font-family:Arial,Helvetica,sans-serif;line-height:1.55}.wrap{max-width:760px;margin:0 auto;padding:56px 22px}.brand{font:700 14px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.18em;color:#7cecff}.card{margin-top:18px;padding:28px;border:1px solid #293441;border-radius:18px;background:#0e1319;box-shadow:0 24px 70px #0008}h1{font-size:30px;margin:0 0 12px}h2{font-size:16px;margin:24px 0 8px;color:#dce6f2}p,li{color:#bec9d6}ul{padding-left:22px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}.primary,.secondary{display:inline-block;padding:12px 17px;border-radius:9px;text-decoration:none;font-weight:700}.primary{background:#f4f7fb;color:#111820}.secondary{border:1px solid #3b4857;color:#dce6f2}.fine{font-size:13px;color:#8f9cac;margin-top:22px}</style>
+</head><body><main class="wrap"><div class="brand">CLINTWARE™ · GOOGLE CONNECTION</div><section class="card">
+<h1>Connect Google to Clintware</h1>
+<p>Clintware will ask Google for only the permissions used by the connected scheduling and email features shown below.</p>
+<h2>What Clintware will access</h2>
+<ul>
+<li>Your verified Google account identity so the authorized connection is bound to the intended account.</li>
+<li>Permission to send Gmail messages that a Clintware feature asks to send. The core delegated connection does not read your Gmail inbox.</li>
+<li>Google Calendar free/busy availability and event access needed to create, view, update, reschedule, and cancel scheduling events.</li>
+</ul>
+<h2>How the connection is handled</h2>
+<p>Clintware stores an encrypted delegated Google refresh credential so approved features can continue to work. Google access tokens are short-lived. Google user data is not sold, used for targeted advertising, or used to train generalized or non-personalized AI or machine-learning models.</p>
+<p>You can revoke Clintware from your Google Account at any time or request deletion of stored connection data using the contact in the Privacy Policy.</p>
+<div class="actions"><a class="primary" href="${next}">Continue to Google</a><a class="secondary" href="https://www.clintware.com/privacy/">Privacy Policy</a><a class="secondary" href="https://www.clintware.com/terms/">Terms</a></div>
+<p class="fine">Continuing opens Google's own authorization screen. Google shows the requested permissions before you decide whether to grant access.</p>
+</section></main></body></html>`, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+    },
+  });
+}
+
 export async function beginDelegatedGoogle(request, env) {
   if (!env.OAUTH_KV || !env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) {
     return json({ error: "google_delegated_not_configured" }, 503);
@@ -187,6 +223,10 @@ export async function beginDelegatedGoogle(request, env) {
 
   const requestUrl = new URL(request.url);
   const returnTo = safeReturnTo(requestUrl.searchParams.get("return_to"));
+  if (requestUrl.searchParams.get("confirm") !== "1") {
+    await recordDelegatedStatus(env, { state: "started", stage: "disclosure" });
+    return delegatedGoogleDisclosure(returnTo);
+  }
   const binding = randomToken(32);
   const verifier = randomToken(48);
   const nonce = randomToken(24);
