@@ -62,29 +62,91 @@ try {
         } catch {}
     }
     New-Item -ItemType Directory -Path $work,$stage -Force | Out-Null
-    $zip = Join-Path $work 'source.zip'
-    $url = 'https://codeload.github.com/clintkosh/clintware-site/zip/' + $revision
-    Invoke-WebRequest -Uri $url -OutFile $zip -TimeoutSec 120
-    Expand-Archive -LiteralPath $zip -DestinationPath $work -Force
+    $runtimeBase = 'https://mcp.clintware.com/api/v1/quillgeist-lite/runtime'
 
-    $source = Join-Path $work ('clintware-site-' + $revision)
-    $qqSource = Join-Path $source 'quillgeist-lite'
-    $identitySource = Join-Path $source 'identity-broker'
-    if (-not (Test-Path (Join-Path $qqSource 'tasks.json'))) {
-        throw 'The pinned source archive has no qq task registry.'
+    function Get-ReviewedRuntimeFile {
+        param(
+            [Parameter(Mandatory=$true)][string]$RemotePath,
+            [Parameter(Mandatory=$true)][string]$Destination
+        )
+        $parent = Split-Path -Parent $Destination
+        if ($parent) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+        $temp = $Destination + '.new'
+        Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+        try {
+            $uri = $runtimeBase.TrimEnd('/') + '/' + ($RemotePath -replace '\\','/')
+            Invoke-WebRequest -Uri $uri -OutFile $temp -UseBasicParsing -TimeoutSec 60 -Headers @{'Cache-Control'='no-cache'}
+            if (-not (Test-Path -LiteralPath $temp -PathType Leaf) -or (Get-Item -LiteralPath $temp).Length -lt 1) {
+                throw "Reviewed QQ runtime asset is empty: $RemotePath"
+            }
+            Move-Item -LiteralPath $temp -Destination $Destination -Force
+        } finally {
+            Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+        }
     }
-    Copy-Item -LiteralPath $qqSource -Destination (Join-Path $stage 'quillgeist-lite') -Recurse
-    if (Test-Path $identitySource) {
-        Copy-Item -LiteralPath $identitySource -Destination (Join-Path $stage 'identity-broker') -Recurse
+
+    $qqRoot = Join-Path $stage 'quillgeist-lite'
+    $registryStage = Join-Path $qqRoot 'tasks.json'
+    Get-ReviewedRuntimeFile -RemotePath 'tasks.json' -Destination $registryStage
+    $taskMap = Get-Content -LiteralPath $registryStage -Raw | ConvertFrom-Json
+    if (-not $taskMap.tasks) { throw 'The Control Plane runtime has no qq task registry.' }
+
+    $core = @(
+        'runner.ps1',
+        'launcher.ps1',
+        'install.ps1',
+        'launch-visible.ps1',
+        'uninstall.ps1',
+        'bootstrapper/bootstrap.ps1',
+        'service/QuillgeistLiteHealthService.cs',
+        'service/install-service.ps1',
+        'service/recovery-watch.ps1',
+        'tools/restore-runtime.ps1',
+        'tools/terminal_repair.py',
+        'tools/boot_splash.py',
+        'tools/browser_agent.py',
+        'tools/local_ai.py',
+        'tools/provider_responder.py',
+        'tasks/start-qq-window.ps1',
+        'tasks/mcp-console.ps1',
+        'tasks/dedupe-qq-windows.ps1',
+        'tasks/ensure-browser-runtime.ps1',
+        'tasks/browser-work.ps1',
+        'tasks/ensure-powershell.ps1',
+        'tasks/auto-repair-runtime.ps1',
+        'tasks/repair-local-service.ps1',
+        'assets/clintware-terminal-logo.b64'
+    )
+    foreach ($relative in $core | Select-Object -Unique) {
+        Get-ReviewedRuntimeFile -RemotePath $relative -Destination (Join-Path $qqRoot ($relative -replace '/','\'))
     }
-    Copy-Item -LiteralPath (Join-Path $source 'agentbridge-node') -Destination (Join-Path $stage 'agentbridge-node') -Recurse
+
+    foreach ($task in $taskMap.tasks.PSObject.Properties) {
+        $repoRelative = [string]$task.Value.script
+        if ($repoRelative -notmatch '^(quillgeist-lite|identity-broker)/[A-Za-z0-9_./-]+$' -or $repoRelative.Contains('..')) {
+            throw "Invalid task source path: $($task.Name)"
+        }
+        $destination = Join-Path $stage ($repoRelative -replace '/','\')
+        if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+            Get-ReviewedRuntimeFile -RemotePath $repoRelative -Destination $destination
+        }
+    }
+
+    foreach ($repoRelative in @(
+        'agentbridge-node/agentbridge_node/__init__.py',
+        'agentbridge-node/agentbridge_node/local_gateway.py',
+        'agentbridge-node/agentbridge_node/local_inference.py'
+    )) {
+        Get-ReviewedRuntimeFile -RemotePath $repoRelative -Destination (Join-Path $stage ($repoRelative -replace '/','\'))
+    }
+
     Test-RuntimeBundle $stage
     [IO.File]::WriteAllText((Join-Path $stage 'source-revision.txt'),$Revision)
 
     $stagedRegistry = Join-Path $stage 'quillgeist-lite\tasks.json'
     $taskMap = Get-Content -LiteralPath $stagedRegistry -Raw | ConvertFrom-Json
     if (-not $taskMap.tasks -or @($taskMap.tasks.PSObject.Properties).Count -lt 20) {
-        throw 'The downloaded qq task registry is incomplete.'
+        throw 'The restored qq task registry is incomplete.'
     }
     $stageRoot = [IO.Path]::GetFullPath($stage + [IO.Path]::DirectorySeparatorChar)
     foreach ($task in $taskMap.tasks.PSObject.Properties) {
@@ -115,7 +177,7 @@ try {
     $registryTemp = $registry + '.new'
     Copy-Item -LiteralPath (Join-Path $runtime 'quillgeist-lite\tasks.json') -Destination $registryTemp -Force
     Move-Item -LiteralPath $registryTemp -Destination $registry -Force
-    Write-Output ("QQ RUNTIME RESTORED // $(@($taskMap.tasks.PSObject.Properties).Count) reviewed tasks")
+    Write-Output ("QQ RUNTIME RESTORED VIA CONTROL PLANE // $(@($taskMap.tasks.PSObject.Properties).Count) reviewed tasks")
     Write-Output 'QQ DEVICE CONNECTION PRESERVED // retry a fresh job'
 } catch {
     if ($movedNew) { Move-Item -LiteralPath $runtime -Destination ($stage + '.failed') }
