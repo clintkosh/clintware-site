@@ -52,7 +52,7 @@ try{
   await page.getByText("Morgan Test").waitFor();
 
   await page.click('[data-view="renewal"]');
-  await page.getByRole("heading",{name:"Renewal"}).waitFor();
+  await page.getByRole("heading",{name:"Renewal",exact:true}).waitFor();
   await page.click('[data-action="edit-renewal"]');
   await page.locator('.modal select[name="renewalForecast"]').selectOption({label:"Commit"});
   await page.locator('.modal textarea[name="valueRealized"]').fill("Synthetic value proof approved for browser verification.");
