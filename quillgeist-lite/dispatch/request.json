@@ -1,5 +1,5 @@
 {
-  "request_id": "chatgpt-driznet-paylocity-skills-labelattrs-20260928-1825",
+  "request_id": "chatgpt-driznet-paylocity-skills-editable-20260928-1826",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -7,7 +7,7 @@
     "Headless": "false",
     "Approved": "false",
     "WaitMs": "150",
-    "StepsJson": "{\"steps\":[{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"class\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"for\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"role\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"aria-controls\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]\",\"name\":\"data-testid\"}]}"
+    "StepsJson": "{\"steps\":[{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"id\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"name\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"class\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"role\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"contenteditable\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"placeholder\"},{\"op\":\"attr\",\"selector\":\"xpath=(//*[normalize-space()='Skills'])[1]/following::*[self::textarea or @contenteditable='true' or @role='textbox'][1]\",\"name\":\"aria-label\"}]}"
   },
-  "objective": "Read the attributes of the exact visible Skills element in the Red Rover Paylocity application to identify its associated control. Do not type, click, upload, submit, or alter application data."
+  "objective": "Identify the first editable textarea/contenteditable/textbox after the Skills heading in the Red Rover Paylocity application. Read attributes only; do not type, click, submit, upload, or alter application data."
 }
