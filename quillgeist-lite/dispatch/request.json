@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-driznet-refresh-safeidentity-20260928-1652",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-codex-org-repair-20260928-1654",
+  "task_id": "repair-codex-org-identity",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Refresh DRIZNET QQ to the latest reviewed registry/task bundle containing the browser-only Codex identity repair. Keep the machine unmanaged and preserve existing sessions."
+  "objective": "Repair Codex CLI/auth on DRIZNET only. Preserve CODEX_HOME and unrelated browser/Windows credentials. Keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false; do not enroll or join the PC to Entra/MDM. Open only normal user-controlled browser/terminal sign-in surfaces for the Microsoft work account and Codex/ChatGPT account."
 }
