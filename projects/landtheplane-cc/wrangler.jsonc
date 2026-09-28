@@ -8,6 +8,7 @@
   "services": [{ "binding": "CONTROL_PLANE", "service": "clintware-control-plane" }],
   "observability": { "enabled": true },
   "vars": {
-    "CRM_ANALYTICS_MODE": "first-party-control-plane"
+    "CRM_ANALYTICS_MODE": "first-party-control-plane",
+    "CRM_ANALYTICS_EVENT_PATH": "/api/v1/events"
   }
 }
