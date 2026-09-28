@@ -1,10 +1,16 @@
+import base64
+import hashlib
 import json
 import os
 import re
+import socket
+import ssl
+import struct
 import sys
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 
 CONTROL_PLANE = os.environ.get("CONTROL_PLANE", "https://mcp.clintware.com").rstrip("/")
 TOKEN = os.environ.get("CONTROL_PLANE_MCP_TOKEN", "")
@@ -64,6 +70,188 @@ def request_json(method, path, body=None):
         except Exception:
             parsed = {"error": payload}
         return e.code, parsed
+
+_WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+def _recv_exact(sock, count):
+    data = bytearray()
+    while len(data) < count:
+        chunk = sock.recv(count - len(data))
+        if not chunk:
+            raise EOFError("websocket_closed")
+        data.extend(chunk)
+    return bytes(data)
+
+def _send_ws_frame(sock, opcode, payload=b""):
+    if isinstance(payload, str):
+        payload = payload.encode("utf-8")
+    first = 0x80 | (opcode & 0x0F)
+    mask = os.urandom(4)
+    length = len(payload)
+    if length < 126:
+        header = bytes([first, 0x80 | length])
+    elif length < 65536:
+        header = bytes([first, 0x80 | 126]) + struct.pack("!H", length)
+    else:
+        header = bytes([first, 0x80 | 127]) + struct.pack("!Q", length)
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    sock.sendall(header + mask + masked)
+
+def _recv_ws_message(sock):
+    fragments = bytearray()
+    text_opcode = None
+    while True:
+        head = _recv_exact(sock, 2)
+        b1, b2 = head[0], head[1]
+        fin = bool(b1 & 0x80)
+        opcode = b1 & 0x0F
+        masked = bool(b2 & 0x80)
+        length = b2 & 0x7F
+        if length == 126:
+            length = struct.unpack("!H", _recv_exact(sock, 2))[0]
+        elif length == 127:
+            length = struct.unpack("!Q", _recv_exact(sock, 8))[0]
+        mask = _recv_exact(sock, 4) if masked else None
+        payload = _recv_exact(sock, length) if length else b""
+        if mask:
+            payload = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+        if opcode == 0x8:
+            raise EOFError("websocket_close_frame")
+        if opcode == 0x9:
+            _send_ws_frame(sock, 0xA, payload)
+            continue
+        if opcode == 0xA:
+            continue
+        if opcode in (0x1, 0x2):
+            fragments = bytearray(payload)
+            text_opcode = opcode
+        elif opcode == 0x0:
+            fragments.extend(payload)
+        else:
+            continue
+        if fin:
+            if text_opcode == 0x1:
+                return fragments.decode("utf-8", errors="replace")
+            return bytes(fragments)
+
+def _connect_job_stream(job_id):
+    parsed = urlparse(CONTROL_PLANE)
+    host = parsed.hostname
+    if not host:
+        raise RuntimeError("control_plane_host_missing")
+    secure = parsed.scheme == "https"
+    port = parsed.port or (443 if secure else 80)
+    raw = socket.create_connection((host, port), timeout=30)
+    sock = ssl.create_default_context().wrap_socket(raw, server_hostname=host) if secure else raw
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    base_path = (parsed.path or "").rstrip("/")
+    target = base_path + "/api/v1/quillgeist-lite/jobs/" + urllib.parse.quote(job_id, safe="") + "/stream"
+    host_header = host if port in (80, 443) else f"{host}:{port}"
+    request = (
+        f"GET {target} HTTP/1.1\r\n"
+        f"Host: {host_header}\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        "Sec-WebSocket-Version: 13\r\n"
+        f"Authorization: Bearer {TOKEN}\r\n"
+        "User-Agent: clintware-quillgeist-lite-relay\r\n"
+        "\r\n"
+    ).encode("ascii")
+    sock.sendall(request)
+    header = bytearray()
+    while b"\r\n\r\n" not in header:
+        if len(header) > 65536:
+            sock.close()
+            raise RuntimeError("websocket_handshake_too_large")
+        chunk = sock.recv(1)
+        if not chunk:
+            sock.close()
+            raise RuntimeError("websocket_handshake_closed")
+        header.extend(chunk)
+    text = header.decode("iso-8859-1", errors="replace")
+    status_line = text.split("\r\n", 1)[0]
+    if " 101 " not in status_line:
+        sock.close()
+        raise RuntimeError("websocket_upgrade_failed:" + status_line)
+    headers = {}
+    for line in text.split("\r\n")[1:]:
+        if ":" not in line:
+            continue
+        k, v = line.split(":", 1)
+        headers[k.strip().lower()] = v.strip()
+    expected = base64.b64encode(hashlib.sha1((key + _WS_GUID).encode("ascii")).digest()).decode("ascii")
+    if headers.get("sec-websocket-accept") != expected:
+        sock.close()
+        raise RuntimeError("websocket_accept_invalid")
+    sock.settimeout(75)
+    return sock
+
+def stream_job_events(job_id, max_seconds=1800):
+    deadline = time.time() + max_seconds
+    last_seq = 0
+    attempts = 0
+    last_error = None
+    while time.time() < deadline:
+        sock = None
+        try:
+            sock = _connect_job_stream(job_id)
+            print(f"EVENT_STREAM_CONNECTED job={job_id}", flush=True)
+            attempts = 0
+            while time.time() < deadline:
+                try:
+                    raw = _recv_ws_message(sock)
+                except socket.timeout:
+                    _send_ws_frame(sock, 0x9, b"qq-relay")
+                    continue
+                event = json.loads(raw)
+                if str(event.get("job_id") or "") != job_id:
+                    continue
+                kind = str(event.get("event") or "")
+                if kind == "snapshot":
+                    job = event.get("job") or {}
+                    for row in job.get("logs") or []:
+                        seq = int(row.get("seq") or 0)
+                        if seq > last_seq:
+                            print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
+                            last_seq = max(last_seq, seq)
+                    state = str(job.get("status") or "unknown")
+                    print(f"EVENT snapshot status={state}", flush=True)
+                    if state in {"passed", "failed"}:
+                        return job, "websocket-snapshot"
+                    continue
+                if kind == "ack":
+                    print(f"EVENT ack device={event.get('device_id','')} status={event.get('status','running')}", flush=True)
+                    continue
+                if kind == "log":
+                    row = event.get("log") or {}
+                    seq = int(row.get("seq") or 0)
+                    if seq > last_seq:
+                        print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
+                        last_seq = max(last_seq, seq)
+                    continue
+                if kind == "result":
+                    result = event.get("result") or {}
+                    return {
+                        "job_id": job_id,
+                        "task_id": result.get("task_id"),
+                        "status": event.get("status") or result.get("status"),
+                        "completed_at": event.get("completed_at"),
+                        "result": result,
+                    }, "websocket-event"
+        except Exception as e:
+            last_error = str(e)
+            attempts += 1
+            wait = min(10, max(1, 2 ** min(attempts - 1, 3)))
+            print(f"EVENT_STREAM_RECONNECT job={job_id} attempt={attempts} reason={last_error}", flush=True)
+            time.sleep(wait)
+        finally:
+            if sock:
+                try:
+                    sock.close()
+                except Exception:
+                    pass
+    raise TimeoutError("timed_out_waiting_for_event_stream:" + job_id + (":" + last_error if last_error else ""))
 
 def scrub(value):
     text = str(value or "")
@@ -285,47 +473,67 @@ if status not in (200, 201, 202) or not created.get("ok"):
 job_id = created["job_id"]
 print(f"JOB_ID={job_id}", flush=True)
 
-last_seq = 0
-for _ in range(900):
-    status_code, payload = request_json("GET", f"/api/v1/quillgeist-lite/jobs/{job_id}")
-    if status_code != 200:
-        print(json.dumps(payload, indent=2), flush=True)
-        time.sleep(2)
-        continue
+try:
+    job, confirmation_transport = stream_job_events(job_id, max_seconds=1800)
+except Exception as event_error:
+    # Compatibility safety net for a control-plane deployment that has not yet
+    # picked up the event-stream endpoint. This is deliberately low-frequency
+    # and only activates after the event path fails.
+    print(f"EVENT_STREAM_FALLBACK reason={event_error}", flush=True)
+    job = None
+    deadline = time.time() + 1800
+    last_seq = 0
+    while time.time() < deadline:
+        status_code, payload = request_json("GET", f"/api/v1/quillgeist-lite/jobs/{job_id}")
+        if status_code == 200 and payload.get("ok"):
+            current = payload.get("job") or {}
+            for row in current.get("logs") or []:
+                seq = int(row.get("seq") or 0)
+                if seq > last_seq:
+                    print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
+                    last_seq = max(last_seq, seq)
+            if str(current.get("status") or "") in {"passed", "failed"}:
+                job = current
+                break
+        time.sleep(20)
+    if not job:
+        raise SystemExit(f"timed_out_waiting_for_job:{job_id}")
+    confirmation_transport = "bounded-fallback"
 
-    job = payload.get("job") or {}
-    logs = job.get("logs") or []
-    for row in logs:
-        seq = int(row.get("seq") or 0)
-        if seq > last_seq:
-            print(f"[{row.get('timestamp','')}] {row.get('line','')}", flush=True)
-            last_seq = max(last_seq, seq)
+state = str(job.get("status") or "unknown")
+result = job.get("result") or {}
+confirmation_source = str(result.get("confirmation_source") or "")
+confirmed_device = str(result.get("device_id") or created.get("target_device") or "")
+if state not in {"passed", "failed"}:
+    raise SystemExit(f"event_stream_ended_without_final_state:{job_id}:{state}")
+if not confirmation_source.startswith("qq-local-agent"):
+    raise SystemExit(f"final_state_missing_local_agent_confirmation:{job_id}")
 
-    state = str(job.get("status") or "unknown")
-    if state in {"passed", "failed"}:
-        result = job.get("result") or {}
-        print("", flush=True)
-        print(f"FINAL_STATUS={state}", flush=True)
-        print(f"EXIT_CODE={result.get('exit_code')}", flush=True)
-        print(f"DURATION_MS={result.get('duration_ms')}", flush=True)
-        output = str(result.get("output") or "")
-        write_result({
-            "request_id": req.get("request_id"),
-            "job_id": job_id,
-            "task_id": task_id,
-            "status": state,
-            "exit_code": result.get("exit_code"),
-            "duration_ms": result.get("duration_ms"),
-            "recorded_at": int(time.time()),
-            "output_tail": scrub(output),
-        })
-        if output:
-            print("--- FINAL OUTPUT ---", flush=True)
-            print(output[-20000:], flush=True)
-        # A local task failure is diagnostic evidence. The relay itself remains usable
-        # so another request can be dispatched immediately by the model.
-        sys.exit(0)
-
-    time.sleep(2)
-
-raise SystemExit(f"timed_out_waiting_for_job:{job_id}")
+print("", flush=True)
+print(f"FINAL_STATUS={state}", flush=True)
+print(f"CONFIRMATION_SOURCE={confirmation_source}", flush=True)
+print(f"CONFIRMATION_TRANSPORT={confirmation_transport}", flush=True)
+print(f"CONFIRMED_DEVICE={confirmed_device}", flush=True)
+print(f"EXIT_CODE={result.get('exit_code')}", flush=True)
+print(f"DURATION_MS={result.get('duration_ms')}", flush=True)
+output = str(result.get("output") or "")
+write_result({
+    "request_id": req.get("request_id"),
+    "job_id": job_id,
+    "task_id": task_id,
+    "target_device": confirmed_device,
+    "status": state,
+    "exit_code": result.get("exit_code"),
+    "duration_ms": result.get("duration_ms"),
+    "confirmation_source": confirmation_source,
+    "confirmation_transport": confirmation_transport,
+    "confirmed_at": result.get("confirmed_at") or job.get("completed_at"),
+    "recorded_at": int(time.time()),
+    "output_tail": scrub(output),
+})
+if output:
+    print("--- FINAL OUTPUT ---", flush=True)
+    print(output[-20000:], flush=True)
+# A local task failure is diagnostic evidence. The relay itself remains usable
+# so another request can be dispatched immediately by the model.
+sys.exit(0)
