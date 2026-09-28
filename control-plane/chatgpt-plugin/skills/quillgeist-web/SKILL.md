@@ -17,13 +17,17 @@ Use `clintware_quillgeist_web_search` for discovery. It queues live browser sear
 
 Use `clintware_quillgeist_web_read` when the URL is known and the task needs page text, headings, or links.
 
-Use `clintware_quillgeist_browser_run` only for interaction or multi-step browser work.
+Use `clintware_quillgeist_browser_run` for interaction or multi-step browser work.
 
-Each tool returns a durable job ID. Call `clintware_quillgeist_lite_job` until the job reaches `passed` or `failed`. Never report a queued job as completed.
+Use `clintware_quillgeist_browser_assist` when authentication, MFA, consent, or another credential-bearing step must be completed by the user locally. The persistent QQ browser remains visible for the bounded assist window, then returns an inspected final page without exposing credentials.
+
+Before falling back to generic instructions or a paid model/provider path, use `clintware_quillgeist_lite_capabilities` when capability selection is uncertain. The browser skill maps to the reviewed `browser-work` task; opening a URL only maps to `open-edge-tab`.
+
+Each execution tool returns a durable job ID. Call `clintware_quillgeist_lite_job` until the job reaches `passed` or `failed`. Never report a queued job as completed.
 
 ## Supported steps
 
-Up to 100 reviewed steps: `goto/open/navigate`, `fill`, `type`, `click`, `select`, `check`, `uncheck`, `press`, `wait`, `wait_for`, `back`, `reload`, `inspect`, `extract`, `screenshot`, `search`, and `read`.
+Up to 100 reviewed steps: `goto/open/navigate`, `fill`, `type`, `click`, `select`, `check`, `uncheck`, `press`, `wait`, `wait_for`, `wait_for_url`, `wait_for_text`, `back`, `reload`, `inspect`, `extract`, `screenshot`, `search`, and `read`.
 
 Do not invent arbitrary JavaScript or remote shell steps.
 
@@ -41,6 +45,6 @@ Do not bypass CAPTCHA, anti-bot controls, access restrictions, paywalls, or auth
 
 ## Local qq commands
 
-`web setup`, `web search <query>`, `web read <url>`, `web login <url>`, `web inspect <url>`, and `web run <json>`.
+`web setup`, `web search <query>`, `web read <url>`, `web login <url>`, `web assist <url>`, `web resume`, `web inspect <url>`, and `web run <json>`.
 
 The local-only qq shell escape remains separate and is never exposed through this plugin.
