@@ -79,6 +79,17 @@ $statusBefore = ""
 try { $statusBefore = (& $codexPath login status 2>&1 | Out-String).Trim() } catch {}
 if ($statusBefore) { Write-Host ("CODEX_AUTH_BEFORE // " + ($statusBefore -replace '\r?\n',' | ')) }
 
+# The stale DRIZNET Codex session was explicitly cleared by the first successful
+# repair. On subsequent runs, a current authenticated session is verification
+# evidence and must not be logged out again.
+if ($statusBefore -match '(?i)logged in') {
+  if ($azureJoined -or $workplaceJoined) {
+    throw "Unexpected Windows organization enrollment detected; refusing to alter the authenticated Codex session."
+  }
+  Write-Host "VERIFY_PASS // Codex is authenticated and this PC remains unmanaged." -ForegroundColor Green
+  exit 0
+}
+
 # The user explicitly reported the current Codex profile is wrong. Clear only
 # Codex's own session. Do not delete CODEX_HOME configuration, projects, or
 # unrelated Windows/browser credentials.
