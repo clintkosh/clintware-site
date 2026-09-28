@@ -28,12 +28,14 @@ jobs:
           mkdir -p ops
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" -o /tmp/status.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=20" -o /tmp/diag.json
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" -o /tmp/tasks.json
           python3 - <<'PY'
           import json
           from datetime import datetime, timezone
           with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
           with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
-          out={"checked_at":datetime.now(timezone.utc).isoformat(),"status":status,"diagnostics":diag}
+          with open("/tmp/tasks.json",encoding="utf-8") as f: tasks=json.load(f)
+          out={"checked_at":datetime.now(timezone.utc).isoformat(),"status":status,"diagnostics":diag,"runtime_registry":{"version":tasks.get("version"),"task_ids":sorted((tasks.get("tasks") or {}).keys())}}
           with open("ops/quillgeist-lite-live-status.json","w",encoding="utf-8") as f:
               json.dump(out,f,indent=2); f.write("\n")
           PY
