@@ -27,6 +27,15 @@ function Refresh-File([string]$Remote,[string]$Target) {
   if (-not (Test-Path $temp) -or (Get-Item $temp).Length -lt 500) { throw "qq browser component download failed: $Remote" }
   Move-Item $temp $Target -Force
 }
+if ($Action -like "edge-uia-*") {
+  $EdgeUiaPath = Join-Path $HomeDir "edge_uia.ps1"
+  Refresh-File "tools/edge_uia.ps1" $EdgeUiaPath
+  $edgeAction = $Action.Substring("edge-uia-".Length)
+  & $EdgeUiaPath -Action $edgeAction -WindowTitle $Selector -Query $Query -Value $Value -StepsJson $StepsJson -Approved $Approved -MaxResults $MaxResults -WaitMs $WaitMs
+  if ($LASTEXITCODE -ne 0) { throw "qq Edge UI Automation helper failed with exit code $LASTEXITCODE." }
+  exit 0
+}
+
 Refresh-File "tools/browser_agent.py" $AgentPath
 Refresh-File "tasks/ensure-browser-runtime.ps1" $SetupPath
 if (-not (Test-Path $RuntimePython)) { & $SetupPath }
