@@ -1,32 +1,38 @@
 {
   "product": "landtheplane",
   "environment": "production",
-  "version": 2,
+  "version": 3,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
     "default_branch": "main",
     "read": true,
     "write_prefixes": [
-      "landtheplane-worker/"
+      "landtheplane-worker/",
+      "projects/landtheplane-cc/"
     ],
     "delete_prefixes": [
-      "landtheplane-worker/"
+      "landtheplane-worker/",
+      "projects/landtheplane-cc/"
     ],
     "allowed_workflows": [
-      "deploy-landtheplane-worker.yml"
+      "deploy-landtheplane-worker.yml",
+      "deploy-landtheplane-cc.yml"
     ],
     "identity": "clintkosh"
   },
   "dns": {
     "allowed_names": [
-      "landtheplane.clintware.com"
+      "landtheplane.clintware.com",
+      "cc.clintware.com"
     ]
   },
   "capabilities": [
     "repo.read:clintware-site",
     "repo.write:landtheplane-worker/**",
+    "repo.write:projects/landtheplane-cc/**",
     "repo.delete:landtheplane-worker/**",
+    "repo.delete:projects/landtheplane-cc/**",
     "repo.branch:create",
     "repo.branch:read",
     "repo.commit:status",
@@ -34,7 +40,9 @@
     "repo.workflow:status",
     "deployment.read",
     "deployment.execute:landtheplane",
+    "deployment.execute:landtheplane-cc",
     "dns.ensure:landtheplane.clintware.com",
+    "dns.ensure:cc.clintware.com",
     "analytics.write:landtheplane",
     "analytics.read:landtheplane",
     "flow.read:landtheplane",
