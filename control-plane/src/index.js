@@ -7,7 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
-const VERSION = "2026-09-27-qq-router-focus.1";
+const VERSION = "2026-09-28-qq-job-events.1";
 const QUILLGEIST_RUNTIME_VERSION = "2026-09-28-memoria-recovery-v4";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
@@ -917,6 +917,30 @@ export class RegistryHub extends DurableObject {
     }
     return delivered;
   }
+  async broadcastQuillgeistLiteJobEvent(jobId,event={}){
+    const id=clip(jobId||"",120);
+    if(!id)return 0;
+    let delivered=0;
+    const payload={
+      type:"job_event",
+      protocol:"clintware-quillgeist-lite-job-events/v1",
+      job_id:id,
+      time:nowIso(),
+      ...event
+    };
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite-job-observer")){
+      try{
+        const attachment=ws.deserializeAttachment()||{};
+        if(attachment.job_id!==id)continue;
+        if(ws.readyState===1){
+          ws.send(JSON.stringify(payload));
+          delivered++;
+        }
+      }catch{}
+    }
+    return delivered;
+  }
+
   async quillgeistLiteStatus(){
     const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
@@ -1085,7 +1109,9 @@ export class RegistryHub extends DurableObject {
             try{ws.close(1008,"recovery_task_not_allowed");}catch{}
             return;
           }
-          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
+          const startedAt=clip(data.started_at||nowIso(),80);
+          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",started_at:startedAt});
+          await this.broadcastQuillgeistLiteJobEvent(recoveryJobId,{event:"ack",source:"qq-local-agent-recovery",device_id:attachment.device_id||"",status:"running",started_at:startedAt});
           return;
         }
 
@@ -1096,8 +1122,10 @@ export class RegistryHub extends DurableObject {
             return;
           }
           const logs=Array.isArray(job.logs)?job.logs:[];
-          logs.push({seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)});
+          const logRow={seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)};
+          logs.push(logRow);
           await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",logs});
+          await this.broadcastQuillgeistLiteJobEvent(recoveryJobId,{event:"log",source:"qq-local-agent-recovery",device_id:attachment.device_id||"",status:"running",log:logRow});
           return;
         }
 
@@ -1133,6 +1161,8 @@ export class RegistryHub extends DurableObject {
             timestamp:nowIso()
           });
           await this.ctx.storage.put("quillgeist_lite_recovery_last",{device_id:recoveryDeviceId,reason:"completed_"+status,job_id:recoveryJobId,at:nowIso()});
+          const completedRecoveryJob=await this.ctx.storage.get(`quillgeist_lite_job:${recoveryJobId}`);
+          await this.broadcastQuillgeistLiteJobEvent(recoveryJobId,{event:"result",source:"qq-local-agent-recovery",device_id:recoveryDeviceId,status,result:completedRecoveryJob?.result||null,completed_at:completedRecoveryJob?.completed_at||nowIso()});
           if(status==="passed"&&job.resume_after){
             try{ws.send(JSON.stringify({type:"resume_work",protocol:"clintware-quillgeist-lite-control/v1",job_id:recoveryJobId,reason:"runtime_update_complete",time:nowIso()}));}catch{}
           }
@@ -1215,8 +1245,10 @@ export class RegistryHub extends DurableObject {
           const jobId=clip(data.job_id,120);
           const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
           if(job?.target_device&&job.target_device!==attachment.device_id)return;
-          await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:clip(data.started_at||nowIso(),80)});
+          const startedAt=clip(data.started_at||nowIso(),80);
+          await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:startedAt});
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          await this.broadcastQuillgeistLiteJobEvent(jobId,{event:"ack",source:"qq-local-agent",device_id:attachment.device_id||"",status:"running",started_at:startedAt});
           return;
         }
         if(data?.type==="log"&&data.job_id){
@@ -1225,8 +1257,10 @@ export class RegistryHub extends DurableObject {
           if(job?.target_device&&job.target_device!==attachment.device_id)return;
           if(job){
             const logs=Array.isArray(job.logs)?job.logs:[];
-            logs.push({seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)});
+            const logRow={seq:Number(data.seq||logs.length+1),line:clip(data.line||"",4000),timestamp:clip(data.timestamp||nowIso(),80)};
+            logs.push(logRow);
             await this.updateQuillgeistLiteJob(jobId,{status:"running",logs});
+            await this.broadcastQuillgeistLiteJobEvent(jobId,{event:"log",source:"qq-local-agent",device_id:attachment.device_id||"",status:"running",log:logRow});
           }
           return;
         }
@@ -1249,6 +1283,22 @@ export class RegistryHub extends DurableObject {
             }
           });
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
+          await this.broadcastQuillgeistLiteJobEvent(jobId,{
+            event:"result",
+            source:"qq-local-agent",
+            device_id:attachment.device_id||"",
+            status,
+            completed_at:completedJob?.completed_at||clip(data.completed_at||nowIso(),80),
+            result:completedJob?.result||{
+              task_id:clip(data.task_id||"",120),
+              runtime:clip(data.runtime||"",40),
+              status,
+              exit_code:Number(data.exit_code||0),
+              duration_ms:Number(data.duration_ms||0),
+              output:clip(data.output||"",40000),
+              log_lines:Number(data.log_lines||0)
+            }
+          });
           if(status==="passed"&&completedJob?.resume_after){
             try{ws.send(JSON.stringify({type:"resume_work",protocol:"clintware-quillgeist-lite-control/v1",job_id:jobId,reason:"runtime_update_complete",time:nowIso()}));}catch{}
           }
@@ -1338,6 +1388,36 @@ export class RegistryHub extends DurableObject {
       return new Response(null,{status:101,webSocket:client});
     }
 
+    if(request.method==="GET"&&url.pathname==="/quillgeist-lite-job-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
+      const jobId=clip(request.headers.get("x-quillgeist-job-id")||"",120);
+      if(!jobId)return json({error:"job_id_required"},400);
+      const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+      if(!job)return json({error:"job_not_found"},404);
+      const pair=new WebSocketPair();
+      const [client,server]=Object.values(pair);
+      this.ctx.acceptWebSocket(server,["quillgeist-lite-job-observer"]);
+      server.serializeAttachment({receiver:"quillgeist-lite-job-observer",job_id:jobId,connected_at:nowIso()});
+      const replay=async()=>{
+        try{
+          if(server.readyState!==1)return;
+          const current=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
+          if(!current)return;
+          server.send(JSON.stringify({
+            type:"job_event",
+            protocol:"clintware-quillgeist-lite-job-events/v1",
+            job_id:jobId,
+            event:"snapshot",
+            source:"control-plane-state",
+            time:nowIso(),
+            job:current
+          }));
+        }catch(e){
+          console.error(JSON.stringify({event:"quillgeist_job_observer_replay_error",job_id:jobId,message:String(e?.message||e)}));
+        }
+      };
+      try{this.ctx.waitUntil(replay());}catch{replay().catch(()=>{});}
+      return new Response(null,{status:101,webSocket:client});
+    }
     if(request.method==="GET"&&url.pathname==="/quillgeist-lite-stream"&&String(request.headers.get("upgrade")||"").toLowerCase()==="websocket"){
       const pair=new WebSocketPair();
       const [client,server]=Object.values(pair);
@@ -3795,6 +3875,18 @@ export default {
         const delivery=await broadcastResp.json();
         await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
         return json({ok:true,job_id:created.job.job_id,task_id,target_device:created.job.target_device||"",status:"queued",delivery},202);
+      }
+      const quillgeistLiteJobStreamMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/jobs\/([^/]+)\/stream$/);
+      if(request.method==="GET"&&quillgeistLiteJobStreamMatch){
+        if(String(request.headers.get("upgrade")||"").toLowerCase()!=="websocket")return json({error:"websocket_upgrade_required"},426);
+        const mcpAuth=await mcpAuthContext(request,env);
+        if(!mcpAuth)return json({error:"unauthorized"},401);
+        if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return json({error:"product_not_allowed"},403);
+        const jobId=clip(decodeURIComponent(quillgeistLiteJobStreamMatch[1]),120);
+        const headers=new Headers();
+        headers.set("upgrade","websocket");
+        headers.set("x-quillgeist-job-id",jobId);
+        return await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job-stream",{method:"GET",headers}));
       }
       const quillgeistLiteJobMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/jobs\/([^/]+)$/);
       if(request.method==="GET"&&quillgeistLiteJobMatch){
