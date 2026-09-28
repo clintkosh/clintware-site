@@ -1,15 +1,5 @@
 {
-  "request_id": "bottom-launcher-codefeddy-github-inspect-20260928-2201",
-  "task_id": "browser-work",
-  "target_device": "MEMORIA",
-  "resume_after": false,
-  "args": {
-    "Action": "run",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://github.com/codeFEDDY/codeFEDDY.github.io\",\"timeout_ms\":30000},{\"op\":\"inspect\"}]}",
-    "Approved": "false",
-    "Headless": "true",
-    "WaitMs": "700",
-    "MaxChars": "12000"
-  },
-  "objective": "Inspect the authenticated GitHub browser session for codeFEDDY/codeFEDDY.github.io so Bottom Launcher can be implemented in the correct CodeFEDDY repository without changing Clintware content."
+  "request_id": "bottom-launcher-device-inspect-20260928-2107",
+  "mode": "inspect",
+  "objective": "Inspect currently connected QQ devices before selecting the authorized device for CodeFEDDY Bottom Launcher repository work."
 }
