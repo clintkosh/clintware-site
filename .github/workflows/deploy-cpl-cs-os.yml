@@ -51,18 +51,17 @@ jobs:
           grep -Fq 'persistence:"browser-persistent"' src/index.js
           grep -Fq 'SAMPLE_SEED_VERSION=8' src/sample-customers.js
           grep -Fq 'Northstar Financial Group' src/index.js
-          grep -Fq 'CPL // CS OPERATING SYSTEM' public/index.html
-          grep -Fq 'Application Narrative' public/cpl.js
-          grep -Fq 'You asked for a zero-to-one builder' public/cpl.js
-          grep -Fq '20–40 named accounts' public/cpl.js
+          grep -Fq 'CPL // CUSTOMER SUCCESS CRM' public/index.html
           grep -Fq 'dplrcrm.clintware.com' public/cpl.js
           grep -Fq 'RenewNudge' public/cpl.js
-          grep -Fq 'Segmentation that changes the service motion' public/cpl.js
-          grep -Fq 'Explainable health' public/cpl.js
-          grep -Fq 'Renewal forecasting tied to value evidence' public/cpl.js
-          grep -Fq 'Voice of Customer with evidence and closure' public/cpl.js
-          grep -Fq 'Hire from the operating data' public/cpl.js
-          grep -Fq 'One operating truth, not another data island' public/cpl.js
+          grep -Fq 'Customer Success CRM' public/cpl.js
+          grep -Fq 'Edit account' public/cpl.js
+          grep -Fq 'Add task' public/cpl.js
+          grep -Fq 'Add risk' public/cpl.js
+          grep -Fq 'Add stakeholder' public/cpl.js
+          grep -Fq 'Edit renewal' public/cpl.js
+          grep -Fq 'Why I built this' public/cpl.js
+          grep -Fq 'cplCustomer=p.match' src/index.js
           ! grep -Rqi 'consult' public src
           ! grep -Rqi 'doppel' public src
           ! grep -Rqi '<img' public
@@ -123,7 +122,7 @@ jobs:
             h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
             j=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/cpl.js" || true)
-            if grep -Fq '"service":"clintware-cpl-cs-os"' <<< "$h"               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h"               && grep -Fq '"oauthApp":"none"' <<< "$h"               && grep -Fq 'CPL // CS OPERATING SYSTEM' <<< "$p"               && grep -Fq 'Application Narrative' <<< "$j"; then
+            if grep -Fq '"service":"clintware-cpl-cs-os"' <<< "$h"               && grep -Fq '"identity":"disabled-no-login-demo"' <<< "$h"               && grep -Fq '"oauthApp":"none"' <<< "$h"               && grep -Fq 'CPL // CS OPERATING SYSTEM' <<< "$p"               && grep -Fq 'Customer Success CRM' <<< "$j"; then
               ready=1
               break
             fi
@@ -163,6 +162,19 @@ jobs:
           echo "CHECKPOINT portfolio_state=ok"
 
           customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/cpl-state.json"))["customer"]["id"])')
+          customer_patch_code=$(curl -sS -o /tmp/cpl-customer-patch.json -w '%{http_code}' -b /tmp/cpl.cookies -H 'content-type: application/json' -X PATCH             --data '{"portfolio":{"health":"Healthy","healthScore":77,"adoption":82,"nextAction":"CI account update"}}'             "$base/api/customers/$customer_id" | tr -cd '0-9')
+          if [ "$customer_patch_code" != "200" ]; then echo "customer_patch_status=$customer_patch_code"; cat /tmp/cpl-customer-patch.json; exit 1; fi
+          curl -fsS -b /tmp/cpl.cookies "$base/api/state?customer=$customer_id" >/tmp/cpl-state-patched.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/cpl-state-patched.json'))
+          p=d['customer']['portfolio']
+          assert p['health']=='Healthy',p
+          assert p['healthScore']==77,p
+          assert p['adoption']==82,p
+          assert p['nextAction']=='CI account update',p
+          PY
+          echo "CHECKPOINT customer_patch=ok"
           note_code=$(curl -sS -o /tmp/cpl-note.json -w '%{http_code}' -b /tmp/cpl.cookies -H 'content-type: application/json'             --data '{"customerId":"'"$customer_id"'","type":"note","provenance":"internal_record","data":{"title":"CI human approval","status":"Approved","body":"Synthetic verification only"}}'             "$base/api/records" | tr -cd '0-9')
           if [ "$note_code" != "201" ]; then echo "record_write_status=$note_code"; cat /tmp/cpl-note.json; exit 1; fi
           echo "CHECKPOINT record_write=ok"
