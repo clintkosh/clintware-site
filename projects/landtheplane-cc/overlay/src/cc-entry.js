@@ -17,7 +17,7 @@ const ATLASSIAN_BOARD_NAME="LandThePlane Career Operations";
 const ATLASSIAN_DASHBOARD_NAME="LandThePlane Career Operations Dashboard";
 const ATLASSIAN_SPACE_KEY="LTP";
 const ATLASSIAN_SPACE_NAME="LandThePlane Career OS";
-const REQUIRED_ATLASSIAN_SCOPES=["manage:jira-configuration","read:board-scope:jira-software","write:board-scope:jira-software","read:sprint:jira-software","write:sprint:jira-software"];
+const REQUIRED_ATLASSIAN_SCOPES=["manage:jira-configuration","read:board-scope:jira-software","write:board-scope:jira-software","read:board-scope.admin:jira-software","write:board-scope.admin:jira-software","read:sprint:jira-software","write:sprint:jira-software"];
 
 function redirect(location,status=302){return new Response(null,{status,headers:{...SECURITY_HEADERS,location}})}
 
