@@ -2353,11 +2353,11 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.9.10"
+        version = "1.10.0"
         source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
         registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation")
       }
 
       Flush-RunnerDiagnostics
