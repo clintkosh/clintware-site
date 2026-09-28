@@ -137,10 +137,10 @@ const modes=`const N7_ASSIST_MODES={
  general:"Answer using the selected account record as the primary source. Clearly distinguish recorded facts, synthetic scenario data, and recommendations."
 };
 `;
-src=between(src,"const N7_ASSIST_MODES={","function wantsPublicResearch",modes+"function wantsPublicResearch");
+src=between(src,"const N7_ASSIST_MODES={","function wantsPublicResearch",modes);
 
 src=src.split('"Doppel Technical Customer Engineering CRM Team"').join('"CPL Customer Success Operating System"');
-src=src.split('"Doppel Guest Demo"').join('"CPL Candidate Demo"');
+src=src.split('"Doppel Guest Demo"').join('"CPL Candidate Demo"');\nsrc=src.split("Doppel").join("CPL");\nsrc=src.split("doppel").join("cpl");
 src=src.split('"Doppel public customer story"').join('"Public target-company context"');
 write("src/index.js",src);
 
