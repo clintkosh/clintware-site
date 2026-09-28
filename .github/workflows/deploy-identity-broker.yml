@@ -130,6 +130,22 @@ jobs:
       - name: Install identity broker dependencies
         run: npm install --prefix identity-broker --ignore-scripts --no-audit --no-fund
 
+      - name: Normalize optional Microsoft tenant configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          tenant="${MICROSOFT_ENTRA_TENANT:-}"
+          if [ -n "$tenant" ]; then
+            lower=$(printf '%s' "$tenant" | tr '[:upper:]' '[:lower:]')
+            if [[ ! "$tenant" =~ ^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$ ]] \
+              && [ "$lower" != "organizations" ] \
+              && [ "$lower" != "common" ] \
+              && [ "$lower" != "consumers" ]; then
+              echo "MICROSOFT_ENTRA_TENANT=organizations" >> "$GITHUB_ENV"
+              echo "::warning::MICROSOFT_ENTRA_TENANT is not a tenant GUID or supported alias; using organizations for this deployment."
+            fi
+          fi
+
       - name: Preflight Microsoft and Okta OIDC configuration
         run: node identity-broker/scripts/provider-preflight.mjs
 
