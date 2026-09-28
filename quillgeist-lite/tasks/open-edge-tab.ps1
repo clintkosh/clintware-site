@@ -8,9 +8,15 @@ if ($uri.Scheme -ne "https") { throw "Only https URLs are allowed." }
 
 $edge = $null
 try {
-  $edge = Get-Process msedge -ErrorAction SilentlyContinue |
-    Where-Object { $_.Path -and (Test-Path $_.Path) } |
-    Select-Object -First 1 -ExpandProperty Path
+  $safeProc = Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.ExecutablePath -and
+      (Test-Path $_.ExecutablePath) -and
+      ($_.CommandLine -notmatch 'Clintware\\QuillgeistLite\\browser-profile') -and
+      ($_.CommandLine -notmatch '--remote-debugging-(port|pipe)')
+    } |
+    Select-Object -First 1
+  if ($safeProc) { $edge = $safeProc.ExecutablePath }
 } catch {}
 
 if (-not $edge) {
@@ -44,5 +50,9 @@ if (-not $edge) {
   exit 0
 }
 
+# Use the user's normal supported Edge session. Never route provider sign-in
+# through the QQ Playwright/CDP profile because Google and other IdPs can
+# reject automated or embedded-browser login surfaces.
 Start-Process -FilePath $edge -ArgumentList @("--new-tab", $uri.AbsoluteUri) -ErrorAction Stop
-Write-Host "OPENED EDGE TAB // $($uri.AbsoluteUri)" -ForegroundColor Green
+Write-Host "OPENED SYSTEM EDGE TAB // $($uri.AbsoluteUri)" -ForegroundColor Green
+Write-Host "AUTH MODE // normal browser session; no QQ automation flags" -ForegroundColor Cyan
