@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-09-28T19:02:46.368788+00:00",
+  "checked_at": "2026-09-28T19:09:32.322249+00:00",
   "status": {
     "ok": true,
-    "online": 2,
+    "online": 1,
     "recovery_online": 0,
-    "wake_online": 2,
+    "wake_online": 1,
     "recovery": null,
     "runner": {
       "runner_id": "MEMORIA",
@@ -29,47 +29,15 @@
         "workers_ai_responder",
         "fast_responder_fallback"
       ],
-      "connected_at": "2026-09-28T19:02:38.424Z",
-      "last_seen": "2026-09-28T19:02:38.458Z",
-      "source_revision": "0df311443a0983089c6694d27e9c07463ec7a767",
+      "connected_at": "2026-09-28T19:08:49.870Z",
+      "last_seen": "2026-09-28T19:08:49.903Z",
+      "source_revision": "fbdc7d184aa7074bb4c8e4689ef63028c1776409",
       "registry_version": "16"
     },
     "connected_devices": [
       {
-        "device_id": "DRIZNET",
-        "connected_at": "2026-09-28T19:02:28.396Z",
-        "runner": {
-          "runner_id": "DRIZNET",
-          "version": "1.9.10",
-          "capabilities": [
-            "interactive_relay",
-            "question_poll",
-            "allowlisted_tasks",
-            "local_shell_escape",
-            "web_search",
-            "web_read",
-            "browser_automation",
-            "manual_browser_login",
-            "responder_agent",
-            "portable_local_responder",
-            "local_first_inference",
-            "infra_usage_gauge",
-            "event_driven_usage",
-            "subscription_responder",
-            "provider_usage_estimates",
-            "reset_countdown",
-            "workers_ai_responder",
-            "fast_responder_fallback"
-          ],
-          "connected_at": "2026-09-28T19:02:28.396Z",
-          "last_seen": "2026-09-28T19:02:28.434Z",
-          "source_revision": "0df311443a0983089c6694d27e9c07463ec7a767",
-          "registry_version": "16"
-        }
-      },
-      {
         "device_id": "MEMORIA",
-        "connected_at": "2026-09-28T19:02:38.424Z",
+        "connected_at": "2026-09-28T19:08:49.870Z",
         "runner": {
           "runner_id": "MEMORIA",
           "version": "1.9.10",
@@ -93,14 +61,59 @@
             "workers_ai_responder",
             "fast_responder_fallback"
           ],
-          "connected_at": "2026-09-28T19:02:38.424Z",
-          "last_seen": "2026-09-28T19:02:38.458Z",
-          "source_revision": "0df311443a0983089c6694d27e9c07463ec7a767",
+          "connected_at": "2026-09-28T19:08:49.870Z",
+          "last_seen": "2026-09-28T19:08:49.903Z",
+          "source_revision": "fbdc7d184aa7074bb4c8e4689ef63028c1776409",
           "registry_version": "16"
         }
       }
     ],
     "jobs": [
+      {
+        "job_id": "4a3c6f0e-31f0-4439-8616-7b337a81600b",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "resume_after": true,
+        "status": "queued",
+        "created_at": "2026-09-28T19:08:41.667Z",
+        "updated_at": "2026-09-28T19:08:41.667Z"
+      },
+      {
+        "job_id": "f0b6ca72-72ce-4d36-8d1d-18bca144388e",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "failed",
+        "created_at": "2026-09-28T19:06:16.592Z",
+        "updated_at": "2026-09-28T19:07:06.236Z"
+      },
+      {
+        "job_id": "0107ca8a-430b-4159-8a08-59468d013485",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "failed",
+        "created_at": "2026-09-28T19:04:42.917Z",
+        "updated_at": "2026-09-28T19:05:09.718Z"
+      },
+      {
+        "job_id": "7961f8eb-494e-4e36-9992-56e180bfb95d",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "passed",
+        "created_at": "2026-09-28T19:04:36.381Z",
+        "updated_at": "2026-09-28T19:05:37.756Z"
+      },
+      {
+        "job_id": "bd8a68ed-e7b1-494d-a7c4-117d5b7b0497",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "passed",
+        "created_at": "2026-09-28T19:02:49.346Z",
+        "updated_at": "2026-09-28T19:03:13.385Z"
+      },
       {
         "job_id": "77ac09da-37e3-4c33-a537-65e395075ce2",
         "task_id": "self-update",
@@ -491,41 +504,6 @@
         "status": "passed",
         "created_at": "2026-09-28T03:02:11.967Z",
         "updated_at": "2026-09-28T03:02:24.093Z"
-      },
-      {
-        "job_id": "035469da-41e4-4d8d-af23-3aeb4de2af0e",
-        "task_id": "self-update",
-        "status": "passed",
-        "created_at": "2026-09-28T03:01:34.052Z",
-        "updated_at": "2026-09-28T03:01:45.728Z"
-      },
-      {
-        "job_id": "22b6447a-4615-4d30-82e7-468c2d1a489b",
-        "task_id": "finish-local-ai",
-        "status": "failed",
-        "created_at": "2026-09-28T00:28:21.688Z",
-        "updated_at": "2026-09-28T00:32:20.885Z"
-      },
-      {
-        "job_id": "6590c6c6-0e2c-46fa-9748-ab7500329389",
-        "task_id": "self-update",
-        "status": "passed",
-        "created_at": "2026-09-28T00:28:09.260Z",
-        "updated_at": "2026-09-28T00:31:05.635Z"
-      },
-      {
-        "job_id": "1e4090e3-3e24-4274-8dd5-5d35f216a968",
-        "task_id": "self-update",
-        "status": "passed",
-        "created_at": "2026-09-28T00:28:06.957Z",
-        "updated_at": "2026-09-28T00:31:36.213Z"
-      },
-      {
-        "job_id": "859a0256-e96d-4904-9f1c-fa135780a099",
-        "task_id": "self-update",
-        "status": "passed",
-        "created_at": "2026-09-28T00:27:44.788Z",
-        "updated_at": "2026-09-28T00:32:00.416Z"
       }
     ],
     "questions": [],
@@ -543,224 +521,224 @@
     ],
     "diagnostics": [
       {
-        "diagnostic_id": "1a6d742d-3a39-4d91-8726-97fbd8b4d988",
+        "diagnostic_id": "fcbb3c77-6daf-4cdb-830d-5fa5c0907e35",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "message": "Interactive relay channel initialized.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.6404045Z",
-        "received_at": "2026-09-28T19:02:38.508Z"
+        "timestamp": "2026-09-28T19:08:57.0459157Z",
+        "received_at": "2026-09-28T19:08:49.941Z"
       },
       {
-        "diagnostic_id": "c0816634-7979-4ea4-9b5f-7de19fc5638d",
+        "diagnostic_id": "298e72a3-e267-4c6b-a9d1-3b8f792a6336",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "message": "Connected to Clintware Control Plane.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.6152779Z",
-        "received_at": "2026-09-28T19:02:38.486Z"
+        "timestamp": "2026-09-28T19:08:57.0268071Z",
+        "received_at": "2026-09-28T19:08:49.926Z"
       },
       {
-        "diagnostic_id": "cfb87d80-aa5a-4f3d-944f-85e79836f75d",
+        "diagnostic_id": "00268c83-4934-484d-9d5f-17f480a5c7e6",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner-auth",
         "message": "credential_selected device=MEMORIA source=machine",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.1817593Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
+        "timestamp": "2026-09-28T19:08:56.7428329Z",
+        "received_at": "2026-09-28T19:08:49.903Z"
       },
       {
-        "diagnostic_id": "45835b3f-8f29-49c2-b224-318db4ddfb60",
+        "diagnostic_id": "dcb787dd-deee-4354-8311-f6e0d2f17561",
         "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "runner",
-        "message": "Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
+        "message": "Disconnected. Reconnecting in 160 seconds; bounded backoff prevents Cloudflare request storms.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.7090163Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
+        "timestamp": "2026-09-28T19:06:14.5517125Z",
+        "received_at": "2026-09-28T19:08:49.903Z"
       },
       {
-        "diagnostic_id": "d4328fe7-c963-4fb2-a098-de6b22578cb0",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "connection",
-        "message": "System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\r\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\r\n   at System.Net.WebSockets.ManagedWebSocket.ThrowEOFUnexpected()\r\n   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)\r\n   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)\r\n   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)\r\n   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)\r\n   at System.Threading.Tasks.ValueTask`1.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)\r\n--- End of stack trace from previous location ---\r\n   at CallSite.Target(Closure, CallSite, Object)\r\n   --- End of inner exception stack trace ---\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.6582163Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
-      },
-      {
-        "diagnostic_id": "712985eb-1b9a-448e-b7cc-3fbe1585e792",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "runner",
-        "message": "Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.6531035Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
-      },
-      {
-        "diagnostic_id": "c244fd3e-335f-4894-9a9a-e9d7e93180e2",
+        "diagnostic_id": "630e810c-c047-4241-8872-0a5dd08e79ea",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner-auth",
         "message": "credential_probe",
         "runner_alive": true,
         "service_version": "runner",
-        "timestamp": "2026-09-28T19:02:44.9013640Z",
-        "received_at": "2026-09-28T19:02:38.013Z"
+        "timestamp": "2026-09-28T19:08:56.4077394Z",
+        "received_at": "2026-09-28T19:08:49.606Z"
       },
       {
-        "diagnostic_id": "b2cbc6b6-3459-4442-b94f-a657aaef0262",
+        "diagnostic_id": "47671e29-6b0c-49b3-81b3-88bb9a968473",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:47.7682583Z",
+        "received_at": "2026-09-28T19:08:49.103Z"
+      },
+      {
+        "diagnostic_id": "f2ad4720-9f90-4711-ab7d-d87d1d99fede",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.8879046Z",
+        "received_at": "2026-09-28T19:08:48.205Z"
+      },
+      {
+        "diagnostic_id": "945bb1e6-3ccb-4c4e-897e-18d37305ec81",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.7368278Z",
+        "received_at": "2026-09-28T19:08:48.071Z"
+      },
+      {
+        "diagnostic_id": "f26cae6a-8307-4525-9d7c-1bbc458c9c5f",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.5826547Z",
+        "received_at": "2026-09-28T19:08:47.910Z"
+      },
+      {
+        "diagnostic_id": "80545941-5251-4f8c-9b33-6779a9beccf0",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "runner-log",
+        "message": "2026-09-28T14:07:30 [WARN] Disconnected. Reconnecting in 160 seconds; bounded backoff prevents Cloudflare request storms.",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:35.0583312Z",
+        "received_at": "2026-09-28T19:07:36.596Z"
+      },
+      {
+        "diagnostic_id": "1b32f3c0-9d04-4faf-bc19-9b351be47010",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "auto-repair",
+        "message": "auto_repair_complete exit=0 output=AUTO_REPAIR // reconciling qq against canonical Clintware source\r\nQQ RUNTIME RESTORED VIA CONTROL PLANE // 32 reviewed tasks\r\nQQ DEVICE CONNECTION PRESERVED // retry a fresh job\r\nAUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\nAUTO_REPAIR // refreshed runner.ps1\r\nAUTO_REPAIR // refreshed launcher.ps1\r\nAUTO_REPAIR // refreshed boot_splash.py\r\nAUTO_REPAIR // refreshed terminal_repair.py\r\nAUTO_REPAIR // refreshed provider_responder.py\r\nAUTO_REPAIR // refreshed browser_agent.py\r\nAUTO_REPAIR // refreshed start-qq-window.ps1\r\nAUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\nAUTO_REPAIR // refreshed ensure-powershell.ps1\r\nAUTO_REPAIR // refreshed repair-local-service.ps1\r\nAUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\nAUTO_REPAIR // refreshed browser-work.ps1\r\nDEDUPE_QQ // inspecting Clintware-owned qq windows\r\nDEDUPE_QQ // no duplicate qq launcher processes found\r\nAUTO_REPAIR // duplicate qq windows reconciled\r\nAUTO_REPAIR // no-focus supervised launch action verified\r\nAUTO_REPAIR WARN // terminal profile repair failed: Program 'py.exe' failed to run: An error occurred trying to start process 'C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\py.exe' with working directory 'C:\\Windows\\System32'. The file cannot be accessed by the system.At C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\auto-repair-runtime.ps1:143 char:71\r\n+ . af).ToLowerInvariant() -eq \"py.exe\") { & $python -3 $terminalRepair }\r\n+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~.\r\nAUTO_REPAIR // runner was down; no-focus recovery requested\r\nAUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:28.8827965Z",
+        "received_at": "2026-09-28T19:07:21.874Z"
+      },
+      {
+        "diagnostic_id": "f46bea98-a8a3-4d6c-92ca-10dbab43dd25",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "auto-repair",
+        "message": "auto_repair_started reason=restart_limit",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:15.4184473Z",
+        "received_at": "2026-09-28T19:07:08.399Z"
+      },
+      {
+        "diagnostic_id": "f9b91906-7e0a-4e34-80ab-24a70e33c527",
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "health",
+        "message": "restart_suppressed_after_5_attempts_in_10_minutes",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:15.3186695Z",
+        "received_at": "2026-09-28T19:07:08.303Z"
+      },
+      {
+        "diagnostic_id": "68119c95-4bb5-4f81-bb93-e2ec30f22f2c",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "runner-log",
+        "message": "2026-09-28T14:07:04 [ERROR] Job f0b6ca72-72ce-4d36-8d1d-18bca144388e finished with status failed",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:05.0268812Z",
+        "received_at": "2026-09-28T19:07:06.371Z"
+      },
+      {
+        "diagnostic_id": "054d669e-c968-4df1-beef-2a7be6750b60",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "runner",
+        "message": "Job f0b6ca72-72ce-4d36-8d1d-18bca144388e finished with status failed",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:07:04.9370669Z",
+        "received_at": "2026-09-28T19:07:06.239Z"
+      },
+      {
+        "diagnostic_id": "4d59aea8-b2b1-4928-b0c8-6893302b7233",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "job",
+        "message": "job_failed id=f0b6ca72-72ce-4d36-8d1d-18bca144388e task=self-update exit=1",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:07:06.236Z",
+        "received_at": "2026-09-28T19:07:06.236Z"
+      },
+      {
+        "diagnostic_id": "2644ebc7-0881-41e2-8b86-a867cca36d31",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:06:48.4591340Z",
+        "received_at": "2026-09-28T19:06:49.747Z"
+      },
+      {
+        "diagnostic_id": "f8cb3a33-3413-4b8d-8e53-fc9a438c7dd8",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: self-update",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:06:48.4400288Z",
+        "received_at": "2026-09-28T19:06:49.732Z"
+      },
+      {
+        "diagnostic_id": "9db19709-f628-449f-9fc5-4efe373898bc",
         "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:44.0774836Z",
-        "received_at": "2026-09-28T19:02:37.338Z"
+        "timestamp": "2026-09-28T19:06:56.3276704Z",
+        "received_at": "2026-09-28T19:06:49.285Z"
       },
       {
-        "diagnostic_id": "76b8b38f-8d27-4bab-8625-476513d740f7",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:43.0604152Z",
-        "received_at": "2026-09-28T19:02:36.181Z"
-      },
-      {
-        "diagnostic_id": "60865a6b-bd4e-4e1a-8cd4-184260d48b89",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:42.7921294Z",
-        "received_at": "2026-09-28T19:02:35.921Z"
-      },
-      {
-        "diagnostic_id": "82c96140-d3e6-4b6b-adda-fc0fbe56c765",
+        "diagnostic_id": "0ce6f69b-bf35-4988-9528-512cdc7fcbfb",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
         "message": "Interactive relay channel initialized.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:27.3138136Z",
-        "received_at": "2026-09-28T19:02:28.586Z"
-      },
-      {
-        "diagnostic_id": "0679550d-6fc9-4ce1-b1b7-d1e8b6aea441",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Connected to Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:27.2979871Z",
-        "received_at": "2026-09-28T19:02:28.573Z"
-      },
-      {
-        "diagnostic_id": "02ff59c7-7302-4ee1-b55d-5470e66196b0",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:26.7309858Z",
-        "received_at": "2026-09-28T19:02:28.434Z"
-      },
-      {
-        "diagnostic_id": "a8dfc524-f9dc-4d9b-8f62-9024b94ae7cc",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "runner",
-        "message": "Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:16.3090424Z",
-        "received_at": "2026-09-28T19:02:28.434Z"
-      },
-      {
-        "diagnostic_id": "a739282b-9c61-4333-b48b-3885cd848dd3",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T19:02:26.4596928Z",
-        "received_at": "2026-09-28T19:02:27.995Z"
-      },
-      {
-        "diagnostic_id": "0e2df7fb-40c6-4108-9836-57eff6cfd04d",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "runner-log",
-        "message": "2026-09-28T14:02:16 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:19.5648425Z",
-        "received_at": "2026-09-28T19:02:20.957Z"
-      },
-      {
-        "diagnostic_id": "5584aae1-54da-476b-9fbc-fe40253cb53c",
-        "device_id": "MEMORIA",
-        "level": "ERROR",
-        "phase": "runner-log",
-        "message": "2026-09-28T14:02:24 [WARN] Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\nFULL_EXCEPTION System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\n   --- End of inner exception stack trace ---\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\n2026-09-28T14:02:24 [WARN] Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:27.7371661Z",
-        "received_at": "2026-09-28T19:02:20.898Z"
-      },
-      {
-        "diagnostic_id": "cd542ae3-f557-42dd-ba45-cd709e79825d",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:24.0109055Z",
-        "received_at": "2026-09-28T19:02:17.003Z"
-      },
-      {
-        "diagnostic_id": "c0e4decf-e7f0-46d9-a00d-ba73526cc5ab",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:23.1358159Z",
-        "received_at": "2026-09-28T19:02:16.118Z"
-      },
-      {
-        "diagnostic_id": "e277905b-1d1c-429d-8e10-0d59fcf09d00",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:22.7566402Z",
-        "received_at": "2026-09-28T19:02:16.007Z"
+        "timestamp": "2026-09-28T19:06:47.7929933Z",
+        "received_at": "2026-09-28T19:06:49.065Z"
       }
     ]
   },
@@ -768,224 +746,224 @@
     "ok": true,
     "diagnostics": [
       {
-        "diagnostic_id": "1a6d742d-3a39-4d91-8726-97fbd8b4d988",
+        "diagnostic_id": "fcbb3c77-6daf-4cdb-830d-5fa5c0907e35",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "message": "Interactive relay channel initialized.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.6404045Z",
-        "received_at": "2026-09-28T19:02:38.508Z"
+        "timestamp": "2026-09-28T19:08:57.0459157Z",
+        "received_at": "2026-09-28T19:08:49.941Z"
       },
       {
-        "diagnostic_id": "c0816634-7979-4ea4-9b5f-7de19fc5638d",
+        "diagnostic_id": "298e72a3-e267-4c6b-a9d1-3b8f792a6336",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "message": "Connected to Clintware Control Plane.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.6152779Z",
-        "received_at": "2026-09-28T19:02:38.486Z"
+        "timestamp": "2026-09-28T19:08:57.0268071Z",
+        "received_at": "2026-09-28T19:08:49.926Z"
       },
       {
-        "diagnostic_id": "cfb87d80-aa5a-4f3d-944f-85e79836f75d",
+        "diagnostic_id": "00268c83-4934-484d-9d5f-17f480a5c7e6",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner-auth",
         "message": "credential_selected device=MEMORIA source=machine",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:45.1817593Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
+        "timestamp": "2026-09-28T19:08:56.7428329Z",
+        "received_at": "2026-09-28T19:08:49.903Z"
       },
       {
-        "diagnostic_id": "45835b3f-8f29-49c2-b224-318db4ddfb60",
+        "diagnostic_id": "dcb787dd-deee-4354-8311-f6e0d2f17561",
         "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "runner",
-        "message": "Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
+        "message": "Disconnected. Reconnecting in 160 seconds; bounded backoff prevents Cloudflare request storms.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.7090163Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
+        "timestamp": "2026-09-28T19:06:14.5517125Z",
+        "received_at": "2026-09-28T19:08:49.903Z"
       },
       {
-        "diagnostic_id": "d4328fe7-c963-4fb2-a098-de6b22578cb0",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "connection",
-        "message": "System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\r\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\r\n   at System.Net.WebSockets.ManagedWebSocket.ThrowEOFUnexpected()\r\n   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)\r\n   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)\r\n   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)\r\n   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)\r\n   at System.Threading.Tasks.ValueTask`1.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)\r\n--- End of stack trace from previous location ---\r\n   at CallSite.Target(Closure, CallSite, Object)\r\n   --- End of inner exception stack trace ---\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.6582163Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
-      },
-      {
-        "diagnostic_id": "712985eb-1b9a-448e-b7cc-3fbe1585e792",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "runner",
-        "message": "Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:24.6531035Z",
-        "received_at": "2026-09-28T19:02:38.458Z"
-      },
-      {
-        "diagnostic_id": "c244fd3e-335f-4894-9a9a-e9d7e93180e2",
+        "diagnostic_id": "630e810c-c047-4241-8872-0a5dd08e79ea",
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner-auth",
         "message": "credential_probe",
         "runner_alive": true,
         "service_version": "runner",
-        "timestamp": "2026-09-28T19:02:44.9013640Z",
-        "received_at": "2026-09-28T19:02:38.013Z"
+        "timestamp": "2026-09-28T19:08:56.4077394Z",
+        "received_at": "2026-09-28T19:08:49.606Z"
       },
       {
-        "diagnostic_id": "b2cbc6b6-3459-4442-b94f-a657aaef0262",
+        "diagnostic_id": "47671e29-6b0c-49b3-81b3-88bb9a968473",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:47.7682583Z",
+        "received_at": "2026-09-28T19:08:49.103Z"
+      },
+      {
+        "diagnostic_id": "f2ad4720-9f90-4711-ab7d-d87d1d99fede",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.8879046Z",
+        "received_at": "2026-09-28T19:08:48.205Z"
+      },
+      {
+        "diagnostic_id": "945bb1e6-3ccb-4c4e-897e-18d37305ec81",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.7368278Z",
+        "received_at": "2026-09-28T19:08:48.071Z"
+      },
+      {
+        "diagnostic_id": "f26cae6a-8307-4525-9d7c-1bbc458c9c5f",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:08:46.5826547Z",
+        "received_at": "2026-09-28T19:08:47.910Z"
+      },
+      {
+        "diagnostic_id": "80545941-5251-4f8c-9b33-6779a9beccf0",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "runner-log",
+        "message": "2026-09-28T14:07:30 [WARN] Disconnected. Reconnecting in 160 seconds; bounded backoff prevents Cloudflare request storms.",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:35.0583312Z",
+        "received_at": "2026-09-28T19:07:36.596Z"
+      },
+      {
+        "diagnostic_id": "1b32f3c0-9d04-4faf-bc19-9b351be47010",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "auto-repair",
+        "message": "auto_repair_complete exit=0 output=AUTO_REPAIR // reconciling qq against canonical Clintware source\r\nQQ RUNTIME RESTORED VIA CONTROL PLANE // 32 reviewed tasks\r\nQQ DEVICE CONNECTION PRESERVED // retry a fresh job\r\nAUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\nAUTO_REPAIR // refreshed runner.ps1\r\nAUTO_REPAIR // refreshed launcher.ps1\r\nAUTO_REPAIR // refreshed boot_splash.py\r\nAUTO_REPAIR // refreshed terminal_repair.py\r\nAUTO_REPAIR // refreshed provider_responder.py\r\nAUTO_REPAIR // refreshed browser_agent.py\r\nAUTO_REPAIR // refreshed start-qq-window.ps1\r\nAUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\nAUTO_REPAIR // refreshed ensure-powershell.ps1\r\nAUTO_REPAIR // refreshed repair-local-service.ps1\r\nAUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\nAUTO_REPAIR // refreshed browser-work.ps1\r\nDEDUPE_QQ // inspecting Clintware-owned qq windows\r\nDEDUPE_QQ // no duplicate qq launcher processes found\r\nAUTO_REPAIR // duplicate qq windows reconciled\r\nAUTO_REPAIR // no-focus supervised launch action verified\r\nAUTO_REPAIR WARN // terminal profile repair failed: Program 'py.exe' failed to run: An error occurred trying to start process 'C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\py.exe' with working directory 'C:\\Windows\\System32'. The file cannot be accessed by the system.At C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\auto-repair-runtime.ps1:143 char:71\r\n+ . af).ToLowerInvariant() -eq \"py.exe\") { & $python -3 $terminalRepair }\r\n+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~.\r\nAUTO_REPAIR // runner was down; no-focus recovery requested\r\nAUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:28.8827965Z",
+        "received_at": "2026-09-28T19:07:21.874Z"
+      },
+      {
+        "diagnostic_id": "f46bea98-a8a3-4d6c-92ca-10dbab43dd25",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "auto-repair",
+        "message": "auto_repair_started reason=restart_limit",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:15.4184473Z",
+        "received_at": "2026-09-28T19:07:08.399Z"
+      },
+      {
+        "diagnostic_id": "f9b91906-7e0a-4e34-80ab-24a70e33c527",
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "health",
+        "message": "restart_suppressed_after_5_attempts_in_10_minutes",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:15.3186695Z",
+        "received_at": "2026-09-28T19:07:08.303Z"
+      },
+      {
+        "diagnostic_id": "68119c95-4bb5-4f81-bb93-e2ec30f22f2c",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "runner-log",
+        "message": "2026-09-28T14:07:04 [ERROR] Job f0b6ca72-72ce-4d36-8d1d-18bca144388e finished with status failed",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T19:07:05.0268812Z",
+        "received_at": "2026-09-28T19:07:06.371Z"
+      },
+      {
+        "diagnostic_id": "054d669e-c968-4df1-beef-2a7be6750b60",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "runner",
+        "message": "Job f0b6ca72-72ce-4d36-8d1d-18bca144388e finished with status failed",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:07:04.9370669Z",
+        "received_at": "2026-09-28T19:07:06.239Z"
+      },
+      {
+        "diagnostic_id": "4d59aea8-b2b1-4928-b0c8-6893302b7233",
+        "device_id": "DRIZNET",
+        "level": "ERROR",
+        "phase": "job",
+        "message": "job_failed id=f0b6ca72-72ce-4d36-8d1d-18bca144388e task=self-update exit=1",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:07:06.236Z",
+        "received_at": "2026-09-28T19:07:06.236Z"
+      },
+      {
+        "diagnostic_id": "2644ebc7-0881-41e2-8b86-a867cca36d31",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:06:48.4591340Z",
+        "received_at": "2026-09-28T19:06:49.747Z"
+      },
+      {
+        "diagnostic_id": "f8cb3a33-3413-4b8d-8e53-fc9a438c7dd8",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Refreshed reviewed task source: self-update",
+        "runner_alive": true,
+        "service_version": "1.9.10",
+        "timestamp": "2026-09-28T19:06:48.4400288Z",
+        "received_at": "2026-09-28T19:06:49.732Z"
+      },
+      {
+        "diagnostic_id": "9db19709-f628-449f-9fc5-4efe373898bc",
         "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "health",
         "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
         "runner_alive": false,
         "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:44.0774836Z",
-        "received_at": "2026-09-28T19:02:37.338Z"
+        "timestamp": "2026-09-28T19:06:56.3276704Z",
+        "received_at": "2026-09-28T19:06:49.285Z"
       },
       {
-        "diagnostic_id": "76b8b38f-8d27-4bab-8625-476513d740f7",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:43.0604152Z",
-        "received_at": "2026-09-28T19:02:36.181Z"
-      },
-      {
-        "diagnostic_id": "60865a6b-bd4e-4e1a-8cd4-184260d48b89",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:42.7921294Z",
-        "received_at": "2026-09-28T19:02:35.921Z"
-      },
-      {
-        "diagnostic_id": "82c96140-d3e6-4b6b-adda-fc0fbe56c765",
+        "diagnostic_id": "0ce6f69b-bf35-4988-9528-512cdc7fcbfb",
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
         "message": "Interactive relay channel initialized.",
         "runner_alive": true,
         "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:27.3138136Z",
-        "received_at": "2026-09-28T19:02:28.586Z"
-      },
-      {
-        "diagnostic_id": "0679550d-6fc9-4ce1-b1b7-d1e8b6aea441",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Connected to Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:27.2979871Z",
-        "received_at": "2026-09-28T19:02:28.573Z"
-      },
-      {
-        "diagnostic_id": "02ff59c7-7302-4ee1-b55d-5470e66196b0",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:26.7309858Z",
-        "received_at": "2026-09-28T19:02:28.434Z"
-      },
-      {
-        "diagnostic_id": "a8dfc524-f9dc-4d9b-8f62-9024b94ae7cc",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "runner",
-        "message": "Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.9.10",
-        "timestamp": "2026-09-28T19:02:16.3090424Z",
-        "received_at": "2026-09-28T19:02:28.434Z"
-      },
-      {
-        "diagnostic_id": "a739282b-9c61-4333-b48b-3885cd848dd3",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T19:02:26.4596928Z",
-        "received_at": "2026-09-28T19:02:27.995Z"
-      },
-      {
-        "diagnostic_id": "0e2df7fb-40c6-4108-9836-57eff6cfd04d",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "runner-log",
-        "message": "2026-09-28T14:02:16 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:19.5648425Z",
-        "received_at": "2026-09-28T19:02:20.957Z"
-      },
-      {
-        "diagnostic_id": "5584aae1-54da-476b-9fbc-fe40253cb53c",
-        "device_id": "MEMORIA",
-        "level": "ERROR",
-        "phase": "runner-log",
-        "message": "2026-09-28T14:02:24 [WARN] Connection error: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\nFULL_EXCEPTION System.Management.Automation.MethodInvocationException: Exception calling \"GetResult\" with \"0\" argument(s): \"The remote party closed the WebSocket connection without completing the close handshake.\"\n ---> System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.\n   --- End of inner exception stack trace ---\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\n2026-09-28T14:02:24 [WARN] Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:27.7371661Z",
-        "received_at": "2026-09-28T19:02:20.898Z"
-      },
-      {
-        "diagnostic_id": "cd542ae3-f557-42dd-ba45-cd709e79825d",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:24.0109055Z",
-        "received_at": "2026-09-28T19:02:17.003Z"
-      },
-      {
-        "diagnostic_id": "c0e4decf-e7f0-46d9-a00d-ba73526cc5ab",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:23.1358159Z",
-        "received_at": "2026-09-28T19:02:16.118Z"
-      },
-      {
-        "diagnostic_id": "e277905b-1d1c-429d-8e10-0d59fcf09d00",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T19:02:22.7566402Z",
-        "received_at": "2026-09-28T19:02:16.007Z"
+        "timestamp": "2026-09-28T19:06:47.7929933Z",
+        "received_at": "2026-09-28T19:06:49.065Z"
       }
     ]
   }
