@@ -10,24 +10,50 @@ cancellation, and confirmation delivery.
 """
 from __future__ import annotations
 
+import json
 import os
 import pathlib
+import subprocess
 import threading
 import time
 import textwrap
-from urllib.parse import urlparse, parse_qs
+import urllib.request
+from urllib.parse import urlparse
 
 import cv2
 import mss
 import numpy as np
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-VERSION = "2026.09.28.4"
+VERSION = "2026.09.28.5"
 HOME = pathlib.Path(os.environ.get("LOCALAPPDATA", pathlib.Path.home())) / "Clintware" / "QuillgeistLite"
 PROFILE = HOME / "oauth-verification-profile"
 DOWNLOADS = pathlib.Path.home() / "Downloads"
 OUTPUT = DOWNLOADS / "Clintware-Google-OAuth-Verification-Demo.mp4"
 STATUS = DOWNLOADS / "Clintware-Google-OAuth-Verification-Demo.txt"
+AUTH_START = "https://auth.clintware.com/delegated/google/start"
+AUTH_STATUS = "https://auth.clintware.com/delegated/google/status"
+CONTROL_GLOW_JS = r"""
+(() => {
+  let style=document.getElementById('cw-demo-control-style');
+  if(!style){
+    style=document.createElement('style');
+    style.id='cw-demo-control-style';
+    style.textContent=`
+      @keyframes cwDemoGlow {0%,100%{box-shadow:inset 0 0 0 1px rgba(80,215,255,.8),0 0 28px rgba(60,170,255,.35)}50%{box-shadow:inset 0 0 0 1px rgba(184,116,255,.9),0 0 42px rgba(109,112,255,.48)}}
+      #cw-demo-control{position:fixed;inset:0;z-index:2147483647;pointer-events:none;border:4px solid rgba(73,201,255,.95);border-radius:8px;animation:cwDemoGlow 1.6s ease-in-out infinite}
+      #cw-demo-control span{position:absolute;top:14px;right:16px;padding:7px 11px;border-radius:999px;background:linear-gradient(135deg,rgba(4,31,58,.95),rgba(43,25,84,.94));border:1px solid rgba(155,225,255,.72);color:#eefaff;font:700 11px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.12em;text-shadow:0 0 10px rgba(120,214,255,.75)}
+    `;
+    document.documentElement.appendChild(style);
+  }
+  let box=document.getElementById('cw-demo-control');
+  if(!box){
+    box=document.createElement('div');box.id='cw-demo-control';
+    const label=document.createElement('span');label.textContent='QQ // CONTROL';box.appendChild(label);
+    document.documentElement.appendChild(box);
+  }
+})();
+"""
 
 class Recorder:
     def __init__(self, path: pathlib.Path, fps: int = 8):
@@ -128,6 +154,35 @@ class Recorder:
 def sleep_visible(seconds: float):
     time.sleep(seconds)
 
+def open_system_browser(url: str) -> None:
+    # Provider authentication must use the user's normal supported browser.
+    # No Playwright/CDP flags, embedded webview, or QQ automation is involved.
+    if os.name == "nt":
+        try:
+            os.startfile(url)  # type: ignore[attr-defined]
+            return
+        except Exception:
+            pass
+        subprocess.Popen(["cmd.exe","/d","/c","start","",url], close_fds=True)
+        return
+    import webbrowser
+    webbrowser.open(url, new=1, autoraise=True)
+
+def delegated_google_connected() -> bool:
+    try:
+        req=urllib.request.Request(AUTH_STATUS,headers={"User-Agent":"clintware-oauth-verification-recorder"})
+        with urllib.request.urlopen(req,timeout=10) as response:
+            data=json.loads(response.read().decode("utf-8","replace"))
+            return bool(data.get("connected"))
+    except Exception:
+        return False
+
+def set_control_glow(page) -> None:
+    try:
+        page.evaluate(CONTROL_GLOW_JS)
+    except Exception:
+        pass
+
 
 def find_open_slot(page):
     page.wait_for_selector(".slot", timeout=30000)
@@ -158,105 +213,6 @@ def is_oauth_return(url: str) -> bool:
         return False
 
 
-def try_auto_advance_google(page, recorder) -> bool:
-    """Advance only unambiguous Google OAuth UI; never enter credentials."""
-    try:
-        host = urlparse(page.url).hostname or ""
-        if "accounts.google.com" not in host:
-            return False
-        body = page.locator("body").inner_text(timeout=5000)
-        lower = body.lower()
-
-        # If Google presents an account chooser, use the known authorized
-        # Clintware account when it is already present in the browser session.
-        if "choose an account" in lower or "use another account" in lower:
-            for email in ("clint.kosh@gmail.com", "clint@clintware.com"):
-                loc = page.get_by_text(email, exact=False)
-                if loc.count() and loc.first.is_visible():
-                    recorder.set_caption(
-                        "2/6 - Select the authorized Clintware Google account",
-                        f"QQ selected the existing signed-in account {email}; no credential was entered.",
-                    )
-                    loc.first.click()
-                    print(f"AUTO // selected existing Google account {email}", flush=True)
-                    sleep_visible(1.5)
-                    return True
-
-        # Google can show this interstitial until verification is approved.
-        # The user explicitly requested this verification flow, so proceeding
-        # through the test-only warning is within the requested action.
-        if "hasn’t verified this app" in lower or "hasn't verified this app" in lower or "app isn’t verified" in lower or "app isn't verified" in lower:
-            advanced = page.get_by_text("Advanced", exact=True)
-            if advanced.count() and advanced.first.is_visible():
-                recorder.set_caption(
-                    "2/6 - Current unverified-app interstitial",
-                    "This warning is the condition this verification submission is intended to remove.",
-                )
-                sleep_visible(2)
-                advanced.first.click()
-                print("AUTO // opened Google unverified-app advanced options", flush=True)
-                sleep_visible(1)
-                return True
-            go = page.get_by_text("Go to Clintware", exact=False)
-            if go.count() and go.first.is_visible():
-                go.first.click()
-                print("AUTO // continued from Google unverified-app interstitial", flush=True)
-                sleep_visible(1.5)
-                return True
-
-        consent_context = any(token in lower for token in (
-            "wants access to your google account",
-            "choose what clintware can access",
-            "clintware wants access",
-            "allow clintware to",
-            "clintware already has some access",
-        ))
-        if consent_context:
-            recorder.set_caption(
-                "2/6 - Google OAuth grant and requested scopes",
-                "Google shows the requested permissions. QQ approves only this explicitly requested verification test.",
-            )
-            # Granular-consent screens can require selecting the requested
-            # scopes before Continue becomes enabled.
-            boxes = page.locator('input[type="checkbox"]')
-            checked_any = False
-            for i in range(min(boxes.count(), 20)):
-                box = boxes.nth(i)
-                try:
-                    if box.is_visible() and box.is_enabled() and not box.is_checked():
-                        box.check()
-                        checked_any = True
-                except Exception:
-                    pass
-            if checked_any:
-                print("AUTO // selected requested Google consent checkboxes", flush=True)
-                sleep_visible(1)
-
-            for name in ("Continue", "Allow"):
-                btn = page.get_by_role("button", name=name, exact=True)
-                if btn.count() and btn.first.is_visible() and btn.first.is_enabled():
-                    sleep_visible(2)
-                    btn.first.click()
-                    print(f"AUTO // clicked Google OAuth {name}", flush=True)
-                    sleep_visible(2)
-                    return True
-
-        # Credential, passkey, challenge, and OTP screens intentionally remain
-        # manual. We annotate them so the recording shows the security boundary.
-        if any(token in lower for token in (
-            "enter your password", "show password", "verify it’s you", "verify it's you",
-            "use your passkey", "2-step verification", "verification code",
-        )):
-            recorder.set_caption(
-                "2/6 - Google authentication confirmation",
-                "Credential, OTP, and passkey entry is intentionally local/manual; QQ does not type authentication secrets.",
-            )
-        return False
-    except Exception as exc:
-        print(f"AUTO WARN // Google UI inspection skipped: {type(exc).__name__}: {exc}", flush=True)
-        return False
-
-
 def main() -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     PROFILE.mkdir(parents=True, exist_ok=True)
@@ -264,12 +220,33 @@ def main() -> int:
 
     STATUS.write_text(
         "Clintware Google OAuth verification capture started.\n"
-        "QQ will advance ordinary Google account/consent controls. Complete only password, OTP, passkey, or other credential prompts if Google shows one.\n",
+        "Google authentication and consent run only in the user's normal system browser. QQ never automates provider sign-in UI, credentials, passkeys, or MFA.\n",
         encoding="utf-8",
     )
 
     recorder.start()
     try:
+        recorder.set_caption(
+            "1/6 - Clintware application and branding",
+            "Google authorization will open in the normal system browser, not an automated browser.",
+        )
+        open_system_browser("https://www.clintware.com/")
+        sleep_visible(4)
+
+        recorder.set_caption(
+            "2/6 - Secure Google OAuth handoff",
+            "Your normal supported browser owns Google sign-in and consent. QQ does not automate the provider login page.",
+        )
+        open_system_browser(AUTH_START)
+
+        deadline = time.time() + 600
+        while time.time() < deadline:
+            if delegated_google_connected():
+                break
+            sleep_visible(1.0)
+        else:
+            raise TimeoutError("Timed out waiting for secure system-browser Google OAuth consent to complete")
+
         with sync_playwright() as p:
             launch = {
                 "user_data_dir": str(PROFILE),
@@ -288,61 +265,22 @@ def main() -> int:
 
             page = context.pages[0] if context.pages else context.new_page()
             page.set_default_timeout(20000)
-
-            recorder.set_caption(
-                "1/6 - Clintware application and branding",
-                "The same Clintware application submitted for Google OAuth verification.",
-            )
-            page.goto("https://www.clintware.com/", wait_until="domcontentloaded", timeout=30000)
-            page.bring_to_front()
-            sleep_visible(4)
-
-            recorder.set_caption(
-                "2/6 - Google OAuth grant",
-                "Complete Google sign-in and the real consent screen in English. "
-                "The browser address bar remains visible in this recording.",
-            )
-            page.goto("https://auth.clintware.com/delegated/google/start", wait_until="domcontentloaded", timeout=30000)
-            page.bring_to_front()
-            if "auth.clintware.com" in (urlparse(page.url).hostname or ""):
-                recorder.set_caption(
-                    "2/6 - Clintware Google data-access disclosure",
-                    "The app explains the Google data it uses before opening Google's own authorization screen.",
-                )
-                try:
-                    page.get_by_role("link", name="Continue to Google").wait_for(state="visible", timeout=10000)
-                    sleep_visible(5)
-                    page.get_by_role("link", name="Continue to Google").click()
-                    page.wait_for_load_state("domcontentloaded")
-                except Exception:
-                    pass
-
-            deadline = time.time() + 600
-            while time.time() < deadline:
-                current = page.url
-                host = urlparse(current).hostname or ""
-                if "accounts.google.com" in host:
-                    recorder.set_caption(
-                        "2/6 - Google OAuth grant and requested scopes",
-                        "This is the live Google consent flow. QQ will advance unambiguous consent controls.",
-                    )
-                    try_auto_advance_google(page, recorder)
-                elif is_oauth_return(current):
-                    break
-                elif "meet.clintware.com" in host and "calendar=connected" in current:
-                    break
-                sleep_visible(0.5)
-            else:
-                raise TimeoutError("Timed out waiting for Google OAuth consent to complete")
+            try:
+                context.add_init_script(CONTROL_GLOW_JS)
+            except Exception:
+                pass
 
             recorder.set_caption(
                 "3/6 - calendar.freebusy",
-                "Clintware reads free/busy availability so the scheduler can offer open meeting times.",
+                "QQ control is visibly marked with a blue/cyan/purple edge glow while automating the post-auth demo.",
             )
-            page.wait_for_load_state("domcontentloaded")
+            page.goto("https://meet.clintware.com/?calendar=connected", wait_until="domcontentloaded", timeout=30000)
+            set_control_glow(page)
+            page.bring_to_front()
             page.wait_for_selector(".slot", timeout=30000)
             sleep_visible(5)
 
+            set_control_glow(page)
             find_open_slot(page)
             fill_booking(page)
             sleep_visible(3)
@@ -351,6 +289,7 @@ def main() -> int:
                 "4/6 - calendar.events",
                 "Clintware creates the user-requested meeting in Google Calendar and attaches meeting details.",
             )
+            set_control_glow(page)
             page.locator("#submit").click()
             page.wait_for_selector("#success:not(.hidden)", timeout=30000)
             sleep_visible(6)
@@ -363,6 +302,7 @@ def main() -> int:
 
             manage = page.locator("#manage-link")
             manage.wait_for(state="visible", timeout=10000)
+            set_control_glow(page)
             manage.click()
             page.wait_for_selector("#manage-actions", timeout=30000)
             sleep_visible(3)
@@ -371,6 +311,7 @@ def main() -> int:
                 "5/6 - calendar.events update",
                 "Clintware updates the same Google Calendar event when the user reschedules.",
             )
+            set_control_glow(page)
             page.locator("#reschedule-btn").click()
             page.wait_for_selector("#newslot option", timeout=30000)
             options = page.locator("#newslot option")
@@ -384,6 +325,7 @@ def main() -> int:
                 "Clintware cancels the verification test meeting and removes the synchronized calendar event.",
             )
             page.on("dialog", lambda dialog: dialog.accept())
+            set_control_glow(page)
             page.locator("#cancel-btn").click()
             sleep_visible(6)
 
