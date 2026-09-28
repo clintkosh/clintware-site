@@ -50,26 +50,67 @@ ALLOWED = {
 
 def request_json(method, path, body=None):
     data = None if body is None else json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        CONTROL_PLANE + path,
-        data=data,
-        method=method,
-        headers={
-            "Authorization": "Bearer " + TOKEN,
-            "Content-Type": "application/json",
-            "User-Agent": "clintware-quillgeist-lite-relay",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status, json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        payload = e.read().decode("utf-8", errors="replace")
+    last_error = None
+    for attempt in range(5):
+        req = urllib.request.Request(
+            CONTROL_PLANE + path,
+            data=data,
+            method=method,
+            headers={
+                "Authorization": "Bearer " + TOKEN,
+                "Content-Type": "application/json",
+                "User-Agent": "clintware-quillgeist-lite-relay",
+            },
+        )
         try:
-            parsed = json.loads(payload)
-        except Exception:
-            parsed = {"error": payload}
-        return e.code, parsed
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            payload = e.read().decode("utf-8", errors="replace")
+            try:
+                parsed = json.loads(payload)
+            except Exception:
+                parsed = {"error": payload}
+            message = str(parsed.get("message") or parsed.get("error") or "")
+            transient = (
+                e.code in (429, 500, 502, 503, 504)
+                or str(parsed.get("error") or "") == "internal_error"
+                or "Durable Object reset because its code was updated" in message
+            )
+            if transient and attempt < 4:
+                wait = min(12, 2 ** attempt)
+                print(f"AUTO_RECOVERY control_plane_transient attempt={attempt+1} wait={wait}s status={e.code}", flush=True)
+                time.sleep(wait)
+                continue
+            return e.code, parsed
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+            last_error = str(e)
+            if attempt < 4:
+                wait = min(12, 2 ** attempt)
+                print(f"AUTO_RECOVERY control_plane_network attempt={attempt+1} wait={wait}s reason={last_error}", flush=True)
+                time.sleep(wait)
+                continue
+            return 599, {"error": "control_plane_unreachable", "message": last_error}
+    return 599, {"error": "control_plane_unreachable", "message": last_error or "unknown"}
+
+def create_job_with_settle(body, settle_seconds=120):
+    deadline = time.time() + settle_seconds
+    attempt = 0
+    while True:
+        attempt += 1
+        status, payload = request_json("POST", "/api/v1/quillgeist-lite/jobs", body)
+        if status in (200, 201, 202) and payload.get("ok"):
+            return status, payload
+        error = str(payload.get("error") or "")
+        if error == "task_not_allowed" and time.time() < deadline:
+            # A repo commit can start the dispatch workflow before the control-plane
+            # deployment carrying the same reviewed task registry has finished.
+            wait = min(15, 2 + attempt * 2)
+            print(f"AUTO_RECOVERY task_registry_settling task={body.get('task_id','')} attempt={attempt} wait={wait}s", flush=True)
+            time.sleep(wait)
+            continue
+        return status, payload
+
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
