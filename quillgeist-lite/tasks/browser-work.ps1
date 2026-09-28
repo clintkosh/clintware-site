@@ -11,14 +11,15 @@ param(
   [string]$Approved = "false",
   [string]$AllowPrivate = "false",
   [string]$Headless = "true",
-  [int]$WaitMs = 700
+  [int]$WaitMs = 700,
+  [ValidateRange(0,600000)][int]$UserWaitMs = 0
 )
 $ErrorActionPreference = "Stop"
 $HomeDir = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite"
 $AgentPath = Join-Path $HomeDir "browser_agent.py"
 $SetupPath = Join-Path $HomeDir "ensure-browser-runtime.ps1"
 $RuntimePython = Join-Path $HomeDir "browser-runtime\Scripts\python.exe"
-$Base = "https://raw.githubusercontent.com/clintkosh/clintware-site/main/quillgeist-lite"
+$Base = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime"
 New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
 function Refresh-File([string]$Remote,[string]$Target) {
   $temp = $Target + ".new"
@@ -30,7 +31,7 @@ Refresh-File "tools/browser_agent.py" $AgentPath
 Refresh-File "tasks/ensure-browser-runtime.ps1" $SetupPath
 if (-not (Test-Path $RuntimePython)) { & $SetupPath }
 if (-not (Test-Path $RuntimePython)) { throw "qq browser runtime is unavailable after self-repair." }
-$invokeArgs = @($AgentPath,"--action",$Action,"--headless",$Headless,"--wait-ms",[string]$WaitMs,"--engine",$Engine,"--max-results",[string]$MaxResults,"--max-chars",[string]$MaxChars,"--approved",$Approved,"--allow-private",$AllowPrivate)
+$invokeArgs = @($AgentPath,"--action",$Action,"--headless",$Headless,"--wait-ms",[string]$WaitMs,"--user-wait-ms",[string]$UserWaitMs,"--engine",$Engine,"--max-results",[string]$MaxResults,"--max-chars",[string]$MaxChars,"--approved",$Approved,"--allow-private","false")
 if ($Url) { $invokeArgs += @("--url",$Url) }
 if ($Selector) { $invokeArgs += @("--selector",$Selector) }
 if ($Value) { $invokeArgs += @("--value",$Value) }
