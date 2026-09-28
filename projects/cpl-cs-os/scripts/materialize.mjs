@@ -121,6 +121,15 @@ const sampleFn=` sampleCustomer(workspace,s){const slug=String(s.n).toLowerCase(
   ["raci","template",{title:"Customer Success RACI",rows:[],roles:["Customer","Customer Success","Sales","Product","Support","Engineering"],note:"Proposed operating model. Assign real ownership only after discovery."}]
  ];for(const x of String(s.sys||"").split(";").map(v=>v.trim()).filter(Boolean))a.push(["integration",p,{name:x,purpose:"Synthetic customer-system context",connectorStatus:s.cs||"Proposed",technicalValidation:s.dep||"Validate during discovery"}]);if(Array.isArray(s.records))for(const r of s.records)a.push(r);return a}
 `;
+const customerCreateAnchor='  if(m==="POST"&&p==="/customers"){';
+const customerCreateAt=src.indexOf(customerCreateAnchor);
+if(customerCreateAt<0) throw new Error("Customer create endpoint anchor missing");
+const customerBulkAt=src.indexOf('  if(m==="POST"&&p==="/customers/bulk-import")',customerCreateAt);
+if(customerBulkAt<0) throw new Error("Customer bulk endpoint anchor missing");
+const customerPatch=`  const cplCustomer=p.match(/^\\/customers\\/([^/]+)$/);if(cplCustomer&&m==="PATCH"){const rows=[...this.sql.exec("SELECT * FROM customers WHERE id=? AND workspace_id=?",cplCustomer[1],workspace)];if(!rows.length)return j({error:"customer_not_found"},404);const old=JSON.parse(rows[0].data),b=await req.json(),allowed={},portfolioAllowed={};for(const k of ["name","industry","stage"])if(typeof b[k]==="string")allowed[k]=String(b[k]).slice(0,500);const pp=b.portfolio&&typeof b.portfolio==="object"&&!Array.isArray(b.portfolio)?b.portfolio:{};for(const k of ["segment","renewalDate","health","sentiment","renewalForecast","risk","lifecycle","owner","products","framework","lastExec","nextAction","nextReview"])if(typeof pp[k]==="string")portfolioAllowed[k]=String(pp[k]).slice(0,1000);for(const k of ["arr","healthScore","adoption","automation","expansionPotential"])if(pp[k]!==undefined&&Number.isFinite(Number(pp[k])))portfolioAllowed[k]=Number(pp[k]);const next={...old,...allowed,portfolio:{...(old.portfolio||{}),...portfolioAllowed}},t=ts();this.sql.exec("UPDATE customers SET data=?,updated_at=? WHERE id=? AND workspace_id=?",JSON.stringify(next),t,cplCustomer[1],workspace);this.audit(workspace,actor,"customer.updated",{customerId:cplCustomer[1],fields:Object.keys(allowed),portfolioFields:Object.keys(portfolioAllowed)});return j({customer:next})}
+`;
+src=src.slice(0,customerBulkAt)+customerPatch+src.slice(customerBulkAt);
+
 const a=src.indexOf(" sampleCustomer(workspace,s){");
 const b=src.indexOf(" async seed()",a);
 if(a<0||b<0) throw new Error("Customer seed method anchors missing");
@@ -173,7 +182,7 @@ const checks=[
  ['src/index.js','Northstar Financial Group'],
  ['src/sample-customers.js','SAMPLE_SEED_VERSION=8'],
  ['public/index.html','CPL // CS OPERATING SYSTEM'],
- ['public/cpl.js','Application Narrative']
+ ['public/cpl.js','Customer Success CRM']
 ];
 for(const [f,s] of checks) if(!read(f).includes(s)) throw new Error("Missing build contract: "+f+" :: "+s);
 console.log("CPL CS Operating System materialized at "+out);
