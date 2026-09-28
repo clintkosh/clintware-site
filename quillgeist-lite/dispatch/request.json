@@ -1,7 +1,9 @@
 {
-  "request_id": "chatgpt-memoria-selfupdate-codexrepair-20260928-1602",
-  "task_id": "self-update",
+  "request_id": "chatgpt-memoria-finish-local-ai-20260928-1642",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Update MEMORIA Quillgeist Lite to the latest reviewed runtime and task registry so the new repair-codex-org-identity task is locally available. Resume after restart and verify the MEMORIA agent reconnects."
+  "args": {
+    "MaxPasses": "8"
+  },
+  "objective": "Resume and finish the MEMORIA local AI server recovery on the correct device. Preserve existing data and configuration. Restore/verify Ollama, Open WebUI, n8n, SearXNG, Pipelines, local agents, BitNet integration, and locate/restore the existing Immich deployment without replacing or recreating its media database. Do not inspect or use D:. Continue through recoverable failures and report the hard blocker only if one remains."
 }
