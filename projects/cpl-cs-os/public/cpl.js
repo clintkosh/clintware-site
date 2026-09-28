@@ -139,7 +139,7 @@ function commandView(){
   }
   return pageHead("Executive operating view","Customer Success Command Center","A simulated portfolio view built around retention, growth, customer value, and early risk visibility.",'<button class="btn blue" data-route="portfolio">Open portfolio</button>')+
     '<div class="grid metrics">'+
-      metric("Simulated ARR",money(f.total),"12 fictional accounts · operating-model demonstration")+
+      metric("Simulated ARR",money(f.total),"13 fictional accounts · operating-model demonstration")+
       metric("Modeled GRR",pct(f.grr),"Scenario forecast, not a real company metric")+
       metric("Modeled NRR",pct(f.nrr),"Includes risk-weighted synthetic expansion")+
       metric("ARR at risk",money(f.atRisk),"Accounts currently marked At Risk")+
