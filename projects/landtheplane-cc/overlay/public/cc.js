@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 const STAGES=["Applied","Responded","Recruiter / Interview","Hiring Manager","Panel","Final","Offer","Paused","Closed / Rejected"];
-const state={view:"board",data:{customers:[],records:[]},me:null,google:null,query:"",stage:"all",selected:null};
+const state={view:"board",data:{customers:[],records:[]},me:null,google:null,atlassian:null,query:"",stage:"all",selected:null};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const date=v=>{if(!v)return "—";const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"—"};
@@ -12,6 +12,7 @@ function toast(msg){const old=$(".toast");if(old)old.remove();const e=document.c
 function records(type){return state.data.records.filter(r=>r.type===type)}
 function profiles(){return records("job_profile").map(r=>({...r.data,_recordId:r.id,_customerId:r.customerId})).filter(x=>x.company)}
 function digest(){return records("search_digest")[0]?.data||null}
+function jiraConfig(){return records("jira_config")[0]?.data||null}
 function activeRole(){return records("active_role").find(r=>r.data?.status!=="archived")||null}
 function customer(id){return state.data.customers.find(c=>c.id===id)}
 function median(values){const a=values.filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
@@ -25,14 +26,14 @@ function visibleProfiles(){
  return profiles().filter(x=>(!q||[x.company,x.role,x.stage,x.estimatedPay,x.nextAction].join(" ").toLowerCase().includes(q))&&(stage==="all"||x.stage===stage));
 }
 function nav(){
- const items=[["board","Board"],["companies","Companies"],["interviews","Interviews"],["sync","Google Sync"],["active","Active Job"],["settings","Settings"]];
+ const items=[["board","Board"],["companies","Companies"],["interviews","Interviews"],["sync","Google Sync"],["atlassian","Jira + KB"],["active","Active Job"],["settings","Settings"]];
  return items.map(([id,label])=>`<button data-nav="${id}" class="${state.view===id?"active":""}">${label}</button>`).join("");
 }
 function shell(content){
  const email=state.me?.user?.email||"Authorized Google identity";
  return `<div class="shell">
  <aside class="side"><div class="brand"><div class="eyebrow">CLINTWARE // LANDTHEPLANE</div><strong>Command Center</strong><small>Application pipeline → interviews → offer → active role.</small></div><nav class="nav">${nav()}</nav><div class="side-foot"><span class="pill good">PRIVATE WORKSPACE</span><small class="muted">${esc(email)}</small><button class="btn small" data-action="new">+ New opportunity</button></div></aside>
- <section class="main"><header class="top"><div><div class="eyebrow">LANDTHEPLANE</div><strong>Career Operating System</strong></div><div class="spacer"></div><span class="pill status-text ${state.google?.connected?"good":"warn"}">${state.google?.connected?"GOOGLE EVIDENCE READY":"GOOGLE EVIDENCE NEEDS ACCESS"}</span><button class="btn small" data-action="sync">Sync</button><form method="post" action="/auth/logout"><button class="btn small" type="submit">Sign out</button></form></header><main class="content">${content}</main></section>
+ <section class="main"><header class="top"><div><div class="eyebrow">LANDTHEPLANE</div><strong>Career Operating System</strong></div><div class="spacer"></div><span class="pill status-text ${state.google?.connected?"good":"warn"}">${state.google?.connected?"GOOGLE EVIDENCE READY":"GOOGLE EVIDENCE NEEDS ACCESS"}</span><span class="pill status-text ${state.atlassian?.connected&&!state.atlassian?.reauthorizationRequired?"good":"warn"}">${state.atlassian?.connected&&!state.atlassian?.reauthorizationRequired?"ATLASSIAN READY":"ATLASSIAN SETUP"}</span><button class="btn small" data-action="sync">Sync</button><form method="post" action="/auth/logout"><button class="btn small" type="submit">Sign out</button></form></header><main class="content">${content}</main></section>
  <nav class="mobile-nav">${nav()}</nav></div>`;
 }
 function reportedStats(){
@@ -76,14 +77,14 @@ function boardView(){
  <div class="section"><div><h2>Application board</h2><p>${p.length} company-role tickets in current filter.</p></div></div><div class="kanban">${cards}</div>`;
 }
 function ticket(x){
- return `<article class="ticket" data-profile="${esc(x._recordId)}"><div class="eyebrow">${esc(x.company)}</div><h3>${esc(x.role||"Role not identified")}</h3><p>${esc(x.estimatedPay||"Pay not observed")} · Fit ${esc(x.fitScore??"—")}${x.fitScore!=null?"%":""}</p><div class="ticket-meta"><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span><span class="pill">Applied ${shortDate(x.applicationDate)}</span><span class="pill">1st interview ${shortDate(x.firstInterviewDate)}</span></div>${x.nextAction?`<div class="next">Next: ${esc(x.nextAction)}</div>`:""}</article>`;
+ return `<article class="ticket" data-profile="${esc(x._recordId)}"><div class="eyebrow">${esc(x.company)}</div><h3>${esc(x.role||"Role not identified")}</h3><p>${esc(x.estimatedPay||"Pay not observed")} · Fit ${esc(x.fitScore??"—")}${x.fitScore!=null?"%":""}</p><div class="ticket-meta"><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span>${x.jiraKey?`<span class="pill">${esc(x.jiraKey)}</span>`:""}<span class="pill">Applied ${shortDate(x.applicationDate)}</span><span class="pill">1st interview ${shortDate(x.firstInterviewDate)}</span></div>${x.nextAction?`<div class="next">Next: ${esc(x.nextAction)}</div>`:""}</article>`;
 }
 function companiesView(){
  const p=visibleProfiles().sort((a,b)=>String(b.lastActivityDate||"").localeCompare(String(a.lastActivityDate||"")));
  return `<div class="title"><div class="eyebrow">COMPANY TICKETS</div><h1>Applications & Processes</h1><p>One record per company-role process with source-aware dates and status history.</p></div>
  <div class="toolbar"><input class="input" id="search" value="${esc(state.query)}" placeholder="Search companies and roles…"><select class="select" id="stageFilter"><option value="all">All stages</option>${STAGES.map(x=>`<option ${state.stage===x?"selected":""}>${esc(x)}</option>`).join("")}</select><button class="btn primary" data-action="new">New ticket</button></div>
- <div class="section"><div><h2>${p.length} records</h2></div></div><div class="tablewrap"><table class="table"><thead><tr><th>Company</th><th>Role</th><th>Stage</th><th>Applied</th><th>First response</th><th>Response</th><th>First interview</th><th>Pay</th><th>Fit</th><th>Next action</th></tr></thead><tbody>
- ${p.map(x=>`<tr data-profile="${esc(x._recordId)}" style="cursor:pointer"><td><strong>${esc(x.company)}</strong></td><td>${esc(x.role)}</td><td><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span></td><td>${date(x.applicationDate)}</td><td>${date(x.firstResponseDate)}</td><td>${x.responseTimeDays==null?"—":esc(x.responseTimeDays+"d")}</td><td>${date(x.firstInterviewDate)}</td><td>${esc(x.estimatedPay||"—")}</td><td>${esc(x.fitScore??"—")}</td><td>${esc(x.nextAction||"—")}</td></tr>`).join("")||'<tr><td colspan="10">No company tickets yet.</td></tr>'}</tbody></table></div>`;
+ <div class="section"><div><h2>${p.length} records</h2></div></div><div class="tablewrap"><table class="table"><thead><tr><th>Jira</th><th>Company</th><th>Role</th><th>Stage</th><th>Applied</th><th>First response</th><th>Response</th><th>First interview</th><th>Pay</th><th>Fit</th><th>Next action</th></tr></thead><tbody>
+ ${p.map(x=>`<tr data-profile="${esc(x._recordId)}" style="cursor:pointer"><td>${x.jiraUrl?`<a class="source-link" href="${esc(x.jiraUrl)}" target="_blank" rel="noopener">${esc(x.jiraKey||"Open")}</a>`:esc(x.jiraKey||"—")}</td><td><strong>${esc(x.company)}</strong></td><td>${esc(x.role)}</td><td><span class="pill ${statusClass(x.stage)}">${esc(x.stage)}</span></td><td>${date(x.applicationDate)}</td><td>${date(x.firstResponseDate)}</td><td>${x.responseTimeDays==null?"—":esc(x.responseTimeDays+"d")}</td><td>${date(x.firstInterviewDate)}</td><td>${esc(x.estimatedPay||"—")}</td><td>${esc(x.fitScore??"—")}</td><td>${esc(x.nextAction||"—")}</td></tr>`).join("")||'<tr><td colspan="11">No company tickets yet.</td></tr>'}</tbody></table></div>`;
 }
 function interviewsView(){
  const p=profiles().filter(x=>x.firstInterviewDate).sort((a,b)=>String(b.firstInterviewDate).localeCompare(String(a.firstInterviewDate)));
@@ -100,6 +101,16 @@ function syncView(){
  <article class="card"><h2>What the sync builds</h2><div class="timeline"><div class="event"><strong>Company-role tickets</strong><small>Application receipt, first response, response time, first interview, stage, pay context, fit estimate, and next action.</small></div><div class="event"><strong>Calendar reconciliation</strong><small>Interview events supplement Gmail when scheduling evidence is more precise.</small></div><div class="event"><strong>Search history + throughput</strong><small>The latest full field report supplies aggregate application/interview history, while the daily job-finder digest remains a separate acquisition metric.</small></div></div></article></div>
  <div class="section"><div><h2>Latest digest</h2></div></div>${d?searchStats():'<div class="empty">Sync to load the latest job-search digest.</div>'}`;
 }
+function atlassianView(){
+ const a=state.atlassian||{},cfg=jiraConfig(),jcfg=cfg?.jira||{},ccfg=cfg?.confluence||{};
+ const ready=a.connected&&!a.reauthorizationRequired;
+ return `<div class="title"><div class="eyebrow">EXECUTION + KNOWLEDGE LAYER</div><h1>Jira & Confluence</h1><p>The CRM owns company-role facts and interview stage. Jira owns work execution and sprint throughput. Confluence owns reusable operating knowledge.</p></div>
+ <div class="split" style="margin-top:22px"><article class="card"><div class="eyebrow">ATLASSIAN CONNECTION</div><h2>${ready?"Connected":"Authorization required"}</h2><p class="muted">${ready?"Jira and Confluence scopes are ready for LandThePlane reconciliation.":a.connected?"The grant exists but needs the expanded project/board/sprint scopes.":"Authorize the Atlassian site used for LandThePlane."}</p>${a.missingScopes?.length?`<p class="muted">Missing: ${esc(a.missingScopes.join(", "))}</p>`:""}<div class="actions"><a class="btn" href="/api/atlassian/connect">${a.connected?"Renew Atlassian access":"Connect Atlassian"}</a><button class="btn primary" data-action="reconcile-atlassian">Reconcile Jira + Confluence</button></div></article>
+ <article class="card"><div class="eyebrow">SYNC CONTRACT</div><h2>One source per responsibility</h2><div class="timeline"><div class="event"><strong>CRM</strong><small>Company-role identity, evidence dates, stage, pay, fit, next action.</small></div><div class="event"><strong>Jira</strong><small>Stable LTP ticket numbers, sprint work, backlog, throughput and velocity.</small></div><div class="event"><strong>Confluence</strong><small>Start-here guide, playbooks, lessons learned, reporting rules and templates.</small></div></div></article></div>
+ <div class="section"><div><h2>Provisioned workspace</h2><p>These IDs are written back into the persistent CRM so future reconciles reuse rather than duplicate Atlassian objects.</p></div></div>
+ <div class="tablewrap"><table class="table"><tbody><tr><th>Jira project</th><td>${esc(jcfg.projectKey||"Not provisioned")} · ${esc(jcfg.projectName||"")}</td></tr><tr><th>Scrum board</th><td>${esc(jcfg.boardName||"Not provisioned")} ${jcfg.boardId?"#"+esc(jcfg.boardId):""}</td></tr><tr><th>Current sprint</th><td>${esc(jcfg.sprintName||"Not provisioned")}</td></tr><tr><th>Dashboard</th><td>${jcfg.dashboardUrl?`<a class="source-link" target="_blank" rel="noopener" href="${esc(jcfg.dashboardUrl)}">Open dashboard ↗</a>`:"Not provisioned"}</td></tr><tr><th>Confluence space</th><td>${esc(ccfg.spaceKey||"Not provisioned")} · ${esc(ccfg.spaceName||"")}</td></tr><tr><th>KB pages</th><td>${Object.keys(ccfg.pages||{}).length}</td></tr></tbody></table></div>`;
+}
+
 function activeView(){
  const a=activeRole();
  if(!a)return `<div class="title"><div class="eyebrow">NEXT LIFECYCLE</div><h1>Active Job Workspace</h1><p>When an offer is accepted, the same system pivots from landing the role to managing it: 30/60/90 outcomes, stakeholders, projects, wins, feedback, and evidence for future reviews.</p></div><div class="card activehero" style="margin-top:22px"><h2>No active role yet</h2><p class="muted">Open a company ticket and choose “Activate accepted role” when appropriate. The application history remains intact.</p></div>`;
@@ -115,13 +126,13 @@ function settingsView(){
  <article class="card"><h2>Data continuity</h2><p class="muted">Export the current private workspace as JSON for backup or migration.</p><button class="btn" data-action="export">Download workspace export</button></article></div>`;
 }
 function render(){
- let content=state.view==="companies"?companiesView():state.view==="interviews"?interviewsView():state.view==="sync"?syncView():state.view==="active"?activeView():state.view==="settings"?settingsView():boardView();
+ let content=state.view==="companies"?companiesView():state.view==="interviews"?interviewsView():state.view==="sync"?syncView():state.view==="atlassian"?atlassianView():state.view==="active"?activeView():state.view==="settings"?settingsView():boardView();
  $("#app").innerHTML=shell(content);bind();
 }
 function bind(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{state.view=b.dataset.nav;render()});
  document.querySelectorAll("[data-profile]").forEach(e=>e.onclick=()=>openProfile(e.dataset.profile));
- document.querySelectorAll("[data-action]").forEach(e=>{const a=e.dataset.action;if(a==="new")e.onclick=openNew;if(a==="sync")e.onclick=syncAll;if(a==="interview")e.onclick=()=>openRecord("interview");if(a==="goal")e.onclick=()=>openRecord("role_goal");if(a==="win")e.onclick=()=>openRecord("performance_evidence");if(a==="export")e.onclick=exportData});
+ document.querySelectorAll("[data-action]").forEach(e=>{const a=e.dataset.action;if(a==="new")e.onclick=openNew;if(a==="sync")e.onclick=syncAll;if(a==="reconcile-atlassian")e.onclick=reconcileAtlassian;if(a==="interview")e.onclick=()=>openRecord("interview");if(a==="goal")e.onclick=()=>openRecord("role_goal");if(a==="win")e.onclick=()=>openRecord("performance_evidence");if(a==="export")e.onclick=exportData});
  const s=$("#search");if(s)s.oninput=()=>{state.query=s.value;render()};
  const f=$("#stageFilter");if(f)f.onchange=()=>{state.stage=f.value;render()};
 }
@@ -131,7 +142,7 @@ function openProfile(id){
  const p=profiles().find(x=>x._recordId===id);if(!p)return;state.selected=p;
  const ev=(p.evidence||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
  const m=modal(`<div class="modalhead"><div><div class="eyebrow">${esc(p.company)}</div><h2>${esc(p.role)}</h2></div><button class="btn small" data-close>Close</button></div>
- <div class="split"><div><div class="kv"><div>Stage</div><div><span class="pill ${statusClass(p.stage)}">${esc(p.stage)}</span></div><div>Applied</div><div>${date(p.applicationDate)}</div><div>First response</div><div>${date(p.firstResponseDate)} ${p.responseTimeDays!=null?esc("("+p.responseTimeDays+"d)"):""}</div><div>First interview</div><div>${date(p.firstInterviewDate)}</div><div>Estimated pay</div><div>${esc(p.estimatedPay||"—")} <span class="muted">· ${esc(p.paySource||"")}</span></div><div>Fit estimate</div><div>${esc(p.fitScore??"—")}% · ${esc(p.fitLabel||"")}</div><div>Next action</div><div>${esc(p.nextAction||"—")}</div><div>Job link</div><div>${p.jobUrl?`<a class="source-link" target="_blank" rel="noopener" href="${esc(p.jobUrl)}">Open source ↗</a>`:"—"}</div></div>
+ <div class="split"><div><div class="kv"><div>Stage</div><div><span class="pill ${statusClass(p.stage)}">${esc(p.stage)}</span></div><div>Applied</div><div>${date(p.applicationDate)}</div><div>First response</div><div>${date(p.firstResponseDate)} ${p.responseTimeDays!=null?esc("("+p.responseTimeDays+"d)"):""}</div><div>First interview</div><div>${date(p.firstInterviewDate)}</div><div>Estimated pay</div><div>${esc(p.estimatedPay||"—")} <span class="muted">· ${esc(p.paySource||"")}</span></div><div>Fit estimate</div><div>${esc(p.fitScore??"—")}% · ${esc(p.fitLabel||"")}</div><div>Next action</div><div>${esc(p.nextAction||"—")}</div><div>Jira ticket</div><div>${p.jiraUrl?`<a class="source-link" target="_blank" rel="noopener" href="${esc(p.jiraUrl)}">${esc(p.jiraKey||"Open Jira")} ↗</a>`:esc(p.jiraKey||"—")}</div><div>Job link</div><div>${p.jobUrl?`<a class="source-link" target="_blank" rel="noopener" href="${esc(p.jobUrl)}">Open source ↗</a>`:"—"}</div></div>
  <div class="actions" style="margin-top:18px"><button class="btn primary" data-edit>Edit ticket</button><button class="btn" data-add-interview>Add interview</button><button class="btn good" data-activate>Activate accepted role</button></div>${p.jobDescription?`<div class="section"><div><h2>Job / interview context</h2></div></div><p class="muted">${esc(p.jobDescription)}</p>`:""}</div>
  <div><h3>Source timeline</h3><div class="timeline">${ev.map(x=>`<div class="event"><strong>${esc(String(x.status||"").toUpperCase())} · ${date(x.at)}</strong><small>${esc(x.subject||"")}</small><small>${esc(x.from||"")}</small>${x.url?`<a class="source-link" href="${esc(x.url)}" target="_blank" rel="noopener">Source ↗</a>`:""}</div>`).join("")||'<div class="muted">No source events.</div>'}</div></div></div>`);
  m.querySelector("[data-close]").onclick=()=>m.remove();m.querySelector("[data-edit]").onclick=()=>{m.remove();editProfile(p)};m.querySelector("[data-add-interview]").onclick=()=>{m.remove();openRecord("interview",p._customerId)};m.querySelector("[data-activate]").onclick=()=>activateRole(p);
@@ -182,10 +193,24 @@ async function syncAll(){
   await reload();toast("Google evidence sync complete · "+total+" ticket updates.");
  }catch(err){if(err.status===428&&err.data?.connectUrl){location.href=err.data.connectUrl;return}toast("Sync failed: "+err.message)}
 }
+async function reconcileAtlassian(){
+ try{
+  if(!state.atlassian?.connected||state.atlassian?.reauthorizationRequired){location.href="/api/atlassian/connect";return}
+  let offset=0,total=0,loops=0;
+  do{
+   const x=await api("/api/atlassian/reconcile",{method:"POST",body:{offset,limit:25}});
+   total+=Number(x.syncedCount||0);loops++;toast("Atlassian reconcile "+loops+" · "+total+" Jira mappings synced.");
+   offset=x.nextOffset==null?null:Number(x.nextOffset);
+   if(loops>=80)break;
+  }while(offset!=null);
+  await reload();toast("Jira + Confluence reconciliation complete · "+total+" company-role tickets synced.");
+ }catch(err){if([409,428].includes(err.status)&&err.data?.connectUrl){location.href=err.data.connectUrl;return}toast("Atlassian reconcile failed: "+err.message)}
+}
+
 async function exportData(){try{const x=await api("/api/export");const blob=new Blob([JSON.stringify(x,null,2)],{type:"application/json"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="landtheplane-command-center-"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}catch(e){toast(e.message)}}
-async function reload(){state.data=await api("/api/career-board");state.google=await api("/api/google/status").catch(e=>({connected:false,error:e.message}));render()}
+async function reload(){state.data=await api("/api/career-board");state.google=await api("/api/google/status").catch(e=>({connected:false,error:e.message}));state.atlassian=await api("/api/atlassian/status").catch(e=>({connected:false,error:e.message}));render()}
 async function init(){
- try{state.me=await api("/me");state.data=await api("/api/career-board");state.google=await api("/api/google/status").catch(e=>({connected:false,error:e.message}));render();const q=new URLSearchParams(location.search);if(q.get("google")==="connected"){history.replaceState({},document.title,"/");state.google=await api("/api/google/status").catch(()=>({connected:false}));if(state.google.connected)syncAll()}}catch(e){location.href="/auth/login"}
+ try{state.me=await api("/me");state.data=await api("/api/career-board");state.google=await api("/api/google/status").catch(e=>({connected:false,error:e.message}));state.atlassian=await api("/api/atlassian/status").catch(e=>({connected:false,error:e.message}));render();const q=new URLSearchParams(location.search);if(q.get("google")==="connected"){history.replaceState({},document.title,"/");state.google=await api("/api/google/status").catch(()=>({connected:false}));if(state.google.connected)syncAll()}}catch(e){location.href="/auth/login"}
 }
 init();
 })();

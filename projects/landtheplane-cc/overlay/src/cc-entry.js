@@ -8,9 +8,17 @@ const REQUIRED_GOOGLE_SCOPES=[
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/calendar.readonly"
 ];
-const APP_RECORD_TYPES=new Set(["job_profile","application_event","interview","follow_up","offer","search_digest","active_role","role_goal","performance_evidence"]);
+const APP_RECORD_TYPES=new Set(["job_profile","application_event","interview","follow_up","offer","search_digest","active_role","role_goal","performance_evidence","jira_config"]);
 const SECURITY_HEADERS={"cache-control":"no-store","x-content-type-options":"nosniff","x-robots-tag":"noindex, nofollow, noarchive","strict-transport-security":"max-age=31536000; includeSubDomains","x-frame-options":"DENY","referrer-policy":"no-referrer","cross-origin-opener-policy":"same-origin","cross-origin-resource-policy":"same-origin"};
 const JSON_HEADERS={"content-type":"application/json; charset=utf-8",...SECURITY_HEADERS};
+const ATLASSIAN_PROJECT_KEY="LTP";
+const ATLASSIAN_PROJECT_NAME="LandThePlane Career Operations";
+const ATLASSIAN_BOARD_NAME="LandThePlane Career Operations";
+const ATLASSIAN_DASHBOARD_NAME="LandThePlane Career Operations Dashboard";
+const ATLASSIAN_SPACE_KEY="LTP";
+const ATLASSIAN_SPACE_NAME="LandThePlane Career OS";
+const REQUIRED_ATLASSIAN_SCOPES=["manage:jira-configuration","read:board-scope:jira-software","write:board-scope:jira-software","read:board-scope.admin:jira-software","write:board-scope.admin:jira-software","read:sprint:jira-software","write:sprint:jira-software"];
+
 function redirect(location,status=302){return new Response(null,{status,headers:{...SECURITY_HEADERS,location}})}
 
 function j(value,status=200,extra={}){return new Response(JSON.stringify(value),{status,headers:{...JSON_HEADERS,...extra}})}
@@ -165,9 +173,11 @@ function mergeOpportunity(a,b){
   const m=new Map();
   for(const x of [...(a.evidence||[]),...(b.evidence||[])])m.set((x.source||"")+"|"+(x.id||x.at+"|"+x.subject),x);
   const ev=[...m.values()];
-  return deriveOpportunity(b.company||a.company,b.role!=="Role not identified"?b.role:a.role,ev,{
+  const next=deriveOpportunity(b.company||a.company,b.role!=="Role not identified"?b.role:a.role,ev,{
     jobDescription:b.jobDescription||a.jobDescription,jobUrl:b.jobUrl||a.jobUrl,nextAction:a.nextAction||b.nextAction
   });
+  for(const k of ["jiraKey","jiraIssueId","jiraUrl","jiraProjectKey","jiraLastSyncedAt","jiraLabel"])next[k]=b[k]||a[k]||"";
+  return next;
 }
 function guessFromEvent(event){
   const summary=safeText(event.summary||"",500),desc=safeText(event.description||"",2500),text=summary+" "+desc;
@@ -217,6 +227,237 @@ async function sessionInfo(req,env,ctx){
 async function board(req,env,ctx){
   const r=await callBase(req,env,ctx,"/api/career-board");if(!r.ok)throw new Error("career_board_unavailable");
   return r.json();
+}
+
+function atlassianHeaders(){
+  return {"content-type":"application/json","x-clintware-service-product":"landtheplane-cc","x-clintware-service-worker":"clintware-landtheplane-cc"};
+}
+async function cpJira(env,operation,args={}){
+  const r=await env.CONTROL_PLANE.fetch("https://mcp.clintware.internal/api/v1/jira/bridge",{method:"POST",headers:atlassianHeaders(),body:JSON.stringify({product:"landtheplane-cc",operation,args,request_id:crypto.randomUUID()})});
+  const x=await r.json().catch(()=>({error:"invalid_control_plane_response"}));return{ok:r.ok&&x.ok!==false,status:r.status,data:x};
+}
+async function cpConfluence(env,operation,args={}){
+  const r=await env.CONTROL_PLANE.fetch("https://mcp.clintware.internal/api/v1/confluence/bridge",{method:"POST",headers:atlassianHeaders(),body:JSON.stringify({product:"landtheplane-cc",operation,args,request_id:crypto.randomUUID()})});
+  const x=await r.json().catch(()=>({error:"invalid_control_plane_response"}));return{ok:r.ok&&x.ok!==false,status:r.status,data:x};
+}
+async function cpAtlassianOauth(env){
+  const r=await env.CONTROL_PLANE.fetch("https://mcp.clintware.internal/api/v1/jira/oauth/start",{method:"POST",headers:atlassianHeaders(),body:"{}"});
+  const x=await r.json().catch(()=>({error:"invalid_control_plane_response"}));return{ok:r.ok&&x.ok!==false,status:r.status,data:x};
+}
+function hashKey(value){
+  let h=2166136261>>>0;for(const c of String(value||"")){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(36);
+}
+function labelSlug(value){
+  return String(value||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||"unknown";
+}
+function sprintWindow(){
+  const anchor=new Date("2026-09-28T05:00:00Z"),now=new Date(),span=14*86400000;
+  const n=Math.max(0,Math.floor((now-anchor)/span)),start=new Date(anchor.getTime()+n*span),end=new Date(start.getTime()+span);
+  return {name:"LandThePlane Sprint "+start.toISOString().slice(0,10),start:start.toISOString(),end:end.toISOString()};
+}
+function opportunityDescription(p){
+  return [
+    "LandThePlane CRM opportunity",
+    "",
+    "Company: "+(p.company||""),
+    "Role: "+(p.role||""),
+    "CRM stage: "+(p.stage||""),
+    "Applied: "+(p.applicationDate||"Not observed"),
+    "First response: "+(p.firstResponseDate||"Not observed"),
+    "First interview: "+(p.firstInterviewDate||"Not observed"),
+    "Response time: "+(p.responseTimeDays==null?"Not observed":p.responseTimeDays+" days"),
+    "Compensation: "+(p.estimatedPay||"Not observed"),
+    "Fit: "+(p.fitScore==null?"Not scored":p.fitScore+"% "+(p.fitLabel||"")),
+    "Next action: "+(p.nextAction||"Review and determine next step"),
+    p.jobUrl?"Source: "+p.jobUrl:"",
+    "",
+    "CRM key: "+(p.key||""),
+    "Synced from cc.clintware.com. Gmail/Calendar raw content is intentionally not copied into Jira."
+  ].filter(Boolean).join("\n");
+}
+function opportunityMetrics(data){
+  const p=(data.records||[]).filter(r=>r.type==="job_profile").map(r=>r.data||{}),applied=p.filter(x=>x.applicationDate),responded=p.filter(x=>x.firstResponseDate),loops=p.filter(x=>x.firstInterviewDate),active=p.filter(x=>!["Closed / Rejected","Offer"].includes(x.stage)),offers=p.filter(x=>x.stage==="Offer");
+  const digest=(data.records||[]).find(r=>r.type==="search_digest")?.data||{};
+  return {reconstructed:p.length,verifiedApplications:applied.length,responded:responded.length,interviewLoops:loops.length,active:active.length,offers:offers.length,responseRate:applied.length?Math.round(responded.length/applied.length*100):0,reported:digest.fieldReport||null,digest};
+}
+function knowledgePages(data){
+  const m=opportunityMetrics(data),reported=m.reported||{};
+  const snapshot=[
+    "RECONSTRUCTED PRIVATE CRM",
+    "Company-role records: "+m.reconstructed,
+    "Verified application dates: "+m.verifiedApplications,
+    "Responses observed: "+m.responded,
+    "Interview-stage records: "+m.interviewLoops,
+    "Active processes: "+m.active,
+    "Offers observed: "+m.offers,
+    "Response rate on reconstructed applications: "+m.responseRate+"%",
+    "",
+    "LATEST FULL FIELD REPORT",
+    "Application actions: "+(reported.applicationActions??"Not synced"),
+    "Distinct company-role applications: "+(reported.distinctApplications??"Not synced"),
+    "Interview-stage processes: "+(reported.interviewStageProcesses??"Not synced"),
+    "Completed live processes: "+(reported.completedLiveProcesses??"Not synced"),
+    "Round 2 / manager / panel: "+(reported.round2Plus??"Not synced"),
+    "Offers: "+(reported.offers??"Not synced")
+  ].join("\n");
+  return [
+    {slug:"start-here",title:"Start Here — LandThePlane Career Operating System",body:[
+      "PURPOSE","LandThePlane is the operating system for the complete career lifecycle: discover roles, apply, manage responses, prepare interviews, close the offer, then convert the same record into active-job management.",
+      "SYSTEM OF RECORD","cc.clintware.com owns company-role facts, evidence dates, compensation context, fit estimates, and lifecycle stage. Jira owns executable work and throughput. Confluence owns reusable knowledge and operating standards.",
+      "GET STARTED","1. Sign in to cc.clintware.com with the authorized Google identity.","2. Run Google evidence sync until the historical backfill is complete.","3. Run Atlassian reconcile. Each company-role gets a stable Jira ticket and the mapping is written back to the CRM.","4. Work actionable interview/follow-up tickets from the Jira sprint board.","5. Use this Confluence space for standards, lessons, templates, and weekly reviews.","6. When an offer is accepted, activate the role in the CRM instead of starting a separate system."
+    ].join("\n")},
+    {slug:"job-search-os",title:"Job Search Operating System",body:[
+      "OPERATING MODEL","Treat the search as a measurable funnel rather than a pile of applications. Acquisition volume, verified applications, responses, interviews, late-stage processes, offers, and accepted roles are separate metrics.",
+      "DAILY FLOW","Source verified roles → assess fit and pay → apply with accurate materials → record company-role → capture confirmation → schedule follow-up → prepare from evidence → update after every interview.",
+      "SOURCE OF TRUTH RULE","Do not count jobs scanned as applications. Do not count duplicate ATS actions as distinct company-role applications. Preserve evidence dates and distinguish observed facts from estimates.",
+      "HIGH-SIGNAL PRIORITY","Human response, recruiter screen, hiring manager, panel, case study, final round, executive conversation, and explicit next steps outrank passive application volume."
+    ].join("\n")},
+    {slug:"application-definition-of-done",title:"Application Standards & Definition of Done",body:[
+      "AN APPLICATION IS DONE WHEN","The role is verified active; company and role are normalized; application is submitted; source URL is retained; application date is captured; compensation and fit are recorded as observed or estimated; and a next follow-up date/action exists.",
+      "QUALITY CHECK","Resume and answers match the role without inventing experience. Portfolio proof is relevant to the employer. Application-specific demos are clearly labeled as proposed/sample work. Public links do not expose private health, family, credentials, or unrelated brand material.",
+      "TRACKING","One CRM opportunity per company-role. Multiple emails or ATS notices attach as evidence to that record rather than creating duplicate opportunities."
+    ].join("\n")},
+    {slug:"interview-playbook",title:"Interview Preparation Playbook",body:[
+      "BEFORE","Read the role, company, interviewer context, known product/customer motion, compensation, and every prior conversation. Build a short objective: what the interviewer needs to believe by the end.",
+      "DURING","Answer the actual question first. Use specific examples, measurable outcomes, technical detail when relevant, and concise ownership language. Capture unknowns instead of bluffing.",
+      "AFTER","Record what was learned, decisions, objections, commitments, next steps, stakeholders, and timing. Update CRM stage and Jira action work. Send a targeted follow-up when it adds signal rather than sending generic persistence.",
+      "EVIDENCE","Use interview transcripts/notes where available to improve future answers and preserve exact commitments."
+    ].join("\n")},
+    {slug:"follow-up-cadence",title:"Follow-Up Cadence & Communication",body:[
+      "PRINCIPLE","Follow up to advance a real next step, not to prove persistence.",
+      "GOOD FOLLOW-UP","References the conversation, adds one useful artifact or clarification, restates the relevant outcome, and makes the next action easy.",
+      "AVOID","Repeated generic check-ins, urgency without new information, or contacting multiple people with inconsistent messages.",
+      "JIRA","Create sprintable follow-up work only when there is a concrete action. Close it when the action is completed, not when the company process ends."
+    ].join("\n")},
+    {slug:"case-study-playbook",title:"Case Study & Take-Home Playbook",body:[
+      "START WITH THE DECISION","Identify what the reviewer must decide and what evidence supports that decision.",
+      "SHOW THE SYSTEM","Use a realistic operating model: intake, stakeholders, milestones, telemetry, risks, escalation, ROI, reporting, and next actions. Make assumptions explicit.",
+      "SEPARATE FACT FROM SAMPLE","Never present synthetic customer details as employer facts. Label proposed workflows and sample data.",
+      "DELIVERY","Keep an executive summary, deep technical/operating layer, and a live demo path. Verify every link and artifact before sending."
+    ].join("\n")},
+    {slug:"metrics-funnel",title:"Job Search Metrics & Funnel",body:snapshot+"\n\nREPORTING RULES\nUse the latest full field report for historical aggregate totals. Use reconstructed CRM records for auditable company-level analysis. Use Jira completed sprint work for execution velocity. Never merge these denominators."},
+    {slug:"best-practices",title:"Best Practices Learned",body:[
+      "1. Separate acquisition volume from conversion evidence.","2. Preserve a company-role key so ATS duplicates do not inflate the funnel.","3. Build employer-specific proof when it demonstrates the requested job, but keep it clearly sample/proposed.","4. Record first response and first interview dates; speed is an operational metric.","5. Review interview evidence immediately while details are fresh.","6. Late-stage opportunities deserve deeper preparation than unresponsive applications.","7. Compensation should say observed versus estimated.","8. A fit score is a prioritization aid, not a fact.","9. Keep raw private mailbox content out of public repositories.","10. Convert accepted offers into an active-role workspace so 30/60/90 plans, wins, metrics, and review evidence continue in the same system.","11. Automate capture and reconciliation; keep judgment and externally visible commitments reviewable.","12. Make every repeated lesson reusable through this knowledge base."
+    ].join("\n")},
+    {slug:"jira-working-agreements",title:"Jira Working Agreements & Velocity",body:[
+      "WHAT JIRA MEASURES","Jira measures executable career work and process throughput. The CRM remains authoritative for interview stage.",
+      "PROJECT","LTP — LandThePlane Career Operations.",
+      "BOARD","Scrum board using the project filter ordered by Rank.",
+      "COMPANY-ROLE TICKETS","Every CRM opportunity gets a stable LTP ticket number and sync label. High-signal active work is placed in the current sprint.",
+      "VELOCITY","Review completed sprint tickets, cycle time, aging work, and carryover. Do not inflate velocity by splitting trivial administrative actions.",
+      "REPORTS","Weekly reporting should show acquisition volume, verified applications, response rate, interview conversion, active high-signal processes, completed Jira work, sprint carryover, and next-week priorities."
+    ].join("\n")},
+    {slug:"sync-model",title:"CRM ↔ Jira ↔ Confluence Sync Model",body:[
+      "CRM","Authoritative: company-role identity, application date, first response, first interview, compensation context, fit, lifecycle stage, evidence links.",
+      "JIRA","Authoritative: work item state, sprint membership, execution history, ticket key, velocity.",
+      "CONFLUENCE","Authoritative: reusable playbooks, standards, lessons, reporting narratives, templates.",
+      "SYNC KEY","CRM job_profile.key → deterministic Jira label → Jira issue key stored back on the CRM job_profile.",
+      "CONFLICT RULE","Do not let a Jira board transition silently overwrite a CRM interview stage. Stage changes originate from verified recruiting evidence or an explicit CRM edit."
+    ].join("\n")},
+    {slug:"active-job-transition",title:"Transition to Active Job Management",body:[
+      "TRIGGER","An offer is accepted and start date is known.",
+      "KEEP","The full application/interview history remains attached to the company-role record.",
+      "ADD","30/60/90 outcomes, stakeholder map, onboarding milestones, risks, projects, wins, feedback, metrics, and review evidence.",
+      "JIRA","The same project model can track onboarding and role execution, but job-search sprint metrics should be closed and a new active-role board/reporting period started.",
+      "CONFLUENCE","Create a role-specific operating page only after acceptance; do not pollute the reusable job-search playbook with employer-confidential data."
+    ].join("\n")},
+    {slug:"weekly-review",title:"Weekly Review Template",body:[
+      "FUNNEL","New verified applications:","New responses:","New interview loops:","Late-stage processes:","Offers:","Accepted roles:",
+      "EXECUTION","Sprint completed:","Sprint carryover:","Oldest open action:","Blocked items:",
+      "LEARNINGS","What produced responses?","Where did processes stall?","What interview question exposed a preparation gap?","What reusable asset or KB point should be created?",
+      "NEXT WEEK","Top five company-role priorities:","Applications worth deep customization:","Follow-ups due:","Interviews/case studies requiring preparation:"
+    ].join("\n")}
+  ];
+}
+async function saveJiraConfig(req,env,ctx,data,config){
+  const sys=await ensureSystemCustomer(req,env,ctx,data);
+  const old=(data.records||[]).find(r=>r.customerId===sys.id&&r.type==="jira_config");
+  const payload={...config,updatedAt:new Date().toISOString()};
+  await putRecord(req,env,ctx,sys.id,"jira_config",payload,"atlassian_sync",old);
+  if(old)old.data=payload;else data.records.push({id:"pending-jira-config",customerId:sys.id,type:"jira_config",data:payload,provenance:"atlassian_sync"});
+  return payload;
+}
+async function atlassianStatus(env){
+  const [jira,confluence]=await Promise.all([cpJira(env,"status"),cpConfluence(env,"status")]);
+  const granted=new Set(String(jira.data?.granted_scope||"").split(/\s+/).filter(Boolean));
+  const missing=REQUIRED_ATLASSIAN_SCOPES.filter(x=>!granted.has(x));
+  return {jira:jira.data||{},confluence:confluence.data||{},connected:Boolean(jira.data?.connected),reauthorizationRequired:Boolean(jira.data?.connected&&missing.length)||Boolean(confluence.data?.reauthorization_required),missingScopes:missing,connectUrl:"/api/atlassian/connect"};
+}
+async function reconcileAtlassian(req,env,ctx){
+  const body=await req.json().catch(()=>({})),data=await board(req,env,ctx),status=await atlassianStatus(env);
+  if(!status.connected)return j({ok:false,error:"atlassian_not_connected",...status},409);
+  if(status.reauthorizationRequired)return j({ok:false,error:"atlassian_reauthorization_required",...status},428);
+  const sites=await cpJira(env,"sites");
+  if(!sites.ok)return j({ok:false,error:sites.data?.error||"jira_sites_unavailable"},sites.status||502);
+  const authorized=sites.data?.sites||[],cloudId=String(body.cloudId||"");
+  const site=cloudId?authorized.find(x=>String(x.id)===cloudId):(authorized.length===1?authorized[0]:null);
+  if(!site)return j({ok:false,error:"jira_site_selection_required",sites:authorized},409);
+  const project=await cpJira(env,"ensure_project",{cloud_id:site.id,key:ATLASSIAN_PROJECT_KEY,name:ATLASSIAN_PROJECT_NAME,description:"Private career operations project synchronized from LandThePlane Command Center."});
+  if(!project.ok)return j({ok:false,error:project.data?.error||"jira_project_failed",detail:project.data},project.status||502);
+  const projectId=String(project.data?.project?.id||ATLASSIAN_PROJECT_KEY),projectKey=String(project.data?.project?.key||ATLASSIAN_PROJECT_KEY);
+  const mainFilter=await cpJira(env,"ensure_filter",{cloud_id:site.id,name:"LandThePlane — Board",jql:`project = ${projectKey} ORDER BY Rank ASC`,description:"Canonical LandThePlane career-operations board filter."});
+  if(!mainFilter.ok)return j({ok:false,error:mainFilter.data?.error||"jira_filter_failed",detail:mainFilter.data},mainFilter.status||502);
+  const boardResult=await cpJira(env,"ensure_board",{cloud_id:site.id,name:ATLASSIAN_BOARD_NAME,filter_id:mainFilter.data?.filter?.id,project_key_or_id:projectId,type:"scrum"});
+  if(!boardResult.ok)return j({ok:false,error:boardResult.data?.error||"jira_board_failed",detail:boardResult.data},boardResult.status||502);
+  const boardId=String(boardResult.data?.board?.id||"");
+  const dash=await cpJira(env,"ensure_dashboard",{cloud_id:site.id,name:ATLASSIAN_DASHBOARD_NAME,description:"LandThePlane execution, application, interview, and throughput reporting."});
+  if(!dash.ok)return j({ok:false,error:dash.data?.error||"jira_dashboard_failed",detail:dash.data},dash.status||502);
+  const activeFilter=await cpJira(env,"ensure_filter",{cloud_id:site.id,name:"LandThePlane — Active Opportunities",jql:`project = ${projectKey} AND labels = landtheplane AND labels != stage-closed-rejected ORDER BY updated DESC`,description:"Active LandThePlane company-role processes."});
+  const interviewFilter=await cpJira(env,"ensure_filter",{cloud_id:site.id,name:"LandThePlane — Interview Loops",jql:`project = ${projectKey} AND labels in (stage-recruiter-interview,stage-hiring-manager,stage-panel,stage-final) ORDER BY updated DESC`,description:"Company-role processes with verified interview-stage activity."});
+  const sw=sprintWindow(),sprint=await cpJira(env,"ensure_sprint",{cloud_id:site.id,board_id:boardId,name:sw.name,goal:"Move the highest-signal career actions forward with evidence-based next steps.",start_date:sw.start,end_date:sw.end});
+  if(!sprint.ok)return j({ok:false,error:sprint.data?.error||"jira_sprint_failed",detail:sprint.data},sprint.status||502);
+
+  const profiles=(data.records||[]).filter(r=>r.type==="job_profile").sort((a,b)=>String(b.data?.lastActivityDate||"").localeCompare(String(a.data?.lastActivityDate||"")));
+  const offset=Math.max(0,Number(body.offset)||0),limit=Math.max(1,Math.min(50,Number(body.limit)||25)),slice=profiles.slice(offset,offset+limit);
+  const synced=[],sprintKeys=[];
+  for(const rec of slice){
+    const p=rec.data||{},tag=p.jiraLabel||("ltp-"+hashKey(p.key||((p.company||"")+"|"+(p.role||"")))),stage="stage-"+labelSlug(p.stage);
+    let issueKey=String(p.jiraKey||""),issueId=String(p.jiraIssueId||"");
+    if(!issueKey){
+      const found=await cpJira(env,"search",{cloud_id:site.id,jql:`project = ${projectKey} AND labels = "${tag}"`,max_results:2,fields:["summary","status","labels"]});
+      const issue=found.ok?(found.data?.issues||[])[0]:null;if(issue){issueKey=String(issue.key||"");issueId=String(issue.id||"")}
+    }
+    const issueArgs={cloud_id:site.id,project_key:projectKey,summary:(p.company||"Unknown company")+" — "+(p.role||"Role not identified"),issue_type:"Task",description:opportunityDescription(p),labels:["landtheplane","crm-sync",tag,stage]};
+    if(issueKey){
+      const up=await cpJira(env,"update",{cloud_id:site.id,issue_key:issueKey,summary:issueArgs.summary,description:issueArgs.description,labels:issueArgs.labels});
+      if(!up.ok){synced.push({key:p.key,error:up.data?.error||"update_failed"});continue}
+    }else{
+      const cr=await cpJira(env,"create",issueArgs);
+      if(!cr.ok){synced.push({key:p.key,error:cr.data?.error||"create_failed"});continue}
+      issueKey=String(cr.data?.issue?.key||"");issueId=String(cr.data?.issue?.id||"");
+    }
+    const active=["Responded","Recruiter / Interview","Hiring Manager","Panel","Final"].includes(p.stage)||Boolean(p.nextAction);
+    if(active&&issueKey)sprintKeys.push(issueKey);
+    const updated={...p,jiraKey:issueKey,jiraIssueId:issueId,jiraProjectKey:projectKey,jiraUrl:String(site.url||"").replace(/\/$/,"")+"/browse/"+issueKey,jiraLastSyncedAt:new Date().toISOString(),jiraLabel:tag};
+    await putRecord(req,env,ctx,rec.customerId,"job_profile",updated,"atlassian_sync",rec);
+    rec.data=updated;synced.push({crmKey:p.key,jiraKey:issueKey,stage:p.stage});
+  }
+  if(sprintKeys.length)await cpJira(env,"add_to_sprint",{cloud_id:site.id,sprint_id:sprint.data?.sprint?.id,issue_keys:sprintKeys.slice(0,50)});
+
+  let config=(data.records||[]).find(r=>r.type==="jira_config")?.data||{};
+  const spaces=await cpConfluence(env,"spaces",{cloud_id:site.id,limit:100});
+  if(!spaces.ok)return j({ok:false,error:spaces.data?.error||"confluence_spaces_failed",detail:spaces.data},spaces.status||502);
+  let space=(spaces.data?.spaces||[]).find(x=>String(x.key||"").toUpperCase()===ATLASSIAN_SPACE_KEY);
+  if(!space){
+    const cs=await cpConfluence(env,"create_space",{cloud_id:site.id,key:ATLASSIAN_SPACE_KEY,name:ATLASSIAN_SPACE_NAME,description:"LandThePlane career operating system, job-search playbook, best practices, metrics, and reusable templates."});
+    if(!cs.ok)return j({ok:false,error:cs.data?.error||"confluence_space_create_failed",detail:cs.data},cs.status||502);
+    space=cs.data?.space||{};
+  }
+  const pageMap={...(config.confluence?.pages||{})},pages=knowledgePages(data);
+  let rootId=String(config.confluence?.rootPageId||pageMap["start-here"]?.id||"");
+  for(const page of pages){
+    const prior=pageMap[page.slug]||{},isRoot=page.slug==="start-here";
+    const x=await cpConfluence(env,"upsert",{cloud_id:site.id,space_id:space.id,space_key:space.key||ATLASSIAN_SPACE_KEY,parent_id:isRoot?undefined:(rootId||undefined),page_id:prior.id||undefined,title:page.title,body:page.body,version_message:"LandThePlane CRM/Atlassian reconcile"});
+    if(!x.ok)return j({ok:false,error:x.data?.error||"confluence_page_failed",page:page.slug,detail:x.data},x.status||502);
+    const pg=x.data?.page||{},id=String(pg.id||prior.id||""),webui=pg._links?.webui||"",pageUrl=webui?(String(site.url||"").replace(/\/$/,"")+(webui.startsWith("/wiki")?"":"/wiki")+webui):"";
+    pageMap[page.slug]={id,url:pageUrl,title:page.title};if(isRoot)rootId=id;
+  }
+  config=await saveJiraConfig(req,env,ctx,data,{
+    jira:{cloudId:site.id,siteUrl:site.url,projectId,projectKey,projectName:ATLASSIAN_PROJECT_NAME,boardId,boardName:ATLASSIAN_BOARD_NAME,dashboardId:String(dash.data?.dashboard?.id||""),dashboardUrl:dash.data?.dashboard?.view||"",sprintId:String(sprint.data?.sprint?.id||""),sprintName:sw.name,filters:{board:String(mainFilter.data?.filter?.id||""),active:String(activeFilter.data?.filter?.id||""),interviews:String(interviewFilter.data?.filter?.id||"")}},
+    confluence:{cloudId:site.id,siteUrl:site.url,spaceId:String(space.id||""),spaceKey:String(space.key||ATLASSIAN_SPACE_KEY),spaceName:ATLASSIAN_SPACE_NAME,rootPageId:rootId,pages:pageMap}
+  });
+  const nextOffset=offset+slice.length<profiles.length?offset+slice.length:null;
+  return j({ok:true,project:config.jira,confluence:config.confluence,syncedCount:synced.filter(x=>x.jiraKey).length,results:synced,nextOffset,totalProfiles:profiles.length,complete:nextOffset===null});
 }
 async function gmailPage(token,cursor){
   const q='after:2026/04/14 {application interview "hiring manager" "next step" "not moving forward" "thank you for applying" "application received" "application has been received" unfortunately offer recruiter panel screening}';
@@ -380,6 +621,12 @@ export default {
       if(u.pathname.startsWith("/api/")||u.pathname==="/me")return j({error:"authentication_required"},401);
       return new Response("Not found",{status:404,headers:JSON_HEADERS});
     }
+    if(u.pathname==="/api/atlassian/status")return j(await atlassianStatus(env));
+    if(u.pathname==="/api/atlassian/connect"){
+      const start=await cpAtlassianOauth(env);if(!start.ok||!start.data?.authorize_url)return j({error:start.data?.error||"atlassian_authorization_unavailable"},start.status||502);
+      return redirect(start.data.authorize_url);
+    }
+    if(u.pathname==="/api/atlassian/reconcile"&&req.method==="POST")return reconcileAtlassian(req,env,ctx);
     if(u.pathname==="/api/google/status"){
       const access=await googleAccess(env);
       return j({connected:access.ok,reauthorizationRequired:["google_reauthorization_required","google_delegated_grant_missing","google_evidence_account_not_allowed"].includes(access.error),error:access.ok?null:access.error,email:access.email||"",missing:access.missing||[],connectUrl:GOOGLE_CONNECT_URL});

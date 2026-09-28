@@ -4,7 +4,7 @@ import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./flow.js";
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
-import { jiraAddComment, jiraBeginOAuth, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraFinishOAuth, jiraGetIssue, jiraProjects, jiraSearch, jiraSites, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
+import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
@@ -81,6 +81,25 @@ const DEFAULT_LANDTHEPLANE = {
   protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
   telemetry_namespace:"landtheplane",
   created_at:"2026-09-17T00:00:00.000Z"
+};
+
+const DEFAULT_LANDTHEPLANE_CC = {
+  product:"landtheplane-cc",
+  environment:"production",
+  version:1,
+  repo:{identity:"clintkosh",owner:"clintkosh",name:"clintware-site",default_branch:"main",read:true,write_prefixes:["projects/landtheplane-cc/"],allowed_workflows:["deploy-landtheplane-cc.yml"]},
+  dns:{allowed_names:["cc.clintware.com"]},
+  capabilities:[
+    "repo.read:clintware-site",
+    "analytics.write:landtheplane-cc","analytics.read:landtheplane-cc",
+    "jira.read:landtheplane-cc","jira.write:landtheplane-cc",
+    "confluence.read:landtheplane-cc","confluence.write:landtheplane-cc"
+  ],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.write:unrelated/**","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/","control-plane/security/","control-plane/policy/"],
+  telemetry_namespace:"landtheplane-cc",
+  privacy:{public_viewer:false,indexing:false,career_data:true,oauth_operator_mode:"required",identity_boundary:"auth.clintware.com",infrastructure_boundary:"mcp.clintware.com"},
+  created_at:"2026-09-28T00:00:00.000Z"
 };
 
 const DEFAULT_BACKGROUND_MIRROR = {
@@ -276,7 +295,7 @@ const QUILLGEIST_LITE_TASKS = {
   "record-google-oauth-verification":{runtime:"powershell",parameters:[]}
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"landtheplane-cc":DEFAULT_LANDTHEPLANE_CC,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
 
 const DEFAULT_FLOW_DEFINITIONS = [
   {
@@ -2246,7 +2265,7 @@ async function verifyProductToken(request,env,product){
 // calling worker's name and no cf-connecting-ip, so the identity cannot be spoofed
 // from outside (public requests always arrive with cf-connecting-ip, which is
 // stripped/managed by the edge and absent on binding traffic).
-const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os","n7demo-crm":"clintware-n7demo-crm"};
+const SERVICE_WORKERS={proofos:"clintware-proofos",landtheplane:"clintware-landtheplane","landtheplane-cc":"clintware-landtheplane-cc","background-mirror":"clintware-background-mirror","neuron7-case":"n7-customer-value-os","n7demo-crm":"clintware-n7demo-crm"};
 function serviceProduct(request){
   // Service-binding HTTP calls use a non-public internal hostname chosen by the
   // caller. Pair it with an expected product/worker assertion so normal public
@@ -4182,14 +4201,23 @@ export default {
         if(!product)return json({error:"product_required"},400);
         const auth=await verifyProductRequest(request,env,product);if(!auth)return json({error:"unauthorized"},401);
         const op=String(body.operation||"").toLowerCase();
-        const writeOps=new Set(["create","update","comment","transition"]);
+        const writeOps=new Set(["create","update","comment","transition","ensure_project","ensure_filter","ensure_board","ensure_sprint","ensure_dashboard","add_to_sprint"]);
         const capability=`jira.${writeOps.has(op)?"write":"read"}:${product}`;
         if(!capabilityMatches(auth.manifest,capability))return json({error:"capability_denied"},403);
         const args=body.args&&typeof body.args==="object"?body.args:{};
         let result;
         if(op==="status")result=await jiraStatus(env);
         else if(op==="sites")result=await jiraSites(env);
+        else if(op==="myself")result=await jiraMyself(env,args);
         else if(op==="projects")result=await jiraProjects(env,args);
+        else if(op==="ensure_project")result=await jiraEnsureProject(env,args);
+        else if(op==="ensure_filter")result=await jiraEnsureFilter(env,args);
+        else if(op==="boards")result=await jiraBoards(env,args);
+        else if(op==="ensure_board")result=await jiraEnsureBoard(env,args);
+        else if(op==="sprints")result=await jiraSprints(env,args);
+        else if(op==="ensure_sprint")result=await jiraEnsureSprint(env,args);
+        else if(op==="add_to_sprint")result=await jiraAddIssuesToSprint(env,args);
+        else if(op==="ensure_dashboard")result=await jiraEnsureDashboard(env,args);
         else if(op==="search")result=await jiraSearch(env,args);
         else if(op==="get")result=await jiraGetIssue(env,args);
         else if(op==="create")result=await jiraCreateIssue(env,args);

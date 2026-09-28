@@ -2,7 +2,7 @@ const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const API_ORIGIN = "https://api.atlassian.com";
 const CALLBACK_URL = "https://mcp.clintware.com/api/v1/jira/oauth/callback";
-const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "write:confluence-space", "offline_access"];
+const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "manage:jira-configuration", "read:board-scope:jira-software", "write:board-scope:jira-software", "read:board-scope.admin:jira-software", "write:board-scope.admin:jira-software", "read:sprint:jira-software", "write:sprint:jira-software", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "write:confluence-space", "offline_access"];
 const STATE_TTL_MS = 10 * 60 * 1000;
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -174,6 +174,36 @@ async function callJira(env, {cloud_id,method="GET",path,body}) {
   try { data = text ? JSON.parse(text) : {}; } catch { data = {text:text.slice(0,8000)}; }
   return {ok:response.ok,status:response.status,site:selected.site,data};
 }
+
+async function callJiraSoftware(env, {cloud_id,method="GET",path,body}) {
+  let auth = await freshAccessToken(env,false);
+  if (!auth.ok) return auth;
+  let selected = selectSite(auth.grant,cloud_id);
+  if (!selected.ok) return selected;
+  const doFetch = token => fetch(
+    `${API_ORIGIN}/ex/jira/${encodeURIComponent(selected.site.id)}/rest/agile/1.0/${String(path||"").replace(/^\/+/, "")}`,
+    {
+      method,
+      headers:{
+        "authorization":`Bearer ${token}`,
+        "accept":"application/json",
+        ...(body===undefined?{}:{"content-type":"application/json"})
+      },
+      body:body===undefined?undefined:JSON.stringify(body)
+    }
+  );
+  let response = await doFetch(auth.access_token);
+  if (response.status === 401) {
+    auth = await freshAccessToken(env,true);
+    if (!auth.ok) return auth;
+    response = await doFetch(auth.access_token);
+  }
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : {}; } catch { data = {text:text.slice(0,8000)}; }
+  return {ok:response.ok,status:response.status,site:selected.site,data};
+}
+
 function textDoc(value) {
   const text = String(value || "").trim();
   if (!text) return undefined;
@@ -270,6 +300,102 @@ export async function jiraSites(env) {
   await saveGrant(env,grant);
   return {ok:true,sites:resources.sites.map(s=>({id:s.id,name:s.name,url:s.url,scopes:s.scopes||[]}))};
 }
+
+export async function jiraMyself(env,{cloud_id}={}) {
+  const r=await callJira(env,{cloud_id,path:"myself"});
+  return r.ok?{ok:true,site:r.site,user:r.data}:r;
+}
+export async function jiraEnsureProject(env,{cloud_id,key,name,description="",project_type_key="software",project_template_key="com.pyxis.greenhopper.jira:gh-simplified-scrum-classic"}={}) {
+  key=String(key||"").trim().toUpperCase().replace(/[^A-Z0-9_]/g,"").slice(0,10);
+  name=String(name||"").trim().slice(0,255);
+  if(!/^[A-Z][A-Z0-9_]+$/.test(key)||!name)return{ok:false,error:"jira_project_identity_invalid"};
+  const listed=await jiraProjects(env,{cloud_id});
+  if(!listed.ok)return listed;
+  const existing=(listed.projects||[]).find(p=>String(p.key).toUpperCase()===key||String(p.name).toLowerCase()===name.toLowerCase());
+  if(existing)return{ok:true,site:listed.site,project:existing,operation:"reused"};
+  const me=await jiraMyself(env,{cloud_id});
+  if(!me.ok)return me;
+  const leadAccountId=String(me.user?.accountId||"");
+  if(!leadAccountId)return{ok:false,error:"jira_current_user_account_missing"};
+  const r=await callJira(env,{cloud_id,method:"POST",path:"project",body:{
+    key,name,description:String(description||"").slice(0,1000),
+    leadAccountId,assigneeType:"PROJECT_LEAD",
+    projectTypeKey:String(project_type_key||"software"),
+    projectTemplateKey:String(project_template_key||"com.pyxis.greenhopper.jira:gh-simplified-scrum-classic")
+  }});
+  if(!r.ok)return r;
+  return{ok:true,site:r.site,project:{id:String(r.data?.id||""),key:String(r.data?.key||key),name},operation:"created"};
+}
+export async function jiraEnsureFilter(env,{cloud_id,name,jql,description=""}={}) {
+  name=String(name||"").trim().slice(0,255);jql=String(jql||"").trim().slice(0,8000);
+  if(!name||!jql)return{ok:false,error:"jira_filter_name_and_jql_required"};
+  const q=new URLSearchParams({filterName:name,maxResults:"100",expand:"description,jql"});
+  const found=await callJira(env,{cloud_id,path:"filter/search?"+q.toString()});
+  if(!found.ok)return found;
+  const existing=(found.data?.values||[]).find(x=>String(x.name||"").toLowerCase()===name.toLowerCase());
+  if(existing)return{ok:true,site:found.site,filter:existing,operation:"reused"};
+  const r=await callJira(env,{cloud_id,method:"POST",path:"filter",body:{name,jql,description:String(description||"").slice(0,1000),favourite:true}});
+  return r.ok?{ok:true,site:r.site,filter:r.data,operation:"created"}:r;
+}
+export async function jiraBoards(env,{cloud_id,project_key_or_id,name,max_results=100}={}) {
+  const q=new URLSearchParams({maxResults:String(Math.max(1,Math.min(100,Number(max_results)||100)))});
+  if(project_key_or_id)q.set("projectKeyOrId",String(project_key_or_id));
+  if(name)q.set("name",String(name).slice(0,255));
+  const r=await callJiraSoftware(env,{cloud_id,path:"board?"+q.toString()});
+  if(!r.ok)return r;
+  return{ok:true,site:r.site,boards:r.data?.values||[]};
+}
+export async function jiraEnsureBoard(env,{cloud_id,name,filter_id,project_key_or_id,type="scrum"}={}) {
+  name=String(name||"").trim().slice(0,255);
+  if(!name||!filter_id)return{ok:false,error:"jira_board_name_and_filter_required"};
+  const listed=await jiraBoards(env,{cloud_id,project_key_or_id,name});
+  if(!listed.ok)return listed;
+  const existing=(listed.boards||[]).find(x=>String(x.name||"").toLowerCase()===name.toLowerCase());
+  if(existing)return{ok:true,site:listed.site,board:existing,operation:"reused"};
+  const body={name,type:String(type||"scrum"),filterId:Number(filter_id)};
+  if(project_key_or_id)body.location={type:"project",projectKeyOrId:String(project_key_or_id)};
+  const r=await callJiraSoftware(env,{cloud_id,method:"POST",path:"board",body});
+  return r.ok?{ok:true,site:r.site,board:r.data,operation:"created"}:r;
+}
+export async function jiraSprints(env,{cloud_id,board_id,state="active,future",max_results=100}={}) {
+  if(!board_id)return{ok:false,error:"jira_board_id_required"};
+  const q=new URLSearchParams({state:String(state||"active,future"),maxResults:String(Math.max(1,Math.min(100,Number(max_results)||100)))});
+  const r=await callJiraSoftware(env,{cloud_id,path:`board/${encodeURIComponent(board_id)}/sprint?`+q.toString()});
+  if(!r.ok)return r;
+  return{ok:true,site:r.site,sprints:r.data?.values||[]};
+}
+export async function jiraEnsureSprint(env,{cloud_id,board_id,name,goal="",start_date,end_date}={}) {
+  name=String(name||"").trim().slice(0,255);
+  if(!board_id||!name)return{ok:false,error:"jira_sprint_board_and_name_required"};
+  const listed=await jiraSprints(env,{cloud_id,board_id});
+  if(!listed.ok)return listed;
+  const existing=(listed.sprints||[]).find(x=>String(x.name||"").toLowerCase()===name.toLowerCase());
+  if(existing)return{ok:true,site:listed.site,sprint:existing,operation:"reused"};
+  const body={name,originBoardId:Number(board_id),goal:String(goal||"").slice(0,1000)};
+  if(start_date)body.startDate=new Date(start_date).toISOString();
+  if(end_date)body.endDate=new Date(end_date).toISOString();
+  const r=await callJiraSoftware(env,{cloud_id,method:"POST",path:"sprint",body});
+  return r.ok?{ok:true,site:r.site,sprint:r.data,operation:"created"}:r;
+}
+export async function jiraAddIssuesToSprint(env,{cloud_id,sprint_id,issue_keys}={}) {
+  const issues=(Array.isArray(issue_keys)?issue_keys:[]).map(String).filter(Boolean).slice(0,50);
+  if(!sprint_id||!issues.length)return{ok:false,error:"jira_sprint_and_issue_keys_required"};
+  const r=await callJiraSoftware(env,{cloud_id,method:"POST",path:`sprint/${encodeURIComponent(sprint_id)}/issue`,body:{issues}});
+  return r.ok?{ok:true,site:r.site,sprint_id:String(sprint_id),issues,status:r.status}:r;
+}
+
+export async function jiraEnsureDashboard(env,{cloud_id,name,description=""}={}) {
+  name=String(name||"").trim().slice(0,255);
+  if(!name)return{ok:false,error:"jira_dashboard_name_required"};
+  const q=new URLSearchParams({dashboardName:name,maxResults:"100"});
+  const found=await callJira(env,{cloud_id,path:"dashboard/search?"+q.toString()});
+  if(!found.ok)return found;
+  const existing=(found.data?.values||[]).find(x=>String(x.name||"").toLowerCase()===name.toLowerCase());
+  if(existing)return{ok:true,site:found.site,dashboard:existing,operation:"reused"};
+  const r=await callJira(env,{cloud_id,method:"POST",path:"dashboard",body:{name,description:String(description||"").slice(0,1000),sharePermissions:[],editPermissions:[]}});
+  return r.ok?{ok:true,site:r.site,dashboard:r.data,operation:"created"}:r;
+}
+
 export async function jiraProjects(env,{cloud_id}) {
   const r = await callJira(env,{cloud_id,path:"project/search?maxResults=100&orderBy=name"});
   if (!r.ok) return r;
@@ -288,7 +414,7 @@ export async function jiraGetIssue(env,{cloud_id,issue_key,fields}) {
   const r = await callJira(env,{cloud_id,path:`issue/${encodeURIComponent(issue_key)}${suffix}`});
   return r.ok?{ok:true,site:r.site,issue:r.data}:r;
 }
-export async function jiraCreateIssue(env,{cloud_id,project_key,summary,issue_type,description,labels,assignee_account_id}) {
+export async function jiraCreateIssue(env,{cloud_id,project_key,summary,issue_type,description,labels,assignee_account_id,parent_key}) {
   const fields = {
     project:{key:String(project_key)},
     summary:String(summary),
@@ -298,6 +424,7 @@ export async function jiraCreateIssue(env,{cloud_id,project_key,summary,issue_ty
   if (doc) fields.description = doc;
   if (Array.isArray(labels)&&labels.length) fields.labels = labels.slice(0,50).map(String);
   if (assignee_account_id) fields.assignee = {accountId:String(assignee_account_id)};
+  if (parent_key) fields.parent = {key:String(parent_key)};
   const r = await callJira(env,{cloud_id,method:"POST",path:"issue",body:{fields}});
   return r.ok?{ok:true,site:r.site,issue:r.data}:r;
 }
