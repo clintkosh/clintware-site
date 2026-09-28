@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== MEMORIA CODEX / ORG IDENTITY REPAIR ===" -ForegroundColor Cyan
+Write-Host "=== CODEX / ORG APP IDENTITY REPAIR ===" -ForegroundColor Cyan
 Write-Host ("DEVICE // " + $env:COMPUTERNAME) -ForegroundColor Cyan
 
 $state = (& dsregcmd.exe /status 2>&1 | Out-String)
@@ -10,11 +10,27 @@ $wamConsumers = $state -match 'WamDefaultAuthority\s*:\s*consumers'
 Write-Host ("WINDOWS // AzureAdJoined=" + $azureJoined + " WorkplaceJoined=" + $workplaceJoined + " WAMConsumers=" + $wamConsumers)
 
 $codexHome = [Environment]::GetEnvironmentVariable("CODEX_HOME","User")
-if (-not $codexHome) {
-  if (Test-Path "D:\") { $codexHome = "D:\AI\Codex\.codex" }
-  else { $codexHome = Join-Path $env:USERPROFILE ".codex" }
-  [Environment]::SetEnvironmentVariable("CODEX_HOME",$codexHome,"User")
+$codexHomeValid = $false
+if ($codexHome) {
+  try {
+    $root = [IO.Path]::GetPathRoot($codexHome)
+    $codexHomeValid = [bool]($root -and (Test-Path -LiteralPath $root))
+  } catch {
+    $codexHomeValid = $false
+  }
 }
+
+if (-not $codexHomeValid) {
+  $previousCodexHome = $codexHome
+  $codexHome = Join-Path $env:USERPROFILE ".codex"
+  [Environment]::SetEnvironmentVariable("CODEX_HOME",$codexHome,"User")
+  if ($previousCodexHome) {
+    Write-Host ("CODEX_HOME_REPAIR // invalid prior value replaced: " + $previousCodexHome) -ForegroundColor Yellow
+  } else {
+    Write-Host "CODEX_HOME_REPAIR // user CODEX_HOME initialized" -ForegroundColor Yellow
+  }
+}
+
 New-Item -ItemType Directory -Force -Path $codexHome | Out-Null
 $env:CODEX_HOME = $codexHome
 Write-Host ("CODEX_HOME // " + $codexHome) -ForegroundColor Green
