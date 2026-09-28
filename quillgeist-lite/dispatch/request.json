@@ -1,5 +1,5 @@
 {
-  "request_id": "qq-entra-resume-persistent-edge-v3-20260928",
+  "request_id": "qq-entra-resume-persistent-edge-v4-20260928",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -9,5 +9,5 @@
     "Approved": "false",
     "WaitMs": "900"
   },
-  "objective": "Recover the dedicated persistent QQ Edge session on DRIZNET without touching the user's ordinary Shopify Edge profile, resume the Microsoft Entra tab, and inspect the live page. Continue the Clintware tenant setup from this exact persistent profile. Stop only if credentials, password, MFA, or another user-only authentication step is required."
+  "objective": "Use the repaired singleton persistent QQ Edge session on DRIZNET to resume the in-progress Microsoft Entra setup. Preserve the dedicated persistent browser profile and do not touch the user's ordinary Shopify Edge profile. Inspect the live Entra page and continue toward creating the Clintware workforce tenant clintware.onmicrosoft.com and the Microsoft app registration. Stop only if credentials/password/MFA or another user-only authentication step is required."
 }
