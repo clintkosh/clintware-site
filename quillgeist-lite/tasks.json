@@ -1,7 +1,7 @@
 {
-  "version": 15,
+  "version": 16,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq self-heals canonical runtime files, provides governed persistent Playwright web automation, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq inventories local capabilities before routing, self-heals canonical runtime files, provides governed persistent Playwright web automation with safe user-auth handoff, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
   "runtimes": [
     "powershell",
     "python",
@@ -133,7 +133,7 @@
       "parameters": []
     },
     "browser-work": {
-      "title": "Search the live web, read public pages, or operate a governed persistent browser session with bounded multi-step automation",
+      "title": "Search/read the live web or operate the governed persistent browser, including visible user-auth assist and continuation",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/browser-work.ps1",
       "parameters": [
@@ -148,7 +148,8 @@
         "MaxChars",
         "Approved",
         "Headless",
-        "WaitMs"
+        "WaitMs",
+        "UserWaitMs"
       ]
     },
     "record-google-oauth-verification": {
