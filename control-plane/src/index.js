@@ -1147,7 +1147,10 @@ export class RegistryHub extends DurableObject {
               duration_ms:Number(data.duration_ms||0),
               output:clip(data.output||"",40000),
               log_lines:Number(data.log_lines||0),
-              recovery:true
+              recovery:true,
+              confirmation_source:"qq-local-agent-recovery",
+              device_id:clip(attachment.device_id||"",120),
+              confirmed_at:clip(data.completed_at||nowIso(),80)
             }
           });
           const recoveryDeviceId=clip(attachment.device_id||"unknown",120);
@@ -1279,7 +1282,10 @@ export class RegistryHub extends DurableObject {
               exit_code:Number(data.exit_code||0),
               duration_ms:Number(data.duration_ms||0),
               output:clip(data.output||"",40000),
-              log_lines:Number(data.log_lines||0)
+              log_lines:Number(data.log_lines||0),
+              confirmation_source:"qq-local-agent",
+              device_id:clip(attachment.device_id||"",120),
+              confirmed_at:clip(data.completed_at||nowIso(),80)
             }
           });
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
