@@ -1,8 +1,9 @@
 {
-  "request_id": "memoria-linkage-update-20260928-2102",
-  "task_id": "self-update",
+  "request_id": "memoria-error-categories-20260928-2104",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
-  "resume_after": true,
-  "args": {},
-  "objective": "Install validated pinned recovery revision 14e953f on MEMORIA, retaining enrollment and existing local data."
+  "args": {
+    "Action": "diagnostics"
+  },
+  "objective": "Read service error categories and existing Immich volume names without exposing logs, secrets or accessing D:."
 }
