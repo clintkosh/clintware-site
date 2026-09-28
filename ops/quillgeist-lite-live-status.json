@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-09-28T21:53:24.407453+00:00",
+  "checked_at": "2026-09-28T21:54:12.345051+00:00",
   "status": {
     "ok": true,
     "online": 1,
     "recovery_online": 0,
-    "wake_online": 2,
+    "wake_online": 0,
     "recovery": null,
     "runner": {
       "runner_id": "DRIZNET",
@@ -32,7 +32,7 @@
         "capability_aware_routing"
       ],
       "connected_at": "2026-09-28T21:53:20.204Z",
-      "last_seen": "2026-09-28T21:53:20.259Z",
+      "last_seen": "2026-09-28T21:53:48.636Z",
       "source_revision": "411bc603ad01eb3abc6cbd502d7f3e60dcd650f0",
       "registry_version": "17"
     },
@@ -73,6 +73,24 @@
       }
     ],
     "jobs": [
+      {
+        "job_id": "9cfedc95-02ae-4266-884f-7a559f9a0416",
+        "task_id": "self-update",
+        "target_device": "",
+        "resume_after": false,
+        "status": "queued",
+        "created_at": "2026-09-28T21:54:09.124Z",
+        "updated_at": "2026-09-28T21:54:09.124Z"
+      },
+      {
+        "job_id": "42089b2c-a3bb-4a05-815f-a3e7c262fa67",
+        "task_id": "repair-codex-org-identity",
+        "target_device": "DRIZNET",
+        "resume_after": false,
+        "status": "running",
+        "created_at": "2026-09-28T21:53:48.510Z",
+        "updated_at": "2026-09-28T21:53:50.450Z"
+      },
       {
         "job_id": "afcecf9d-a0c8-4cf5-941c-b6a40a2b2dfe",
         "task_id": "repair-codex-org-identity",
@@ -504,24 +522,6 @@
         "status": "passed",
         "created_at": "2026-09-28T21:04:03.264Z",
         "updated_at": "2026-09-28T21:04:39.860Z"
-      },
-      {
-        "job_id": "41a5ed40-1c9b-4043-a2ba-ce2fd767fb89",
-        "task_id": "self-update",
-        "target_device": "",
-        "resume_after": false,
-        "status": "passed",
-        "created_at": "2026-09-28T21:03:39.844Z",
-        "updated_at": "2026-09-28T21:04:11.506Z"
-      },
-      {
-        "job_id": "1c8d7114-fbe3-4ae2-aee3-8bac39d195bc",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "resume_after": true,
-        "status": "passed",
-        "created_at": "2026-09-28T21:03:20.345Z",
-        "updated_at": "2026-09-28T21:03:57.044Z"
       }
     ],
     "questions": [],
@@ -539,6 +539,171 @@
     ],
     "diagnostics": [
       {
+        "diagnostic_id": "a46e4fbf-2963-4968-b776-ae469808d48b",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:17.5454841Z",
+        "received_at": "2026-09-28T21:54:10.363Z"
+      },
+      {
+        "diagnostic_id": "67764c05-1058-4e96-8795-32a42b420c2d",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.6793693Z",
+        "received_at": "2026-09-28T21:54:09.484Z"
+      },
+      {
+        "diagnostic_id": "2a8da260-0ad9-4a99-9c03-ec233c4f5c05",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.5687045Z",
+        "received_at": "2026-09-28T21:54:09.381Z"
+      },
+      {
+        "diagnostic_id": "7256e93a-5885-476e-83c3-68831f4b5601",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_bypassing_stale_restart_limit",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.4504009Z",
+        "received_at": "2026-09-28T21:54:09.271Z"
+      },
+      {
+        "diagnostic_id": "35cad231-0915-4e37-9733-56afe8ef1533",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:59.8454105Z",
+        "received_at": "2026-09-28T21:53:52.653Z"
+      },
+      {
+        "diagnostic_id": "e81df419-7dcf-4936-8608-4d44dca05c50",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:58.9787425Z",
+        "received_at": "2026-09-28T21:53:51.788Z"
+      },
+      {
+        "diagnostic_id": "941f827c-f986-476f-b4e4-8c4a27ccdb6e",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:58.8696872Z",
+        "received_at": "2026-09-28T21:53:51.683Z"
+      },
+      {
+        "diagnostic_id": "83cad230-cdfc-423b-89a9-08458e2bf684",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:49.9658989Z",
+        "received_at": "2026-09-28T21:53:49.857Z"
+      },
+      {
+        "diagnostic_id": "508893cb-e7b5-47a9-a56c-c6afd166f1f8",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:49.0892278Z",
+        "received_at": "2026-09-28T21:53:48.983Z"
+      },
+      {
+        "diagnostic_id": "20f71cb6-b5fb-49e4-a518-76aba589e47f",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:48.9749214Z",
+        "received_at": "2026-09-28T21:53:48.863Z"
+      },
+      {
+        "diagnostic_id": "a264e2b9-62f2-40b3-b8a1-385dd53b6ce3",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:48.7287879Z",
+        "received_at": "2026-09-28T21:53:48.751Z"
+      },
+      {
+        "diagnostic_id": "9ae6995c-e112-4837-b4fe-e43649d77d8c",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task repair-codex-org-identity [powershell] (quillgeist-lite/tasks/repair-codex-org-identity.ps1)",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:53:48.8323242Z",
+        "received_at": "2026-09-28T21:53:48.694Z"
+      },
+      {
+        "diagnostic_id": "3ba0a9d8-87cb-43a2-a126-a47877ca039d",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:40.0565481Z",
+        "received_at": "2026-09-28T21:53:32.880Z"
+      },
+      {
+        "diagnostic_id": "693a793b-ead8-4bcf-b8ec-bbd52d535142",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:39.1855908Z",
+        "received_at": "2026-09-28T21:53:32.000Z"
+      },
+      {
+        "diagnostic_id": "96f59b73-3896-434a-af4e-e59c3dfe37cd",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:38.8551197Z",
+        "received_at": "2026-09-28T21:53:31.893Z"
+      },
+      {
         "diagnostic_id": "18929bed-1150-4d7d-822b-63e7e479fa12",
         "device_id": "DRIZNET",
         "level": "INFO",
@@ -592,171 +757,6 @@
         "service_version": "1.10.0",
         "timestamp": "2026-09-28T21:53:19.9465758Z",
         "received_at": "2026-09-28T21:53:20.269Z"
-      },
-      {
-        "diagnostic_id": "489868c9-4123-4d48-a753-6c7adf2fd19d",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtime host: PowerShell 7.6.6 / Core.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:53:19.9318449Z",
-        "received_at": "2026-09-28T21:53:20.264Z"
-      },
-      {
-        "diagnostic_id": "bfc8d4f5-6718-4c6f-b2d2-d4a2ee405914",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Clintware Quillgeist Lite starting.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:53:19.8791667Z",
-        "received_at": "2026-09-28T21:53:20.264Z"
-      },
-      {
-        "diagnostic_id": "c0a48064-0a20-49e3-b008-945e72fce42b",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T21:53:20.0950907Z",
-        "received_at": "2026-09-28T21:53:20.038Z"
-      },
-      {
-        "diagnostic_id": "370847b3-99cb-4242-8c60-e8f54e405aad",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=INFO: scheduled task \"Clintware Quillgeist Lite Runner\" is currently running.\r\nSUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:20.0359543Z",
-        "received_at": "2026-09-28T21:53:13.068Z"
-      },
-      {
-        "diagnostic_id": "d495d6b2-c7f5-4f19-9060-16af17072d75",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:19.8375508Z",
-        "received_at": "2026-09-28T21:53:12.635Z"
-      },
-      {
-        "diagnostic_id": "7d19933f-dc69-47c2-b7b1-0b44ac820c27",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.8502784Z",
-        "received_at": "2026-09-28T21:53:11.919Z"
-      },
-      {
-        "diagnostic_id": "8ece40e2-3920-48ba-8e2e-b8b07926732e",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.9467098Z",
-        "received_at": "2026-09-28T21:53:11.722Z"
-      },
-      {
-        "diagnostic_id": "ea870c94-8243-40a5-acfb-9a6626e7cfc2",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.8281981Z",
-        "received_at": "2026-09-28T21:53:11.596Z"
-      },
-      {
-        "diagnostic_id": "c9eaec6f-fde9-4e9e-a199-ffa8d50fd566",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.4904722Z",
-        "received_at": "2026-09-28T21:53:11.499Z"
-      },
-      {
-        "diagnostic_id": "67111cc3-0a91-4272-ac85-df571ee36ad5",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:01.2032392Z",
-        "received_at": "2026-09-28T21:53:01.114Z"
-      },
-      {
-        "diagnostic_id": "6616aa88-2399-440f-98e3-e6bab0af07df",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_state=down",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:56.1949985Z",
-        "received_at": "2026-09-28T21:52:56.201Z"
-      },
-      {
-        "diagnostic_id": "9371c321-bc70-4f2b-9679-f75997d6054b",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:00.0697211Z",
-        "received_at": "2026-09-28T21:52:52.889Z"
-      },
-      {
-        "diagnostic_id": "f13734fd-8d79-4726-9fb0-01e2d8d61377",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:59.1650185Z",
-        "received_at": "2026-09-28T21:52:51.979Z"
-      },
-      {
-        "diagnostic_id": "0a74940a-da28-436f-9cdd-8a2ff9ca7305",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:58.8077668Z",
-        "received_at": "2026-09-28T21:52:51.824Z"
-      },
-      {
-        "diagnostic_id": "01d76869-5760-4506-92e9-b592595debf9",
-        "device_id": "DRIZNET",
-        "level": "ERROR",
-        "phase": "runner-log",
-        "message": "2026-09-28T16:52:47 [ERROR] Job afcecf9d-a0c8-4cf5-941c-b6a40a2b2dfe finished with status failed\n2026-09-28T16:52:51 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:51.2014283Z",
-        "received_at": "2026-09-28T21:52:51.556Z"
       }
     ]
   },
@@ -764,6 +764,171 @@
     "ok": true,
     "diagnostics": [
       {
+        "diagnostic_id": "a46e4fbf-2963-4968-b776-ae469808d48b",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:17.5454841Z",
+        "received_at": "2026-09-28T21:54:10.363Z"
+      },
+      {
+        "diagnostic_id": "67764c05-1058-4e96-8795-32a42b420c2d",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.6793693Z",
+        "received_at": "2026-09-28T21:54:09.484Z"
+      },
+      {
+        "diagnostic_id": "2a8da260-0ad9-4a99-9c03-ec233c4f5c05",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.5687045Z",
+        "received_at": "2026-09-28T21:54:09.381Z"
+      },
+      {
+        "diagnostic_id": "7256e93a-5885-476e-83c3-68831f4b5601",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_bypassing_stale_restart_limit",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:54:16.4504009Z",
+        "received_at": "2026-09-28T21:54:09.271Z"
+      },
+      {
+        "diagnostic_id": "35cad231-0915-4e37-9733-56afe8ef1533",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:59.8454105Z",
+        "received_at": "2026-09-28T21:53:52.653Z"
+      },
+      {
+        "diagnostic_id": "e81df419-7dcf-4936-8608-4d44dca05c50",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:58.9787425Z",
+        "received_at": "2026-09-28T21:53:51.788Z"
+      },
+      {
+        "diagnostic_id": "941f827c-f986-476f-b4e4-8c4a27ccdb6e",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:58.8696872Z",
+        "received_at": "2026-09-28T21:53:51.683Z"
+      },
+      {
+        "diagnostic_id": "83cad230-cdfc-423b-89a9-08458e2bf684",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:49.9658989Z",
+        "received_at": "2026-09-28T21:53:49.857Z"
+      },
+      {
+        "diagnostic_id": "508893cb-e7b5-47a9-a56c-c6afd166f1f8",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:49.0892278Z",
+        "received_at": "2026-09-28T21:53:48.983Z"
+      },
+      {
+        "diagnostic_id": "20f71cb6-b5fb-49e4-a518-76aba589e47f",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:48.9749214Z",
+        "received_at": "2026-09-28T21:53:48.863Z"
+      },
+      {
+        "diagnostic_id": "a264e2b9-62f2-40b3-b8a1-385dd53b6ce3",
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:48.7287879Z",
+        "received_at": "2026-09-28T21:53:48.751Z"
+      },
+      {
+        "diagnostic_id": "9ae6995c-e112-4837-b4fe-e43649d77d8c",
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "message": "Running task repair-codex-org-identity [powershell] (quillgeist-lite/tasks/repair-codex-org-identity.ps1)",
+        "runner_alive": true,
+        "service_version": "1.10.0",
+        "timestamp": "2026-09-28T21:53:48.8323242Z",
+        "received_at": "2026-09-28T21:53:48.694Z"
+      },
+      {
+        "diagnostic_id": "3ba0a9d8-87cb-43a2-a126-a47877ca039d",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:40.0565481Z",
+        "received_at": "2026-09-28T21:53:32.880Z"
+      },
+      {
+        "diagnostic_id": "693a793b-ead8-4bcf-b8ec-bbd52d535142",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:39.1855908Z",
+        "received_at": "2026-09-28T21:53:32.000Z"
+      },
+      {
+        "diagnostic_id": "96f59b73-3896-434a-af4e-e59c3dfe37cd",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "runner_alive": false,
+        "service_version": "1.2.4",
+        "timestamp": "2026-09-28T21:53:38.8551197Z",
+        "received_at": "2026-09-28T21:53:31.893Z"
+      },
+      {
         "diagnostic_id": "18929bed-1150-4d7d-822b-63e7e479fa12",
         "device_id": "DRIZNET",
         "level": "INFO",
@@ -817,171 +982,6 @@
         "service_version": "1.10.0",
         "timestamp": "2026-09-28T21:53:19.9465758Z",
         "received_at": "2026-09-28T21:53:20.269Z"
-      },
-      {
-        "diagnostic_id": "489868c9-4123-4d48-a753-6c7adf2fd19d",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Runtime host: PowerShell 7.6.6 / Core.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:53:19.9318449Z",
-        "received_at": "2026-09-28T21:53:20.264Z"
-      },
-      {
-        "diagnostic_id": "bfc8d4f5-6718-4c6f-b2d2-d4a2ee405914",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Clintware Quillgeist Lite starting.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-09-28T21:53:19.8791667Z",
-        "received_at": "2026-09-28T21:53:20.264Z"
-      },
-      {
-        "diagnostic_id": "c0a48064-0a20-49e3-b008-945e72fce42b",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_probe",
-        "runner_alive": true,
-        "service_version": "runner",
-        "timestamp": "2026-09-28T21:53:20.0950907Z",
-        "received_at": "2026-09-28T21:53:20.038Z"
-      },
-      {
-        "diagnostic_id": "370847b3-99cb-4242-8c60-e8f54e405aad",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=INFO: scheduled task \"Clintware Quillgeist Lite Runner\" is currently running.\r\nSUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:20.0359543Z",
-        "received_at": "2026-09-28T21:53:13.068Z"
-      },
-      {
-        "diagnostic_id": "d495d6b2-c7f5-4f19-9060-16af17072d75",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:19.8375508Z",
-        "received_at": "2026-09-28T21:53:12.635Z"
-      },
-      {
-        "diagnostic_id": "7d19933f-dc69-47c2-b7b1-0b44ac820c27",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.8502784Z",
-        "received_at": "2026-09-28T21:53:11.919Z"
-      },
-      {
-        "diagnostic_id": "8ece40e2-3920-48ba-8e2e-b8b07926732e",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.9467098Z",
-        "received_at": "2026-09-28T21:53:11.722Z"
-      },
-      {
-        "diagnostic_id": "ea870c94-8243-40a5-acfb-9a6626e7cfc2",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.8281981Z",
-        "received_at": "2026-09-28T21:53:11.596Z"
-      },
-      {
-        "diagnostic_id": "c9eaec6f-fde9-4e9e-a199-ffa8d50fd566",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:18.4904722Z",
-        "received_at": "2026-09-28T21:53:11.499Z"
-      },
-      {
-        "diagnostic_id": "67111cc3-0a91-4272-ac85-df571ee36ad5",
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_state=alive",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:01.2032392Z",
-        "received_at": "2026-09-28T21:53:01.114Z"
-      },
-      {
-        "diagnostic_id": "6616aa88-2399-440f-98e3-e6bab0af07df",
-        "device_id": "DRIZNET",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_state=down",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:56.1949985Z",
-        "received_at": "2026-09-28T21:52:56.201Z"
-      },
-      {
-        "diagnostic_id": "9371c321-bc70-4f2b-9679-f75997d6054b",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:53:00.0697211Z",
-        "received_at": "2026-09-28T21:52:52.889Z"
-      },
-      {
-        "diagnostic_id": "f13734fd-8d79-4726-9fb0-01e2d8d61377",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:59.1650185Z",
-        "received_at": "2026-09-28T21:52:51.979Z"
-      },
-      {
-        "diagnostic_id": "0a74940a-da28-436f-9cdd-8a2ff9ca7305",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:58.8077668Z",
-        "received_at": "2026-09-28T21:52:51.824Z"
-      },
-      {
-        "diagnostic_id": "01d76869-5760-4506-92e9-b592595debf9",
-        "device_id": "DRIZNET",
-        "level": "ERROR",
-        "phase": "runner-log",
-        "message": "2026-09-28T16:52:47 [ERROR] Job afcecf9d-a0c8-4cf5-941c-b6a40a2b2dfe finished with status failed\n2026-09-28T16:52:51 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "runner_alive": true,
-        "service_version": "1.2.4",
-        "timestamp": "2026-09-28T21:52:51.2014283Z",
-        "received_at": "2026-09-28T21:52:51.556Z"
       }
     ]
   },
