@@ -1,31 +1,15 @@
 {
-  "request_id": "memoria-independent-recovery-20260928-2056",
-  "job_id": "3f71223f-c784-4a59-a945-5661b614169b",
-  "task_id": "finish-local-ai",
+  "request_id": "memoria-linkage-update-20260928-2102",
+  "job_id": "fe27fc53-b3ae-40fc-8f5f-a5c89c52bda0",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 0,
+  "duration_ms": 16171,
   "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-snapshot",
-  "confirmed_at": "2026-09-28T20:54:37.1666603Z",
-  "recorded_at": 1790628870,
-  "recovery_history": [
-    {
-      "task": "self-update",
-      "job_id": "9bc6991c-4a59-47d4-bd02-f1c86e3a189c",
-      "status": "passed",
-      "exit_code": 0,
-      "transport": "websocket-event"
-    },
-    {
-      "task": "finish-local-ai",
-      "job_id": "3f71223f-c784-4a59-a945-5661b614169b",
-      "status": "failed",
-      "exit_code": 1,
-      "transport": "websocket-snapshot",
-      "retry": true
-    }
-  ],
-  "output_tail": "Could not refresh reviewed finish-local-ai source from Clintware: Reviewed task source failed structural validation."
+  "confirmation_transport": "websocket-event",
+  "confirmed_at": "2026-09-28T21:00:05.9641646Z",
+  "recorded_at": 1790629198,
+  "recovery_history": [],
+  "output_tail": "[run] \u001b[31;1mException: \u001b[0mC:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\restore-runtime.ps1:165\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m 165 | \u001b[0m \u2026 rors.Count) { \u001b[36;1mthrow \"Invalid PowerShell task source: $($task.Name)\"\u001b[0m }\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mInvalid PowerShell task source: local-ai-integrate\u001b[0m"
 }
