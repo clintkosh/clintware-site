@@ -286,19 +286,30 @@ jobs:
           delegated=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors https://auth.clintware.com/delegated/google/status)
           echo "$delegated" | grep -Fq '"connected":'
           echo "Delegated Google grant endpoint is live."
-          rm -f /tmp/google-delegated-start.headers
-          curl -sS -o /dev/null -D /tmp/google-delegated-start.headers https://auth.clintware.com/delegated/google/start
-          delegated_status=$(awk 'NR==1{print $2}' /tmp/google-delegated-start.headers)
+          disclosure=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/delegated/google/start)
+          echo "$disclosure" | grep -Fq 'Connect Google to Clintware'
+          echo "$disclosure" | grep -Fq 'Continue to Google'
+          echo "$disclosure" | grep -Fq 'core delegated connection does not read your Gmail inbox'
+          echo "Delegated Google disclosure page verified."
+
+          rm -f /tmp/google-delegated-confirm.headers
+          curl -sS -o /dev/null -D /tmp/google-delegated-confirm.headers 'https://auth.clintware.com/delegated/google/start?confirm=1'
+          delegated_status=$(awk 'NR==1{print $2}' /tmp/google-delegated-confirm.headers)
           test "$delegated_status" = "302"
-          delegated_location=$(awk 'BEGIN{IGNORECASE=1}/^location:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' /tmp/google-delegated-start.headers)
+          delegated_location=$(awk 'BEGIN{IGNORECASE=1}/^location:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' /tmp/google-delegated-confirm.headers)
           echo "$delegated_location" | grep -Eq '^https://accounts\.google\.com/'
           echo "$delegated_location" | grep -Fq 'access_type=offline'
           echo "$delegated_location" | grep -Fq 'code_challenge='
-          echo "$delegated_location" | grep -Eq 'calendar(\.events|\.freebusy|\.readonly|%2Fcalendar)'
-          echo "$delegated_location" | grep -Eq 'gmail(\.send|\.readonly|%2Fgmail)'
-          cc_handoff=$(curl -sS -o /dev/null -D - 'https://auth.clintware.com/delegated/google/start?return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected')
+          echo "$delegated_location" | grep -Eq 'calendar\.events|calendar%2Eevents|calendar%2Fevents'
+          echo "$delegated_location" | grep -Eq 'calendar\.freebusy|calendar%2Efreebusy|calendar%2Ffreebusy'
+          echo "$delegated_location" | grep -Eq 'gmail\.send|gmail%2Esend|gmail%2Fsend'
+          if echo "$delegated_location" | grep -Eq 'gmail\.readonly|calendar\.readonly|readonly'; then
+            echo "Delegated Google authorization still requests an unnecessary readonly scope." >&2
+            exit 1
+          fi
+          cc_handoff=$(curl -sS -o /dev/null -D - 'https://auth.clintware.com/delegated/google/start?confirm=1&return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected')
           echo "$cc_handoff" | grep -Eqi '^location: https://accounts\.google\.com'
-          echo "One-click delegated Google consent handoff verified, including CC return binding."
+          echo "Disclosure-first delegated Google consent handoff verified, including minimized scopes and CC return binding."
 
       - name: Verify central first-party Clintware client
         shell: bash
