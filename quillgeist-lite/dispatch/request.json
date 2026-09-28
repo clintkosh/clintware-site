@@ -1,7 +1,4 @@
 {
-  "request_id": "qq-wake-driznet-edge-20260928",
-  "task_id": "restart-window",
-  "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Wake the DRIZNET Quillgeist Lite runner so a new tab can be opened in the user's existing Microsoft Edge session."
+  "request_id": "inspect-driznet-wake-20260928",
+  "mode": "inspect"
 }
