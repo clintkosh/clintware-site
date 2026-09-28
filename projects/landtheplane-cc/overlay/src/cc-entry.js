@@ -189,9 +189,12 @@ async function googleAccess(env){
   const r=await fetch(GOOGLE_TOKEN_URL,{method:"POST",headers:{"x-clintware-google-secret":secret,"content-type":"application/json"}});
   const x=await r.json().catch(()=>({}));
   if(!r.ok||!x.access_token)return {ok:false,status:r.status,error:x.error||"google_access_unavailable"};
+  const evidenceEmail=String(x.email||"").toLowerCase();
+  const allowedEvidenceEmail=evidenceEmail==="clint.kosh@gmail.com"||evidenceEmail.endsWith("@clintware.com");
+  if(!allowedEvidenceEmail)return {ok:false,status:428,error:"google_evidence_account_not_allowed",email:evidenceEmail};
   const granted=String(x.scope||"").split(/\s+/).filter(Boolean),missing=REQUIRED_GOOGLE_SCOPES.filter(s=>!granted.includes(s));
-  if(missing.length)return {ok:false,status:428,error:"google_reauthorization_required",missing};
-  return {ok:true,token:x.access_token,scope:granted};
+  if(missing.length)return {ok:false,status:428,error:"google_reauthorization_required",missing,email:evidenceEmail};
+  return {ok:true,token:x.access_token,scope:granted,email:evidenceEmail};
 }
 async function gfetch(token,url){
   const r=await fetch(url,{headers:{authorization:"Bearer "+token,accept:"application/json"}});
@@ -336,7 +339,7 @@ export default {
     }
     if(u.pathname==="/api/google/status"){
       const access=await googleAccess(env);
-      return j({connected:access.ok,reauthorizationRequired:access.error==="google_reauthorization_required"||access.error==="google_delegated_grant_missing",error:access.ok?null:access.error,missing:access.missing||[],connectUrl:GOOGLE_CONNECT_URL});
+      return j({connected:access.ok,reauthorizationRequired:["google_reauthorization_required","google_delegated_grant_missing","google_evidence_account_not_allowed"].includes(access.error),error:access.ok?null:access.error,email:access.email||"",missing:access.missing||[],connectUrl:GOOGLE_CONNECT_URL});
     }
     if(u.pathname==="/api/google/connect")return redirect(GOOGLE_CONNECT_URL);
     if(u.pathname==="/api/google/sync"&&req.method==="POST")return syncGoogle(req,env,ctx);
