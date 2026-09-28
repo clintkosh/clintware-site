@@ -1,9 +1,9 @@
 {
-  "request_id": "qq-recovery-v3-20260928",
-  "mode": "rollout",
-  "task_id": "self-update",
+  "request_id": "qq-memoria-restart-20260928",
+  "task_id": "restart-window",
+  "target_device": "MEMORIA",
   "args": {},
-  "resume_after": true,
+  "resume_after": false,
   "verify_seconds": 360,
-  "objective": "Install the deployed pinned QQ recovery runtime on each registered device. Validate the complete task bundle before reconnecting, preserve credentials and focus-safe startup, and resume work only after that device's update passes. Return separate per-device execution evidence."
+  "objective": "Restart only MEMORIA's supervised QQ runner through the existing hidden launch task so its freshly installed launcher and recovery runtime can load. Preserve credentials, queued work, and no-focus defaults."
 }
