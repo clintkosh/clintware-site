@@ -1,8 +1,9 @@
 {
-  "request_id": "memoria-validated-update-20260928-2107",
-  "task_id": "self-update",
+  "request_id": "memoria-recovery-with-linkage-20260928-2110",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
-  "resume_after": true,
-  "args": {},
-  "objective": "Install corrected revision 0a701a7 on MEMORIA; all PowerShell tasks now pass Windows parsing. Preserve enrollment and local data."
+  "args": {
+    "MaxPasses": "1"
+  },
+  "objective": "Run installed recovery with reviewed BitNet linkage patch and packaged gateway fix; preserve original data, start only existing Immich, and report actual service failures."
 }
