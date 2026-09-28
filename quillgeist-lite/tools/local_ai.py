@@ -374,6 +374,11 @@ def diagnostics():
                     item["error_categories"] = [p for p in patterns if p.lower() in logs.lower()]
                     item["safe_error_details"] = re.findall(
                         r"(?:KeyError: '[A-Za-z0-9_. -]{1,60}'|No module named '[A-Za-z0-9_.-]{1,80}'|Can't locate revision identified by '[A-Za-z0-9_-]{1,80}'|[A-Za-z]+Error: (?:attempt to write a readonly database|database is locked|database disk image is malformed|unable to open database file))", logs)[-8:]
+                    # Capture exception classes and filesystem paths, never full log messages.
+                    item["exception_types"] = sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)):", logs)))
+                    item["filesystem_failures"] = re.findall(r"(?:EROFS|EACCES|ENOENT): [^\r\n]{0,120}?(?:open|mkdir|chmod|chown|scandir|rename) ['\"]([/A-Za-z0-9_. -]{1,160})['\"]", logs)[-8:]
+                    item["errno_numbers"] = sorted(set(re.findall(r"\[Errno (\d+)\]", logs)))
+                    item["db_error_categories"] = [p for p in ("no such table", "no such column", "already exists", "duplicate column", "unable to open", "readonly", "read-only", "not a database", "malformed", "disk I/O", "PermissionError", "FileNotFoundError") if p.lower() in logs.lower()]
                     if name == "n8n-local":
                         try:
                             config_path = Path(r"F:\AI-Data\Docker\n8n\config")
@@ -399,6 +404,14 @@ def diagnostics():
     for folder in (root, root / "scripts"):
         if folder.is_dir():
             result["launchers"].extend(str(p) for p in list(folder.iterdir())[:100] if p.is_file() and p.suffix.lower() in {".ps1", ".bat", ".cmd"})
+    result["data_directories"] = []
+    for folder in (Path(r"F:\AI-Data\Docker\n8n"), Path(r"F:\AI-Data\Docker\open-webui"), Path(r"F:\AI-Data\Backups"), Path(r"F:\AI-Data\Immich")):
+        row = {"path": str(folder), "exists": folder.exists()}
+        if folder.is_dir():
+            row["entries"] = [{"name": p.name, "directory": p.is_dir(), "size": p.stat().st_size,
+                               "attributes": getattr(p.stat(), "st_file_attributes", None)}
+                              for p in list(folder.iterdir())[:40] if not p.is_symlink()]
+        result["data_directories"].append(row)
     home = Path(os.environ.get("LOCALAPPDATA", "")) / "Clintware" / "QuillgeistLite"
     result["qq_pid_evidence"] = {}
     for label, path in (("user_pid", home / "runner.pid"), ("heartbeat", home / "runner-heartbeat.json")):

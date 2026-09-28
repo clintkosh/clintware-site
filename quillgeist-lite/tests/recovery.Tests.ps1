@@ -33,8 +33,8 @@ try {
     $RuntimeRoot=Join-Path $fixture 'runtime'
     $RegistryPath=Join-Path $fixture 'tasks.json'
     $bundle=Join-Path $RuntimeRoot 'quillgeist-lite'
-    New-Item -ItemType Directory -Path (Join-Path $bundle 'tasks'),(Join-Path $bundle 'service') -Force | Out-Null
-    foreach($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1')) {
+    New-Item -ItemType Directory -Path (Join-Path $bundle 'tasks'),(Join-Path $bundle 'service'),(Join-Path $bundle 'tools') -Force | Out-Null
+    foreach($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
         Set-Content -LiteralPath (Join-Path $bundle $relative) -Value 'fixture'
     }
     $registry=@{version=1;tasks=@{doctor=@{script='quillgeist-lite/tasks/doctor.ps1'}}}|ConvertTo-Json -Depth 5
@@ -43,6 +43,9 @@ try {
     Assert-Throws {Test-RuntimeBundle $RuntimeRoot} 'Missing task source'
     Assert-Throws {Get-Registry} 'restore the reviewed bundle before connecting'
     Set-Content -LiteralPath (Join-Path $bundle 'tasks/doctor.ps1') -Value 'fixture'
+    Remove-Item (Join-Path $bundle 'tools/local_ai_parity_check.py')
+    Assert-Throws {Test-RuntimeBundle $RuntimeRoot} 'Missing runtime source'
+    Set-Content (Join-Path $bundle 'tools/local_ai_parity_check.py') 'fixture'
     Test-RuntimeBundle $RuntimeRoot
     if ((Get-Registry).version -ne 1) { throw 'Complete registry rejected' }
     $RunnerHeartbeatStaleSeconds=90
