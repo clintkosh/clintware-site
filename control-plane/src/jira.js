@@ -2,7 +2,7 @@ const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const API_ORIGIN = "https://api.atlassian.com";
 const CALLBACK_URL = "https://mcp.clintware.com/api/v1/jira/oauth/callback";
-const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "manage:jira-configuration", "read:board-scope:jira-software", "write:board-scope:jira-software", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "write:confluence-space", "offline_access"];
+const SCOPES = ["read:jira-work", "read:jira-user", "write:jira-work", "manage:jira-configuration", "read:board-scope:jira-software", "write:board-scope:jira-software", "read:sprint:jira-software", "write:sprint:jira-software", "read:confluence-content.all", "write:confluence-content", "read:confluence-space.summary", "write:confluence-space", "offline_access"];
 const STATE_TTL_MS = 10 * 60 * 1000;
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -377,6 +377,13 @@ export async function jiraEnsureSprint(env,{cloud_id,board_id,name,goal="",start
   const r=await callJiraSoftware(env,{cloud_id,method:"POST",path:"sprint",body});
   return r.ok?{ok:true,site:r.site,sprint:r.data,operation:"created"}:r;
 }
+export async function jiraAddIssuesToSprint(env,{cloud_id,sprint_id,issue_keys}={}) {
+  const issues=(Array.isArray(issue_keys)?issue_keys:[]).map(String).filter(Boolean).slice(0,50);
+  if(!sprint_id||!issues.length)return{ok:false,error:"jira_sprint_and_issue_keys_required"};
+  const r=await callJiraSoftware(env,{cloud_id,method:"POST",path:`sprint/${encodeURIComponent(sprint_id)}/issue`,body:{issues}});
+  return r.ok?{ok:true,site:r.site,sprint_id:String(sprint_id),issues,status:r.status}:r;
+}
+
 export async function jiraEnsureDashboard(env,{cloud_id,name,description=""}={}) {
   name=String(name||"").trim().slice(0,255);
   if(!name)return{ok:false,error:"jira_dashboard_name_required"};
