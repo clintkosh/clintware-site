@@ -367,8 +367,25 @@ def diagnostics():
                                 "database is locked", "permission denied", "no such file",
                                 "encryption key", "migration", "disk I/O", "read-only",
                                 "ModuleNotFoundError", "OperationalError", "Traceback",
-                                "ENOSPC", "out of memory", "connection refused"]
+                                "ENOSPC", "EROFS", "out of memory", "connection refused",
+                                "Mismatching encryption keys", "read only property", "Cannot assign",
+                                "Can\'t locate revision", "No module named", "ValueError", "KeyError",
+                                "AttributeError", "TypeError", "ImportError", "RuntimeError"]
                     item["error_categories"] = [p for p in patterns if p.lower() in logs.lower()]
+                    item["safe_error_details"] = re.findall(
+                        r"(?:KeyError: '[A-Za-z0-9_. -]{1,60}'|No module named '[A-Za-z0-9_.-]{1,80}'|Can't locate revision identified by '[A-Za-z0-9_-]{1,80}'|[A-Za-z]+Error: (?:attempt to write a readonly database|database is locked|database disk image is malformed|unable to open database file))", logs)[-8:]
+                    if name == "n8n-local":
+                        try:
+                            config_path = Path(r"F:\AI-Data\Docker\n8n\config")
+                            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
+                            rc, raw_env = run([docker, "inspect", "--format", "{{json .Config.Env}}", row["ID"]], 10)
+                            env = dict(x.split("=", 1) for x in json.loads(raw_env) if "=" in x) if rc == 0 else {}
+                            disk_key = config.get("encryptionKey", "")
+                            env_key = env.get("N8N_ENCRYPTION_KEY", "")
+                            item["key_state"] = {"config_key_present": bool(disk_key), "environment_key_present": bool(env_key),
+                                                 "keys_match": disk_key == env_key if disk_key and env_key else None}
+                        except (OSError, ValueError):
+                            item["key_state"] = {"config_readable": False}
                 result["containers"].append(item)
         rc, volumes = run([docker, "volume", "ls", "--format", "{{.Name}}"], 10)
         result["immich_volume_names"] = [v for v in volumes.splitlines() if "immich" in v.lower()] if rc == 0 else []
@@ -382,6 +399,30 @@ def diagnostics():
     for folder in (root, root / "scripts"):
         if folder.is_dir():
             result["launchers"].extend(str(p) for p in list(folder.iterdir())[:100] if p.is_file() and p.suffix.lower() in {".ps1", ".bat", ".cmd"})
+    home = Path(os.environ.get("LOCALAPPDATA", "")) / "Clintware" / "QuillgeistLite"
+    result["qq_pid_evidence"] = {}
+    for label, path in (("user_pid", home / "runner.pid"), ("heartbeat", home / "runner-heartbeat.json")):
+        try:
+            raw = path.read_text(encoding="utf-8-sig")
+            value = json.loads(raw)
+            result["qq_pid_evidence"][label] = value if isinstance(value, int) else {k: value.get(k) for k in ("pid", "state", "timestamp")}
+        except (OSError, ValueError):
+            result["qq_pid_evidence"][label] = None
+    try:
+        service = json.loads((Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "Clintware" / "QuillgeistLite" / "service.json").read_text(encoding="utf-8-sig"))
+        result["qq_pid_evidence"]["service_pid_path"] = service.get("RunnerPidPath")
+    except (OSError, ValueError):
+        pass
+    result["launcher_dependencies"] = []
+    for relative in ("START-MEDIA-AGENT.bat", "START-WEB-SEARCH-AGENT.bat", "scripts/Start-ComfyUI-Logged.ps1", "Start-LocalAI-Orchestrator.ps1"):
+        file = root / relative
+        try:
+            source = file.read_text(encoding="utf-8-sig", errors="replace")
+            result["launcher_dependencies"].append({"file": relative, "excluded_drive_reference": bool(re.search(r"(?i)(D:\\|D:/|/mnt/d/)", source)),
+                "python_scripts": re.findall(r"[A-Za-z0-9_./\\:-]+\.py\b", source),
+                "script_paths": re.findall(r"[A-Za-z]:[\\/][A-Za-z0-9_ ./\\-]+\.(?:ps1|bat|exe)\b", source)})
+        except OSError:
+            pass
     return result
 
 
