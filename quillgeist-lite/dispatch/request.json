@@ -1,5 +1,5 @@
 {
-  "request_id": "qq-refresh-driznet-edge-task-20260928",
+  "request_id": "qq-refresh-driznet-edge-task-retry-20260928",
   "task_id": "self-update",
   "target_device": "DRIZNET",
   "args": {},
