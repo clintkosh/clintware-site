@@ -1,7 +1,7 @@
 {
-  "request_id": "chatgpt-driznet-codex-org-repair-afterhomefix-20260928-1712",
+  "request_id": "chatgpt-driznet-codex-org-repair-livebody-20260928-1714",
   "task_id": "repair-codex-org-identity",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Repair Codex CLI and app authentication on DRIZNET only after the invalid CODEX_HOME fix. Preserve unrelated browser and Windows credentials. Keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false; do not enroll or join the PC to Entra/MDM. Open only normal user-controlled browser/terminal authentication surfaces."
+  "objective": "Repair Codex CLI/auth on DRIZNET using the verified live task body. Replace only the invalid per-user CODEX_HOME if needed, preserve unrelated credentials/sessions, and keep AzureAdJoined, EnterpriseJoined, and WorkplaceJoined false. Do not enroll or join this PC to Entra/MDM."
 }
