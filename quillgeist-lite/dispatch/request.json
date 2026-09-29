@@ -1,14 +1,14 @@
 {
-  "request_id": "driznet-smspc-inspect-discovery-20260929",
+  "request_id": "driznet-smspc-inspect-discovery-2-20260929",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
     "Action": "run",
     "Url": "https://smspc.clintware.com",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"click\",\"text\":\"Outcome Discovery\",\"exact\":true},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"}]}",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"discovery\\\"]\"},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"}]}",
     "Approved": "false",
     "Headless": "true",
     "WaitMs": "450"
   },
-  "objective": "Inspect the live SimSpace CRM after entering the Outcome Discovery operating track so we can exercise real stakeholder/action/KPI/meeting controls rather than assume selectors."
+  "objective": "On DRIZNET, enter the live SimSpace Outcome Discovery track using its exact reviewed selector and return the post-selection interactive controls for mutation smoke testing."
 }
