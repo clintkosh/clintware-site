@@ -40,7 +40,7 @@ jobs:
           grep -Fq 'const APP_ID="nsm-cs-os"' src/index.js
           grep -Fq 'const WORKSPACE_ID="nsm-norseman-demo"' src/index.js
           grep -Fq 'idFromName("nsm-cs-main")' src/index.js
-          grep -Fq 'SAMPLE_SEED_VERSION=2' src/sample-customers.js
+          grep -Fq 'SAMPLE_SEED_VERSION=3' src/sample-customers.js
           grep -Fq 'Aegis Federal Programs' src/index.js
           grep -Fq 'INC0012847' src/index.js
           grep -Fq 'NSM // SERVICE OUTCOMES' public/nsm.js
