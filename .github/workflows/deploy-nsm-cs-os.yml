@@ -35,12 +35,15 @@ jobs:
           grep -Fq 'const APP_ID="nsm-cs-os"' src/index.js
           grep -Fq 'const WORKSPACE_ID="nsm-norseman-demo"' src/index.js
           grep -Fq 'idFromName("nsm-cs-main")' src/index.js
-          grep -Fq 'SAMPLE_SEED_VERSION=1' src/sample-customers.js
+          grep -Fq 'SAMPLE_SEED_VERSION=2' src/sample-customers.js
           grep -Fq 'Aegis Federal Programs' src/index.js
           grep -Fq 'INC0012847' src/index.js
           grep -Fq 'NSM // SERVICE OUTCOMES' public/nsm.js
           grep -Fq 'ServiceNow compatibility' public/nsm.js
           grep -Fq 'Architect Handoff' public/nsm.js
+          grep -Fq 'Account Workspace' public/nsm.js
+          grep -Fq 'Download PDF' public/nsm.js
+          grep -Fq 'pdfBlob' public/nsm.js
           ! grep -Rqi '<img' public
           npx wrangler deploy --dry-run
       - name: Deploy Worker
@@ -80,6 +83,19 @@ jobs:
           assert d['customer']['name'] == 'Aegis Federal Programs'
           names={c['name'] for c in d['customers']}
           assert {'Harborview Health System','Liberty State University','Ironclad Financial Cooperative','Falcon Mission Logistics'} <= names
+          harbor=next(c for c in d['customers'] if c['name']=='Harborview Health System')
+          print(harbor['id'])
+          PY
+          harbor_id=$(python3 -c 'import json; d=json.load(open("/tmp/nsm-state.json")); print(next(c["id"] for c in d["customers"] if c["name"]=="Harborview Health System"))')
+          curl -fsS -b /tmp/nsm.cookies "$base/api/state?customer=$harbor_id" >/tmp/nsm-harbor.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/nsm-harbor.json'))
+          types=[r['type'] for r in d['records']]
+          assert types.count('stakeholder') >= 3, types
+          assert types.count('kpi') >= 3, types
+          assert 'incident' in types and 'problem' in types and 'change' in types
+          assert 'success_play' in types and 'license' in types
           PY
           headers=$(curl -fsS -D - -o /dev/null "$base/")
           grep -Fqi 'strict-transport-security:' <<< "$headers"
