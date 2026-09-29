@@ -171,10 +171,124 @@ if (-not (Test-Path $Model)) {
 }
 if (-not (Test-Path $Model)) { throw "Expected BitNet GGUF was not found after model setup." }
 
-Log "Building official BitNet Windows runtime"
+Log "Building official BitNet Windows runtime with QQ progress supervision"
 $cmd = 'call "' + $vs + '" -startdir=none -arch=x64 -host_arch=x64 && cd /d "' + $Root + '" && "' + $VenvPy + '" setup_env.py -md "' + $ModelDir + '" -q i2_s'
-& cmd.exe /d /s /c $cmd
-if ($LASTEXITCODE -ne 0) { throw "BitNet build failed: $LASTEXITCODE" }
+$ProgressDir = Join-Path $Root ".qq-progress"
+$Checkpoint = Join-Path $ProgressDir "bitnet-setup.json"
+$BuildStdout = Join-Path $ProgressDir "bitnet-build.stdout.log"
+$BuildStderr = Join-Path $ProgressDir "bitnet-build.stderr.log"
+New-Item -ItemType Directory -Force -Path $ProgressDir | Out-Null
+
+function Get-BuildEvidence {
+  $buildRoot = Join-Path $Root "build"
+  $files = @()
+  if (Test-Path $buildRoot) {
+    $files = @(Get-ChildItem -LiteralPath $buildRoot -File -Recurse -ErrorAction SilentlyContinue)
+  }
+  $newest = $null
+  if ($files.Count -gt 0) {
+    $newest = ($files | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc
+  }
+  $stdoutBytes = if (Test-Path $BuildStdout) { (Get-Item $BuildStdout).Length } else { 0 }
+  $stderrBytes = if (Test-Path $BuildStderr) { (Get-Item $BuildStderr).Length } else { 0 }
+  [pscustomobject]@{
+    file_count = [int]$files.Count
+    total_bytes = [int64](($files | Measure-Object Length -Sum).Sum)
+    newest_file_utc = if ($newest) { $newest.ToString("o") } else { $null }
+    stdout_bytes = [int64]$stdoutBytes
+    stderr_bytes = [int64]$stderrBytes
+  }
+}
+
+function Write-Checkpoint([string]$Stage,[string]$State,[int]$Attempt,[object]$Evidence,[string]$Detail) {
+  $payload = [ordered]@{
+    stage = $Stage
+    state = $State
+    attempt = $Attempt
+    updated_utc = (Get-Date).ToUniversalTime().ToString("o")
+    root = $Root
+    evidence = $Evidence
+    detail = $Detail
+  }
+  $payload | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $Checkpoint -Encoding UTF8
+  Log ("PROGRESS // stage=" + $Stage + " state=" + $State + " attempt=" + $Attempt +
+       " files=" + $Evidence.file_count + " bytes=" + $Evidence.total_bytes +
+       " stdout=" + $Evidence.stdout_bytes + " stderr=" + $Evidence.stderr_bytes)
+}
+
+$maxAttempts = 2
+$stallSeconds = 600
+$buildSucceeded = $false
+for ($attempt = 1; $attempt -le $maxAttempts -and -not $buildSucceeded; $attempt++) {
+  if ($attempt -gt 1) {
+    Log "AUTO-REPAIR // retrying the same incremental BitNet build from existing CMake state"
+  }
+
+  Remove-Item -LiteralPath $BuildStdout,$BuildStderr -Force -ErrorAction SilentlyContinue
+  $before = Get-BuildEvidence
+  Write-Checkpoint "build" "starting" $attempt $before "Launching supervised CMake build"
+
+  $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @("/d","/s","/c",$cmd) -PassThru -WindowStyle Hidden -RedirectStandardOutput $BuildStdout -RedirectStandardError $BuildStderr
+  $lastEvidence = $before
+  $lastCpu = 0.0
+  $lastProgress = Get-Date
+  $hung = $false
+
+  while (-not $proc.HasExited) {
+    Start-Sleep -Seconds 15
+    try { $proc.Refresh() } catch {}
+    $ev = Get-BuildEvidence
+    $cpu = 0.0
+    try { $cpu = [double](Get-Process -Id $proc.Id -ErrorAction Stop).CPU } catch {}
+
+    $changed = (
+      $ev.file_count -ne $lastEvidence.file_count -or
+      $ev.total_bytes -ne $lastEvidence.total_bytes -or
+      $ev.stdout_bytes -ne $lastEvidence.stdout_bytes -or
+      $ev.stderr_bytes -ne $lastEvidence.stderr_bytes -or
+      $ev.newest_file_utc -ne $lastEvidence.newest_file_utc -or
+      ($cpu - $lastCpu) -ge 0.25
+    )
+
+    if ($changed) {
+      $lastProgress = Get-Date
+      $lastEvidence = $ev
+      $lastCpu = $cpu
+      Write-Checkpoint "build" "running" $attempt $ev ("cpu_seconds=" + [math]::Round($cpu,2))
+    } elseif (((Get-Date) - $lastProgress).TotalSeconds -ge $stallSeconds) {
+      $hung = $true
+      Write-Checkpoint "build" "stalled" $attempt $ev ("No file/log/CPU movement for " + $stallSeconds + " seconds")
+      Log ("AUTO-REPAIR // build appears stalled: no measurable progress for " + $stallSeconds + " seconds")
+      try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+      Start-Sleep -Seconds 2
+      break
+    }
+  }
+
+  try { $proc.Refresh() } catch {}
+  $exitCode = if ($hung) { 124 } else { $proc.ExitCode }
+  $finalEv = Get-BuildEvidence
+
+  if (-not $hung -and $exitCode -eq 0) {
+    Write-Checkpoint "build" "passed" $attempt $finalEv "CMake build completed"
+    $buildSucceeded = $true
+    break
+  }
+
+  Write-Checkpoint "build" "repairing" $attempt $finalEv ("exit_code=" + $exitCode)
+  if ($attempt -lt $maxAttempts) {
+    Log "AUTO-REPAIR // preserving build outputs and resuming incrementally"
+    Start-Sleep -Seconds 3
+  } else {
+    $tail = ""
+    if (Test-Path $BuildStderr) {
+      $tail = ((Get-Content -LiteralPath $BuildStderr -Tail 80 -ErrorAction SilentlyContinue) -join [Environment]::NewLine)
+    }
+    throw ("BitNet build failed after supervised resume attempts. exit=" + $exitCode + [Environment]::NewLine + $tail)
+  }
+}
+
+if (-not $buildSucceeded) { throw "BitNet build did not reach a verified successful exit." }
 
 [Environment]::SetEnvironmentVariable("QUILLGEIST_BITNET_HOME",$Root,"User")
 $env:QUILLGEIST_BITNET_HOME = $Root
