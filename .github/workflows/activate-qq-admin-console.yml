@@ -36,31 +36,12 @@ jobs:
       - name: Wait for reviewed qq Control Plane build
         run: |
           set -euo pipefail
-          expected=$(python3 - <<'PY'
-import re
-text=open("control-plane/src/index.js",encoding="utf-8").read()
-m=re.search(r'const QUILLGEIST_RUNTIME_VERSION = "([^"]+)"',text)
-if not m:
-    raise SystemExit("runtime version marker missing")
-print(m.group(1))
-PY
-          )
+          expected=$(python3 -c 'import re; t=open("control-plane/src/index.js",encoding="utf-8").read(); m=re.search(r"const QUILLGEIST_RUNTIME_VERSION = \"([^\"]+)\"",t); print(m.group(1) if m else (_ for _ in ()).throw(RuntimeError("runtime version marker missing")))')
           ready=0
           for i in $(seq 1 60); do
             health=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
             runtime=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version || true)
-            if HEALTH="$health" RUNTIME="$runtime" EXPECTED="$expected" python3 - <<'PY'
-import json,os,sys
-try:
-    health=json.loads(os.environ.get("HEALTH","{}"))
-    runtime=json.loads(os.environ.get("RUNTIME","{}"))
-except Exception:
-    raise SystemExit(1)
-ok=(health.get("ok") is True and health.get("service")=="Clintware Control Plane"
-    and "quillgeist-lite" in (health.get("products") or [])
-    and runtime.get("runtime_version")==os.environ.get("EXPECTED"))
-raise SystemExit(0 if ok else 1)
-PY
+            if HEALTH="$health" RUNTIME="$runtime" EXPECTED="$expected" python3 -c 'import json,os,sys; h=json.loads(os.environ.get("HEALTH","{}")); r=json.loads(os.environ.get("RUNTIME","{}")); ok=(h.get("ok") is True and h.get("service")=="Clintware Control Plane" and "quillgeist-lite" in (h.get("products") or []) and r.get("runtime_version")==os.environ.get("EXPECTED")); sys.exit(0 if ok else 1)'
             then
               echo "CONTROL_PLANE_READY runtime=$expected"
               ready=1
@@ -125,17 +106,7 @@ PY
             -H "Content-Type: application/json" \
             --data '{"task_id":"self-update","args":{},"objective":"Refresh each registered qq device from the reviewed runtime; preserve active work and resume queued work after reconnect.","resume_after":true}')
           echo "$response"
-          RESPONSE="$response" python3 - <<'PY'
-import json, os, sys
-data=json.loads(os.environ["RESPONSE"])
-if not data.get("ok"):
-    raise SystemExit("qq rollout was not accepted")
-jobs=data.get("jobs") or []
-for row in jobs:
-    print("QQ_ROLLOUT", row.get("target_device"), row.get("job_id"), "queued" if row.get("ok") else row.get("error"))
-if not any(row.get("ok") for row in jobs):
-    raise SystemExit("qq rollout queued no device jobs")
-PY
+          RESPONSE="$response" python3 -c 'import json,os,sys; d=json.loads(os.environ["RESPONSE"]); jobs=d.get("jobs") or []; [print("QQ_ROLLOUT",x.get("target_device"),x.get("job_id"),"queued" if x.get("ok") else x.get("error")) for x in jobs]; sys.exit(0 if d.get("ok") and any(x.get("ok") for x in jobs) else 1)'
 
       - name: Install and enable qq responder agent
         if: github.event_name == 'workflow_dispatch'
