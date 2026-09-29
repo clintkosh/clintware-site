@@ -4,7 +4,7 @@ param(
   [string]$Action = "check",
   [string]$Project = "bm-crm",
   [string]$Manifest = "",
-  [switch]$SkipInstall
+  [bool]$SkipInstall = $false
 )
 
 $ErrorActionPreference = "Stop"
