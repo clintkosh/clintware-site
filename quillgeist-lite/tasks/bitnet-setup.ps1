@@ -125,7 +125,21 @@ if ($LASTEXITCODE -ne 0) {
   & $git -C $llamaRoot apply $fix
   if ($LASTEXITCODE -ne 0) { throw "I2_S linkage repair failed." }
 }
-Log "I2_S symbols available to ggml-base"
+# The relocated symbols cross the ggml-base DLL boundary on Windows.
+$header = Join-Path $llamaRoot "ggml\src\ggml-quants.h"
+$headerText = [IO.File]::ReadAllText($header)
+foreach ($signature in @("void dequantize_row_i2_s", "size_t quantize_i2_s")) {
+  $pattern = '(?m)^' + [Regex]::Escape($signature) + '(?=\s*\()'
+  if ([Regex]::IsMatch($headerText,$pattern)) {
+    if (-not (Test-Path ($header + ".qq-before-export"))) { Copy-Item $header ($header + ".qq-before-export") }
+    $headerText = [Regex]::Replace($headerText,$pattern,("GGML_API " + $signature))
+  }
+}
+if ($headerText -notmatch 'GGML_API void dequantize_row_i2_s' -or $headerText -notmatch 'GGML_API size_t quantize_i2_s') {
+  throw "I2_S DLL export declarations could not be validated."
+}
+[IO.File]::WriteAllText($header,$headerText,(New-Object Text.UTF8Encoding($false)))
+Log "I2_S symbols relocated and exported from ggml-base"
 
 $Venv = Join-Path $Root ".venv"
 $VenvPy = Join-Path $Venv "Scripts\python.exe"

@@ -77,8 +77,16 @@ $parityPy = Join-Path $ToolsDir "local_ai_parity_check.py"
 $bitnetPs = Join-Path $TasksDir "bitnet-setup.ps1"
 $integratePs = Join-Path $TasksDir "integrate-local-ai.ps1"
 $immichPs = Join-Path $TasksDir "restore-immich.ps1"
-foreach($p in @($reconcilePy,$parityPy,$bitnetPs,$integratePs,$immichPs)){
-  if(-not (Test-Path $p)){ throw "Required reviewed workflow asset missing: $p" }
+$requiredAssets = @($reconcilePy,$parityPy,$bitnetPs,$integratePs,$immichPs,(Join-Path $TasksDir "bitnet-i2-s-linkage.patch"))
+if (@($requiredAssets | Where-Object { -not (Test-Path $_) }).Count -gt 0) {
+  Log "Repairing incomplete reviewed workflow bundle"
+  $restore = Join-Path $ToolsDir "restore-runtime.ps1"
+  if (-not (Test-Path $restore)) { throw "Runtime restore helper is missing; run self-update." }
+  & $pwsh -NoProfile -ExecutionPolicy Bypass -File $restore -HomeDir $HomeDir
+  if ($LASTEXITCODE -ne 0) { throw "Reviewed runtime dependency recovery failed." }
+}
+foreach($asset in $requiredAssets){
+  if(-not (Test-Path $asset)){ throw "Required reviewed workflow asset missing: $asset" }
 }
 
 $pass=0

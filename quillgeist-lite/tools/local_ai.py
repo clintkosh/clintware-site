@@ -439,6 +439,42 @@ def diagnostics():
     return result
 
 
+
+def recovery_inventory():
+    """Metadata-only bounded discovery; never read databases, keys or excluded drives."""
+    roots = [Path(r"C:\AI\LOCAL-CHATGPT"), Path(r"F:\AI-Data")]
+    found, folders = [], []
+    deadline = time.monotonic() + 18
+    count = 0
+    skip = {".git", "node_modules", ".venv", "venv", "__pycache__", "models", "bitnet", "cache", "downloads"}
+    for root in roots:
+        if not root.is_dir():
+            continue
+        folders.append({"path": str(root), "children": [p.name for p in list(root.iterdir())[:80] if p.is_dir()]})
+        stack = [root]
+        while stack and count < 40000 and time.monotonic() < deadline:
+            directory = stack.pop()
+            try:
+                for entry in os.scandir(directory):
+                    count += 1
+                    if entry.is_symlink():
+                        continue
+                    name = entry.name.lower()
+                    if entry.is_dir(follow_symlinks=False):
+                        if name not in skip:
+                            stack.append(Path(entry.path))
+                    elif entry.is_file(follow_symlinks=False):
+                        if (name in {"webui.db", "database.sqlite", "chroma.sqlite3", "pg_version", "docker-compose.yml", "compose.yml", "docker-compose.yaml", "compose.yaml"}
+                            or ("immich" in name and name.endswith((".sql", ".gz", ".dump", ".zip", ".yml", ".yaml")))
+                            or name.startswith(("webui.db.backup", "database.sqlite.backup"))):
+                            found.append({"path": entry.path, "size": entry.stat(follow_symlinks=False).st_size})
+                    if count >= 40000 or time.monotonic() >= deadline:
+                        break
+            except OSError:
+                continue
+    return {"roots": folders, "files": found[:180], "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
+
+
 def provider_status():
     script = provider_responder_path()
     if not script.exists():
@@ -491,12 +527,15 @@ def provider_test(prompt: str):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "recovery-inventory":
+        print(json.dumps(recovery_inventory(), indent=2))
+        return
     if a.Action == "diagnostics":
         print(json.dumps(diagnostics(), indent=2))
         return
