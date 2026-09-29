@@ -8,7 +8,7 @@ import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jira
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-29-always-on-checkin-v25";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-29-always-on-checkin-v26";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -1325,13 +1325,33 @@ export class RegistryHub extends DurableObject {
       const argLimit=job.task_id==="browser-work"?(key==="StepsJson"?50000:(key==="Query"||key==="Url"?8000:4000)):2000;
       args[key]=clip(value,argLimit);
     }
+
+    const task_id=clip(job.task_id,120);
+    const target_device=clip(job.target_device||"",120);
+    const runtime_version=clip(job.runtime_version||QUILLGEIST_RUNTIME_VERSION,80);
+    const singletonMaintenance=new Set(["self-update","repair-local-service","restart-window","bootstrap-admin-console"]);
+    let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+
+    if(singletonMaintenance.has(task_id)){
+      for(const item of index.slice(0,80)){
+        if(item.task_id!==task_id||String(item.target_device||"")!==target_device)continue;
+        if(String(item.runtime_version||"")!==runtime_version)continue;
+        if(!["queued","running"].includes(String(item.status||"")))continue;
+        const existing=await this.ctx.storage.get(`quillgeist_lite_job:${item.job_id}`);
+        if(existing&&["queued","running"].includes(String(existing.status||""))){
+          return {ok:true,job:existing,coalesced:true};
+        }
+      }
+    }
+
     const normalized={
       job_id:clip(job.job_id||crypto.randomUUID(),120),
-      task_id:clip(job.task_id,120),
+      task_id,
       args,
       requested_by:clip(job.requested_by||"mcp",120),
       objective:clip(job.objective||"",2000),
-      target_device:clip(job.target_device||"",120),
+      target_device,
+      runtime_version,
       resume_after:Boolean(job.resume_after),
       status:"queued",
       created_at:nowIso(),
@@ -1340,12 +1360,11 @@ export class RegistryHub extends DurableObject {
       result:null
     };
     await this.ctx.storage.put(`quillgeist_lite_job:${normalized.job_id}`,normalized);
-    let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
     index=index.filter(x=>x.job_id!==normalized.job_id);
-    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,resume_after:normalized.resume_after,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
+    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,runtime_version:normalized.runtime_version,resume_after:normalized.resume_after,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
     index=index.slice(0,200);
     await this.ctx.storage.put("quillgeist_lite_job_index",index);
-    return {ok:true,job:normalized};
+    return {ok:true,job:normalized,coalesced:false};
   }
   async updateQuillgeistLiteJob(jobId,patch){
     const key=`quillgeist_lite_job:${jobId}`;
