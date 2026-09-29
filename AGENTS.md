@@ -20,6 +20,32 @@ Required order:
 10. QA the finished page against ASTRO's rejection checklist before deployment.
 11. Never call the page complete until the deployment and public behavior are actually verified.
 
+## ASTRO CRM One Off is mandatory for role-specific CRM application demos
+
+Before creating or materially changing any company-specific, role-specific, interview, hiring-manager, or application CRM / post-sales operating demo, read and apply `ASTRO_CRM_ONE_OFF_SKILL.md`.
+
+This invariant exists to prevent the recurring failure mode of producing a polished but mostly static or overbuilt CRM that the user must then correct into a usable account workspace.
+
+Required order:
+
+1. Read `ASTRO_CRM_ONE_OFF_SKILL.md`.
+2. Inspect the strongest relevant prior CRM foundation and recover explicit user corrections / lessons learned.
+3. Verify the current role and company context.
+4. Reduce the target role to one concise operating loop.
+5. Reuse persistence, security, deployment, and test infrastructure, but strip irrelevant UI/features.
+6. Build real account operations by default: stakeholder records, editable KPIs, actions/notes, role-specific operational evidence, meeting prep, and a real downloadable briefing PDF.
+7. Treat static dashboards, fake save controls, fake PDF buttons, and page-load-only smoke tests as failed builds.
+8. Keep sample data visibly synthetic and do not imply a live customer tenant or private target-company process.
+9. Never copy a target-company logo into a candidate-built demo unless explicitly authorized.
+10. Apply safe seed migrations. Seed-version changes must not overwrite user-created or user-edited records.
+11. Exercise the deployed app in a real browser: create data, verify persistence, update a KPI, work an action, build a meeting brief, download and validate the PDF, and check desktop/mobile behavior.
+12. Repair failed layers rather than weakening the definition of done.
+13. Stop adding features once the target role is convincingly proved.
+
+For a one-off application CRM, `ASTRO_CRM_ONE_OFF_SKILL.md` constrains the broader `skills/advanced-customer-success-crm-builder/SKILL.md`. The broader skill supplies reusable architecture; it does not authorize feature bloat.
+
+A one-off CRM is incomplete until deployment, live data behavior, migration behavior, and interactive browser behavior have all been verified.
+
 ## YC venture canonical-domain invariant
 
 Every venture listed on the Clintware YC / startup ranking must have its own canonical Clintware subdomain. The main `/startup/` page is the portfolio/ranking index only; it must link to venture subdomains rather than treating `/tools/<venture>/` as canonical.
