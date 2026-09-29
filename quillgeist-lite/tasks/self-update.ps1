@@ -208,4 +208,6 @@ if (Test-Path $pendingBinary) {
 } else {
   Write-Host "READY // QQ runtime and Python resolver reconciled." -ForegroundColor Green
 }
+Write-Host "CHECK-IN // independent watchdog remains available while the runner restarts" -ForegroundColor Cyan
+Write-Host "RESUME // queued work will replay in priority/FIFO order after reconnect" -ForegroundColor Cyan
 Write-Host "RESTART // canonical QQ runner restart queued after result delivery" -ForegroundColor Cyan
