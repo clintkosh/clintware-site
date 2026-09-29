@@ -201,6 +201,10 @@ jobs:
           }
           Write-Host "CODE_SEARCH_OK"
 
+      - name: Test preservation during local storage recovery
+        shell: pwsh
+        run: python quillgeist-lite/tests/test_local_ai_recovery.py
+
       - name: Smoke-test bounded local AI inspection
         shell: pwsh
         run: |

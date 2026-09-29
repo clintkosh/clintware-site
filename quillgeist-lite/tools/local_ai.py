@@ -483,6 +483,161 @@ def recovery_inventory():
     return {"roots": folders, "files": found[:180], "launchers": launchers, "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
 
 
+
+def repair_storage():
+    """Restore missing host bind folders from a preserved copy of the same container data."""
+    import sqlite3
+    if os.name != "nt":
+        return {"ok": False, "error": "windows_only"}
+    docker = shutil.which("docker")
+    if not docker:
+        return {"ok": False, "error": "docker_missing"}
+    targets = [("n8n-local", "/home/node/.n8n", Path(r"F:\AI-Data\Docker\n8n")),
+               ("open-webui-local", "/app/backend/data", Path(r"F:\AI-Data\Docker\open-webui"))]
+    results = []
+    for name, inside, target in targets:
+        if target.exists():
+            results.append({"container": name, "action": "existing_host_data_preserved"})
+            continue
+        rc, raw = run([docker, "inspect", "--format", "{{json .Mounts}}", name], 10)
+        if rc:
+            results.append({"container": name, "error": "existing_container_missing"})
+            continue
+        mounts = json.loads(raw)
+        selected = [m for m in mounts if m.get("Destination") == inside]
+        expected = str(target).replace("\\", "/").lower()
+        if len(selected) != 1 or selected[0].get("Type") != "bind" or selected[0].get("Source", "").replace("\\", "/").lower() != expected:
+            results.append({"container": name, "error": "mount_does_not_match_reviewed_target"})
+            continue
+        if any(re.match(r"(?i)^(d:|/mnt/d/|/run/desktop/mnt/host/d/)", m.get("Source", "")) for m in mounts):
+            results.append({"container": name, "error": "excluded_drive_mount"})
+            continue
+        backup = Path(r"F:\AI-Data\Backups\LOCAL-CHATGPT") / ("qq-storage-" + time.strftime("%Y%m%d-%H%M%S")) / name
+        backup.mkdir(parents=True, exist_ok=False)
+        rc, _ = run([docker, "stop", "-t", "20", name], 35)
+        if rc:
+            results.append({"container": name, "error": "could_not_stop_for_consistent_backup"})
+            continue
+        try:
+            rc, _ = run([docker, "cp", name + ":" + inside + "/.", str(backup)], 120)
+            if rc:
+                results.append({"container": name, "error": "container_data_backup_failed", "backup": str(backup)})
+                continue
+            # Refuse links; do not follow an old data symlink outside this backup.
+            entries = list(backup.rglob("*"))
+            if any(p.is_symlink() for p in entries):
+                results.append({"container": name, "error": "backup_contains_links", "backup": str(backup)})
+                continue
+            for db in (p for p in entries if p.is_file() and p.name in {"webui.db", "database.sqlite", "chroma.sqlite3"}):
+                with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as connection:
+                    check = connection.execute("PRAGMA quick_check").fetchone()
+                    if not check or check[0] != "ok":
+                        raise RuntimeError("backup_database_integrity_failed")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            stage = target.with_name(target.name + ".qq-restored-" + str(os.getpid()))
+            if stage.exists() or target.exists():
+                raise RuntimeError("destination_changed_during_backup")
+            shutil.copytree(backup, stage)
+            # Rename is atomic and fails on Windows if another process created target.
+            stage.rename(target)
+            results.append({"container": name, "action": "restored_missing_bind_folder",
+                            "backup": str(backup), "preserved_files": sum(p.is_file() for p in entries),
+                            "new_empty_data_folder": not any(p.is_file() for p in entries)})
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            results.append({"container": name, "error": type(exc).__name__, "backup": str(backup)})
+        finally:
+            run([docker, "start", name], 30)
+    return {"ok": not any("error" in x for x in results), "results": results,
+            "deleted_user_files": False, "excluded_drive_accessed": False}
+
+
+
+def recover_agents():
+    """Start the reviewed local agents with persistent, hidden logon tasks."""
+    if os.name != "nt":
+        return {"ok": False, "error": "windows_only"}
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if not shell:
+        return {"ok": False, "error": "powershell_missing"}
+    def quote(value):
+        return "'" + str(value).replace("'", "''") + "'"
+    import base64
+    root = Path(r"C:\AI\LOCAL-CHATGPT")
+    scripts = root / "scripts"
+    logs = Path(r"F:\AI-Data\Logs\LOCAL-CHATGPT")
+    scripts.mkdir(parents=True, exist_ok=True)
+    logs.mkdir(parents=True, exist_ok=True)
+    specs = [
+        ("Web Search Agent", root / "web-search-agent", ".venv", ["-m", "uvicorn", "web_search_agent:app", "--host", "127.0.0.1", "--port", "8788"], "http://127.0.0.1:8788/health"),
+        ("Media Agent", root / "media-agent", ".venv", ["-m", "uvicorn", "media_agent:app", "--host", "127.0.0.1", "--port", "8799"], "http://127.0.0.1:8799/health"),
+        ("ComfyUI", Path(r"C:\AI\ComfyUI"), "venv", ["main.py", "--windows-standalone-build", "--lowvram", "--preview-method", "auto", "--extra-model-paths-config", r"C:\AI\ComfyUI\extra_model_paths.yaml"], "http://127.0.0.1:8188/system_stats"),
+    ]
+    results = []
+    for label, cwd, venv, args, url in specs:
+        executable = cwd / venv / "Scripts" / "python.exe"
+        if not executable.is_file():
+            results.append({"service": label, "error": "existing_python_environment_missing"})
+            continue
+        if label == "ComfyUI":
+            config = cwd / "extra_model_paths.yaml"
+            if not config.is_file() or re.search(r"(?i)(?:\bD:|/mnt/d/)", config.read_text(encoding="utf-8-sig", errors="replace")):
+                results.append({"service": label, "error": "model_config_missing_or_excluded_drive"})
+                continue
+        slug = label.lower().replace(" ", "-")
+        script = scripts / ("QQ-START-" + slug + ".ps1")
+        log = logs / ("qq-" + slug + ".log")
+        body = "\n".join([
+            '$ErrorActionPreference = "Stop"',
+            "$env:AI_STORAGE_ROOT = 'F:\\AI-Data'",
+            "$env:AI_MEDIA_OUT = 'F:\\AI-Data\\Outputs\\MediaAgent'",
+            "$env:COMFYUI_URL = 'http://127.0.0.1:8188'",
+            "$env:COMFYUI_MODEL_ROOT = 'F:\\AI-Data\\Models\\ComfyUI'",
+            "$env:COMFYUI_OUTPUT_ROOT = 'F:\\AI-Data\\ComfyUI\\output'",
+            "$env:PYTHONUNBUFFERED = '1'",
+            "Set-Location -LiteralPath " + quote(cwd),
+            "& " + quote(executable) + " " + " ".join(map(quote, args)) + " *>> " + quote(log),
+            "exit $LASTEXITCODE", ""
+        ])
+        script.write_text(body, encoding="utf-8")
+        task_name = "MEMORIA QQ " + label
+        ps = "\n".join([
+            '$ErrorActionPreference = "Stop"',
+            "$action = New-ScheduledTaskAction -Execute " + quote(shell) + " -Argument " + quote('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + str(script) + '"') + " -WorkingDirectory " + quote(cwd),
+            "$user = [Security.Principal.WindowsIdentity]::GetCurrent().Name",
+            "$trigger = New-ScheduledTaskTrigger -AtLogOn -User $user",
+            "$principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest",
+            "$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)",
+            "Register-ScheduledTask -TaskName " + quote(task_name) + " -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null"
+        ])
+        try:
+            urllib.request.urlopen(url, timeout=3).close()
+            healthy = True
+        except Exception:
+            healthy = False
+        if not healthy:
+            ps += "\nStart-ScheduledTask -TaskName " + quote(task_name)
+        encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
+        rc, _ = run([shell, "-NoProfile", "-EncodedCommand", encoded], 30)
+        if rc:
+            results.append({"service": label, "error": "startup_task_registration_failed"})
+            continue
+        deadline = time.monotonic() + 45
+        while not healthy and time.monotonic() < deadline:
+            time.sleep(2)
+            try:
+                urllib.request.urlopen(url, timeout=3).close()
+                healthy = True
+            except Exception:
+                pass
+        entry = {"service": label, "healthy": healthy, "task": task_name, "log": str(log)}
+        if not healthy and log.is_file():
+            tail = log.read_bytes()[-6000:].decode("utf-8", errors="replace")
+            entry["exception_types"] = sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)):", tail)))
+            entry["missing_modules"] = re.findall(r"No module named '([A-Za-z0-9_.-]+)'", tail)
+        results.append(entry)
+    return {"ok": all(x.get("healthy") for x in results), "results": results}
+
+
 def provider_status():
     script = provider_responder_path()
     if not script.exists():
@@ -535,12 +690,24 @@ def provider_test(prompt: str):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "repair-storage", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "recover-agents":
+        result = recover_agents()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
+    if a.Action == "repair-storage":
+        result = repair_storage()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
     if a.Action == "recovery-inventory":
         print(json.dumps(recovery_inventory(), indent=2))
         return

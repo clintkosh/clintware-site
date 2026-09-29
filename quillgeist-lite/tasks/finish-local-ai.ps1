@@ -113,10 +113,27 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
     & $python $reconcilePy --Action reconcile
   }
 
+  Run-Independent "repair-existing-storage" {
+    & $python $reconcilePy --Action repair-storage
+  }
+  Run-Independent "recover-local-agents" {
+    & $python $reconcilePy --Action recover-agents
+  }
+
   # Recover independent services before attempting a potentially failing model build.
   Push-Location $DockerRoot
   try {
     Run-Independent "compose-existing-services" {
+      $rawConfig = & $docker compose -f $ComposePath config --format json 2>$null | Out-String
+      if ($LASTEXITCODE -ne 0) { throw "Existing Compose configuration could not be validated." }
+      $config = $rawConfig | ConvertFrom-Json
+      foreach ($service in $config.services.PSObject.Properties) {
+        foreach ($mount in @($service.Value.volumes)) {
+          if ($mount.type -eq "bind" -and [string]$mount.source -match '(?i)^(D:|/mnt/d/|/run/desktop/mnt/host/d/)') {
+            throw "Existing Compose configuration references the excluded drive."
+          }
+        }
+      }
       & $docker compose -f $ComposePath up -d --no-build --pull never
     }
   } finally { Pop-Location }
