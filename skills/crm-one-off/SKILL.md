@@ -10,11 +10,11 @@ If the one-off is public-facing under Clintware, also apply `/ASTRO_WEBSITE_SKIL
 
 ## Default job
 
-Turn a current job/company context into the smallest working CRM that proves the role.
+Turn a current job/company context into a working CRM whose breadth and depth match the verified scope of the role.
 
 Default workflow:
 
-`ROLE + COMPANY -> OPERATING LOOP -> REUSE FOUNDATION -> STRIP BLOAT -> WORKING ACCOUNT WORKSPACE -> STAKEHOLDERS -> KPIS -> ACTIONS -> MEETING BRIEF -> REAL PDF -> SAFE MIGRATION -> DEPLOY -> INTERACTIVE VERIFY`
+`ROLE + COMPANY -> RESPONSIBILITY MAP -> OPERATING LOOP(S) -> REUSE FOUNDATION -> REMOVE IRRELEVANT FEATURES -> ADD ROLE-JUSTIFIED DEPTH -> WORKING ACCOUNT WORKSPACE -> ROLE-RELEVANT OPERATIONS -> MEETING BRIEF / REQUIRED ARTIFACTS -> SAFE MIGRATION -> DEPLOY -> INTERACTIVE VERIFY`
 
 ## Default build contract
 
@@ -38,6 +38,16 @@ Each account should normally have:
 - meeting-prep context
 - clearly labeled synthetic provenance
 
+## Scope-fit default
+
+Do not optimize for "small" or "large."
+
+Build the amount of system the position justifies.  A broad Director, CS Ops, Implementation, Support, TAM, Professional Services, or multi-system role may warrant a large CRM with many coordinated surfaces.  A narrower individual-contributor role may not.
+
+For every major module, be able to answer: **Which verified responsibility or operating decision does this help demonstrate?**
+
+If there is a strong answer, keep it.  If there is not, remove it.
+
 ## Hard defaults
 
 - working beats decorative
@@ -47,7 +57,7 @@ Each account should normally have:
 - synthetic data is labeled synthetic
 - no target-company logo cloning
 - no live-tenant claim without a live tenant
-- no generic giant CRM by default
+- no arbitrary size target: a large CRM is correct when the role warrants it; irrelevant functionality is not
 - no fake PDF
 - no destructive seed upgrade
 - no completion claim without browser verification
