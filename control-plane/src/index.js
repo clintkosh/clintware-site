@@ -287,6 +287,7 @@ const QUILLGEIST_LITE_TASKS = {
   "open-edge-tab":{runtime:"powershell",parameters:["Url"]},
   "repair-codex-org-identity":{runtime:"powershell",parameters:[]},
   "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
+  "storage-audit":{runtime:"powershell",parameters:["ExpectedComputer","LargestFiles"]},
   "responder-agent":{runtime:"powershell",parameters:["Action"]},
   "bitnet-setup":{runtime:"powershell",parameters:[]},
   "local-ai-integrate":{runtime:"powershell",parameters:[]},
