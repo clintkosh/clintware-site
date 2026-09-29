@@ -46,6 +46,12 @@ For a one-off application CRM, `ASTRO_CRM_ONE_OFF_SKILL.md` constrains the broad
 
 A one-off CRM is incomplete until deployment, live data behavior, migration behavior, and interactive browser behavior have all been verified.
 
+## CSM + Support dual-track CRM ASTRO
+
+When one candidate CRM is explicitly intended to demonstrate both Customer Success and Support ownership, read and apply `ASTRO_CRM_CSM_SUPPORT_DUAL_TRACK_SKILL.md` after `ASTRO_CRM_ONE_OFF_SKILL.md`.
+
+The dual-track skill requires exactly twelve selectable launch tracks by default, balanced six Customer Success and six Support, operating on the same persisted customer context. Repeated materialization, manifest validation, source checks, and approved deployment should route through the reviewed Quillgeist Lite `crm-astro-build` task when local execution is available. Remote callers must not receive an arbitrary shell path.
+
 ## YC venture canonical-domain invariant
 
 Every venture listed on the Clintware YC / startup ranking must have its own canonical Clintware subdomain. The main `/startup/` page is the portfolio/ranking index only; it must link to venture subdomains rather than treating `/tools/<venture>/` as canonical.
