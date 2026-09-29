@@ -39,6 +39,7 @@ ALLOWED = {
     "local-ai-integrate": set(),
     "finish-local-ai": {"MaxPasses"},
     "restore-immich": set(),
+    "share-ai-network": set(),
     "responder-agent": {"Action"},
     "restart-window": set(),
     "repair-local-service": set(),
