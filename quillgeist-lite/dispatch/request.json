@@ -1,5 +1,8 @@
 {
-  "request_id": "driznet-live-status-20260929-0159",
-  "mode": "inspect",
-  "objective": "Inspect current DRIZNET QQ/control-plane connection, runner version, diagnostics, and outstanding targeted jobs before completing this machine's repair."
+  "request_id": "driznet-targeted-selfupdate-20260929-0200",
+  "task_id": "self-update",
+  "target_device": "DRIZNET",
+  "args": {},
+  "resume_after": true,
+  "objective": "Complete DRIZNET QQ maintenance from the current reviewed main revision. Refresh the canonical runner, launcher, task registry, focus-safe hidden background launch, MCP-first routing, runtime cache, recovery/watchdog components, and preserve machine credentials. After successful restart, resume prior queued work and return qq-local-agent confirmation from DRIZNET. Do not affect MEMORIA."
 }
