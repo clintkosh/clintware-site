@@ -1065,12 +1065,10 @@ export class RegistryHub extends DurableObject {
           ws.send(JSON.stringify({type:"wake",protocol:"clintware-quillgeist-lite-wake/v1",job_id:job?.job_id||"",task_id:job?.task_id||"",reason:"job_queued",time:nowIso()}));
           delivered++;
 
-          // A half-open client socket can remain OPEN in the Durable Object
-          // even though the Windows service no longer receives frames. Force a
-          // clean reconnect after every wake. The service's existing wake loop
-          // reconnects automatically, and backlog-on-connect immediately emits
-          // another wake for any still-pending job.
-          try{ws.close(1012,"wake_reconnect");}catch{}
+          // Keep the watchdog channel persistent. Local check-in and recovery
+          // traffic must remain available even while the interactive runner is
+          // busy or repeatedly processing queued jobs. A real transport error
+          // is recovered by the Windows service's bounded reconnect loop.
         }
       }catch{}
     }
