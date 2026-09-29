@@ -1,15 +1,263 @@
 {
-  "request_id": "memoria-original-data-inventory-20260929-0237",
-  "job_id": "b673baca-51fa-450e-b4d7-d815490be08b",
-  "task_id": "local-ai",
-  "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 575,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-29T02:36:01.4174247Z",
-  "recorded_at": 1790649354,
-  "recovery_history": [],
-  "output_tail": "[run] {\r\n[run]   \"roots\": [\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\LOCAL-CHATGPT\",\r\n[run]       \"children\": [\r\n[run]         \"backups\",\r\n[run]         \"bots\",\r\n[run]         \"docker\",\r\n[run]         \"local-code-agent\",\r\n[run]         \"logs\",\r\n[run]         \"media-agent\",\r\n[run]         \"projects\",\r\n[run]         \"quillgeist-gateway\",\r\n[run]         \"scripts\",\r\n[run]         \"secrets\",\r\n[run]         \"tests\",\r\n[run]         \"tools\",\r\n[run]         \"web-search-agent\"\r\n[run]       ]\r\n[run]     },\r\n[run]     {\r\n[run]       \"path\": \"F:\\\\AI-Data\",\r\n[run]       \"children\": [\r\n[run]         \"Backups\",\r\n[run]         \"BitNet\",\r\n[run]         \"Config\",\r\n[run]         \"HF\",\r\n[run]         \"Logs\",\r\n[run]         \"Models\",\r\n[run]         \"pipcache\",\r\n[run]         \"Temp\"\r\n[run]       ]\r\n[run]     }\r\n[run]   ],\r\n[run]   \"files\": [\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\LOCAL-CHATGPT\\\\docker\\\\docker-compose.yml\",\r\n[run]       \"size\": 2382\r\n[run]     }\r\n[run]   ],\r\n[run]   \"launchers\": [\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\LOCAL-CHATGPT\\\\START-MEDIA-AGENT.bat\",\r\n[run]       \"source_without_secret_lines\": \"@echo off\\ntitle MEMORIA Media Agent 8799\\nset AI_STORAGE_ROOT=F:\\\\AI-Data\\nset AI_MEDIA_OUT=F:\\\\AI-Data\\\\Outputs\\\\MediaAgent\\nset COMFYUI_URL=http://127.0.0.1:8188\\nset PYTHONUNBUFFERED=1\\ncd /d C:\\\\AI\\\\LOCAL-CHATGPT\\\\media-agent\\necho Starting MEMORIA Media Agent on http://127.0.0.1:8799\\necho Working dir: %CD%\\necho Logs:\\necho   F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\media-agent-live.log\\necho   F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\media-agent-error.log\\nC:\\\\AI\\\\LOCAL-CHATGPT\\\\media-agent\\\\.venv\\\\Scripts\\\\python.exe -m uvicorn media_agent:app --host 127.0.0.1 --port 8799 --log-level info 1>>F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\media-agent-live.log 2>>F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\media-agent-error.log\\necho.\\necho Media Agent stopped or crashed.\\npause\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\LOCAL-CHATGPT\\\\START-WEB-SEARCH-AGENT.bat\",\r\n[run]       \"source_without_secret_lines\": \"@echo off\\ntitle MEMORIA Real Web Search Agent\\nset AI_STORAGE_ROOT=F:\\\\AI-Data\\ncd /d C:\\\\AI\\\\LOCAL-CHATGPT\\\\web-search-agent\\nC:\\\\AI\\\\LOCAL-CHATGPT\\\\web-search-agent\\\\.venv\\\\Scripts\\\\python.exe -m uvicorn web_search_agent:app --host 127.0.0.1 --port 8788\\npause\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\LOCAL-CHATGPT\\\\scripts\\\\Start-ComfyUI-Logged.ps1\",\r\n[run]       \"source_without_secret_lines\": \"$ErrorActionPreference = \\\"Continue\\\"\\n\\n$Host.UI.RawUI.WindowTitle = \\\"LOCAL AI - ComfyUI\\\"\\n$LogDir = \\\"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\"\\n$LogFile = Join-Path $LogDir \\\"comfyui.log\\\"\\n$ComfyDir = \\\"C:\\\\AI\\\\ComfyUI\\\"\\n$ComfyBat = \\\"C:\\\\AI\\\\ComfyUI\\\\run_nvidia_f_storage.bat\\\"\\n\\nNew-Item -ItemType Directory -Force -Path $LogDir | Out-Null\\n\\nfunction Log {\\n    param([string]$Text)\\n    \\\"$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $Text\\\" | Tee-Object -FilePath $LogFile -Append\\n}\\n\\nfunction Test-Comfy {\\n    try {\\n        Invoke-WebRequest -UseBasicParsing -Uri \\\"http://localhost:8188\\\" -TimeoutSec 2 | Out-Null\\n        return $true\\n    } catch {\\n        return $false\\n    }\\n}\\n\\nLog \\\"===== COMFYUI STARTUP =====\\\"\\nLog \\\"ComfyDir=$ComfyDir\\\"\\nLog \\\"Storage=F:\\\\AI-Data\\\"\\n\\nif (Test-Comfy) {\\n    Log \\\"ComfyUI already responding on http://localhost:8188\\\"\\n    Write-Host \\\"ComfyUI already running.\\\"\\n    Read-Host \\\"Press Enter to close\\\"\\n    return\\n}\\n\\nif (-not (Test-Path $ComfyBat)) {\\n    Log \\\"ERROR: Missing $ComfyBat\\\"\\n    Write-Host \\\"Missing $ComfyBat\\\"\\n    Read-Host \\\"Press Enter to close\\\"\\n    return\\n}\\n\\nSet-Location $ComfyDir\\nLog \\\"Starting ComfyUI using $ComfyBat\\\"\\n\\ncmd.exe /c $ComfyBat 2>&1 | Tee-Object -FilePath $LogFile -Append\\n\\nLog \\\"ComfyUI process exited.\\\"\\nRead-Host \\\"Press Enter to close ComfyUI window\\\"\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"path\": \"C:\\\\AI\\\\ComfyUI\\\\run_nvidia_f_storage.bat\",\r\n[run]       \"source_without_secret_lines\": \"@echo off\\ntitle ComfyUI - C Brain / F Data\\nset AI_BRAIN_ROOT=C:\\\\AI\\nset AI_STORAGE_ROOT=F:\\\\AI-Data\\nset COMFYUI_MODEL_ROOT=F:\\\\AI-Data\\\\Models\\\\ComfyUI\\nset COMFYUI_OUTPUT_ROOT=F:\\\\AI-Data\\\\ComfyUI\\\\output\\n\\ncd /d C:\\\\AI\\\\ComfyUI\\necho Starting ComfyUI from C:\\\\AI\\\\ComfyUI using F:\\\\AI-Data for storage...\\nC:\\\\AI\\\\ComfyUI\\\\venv\\\\Scripts\\\\python.exe main.py --windows-standalone-build --lowvram --preview-method auto --extra-model-paths-config C:\\\\AI\\\\ComfyUI\\\\extra_model_paths.yaml\\npause\"\r\n[run]     }\r\n[run]   ],\r\n[run]   \"entries_scanned\": 4510,\r\n[run]   \"bounded_scan\": true,\r\n[run]   \"excluded_drive_accessed\": false\r\n[run] }"
+  "request_id": "memoria-bitnet-progress-20260929-0244",
+  "mode": "inspect",
+  "recorded_at": 1790649645,
+  "inspection": {
+    "online": 1,
+    "recovery_online": 0,
+    "wake_online": 1,
+    "recovery": null,
+    "runner_version": "1.10.0",
+    "runner_last_seen": "2026-09-29T02:40:03.806Z",
+    "runner": {
+      "runner_id": "DRIZNET",
+      "version": "1.10.0",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback",
+        "capability_inventory",
+        "capability_aware_routing"
+      ],
+      "connected_at": "2026-09-29T02:40:03.766Z",
+      "last_seen": "2026-09-29T02:40:03.806Z",
+      "source_revision": "d97048ef116d9c52fd5b7fae741e83617beee356",
+      "registry_version": "17"
+    },
+    "connected_devices": [
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-09-29T02:40:03.766Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-09-29T02:40:03.766Z",
+          "last_seen": "2026-09-29T02:40:03.806Z",
+          "source_revision": "d97048ef116d9c52fd5b7fae741e83617beee356",
+          "registry_version": "17"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "6af02901-b90c-4ed0-89cc-ccf0b43d58ee",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "475a6df1-79b9-40ec-8c69-9bff6ae51c8b",
+        "task_id": "bitnet-setup",
+        "target_device": "MEMORIA",
+        "status": "running"
+      },
+      {
+        "job_id": "b673baca-51fa-450e-b4d7-d815490be08b",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "c676f2c4-8ebe-4c69-89a7-a8a4b2b012e4",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "902a4b90-7ddd-46da-bf45-1a5ea1ed4546",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "f8b82d39-7a39-4e2b-925b-1b2d9aaeaedb",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "ff596010-5148-4a19-b2a5-b1a60462af13",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "818c80e2-81b1-4ef0-8159-839c8038c8e6",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "0c7040d0-7042-4e3e-ade5-ba20deb7f0f3",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "7d1876cc-e030-4fa3-b662-45dce8d8fd9b",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "cea95433-2572-42d1-98c7-5489f43f8bcb",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "e5d2cfc3-fed2-4bda-a8b9-a22604e47d0d",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-09-29T02:40:03.9181817Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-09-29T02:40:03.8974013Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=DRIZNET source=machine",
+        "timestamp": "2026-09-29T02:40:03.6111037Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-29T02:39:53.1357029Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-09-29T02:40:03.2461740Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "other",
+        "message": "2026-09-28T21:39:53 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-09-29T02:39:53.9670634Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-09-29T02:39:45.6776951Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-09-29T02:39:45.6341733Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=DRIZNET source=machine",
+        "timestamp": "2026-09-29T02:39:45.1927770Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
+        "timestamp": "2026-09-29T02:39:44.8451964Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtimes enabled: PowerShell, Python, C.",
+        "timestamp": "2026-09-29T02:39:44.8215783Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtime host: PowerShell 7.6.6 / Core.",
+        "timestamp": "2026-09-29T02:39:44.8011577Z"
+      }
+    ]
+  }
 }
