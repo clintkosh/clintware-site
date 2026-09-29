@@ -1,0 +1,122 @@
+name: Deploy Boom Dual-Track CRM
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/bm-crm/**"
+      - "projects/dplr-crm/**"
+      - "projects/dpl-crm/**"
+      - "ASTRO_CRM_CSM_SUPPORT_DUAL_TRACK_SKILL.md"
+      - "tests/bm_browser_smoke.mjs"
+      - ".github/workflows/deploy-bm-crm.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: clintware-bm-crm
+  cancel-in-progress: true
+jobs:
+  validate-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+
+      - name: Validate dual-track manifest
+        run: |
+          set -euo pipefail
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/bm-crm/manifest.json --Json
+          python - <<'PY'
+          import json
+          d=json.load(open("projects/bm-crm/manifest.json"))
+          assert len(d["tracks"])==12
+          assert sum(1 for t in d["tracks"] if t["group"]=="CSM")==6
+          assert sum(1 for t in d["tracks"] if t["group"]=="Support")==6
+          assert d["domain"]=="https://bm.clintware.com"
+          PY
+
+      - name: Materialize and validate source
+        run: |
+          set -euo pipefail
+          node projects/bm-crm/scripts/materialize.mjs
+          cd .build/bm-crm
+          npm install --no-audit --no-fund
+          npm run check
+          grep -Fq '"name":"clintware-bm-crm"' wrangler.jsonc
+          grep -Fq 'const APP_ID="bm-crm"' src/index.js
+          grep -Fq 'const WORKSPACE_ID="bm-boom"' src/index.js
+          grep -Fq 'Pinnacle Residential Group' src/index.js
+          grep -Fq 'BoomScreen + BoomReport' src/index.js
+          grep -Fq 'SAMPLE_SEED_VERSION=6' src/sample-customers.js
+          grep -Fq 'Boom CSM + Support Dual-Track OS' public/index.html
+          grep -Fq '/bm-ui.css' public/index.html
+          grep -Fq '/bm-track.js' public/index.html
+          test "$(grep -o 'group:"CSM"' public/bm-track.js | wc -l | tr -d ' ')" = "6"
+          test "$(grep -o 'group:"Support"' public/bm-track.js | wc -l | tr -d ' ')" = "6"
+          ! grep -Fqi 'doppel.com' public/index.html
+          ! grep -Fqi 'doppel.com' public/bm-track.js
+
+      - name: Wrangler dry run
+        run: |
+          set -euo pipefail
+          cd .build/bm-crm
+          npx wrangler deploy --dry-run
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/bm-crm
+
+      - name: Attach bm.clintware.com
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body -sS -X PUT             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             -H "Content-Type: application/json"             --data '{"hostname":"bm.clintware.com","service":"clintware-bm-crm","zone_name":"clintware.com"}')
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
+
+      - name: Verify live contract
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://bm.clintware.com/health || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://bm.clintware.com/ || true)
+            t=$(curl -fsS --connect-timeout 5 --max-time 15 https://bm.clintware.com/bm-track.js || true)
+            if grep -Fq '"service":"clintware-bm-crm"' <<< "$h"               && grep -Fq 'Boom CSM + Support Dual-Track OS' <<< "$p"               && test "$(grep -o 'group:"CSM"' <<< "$t" | wc -l | tr -d ' ')" = "6"               && test "$(grep -o 'group:"Support"' <<< "$t" | wc -l | tr -d ' ')" = "6"; then ready=1; break; fi
+            echo "Waiting for bm.clintware.com ($i/48)"; sleep 5
+          done
+          test "$ready" = "1"
+          rm -f /tmp/bm.cookies
+          curl -fsS -c /tmp/bm.cookies https://bm.clintware.com/ >/tmp/bm.html
+          curl -fsS -b /tmp/bm.cookies https://bm.clintware.com/api/state >/tmp/bm-state.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/bm-state.json"))
+          assert d["access"]["authenticated"] is False
+          assert len(d["customers"])==7, len(d["customers"])
+          assert d["customer"]["name"]=="Pinnacle Residential Group"
+          assert not any(c.get("isPublicReference") for c in d["customers"])
+          PY
+
+      - name: Real browser smoke
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node tests/bm_browser_smoke.mjs
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bm-browser-smoke
+          path: |
+            bm-desktop-smoke.png
+            bm-mobile-smoke.png
+          if-no-files-found: ignore
