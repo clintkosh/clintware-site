@@ -1,15 +1,456 @@
 {
-  "request_id": "driznet-targeted-selfupdate-20260929-0200",
-  "job_id": "19bf6ce3-2ff1-4e4a-9e98-a74d1d69e8a0",
-  "task_id": "self-update",
-  "target_device": "DRIZNET",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 19079,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-29T07:10:03.0023397Z",
-  "recorded_at": 1790665802,
-  "recovery_history": [],
-  "output_tail": "[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] SYNC // reconciling QQ from the packaged runtime\r\n[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 18748\r\n[run] DEDUPE_QQ_READY // kept=18748 closed=0\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n[run] SYNC // refreshing reviewed QQ runner from Clintware\r\n[run] RUNTIME // reviewed Miniconda-first Python resolver installed\r\n[run] SYNC // refreshing qq window, MCP monitor, and ASCII splash assets\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] SYNC // refreshing reviewed QQ task registry\r\n[run] REGISTRY // reviewed task registry v17 installed\r\n[run] SERVICE // aligning QQ health service with reviewed Clintware source\r\n[run] REPAIR // Quillgeist Lite self-heal 2026.09.25.12\r\n[run] SERVICE // refreshing stale-task recovery watchdog\r\n[run] CONFIG // health-service configuration validated\r\n[run] SERVICE // replacing watchdog binary\r\n[run] SERVICE // arming restart dead-man\r\n[run] TASK // runner task enabled\r\n[run] TASK // automatic runner recovery is configured\r\n[run] SERVICE // validating Windows service registration\r\n[run] SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\"\r\n[run] SERVICE // account LocalSystem / start Auto\r\n[run] SERVICE // native health watchdog running\r\n[run] FALLBACK // installing scheduled qq recovery watchdog\r\n[run] RECOVERY // fallback repair paths persisted\r\n[run] FALLBACK // recovery watchdog active every minute\r\n[run] FALLBACK // independent recovery layer ensured\r\n[run] TASK // runner restart deferred because an active qq job is using this session\r\n[run] SELF-HEAL // canonical repair logic cached locally\r\n[run] READY // qq recovery repaired; native service or scheduled fallback is supervising the runner.\r\n[run] READY // QQ runtime and Python resolver reconciled.\r\n[run] RESTART // canonical QQ runner restart queued after result delivery"
+  "request_id": "driznet-postupdate-verify-20260929-0201",
+  "mode": "inspect",
+  "recorded_at": 1790665839,
+  "inspection": {
+    "online": 1,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.10.0",
+    "runner_last_seen": "2026-09-29T07:10:17.108Z",
+    "runner": {
+      "runner_id": "DRIZNET",
+      "version": "1.10.0",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback",
+        "capability_inventory",
+        "capability_aware_routing"
+      ],
+      "connected_at": "2026-09-29T07:10:16.956Z",
+      "last_seen": "2026-09-29T07:10:17.108Z",
+      "source_revision": "df068a0e480233000e9b24ed2af5a281d32305a5",
+      "registry_version": "17"
+    },
+    "connected_devices": [
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-09-29T07:10:16.956Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-09-29T07:10:16.956Z",
+          "last_seen": "2026-09-29T07:10:17.108Z",
+          "source_revision": "df068a0e480233000e9b24ed2af5a281d32305a5",
+          "registry_version": "17"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "19bf6ce3-2ff1-4e4a-9e98-a74d1d69e8a0",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "63f23797-7928-4434-9d01-46473ad98e8f",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "queued"
+      },
+      {
+        "job_id": "8b3862da-7c43-4818-91e4-fa8a0e1176a0",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "16aff7a6-0091-4e59-b7da-2ed81d05a930",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "6d683afa-e985-4fd9-b027-f14cbe99190d",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "queued"
+      },
+      {
+        "job_id": "ed64b159-d9cf-48e3-83d3-4c5102f97708",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "6af02901-b90c-4ed0-89cc-ccf0b43d58ee",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "475a6df1-79b9-40ec-8c69-9bff6ae51c8b",
+        "task_id": "bitnet-setup",
+        "target_device": "MEMORIA",
+        "status": "running"
+      },
+      {
+        "job_id": "b673baca-51fa-450e-b4d7-d815490be08b",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "c676f2c4-8ebe-4c69-89a7-a8a4b2b012e4",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      },
+      {
+        "job_id": "902a4b90-7ddd-46da-bf45-1a5ea1ed4546",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "failed"
+      },
+      {
+        "job_id": "f8b82d39-7a39-4e2b-925b-1b2d9aaeaedb",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=alive",
+        "timestamp": "2026-09-29T07:10:18.0648174Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-09-29T07:10:17.4615330Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-09-29T07:10:17.4400052Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=DRIZNET source=machine",
+        "timestamp": "2026-09-29T07:10:16.8021550Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
+        "timestamp": "2026-09-29T07:10:16.2811123Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtimes enabled: PowerShell, Python, C.",
+        "timestamp": "2026-09-29T07:10:16.2669725Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtime host: PowerShell 7.6.6 / Core.",
+        "timestamp": "2026-09-29T07:10:16.2520205Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Clintware Quillgeist Lite starting.",
+        "timestamp": "2026-09-29T07:10:16.2137554Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-09-29T07:10:16.3839925Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=down",
+        "timestamp": "2026-09-29T07:10:13.0582622Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-29T07:10:04.5763585Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-29T07:10:03.4904459Z"
+      }
+    ],
+    "selected_job": {
+      "job_id": "19bf6ce3-2ff1-4e4a-9e98-a74d1d69e8a0",
+      "task_id": "self-update",
+      "status": "passed",
+      "requested_by": "root",
+      "created_at": "2026-09-29T07:09:42.652Z",
+      "completed_at": "2026-09-29T07:10:03.0023397Z",
+      "duration_ms": 19079,
+      "exit_code": 0,
+      "error_kind": "task_registry_missing",
+      "recent_logs": [
+        {
+          "seq": 39,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.6873289Z",
+          "line": "PYTHON // ASCII-only terminal branding active"
+        },
+        {
+          "seq": 40,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.6911947Z",
+          "line": "PYTHON // Windows Terminal profile written atomically"
+        },
+        {
+          "seq": 41,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.6946692Z",
+          "line": "VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        },
+        {
+          "seq": 42,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.6978499Z",
+          "line": "VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}"
+        },
+        {
+          "seq": 43,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.7010141Z",
+          "line": "VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json"
+        },
+        {
+          "seq": 44,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.7037637Z",
+          "line": "VERIFY // branding: ASCII-only; raster background disabled"
+        },
+        {
+          "seq": 45,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.7067742Z",
+          "line": "READY // Quillgeist Lite terminal profile self-test passed"
+        },
+        {
+          "seq": 46,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:56.7166494Z",
+          "line": "SYNC // refreshing reviewed QQ task registry"
+        },
+        {
+          "seq": 47,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:57.2252612Z",
+          "line": "REGISTRY // reviewed task registry v17 installed"
+        },
+        {
+          "seq": 48,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:57.2280493Z",
+          "line": "SERVICE // aligning QQ health service with reviewed Clintware source"
+        },
+        {
+          "seq": 49,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:57.9225437Z",
+          "line": "REPAIR // Quillgeist Lite self-heal 2026.09.25.12"
+        },
+        {
+          "seq": 50,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:57.9317878Z",
+          "line": "SERVICE // refreshing stale-task recovery watchdog"
+        },
+        {
+          "seq": 51,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:58.2287257Z",
+          "line": "CONFIG // health-service configuration validated"
+        },
+        {
+          "seq": 52,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:58.3100879Z",
+          "line": "SERVICE // replacing watchdog binary"
+        },
+        {
+          "seq": 53,
+          "phase": null,
+          "timestamp": "2026-09-29T07:09:58.4201165Z",
+          "line": "SERVICE // arming restart dead-man"
+        },
+        {
+          "seq": 54,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:00.0854823Z",
+          "line": "TASK // runner task enabled"
+        },
+        {
+          "seq": 55,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:00.0879896Z",
+          "line": "TASK // automatic runner recovery is configured"
+        },
+        {
+          "seq": 56,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:00.0911205Z",
+          "line": "SERVICE // validating Windows service registration"
+        },
+        {
+          "seq": 57,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:00.9390714Z",
+          "line": "SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\""
+        },
+        {
+          "seq": 58,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:00.9420721Z",
+          "line": "SERVICE // account LocalSystem / start Auto"
+        },
+        {
+          "seq": 59,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.2748237Z",
+          "line": "SERVICE // native health watchdog running"
+        },
+        {
+          "seq": 60,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.2801480Z",
+          "line": "FALLBACK // installing scheduled qq recovery watchdog"
+        },
+        {
+          "seq": 61,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.2840182Z",
+          "line": "RECOVERY // fallback repair paths persisted"
+        },
+        {
+          "seq": 62,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.4176551Z",
+          "line": "FALLBACK // recovery watchdog active every minute"
+        },
+        {
+          "seq": 63,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.4212010Z",
+          "line": "FALLBACK // independent recovery layer ensured"
+        },
+        {
+          "seq": 64,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.4250206Z",
+          "line": "TASK // runner restart deferred because an active qq job is using this session"
+        },
+        {
+          "seq": 65,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.4801662Z",
+          "line": "SELF-HEAL // canonical repair logic cached locally"
+        },
+        {
+          "seq": 66,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.4836475Z",
+          "line": "READY // qq recovery repaired; native service or scheduled fallback is supervising the runner."
+        },
+        {
+          "seq": 67,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.7188863Z",
+          "line": "READY // QQ runtime and Python resolver reconciled."
+        },
+        {
+          "seq": 68,
+          "phase": null,
+          "timestamp": "2026-09-29T07:10:02.7216609Z",
+          "line": "RESTART // canonical QQ runner restart queued after result delivery"
+        }
+      ]
+    }
+  }
 }
