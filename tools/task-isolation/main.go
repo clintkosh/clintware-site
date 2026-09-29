@@ -248,7 +248,7 @@ $manifest|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $Manifest -Encoding U
 Write-Output ('Found '+$c.Count+' candidate task(s).')
 Write-Output ('Converted '+$changed+' task(s) to true no-console background execution.')
 Write-Output ('Restarted '+$restarted+' currently-running task(s) under the new background wrapper.')
-Write-Output ('Microsoft tasks and intentional QQ visible-launch tasks were left unchanged.')
+Write-Output ('Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged.')
 Write-Output ('Backups: '+$Backup)
 Write-Output ('Restore: Clintware-TaskIsolation.exe --restore')
 `, mode, h, restartPS)
