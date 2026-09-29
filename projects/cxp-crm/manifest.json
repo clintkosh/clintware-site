@@ -1,0 +1,29 @@
+{
+  "mode": "one-off",
+  "project_id": "cxp-crm",
+  "company": "CXponent",
+  "name": "CXponent Infrastructure Advisory Workspace",
+  "domain": "https://cxp.clintware.com",
+  "base_project": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "role_mission": "Act as an independent infrastructure advisor who converts business outcomes, workload requirements, architecture constraints, vendor options, and financial tradeoffs into a decision-ready recommendation and clean delivery handoff.",
+  "operating_loop": ["Align","Discover","Model","Compare","Recommend","Scope","Handoff"],
+  "roles": [{"id":"senior-infrastructure-pre-sales-architect","name":"Senior Infrastructure Pre-Sales Architect"}],
+  "tracks": [
+    {"id":"discovery","label":"Discovery & Outcome Map","tab":"handoff","objective":"Turn business objectives, workload requirements, stakeholders, constraints, and success measures into an explicit decision frame."},
+    {"id":"current-state","label":"Current-State Architecture","tab":"implementation","objective":"Map applications, compute, storage, networking, security, cloud, private-cloud, contracts, utilization, and operational dependencies."},
+    {"id":"tco","label":"TCO & FinOps","tab":"roi","objective":"Normalize CapEx, OpEx, migration, consumption, licensing, egress, operations, and risk over a comparable decision horizon."},
+    {"id":"vendor-selection","label":"Vendor Evaluation","tab":"adoption","objective":"Score candidate architectures against customer requirements without hard-coding vendor preference."},
+    {"id":"solution-design","label":"Solution / HLD","tab":"deployment","objective":"Translate the decision into a high-level target architecture with assumptions, dependencies, security, resilience, and migration boundaries."},
+    {"id":"commercial-scope","label":"SOW / BOM / Proposal","tab":"documents","objective":"Package hardware, software, services, assumptions, exclusions, responsibilities, and commercial dependencies into a scope the customer can evaluate."},
+    {"id":"business-case","label":"Executive Business Case","tab":"meetings","objective":"Present the technical recommendation in financial, risk, flexibility, and business-outcome language for CIO, CTO, and CFO stakeholders."},
+    {"id":"handoff","label":"Delivery Handoff","tab":"renewal","objective":"Transfer decisions, architecture, assumptions, risks, owners, acceptance criteria, and open dependencies to delivery without losing context."}
+  ],
+  "public_sources": [
+    {"label":"CXponent Capabilities","url":"https://cxponent.com/capabilities"},
+    {"label":"CXponent Technology Advisory","url":"https://cxponent.com/"},
+    {"label":"CXponent Senior Infrastructure Pre-Sales Architect","url":"https://ats.rippling.com/cxponent/jobs"}
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public CXponent and role context with clearly synthetic engagement data. It is not an official CXponent product, customer tenant, or statement of private CXponent process."
+}
