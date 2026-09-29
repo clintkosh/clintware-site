@@ -302,7 +302,13 @@ if (-not $serviceHealthy -and (Test-CooldownElapsed ([string]$state.last_service
 }
 
 if ($serviceHealthy) {
-  Start-Sleep -Seconds 5
+  # The Windows health service is the single authoritative runner supervisor.
+  # This minute-based fallback exists only to recover the service itself.
+  # Never let two watchdogs race to stop/start the same runner.
+  $state.consecutive_failures = 0
+  Write-RecoveryLog "healthy service=running ownership=health-service runner_management=deferred"
+  Write-State $state
+  return
 }
 
 $runnerAlive = Test-RunnerAlive $runnerPidPath
