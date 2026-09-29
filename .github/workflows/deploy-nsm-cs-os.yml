@@ -45,7 +45,7 @@ jobs:
           grep -Fq 'INC0012847' src/index.js
           grep -Fq 'NSM // SERVICE OUTCOMES' public/nsm.js
           grep -Fq 'ServiceNow compatibility' public/nsm.js
-          grep -Fq 'Architect Handoff' public/nsm.js
+          grep -Fq 'Architect / delivery handoff' public/nsm.js
           grep -Fq 'Account Workspace' public/nsm.js
           grep -Fq 'Download PDF' public/nsm.js
           grep -Fq 'pdfBlob' public/nsm.js
