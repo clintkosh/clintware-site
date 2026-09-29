@@ -23,7 +23,7 @@ function rewrite(file,transforms){
   fs.writeFileSync(p,text);
 }
 
-for(const file of ["src/index.js","package.json","wrangler.jsonc","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/import-utils.js","public/dplr-shell.js","public/dplr-prep.js","public/dplr-enrich.js"]){
+for(const file of ["src/index.js","package.json","wrangler.jsonc","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/import-utils.js","public/dplr-shell.js","public/dplr-prep.js","public/dplr-enrich.js","dplr-production.mjs"]){
   const p=path.join(out,file);
   if(!fs.existsSync(p)) continue;
   rewrite(file,[
