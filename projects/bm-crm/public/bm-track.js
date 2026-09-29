@@ -14,6 +14,8 @@ const TRACKS=[
 {id:"support-product",group:"Support",label:"Product & Engineering Feedback",tab:"issues",objective:"Turn support evidence into reproducible Product and Engineering feedback with customer impact and clear asks."}
 ];
 window.BM_TRACKS=TRACKS;
+const prepIndex=TABS.findIndex(([id])=>id==="prep"); if(prepIndex>=0)TABS.splice(prepIndex,1);
+for(const group of NAV_GROUPS){const i=group[1].indexOf("prep");if(i>=0)group[1].splice(i,1)}
 const KEY="bmActiveTrack";
 const SESSION_KEY="bmTrackLaunched";
 const byId=id=>TRACKS.find(t=>t.id===id)||null;
