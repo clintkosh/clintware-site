@@ -1,12 +1,15 @@
 {
-  "request_id": "driznet-cxp-crm-full-20260929-1824",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-cxp-browser-verify-20260929-1826",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "cxp-crm",
-    "SkipInstall": "false",
-    "RepoRoot": "C:\\Users\\batman\\AppData\\Local\\Clintware\\code-search\\clintware-site"
+    "Action": "run",
+    "Url": "https://cxp.clintware.com/",
+    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://cxp.clintware.com/\"},{\"op\":\"wait_for_text\",\"text\":\"Make the infrastructure decision defensible.\",\"timeout_ms\":20000},{\"op\":\"click\",\"text\":\"TCO & FinOps\",\"exact\":true},{\"op\":\"wait_for_text\",\"text\":\"Comparable TCO model\",\"timeout_ms\":15000},{\"op\":\"fill\",\"selector\":\"[data-tco=\\\"years\\\"]\",\"value\":\"5\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"current\\\"]\"},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"cloud\\\"]\"},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"private\\\"]\"},{\"op\":\"screenshot\",\"path\":\"cxp-tco-live.png\",\"full_page\":true},{\"op\":\"click\",\"text\":\"Switch operating track\",\"exact\":true},{\"op\":\"wait_for_text\",\"text\":\"Make the infrastructure decision defensible.\",\"timeout_ms\":10000},{\"op\":\"click\",\"text\":\"Vendor Evaluation\",\"exact\":true},{\"op\":\"wait_for_text\",\"text\":\"Vendor / architecture comparison\",\"timeout_ms\":15000},{\"op\":\"fill\",\"selector\":\"[data-matrix=\\\"0:fit\\\"]\",\"value\":\"5\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"extract\",\"selector\":\"[data-score=\\\"0\\\"]\"},{\"op\":\"screenshot\",\"path\":\"cxp-vendor-live.png\",\"full_page\":true},{\"op\":\"inspect\"}]",
+    "Approved": "false",
+    "Headless": "true",
+    "WaitMs": "500",
+    "MaxChars": "16000"
   },
-  "objective": "On DRIZNET, use the explicitly refreshed Clintware repo cache to validate, materialize, check, and deploy the CXponent Infrastructure Advisory Workspace project cxp-crm to https://cxp.clintware.com. Preserve the one-off candidate boundary and synthetic data. Verify source checks cover the 8 operating tracks, interactive TCO model, vendor comparison, PDF decision brief code path, HLD/SOW outline generator, custom-domain route, and noindex boundary. Return exact qq-local-agent build/deploy evidence. Live browser verification is a separate gate."
+  "objective": "Live functional verification of cxp.clintware.com after deployment. Confirm the candidate-built landing gate renders, TCO & FinOps opens and recalculates after changing the horizon to 5 years, Vendor Evaluation opens and recalculates after changing a score, and capture screenshots/inspection evidence. Do not perform authentication or consequential external actions."
 }
