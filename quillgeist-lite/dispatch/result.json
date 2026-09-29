@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cxp-crm-full-20260929-1803",
-  "job_id": "f60e11a6-b465-4411-a0a4-2734e51d4dc4",
+  "request_id": "driznet-cxp-crm-full-20260929-1816",
+  "job_id": "ac2dc210-bf7a-4f4a-967e-78d90a4546d4",
   "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 1791,
+  "duration_ms": 1300,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-29T23:10:50.3763747Z",
-  "recorded_at": 1790723449,
+  "confirmed_at": "2026-09-29T23:15:42.4868122Z",
+  "recorded_at": 1790723741,
   "recovery_history": [],
   "output_tail": "[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\crm-astro-build.ps1:90\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  90 | \u001b[0m \u2026 ojectId)) { \u001b[36;1mthrow \"The dedicated Clintware source cache does not cont\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mThe dedicated Clintware source cache does not contain project cxp-crm.\u001b[0m"
 }
