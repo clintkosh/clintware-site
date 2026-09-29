@@ -1,6 +1,7 @@
 {
-  "request_id": "driznet-postupdate-verify-20260929-0201",
-  "mode": "inspect",
-  "job_id": "19bf6ce3-2ff1-4e4a-9e98-a74d1d69e8a0",
-  "objective": "Verify DRIZNET after its successful targeted self-update: confirm post-restart runner connection/version/source revision, device-specific diagnostics, recovery/watchdog health, and that the completed job remains attributed to DRIZNET."
+  "request_id": "driznet-postrestart-doctor-20260929-0202",
+  "task_id": "clintware-doctor",
+  "target_device": "DRIZNET",
+  "args": {},
+  "objective": "Final DRIZNET post-restart smoke test. Verify the refreshed QQ runtime can execute an allowlisted local diagnostic on DRIZNET through the authenticated event-driven control-plane path without affecting MEMORIA."
 }
