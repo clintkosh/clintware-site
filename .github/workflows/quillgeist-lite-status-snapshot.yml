@@ -32,7 +32,7 @@ jobs:
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" -o /tmp/qq-health.cs
           python3 - <<'PY'
-          import hashlib, json, os, urllib.request
+          import hashlib, json, os, time, urllib.error, urllib.request
           from datetime import datetime, timezone
           with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
           with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
@@ -77,11 +77,47 @@ jobs:
             except Exception as exc:
               job_details[jid]={"error":str(exc)[:500]}
 
+          checkin_results={}
+          for device in (status.get("service_devices") or []):
+            device_id=str(device.get("device_id") or "").strip()
+            if not device_id:
+              continue
+            request_id="status-"+device_id.lower()+"-"+datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+            payload=json.dumps({"request_id":request_id,"target_device":device_id,"action":"status"}).encode("utf-8")
+            try:
+              req=urllib.request.Request(
+                f"{base}/api/v1/quillgeist-lite/check-in",
+                data=payload,
+                method="POST",
+                headers={"Authorization":f"Bearer {token}","Accept":"application/json","Content-Type":"application/json"}
+              )
+              try:
+                with urllib.request.urlopen(req,timeout=15) as resp:
+                  created=json.load(resp)
+              except urllib.error.HTTPError as exc:
+                created=json.loads(exc.read().decode("utf-8","replace") or "{}")
+              checkin_results[device_id]={"request":created}
+              if int(created.get("delivered") or 0)>0:
+                for _ in range(30):
+                  time.sleep(0.25)
+                  read_req=urllib.request.Request(
+                    f"{base}/api/v1/quillgeist-lite/check-in/{request_id}",
+                    headers={"Authorization":f"Bearer {token}","Accept":"application/json"}
+                  )
+                  with urllib.request.urlopen(read_req,timeout=10) as read_resp:
+                    current=json.load(read_resp)
+                  checkin_results[device_id]["result"]=current
+                  if ((current.get("checkin") or {}).get("status")=="replied"):
+                    break
+            except Exception as exc:
+              checkin_results[device_id]={"error":str(exc)[:500]}
+
           out={
             "checked_at":datetime.now(timezone.utc).isoformat(),
             "status":status,
             "diagnostics":diag,
             "job_details":job_details,
+            "live_checkins":checkin_results,
             "runtime_registry":{"version":tasks.get("version"),"task_ids":sorted((tasks.get("tasks") or {}).keys())},
             "runtime_probe":{
               "repair_codex_org_identity_sha256":hashlib.sha256(codex_bytes).hexdigest(),
@@ -89,7 +125,8 @@ jobs:
               "contains_invalid_home_guard":"codexHomeValid" in codex_text,
               "contains_memoria_header":"MEMORIA CODEX / ORG IDENTITY REPAIR" in codex_text,
               "health_service_sha256":hashlib.sha256(health_bytes).hexdigest(),
-              "health_preserves_busy_jobs":"wake_deferred_runner_busy" in health_text and "FreshBusyHeartbeatActive" in health_text
+              "health_preserves_busy_jobs":"wake_deferred_runner_busy" in health_text and "FreshBusyHeartbeatActive" in health_text,
+              "health_supports_checkin":"checkin_reply" in health_text and "deferred_busy" in health_text
             }
           }
           with open("ops/quillgeist-lite-live-status.json","w",encoding="utf-8") as f:
