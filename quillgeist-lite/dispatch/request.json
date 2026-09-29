@@ -1,14 +1,14 @@
 {
-  "request_id": "driznet-smspc-browser-smoke-1-20260929",
+  "request_id": "driznet-smspc-inspect-discovery-20260929",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
     "Action": "run",
     "Url": "https://smspc.clintware.com",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"inspect\"},{\"op\":\"click\",\"text\":\"Outcome Discovery\",\"exact\":true},{\"op\":\"wait\",\"ms\":1000},{\"op\":\"inspect\"},{\"op\":\"screenshot\",\"path\":\"smspc-landing-smoke.png\",\"full_page\":true}]}",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"click\",\"text\":\"Outcome Discovery\",\"exact\":true},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"}]}",
     "Approved": "false",
     "Headless": "true",
-    "WaitMs": "500"
+    "WaitMs": "450"
   },
-  "objective": "On DRIZNET, use the governed QQ browser to verify the live SimSpace CRM loads, the role-specific operating-track chooser appears, selecting Outcome Discovery works, and return inspected page state plus a local screenshot."
+  "objective": "Inspect the live SimSpace CRM after entering the Outcome Discovery operating track so we can exercise real stakeholder/action/KPI/meeting controls rather than assume selectors."
 }
