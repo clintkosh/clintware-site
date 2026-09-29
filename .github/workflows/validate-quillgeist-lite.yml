@@ -243,6 +243,21 @@ jobs:
           }
           Write-Host "CRM_ASTRO_LOCAL_ROUTE_OK"
 
+      - name: Validate event-driven QQ runtime convergence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $src = Get-Content -LiteralPath "control-plane/src/index.js" -Raw
+          foreach ($required in @(
+            'clintware-runtime-convergence',
+            'runtime_revision_drift',
+            'pendingQuillgeistLiteJobs(20,targetDevice)',
+            'task_id:"self-update"'
+          )) {
+            if (-not $src.Contains($required)) { throw "Missing runtime convergence marker: $required" }
+          }
+          Write-Host "RUNTIME_CONVERGENCE_OK"
+
       - name: Test preservation during local storage recovery
         shell: pwsh
         run: python quillgeist-lite/tests/test_local_ai_recovery.py
