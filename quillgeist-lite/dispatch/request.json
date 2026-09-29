@@ -1,9 +1,7 @@
 {
-  "request_id": "driznet-local-ai-diagnostics-20260929-1120",
-  "task_id": "local-ai",
-  "target_device": "DRIZNET",
-  "args": {
-    "Action": "diagnostics"
-  },
-  "objective": "Assess DRIZNET local AI/server/chatbot build state. Return bounded diagnostics for installed models, local AI services, relevant containers, BitNet build evidence, and launchers. Do not modify state."
+  "request_id": "memoria-local-service-recovery-20260929-1122",
+  "task_id": "repair-local-service",
+  "target_device": "MEMORIA",
+  "args": {},
+  "objective": "Repair MEMORIA QQ local health service and managed runner registration from the current reviewed runtime. Preserve all existing BitNet/model/build data and queued work. Clear stale runner ownership only, restore the watchdog/fallback task, then resume the canonical QQ runner."
 }
