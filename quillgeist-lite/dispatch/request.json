@@ -1,8 +1,8 @@
 {
-  "request_id": "driznet-current-runtime-identity-20260929-1121",
+  "request_id": "driznet-clean-runtime-retry-20260929-1125",
   "task_id": "self-update",
   "target_device": "DRIZNET",
   "args": {},
   "resume_after": true,
-  "objective": "Refresh only DRIZNET to the current reviewed QQ runtime and task registry so the machine-identity doctor and latest local-AI tasks are available. Preserve existing Ollama models and local data. Do not affect MEMORIA."
+  "objective": "Retry the DRIZNET-only QQ self-update now that the corrected pinned control-plane runtime is deployed. Preserve existing Ollama models and local data, install registry v18/current reviewed runtime, verify the health service compiles, keep no-focus launch behavior, and do not affect MEMORIA."
 }
