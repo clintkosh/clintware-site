@@ -1,8 +1,5 @@
 {
-  "request_id": "memoria-watchdog-selfupdate-resume-20260929-0302",
-  "task_id": "self-update",
-  "target_device": "MEMORIA",
-  "args": {},
-  "resume_after": true,
-  "objective": "Force-refresh MEMORIA QQ from current reviewed main so the BitNet progress watchdog/checkpoint/autorepair code is installed. Preserve current local AI data and active build artifacts. After restart, resume the previously active local AI/BitNet work from existing incremental state rather than rebuilding from scratch; keep focus-safe singleton behavior and return local-agent confirmation."
+  "request_id": "driznet-live-status-20260929-0159",
+  "mode": "inspect",
+  "objective": "Inspect current DRIZNET QQ/control-plane connection, runner version, diagnostics, and outstanding targeted jobs before completing this machine's repair."
 }
