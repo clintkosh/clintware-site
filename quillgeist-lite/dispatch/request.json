@@ -1,11 +1,14 @@
 {
-  "request_id": "driznet-cxp-crm-full-20260929-1816",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-cxp-refresh-repo-20260929-1817",
+  "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "cxp-crm",
-    "SkipInstall": "false"
+    "Query": "cxp-crm",
+    "Path": "projects/cxp-crm",
+    "Mode": "text",
+    "Max": "20",
+    "Json": "false",
+    "FilesOnly": "true"
   },
-  "objective": "On DRIZNET, validate the current CXponent Senior Infrastructure Pre-Sales Architect one-off CRM ASTRO manifest, materialize the CXponent Infrastructure Advisory Workspace from the mature DPLR base, run all source checks locally, and deploy it to https://cxp.clintware.com. Confirm the role-specific TCO model, vendor comparison, synthetic infrastructure decision data, downloadable decision brief PDF code path, HLD/SOW outline generator, and noindex boundary are present. Return exact build/deployment evidence; live browser verification remains a separate gate."
+  "objective": "Refresh DRIZNET's dedicated Clintware code-search cache from current origin/main and confirm projects/cxp-crm is present. This is a read-only repository refresh/search before the CXponent CRM build."
 }
