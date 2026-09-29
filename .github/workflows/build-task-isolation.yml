@@ -1,0 +1,72 @@
+name: Build Clintware Task Isolation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/task-isolation/**'
+      - '.github/workflows/build-task-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+
+      - name: Format and build Windows GUI executable
+        shell: pwsh
+        run: |
+          Push-Location tools/task-isolation
+          gofmt -w main.go
+          go build -trimpath -ldflags="-s -w -H=windowsgui" -o ../../Clintware-TaskIsolation.exe .
+          Pop-Location
+
+      - name: Run embedded self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath ".\Clintware-TaskIsolation.exe" -ArgumentList "--selftest" -Wait -PassThru -WindowStyle Hidden
+          if ($p.ExitCode -ne 0) { throw "Task Isolation self-test failed: $($p.ExitCode)" }
+
+      - name: Verify executable and checksum
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path ".\Clintware-TaskIsolation.exe"
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "Invalid PE/MZ executable" }
+          if ((Get-Item $exe).Length -lt 500000) { throw "Unexpectedly small executable" }
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  Clintware-TaskIsolation.exe" | Set-Content Clintware-TaskIsolation-SHA256.txt
+          "SHA256=$hash"
+          "SIZE=$((Get-Item $exe).Length)"
+
+      - name: Publish executable to site and QQ runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path downloads,quillgeist-lite/tools | Out-Null
+          Copy-Item Clintware-TaskIsolation.exe downloads/Clintware-TaskIsolation.exe -Force
+          Copy-Item Clintware-TaskIsolation-SHA256.txt downloads/Clintware-TaskIsolation-SHA256.txt -Force
+          Copy-Item Clintware-TaskIsolation.exe quillgeist-lite/tools/Clintware-TaskIsolation.exe -Force
+          Copy-Item Clintware-TaskIsolation-SHA256.txt quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt -Force
+          git config user.name "clintware-build"
+          git config user.email "actions@users.noreply.github.com"
+          git add tools/task-isolation/main.go downloads/Clintware-TaskIsolation.exe downloads/Clintware-TaskIsolation-SHA256.txt quillgeist-lite/tools/Clintware-TaskIsolation.exe quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Publish hardened Task Isolation Windows build"
+            git push
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clintware-TaskIsolation-win-x64
+          path: |
+            Clintware-TaskIsolation.exe
+            Clintware-TaskIsolation-SHA256.txt
+          retention-days: 30
