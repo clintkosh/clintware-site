@@ -284,7 +284,7 @@ const QUILLGEIST_LITE_TASKS = {
   "self-heal":{runtime:"powershell",parameters:[]},
   "browser-setup":{runtime:"powershell",parameters:[]},
   "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","Headless","WaitMs","UserWaitMs"]},
-  "crm-astro-build":{runtime:"powershell",parameters:["Action","Project","Manifest","SkipInstall","RepoRoot"]},
+  "crm-astro-build":{runtime:"powershell",parameters:["Action","Project","SkipInstall"]},
   "open-edge-tab":{runtime:"powershell",parameters:["Url"]},
   "repair-codex-org-identity":{runtime:"powershell",parameters:[]},
   "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
