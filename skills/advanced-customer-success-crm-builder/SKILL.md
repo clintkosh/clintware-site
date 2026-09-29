@@ -15,7 +15,7 @@ Use this advanced skill for reusable architecture, data patterns, security, pers
 
 For one-off builds:
 
-- smallest working role-specific operating system wins;
+- role-fit complexity wins: compact for narrow roles, broad and deep for positions that genuinely span multiple operating motions;
 - account workspace, stakeholders, KPIs, actions, meeting prep, and a real PDF are higher priority than breadth;
 - irrelevant modules should be removed rather than merely hidden;
 - safe seed migration and real browser interaction tests are mandatory;
@@ -906,6 +906,8 @@ Return a compact implementation report containing:
 
 ## Final guardrail
 
-The purpose of this skill is not to generate the largest possible CRM.
+The purpose of this skill is not to optimize for either the largest or the smallest possible CRM.
 
-The purpose is to create the smallest system that fully supports the company's real post-sales operating needs, makes customer value visible, makes ownership explicit, reduces surprises, keeps sensitive credentials centralized, and turns repeated implementation work into a reusable operating capability.
+The purpose is to create the **appropriately scoped system** for the company's real post-sales operating needs.  A large CRM is valid when the role or operating model truly requires broad ownership across multiple workflows, systems, teams, integrations, metrics, and decision surfaces.
+
+Complexity must be justified by the work.  Preserve useful depth; remove only functionality that does not support the target operating model.  The resulting system should make customer value visible, make ownership explicit, reduce surprises, keep sensitive credentials centralized, and turn repeated implementation work into a reusable operating capability.
