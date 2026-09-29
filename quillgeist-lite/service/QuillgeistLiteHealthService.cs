@@ -29,6 +29,7 @@ namespace Clintware.QuillgeistLite
 
     public sealed class QuillgeistLiteHealthService : ServiceBase
     {
+        private const string ServiceVersion = "1.3.0-checkin";
         private readonly object gate = new object();
         private readonly Queue<DateTime> restarts = new Queue<DateTime>();
         private readonly Queue<DateTime> errorSignals = new Queue<DateTime>();
@@ -196,6 +197,25 @@ namespace Clintware.QuillgeistLite
                             if (result.MessageType == WebSocketMessageType.Close) break;
 
                             string payload = Encoding.UTF8.GetString(message.ToArray());
+                            if (payload.IndexOf("\"type\":\"checkin\"", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                Match idMatch = Regex.Match(payload, "\\\"request_id\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
+                                Match actionMatch = Regex.Match(payload, "\\\"action\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
+                                string requestId = idMatch.Success ? idMatch.Groups[1].Value : "";
+                                string action = actionMatch.Success ? actionMatch.Groups[1].Value : "status";
+                                bool busy = FreshBusyHeartbeatActive();
+                                string actionResult = "status";
+                                if (String.Equals(action, "restart_runner", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (busy || MaintenanceModeActive(true)) actionResult = busy ? "deferred_busy" : "deferred_maintenance";
+                                    else { EnsureRunner(true); actionResult = "restart_requested"; }
+                                }
+                                string reply = "{\\\"type\\\":\\\"checkin_reply\\\",\\\"protocol\\\":\\\"clintware-quillgeist-lite-checkin/v1\\\",\\\"request_id\\\":\\\"" + Json(requestId) + "\\",\\\"device_id\\\":\\\"" + Json(config.DeviceId) + "\\",\\\"service_version\\\":\\\"" + ServiceVersion + "\\",\\\"runner_alive\\\":" + (RunnerAlive() ? "true" : "false") + ",\\\"runner_state\\\":\\\"" + (busy ? "busy" : (RunnerAlive() ? "connected" : "down")) + "\\",\\\"busy\\\":" + (busy ? "true" : "false") + ",\\\"action\\\":\\\"" + Json(action) + "\\",\\\"action_result\\\":\\\"" + actionResult + "\\",\\\"timestamp\\\":\\\"" + DateTime.UtcNow.ToString("o") + "\\",\\\"message\\\":\\\"watchdog responsive\\\"}";
+                                byte[] replyBytes = Encoding.UTF8.GetBytes(reply);
+                                socket.SendAsync(new ArraySegment<byte>(replyBytes), WebSocketMessageType.Text, true, CancellationToken.None).GetAwaiter().GetResult();
+                                LocalLog("checkin_reply action=" + action + " result=" + actionResult);
+                                continue;
+                            }
                             if (payload.IndexOf("\"type\":\"wake\"", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
                                 LocalLog("wake_received " + Redact(payload));
