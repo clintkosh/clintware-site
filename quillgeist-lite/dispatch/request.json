@@ -1,7 +1,8 @@
 {
-  "request_id": "memoria-local-service-recovery-20260929-1122",
-  "task_id": "repair-local-service",
-  "target_device": "MEMORIA",
+  "request_id": "driznet-current-runtime-identity-20260929-1121",
+  "task_id": "self-update",
+  "target_device": "DRIZNET",
   "args": {},
-  "objective": "Repair MEMORIA QQ local health service and managed runner registration from the current reviewed runtime. Preserve all existing BitNet/model/build data and queued work. Clear stale runner ownership only, restore the watchdog/fallback task, then resume the canonical QQ runner."
+  "resume_after": true,
+  "objective": "Refresh only DRIZNET to the current reviewed QQ runtime and task registry so the machine-identity doctor and latest local-AI tasks are available. Preserve existing Ollama models and local data. Do not affect MEMORIA."
 }
