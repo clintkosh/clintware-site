@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-cxp-refresh-repo-20260929-1817",
+  "request_id": "driznet-cxp-refresh-repo-20260929-1822",
   "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "args": {
@@ -10,5 +10,5 @@
     "Json": "false",
     "FilesOnly": "true"
   },
-  "objective": "Refresh DRIZNET's dedicated Clintware code-search cache from current origin/main and confirm projects/cxp-crm is present. This is a read-only repository refresh/search before the CXponent CRM build."
+  "objective": "Refresh DRIZNET's dedicated Clintware code-search cache from current origin/main and confirm projects/cxp-crm is present. Read-only repository refresh/search before the CXponent CRM build."
 }
