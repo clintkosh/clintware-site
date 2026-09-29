@@ -30,6 +30,12 @@ jobs:
           node projects/nsm-cs-os/scripts/materialize.mjs
           cd .build/nsm-cs-os
           npm install --no-audit --no-fund
+          echo "CHECKPOINT syntax_index"
+          node --check src/index.js
+          echo "CHECKPOINT syntax_samples"
+          node --check src/sample-customers.js
+          echo "CHECKPOINT syntax_ui"
+          node --check public/nsm.js
           npm run check
           grep -Fq '"name":"clintware-nsm-cs-os"' wrangler.jsonc
           grep -Fq 'const APP_ID="nsm-cs-os"' src/index.js
