@@ -27,7 +27,7 @@ jobs:
           set -euo pipefail
           mkdir -p ops
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" -o /tmp/status.json
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=20" -o /tmp/diag.json
+          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=100" -o /tmp/diag.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" -o /tmp/tasks.json
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
           curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" -o /tmp/qq-health.cs
@@ -45,7 +45,7 @@ jobs:
           token=os.environ.get("CONTROL_PLANE_MCP_TOKEN","")
           base=os.environ.get("CONTROL_PLANE","").rstrip("/")
           for row in (status.get("jobs") or [])[:40]:
-            if row.get("task_id") not in {"finish-local-ai","repair-codex-org-identity"}:
+            if row.get("task_id") not in {"finish-local-ai","repair-codex-org-identity","self-update","repair-local-service","share-ai-network","clintware-doctor"}:
               continue
             if row.get("target_device") not in {"MEMORIA","DRIZNET"}:
               continue
