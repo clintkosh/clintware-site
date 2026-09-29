@@ -1,8 +1,4 @@
 {
-  "request_id": "memoria-refresh-for-ai-share-20260929-1058",
-  "task_id": "self-update",
-  "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA Quillgeist Lite to the latest reviewed task bundle so the allowlisted F:\\AI LAN share task is available.",
-  "resume_after": true
+  "request_id": "memoria-force-local-status-20260929-1117",
+  "mode": "inspect"
 }
