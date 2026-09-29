@@ -1,15 +1,9 @@
 {
-  "request_id": "chatgpt-driznet-native-edge-skills-inspect-20260928-1832",
-  "task_id": "browser-work",
-  "target_device": "DRIZNET",
+  "request_id": "memoria-resume-diagnostics-20260929-0231",
+  "task_id": "local-ai",
+  "target_device": "MEMORIA",
   "args": {
-    "Action": "edge-uia-inspect",
-    "Selector": "Product Director - Core Platform Application",
-    "Query": "Skills",
-    "MaxResults": "20",
-    "Approved": "false",
-    "Headless": "false",
-    "WaitMs": "350"
+    "Action": "diagnostics"
   },
-  "objective": "Read-only inspection of the already-open Edge page to identify the visible Skills control and nearby UI elements. No typing, clicking, navigation, upload, submit, or form changes."
+  "objective": "Assess current MEMORIA services, safe filesystem errors and data locations to finish local AI and original Immich recovery; no D: access."
 }
