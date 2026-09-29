@@ -46,6 +46,7 @@ $script:LatestInfraUsage = $null
 $script:LastInfraUsageAlertSignature = ""
 $script:ReconnectBackoffSeconds = 5
 $script:ConnectedSince = $null
+$script:LastTaskIsolationCheck = [DateTime]::MinValue
 
 function Mark-QQVisibleActivity {
   $script:LastVisibleActivity = Get-Date
@@ -1238,6 +1239,37 @@ function Get-QQLocalTokens {
   return $tokens.ToArray()
 }
 
+function Invoke-QQScheduledTaskIsolationCheck {
+  param([switch]$Force)
+
+  if (-not $Force -and ((Get-Date) - $script:LastTaskIsolationCheck).TotalMinutes -lt 10) { return }
+  $script:LastTaskIsolationCheck = Get-Date
+
+  if (-not (Test-QQAdministrator)) {
+    try { Queue-RunnerDiagnostic "INFO" "scheduled_task_isolation_skipped_not_admin" "desktop-focus" } catch {}
+    return
+  }
+
+  $taskPath = Join-Path $RuntimeRoot "quillgeist-lite\tasks\scheduled-task-isolation.ps1"
+  if (-not (Test-Path $taskPath)) {
+    try { Queue-RunnerDiagnostic "WARN" "scheduled_task_isolation_task_missing" "desktop-focus" } catch {}
+    return
+  }
+
+  try {
+    $raw = (& $taskPath -Mode Repair 2>&1 | Out-String).Trim()
+    if ($raw) {
+      $summary = $raw -replace '[\r\n]+',' | '
+      if ($summary.Length -gt 900) { $summary = $summary.Substring(0,900) + "..." }
+      Write-Log ("TASK-ISOLATION // " + $summary) "OK"
+      try { Queue-RunnerDiagnostic "INFO" ("scheduled_task_isolation=" + $summary) "desktop-focus" } catch {}
+    }
+  } catch {
+    Write-Log ("TASK-ISOLATION // " + $_.Exception.Message) "WARN"
+    try { Queue-RunnerDiagnostic "WARN" ("scheduled_task_isolation_failed=" + $_.Exception.Message) "desktop-focus" } catch {}
+  }
+}
+
 function Show-QQHelp {
   Suspend-QQPrompt
   Write-Host ""
@@ -2069,6 +2101,7 @@ function Invoke-QQLocalCommand {
       $healthStatus = if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) { "HEALTHY // CONTROL PLANE LINK ACTIVE" } else { "DEGRADED // RECONNECTING" }
       try { Show-QuillgeistSplash -Status $healthStatus } catch {}
       try { Queue-RunnerDiagnostic "INFO" "manual_health_check" "health" } catch {}
+      Invoke-QQScheduledTaskIsolationCheck -Force
       Show-QQPrompt
       return
     }
@@ -2430,7 +2463,7 @@ try {
         source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
         registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection")
       }
 
       Flush-RunnerDiagnostics
@@ -2453,6 +2486,7 @@ try {
       Write-Log "Connected to Clintware Control Plane." "OK"
 
       Write-Log "Interactive relay channel initialized." "OK"
+      Invoke-QQScheduledTaskIsolationCheck -Force
 
       Write-Host ""
       Write-Host "  " -NoNewline
@@ -2471,6 +2505,7 @@ try {
         Write-RunnerHeartbeat -State "connected"
         Show-QQIdleNotice
         Show-QQPendingQuestions
+        Invoke-QQScheduledTaskIsolationCheck
         $localInput = Read-QQConsoleLine
         if ($localInput.Ready) {
           Invoke-QQLocalCommand ([string]$localInput.Line)
