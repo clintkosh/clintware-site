@@ -1,14 +1,14 @@
 {
-  "request_id": "memoria-bitnet-job-evidence-20260929-0245",
+  "request_id": "driznet-live-status-20260929-0159",
   "mode": "inspect",
-  "recorded_at": 1790649695,
+  "recorded_at": 1790665747,
   "inspection": {
     "online": 1,
     "recovery_online": 0,
-    "wake_online": 1,
+    "wake_online": 3,
     "recovery": null,
     "runner_version": "1.10.0",
-    "runner_last_seen": "2026-09-29T02:41:15.596Z",
+    "runner_last_seen": "2026-09-29T05:33:48.554Z",
     "runner": {
       "runner_id": "DRIZNET",
       "version": "1.10.0",
@@ -34,15 +34,15 @@
         "capability_inventory",
         "capability_aware_routing"
       ],
-      "connected_at": "2026-09-29T02:41:15.390Z",
-      "last_seen": "2026-09-29T02:41:15.596Z",
-      "source_revision": "d97048ef116d9c52fd5b7fae741e83617beee356",
+      "connected_at": "2026-09-29T05:33:48.417Z",
+      "last_seen": "2026-09-29T05:33:48.554Z",
+      "source_revision": "df068a0e480233000e9b24ed2af5a281d32305a5",
       "registry_version": "17"
     },
     "connected_devices": [
       {
         "device_id": "DRIZNET",
-        "connected_at": "2026-09-29T02:41:15.390Z",
+        "connected_at": "2026-09-29T05:33:48.417Z",
         "runner": {
           "runner_id": "DRIZNET",
           "version": "1.10.0",
@@ -68,9 +68,9 @@
             "capability_inventory",
             "capability_aware_routing"
           ],
-          "connected_at": "2026-09-29T02:41:15.390Z",
-          "last_seen": "2026-09-29T02:41:15.428Z",
-          "source_revision": "d97048ef116d9c52fd5b7fae741e83617beee356",
+          "connected_at": "2026-09-29T05:33:48.417Z",
+          "last_seen": "2026-09-29T05:33:48.554Z",
+          "source_revision": "df068a0e480233000e9b24ed2af5a281d32305a5",
           "registry_version": "17"
         }
       }
@@ -89,10 +89,34 @@
     ],
     "jobs": [
       {
+        "job_id": "63f23797-7928-4434-9d01-46473ad98e8f",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "queued"
+      },
+      {
+        "job_id": "8b3862da-7c43-4818-91e4-fa8a0e1176a0",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "16aff7a6-0091-4e59-b7da-2ed81d05a930",
+        "task_id": "self-update",
+        "target_device": "",
+        "status": "passed"
+      },
+      {
+        "job_id": "6d683afa-e985-4fd9-b027-f14cbe99190d",
+        "task_id": "local-ai",
+        "target_device": "MEMORIA",
+        "status": "queued"
+      },
+      {
         "job_id": "ed64b159-d9cf-48e3-83d3-4c5102f97708",
         "task_id": "self-update",
         "target_device": "",
-        "status": "running"
+        "status": "passed"
       },
       {
         "job_id": "6af02901-b90c-4ed0-89cc-ccf0b43d58ee",
@@ -135,322 +159,105 @@
         "task_id": "self-update",
         "target_device": "",
         "status": "failed"
-      },
-      {
-        "job_id": "818c80e2-81b1-4ef0-8159-839c8038c8e6",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "failed"
-      },
-      {
-        "job_id": "0c7040d0-7042-4e3e-ade5-ba20deb7f0f3",
-        "task_id": "self-update",
-        "target_device": "",
-        "status": "failed"
-      },
-      {
-        "job_id": "7d1876cc-e030-4fa3-b662-45dce8d8fd9b",
-        "task_id": "local-ai",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "cea95433-2572-42d1-98c7-5489f43f8bcb",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "failed"
       }
     ],
     "diagnostics": [
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "wake",
+        "device_id": "MEMORIA",
+        "level": "ERROR",
+        "phase": "health",
         "kind": "other",
-        "message": "wake_deferred_runner_busy",
-        "timestamp": "2026-09-29T02:41:34.7887249Z"
+        "message": "restart_suppressed_after_5_attempts_in_10_minutes",
+        "timestamp": "2026-09-29T07:07:23.2358497Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "wake",
+        "phase": "health",
         "kind": "other",
-        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
-        "timestamp": "2026-09-29T02:41:34.6742550Z"
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-29T07:06:59.1832692Z"
       },
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
-        "timestamp": "2026-09-29T02:41:16.3579735Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Refreshed reviewed task source: self-update",
-        "timestamp": "2026-09-29T02:41:16.3319670Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Interactive relay channel initialized.",
-        "timestamp": "2026-09-29T02:41:15.5462757Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Connected to Clintware Control Plane.",
-        "timestamp": "2026-09-29T02:41:15.5281875Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "kind": "other",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "timestamp": "2026-09-29T02:41:15.2475025Z"
-      },
-      {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "runner",
+        "phase": "health",
         "kind": "other",
-        "message": "Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
-        "timestamp": "2026-09-29T02:40:54.5315250Z"
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-29T07:06:58.3228593Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "runner-auth",
+        "phase": "health",
         "kind": "other",
-        "message": "credential_probe",
-        "timestamp": "2026-09-29T02:41:14.7269858Z"
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-29T07:06:58.2158488Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "runner-log",
+        "phase": "health",
         "kind": "other",
-        "message": "2026-09-28T21:40:54 [WARN] Disconnected. Reconnecting in 20 seconds; bounded backoff prevents Cloudflare request storms.",
-        "timestamp": "2026-09-29T02:40:59.0621599Z"
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-29T07:06:39.1613646Z"
       },
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
         "kind": "other",
-        "message": "Interactive relay channel initialized.",
-        "timestamp": "2026-09-29T02:40:03.9181817Z"
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-29T07:06:38.2986913Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "runner",
+        "phase": "health",
         "kind": "other",
-        "message": "Connected to Clintware Control Plane.",
-        "timestamp": "2026-09-29T02:40:03.8974013Z"
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-29T07:06:38.1957915Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-29T07:06:19.1232214Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-29T07:06:18.2509065Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-09-29T07:06:18.1426816Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-09-29T07:05:59.0606615Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-09-29T07:05:58.2028617Z"
       }
-    ],
-    "selected_job": {
-      "job_id": "475a6df1-79b9-40ec-8c69-9bff6ae51c8b",
-      "task_id": "bitnet-setup",
-      "status": "running",
-      "requested_by": "root",
-      "created_at": "2026-09-29T02:37:35.867Z",
-      "completed_at": null,
-      "duration_ms": null,
-      "exit_code": null,
-      "error_kind": "other",
-      "recent_logs": [
-        {
-          "seq": 27,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.1824257Z",
-          "line": "Requirement already satisfied: sympy>=1.13.3 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (1.14.0)"
-        },
-        {
-          "seq": 28,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.1841229Z",
-          "line": "Requirement already satisfied: networkx>=2.5.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.7)"
-        },
-        {
-          "seq": 29,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.1857742Z",
-          "line": "Requirement already satisfied: jinja2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.1.6)"
-        },
-        {
-          "seq": 30,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.1878622Z",
-          "line": "Requirement already satisfied: fsspec>=0.8.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (2026.9.0)"
-        },
-        {
-          "seq": 31,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.4457629Z",
-          "line": "Requirement already satisfied: charset_normalizer<4,>=2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (3.5.1)"
-        },
-        {
-          "seq": 32,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.4474878Z",
-          "line": "Requirement already satisfied: idna<4,>=2.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (3.20)"
-        },
-        {
-          "seq": 33,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.4500041Z",
-          "line": "Requirement already satisfied: urllib3<3,>=1.26 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (2.8.0)"
-        },
-        {
-          "seq": 34,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.4517583Z",
-          "line": "Requirement already satisfied: certifi>=2023.5.7 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (2026.7.22)"
-        },
-        {
-          "seq": 35,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.5627500Z",
-          "line": "Requirement already satisfied: mpmath<1.4,>=1.1.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from sympy>=1.13.3->torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (1.3.0)"
-        },
-        {
-          "seq": 36,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.6142864Z",
-          "line": "Requirement already satisfied: colorama in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from tqdm>=4.27->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (0.4.6)"
-        },
-        {
-          "seq": 37,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:48.6831615Z",
-          "line": "Requirement already satisfied: MarkupSafe>=2.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from jinja2->torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.0.3)"
-        },
-        {
-          "seq": 38,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4439628Z",
-          "line": "Requirement already satisfied: huggingface_hub in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (0.36.2)"
-        },
-        {
-          "seq": 39,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4460842Z",
-          "line": "Requirement already satisfied: filelock in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.0.3)"
-        },
-        {
-          "seq": 40,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4487476Z",
-          "line": "Requirement already satisfied: fsspec>=2023.5.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (2026.9.0)"
-        },
-        {
-          "seq": 41,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4512813Z",
-          "line": "Requirement already satisfied: packaging>=20.9 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (26.3)"
-        },
-        {
-          "seq": 42,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4540720Z",
-          "line": "Requirement already satisfied: pyyaml>=5.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (6.0.3)"
-        },
-        {
-          "seq": 43,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4562412Z",
-          "line": "Requirement already satisfied: requests in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (2.34.2)"
-        },
-        {
-          "seq": 44,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4586011Z",
-          "line": "Requirement already satisfied: tqdm>=4.42.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.70.1)"
-        },
-        {
-          "seq": 45,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4602452Z",
-          "line": "Requirement already satisfied: typing-extensions>=3.7.4.3 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.16.0)"
-        },
-        {
-          "seq": 46,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4759537Z",
-          "line": "Requirement already satisfied: colorama in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from tqdm>=4.42.1->huggingface_hub) (0.4.6)"
-        },
-        {
-          "seq": 47,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4789757Z",
-          "line": "Requirement already satisfied: charset_normalizer<4,>=2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (3.5.1)"
-        },
-        {
-          "seq": 48,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4814138Z",
-          "line": "Requirement already satisfied: idna<4,>=2.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (3.20)"
-        },
-        {
-          "seq": 49,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4839184Z",
-          "line": "Requirement already satisfied: urllib3<3,>=1.26 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (2.8.0)"
-        },
-        {
-          "seq": 50,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.4862389Z",
-          "line": "Requirement already satisfied: certifi>=2023.5.7 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (2026.7.22)"
-        },
-        {
-          "seq": 51,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.6387321Z",
-          "line": "BITNET // Building official BitNet Windows runtime"
-        },
-        {
-          "seq": 52,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.9098482Z",
-          "line": "**********************************************************************"
-        },
-        {
-          "seq": 53,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.9117520Z",
-          "line": "** Visual Studio 2022 Developer Command Prompt v17.14.26"
-        },
-        {
-          "seq": 54,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.9142117Z",
-          "line": "** Copyright (c) 2025 Microsoft Corporation"
-        },
-        {
-          "seq": 55,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:49.9158632Z",
-          "line": "**********************************************************************"
-        },
-        {
-          "seq": 56,
-          "phase": null,
-          "timestamp": "2026-09-29T02:37:59.9228412Z",
-          "line": "INFO:root:Compiling the code using CMake."
-        }
-      ]
-    }
+    ]
   }
 }
