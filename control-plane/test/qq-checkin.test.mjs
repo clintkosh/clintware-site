@@ -32,3 +32,12 @@ test("network share task is control-plane allowlisted", () => {
   assert.match(source, /"share-ai-network":\{runtime:"powershell",parameters:\[\]\}/);
   assert.match(source, /quillgeist-lite\/tasks\/share-network-folder\.ps1/);
 });
+
+test("wake channel stays persistent across queued-job notifications", () => {
+  const start = source.indexOf("async broadcastQuillgeistLiteWake(job)");
+  const end = source.indexOf("async broadcastQuillgeistLiteJobEvent", start);
+  const block = source.slice(start, end);
+  assert.doesNotMatch(block, /wake_reconnect/);
+  assert.doesNotMatch(block, /ws\.close\(/);
+  assert.match(block, /clintware-quillgeist-lite-wake\/v1/);
+});
