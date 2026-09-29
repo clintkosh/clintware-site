@@ -226,6 +226,22 @@ jobs:
           if ($task -notmatch "Get-ControlPlaneRevision" -or $task -notmatch "dedicated-cache") { throw "CRM ASTRO builder is not cache-first/source-aware." }
           Write-Host "CONTROL_PLANE_CRM_ASTRO_OK"
 
+      - name: Validate natural CRM routing stays local
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $runner = Get-Content -LiteralPath "quillgeist-lite/runner.ps1" -Raw
+          foreach ($required in @(
+            'Add-QQCapabilityRecommendation "crm-astro-build"',
+            'CRM LOCAL ROUTE',
+            '$lower.StartsWith("crm build ")',
+            '$lower.StartsWith("crm validate ")',
+            '$lower.StartsWith("crm deploy ")'
+          )) {
+            if (-not $runner.Contains($required)) { throw "Missing local CRM routing marker: $required" }
+          }
+          Write-Host "CRM_ASTRO_LOCAL_ROUTE_OK"
+
       - name: Test preservation during local storage recovery
         shell: pwsh
         run: python quillgeist-lite/tests/test_local_ai_recovery.py
