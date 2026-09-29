@@ -55,7 +55,7 @@ jobs:
             try:
               req=urllib.request.Request(
                 f"{base}/api/v1/quillgeist-lite/jobs/{jid}",
-                headers={"Authorization":f"Bearer {token}","Accept":"application/json"}
+                headers={"Authorization":f"Bearer {token}","Accept":"application/json","User-Agent":"clintware-qq-status/1.0"}
               )
               with urllib.request.urlopen(req,timeout=15) as resp:
                 detail=json.load(resp)
