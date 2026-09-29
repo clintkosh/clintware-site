@@ -2,9 +2,9 @@
 param(
   [ValidateSet("describe","validate","plan","materialize","check","deploy","full")]
   [string]$Action = "check",
-  [string]$Project = "bm-crm",
+  [ValidatePattern("^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$")][string]$Project = "bm-crm",
   [string]$Manifest = "",
-  [bool]$SkipInstall = $false,
+  [ValidateSet("true","false")][string]$SkipInstall = "false",
   [string]$RepoRoot = ""
 )
 
@@ -148,7 +148,7 @@ if ($Action -eq "materialize") {
 
 Push-Location $BuildRoot
 try {
-  if (-not $SkipInstall) {
+  if ($SkipInstall -ne "true") {
     & npm install --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) { throw "npm install failed." }
   }
