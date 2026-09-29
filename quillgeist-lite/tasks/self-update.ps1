@@ -148,11 +148,14 @@ try {
 } catch {}
 
 $restartHelper = Join-Path $HomeDir "apply-self-update.ps1"
-if ($runnerPid -le 0) {
+# Prefer the verified live heartbeat owner even when a duplicate launcher left
+# a different PID file behind. The helper still verifies identity before stop.
+. {
   try {
-    $heartbeat = Get-Content -LiteralPath (Join-Path $HomeDir "runner-heartbeat.json") -Raw | ConvertFrom-Json
+    $heartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
+    $heartbeat = Get-Content -LiteralPath $heartbeatPath -Raw | ConvertFrom-Json
     $candidatePid = [int]$heartbeat.pid
-    if ($candidatePid -gt 0) {
+    if ($candidatePid -gt 0 -and ((Get-Date).ToUniversalTime() - (Get-Item $heartbeatPath).LastWriteTimeUtc).TotalSeconds -lt 120) {
       $candidate = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $candidatePid) -ErrorAction Stop
       if ([string]$candidate.CommandLine -like ("*" + $HomeDir + "*") -and [string]$candidate.CommandLine -match '(?i)(launcher|runner)\.ps1') {
         $runnerPid = $candidatePid
