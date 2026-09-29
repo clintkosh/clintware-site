@@ -63,7 +63,7 @@ const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
 pkg.name="clintware-bm-crm";
 pkg.version="1.0.0";
 pkg.scripts=pkg.scripts||{};
-pkg.scripts.check=(pkg.scripts.check||"").replaceAll("dplr-","bm-");
+pkg.scripts.check=(pkg.scripts.check||"");
 pkg.scripts.check += " && node --check public/bm-track.js";
 fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+"\n");
 
