@@ -1,10 +1,10 @@
 {
-  "request_id": "driznet-storage-audit-20260929-1138",
+  "request_id": "driznet-storage-audit-retry-20260929-1140",
   "task_id": "storage-audit",
   "target_device": "DRIZNET",
   "args": {
     "ExpectedComputer": "DRIZNET",
     "LargestFiles": 60
   },
-  "objective": "Read-only storage audit of the HP DRIZNET machine for the right-sized local chatbot initiative. Report attached drives, free space, Ollama/model storage, Docker/WSL storage, downloads/temp/cache sizes, large AI/user files, and external/offload destinations. Do not move or delete anything. Do not affect MEMORIA."
+  "objective": "Read-only storage audit of HP DRIZNET for the right-sized local chatbot initiative. Report attached drives, free space, Ollama/model storage, Docker/WSL storage, Downloads/temp/cache sizes, large AI/user files, and external/offload destinations. Do not move or delete anything. Do not affect MEMORIA."
 }
