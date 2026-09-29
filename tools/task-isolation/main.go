@@ -18,13 +18,13 @@ import (
 const version = "1.1.0"
 
 var (
-	user32 = syscall.NewLazyDLL("user32.dll")
+	user32      = syscall.NewLazyDLL("user32.dll")
 	messageBoxW = user32.NewProc("MessageBoxW")
 )
 
 type workerSpec struct {
-	Command string `json:"command"`
-	Arguments string `json:"arguments"`
+	Command    string `json:"command"`
+	Arguments  string `json:"arguments"`
 	WorkingDir string `json:"working_dir"`
 }
 
@@ -34,11 +34,15 @@ func main() {
 		os.Exit(runWorker(args[i+1]))
 	}
 	if has(args, "--selftest") {
-		if selfTest() { os.Exit(0) }
+		if selfTest() {
+			os.Exit(0)
+		}
 		os.Exit(1)
 	}
 	if !isAdmin() {
-		if err := elevate(); err != nil { msg("Clintware Task Isolation", "Administrator access is required.\n\n"+err.Error(), 0x10) }
+		if err := elevate(); err != nil {
+			msg("Clintware Task Isolation", "Administrator access is required.\n\n"+err.Error(), 0x10)
+		}
 		return
 	}
 	installed, err := installSelf()
@@ -47,8 +51,12 @@ func main() {
 		return
 	}
 	mode := "apply"
-	if has(args, "--scan") { mode = "scan" }
-	if has(args, "--restore") { mode = "restore" }
+	if has(args, "--scan") {
+		mode = "scan"
+	}
+	if has(args, "--restore") {
+		mode = "restore"
+	}
 	quiet := has(args, "--quiet") || has(args, "--qq-auto")
 	restartRunning := !has(args, "--no-restart-running")
 
@@ -56,10 +64,14 @@ func main() {
 	writeLog(mode, out, runErr)
 	if !quiet {
 		flags := uintptr(0x40)
-		if runErr != nil { flags = 0x10 }
+		if runErr != nil {
+			flags = 0x10
+		}
 		msg("Clintware Task Isolation", trimForBox(out)+"\n\nLog:\n"+logPath(), flags)
 	}
-	if runErr != nil { os.Exit(1) }
+	if runErr != nil {
+		os.Exit(1)
+	}
 }
 
 func selfTest() bool {
@@ -72,24 +84,38 @@ func selfTest() bool {
 		strings.Contains(s, "Start-ScheduledTask") &&
 		strings.Contains(s, "\\Microsoft\\*") &&
 		strings.Contains(s, "launch-visible")
-	if ok { fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=PASS") } else { fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=FAIL") }
+	if ok {
+		fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=PASS")
+	} else {
+		fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=FAIL")
+	}
 	return ok
 }
 
 func runWorker(encoded string) int {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil { return 87 }
+	if err != nil {
+		return 87
+	}
 	var spec workerSpec
-	if err = json.Unmarshal(raw, &spec); err != nil || strings.TrimSpace(spec.Command) == "" { return 87 }
+	if err = json.Unmarshal(raw, &spec); err != nil || strings.TrimSpace(spec.Command) == "" {
+		return 87
+	}
 
 	line := quoteCmd(spec.Command)
-	if strings.TrimSpace(spec.Arguments) != "" { line += " " + spec.Arguments }
+	if strings.TrimSpace(spec.Arguments) != "" {
+		line += " " + spec.Arguments
+	}
 	c := exec.Command("cmd.exe", "/D", "/S", "/C", line)
-	if spec.WorkingDir != "" { c.Dir = spec.WorkingDir }
+	if spec.WorkingDir != "" {
+		c.Dir = spec.WorkingDir
+	}
 	c.Stdin, c.Stdout, c.Stderr = nil, nil, nil
 	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	if err := c.Run(); err != nil {
-		if ee, ok := err.(*exec.ExitError); ok { return ee.ExitCode() }
+		if ee, ok := err.(*exec.ExitError); ok {
+			return ee.ExitCode()
+		}
 		return 1
 	}
 	return 0
@@ -105,9 +131,13 @@ func isAdmin() bool {
 
 func elevate() error {
 	exe, err := os.Executable()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	var aa []string
-	for _, a := range os.Args[1:] { aa = append(aa, strings.ReplaceAll(a, "'", "''")) }
+	for _, a := range os.Args[1:] {
+		aa = append(aa, strings.ReplaceAll(a, "'", "''"))
+	}
 	ps := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs",
 		strings.ReplaceAll(exe, "'", "''"),
 		strings.ReplaceAll(strings.Join(aa, " "), "'", "''"))
@@ -118,16 +148,26 @@ func elevate() error {
 
 func installSelf() (string, error) {
 	exe, err := os.Executable()
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	dir := filepath.Join(os.Getenv("ProgramData"), "Clintware", "TaskIsolation")
-	if err = os.MkdirAll(dir, 0755); err != nil { return "", err }
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
 	dst := filepath.Join(dir, "Clintware-TaskIsolation.exe")
 	a, _ := filepath.Abs(exe)
 	b, _ := filepath.Abs(dst)
-	if strings.EqualFold(a, b) { return dst, nil }
+	if strings.EqualFold(a, b) {
+		return dst, nil
+	}
 	data, err := os.ReadFile(exe)
-	if err != nil { return "", err }
-	if err = os.WriteFile(dst, data, 0755); err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
+	if err = os.WriteFile(dst, data, 0755); err != nil {
+		return "", err
+	}
 	return dst, nil
 }
 
@@ -142,7 +182,9 @@ func runPowerShell(script string) (string, error) {
 func buildScript(helper, mode string, restart bool) string {
 	h := strings.ReplaceAll(helper, "'", "''")
 	restartPS := "$RestartRunning=$false"
-	if restart { restartPS = "$RestartRunning=$true" }
+	if restart {
+		restartPS = "$RestartRunning=$true"
+	}
 	return fmt.Sprintf(`$ErrorActionPreference='Stop'
 $Mode='%s'
 $Helper='%s'
@@ -254,10 +296,45 @@ Write-Output ('Restore: Clintware-TaskIsolation.exe --restore')
 `, mode, h, restartPS)
 }
 
-func utf16le(s string) []byte { u:=utf16.Encode([]rune(s)); b:=make([]byte,0,len(u)*2); for _,x:=range u{b=append(b,byte(x),byte(x>>8))}; return b }
-func has(a []string,w string) bool { return indexOf(a,w)>=0 }
-func indexOf(a []string,w string) int { for i,x:=range a{if strings.EqualFold(x,w){return i}}; return -1 }
-func logPath() string { return filepath.Join(os.Getenv("ProgramData"),"Clintware","TaskIsolation","last-run.log") }
-func writeLog(mode,out string,err error){ _=os.MkdirAll(filepath.Dir(logPath()),0755); s:="version="+version+"\nmode="+mode+"\n\n"+out+"\n"; if err!=nil{s+="\nerror="+err.Error()+"\n"}; _=os.WriteFile(logPath(),[]byte(s),0644) }
-func trimForBox(s string) string { if s==""{return "Completed."}; if len(s)>3500{return s[:3500]+"\n..."}; return s }
-func msg(title,text string,flags uintptr){ t,_:=syscall.UTF16PtrFromString(text); c,_:=syscall.UTF16PtrFromString(title); messageBoxW.Call(0,uintptr(unsafe.Pointer(t)),uintptr(unsafe.Pointer(c)),flags) }
+func utf16le(s string) []byte {
+	u := utf16.Encode([]rune(s))
+	b := make([]byte, 0, len(u)*2)
+	for _, x := range u {
+		b = append(b, byte(x), byte(x>>8))
+	}
+	return b
+}
+func has(a []string, w string) bool { return indexOf(a, w) >= 0 }
+func indexOf(a []string, w string) int {
+	for i, x := range a {
+		if strings.EqualFold(x, w) {
+			return i
+		}
+	}
+	return -1
+}
+func logPath() string {
+	return filepath.Join(os.Getenv("ProgramData"), "Clintware", "TaskIsolation", "last-run.log")
+}
+func writeLog(mode, out string, err error) {
+	_ = os.MkdirAll(filepath.Dir(logPath()), 0755)
+	s := "version=" + version + "\nmode=" + mode + "\n\n" + out + "\n"
+	if err != nil {
+		s += "\nerror=" + err.Error() + "\n"
+	}
+	_ = os.WriteFile(logPath(), []byte(s), 0644)
+}
+func trimForBox(s string) string {
+	if s == "" {
+		return "Completed."
+	}
+	if len(s) > 3500 {
+		return s[:3500] + "\n..."
+	}
+	return s
+}
+func msg(title, text string, flags uintptr) {
+	t, _ := syscall.UTF16PtrFromString(text)
+	c, _ := syscall.UTF16PtrFromString(title)
+	messageBoxW.Call(0, uintptr(unsafe.Pointer(t)), uintptr(unsafe.Pointer(c)), flags)
+}
