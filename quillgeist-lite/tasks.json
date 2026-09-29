@@ -1,7 +1,7 @@
 {
-  "version": 18,
+  "version": 19,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq inventories local capabilities before routing, self-heals canonical runtime files, provides governed persistent browser automation with visible takeover signaling, hands provider authentication to the user's normal system browser, exposes bounded installed-model inspection, and includes deterministic repository code search that does not depend on provider indexing.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
   "runtimes": [
     "powershell",
     "python",
