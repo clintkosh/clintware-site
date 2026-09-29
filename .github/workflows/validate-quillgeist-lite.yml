@@ -147,6 +147,7 @@ jobs:
             "quillgeist-lite/tools/responder_agent.py",
             "quillgeist-lite/tools/provider_responder.py",
             "quillgeist-lite/tools/career_signal_agent.py",
+            "quillgeist-lite/tools/crm_astro.py",
             "quillgeist-lite/dispatch/relay.py"
           )
           $logoB64 = (Get-Content "quillgeist-lite/assets/clintware-terminal-logo.b64" -Raw).Trim()
@@ -200,6 +201,18 @@ jobs:
             throw "QQ repo-code-search task is not pinned to the maintained repository."
           }
           Write-Host "CODE_SEARCH_OK"
+
+      - name: Smoke-test local CRM ASTRO contract
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $raw = @(python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/bm-crm/manifest.json --Json)
+          if ($LASTEXITCODE -ne 0) { throw "CRM ASTRO manifest validation failed." }
+          $data = ($raw -join "`n") | ConvertFrom-Json
+          if ($data.track_count -ne 12) { throw "CRM ASTRO expected exactly 12 tracks." }
+          if ($data.groups.CSM -ne 6 -or $data.groups.Support -ne 6) { throw "CRM ASTRO expected 6 CSM + 6 Support tracks." }
+          if ($data.remote_shell_exposed -ne $false) { throw "CRM ASTRO must not expose a remote shell." }
+          Write-Host "CRM_ASTRO_MANIFEST_OK"
 
       - name: Test preservation during local storage recovery
         shell: pwsh
