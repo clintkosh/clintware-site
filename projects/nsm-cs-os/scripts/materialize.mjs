@@ -132,6 +132,12 @@ const b=src.indexOf(" async seed()",a);
 if(a<0||b<0) throw new Error("Customer seed method anchors missing");
 src=src.slice(0,a)+sampleFn+src.slice(b);
 
+const seedSync=` seedRecordKey(type,data){const d=data&&typeof data==="object"?data:{};return String(type||"")+"|"+String(d.name||d.title||d.number||d.renewalDate||"").trim().toLowerCase()}
+ syncSeedRecords(workspace,customerId,rows){const seeded=new Set(["synthetic_sample","template","scenario"]),protectedKeys=new Set();for(const r of [...this.sql.exec("SELECT type,provenance,data FROM records WHERE workspace_id=? AND customer_id=? AND archived=0",workspace,customerId)]){if(seeded.has(String(r.provenance||"")))continue;let data={};try{data=JSON.parse(r.data||"{}")}catch{}protectedKeys.add(this.seedRecordKey(r.type,data))}this.sql.exec("DELETE FROM records WHERE workspace_id=? AND customer_id=? AND provenance IN ('synthetic_sample','template','scenario')",workspace,customerId);for(const [type,p,data] of rows){if(protectedKeys.has(this.seedRecordKey(type,data)))continue;this.addRecord(workspace,customerId,type,p,data)}}
+ seedDefaults(workspace){const t=ts(),goldId=this.baseId(workspace,CUSTOMER.id),gold={...CUSTOMER,id:goldId},goldRow=[...this.sql.exec("SELECT * FROM customers WHERE id=? AND workspace_id=?",goldId,workspace)][0];if(goldRow){const old=JSON.parse(goldRow.data),next={...old,...gold,facts:{...(old.facts||{}),...(gold.facts||{})}};this.sql.exec("UPDATE customers SET data=?,updated_at=? WHERE id=? AND workspace_id=?",JSON.stringify(next),t,goldId,workspace)}else this.sql.exec("INSERT INTO customers(id,workspace_id,data,created_at,updated_at) VALUES(?,?,?,?,?)",goldId,workspace,JSON.stringify(gold),t,t);this.syncSeedRecords(workspace,goldId,SEED);for(const src of SAMPLE_CUSTOMERS){const sample=this.sampleCustomer(workspace,src),row=[...this.sql.exec("SELECT data FROM customers WHERE id=? AND workspace_id=?",sample.id,workspace)][0];if(row){const old=JSON.parse(row.data),next={...old,...sample,facts:{...(old.facts||{}),...(sample.facts||{})}};this.sql.exec("UPDATE customers SET data=?,updated_at=? WHERE id=? AND workspace_id=?",JSON.stringify(next),t,sample.id,workspace)}else this.sql.exec("INSERT INTO customers(id,workspace_id,data,created_at,updated_at) VALUES(?,?,?,?,?)",sample.id,workspace,JSON.stringify(sample),t,t);this.syncSeedRecords(workspace,sample.id,this.sampleRecords(src))}}
+`;
+src=between(src," seedDefaults(workspace){"," async ensureWorkspace",seedSync+" async ensureWorkspace");
+
 const modes=`const N7_ASSIST_MODES={
  portfolio:"Review the selected account and portfolio context. Identify the most material health, value, renewal, stakeholder, and next-action signals. Separate facts from suggestions.",
  health:"Explain the account health drivers using recorded adoption, outcomes, relationship, support/risk, and commercial evidence. Never invent a score component.",
@@ -177,7 +183,7 @@ const checks=[
  ['src/index.js','identity:"disabled-no-login-demo",oauthApp:"none"'],
  ['src/index.js','persistence:"browser-persistent"'],
  ['src/index.js','Aegis Federal Programs'],
- ['src/sample-customers.js','SAMPLE_SEED_VERSION=2'],
+ ['src/sample-customers.js','SAMPLE_SEED_VERSION=3'],
  ['public/index.html','NSM ServiceNow Customer Outcomes OS'],
  ['public/nsm.js','Post-implementation command view']
 ];
