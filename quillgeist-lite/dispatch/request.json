@@ -1,11 +1,7 @@
 {
-  "request_id": "driznet-smspc-crm-full-retry-20260929",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-self-update-smspc-20260929",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "full",
-    "Project": "smspc-crm",
-    "SkipInstall": "false"
-  },
-  "objective": "On DRIZNET, use the reviewed local-first CRM ASTRO task to validate, materialize, source-check, and deploy the SimSpace Senior Solution Engineer one-off operating CRM to https://smspc.clintware.com. Preserve the mature DPLR CRM foundation, clearly synthetic opportunity data, noindex boundary, role-specific operating surfaces, and return exact local build/deploy evidence."
+  "args": {},
+  "objective": "Update DRIZNET QQ from the maintained Clintware main branch so the local CRM ASTRO task uses the source-revision validator and can build the new SimSpace one-off CRM."
 }
