@@ -1,6 +1,7 @@
 {
-  "request_id": "memoria-bitnet-progress-20260929-0244",
+  "request_id": "memoria-bitnet-job-evidence-20260929-0245",
   "mode": "inspect",
+  "job_id": "475a6df1-79b9-40ec-8c69-9bff6ae51c8b",
   "target_device": "MEMORIA",
-  "objective": "Read MEMORIA active BitNet task progress and device state without interrupting the running build."
+  "objective": "Read current BitNet job output and delivery state; no restart or cancellation."
 }
