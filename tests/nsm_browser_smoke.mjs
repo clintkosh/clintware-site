@@ -25,7 +25,7 @@ try{
   await page.getByText("Jamie Rivera").waitFor();
 
   await page.getByRole("button",{name:"Meeting Brief"}).click();
-  await page.getByText("Meeting Brief").waitFor();
+  await page.getByRole("heading",{name:"Meeting Brief",exact:true}).waitFor();
   await page.getByText("Current preview").waitFor();
   const downloadPromise=page.waitForEvent("download");
   await page.getByRole("button",{name:"Download PDF"}).click();
