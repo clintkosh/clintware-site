@@ -1,8 +1,7 @@
 {
-  "request_id": "driznet-clean-runtime-retry-20260929-1125",
-  "task_id": "self-update",
+  "request_id": "driznet-hardware-ai-doctor-20260929-1126",
+  "task_id": "clintware-doctor",
   "target_device": "DRIZNET",
   "args": {},
-  "resume_after": true,
-  "objective": "Retry the DRIZNET-only QQ self-update now that the corrected pinned control-plane runtime is deployed. Preserve existing Ollama models and local data, install registry v18/current reviewed runtime, verify the health service compiles, keep no-focus launch behavior, and do not affect MEMORIA."
+  "objective": "Verify the physical identity and AI prerequisites of DRIZNET after the clean runtime update. Confirm computer name, manufacturer/model, CPU, GPU, memory, C/F storage, Docker, Ollama, Python, and runtime tooling. Do not affect MEMORIA."
 }
