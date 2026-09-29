@@ -1,7 +1,8 @@
 {
-  "request_id": "driznet-hardware-ai-doctor-20260929-1126",
-  "task_id": "clintware-doctor",
+  "request_id": "driznet-storage-audit-refresh-20260929-1135",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Verify the physical identity and AI prerequisites of DRIZNET after the clean runtime update. Confirm computer name, manufacturer/model, CPU, GPU, memory, C/F storage, Docker, Ollama, Python, and runtime tooling. Do not affect MEMORIA."
+  "resume_after": true,
+  "objective": "Refresh only DRIZNET to QQ registry v20 so the new read-only storage-audit task is available. Preserve Ollama models and all user data. Do not affect MEMORIA."
 }
