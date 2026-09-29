@@ -1,8 +1,10 @@
 {
-  "request_id": "driznet-storage-audit-refresh-20260929-1135",
-  "task_id": "self-update",
+  "request_id": "driznet-storage-audit-20260929-1138",
+  "task_id": "storage-audit",
   "target_device": "DRIZNET",
-  "args": {},
-  "resume_after": true,
-  "objective": "Refresh only DRIZNET to QQ registry v20 so the new read-only storage-audit task is available. Preserve Ollama models and all user data. Do not affect MEMORIA."
+  "args": {
+    "ExpectedComputer": "DRIZNET",
+    "LargestFiles": 60
+  },
+  "objective": "Read-only storage audit of the HP DRIZNET machine for the right-sized local chatbot initiative. Report attached drives, free space, Ollama/model storage, Docker/WSL storage, downloads/temp/cache sizes, large AI/user files, and external/offload destinations. Do not move or delete anything. Do not affect MEMORIA."
 }
