@@ -107,6 +107,7 @@ try {
         'tools/boot_splash.py',
         'tools/browser_agent.py',
         'tools/local_ai.py',
+        'tools/crm_astro.py',
         'tools/local_ai_parity_check.py',
         'tasks/bitnet-i2-s-linkage.patch',
         'tools/provider_responder.py',
