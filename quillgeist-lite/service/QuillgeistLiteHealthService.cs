@@ -27,6 +27,23 @@ namespace Clintware.QuillgeistLite
         [DataMember] public string AutoRepairPath;
     }
 
+    [DataContract]
+    public sealed class CheckinReply
+    {
+        [DataMember] public string type;
+        [DataMember] public string protocol;
+        [DataMember] public string request_id;
+        [DataMember] public string device_id;
+        [DataMember] public string service_version;
+        [DataMember] public bool runner_alive;
+        [DataMember] public string runner_state;
+        [DataMember] public bool busy;
+        [DataMember] public string action;
+        [DataMember] public string action_result;
+        [DataMember] public string timestamp;
+        [DataMember] public string message;
+    }
+
     public sealed class QuillgeistLiteHealthService : ServiceBase
     {
         private const string ServiceVersion = "1.3.0-checkin";
@@ -124,6 +141,16 @@ namespace Clintware.QuillgeistLite
             catch { }
         }
 
+        private string SerializeCheckinReply(CheckinReply reply)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(CheckinReply));
+                serializer.WriteObject(stream, reply);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
         private HealthConfig LoadConfig()
         {
             string path = Path.Combine(
@@ -210,7 +237,20 @@ namespace Clintware.QuillgeistLite
                                     if (busy || MaintenanceModeActive(true)) actionResult = busy ? "deferred_busy" : "deferred_maintenance";
                                     else { EnsureRunner(true); actionResult = "restart_requested"; }
                                 }
-                                string reply = "{\\\"type\\\":\\\"checkin_reply\\\",\\\"protocol\\\":\\\"clintware-quillgeist-lite-checkin/v1\\\",\\\"request_id\\\":\\\"" + Json(requestId) + "\\",\\\"device_id\\\":\\\"" + Json(config.DeviceId) + "\\",\\\"service_version\\\":\\\"" + ServiceVersion + "\\",\\\"runner_alive\\\":" + (RunnerAlive() ? "true" : "false") + ",\\\"runner_state\\\":\\\"" + (busy ? "busy" : (RunnerAlive() ? "connected" : "down")) + "\\",\\\"busy\\\":" + (busy ? "true" : "false") + ",\\\"action\\\":\\\"" + Json(action) + "\\",\\\"action_result\\\":\\\"" + actionResult + "\\",\\\"timestamp\\\":\\\"" + DateTime.UtcNow.ToString("o") + "\\",\\\"message\\\":\\\"watchdog responsive\\\"}";
+                                string reply = SerializeCheckinReply(new CheckinReply {
+                                    type = "checkin_reply",
+                                    protocol = "clintware-quillgeist-lite-checkin/v1",
+                                    request_id = requestId,
+                                    device_id = config.DeviceId,
+                                    service_version = ServiceVersion,
+                                    runner_alive = RunnerAlive(),
+                                    runner_state = busy ? "busy" : (RunnerAlive() ? "connected" : "down"),
+                                    busy = busy,
+                                    action = action,
+                                    action_result = actionResult,
+                                    timestamp = DateTime.UtcNow.ToString("o"),
+                                    message = "watchdog responsive"
+                                });
                                 byte[] replyBytes = Encoding.UTF8.GetBytes(reply);
                                 socket.SendAsync(new ArraySegment<byte>(replyBytes), WebSocketMessageType.Text, true, CancellationToken.None).GetAwaiter().GetResult();
                                 LocalLog("checkin_reply action=" + action + " result=" + actionResult);
@@ -716,7 +756,7 @@ namespace Clintware.QuillgeistLite
                     "\",\"phase\":\"" + Json(phase) +
                     "\",\"message\":\"" + Json(Redact(message)) +
                     "\",\"runner_alive\":" + (runnerAlive.HasValue ? (runnerAlive.Value ? "true" : "false") : "null") +
-                    ",\"service_version\":\"1.2.4\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
+                    ",\"service_version\":\"" + Json(ServiceVersion) + "\",\"timestamp\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
 
                 using (WebClient wc = new WebClient())
                 {
