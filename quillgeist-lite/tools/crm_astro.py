@@ -21,36 +21,43 @@ def validate(data):
         errors.append("domain_must_be_https")
     tracks=data.get("tracks",[])
     if not isinstance(tracks,list):
-        errors.append("tracks_must_be_list")
-        tracks=[]
-    if len(tracks)!=12:
-        errors.append(f"track_count:{len(tracks)}")
+        errors.append("tracks_must_be_list"); tracks=[]
+    mode=str(data.get("mode") or "dual-track").strip().lower()
     ids=[]
     groups={"CSM":0,"Support":0}
+    if mode=="dual-track" and len(tracks)!=12:
+        errors.append(f"track_count:{len(tracks)}")
+    if mode=="one-off" and not (4 <= len(tracks) <= 12):
+        errors.append(f"one_off_track_count:{len(tracks)}")
     for idx,t in enumerate(tracks):
         if not isinstance(t,dict):
-            errors.append(f"track_{idx+1}_not_object")
-            continue
+            errors.append(f"track_{idx+1}_not_object"); continue
         tid=str(t.get("id","")).strip()
-        group=str(t.get("group","")).strip()
         if not tid: errors.append(f"track_{idx+1}_missing_id")
         ids.append(tid)
-        if group not in groups: errors.append(f"track_{idx+1}_bad_group:{group}")
-        else: groups[group]+=1
         for key in ("label","tab","objective"):
             if not str(t.get(key,"")).strip():
                 errors.append(f"track_{idx+1}_missing_{key}")
+        if mode=="dual-track":
+            group=str(t.get("group","")).strip()
+            if group not in groups: errors.append(f"track_{idx+1}_bad_group:{group}")
+            else: groups[group]+=1
     if len([x for x in ids if x]) != len(set(x for x in ids if x)):
         errors.append("duplicate_track_id")
-    if groups["CSM"]!=6 or groups["Support"]!=6:
-        errors.append(f"unbalanced_groups:{groups}")
     roles=data.get("roles",[])
-    if not isinstance(roles,list) or len(roles)<2:
-        errors.append("roles_must_include_csm_and_support")
-    return errors,groups
+    if not isinstance(roles,list) or len(roles)<1:
+        errors.append("roles_must_include_at_least_one_role")
+    if mode=="dual-track":
+        if groups["CSM"]!=6 or groups["Support"]!=6:
+            errors.append(f"unbalanced_groups:{groups}")
+        if len(roles)<2:
+            errors.append("dual_track_roles_must_include_two_roles")
+    elif mode!="one-off":
+        errors.append(f"unsupported_mode:{mode}")
+    return errors,groups,mode
 
 def result(action,path,data):
-    errors,groups=validate(data)
+    errors,groups,mode=validate(data)
     base={
         "ok":not errors,
         "action":action,
@@ -58,16 +65,16 @@ def result(action,path,data):
         "project_id":data.get("project_id"),
         "company":data.get("company"),
         "domain":data.get("domain"),
+        "mode":mode,
         "track_count":len(data.get("tracks",[]) if isinstance(data.get("tracks"),list) else []),
-        "groups":groups,
+        "groups":groups if mode=="dual-track" else None,
         "errors":errors,
         "local_first":True,
         "remote_shell_exposed":False
     }
     if action=="describe":
         base["capabilities"]=[
-            "manifest validation",
-            "12-track 6+6 contract validation",
+            "one-off or dual-track manifest validation",
             "deterministic materialization handoff",
             "local npm/source checks",
             "reviewed deployment handoff",

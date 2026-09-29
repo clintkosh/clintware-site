@@ -1,0 +1,99 @@
+{
+  "mode": "one-off",
+  "project_id": "smspc-crm",
+  "company": "SimSpace",
+  "name": "SimSpace Senior Solution Engineer Operating System",
+  "domain": "https://smspc.clintware.com",
+  "base_project": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "role_mission": "Operate the technical sales cycle from outcome discovery through evaluation, field engineering, tailored demonstration, technical close, and expansion while preserving measurable proof and product feedback.",
+  "operating_loop": [
+    "Discover",
+    "Map",
+    "Design",
+    "Build",
+    "Prove",
+    "Close",
+    "Expand"
+  ],
+  "roles": [
+    {
+      "id": "senior-solution-engineer",
+      "name": "Senior Solution Engineer, Americas"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "discovery",
+      "label": "Outcome Discovery",
+      "tab": "handoff",
+      "objective": "Turn business and mission goals into explicit technical proof points, stakeholders, constraints, and buying criteria."
+    },
+    {
+      "id": "range-blueprint",
+      "label": "Range Blueprint",
+      "tab": "implementation",
+      "objective": "Map the customer terrain across enterprise, cloud, IT, OT, and hybrid systems into a proposed simulation and evaluation architecture."
+    },
+    {
+      "id": "evaluation",
+      "label": "Evaluation & Success Criteria",
+      "tab": "roi",
+      "objective": "Define measurable pilot success criteria, evidence sources, acceptance thresholds, and executive proof before implementation begins."
+    },
+    {
+      "id": "field-engineering",
+      "label": "Field Engineering & Integrations",
+      "tab": "deployment",
+      "objective": "Coordinate APIs, scripts, protocols, tooling, agent integrations, and environment dependencies needed to make the evaluation real."
+    },
+    {
+      "id": "demo-pilot",
+      "label": "Tailored Demo / Pilot",
+      "tab": "triage",
+      "objective": "Run a believable technical evaluation, isolate blockers quickly, and preserve an evidence trail from scenario to outcome."
+    },
+    {
+      "id": "rfp",
+      "label": "RFI / RFP Technical Narrative",
+      "tab": "documents",
+      "objective": "Translate architecture, capability mapping, security requirements, and value evidence into a decision-ready technical narrative."
+    },
+    {
+      "id": "partners",
+      "label": "Partner Co-Sell & Enablement",
+      "tab": "adoption",
+      "objective": "Support resellers, system integrators, MSSPs, and consulting partners with a reusable technical story and proof model."
+    },
+    {
+      "id": "close-expand",
+      "label": "Technical Close, Expansion & Product Signal",
+      "tab": "renewal",
+      "objective": "Resolve final technical risk, capture broader use cases, hand off cleanly, and return recurring market signal to Product."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "SimSpace Senior Solution Engineer",
+      "url": "https://jobs.ashbyhq.com/simspace-corporation/2ed642cc-44a6-4845-909d-b924d9fcfda4"
+    },
+    {
+      "label": "SimSpace AI Proving Grounds",
+      "url": "https://simspace.com/"
+    },
+    {
+      "label": "SimSpace Simulate",
+      "url": "https://simspace.com/simulate/"
+    },
+    {
+      "label": "SimSpace Outsmart / ARIA",
+      "url": "https://simspace.com/outsmart/"
+    },
+    {
+      "label": "SimSpace Value",
+      "url": "https://simspace.com/value/"
+    }
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public SimSpace context and clearly synthetic opportunity data. It is not an official SimSpace product or tenant."
+}
