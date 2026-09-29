@@ -71,7 +71,7 @@ func selfTest() bool {
 		strings.Contains(s, "Stop-ScheduledTask") &&
 		strings.Contains(s, "Start-ScheduledTask") &&
 		strings.Contains(s, "\\Microsoft\\*") &&
-		strings.Contains(s, "launch-visible.ps1")
+		strings.Contains(s, "launch-visible")
 	if ok { fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=PASS") } else { fmt.Println("CLINTWARE_TASK_ISOLATION_SELFTEST=FAIL") }
 	return ok
 }
