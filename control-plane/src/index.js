@@ -1490,6 +1490,42 @@ export class RegistryHub extends DurableObject {
           ws.serializeAttachment({...attachment,runner});
           await this.ctx.storage.put("quillgeist_lite_runner",runner);
           ws.send(JSON.stringify({type:"ack",protocol:"clintware-quillgeist-lite/v1",time:nowIso()}));
+
+          // Event-driven runtime convergence: when an authenticated QQ runner
+          // connects with a different reviewed source revision, queue exactly
+          // one coalesced self-update for that device. This avoids polling and
+          // keeps new reviewed tasks/skills available without manual pastes.
+          const expectedRevision=clip(this.env.QUILLGEIST_RUNTIME_REF||"",40);
+          const targetDevice=clip(attachment.device_id||runner.runner_id||"",120);
+          if(/^[a-f0-9]{40}$/.test(expectedRevision)&&runner.source_revision!==expectedRevision&&targetDevice){
+            const pendingUpdates=await this.pendingQuillgeistLiteJobs(20,targetDevice);
+            let updateJob=pendingUpdates.find(row=>String(row.task_id||"")==="self-update");
+            if(!updateJob){
+              const created=await this.putQuillgeistLiteJob({
+                task_id:"self-update",
+                args:{},
+                requested_by:"clintware-runtime-convergence",
+                objective:"Refresh QQ to the reviewed Control Plane source revision after authenticated connection.",
+                target_device:targetDevice,
+                runtime_version:QUILLGEIST_RUNTIME_VERSION,
+                resume_after:false
+              });
+              if(created.ok)updateJob=created.job;
+            }
+            if(updateJob){
+              try{ws.send(JSON.stringify({type:"job",protocol:"clintware-quillgeist-lite/v1",job:updateJob}));}catch{}
+              await this.broadcastQuillgeistLiteWake(updateJob);
+              await this.appendQuillgeistLiteDiagnostic({
+                device_id:targetDevice,
+                level:"INFO",
+                phase:"runtime-convergence",
+                message:"runtime_revision_drift local="+clip(runner.source_revision||"none",40)+" expected="+expectedRevision+" self_update="+clip(updateJob.job_id||"",120),
+                runner_alive:true,
+                service_version:runner.version||""
+              });
+            }
+          }
+
           const usage=await this.infraUsageSnapshot();
           if(usage){
             try{ws.send(JSON.stringify({type:"infra_usage",protocol:"clintware-infra-usage/v1",snapshot:usage,reset_services:[],welcome:true,time:nowIso()}));}catch{}
