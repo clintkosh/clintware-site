@@ -1,8 +1,9 @@
 {
-  "request_id": "memoria-force-watchdog-restart-20260929-1119",
-  "mode": "checkin",
-  "target_device": "MEMORIA",
-  "action": "restart_runner",
-  "force": true,
-  "verify_seconds": 45
+  "request_id": "driznet-local-ai-diagnostics-20260929-1120",
+  "task_id": "local-ai",
+  "target_device": "DRIZNET",
+  "args": {
+    "Action": "diagnostics"
+  },
+  "objective": "Assess DRIZNET local AI/server/chatbot build state. Return bounded diagnostics for installed models, local AI services, relevant containers, BitNet build evidence, and launchers. Do not modify state."
 }
