@@ -1,7 +1,8 @@
 {
-  "request_id": "driznet-postrestart-doctor-20260929-0202",
-  "task_id": "clintware-doctor",
-  "target_device": "DRIZNET",
+  "request_id": "memoria-refresh-for-ai-share-20260929-1058",
+  "task_id": "self-update",
+  "target_device": "MEMORIA",
   "args": {},
-  "objective": "Final DRIZNET post-restart smoke test. Verify the refreshed QQ runtime can execute an allowlisted local diagnostic on DRIZNET through the authenticated event-driven control-plane path without affecting MEMORIA."
+  "objective": "Refresh MEMORIA Quillgeist Lite to the latest reviewed task bundle so the allowlisted F:\\AI LAN share task is available.",
+  "resume_after": true
 }
