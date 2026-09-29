@@ -36,9 +36,15 @@ this ASTRO overrides the tendency to copy the full advanced CRM feature set.
 
 ## Core rule
 
-**The one-off CRM is not the largest CRM we can build.**
+**The one-off CRM should be exactly as broad and deep as the target role warrants.**
 
-It is the smallest working system that proves the mission of the target role.
+A compact CRM is correct for a narrow role.  A large, deeply featured CRM is equally correct when the verified position spans multiple operating motions, systems, stakeholders, integrations, delivery functions, or leadership responsibilities.
+
+The governing question is not "How small can this be?" or "How many features can we add?"  It is:
+
+**Does each significant surface materially map to something this role is expected to own, influence, inspect, coordinate, or communicate?**
+
+Reject unjustified functionality, not size.
 
 Before coding, reduce the public job description and current company context to one operating loop.
 
@@ -335,7 +341,7 @@ Do not automatically inherit:
 - every AI surface
 - every knowledge surface
 
-The user should not have to tell the agent "this is bloated" after every build.
+The user should not have to correct scope after every build.  The agent must justify breadth against the role: remove irrelevant functionality, but retain or add substantial depth when the position genuinely requires it.
 
 ## Browser-safety rule
 
@@ -501,7 +507,7 @@ These are not optional suggestions.
 6. Actions and notes must be operational, not decorative.
 7. Meeting prep must consume current workspace state.
 8. A briefing "PDF" must actually download as a valid PDF.
-9. The app should be smaller and sharper than the reusable full CRM unless the role requires breadth.
+9. The app should be scope-fit: compact when the role is narrow, or as broad/deep as the role requires.  Size itself is neither a virtue nor a defect.
 10. Target-company visual feel is useful; target-company logo cloning is not.
 11. Public research is not private account truth.
 12. Synthetic data must be unmistakably synthetic.
@@ -514,7 +520,7 @@ These are not optional suggestions.
 19. A stale test assertion should be corrected; a meaningful functional assertion should not be removed.
 20. Do not declare completion until deployment, live data, and interactive behavior all pass.
 21. When a defect appears, fix the defective layer instead of weakening the definition of done.
-22. Stop adding features when the target role is already proved.
+22. Stop adding features only when additional functionality no longer maps to a verified responsibility, workflow, decision, stakeholder need, or useful proof point for the target role.
 
 ## ASTRO rejection checklist
 
@@ -544,10 +550,12 @@ If any rejection condition is true, the CRM One Off is not done.
 
 ## STOP rule
 
-After the target role's operating loop works, the migration is safe, the PDF works, and the interactive smoke test passes:
+After the target role's operating model works, migration is safe, required artifacts work, and interactive smoke tests pass, evaluate scope one final time.
 
-**STOP.**
+**STOP only when every remaining candidate feature lacks a credible mapping to the position.**
 
-Do not expand the app merely because the reusable CRM foundation contains more features.
+Do not expand the app merely because the reusable CRM foundation contains more features.  But do not artificially keep it small when the role itself is broad.
 
-The next feature must be justified by a role requirement, user instruction, observed usability gap, or failed verification.
+A large CRM is appropriate when its breadth reflects verified responsibilities such as multi-account ownership, implementation, support, CS Operations, analytics, renewals, executive reporting, delivery coordination, Jira / Confluence workflows, AI-assisted operations, or other role-relevant functions.
+
+Every added surface must be justified by a role requirement, user instruction, observed usability gap, or failed verification.
