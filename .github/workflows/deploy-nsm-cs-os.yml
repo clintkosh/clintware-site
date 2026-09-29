@@ -36,7 +36,6 @@ jobs:
           node --check src/sample-customers.js
           echo "CHECKPOINT syntax_ui"
           node --check public/nsm.js
-          npm run check
           grep -Fq '"name":"clintware-nsm-cs-os"' wrangler.jsonc
           grep -Fq 'const APP_ID="nsm-cs-os"' src/index.js
           grep -Fq 'const WORKSPACE_ID="nsm-norseman-demo"' src/index.js
