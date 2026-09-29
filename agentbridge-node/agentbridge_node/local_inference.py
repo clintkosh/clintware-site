@@ -170,6 +170,15 @@ def _parse_size(value: str) -> int:
 
 
 def _ollama_models() -> list[dict]:
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=4) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        return [{"id": "ollama:" + str(m.get("name") or m["model"]),
+                 "name": str(m.get("name") or m["model"]), "runtime": "ollama",
+                 "size_bytes": m.get("size"), "path": None}
+                for m in data.get("models", []) if m.get("name") or m.get("model")]
+    except (OSError, ValueError, KeyError):
+        pass
     exe = shutil.which("ollama")
     if not exe:
         return []

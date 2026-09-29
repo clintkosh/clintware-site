@@ -161,10 +161,22 @@ def bitnet_models():
     return rows
 
 
+def ollama_api_models():
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=4) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        return [{"id": "ollama:" + str(m.get("name") or m["model"]),
+                 "name": str(m.get("name") or m["model"]), "runtime": "ollama",
+                 "size_bytes": m.get("size"), "path": None}
+                for m in data.get("models", []) if m.get("name") or m.get("model")]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
 def models():
-    rows = []
+    rows = ollama_api_models()
     ollama = shutil.which("ollama")
-    if ollama:
+    if ollama and not rows:
         code, output = run([ollama, "list"], 7)
         if code == 0:
             for line in output.splitlines()[1:]:
@@ -340,7 +352,7 @@ def provider_responder_path() -> Path:
 
 def diagnostics():
     """Bounded existing-stack evidence. Never return container environments or .env files."""
-    result = {"host": platform.node(), "services": services(), "containers": [], "bitnet_build_logs": [], "launchers": []}
+    result = {"host": platform.node(), "ollama_models": ollama_api_models(), "services": services(), "containers": [], "bitnet_build_logs": [], "launchers": []}
     docker = shutil.which("docker")
     if docker:
         code, output = run([docker, "ps", "-a", "--format", "{{json .}}"], 15)

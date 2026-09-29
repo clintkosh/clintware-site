@@ -8,7 +8,7 @@ import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jira
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-29-memoria-recovery-v23";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-29-memoria-api-inventory-v24";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
