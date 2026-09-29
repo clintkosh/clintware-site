@@ -249,3 +249,25 @@ If an installed Ollama model is configured, eligible approval-gated items can pa
 Daily reports are generated locally and sent through the authenticated qq/Control Plane boundary. If the report address is blank, the Control Plane sends to the currently delegated Google account; the UI can override it with another address. The Control Plane obtains a short-lived delegated Google token from the identity broker and uses the existing Gmail send scope; provider refresh credentials never enter the local responder process.
 
 See `ASTRO_RESPONDER_AGENT_SKILL.md` for the default design invariant.
+
+
+## Local ASTRO CRM builder
+
+The reviewed `crm-astro-build` task moves repeated role-specific CRM construction off the remote model path when the work is deterministic.  QQ uses PowerShell to orchestrate the build and Python to validate the project manifest and 12-track contract; the existing Node materializers reuse the mature CRM codebase locally.  C remains available as a reviewed runtime for helpers that materially benefit from compiled execution.
+
+Examples from the visible qq console:
+
+```text
+run crm-astro-build Action=describe Project=bm-crm
+run crm-astro-build Action=validate Project=bm-crm
+run crm-astro-build Action=materialize Project=bm-crm
+run crm-astro-build Action=check Project=bm-crm
+```
+
+Deployment is a separate consequential action:
+
+```text
+run crm-astro-build Action=deploy Project=bm-crm
+```
+
+The task does not accept raw shell source from a remote caller.  It can only operate on reviewed repository projects and manifests.  The local-only `! <PowerShell>` console escape remains local-only.
