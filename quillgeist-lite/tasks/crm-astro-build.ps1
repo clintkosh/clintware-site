@@ -108,6 +108,15 @@ if (-not (Test-Path -LiteralPath $Validator -PathType Leaf)) {
 
 $source = Resolve-ClintwareRepo -Requested $RepoRoot -ProjectId $Project
 $Repo = $source.Root
+
+# The project source cache is revision-pinned by the control plane. Prefer the
+# validator that ships with that exact source revision so an installed QQ
+# runtime cannot validate a newer project with a stale ASTRO contract.
+$RepoValidator = Join-Path $Repo "quillgeist-lite\tools\crm_astro.py"
+if (Test-Path -LiteralPath $RepoValidator -PathType Leaf) {
+  $Validator = $RepoValidator
+}
+
 if (-not $Manifest) { $Manifest = Join-Path $Repo ("projects\{0}\manifest.json" -f $Project) }
 elseif (-not [IO.Path]::IsPathRooted($Manifest)) { $Manifest = Join-Path $Repo $Manifest }
 $ProjectRoot = Join-Path $Repo ("projects\{0}" -f $Project)
