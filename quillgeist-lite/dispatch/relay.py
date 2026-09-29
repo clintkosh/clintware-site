@@ -481,6 +481,57 @@ def auto_recover_failed_task(task_id, args, objective, target_device, state, res
         "created": retry_created,
     }, history
 
+if req.get("mode") == "checkin":
+    target_device = str(req.get("target_device") or "")
+    action = str(req.get("action") or "status")
+    force = bool(req.get("force", False))
+    if not target_device:
+        raise SystemExit("target_device_required")
+    if action not in {"status", "restart_runner"}:
+        raise SystemExit("invalid_checkin_action")
+    request_id = str(req.get("request_id") or "")
+    code, created = request_json("POST", "/api/v1/quillgeist-lite/check-in", {
+        "request_id": request_id,
+        "target_device": target_device,
+        "action": action,
+        "force": force,
+    })
+    if code not in (200, 201, 202) or not created.get("ok"):
+        write_result({
+            "request_id": request_id,
+            "mode": "checkin",
+            "target_device": target_device,
+            "action": action,
+            "status": "dispatch_failed",
+            "response": scrub(created),
+            "recorded_at": int(time.time()),
+        })
+        raise SystemExit("checkin_dispatch_failed")
+    checkin_id = str(created.get("request_id") or request_id)
+    latest = created
+    deadline = time.time() + int(req.get("verify_seconds") or 45)
+    while time.time() < deadline:
+        code2, payload = request_json("GET", "/api/v1/quillgeist-lite/check-in/" + checkin_id)
+        if code2 == 200 and payload.get("ok"):
+            latest = payload
+            if str((payload.get("checkin") or {}).get("status") or "") == "replied":
+                break
+        time.sleep(1)
+    row = latest.get("checkin") or latest
+    write_result({
+        "request_id": request_id,
+        "mode": "checkin",
+        "target_device": target_device,
+        "action": action,
+        "force": force,
+        "status": row.get("status"),
+        "delivered": row.get("delivered"),
+        "reply": row.get("reply"),
+        "recorded_at": int(time.time()),
+    })
+    print("CHECKIN_RESULT " + json.dumps(row, indent=2), flush=True)
+    sys.exit(0)
+
 if req.get("mode") == "inspect":
     code, payload = request_json("GET", "/api/v1/quillgeist-lite/status")
     if code != 200 or not payload.get("ok"):
