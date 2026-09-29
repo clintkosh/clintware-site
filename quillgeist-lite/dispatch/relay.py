@@ -36,6 +36,7 @@ ALLOWED = {
     "repair-codex-org-identity": set(),
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
     "storage-audit": {"ExpectedComputer", "LargestFiles"},
+    "crm-astro-build": {"Action", "Project", "Manifest", "SkipInstall", "RepoRoot"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
     "finish-local-ai": {"MaxPasses"},
