@@ -1,11 +1,14 @@
 {
-  "request_id": "driznet-smspc-crm-full-final-20260929",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-smspc-browser-smoke-1-20260929",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "smspc-crm",
-    "SkipInstall": "false"
+    "Action": "run",
+    "Url": "https://smspc.clintware.com",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"inspect\"},{\"op\":\"click\",\"text\":\"Outcome Discovery\",\"exact\":true},{\"op\":\"wait\",\"ms\":1000},{\"op\":\"inspect\"},{\"op\":\"screenshot\",\"path\":\"smspc-landing-smoke.png\",\"full_page\":true}]}",
+    "Approved": "false",
+    "Headless": "true",
+    "WaitMs": "500"
   },
-  "objective": "On DRIZNET, validate the current one-off CRM ASTRO manifest, materialize the SimSpace Senior Solution Engineer operating CRM from the mature DPLR base, run all source checks locally, and deploy it to https://smspc.clintware.com. Return exact build/deployment evidence; do not declare live verification from this task alone."
+  "objective": "On DRIZNET, use the governed QQ browser to verify the live SimSpace CRM loads, the role-specific operating-track chooser appears, selecting Outcome Discovery works, and return inspected page state plus a local screenshot."
 }
