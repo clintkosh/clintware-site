@@ -31,18 +31,42 @@ jobs:
   activate:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for interactive qq Control Plane build
+      - uses: actions/checkout@v4
+
+      - name: Wait for reviewed qq Control Plane build
         run: |
           set -euo pipefail
+          expected=$(python3 - <<'PY'
+import re
+text=open("control-plane/src/index.js",encoding="utf-8").read()
+m=re.search(r'const QUILLGEIST_RUNTIME_VERSION = "([^"]+)"',text)
+if not m:
+    raise SystemExit("runtime version marker missing")
+print(m.group(1))
+PY
+          )
           ready=0
           for i in $(seq 1 60); do
-            body=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
-            if BODY="$body" python3 -c 'import json,os,sys; d=json.loads(os.environ.get("BODY","{}")); sys.exit(0 if d.get("ok") is True and d.get("service")=="Clintware Control Plane" and "quillgeist-lite" in (d.get("products") or []) else 1)'; then
-              echo "$body"
+            health=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/health || true)
+            runtime=$(curl -fsS --connect-timeout 5 --max-time 20 https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version || true)
+            if HEALTH="$health" RUNTIME="$runtime" EXPECTED="$expected" python3 - <<'PY'
+import json,os,sys
+try:
+    health=json.loads(os.environ.get("HEALTH","{}"))
+    runtime=json.loads(os.environ.get("RUNTIME","{}"))
+except Exception:
+    raise SystemExit(1)
+ok=(health.get("ok") is True and health.get("service")=="Clintware Control Plane"
+    and "quillgeist-lite" in (health.get("products") or [])
+    and runtime.get("runtime_version")==os.environ.get("EXPECTED"))
+raise SystemExit(0 if ok else 1)
+PY
+            then
+              echo "CONTROL_PLANE_READY runtime=$expected"
               ready=1
               break
             fi
-            echo "Waiting for Control Plane qq build ($i/60)"
+            echo "Waiting for reviewed qq runtime $expected ($i/60)"
             sleep 5
           done
           test "$ready" = "1"
