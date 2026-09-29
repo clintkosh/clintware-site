@@ -89,7 +89,7 @@ jobs:
                 f"{base}/api/v1/quillgeist-lite/check-in",
                 data=payload,
                 method="POST",
-                headers={"Authorization":f"Bearer {token}","Accept":"application/json","Content-Type":"application/json"}
+                headers={"Authorization":f"Bearer {token}","Accept":"application/json","Content-Type":"application/json","User-Agent":"clintware-qq-status/1.0"}
               )
               try:
                 with urllib.request.urlopen(req,timeout=15) as resp:
@@ -102,7 +102,7 @@ jobs:
                   time.sleep(0.25)
                   read_req=urllib.request.Request(
                     f"{base}/api/v1/quillgeist-lite/check-in/{request_id}",
-                    headers={"Authorization":f"Bearer {token}","Accept":"application/json"}
+                    headers={"Authorization":f"Bearer {token}","Accept":"application/json","User-Agent":"clintware-qq-status/1.0"}
                   )
                   with urllib.request.urlopen(read_req,timeout=10) as read_resp:
                     current=json.load(read_resp)
