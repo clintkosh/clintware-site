@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Patent Studio is a local-first invention capture, prior-art mapping, claim strategy, evidence, and filing-readiness workspace from Clintware.">
+  <meta name="theme-color" content="#080a0e">
+  <link rel="canonical" href="https://www.clintware.com/tools/patent-studio/">
+  <title>Patent Studio | Clintware</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+  <style>
+    :root{--bg:#080a0e;--panel:#10141b;--panel2:#151b24;--line:#263142;--text:#eaf2ff;--muted:#9aabc2;--cyan:#43d9ff;--violet:#a78bfa;--green:#57e389;--gold:#f7c873;--red:#ff7b91}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#102432 0,transparent 34%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+    a{color:inherit}.shell{width:min(1440px,96vw);margin:auto}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(8,10,14,.92);backdrop-filter:blur(14px);z-index:5}.brand{font-weight:900;letter-spacing:.08em;text-decoration:none}.brand span{color:var(--cyan)}.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    button,.button,input,textarea,select{font:inherit}button,.button{border:1px solid var(--line);background:#121923;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer;text-decoration:none}button:hover,.button:hover{border-color:var(--cyan)}button.primary{background:var(--cyan);color:#00141b;border-color:var(--cyan);font-weight:800}.danger{border-color:#5b2933;color:#ffb4c0}
+    .hero{padding:44px 0 26px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(310px,.8fr);gap:28px}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.hero h1{font-size:clamp(38px,7vw,82px);line-height:.93;margin:10px 0 18px;letter-spacing:-.05em}.hero p{color:var(--muted);font-size:18px;max-width:760px}.notice{border:1px solid #3e3447;background:#17131c;padding:16px;border-radius:14px;color:#d8cbe5}.notice strong{color:var(--gold)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 28px}.stat{background:linear-gradient(180deg,#121923,#0d1219);border:1px solid var(--line);border-radius:14px;padding:14px}.stat b{display:block;font-size:28px}.stat span{color:var(--muted);font-size:12px}
+    .app{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;padding-bottom:60px}.nav{position:sticky;top:82px;height:max-content;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px}.nav button{display:block;width:100%;text-align:left;margin:3px 0;background:transparent}.nav button.active{border-color:var(--cyan);background:#0b2029;color:#bdefff}
+    .view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.card h2,.card h3{margin-top:0}.wide{grid-column:1/-1}.muted{color:var(--muted)}.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:11px;margin:2px}.tag.good{border-color:#245a3b;color:#8bf0b0}.tag.warn{border-color:#6a5424;color:#ffd987}.tag.bad{border-color:#6b2d3a;color:#ff9aad}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}input,textarea,select{width:100%;background:#0b0f15;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}th{color:#b8c7d8}.empty{padding:28px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}.score{font-size:54px;font-weight:900;letter-spacing:-.04em}.meter{height:9px;background:#070a0e;border:1px solid var(--line);border-radius:999px;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));width:0}
+    .footer{border-top:1px solid var(--line);padding:24px 0 50px;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}.app{grid-template-columns:1fr}.nav{position:static;display:flex;overflow:auto}.nav button{min-width:max-content}.stats{grid-template-columns:repeat(2,1fr)}.grid,.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <a class="brand" href="/">CLINT<span>WARE</span> / PATENT STUDIO</a>
+    <div class="top-actions">
+      <button id="exportBtn">Export JSON</button>
+      <label class="button" style="margin:0">Import JSON<input id="importFile" type="file" accept="application/json" hidden></label>
+      <button class="danger" id="clearBtn">Clear local data</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Evidence-first invention workspace</div>
+      <h1>From mechanism to filing-ready record.</h1>
+      <p>Capture technical mechanisms, map prior art, structure claim concepts, preserve evidence, and track filing readiness without putting invention data on a remote server.</p>
+    </div>
+    <div class="notice"><strong>Local-first by design.</strong><br>Records are stored in this browser using localStorage until you export them. Patent Studio is an organization and drafting aid, not legal advice. Do not publicly disclose an unfiled invention merely to populate this workspace.</div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><b id="statInv">0</b><span>Inventions</span></div>
+    <div class="stat"><b id="statPrior">0</b><span>Prior-art references</span></div>
+    <div class="stat"><b id="statClaims">0</b><span>Claim concepts</span></div>
+    <div class="stat"><b id="statEvidence">0</b><span>Evidence items</span></div>
+  </section>
+
+  <main class="app">
+    <nav class="nav" aria-label="Patent Studio sections">
+      <button class="active" data-view="portfolio">Portfolio</button>
+      <button data-view="radar">Patent Radar</button>
+      <button data-view="research">Prior Art</button>
+      <button data-view="claims">Claim Tree</button>
+      <button data-view="evidence">Evidence</button>
+      <button data-view="filing">Filing</button>
+    </nav>
+
+    <section>
+      <div class="view active" id="portfolio">
+        <div class="grid">
+          <div class="card">
+            <h2>New invention record</h2>
+            <label>Working title</label><input id="invTitle" placeholder="Describe the mechanism, not the brand">
+            <label>Technical problem</label><textarea id="invProblem" placeholder="What technical problem exists?"></textarea>
+            <label>Technical mechanism</label><textarea id="invMechanism" placeholder="How does the system behave differently at a technical level?"></textarea>
+            <div class="row"><div><label>Status</label><select id="invStatus"><option>Captured</option><option>Candidate</option><option>Researching</option><option>Drafting</option><option>Attorney review</option><option>Filed</option></select></div><div><label>First known conception date</label><input id="invDate" type="date"></div></div>
+            <div class="actions"><button class="primary" id="addInv">Create record</button></div>
+          </div>
+          <div class="card">
+            <h2>Portfolio</h2>
+            <div id="invList" class="empty">No invention records yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="radar">
+        <div class="grid">
+          <div class="card">
+            <h2>Patent Radar</h2>
+            <p class="muted">A disciplined screen for identifying concrete technical mechanisms. It is not a patentability opinion.</p>
+            <label>Feature / change</label><textarea id="radarFeature" placeholder="Describe what changed."></textarea>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Contains a concrete technical mechanism</label>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Addresses a technical problem</label>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Mechanism is meaningfully different from obvious implementation</label>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Implementation details are documented</label>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Alternative embodiments can be described</label>
+            <label><input class="radarCheck" type="checkbox" style="width:auto"> Evidence exists showing conception or implementation</label>
+          </div>
+          <div class="card">
+            <h2>Candidate signal</h2>
+            <div class="score" id="radarScore">0%</div><div class="meter"><i id="radarMeter"></i></div>
+            <p id="radarText" class="muted">Complete the screen to evaluate whether the idea should move into prior-art research.</p>
+            <div class="actions"><button id="radarToInv">Promote to invention record</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="research">
+        <div class="grid">
+          <div class="card">
+            <h2>Add prior-art reference</h2>
+            <label>Reference title</label><input id="paTitle" placeholder="Patent, paper, product, standard, repository…">
+            <label>URL / identifier</label><input id="paUrl" placeholder="URL, publication number, DOI, etc.">
+            <label>Overlapping elements</label><textarea id="paOverlap"></textarea>
+            <label>Distinction / invent-around direction</label><textarea id="paDistinction"></textarea>
+            <div class="actions"><button class="primary" id="addPrior">Add reference</button></div>
+          </div>
+          <div class="card wide">
+            <h2>Novelty matrix</h2>
+            <div id="priorList" class="empty">No prior-art references recorded.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="claims">
+        <div class="grid">
+          <div class="card">
+            <h2>Add claim concept</h2>
+            <label>Type</label><select id="claimType"><option>Independent concept</option><option>Dependent concept</option><option>Alternative embodiment</option></select>
+            <label>Concept</label><textarea id="claimText" placeholder="Plain-language claim concept. Attorney-drafted claim language can come later."></textarea>
+            <label>Technical support / evidence pointer</label><textarea id="claimSupport"></textarea>
+            <div class="actions"><button class="primary" id="addClaim">Add concept</button></div>
+          </div>
+          <div class="card">
+            <h2>Claim tree</h2>
+            <div id="claimList" class="empty">No claim concepts recorded.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="evidence">
+        <div class="grid">
+          <div class="card">
+            <h2>Add evidence item</h2>
+            <label>Evidence type</label><select id="evType"><option>Design note</option><option>Architecture diagram</option><option>Prototype</option><option>Git commit</option><option>Test result</option><option>Screenshot</option><option>Meeting note</option><option>Other</option></select>
+            <label>Reference / path / URL</label><input id="evRef">
+            <label>Date</label><input id="evDate" type="date">
+            <label>What this supports</label><textarea id="evSupport"></textarea>
+            <div class="actions"><button class="primary" id="addEvidence">Add evidence</button></div>
+          </div>
+          <div class="card">
+            <h2>Evidence ledger</h2>
+            <div id="evidenceList" class="empty">No evidence recorded.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="filing">
+        <div class="grid">
+          <div class="card">
+            <h2>Filing readiness</h2>
+            <label>Selected invention</label><select id="filingInv"></select>
+            <label>Known public disclosure date</label><input id="disclosureDate" type="date">
+            <label>Provisional filing date</label><input id="provisionalDate" type="date">
+            <label>Target nonprovisional / PCT date</label><input id="targetDate" type="date">
+            <div class="actions"><button class="primary" id="saveFiling">Save dates</button></div>
+          </div>
+          <div class="card">
+            <h2>Readiness checklist</h2>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Technical problem documented</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Mechanism documented in enabling detail</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Alternative embodiments captured</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Prior-art search recorded</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Claim concepts mapped to support</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Inventorship reviewed</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Diagrams / flows attached or referenced</label>
+            <label><input class="readyCheck" type="checkbox" style="width:auto"> Counsel / filing pathway identified</label>
+            <div class="score" id="readyScore">0%</div><div class="meter"><i id="readyMeter"></i></div>
+          </div>
+          <div class="card wide">
+            <h2>Deadline view</h2>
+            <div id="deadlineView" class="muted">Select an invention and save dates to calculate tracked deadlines.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">Patent Studio MVP · Local browser storage · Export before clearing browser data. This software does not replace advice from a qualified patent professional.</footer>
+</div>
+<script>
+(() => {
+  const KEY='clintware.patentStudio.v1';
+  const blank=()=>({inventions:[],priorArt:[],claims:[],evidence:[],filing:{},readiness:{}});
+  let db;
+  try{db=JSON.parse(localStorage.getItem(KEY))||blank()}catch{db=blank()}
+  const $=id=>document.getElementById(id);
+  const save=()=>{localStorage.setItem(KEY,JSON.stringify(db));render()};
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.view).classList.add('active')});
+  $('addInv').onclick=()=>{const title=$('invTitle').value.trim();if(!title)return;db.inventions.unshift({id:uid(),title,problem:$('invProblem').value.trim(),mechanism:$('invMechanism').value.trim(),status:$('invStatus').value,conception:$('invDate').value,created:new Date().toISOString()});['invTitle','invProblem','invMechanism','invDate'].forEach(i=>$(i).value='');save()};
+  $('addPrior').onclick=()=>{const title=$('paTitle').value.trim();if(!title)return;db.priorArt.unshift({id:uid(),title,url:$('paUrl').value.trim(),overlap:$('paOverlap').value.trim(),distinction:$('paDistinction').value.trim(),created:new Date().toISOString()});['paTitle','paUrl','paOverlap','paDistinction'].forEach(i=>$(i).value='');save()};
+  $('addClaim').onclick=()=>{const text=$('claimText').value.trim();if(!text)return;db.claims.unshift({id:uid(),type:$('claimType').value,text,support:$('claimSupport').value.trim(),created:new Date().toISOString()});$('claimText').value='';$('claimSupport').value='';save()};
+  $('addEvidence').onclick=()=>{const ref=$('evRef').value.trim();if(!ref)return;db.evidence.unshift({id:uid(),type:$('evType').value,ref,date:$('evDate').value,support:$('evSupport').value.trim(),created:new Date().toISOString()});['evRef','evDate','evSupport'].forEach(i=>$(i).value='');save()};
+  document.addEventListener('click',e=>{const x=e.target.closest('[data-del]');if(!x)return;const [bucket,id]=x.dataset.del.split(':');if(Array.isArray(db[bucket])){db[bucket]=db[bucket].filter(v=>v.id!==id);save()}});
+  const radar=()=>{const a=[...document.querySelectorAll('.radarCheck')],n=a.filter(x=>x.checked).length,p=Math.round(n/a.length*100);$('radarScore').textContent=p+'%';$('radarMeter').style.width=p+'%';$('radarText').textContent=p>=80?'Strong candidate signal: move to prior-art research and evidence mapping.':p>=50?'Promising but incomplete: strengthen technical mechanism and implementation evidence.':'Too early for a serious patent screen: capture a concrete technical mechanism first.'};
+  document.querySelectorAll('.radarCheck').forEach(x=>x.onchange=radar);
+  $('radarToInv').onclick=()=>{const f=$('radarFeature').value.trim();if(!f)return;$('invTitle').value=f.slice(0,100);document.querySelector('[data-view="portfolio"]').click();$('invTitle').focus()};
+  const readiness=()=>{const a=[...document.querySelectorAll('.readyCheck')],n=a.filter(x=>x.checked).length,p=Math.round(n/a.length*100);$('readyScore').textContent=p+'%';$('readyMeter').style.width=p+'%';const id=$('filingInv').value;if(id){db.readiness[id]=a.map(x=>x.checked);localStorage.setItem(KEY,JSON.stringify(db))}};
+  document.querySelectorAll('.readyCheck').forEach(x=>x.onchange=readiness);
+  $('filingInv').onchange=()=>{loadFiling();renderDeadline()};
+  $('saveFiling').onclick=()=>{const id=$('filingInv').value;if(!id)return;db.filing[id]={disclosure:$('disclosureDate').value,provisional:$('provisionalDate').value,target:$('targetDate').value};save()};
+  function loadFiling(){const id=$('filingInv').value,f=db.filing[id]||{};$('disclosureDate').value=f.disclosure||'';$('provisionalDate').value=f.provisional||'';$('targetDate').value=f.target||'';const r=db.readiness[id]||[];document.querySelectorAll('.readyCheck').forEach((x,i)=>x.checked=!!r[i]);readiness()}
+  function daysUntil(s){if(!s)return null;return Math.ceil((new Date(s+'T23:59:59')-new Date())/86400000)}
+  function renderDeadline(){const id=$('filingInv').value,f=db.filing[id]||{},inv=db.inventions.find(x=>x.id===id);if(!inv){$('deadlineView').textContent='Select an invention and save dates to calculate tracked deadlines.';return}let lines=[];for(const [label,date] of [['Public disclosure',f.disclosure],['Provisional filed',f.provisional],['Target filing',f.target]])if(date){const d=daysUntil(date);lines.push('<div class="card" style="margin:8px 0"><b>'+label+'</b><br>'+esc(date)+(label==='Target filing'?' · '+(d>=0?d+' days remaining':Math.abs(d)+' days past target'):'')+'</div>')};$('deadlineView').innerHTML=lines.join('')||'No dates saved for '+esc(inv.title)+'.'}
+  $('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='patent-studio-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)};
+  $('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const next=JSON.parse(await f.text());if(!next||!Array.isArray(next.inventions))throw new Error('bad');db={...blank(),...next};save()}catch{alert('Patent Studio could not read that export.')}e.target.value=''};
+  $('clearBtn').onclick=()=>{if(confirm('Delete all Patent Studio data stored in this browser? Export first if you need to keep it.')){db=blank();save()}};
+  function render(){
+    $('statInv').textContent=db.inventions.length;$('statPrior').textContent=db.priorArt.length;$('statClaims').textContent=db.claims.length;$('statEvidence').textContent=db.evidence.length;
+    $('invList').className=db.inventions.length?'':'empty';$('invList').innerHTML=db.inventions.length?db.inventions.map(x=>'<div class="card" style="margin:8px 0"><div><span class="tag good">'+esc(x.status)+'</span>'+ (x.conception?'<span class="tag">'+esc(x.conception)+'</span>':'')+'</div><h3>'+esc(x.title)+'</h3><p><b>Problem:</b> '+esc(x.problem||'—')+'</p><p><b>Mechanism:</b> '+esc(x.mechanism||'—')+'</p><button data-del="inventions:'+x.id+'">Delete</button></div>').join(''):'No invention records yet.';
+    $('priorList').className=db.priorArt.length?'':'empty';$('priorList').innerHTML=db.priorArt.length?'<table><thead><tr><th>Reference</th><th>Overlap</th><th>Distinction / invent-around</th><th></th></tr></thead><tbody>'+db.priorArt.map(x=>'<tr><td><b>'+esc(x.title)+'</b><br><span class="muted">'+esc(x.url||'')+'</span></td><td>'+esc(x.overlap||'—')+'</td><td>'+esc(x.distinction||'—')+'</td><td><button data-del="priorArt:'+x.id+'">×</button></td></tr>').join('')+'</tbody></table>':'No prior-art references recorded.';
+    $('claimList').className=db.claims.length?'':'empty';$('claimList').innerHTML=db.claims.length?db.claims.map(x=>'<div class="card" style="margin:8px 0"><span class="tag">'+esc(x.type)+'</span><p>'+esc(x.text)+'</p><small class="muted">Support: '+esc(x.support||'—')+'</small><div><button data-del="claims:'+x.id+'">Delete</button></div></div>').join(''):'No claim concepts recorded.';
+    $('evidenceList').className=db.evidence.length?'':'empty';$('evidenceList').innerHTML=db.evidence.length?db.evidence.map(x=>'<div class="card" style="margin:8px 0"><span class="tag">'+esc(x.type)+'</span> '+esc(x.date||'')+'<p><b>'+esc(x.ref)+'</b></p><p class="muted">'+esc(x.support||'—')+'</p><button data-del="evidence:'+x.id+'">Delete</button></div>').join(''):'No evidence recorded.';
+    const prev=$('filingInv').value;$('filingInv').innerHTML='<option value="">Select…</option>'+db.inventions.map(x=>'<option value="'+x.id+'">'+esc(x.title)+'</option>').join('');if(db.inventions.some(x=>x.id===prev))$('filingInv').value=prev;loadFiling();renderDeadline();
+  }
+  radar();render();
+})();
+</script>
+</body>
+</html>
