@@ -35,6 +35,7 @@ ALLOWED = {
     "open-edge-tab": {"Url"},
     "repair-codex-org-identity": set(),
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
+    "repo-code-search": {"Query", "Path", "Mode", "Max", "Json", "FilesOnly"},
     "storage-audit": {"ExpectedComputer", "LargestFiles"},
     "crm-astro-build": {"Action", "Project", "Manifest", "SkipInstall", "RepoRoot"},
     "bitnet-setup": set(),
