@@ -35,6 +35,7 @@ ALLOWED = {
     "open-edge-tab": {"Url"},
     "repair-codex-org-identity": set(),
     "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
+    "storage-audit": {"ExpectedComputer", "LargestFiles"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
     "finish-local-ai": {"MaxPasses"},
