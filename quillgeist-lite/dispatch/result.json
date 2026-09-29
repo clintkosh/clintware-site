@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cxp-crm-full-20260929-1816",
-  "job_id": "ac2dc210-bf7a-4f4a-967e-78d90a4546d4",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-cxp-refresh-repo-20260929-1822",
+  "job_id": "0cd676d8-a34c-4650-8405-e78402528e41",
+  "task_id": "repo-code-search",
   "target_device": "DRIZNET",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 1300,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 2996,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-29T23:15:42.4868122Z",
-  "recorded_at": 1790723741,
+  "confirmed_at": "2026-09-29T23:22:56.4130121Z",
+  "recorded_at": 1790724175,
   "recovery_history": [],
-  "output_tail": "[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\crm-astro-build.ps1:90\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  90 | \u001b[0m \u2026 ojectId)) { \u001b[36;1mthrow \"The dedicated Clintware source cache does not cont\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mThe dedicated Clintware source cache does not contain project cxp-crm.\u001b[0m"
+  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + 5f6e892...c6b59b7 main       -> origin/main  (forced update)\r\n[run] HEAD is now at c6b59b7 Record live Quillgeist Lite status\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=text query=cxp-crm\r\n[run] projects/cxp-crm/manifest.json\r\n[run] projects/cxp-crm/scripts/materialize.mjs\r\n[run] Matched 2; scanned 7 text candidates."
 }
