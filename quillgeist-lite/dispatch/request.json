@@ -1,9 +1,7 @@
 {
-  "request_id": "memoria-original-data-inventory-20260929-0237",
-  "task_id": "local-ai",
+  "request_id": "memoria-bitnet-dll-repair-20260929-0240",
+  "task_id": "bitnet-setup",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "recovery-inventory"
-  },
-  "objective": "Locate existing service databases, Immich backups and reviewed launchers under C:/AI/LOCAL-CHATGPT and F:/AI-Data. Metadata only; no excluded drive access."
+  "args": {},
+  "objective": "Build and test BitNet CLI plus temporary HTTP inference with the reviewed I2_S relocation and Windows DLL exports. Keep existing model and data."
 }
