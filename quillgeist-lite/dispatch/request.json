@@ -1,7 +1,9 @@
 {
-  "request_id": "memoria-bitnet-job-evidence-20260929-0245",
-  "mode": "inspect",
-  "job_id": "475a6df1-79b9-40ec-8c69-9bff6ae51c8b",
+  "request_id": "memoria-preserve-storage-repair-20260929-0247",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
-  "objective": "Read current BitNet job output and delivery state; no restart or cancellation."
+  "args": {
+    "Action": "repair-storage"
+  },
+  "objective": "After active work completes, preserve existing n8n/WebUI container data in timestamped F: backups, restore only missing host bind folders, and restart exact original containers. Never overwrite existing data or use D:."
 }
