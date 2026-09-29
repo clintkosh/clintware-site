@@ -20,7 +20,7 @@ async function noOverflow(label){
 }
 
 try{
-  await page.addInitScript(()=>{localStorage.clear();sessionStorage.clear()});
+  await page.addInitScript(()=>{if(!sessionStorage.getItem("__bm_test_initialized")){localStorage.clear();sessionStorage.clear();sessionStorage.setItem("__bm_test_initialized","1")}});
   const r=await page.goto(base,{waitUntil:"networkidle",timeout:60000});
   assert(r&&r.ok(),"Boom CRM homepage request failed");
   await waitApp();
