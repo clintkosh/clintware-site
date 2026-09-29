@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
   "runtimes": [
@@ -296,7 +296,8 @@
         "Action",
         "Project",
         "Manifest",
-        "SkipInstall"
+        "SkipInstall",
+        "RepoRoot"
       ],
       "timeout_seconds": 7200
     }
