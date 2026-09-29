@@ -3,6 +3,22 @@ $ErrorActionPreference = "Continue"
 Write-Host ""
 Write-Host "=== CLINTWARE QUILLGEIST LITE DOCTOR ===" -ForegroundColor Cyan
 
+Write-Host ""
+Write-Host "Machine identity:" -ForegroundColor Cyan
+try {
+  $cs = Get-CimInstance Win32_ComputerSystem
+  $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+  $memGiB = [Math]::Round(([double]$cs.TotalPhysicalMemory / 1GB),1)
+  Write-Host ("  Computer:     " + $env:COMPUTERNAME)
+  Write-Host ("  Manufacturer: " + [string]$cs.Manufacturer)
+  Write-Host ("  Model:        " + [string]$cs.Model)
+  Write-Host ("  Memory GiB:   " + $memGiB)
+  Write-Host ("  CPU:          " + [string]$cpu.Name)
+} catch {
+  Write-Host ("  Computer:     " + $env:COMPUTERNAME)
+  Write-Host "  Hardware:     unavailable"
+}
+
 $rows = @()
 foreach ($name in @("powershell","pwsh","gh","git","gcloud","python","python3","node","clang","gcc","cl")) {
   $cmd = Get-Command $name -ErrorAction SilentlyContinue
