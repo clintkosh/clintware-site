@@ -472,7 +472,15 @@ def recovery_inventory():
                         break
             except OSError:
                 continue
-    return {"roots": folders, "files": found[:180], "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
+    launchers = []
+    for raw in (r"C:\AI\LOCAL-CHATGPT\START-MEDIA-AGENT.bat", r"C:\AI\LOCAL-CHATGPT\START-WEB-SEARCH-AGENT.bat",
+                r"C:\AI\LOCAL-CHATGPT\scripts\Start-ComfyUI-Logged.ps1", r"C:\AI\ComfyUI\run_nvidia_f_storage.bat"):
+        path = Path(raw)
+        if path.is_file():
+            lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            safe = [line for line in lines if not re.search(r"(?i)(password|token|secret|api.?key|authorization)", line)]
+            launchers.append({"path": raw, "source_without_secret_lines": "\n".join(safe)[:5000]})
+    return {"roots": folders, "files": found[:180], "launchers": launchers, "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
 
 
 def provider_status():
