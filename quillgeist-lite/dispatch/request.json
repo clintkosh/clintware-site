@@ -1,14 +1,11 @@
 {
-  "request_id": "driznet-smspc-inspect-discovery-2-20260929",
-  "task_id": "browser-work",
+  "request_id": "driznet-cxp-crm-full-20260929-1803",
+  "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "run",
-    "Url": "https://smspc.clintware.com",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"discovery\\\"]\"},{\"op\":\"wait\",\"ms\":900},{\"op\":\"inspect\"}]}",
-    "Approved": "false",
-    "Headless": "true",
-    "WaitMs": "450"
+    "Action": "full",
+    "Project": "cxp-crm",
+    "SkipInstall": "false"
   },
-  "objective": "On DRIZNET, enter the live SimSpace Outcome Discovery track using its exact reviewed selector and return the post-selection interactive controls for mutation smoke testing."
+  "objective": "On DRIZNET, use the current Clintware source revision to validate and materialize the CXponent Senior Infrastructure Pre-Sales Architect operating workspace from the mature DPLR base, run all source checks locally, and deploy it to https://cxp.clintware.com. The build must include the role-specific TCO model, vendor comparison, synthetic infrastructure decision data, downloadable decision brief PDF, and HLD/SOW outline. Return exact local build/deployment evidence. Do not declare browser/live-domain verification from this task alone."
 }
