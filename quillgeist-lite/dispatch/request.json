@@ -1,7 +1,6 @@
 {
-  "request_id": "memoria-bitnet-dll-repair-20260929-0240",
-  "task_id": "bitnet-setup",
+  "request_id": "memoria-bitnet-progress-20260929-0244",
+  "mode": "inspect",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Build and test BitNet CLI plus temporary HTTP inference with the reviewed I2_S relocation and Windows DLL exports. Keep existing model and data."
+  "objective": "Read MEMORIA active BitNet task progress and device state without interrupting the running build."
 }
