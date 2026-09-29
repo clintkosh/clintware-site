@@ -219,7 +219,8 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $src = Get-Content -LiteralPath "control-plane/src/index.js" -Raw
-          if ($src -notmatch '"crm-astro-build":\{runtime:"powershell",parameters:\["Action","Project","Manifest","SkipInstall","RepoRoot"\]\}') { throw "Control Plane does not allow the reviewed CRM ASTRO task contract." }
+          if ($src -notmatch '"crm-astro-build":\{runtime:"powershell",parameters:\["Action","Project","SkipInstall"\]\}') { throw "Control Plane does not allow the reviewed CRM ASTRO task contract." }
+          if ($src -match '"crm-astro-build":\{runtime:"powershell",parameters:\[[^\]]*(Manifest|RepoRoot)') { throw "CRM ASTRO remote allowlist exposes local path arguments." }
           $restore = Get-Content -LiteralPath "quillgeist-lite/tools/restore-runtime.ps1" -Raw
           if ($restore -notmatch "'tools/crm_astro\.py'") { throw "QQ runtime restore does not include the CRM ASTRO validator." }
           $task = Get-Content -LiteralPath "quillgeist-lite/tasks/crm-astro-build.ps1" -Raw
