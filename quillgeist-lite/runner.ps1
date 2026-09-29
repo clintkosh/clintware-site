@@ -1281,12 +1281,44 @@ function Show-QQStatus {
   $admin = Test-QQAdministrator
   $socketState = if ($script:RunnerSocket) { [string]$script:RunnerSocket.State } else { "Disconnected" }
   $service = Get-Service -Name "ClintwareQuillgeistLiteHealth" -ErrorAction SilentlyContinue
+  $runnerState = "unknown"
+  $activeJob = ""
+  $activeTask = ""
+  $heartbeatAge = "unavailable"
+
+  try {
+    if (Test-Path $HeartbeatPath) {
+      $heartbeat = Get-Content -LiteralPath $HeartbeatPath -Raw | ConvertFrom-Json
+      $runnerState = [string]$heartbeat.state
+      $activeJob = [string]$heartbeat.job_id
+      $activeTask = [string]$heartbeat.task_id
+      $stamp = [DateTimeOffset]::Parse([string]$heartbeat.timestamp)
+      $age = [Math]::Max(0,[int]([DateTimeOffset]::UtcNow - $stamp.ToUniversalTime()).TotalSeconds)
+      $heartbeatAge = ([string]$age + "s ago")
+    }
+  } catch {
+    $heartbeatAge = "invalid"
+  }
+
+  $watchdogReady = ($service -and $service.Status -eq "Running")
+  $checkinText = if ($watchdogReady) {
+    "READY // independent watchdog answers check-ins during runner work/restarts"
+  } elseif ($service) {
+    "DEGRADED // watchdog " + [string]$service.Status
+  } else {
+    "DEGRADED // watchdog not installed"
+  }
 
   Write-Host ""
   Write-Host "QQ STATUS" -ForegroundColor White
   Write-Host ("  Privilege     : " + $(if($admin){"ADMIN"}else{"STANDARD"})) -ForegroundColor $(if($admin){"Cyan"}else{"DarkYellow"})
   Write-Host ("  Control Plane : " + $socketState) -ForegroundColor Cyan
+  Write-Host ("  Runner state  : " + $runnerState) -ForegroundColor Cyan
+  Write-Host ("  Active task   : " + $(if($activeTask){$activeTask}else{"none"})) -ForegroundColor $(if($activeTask){"DarkCyan"}else{"DarkGray"})
+  Write-Host ("  Active job    : " + $(if($activeJob){$activeJob}else{"none"})) -ForegroundColor DarkGray
+  Write-Host ("  Heartbeat     : " + $heartbeatAge) -ForegroundColor DarkGray
   Write-Host ("  Health service: " + $(if($service){$service.Status}else{"not installed"})) -ForegroundColor Cyan
+  Write-Host ("  Check-in      : " + $checkinText) -ForegroundColor $(if($watchdogReady){"Green"}else{"DarkYellow"})
   Write-Host ("  Machine       : " + $env:COMPUTERNAME) -ForegroundColor DarkGray
   Write-Host ("  PowerShell    : " + $PSVersionTable.PSVersion.ToString() + " / " + $PSVersionTable.PSEdition) -ForegroundColor DarkGray
   Write-Host ("  User          : " + [Security.Principal.WindowsIdentity]::GetCurrent().Name) -ForegroundColor DarkGray
