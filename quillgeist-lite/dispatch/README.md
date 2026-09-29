@@ -49,6 +49,10 @@ When ChatGPT has GitHub access but no native Clintware MCP capability, use the e
    - verified
 8. For recoverable failures, inspect result/log evidence and continue through another safe allowlisted task rather than immediately asking the user to run commands.
 
+## Always-on local check-in
+
+QQ uses an independent watchdog channel for status and recovery while the runner is busy or restarting. Use the native check-in capability when available. GitHub fallback status requests use `quillgeist-lite/status-request.json` and publish to `ops/quillgeist-lite-live-status.json`. A `restart_runner` request defers when a fresh busy heartbeat is present. Task completion still requires a matching local runner result.
+
 ## Live local confirmation
 
 QQ execution is event-driven. The local agent is the authority for execution state.
