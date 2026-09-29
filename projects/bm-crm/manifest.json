@@ -1,0 +1,119 @@
+{
+  "project_id": "bm-crm",
+  "company": "Boom",
+  "name": "Boom CSM + Support Dual-Track OS",
+  "domain": "https://bm.clintware.com",
+  "base_project": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "roles": [
+    {
+      "id": "csm",
+      "name": "GTM - Customer Success Manager"
+    },
+    {
+      "id": "support",
+      "name": "Director of Support"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "csm-portfolio",
+      "group": "CSM",
+      "label": "Portfolio & Health",
+      "tab": "customers",
+      "objective": "Prioritize the property-management portfolio using health, stakeholder context, risk, and next action."
+    },
+    {
+      "id": "csm-onboarding",
+      "group": "CSM",
+      "label": "Onboarding & Time-to-Value",
+      "tab": "implementation",
+      "objective": "Move BoomScreen and BoomReport customers from handoff through readiness and early wins."
+    },
+    {
+      "id": "csm-integrations",
+      "group": "CSM",
+      "label": "PMS Integrations & Go-Live",
+      "tab": "deployment",
+      "objective": "Coordinate property-management-system integrations, workflows, owners, dependencies, and go-live readiness."
+    },
+    {
+      "id": "csm-adoption",
+      "group": "CSM",
+      "label": "Adoption & Usage",
+      "tab": "adoption",
+      "objective": "Monitor usage signals, close adoption gaps early, and connect enablement to customer outcomes."
+    },
+    {
+      "id": "csm-value",
+      "group": "CSM",
+      "label": "Value / ROI & Reviews",
+      "tab": "roi",
+      "objective": "Define measurable outcomes and prepare client-facing value and performance reviews."
+    },
+    {
+      "id": "csm-retention",
+      "group": "CSM",
+      "label": "Retention / Expansion / Voice",
+      "tab": "renewal",
+      "objective": "Surface churn risk, expansion signals, advocacy, and product feedback while preserving relationship continuity."
+    },
+    {
+      "id": "support-command",
+      "group": "Support",
+      "label": "Support Command",
+      "tab": "command",
+      "objective": "Run the support operating pulse across products, customers, priorities, owners, and critical work."
+    },
+    {
+      "id": "support-metrics",
+      "group": "Support",
+      "label": "SLA / CSAT / Response Metrics",
+      "tab": "meetings",
+      "objective": "Manage first response, time to resolution, SLA attainment, CSAT, contact rate, and service-quality trends."
+    },
+    {
+      "id": "support-escalations",
+      "group": "Support",
+      "label": "Escalations & Save Strategies",
+      "tab": "triage",
+      "objective": "De-escalate complex inquiries, protect customer outcomes, and route evidence-complete technical issues."
+    },
+    {
+      "id": "support-coverage",
+      "group": "Support",
+      "label": "24/7 Coverage & Handoffs",
+      "tab": "rollout",
+      "objective": "Coordinate US leadership, offshore coverage, ownership, handoffs, queue continuity, and staffing risk."
+    },
+    {
+      "id": "support-shiftleft",
+      "group": "Support",
+      "label": "Help Center / AI / Shift Left",
+      "tab": "kb",
+      "objective": "Convert repeat issues into knowledge, AI-assisted resolution, proactive support, in-product help, and self-service."
+    },
+    {
+      "id": "support-product",
+      "group": "Support",
+      "label": "Product & Engineering Feedback",
+      "tab": "issues",
+      "objective": "Turn support evidence into reproducible Product and Engineering feedback with customer impact and clear asks."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "Boom GTM - Customer Success Manager",
+      "url": "https://jobs.ashbyhq.com/boom/1179a499-1242-469b-a597-d5154cd80d47"
+    },
+    {
+      "label": "Boom Director of Support",
+      "url": "https://www.landearly.com/companies/boom/jobs/director-of-support-934ae1d1"
+    },
+    {
+      "label": "Boom Help Center",
+      "url": "https://intercom.help/boomhelpcenter/en"
+    }
+  ]
+}
