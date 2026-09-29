@@ -1,0 +1,7 @@
+{
+  "request_id": "memoria-isolated-local-service-recovery-20260929-1124",
+  "task_id": "repair-local-service",
+  "target_device": "MEMORIA",
+  "args": {},
+  "objective": "Repair MEMORIA QQ local health service and managed runner registration from the current reviewed runtime. Preserve all existing BitNet/model/build data and queued work. Clear stale runner ownership only, restore the watchdog/fallback task, then resume the canonical QQ runner."
+}
