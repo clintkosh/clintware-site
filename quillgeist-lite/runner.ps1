@@ -21,7 +21,7 @@ $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
 $LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
 $ProviderResponderPath = Join-Path $HomeDir "provider_responder.py"
 $RoutingLearningPath = Join-Path $HomeDir "routing-learning.json"
-$PreprocessorVersion = "2026-09-28-capability-aware-v2"
+$PreprocessorVersion = "2026-09-29-capability-aware-v3"
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -1260,6 +1260,9 @@ function Show-QQHelp {
   Write-Host "  responder on|off             Enable or disable scheduled responder scans." -ForegroundColor Cyan
   Write-Host "  responder run                Run one responder scan immediately." -ForegroundColor Cyan
   Write-Host "  responder status             Show responder runtime state." -ForegroundColor Cyan
+  Write-Host "  crm build <project>           Build/check a reviewed ASTRO CRM locally." -ForegroundColor Cyan
+  Write-Host "  crm validate <project>        Validate a reviewed ASTRO CRM manifest locally." -ForegroundColor Cyan
+  Write-Host "  crm deploy <project>          Deploy a reviewed ASTRO CRM (explicit only)." -ForegroundColor Cyan
   Write-Host "  code search <query>          Search the maintained repository without provider indexing." -ForegroundColor Cyan
   Write-Host "  web search <query>           Search the live public web without a search API key." -ForegroundColor Cyan
   Write-Host "  web read <url>               Read a public page into structured text/links." -ForegroundColor Cyan
@@ -1775,6 +1778,9 @@ function Get-QQCapabilityInventory {
     Add-QQCapabilityRecommendation "finish-local-ai"
     Add-QQCapabilityRecommendation "bitnet-setup"
   }
+  if ($q -match '(crm|customer success.*support|customer support.*success|csm.*support|support.*csm|dual.?track|astro)') {
+    Add-QQCapabilityRecommendation "crm-astro-build"
+  }
   if ($q -match '(repo|repository|source|code search|github code)') { Add-QQCapabilityRecommendation "repo-code-search" }
   if ($q -match '(immich|photo server)') { Add-QQCapabilityRecommendation "restore-immich" }
   if ($q -match '(repair|self.?heal|qq|quillgeist)') { Add-QQCapabilityRecommendation "self-heal" }
@@ -2018,6 +2024,24 @@ function Invoke-QQLocalCommand {
     return
   }
 
+  # CRM LOCAL ROUTE // deterministic ASTRO materialization and checks stay on
+  # the owner machine. Deployment is selected only when the prompt explicitly
+  # says deploy/publish/go live.
+  if ($lower -match '(crm|dual.?track|astro)' -and $lower -match '(build|create|materialize|validate|check|test|deploy|publish|go live)') {
+    $project = ""
+    if ($lower -match '\b(boom|bm)\b') { $project = "bm-crm" }
+    elseif ($lower -match '\b([a-z0-9][a-z0-9-]*-crm)\b') { $project = [string]$Matches[1] }
+
+    if ($project) {
+      $action = "check"
+      if ($lower -match '\b(validate)\b') { $action = "validate" }
+      elseif ($lower -match '\b(materialize)\b') { $action = "materialize" }
+      elseif ($lower -match '\b(deploy|publish|go live)\b') { $action = "deploy" }
+      Invoke-QQLocalTask "crm-astro-build" @{Action=$action;Project=$project}
+      return
+    }
+  }
+
   switch ($lower) {
     "help" { Show-QQHelp; return }
     "?" { Show-QQHelp; return }
@@ -2122,6 +2146,23 @@ function Invoke-QQLocalCommand {
       try { if ($script:RunnerSocket) { $script:RunnerSocket.Abort() } } catch {}
       return
     }
+  }
+
+  if ($lower.StartsWith("crm build ")) {
+    Invoke-QQLocalTask "crm-astro-build" @{Action="check";Project=$line.Substring(10).Trim()}
+    return
+  }
+  if ($lower.StartsWith("crm validate ")) {
+    Invoke-QQLocalTask "crm-astro-build" @{Action="validate";Project=$line.Substring(13).Trim()}
+    return
+  }
+  if ($lower.StartsWith("crm materialize ")) {
+    Invoke-QQLocalTask "crm-astro-build" @{Action="materialize";Project=$line.Substring(16).Trim()}
+    return
+  }
+  if ($lower.StartsWith("crm deploy ")) {
+    Invoke-QQLocalTask "crm-astro-build" @{Action="deploy";Project=$line.Substring(11).Trim()}
+    return
   }
 
   if ($lower.StartsWith("code search ")) {
