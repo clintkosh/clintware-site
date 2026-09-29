@@ -57,5 +57,19 @@ Write-Host "Runtime summary:" -ForegroundColor Cyan
 Write-Host ("  PowerShell: " + [bool](Get-Command powershell -ErrorAction SilentlyContinue))
 Write-Host ("  Python:     " + [bool]((Get-Command python -ErrorAction SilentlyContinue) -or (Get-Command python3 -ErrorAction SilentlyContinue)))
 Write-Host ("  C compiler: " + [bool]((Get-Command clang -ErrorAction SilentlyContinue) -or (Get-Command gcc -ErrorAction SilentlyContinue) -or (Get-Command cl -ErrorAction SilentlyContinue)))
+
+Write-Host ""
+Write-Host "Scheduled-task desktop isolation:" -ForegroundColor Cyan
+try {
+  $isolationTask = Join-Path $PSScriptRoot "scheduled-task-isolation.ps1"
+  if (Test-Path $isolationTask) {
+    & $isolationTask -Mode Check | ForEach-Object { Write-Host ("  " + [string]$_) }
+  } else {
+    Write-Host "  check unavailable: scheduled-task-isolation.ps1 is not in this runtime" -ForegroundColor DarkYellow
+  }
+} catch {
+  Write-Host ("  check failed: " + $_.Exception.Message) -ForegroundColor DarkYellow
+}
+
 Write-Host ""
 Write-Host "Quillgeist Lite doctor complete." -ForegroundColor Green
