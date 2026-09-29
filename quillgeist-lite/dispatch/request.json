@@ -1,4 +1,8 @@
 {
-  "request_id": "memoria-force-local-status-20260929-1117",
-  "mode": "inspect"
+  "request_id": "memoria-force-watchdog-restart-20260929-1119",
+  "mode": "checkin",
+  "target_device": "MEMORIA",
+  "action": "restart_runner",
+  "force": true,
+  "verify_seconds": 45
 }
