@@ -1,5 +1,5 @@
 {
-  "version": 20,
+  "version": 21,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
   "runtimes": [
@@ -287,6 +287,18 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 900
+    },
+    "crm-astro-build": {
+      "title": "Materialize, validate, check, or deploy an ASTRO role-specific CRM locally",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/crm-astro-build.ps1",
+      "parameters": [
+        "Action",
+        "Project",
+        "Manifest",
+        "SkipInstall"
+      ],
+      "timeout_seconds": 7200
     }
   }
 }
