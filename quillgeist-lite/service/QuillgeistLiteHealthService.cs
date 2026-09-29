@@ -382,9 +382,9 @@ namespace Clintware.QuillgeistLite
                 if (age < 0 || age > 120) return false;
 
                 string state = File.ReadAllText(heartbeat);
-                if (!Regex.IsMatch(state, "\\"state\\"\\s*:\\s*\\"busy\\"")) return false;
+                if (!Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return false;
 
-                Match pidMatch = Regex.Match(state, "\\"pid\\"\\s*:\\s*(\\d+)");
+                Match pidMatch = Regex.Match(state, "\"pid\"\\s*:\\s*(\\d+)");
                 if (!pidMatch.Success) return false;
 
                 int pid;
