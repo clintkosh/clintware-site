@@ -90,33 +90,28 @@ jobs:
           curl -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/diagnostics?limit=20" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN"
           echo
 
-      - name: Refresh qq runtime in place
+      - name: Roll out reviewed qq runtime
         continue-on-error: true
         env:
           CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/jobs -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Content-Type: application/json" --data '{"task_id":"self-update","args":{},"objective":"Refresh qq from canonical source in place without stealing focus or opening a duplicate window."}')
+          response=$(curl --fail-with-body -sS -X POST https://mcp.clintware.com/api/v1/quillgeist-lite/rollout \
+            -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"task_id":"self-update","args":{},"objective":"Refresh each registered qq device from the reviewed runtime; preserve active work and resume queued work after reconnect.","resume_after":true}')
           echo "$response"
-          job_id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["job_id"])' <<< "$response")
-
-          for i in $(seq 1 30); do
-            state=$(curl --fail-with-body -sS "https://mcp.clintware.com/api/v1/quillgeist-lite/jobs/$job_id" -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN")
-            echo "$state"
-            status=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("job") or {}).get("status",""))' <<< "$state")
-            if [ "$status" = "passed" ]; then
-              echo "qq refresh accepted; the current local console remains in place."
-              exit 0
-            fi
-            if [ "$status" = "failed" ]; then
-              echo "qq refresh failed" >&2
-              exit 1
-            fi
-            sleep 2
-          done
-
-          echo "Timed out waiting for qq refresh result" >&2
-          exit 1
+          RESPONSE="$response" python3 - <<'PY'
+import json, os, sys
+data=json.loads(os.environ["RESPONSE"])
+if not data.get("ok"):
+    raise SystemExit("qq rollout was not accepted")
+jobs=data.get("jobs") or []
+for row in jobs:
+    print("QQ_ROLLOUT", row.get("target_device"), row.get("job_id"), "queued" if row.get("ok") else row.get("error"))
+if not any(row.get("ok") for row in jobs):
+    raise SystemExit("qq rollout queued no device jobs")
+PY
 
       - name: Install and enable qq responder agent
         if: github.event_name == 'workflow_dispatch'
