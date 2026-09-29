@@ -5,12 +5,25 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/activate-qq-admin-console.yml"
-      - "quillgeist-lite/**"
-      - "!quillgeist-lite/dispatch/**"
+      - "quillgeist-lite/runner.ps1"
+      - "quillgeist-lite/launcher.ps1"
+      - "quillgeist-lite/bootstrap.ps1"
+      - "quillgeist-lite/install.ps1"
+      - "quillgeist-lite/launch-visible.ps1"
+      - "quillgeist-lite/tasks.json"
+      - "quillgeist-lite/tasks/**"
+      - "quillgeist-lite/tools/**"
+      - "quillgeist-lite/service/**"
+      - "quillgeist-lite/bootstrapper/**"
+      - "quillgeist-lite/assets/**"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: qq-runtime-rollout
+  cancel-in-progress: true
 
 # capability-based readiness: supervised admin console v6
 
