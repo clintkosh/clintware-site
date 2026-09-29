@@ -40,9 +40,9 @@ Required order:
 10. Apply safe seed migrations. Seed-version changes must not overwrite user-created or user-edited records.
 11. Exercise the deployed app in a real browser: create data, verify persistence, update a KPI, work an action, build a meeting brief, download and validate the PDF, and check desktop/mobile behavior.
 12. Repair failed layers rather than weakening the definition of done.
-13. Stop adding features once the target role is convincingly proved.
+13. Do not use size as the stopping rule.  A large CRM is acceptable when its breadth is appropriate to the verified position.  Stop only when additional features no longer map to a real role responsibility, workflow, decision, or useful proof point.
 
-For a one-off application CRM, `ASTRO_CRM_ONE_OFF_SKILL.md` constrains the broader `skills/advanced-customer-success-crm-builder/SKILL.md`. The broader skill supplies reusable architecture; it does not authorize feature bloat.
+For a one-off application CRM, `ASTRO_CRM_ONE_OFF_SKILL.md` constrains the broader `skills/advanced-customer-success-crm-builder/SKILL.md`. The broader skill supplies reusable architecture.  Large scope is allowed when the position warrants it; only role-irrelevant or unjustified functionality counts as bloat.
 
 A one-off CRM is incomplete until deployment, live data behavior, migration behavior, and interactive browser behavior have all been verified.
 
