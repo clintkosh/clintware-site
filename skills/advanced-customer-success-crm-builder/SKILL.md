@@ -4,6 +4,24 @@ Build a production-minded, company-tailored Customer Success / implementation CR
 
 This skill generalizes the architecture of a fully developed Customer Success CRM into a reusable build method. It must not depend on any one customer, employer, product, cloud account, builder platform, repository, or credential.
 
+
+## One-off application-demo override
+
+When the requested CRM is a company-specific or role-specific application, interview, hiring-manager, or proof-of-work demo, **read and apply `/ASTRO_CRM_ONE_OFF_SKILL.md` first**.
+
+That ASTRO is the controlling scope rule for one-off builds.
+
+Use this advanced skill for reusable architecture, data patterns, security, persistence, and integration design, but do **not** automatically carry the full feature set into the one-off.
+
+For one-off builds:
+
+- smallest working role-specific operating system wins;
+- account workspace, stakeholders, KPIs, actions, meeting prep, and a real PDF are higher priority than breadth;
+- irrelevant modules should be removed rather than merely hidden;
+- safe seed migration and real browser interaction tests are mandatory;
+- a static or page-load-only demo is not complete.
+
+
 ## Core operating principles
 
 1. **Start from the customer's operating model, not from a generic CRM template.**
