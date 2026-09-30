@@ -24,7 +24,7 @@ function Test-RuntimeBundle {
         if ($relative -notmatch '^(quillgeist-lite|identity-broker)/[A-Za-z0-9_./-]+$' -or $relative.Contains('..')) { throw 'Invalid QQ task source path.' }
         if (-not (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf)) { throw "Missing task source: $($task.Name)" }
     }
-    foreach ($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
+    foreach ($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/driznet-reconcile-and-resume.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
         if (-not (Test-Path -LiteralPath (Join-Path $Root ('quillgeist-lite/' + $relative)) -PathType Leaf)) { throw "Missing runtime source: $relative" }
     }
 }
@@ -103,6 +103,7 @@ try {
         'service/install-service.ps1',
         'service/recovery-watch.ps1',
         'tools/restore-runtime.ps1',
+        'tools/driznet-reconcile-and-resume.ps1',
         'tools/terminal_repair.py',
         'tools/boot_splash.py',
         'tools/browser_agent.py',
