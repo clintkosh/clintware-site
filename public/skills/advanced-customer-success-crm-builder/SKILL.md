@@ -13,7 +13,7 @@ This skill generalizes the architecture of a fully developed Customer Success CR
 5. **Use least privilege by default.** Grant each product only the minimum provider operations it needs.
 6. **Ask the MCP/control plane before rediscovering infrastructure.** Do not burn external-builder tokens guessing which APIs, repositories, deployments, schemas, integrations, credentials, or adapters already exist when the control plane can answer directly.
 7. **Make every important action auditable and reversible where practical.**
-8. **Guest access and durable account retention are separate modes.** A usable demo should not require sign-in unless the requested data or action requires persistence or privileged integrations.
+8. **Browser-local persistence is the default for demos.** A usable single-user demo should persist structured workspace state in localStorage or IndexedDB without sign-in or a server database. Remote account retention is an explicit capability only when cross-device/shared/server-authoritative state is actually required.
 9. **External research is context, not customer truth.** Exa or another research provider may support validation and discovery, but must not overwrite account facts.
 10. **A CRM is complete only when the workflows work.** Build, deploy, exercise, and verify the flows that an operator will actually use.
 
@@ -470,25 +470,34 @@ Synthetic data must stay visibly synthetic.
 
 ## Access and persistence
 
-Support two modes when appropriate.
+Apply `docs/astro-local-first-persistence-standard.md`.
 
-### Guest mode
+### Browser-local demo mode: default
 
 - page loads without login
-- creates a session-scoped or otherwise temporary workspace
+- CRM state persists in localStorage or IndexedDB when available
+- in-memory fallback is acceptable when browser storage is unavailable
 - safe synthetic defaults available immediately
-- no privileged third-party actions
-- no claim of durable retention
+- no reusable third-party credentials in the browser
+- no claim of cross-device or multi-user retention
+- static hosting or a stateless Worker remains sufficient
+- generated deployment must not require a Durable Object
 
-### Authenticated mode
+### Remote-state mode: explicit exception
 
-- durable workspace retention
-- privileged integrations available according to scope
-- account identity enforced
-- audit history attached to actor identity
-- optional workspace / tenant isolation
+Use remote persistence only when the requested workflow genuinely needs cross-device retention, multiple users sharing authoritative state, server-side scheduling/webhooks, centralized audit history, or another server-only capability.
 
-Explain the retention difference in the UI.
+When remote state is required:
+
+- declare `persistence_mode: remote-required`
+- declare `remote_state_required: true`
+- record `remote_state_reason`
+- choose the storage service based on access pattern
+- set `durable_objects_required: true` only when Durable Object coordination/serialization is specifically needed
+- keep privileged integrations scoped and server-side
+- enforce account identity and tenant isolation where applicable
+
+Hosting on Cloudflare does not itself justify Durable Objects.  Explain the actual retention behavior in the UI.
 
 ## AI-assisted natural-language operations
 
@@ -851,7 +860,8 @@ A run is complete only when:
 
 - the CRM is tailored to the company and use case
 - the app is usable without login when guest mode was requested
-- durable retention is available behind sign-in when requested
+- browser-local retention works without server storage for demo mode
+- remote retention is available only when explicitly requested and justified
 - customer import works
 - sample data works
 - stakeholder management works from meeting prep
