@@ -44,7 +44,7 @@ src = src.replace(
 // Every curated sample should look like an operating account, not a blank card.
 // Public Doppel customer references receive discovery proposals only; private facts
 // are never invented. Synthetic accounts receive clearly labeled technical scenarios.
-const marker = "\n return a}\n async seed()";
+const marker = "return a}\n async seed()";
 if (!src.includes(marker)) throw new Error("DPLR sampleRecords return marker missing");
 const add = `
  const sampleProv=pub?"internal_proposal":p;
