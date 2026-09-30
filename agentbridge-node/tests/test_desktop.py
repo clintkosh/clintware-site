@@ -1,9 +1,7 @@
 import platform
-import time
 import unittest
 
 from agentbridge_node.config import Config
-from agentbridge_node import desktop as desktop_module
 from agentbridge_node.desktop import ActivityLedger, compile_intent
 from agentbridge_node.usage_desktop import QuillgeistDesktopWithUsage
 
@@ -43,29 +41,24 @@ def test_windows_desktop_ui_starts_with_inline_command_workflow(tmp_path, monkey
         after = [w for w in app.root.winfo_children() if isinstance(w, app.tk.Toplevel)]
         assert len(after) == len(before)
 
-        monkeypatch.setattr(
-            desktop_module,
-            "local_complete",
-            lambda payload, config: (
-                200,
-                {"choices": [{"message": {"content": "Local smoke response."}}]},
-            ),
-        )
+        routed = {}
+        def fake_local_responder(text, compiled):
+            routed["text"] = text
+            routed["compiled"] = compiled
+            app._write_output("LOCAL RESPONDER // routed")
+
+        # Tk is intentionally not running mainloop() in this startup smoke.
+        # Verify the UI routes ordinary commands into the local-first responder
+        # boundary; local inference and async completion are covered separately.
+        monkeypatch.setattr(app, "_run_local_responder", fake_local_responder)
         app.command_input.insert("1.0", "summarize this report")
         app.submit_command()
 
-        # The current workflow is local-first and asynchronous. The old
-        # "Command prepared" handoff text predates the local responder.
-        deadline = time.time() + 2.0
-        output = ""
-        while time.time() < deadline:
-            app.root.update()
-            output = app.output.get("1.0", "end")
-            if "QUILLGEIST LOCAL" in output:
-                break
-            time.sleep(0.01)
-        assert "QUILLGEIST LOCAL" in output
-        assert "Local smoke response." in output
+        output = app.output.get("1.0", "end")
+        assert "LOCAL RESPONDER // routed" in output
+        assert routed["text"] == "summarize this report"
+        assert routed["compiled"]["routing"] == "local-only"
+        assert routed["compiled"]["action"] == "summarize"
     finally:
         app._running = False
         app.root.destroy()
