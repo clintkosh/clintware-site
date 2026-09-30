@@ -25,10 +25,13 @@ import {
   calendarRepairDelayMs,
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
+  deleteGoogleCalendarEventById,
   filterSlotsAgainstGoogleBusy,
+  findGoogleCalendarEventByManage,
   googleBusyIntervals,
   googleCalendarConfigured,
   getGoogleCalendarEvent,
+  listGoogleCalendarEvents,
   probeGoogleCalendar,
   requestedTimeIsGoogleBusy,
   updateGoogleCalendarEvent,
@@ -133,20 +136,14 @@ async function runCalendarOperation(env, trigger, operation) {
   try {
     return await operation();
   } catch (firstError) {
-    await signalCalendarFailure(env, firstError, trigger);
-    try {
-      await probeGoogleCalendar(env);
-      const result = await operation();
-      await signalCalendarRecovered(env, `${trigger}:inline-retry`);
-      console.info(JSON.stringify({
-        event: "google_calendar_inline_recovery_succeeded",
-        trigger,
-      }));
-      return result;
-    } catch (retryError) {
-      await signalCalendarFailure(env, retryError, trigger);
-      throw retryError;
-    }
+    console.warn(JSON.stringify({
+      event: "google_calendar_operation_retry",
+      trigger,
+      code: firstError?.code || "calendar_error",
+      status: Number(firstError?.status || 0),
+    }));
+    await probeGoogleCalendar(env);
+    return operation();
   }
 }
 
@@ -291,12 +288,44 @@ async function sendCancellationMail(env, booking, includeIcs = true) {
   ]);
 }
 
+function bookingFromGoogleEvent(event, manageToken, manageHash) {
+  if (!event) return null;
+  const p = event.extendedProperties?.private || {};
+  const attendees = Array.isArray(event.attendees) ? event.attendees : [];
+  const guest = attendees.find((x) => String(x.email || "").toLowerCase() !== CONFIG.hostEmail.toLowerCase()) || attendees[0] || {};
+  const startMs = Date.parse(event.start?.dateTime || event.start?.date || "");
+  const endMs = Date.parse(event.end?.dateTime || event.end?.date || "");
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+  const topicFromDescription = String(event.description || "").match(/(?:^|\n)Topic:\s*([^\n]+)/i)?.[1] || "";
+  const purposeFromDescription = String(event.description || "").match(/(?:^|\n)Purpose:\s*([^\n]+)/i)?.[1] || "";
+  const roomFromDescription = String(event.description || "").match(/\/room\/([a-f0-9]{24})/i)?.[1] || "";
+  return {
+    id: String(p.clintwareBookingId || event.id || ""),
+    manageToken,
+    manageHash,
+    name: cleanText(guest.displayName || String(event.summary || "").replace(/^Meet with Clinton\s*[—-]\s*/i, "") || guest.email || "Guest", 100),
+    email: normalizeEmail(guest.email || CONFIG.hostEmail),
+    company: cleanText(p.clintwareCompany || "", 120),
+    purpose: cleanText(p.clintwarePurpose || purposeFromDescription || "Other", 100),
+    topic: cleanText(p.clintwareTopic || topicFromDescription || "Conversation", 1200),
+    startMs,
+    endMs,
+    hostDate: hostDateString(startMs, CONFIG.hostTimeZone),
+    timezone: cleanText(p.clintwareTimezone || CONFIG.hostTimeZone, 100),
+    status: event.status === "cancelled" ? "canceled" : "confirmed",
+    roomCode: cleanText(p.clintwareRoomCode || roomFromDescription || createToken(12), 24),
+    googleEventId: String(event.id || ""),
+    sequence: Number(p.clintwareSequence || 0),
+    createdAt: Date.parse(event.created || "") || 0,
+    updatedAt: Date.parse(event.updated || "") || 0,
+  };
+}
+
 async function lookupBooking(env, token) {
+  if (!googleCalendarConfigured(env)) return null;
   const hash = await sha256(token);
-  const response = await store(env).fetch(`https://scheduler/lookup?hash=${encodeURIComponent(hash)}`);
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data.booking || null;
+  const event = await findGoogleCalendarEventByManage(env, token, hash);
+  return bookingFromGoogleEvent(event, token, hash);
 }
 
 function publicBookingWithToken(booking) {
@@ -911,7 +940,7 @@ async function apiAvailability(env) {
 
 async function apiBook(request, env) {
   const input = normalizeBookingInput(await readJson(request));
-  if (!input) {
+  if (!input || !validateRequestedStart(input.startMs, Date.now(), CONFIG)) {
     return json({
       error: "Enter a valid name, email, purpose, topic, timezone, and available time.",
     }, 422);
@@ -924,103 +953,71 @@ async function apiBook(request, env) {
     }, 503);
   }
 
-  if (googleCalendarConfigured(env)) {
-    try {
-      const endMs = input.startMs + CONFIG.durationMinutes * 60_000;
-      const before = CONFIG.bufferBeforeMinutes * 60_000;
-      const after = CONFIG.bufferAfterMinutes * 60_000;
-      const busy = await runCalendarOperation(env, "prebook", () => googleBusyIntervals(env, input.startMs - before, endMs + after));
-      if (requestedTimeIsGoogleBusy(input.startMs, endMs, busy, CONFIG)) {
-        return json({ error: "slot_not_available" }, 409);
-      }
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_prebook_check_failed",
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
-      return json({
-        error: "Calendar connection is temporarily unavailable. Please try again shortly.",
-        code: "calendar_temporarily_unavailable",
-      }, 503);
+  const endMs = input.startMs + CONFIG.durationMinutes * 60_000;
+  try {
+    const before = CONFIG.bufferBeforeMinutes * 60_000;
+    const after = CONFIG.bufferAfterMinutes * 60_000;
+    const busy = await runCalendarOperation(
+      env,
+      "prebook",
+      () => googleBusyIntervals(env, input.startMs - before, endMs + after),
+    );
+    if (requestedTimeIsGoogleBusy(input.startMs, endMs, busy, CONFIG)) {
+      return json({ error: "slot_not_available" }, 409);
     }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "google_calendar_prebook_check_failed",
+      message: String(error),
+      code: error.code || "calendar_error",
+    }));
+    return json({
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503);
   }
 
   const manageToken = createToken(24);
   const manageHash = await sha256(manageToken);
-  const payload = {
+  const booking = {
     ...input,
     id: crypto.randomUUID(),
     roomCode: createToken(12),
     manageToken,
     manageHash,
+    endMs,
+    hostDate: hostDateString(input.startMs, CONFIG.hostTimeZone),
+    status: "confirmed",
+    sequence: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 
-  const reserved = await store(env).fetch("https://scheduler/reserve", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await reserved.json();
-  if (!reserved.ok) return json(data, reserved.status);
-
-  const booking = data.booking;
-  let calendar = {
-    configured: googleCalendarConfigured(env),
-    synced: false,
-    inviteSent: false,
-    meetLink: "",
-    eventUrl: "",
-  };
-
-  if (calendar.configured) {
-    try {
-      const event = await runCalendarOperation(env, "event-create", () => createGoogleCalendarEvent(env, booking));
-      booking.googleEventId = event.id;
-      const linked = await store(env).fetch("https://scheduler/google-event", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: booking.id, googleEventId: event.id }),
-      });
-      if (!linked.ok) throw new Error("google_event_link_failed");
-      calendar = {
-        configured: true,
-        synced: true,
-        inviteSent: true,
-        meetLink: event.hangoutLink || "",
-        eventUrl: event.htmlLink || "",
-      };
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_event_create_failed",
-        bookingId: booking.id,
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
-      const rollback = await store(env).fetch("https://scheduler/cancel", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ manageHash }),
-      }).catch(() => null);
-      if (!rollback?.ok) {
-        console.error(JSON.stringify({
-          event: "google_calendar_booking_rollback_failed",
-          bookingId: booking.id,
-        }));
-      }
-      return json({
-        error: "Calendar connection is temporarily unavailable. Please try again shortly.",
-        code: "calendar_temporarily_unavailable",
-      }, 503);
-    }
+  let event;
+  try {
+    event = await runCalendarOperation(env, "event-create", () => createGoogleCalendarEvent(env, booking));
+    booking.googleEventId = event.id;
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "google_calendar_event_create_failed",
+      bookingId: booking.id,
+      message: String(error),
+      code: error.code || "calendar_error",
+    }));
+    return json({
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503);
   }
 
-  if (!calendar.synced || !calendar.meetLink) {
-    await store(env).fetch("https://scheduler/cancel", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ manageHash }),
-    }).catch(() => null);
+  if (!event?.hangoutLink) {
+    try {
+      const refreshed = await getGoogleCalendarEvent(env, booking);
+      event = { ...event, ...refreshed };
+    } catch {}
+  }
+  if (!event?.hangoutLink) {
+    await deleteGoogleCalendarEvent(env, booking).catch(() => null);
     return json({
       error: "Google Meet could not be created. Please try again shortly.",
       code: "google_meet_not_created",
@@ -1029,7 +1026,7 @@ async function apiBook(request, env) {
 
   let delivery = { guest: false, host: false };
   try {
-    delivery = await sendBookingMail(env, booking, "confirmed", !calendar.synced);
+    delivery = await sendBookingMail(env, booking, "confirmed", false);
   } catch (error) {
     console.error(JSON.stringify({
       event: "booking_mail_failed",
@@ -1038,7 +1035,18 @@ async function apiBook(request, env) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking), delivery, calendar }, 201);
+  return json({
+    booking: publicBookingWithToken(booking),
+    delivery,
+    calendar: {
+      configured: true,
+      synced: true,
+      inviteSent: true,
+      meetLink: event.hangoutLink || "",
+      eventUrl: event.htmlLink || "",
+    },
+    storage: "google-calendar",
+  }, 201);
 }
 
 async function apiManage(env, token) {
@@ -1091,78 +1099,60 @@ async function apiReschedule(request, env, token) {
   } catch {
     return json({ error: "invalid_timezone" }, 422);
   }
+  if (!validateRequestedStart(startMs, Date.now(), CONFIG)) {
+    return json({ error: "slot_not_available" }, 409);
+  }
 
-  if (googleCalendarConfigured(env) && startMs !== existing.startMs) {
+  if (startMs !== existing.startMs) {
     try {
       const endMs = startMs + CONFIG.durationMinutes * 60_000;
       const before = CONFIG.bufferBeforeMinutes * 60_000;
       const after = CONFIG.bufferAfterMinutes * 60_000;
-      const busy = await runCalendarOperation(env, "prereschedule", () => googleBusyIntervals(env, startMs - before, endMs + after));
+      const busy = await runCalendarOperation(
+        env,
+        "prereschedule",
+        () => googleBusyIntervals(env, startMs - before, endMs + after),
+      );
       if (requestedTimeIsGoogleBusy(startMs, endMs, busy, CONFIG)) {
         return json({ error: "slot_not_available" }, 409);
       }
     } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_prereschedule_check_failed",
-        bookingId: existing.id,
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
+      return json({
+        error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+        code: "calendar_temporarily_unavailable",
+      }, 503);
     }
   }
 
-  const manageHash = await sha256(token);
-  const response = await store(env).fetch("https://scheduler/reschedule", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ manageHash, startMs, timezone }),
-  });
-  const data = await response.json();
-  if (!response.ok) return json(data, response.status);
-
-  const booking = { ...data.booking, manageToken: token };
-  let calendar = {
-    configured: googleCalendarConfigured(env),
-    synced: false,
-    inviteSent: false,
-    meetLink: "",
-    eventUrl: "",
+  const booking = {
+    ...existing,
+    manageToken: token,
+    startMs,
+    endMs: startMs + CONFIG.durationMinutes * 60_000,
+    hostDate: hostDateString(startMs, CONFIG.hostTimeZone),
+    timezone,
+    sequence: Number(existing.sequence || 0) + 1,
+    updatedAt: Date.now(),
   };
 
-  if (calendar.configured) {
-    try {
-      let event;
-      if (booking.googleEventId) {
-        event = await runCalendarOperation(env, "event-update", () => updateGoogleCalendarEvent(env, booking));
-      } else {
-        event = await runCalendarOperation(env, "reschedule-event-create", () => createGoogleCalendarEvent(env, booking));
-        booking.googleEventId = event.id;
-        const linked = await store(env).fetch("https://scheduler/google-event", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: booking.id, googleEventId: event.id }),
-        });
-        if (!linked.ok) throw new Error("google_event_link_failed");
-      }
-      calendar = {
-        configured: true,
-        synced: true,
-        inviteSent: true,
-        meetLink: event?.hangoutLink || "",
-        eventUrl: event?.htmlLink || "",
-      };
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_event_update_failed",
-        bookingId: booking.id,
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
-    }
+  let event;
+  try {
+    event = await runCalendarOperation(env, "event-update", () => updateGoogleCalendarEvent(env, booking));
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "google_calendar_event_update_failed",
+      bookingId: booking.id,
+      message: String(error),
+      code: error.code || "calendar_error",
+    }));
+    return json({
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503);
   }
 
   try {
-    await sendBookingMail(env, booking, "rescheduled", !calendar.synced);
+    await sendBookingMail(env, booking, "rescheduled", false);
   } catch (error) {
     console.error(JSON.stringify({
       event: "reschedule_mail_failed",
@@ -1171,46 +1161,45 @@ async function apiReschedule(request, env, token) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking), calendar });
+  return json({
+    booking: publicBookingWithToken(booking),
+    calendar: {
+      configured: true,
+      synced: true,
+      inviteSent: true,
+      meetLink: event?.hangoutLink || "",
+      eventUrl: event?.htmlLink || "",
+    },
+    storage: "google-calendar",
+  });
 }
 
 async function apiCancel(env, token) {
   const existing = await lookupBooking(env, token);
   if (!existing) return json({ error: "booking_not_found" }, 404);
 
-  let calendar = {
-    configured: googleCalendarConfigured(env),
-    synced: false,
-    inviteSent: false,
-    meetLink: "",
-    eventUrl: "",
-  };
-  if (calendar.configured && existing.googleEventId) {
-    try {
-      await runCalendarOperation(env, "event-delete", () => deleteGoogleCalendarEvent(env, { ...existing, manageToken: token }));
-      calendar = { configured: true, synced: true, inviteSent: true };
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_event_delete_failed",
-        bookingId: existing.id,
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
-    }
+  try {
+    await runCalendarOperation(
+      env,
+      "event-delete",
+      () => deleteGoogleCalendarEvent(env, { ...existing, manageToken: token }),
+    );
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "google_calendar_event_delete_failed",
+      bookingId: existing.id,
+      message: String(error),
+      code: error.code || "calendar_error",
+    }));
+    return json({
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503);
   }
 
-  const manageHash = await sha256(token);
-  const response = await store(env).fetch("https://scheduler/cancel", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ manageHash }),
-  });
-  const data = await response.json();
-  if (!response.ok) return json(data, response.status);
-
-  const booking = { ...data.booking, manageToken: token };
+  const booking = { ...existing, manageToken: token, status: "canceled", updatedAt: Date.now() };
   try {
-    await sendCancellationMail(env, booking, !calendar.synced);
+    await sendCancellationMail(env, booking, false);
   } catch (error) {
     console.error(JSON.stringify({
       event: "cancel_mail_failed",
@@ -1219,43 +1208,38 @@ async function apiCancel(env, token) {
     }));
   }
 
-  return json({ booking: publicBookingWithToken(booking), calendar });
+  return json({
+    booking: publicBookingWithToken(booking),
+    calendar: { configured: true, synced: true, inviteSent: true },
+    storage: "google-calendar",
+  });
 }
 
 async function health(env) {
-  const [storageResponse, mailResponse] = await Promise.allSettled([
-    store(env).fetch("https://scheduler/health"),
+  const [calendarResult, mailResponse] = await Promise.allSettled([
+    probeGoogleCalendar(env),
     env.MAILER
       ? env.MAILER.fetch("https://mailer/health")
       : Promise.reject(new Error("mailer_binding_missing")),
   ]);
 
-  let storage = { ok: false };
-  let mailer = { ok: false };
-
-  if (storageResponse.status === "fulfilled") {
-    storage = await storageResponse.value.json().catch(() => ({ ok: false }));
-  }
+  let mailer = { deliveryConfigured: false };
   if (mailResponse.status === "fulfilled") {
-    mailer = await mailResponse.value.json().catch(() => ({ ok: false }));
+    mailer = await mailResponse.value.json().catch(() => ({ deliveryConfigured: false }));
   }
-
-  const calendarStatusResponse = await store(env).fetch("https://scheduler/calendar-status").catch(() => null);
-  const calendarStatus = calendarStatusResponse
-    ? await calendarStatusResponse.json().catch(() => ({}))
-    : {};
-  const incident = calendarStatus.calendar || {};
-  const ok = Boolean(storage.ok && mailer.deliveryConfigured && env.INTERNAL_MAIL_SECRET);
+  const calendarReady = calendarResult.status === "fulfilled";
+  const ok = calendarReady;
   return json({
     ok,
     app: "clintware-meet",
     mode: "clintcal-native",
-    storage: storage.ok ? "sqlite" : "error",
-    mailer: mailer.deliveryConfigured ? (mailer.provider || "configured") : "error",
+    storage: "google-calendar",
+    durableObject: "optional-degraded",
+    mailer: mailer.deliveryConfigured ? (mailer.provider || "configured") : "optional-degraded",
     calendarBridgeConfigured: googleCalendarConfigured(env),
-    calendarState: incident.status || "unknown",
-    calendarReconnectRequired: Boolean(incident.reconnectRequired),
-    calendarRepairAttempts: Number(incident.attempts || 0),
+    calendarState: calendarReady ? "connected" : "error",
+    calendarReconnectRequired: !calendarReady,
+    calendarRepairAttempts: 0,
     durationMinutes: CONFIG.durationMinutes,
   }, ok ? 200 : 503, { "Cache-Control": "no-store" });
 }
@@ -1265,11 +1249,16 @@ async function adminCleanupDeploymentTests(request, env) {
   if (!env.SCHEDULER_ADMIN_SECRET || supplied !== env.SCHEDULER_ADMIN_SECRET) {
     return json({ error: "unauthorized" }, 401);
   }
-  const response = await store(env).fetch("https://scheduler/cleanup-deployment-tests", { method: "POST" });
-  return new Response(response.body, {
-    status: response.status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
+  let deleted = 0;
+  const events = await listGoogleCalendarEvents(env, { q: "ClintCal Deployment Test", maxResults: 50 });
+  for (const event of events) {
+    if (!String(event.summary || "").includes("ClintCal Deployment Test")) continue;
+    try {
+      await deleteGoogleCalendarEventById(env, event.id);
+      deleted += 1;
+    } catch {}
+  }
+  return json({ ok: true, storage: "google-calendar", deleted });
 }
 
 async function adminSelfTest(request, env) {
@@ -1278,54 +1267,41 @@ async function adminSelfTest(request, env) {
     return json({ error: "unauthorized" }, 401);
   }
 
-  const storageResponse = await store(env).fetch("https://scheduler/self-test", { method: "POST" });
-  const storage = await storageResponse.json();
-
-  const availabilityResponse = await store(env).fetch("https://scheduler/availability");
-  const availability = await availabilityResponse.json();
-
-  const mailResponse = env.MAILER ? await env.MAILER.fetch("https://mailer/health") : null;
-  const mailer = mailResponse ? await mailResponse.json().catch(() => ({})) : {};
-
   let calendarReady = false;
   let calendarErrorCode = "";
-  let reconnectRequired = false;
   try {
     await probeGoogleCalendar(env);
     calendarReady = true;
-    await signalCalendarRecovered(env, "admin-self-test");
   } catch (error) {
     calendarErrorCode = cleanText(error?.code || "calendar_error", 120);
-    reconnectRequired = Boolean(
-      error?.code === "google_calendar_not_connected" ||
-      error?.code === "google_calendar_not_configured" ||
-      error?.code === "google_calendar_oauth_refresh_failed" ||
-      /google_delegated_(grant_missing|refresh_failed)|invalid_grant/i.test(String(error?.detail || ""))
-    );
-    await signalCalendarFailure(env, error, "admin-self-test");
   }
 
-  const ok = Boolean(
-    storage.ok &&
-    Array.isArray(availability.slots) &&
-    availability.slots.length > 0 &&
-    calendarReady
-  );
+  const candidates = generateCandidateSlots(Date.now(), CONFIG).slice(0, 20);
+  let available = [];
+  if (calendarReady && candidates.length) {
+    const before = CONFIG.bufferBeforeMinutes * 60_000;
+    const after = CONFIG.bufferAfterMinutes * 60_000;
+    const busy = await googleBusyIntervals(
+      env,
+      candidates[0].startMs - before,
+      candidates.at(-1).endMs + after,
+    );
+    available = filterSlotsAgainstGoogleBusy(candidates, busy, CONFIG);
+  }
 
   return json({
-    ok,
-    storage,
-    slots: availability.slots?.length || 0,
-    mailer: Boolean(mailer.deliveryConfigured),
+    ok: calendarReady && available.length > 0,
+    storage: { ok: true, storage: "google-calendar" },
+    slots: available.length,
     mailerRequiredForCoreBooking: false,
     calendarBridgeConfigured: googleCalendarConfigured(env),
     calendarReady,
     calendarErrorCode,
-    calendarReconnectRequired: reconnectRequired,
-    calendarReconnectUrl: reconnectRequired ? "https://auth.clintware.com/delegated/google/start" : "",
-    repairMode: "event-driven-durable-alarm",
-    bookingFlow: "reserve/reschedule/cancel protected by durable-object serialization",
-  }, ok ? 200 : 503);
+    calendarReconnectRequired: !calendarReady,
+    calendarReconnectUrl: !calendarReady ? "https://auth.clintware.com/delegated/google/start" : "",
+    repairMode: "calendar-first-no-durable-object-dependency",
+    bookingFlow: "google-calendar-create/update/delete",
+  }, calendarReady && available.length > 0 ? 200 : 503);
 }
 
 async function portraitAsset() {
