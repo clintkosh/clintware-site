@@ -1,14 +1,14 @@
 {
-  "request_id": "driznet-crm-auth-login-scan-20260929-1916",
+  "request_id": "driznet-crm-auth-cta-scan-20260929-1918",
   "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "args": {
-    "Query": "/auth/login",
+    "Query": "Sign in (to keep data|for durable workspace)",
     "Path": "projects",
-    "Mode": "text",
+    "Mode": "regex",
     "Max": "200",
     "Json": "false",
     "FilesOnly": "true"
   },
-  "objective": "Scan the refreshed Clintware projects tree for remaining CRM auth-login references after hiding durable sign-in. This is read-only. Boomi is intentionally allowed to retain its auth-login UX; RenewNudge is out of scope."
+  "objective": "Refresh DRIZNET repository cache to current origin/main and scan project source for remaining CRM durable-sign-in CTA phrases. Boomi is intentionally allowed to retain the CTA. LandThePlane uses separate working Google auth and does not use these shared CTA phrases. RenewNudge is out of scope."
 }
