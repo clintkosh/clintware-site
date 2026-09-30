@@ -858,54 +858,55 @@ export class SchedulerState extends DurableObject {
 }
 
 async function apiAvailability(env) {
-  let data;
-  let storageSync = "durable";
+  const slots = generateCandidateSlots(Date.now(), CONFIG)
+    .slice(0, 320)
+    .map((slot) => ({ startMs: slot.startMs, endMs: slot.endMs }));
+  const data = {
+    slots,
+    config: {
+      durationMinutes: CONFIG.durationMinutes,
+      hostTimeZone: CONFIG.hostTimeZone,
+      minNoticeMinutes: CONFIG.minNoticeMinutes,
+      bufferBeforeMinutes: CONFIG.bufferBeforeMinutes,
+      bufferAfterMinutes: CONFIG.bufferAfterMinutes,
+    },
+  };
+
+  if (!googleCalendarConfigured(env)) {
+    return json({
+      ...data,
+      slots: [],
+      calendarSync: "not_configured",
+      storageSync: "calendar-only",
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: "calendar_temporarily_unavailable",
+    }, 503, { "Cache-Control": "no-store" });
+  }
 
   try {
-    const response = await store(env).fetch("https://scheduler/availability");
-    if (!response.ok) throw new Error(`scheduler_availability_failed:${response.status}`);
-    data = await response.json();
+    const before = CONFIG.bufferBeforeMinutes * 60_000;
+    const after = CONFIG.bufferAfterMinutes * 60_000;
+    const fromMs = slots[0].startMs - before;
+    const toMs = slots.at(-1).endMs + after;
+    const busy = await googleBusyIntervals(env, fromMs, toMs);
+    data.slots = filterSlotsAgainstGoogleBusy(slots, busy, CONFIG);
+    return json({ ...data, calendarSync: "google", storageSync: "calendar-only" }, 200, { "Cache-Control": "no-store" });
   } catch (error) {
-    storageSync = "calendar-only";
-    console.warn(JSON.stringify({
-      event: "scheduler_storage_availability_fallback",
+    console.error(JSON.stringify({
+      event: "google_calendar_availability_failed",
       message: String(error),
+      code: error.code || "calendar_error",
+      status: Number(error.status || 0),
     }));
-    const candidates = generateCandidateSlots(Date.now(), CONFIG)
-      .slice(0, 320)
-      .map((slot) => ({ startMs: slot.startMs, endMs: slot.endMs }));
-    data = {
-      slots: candidates,
-      config: {
-        durationMinutes: CONFIG.durationMinutes,
-        hostTimeZone: CONFIG.hostTimeZone,
-        minNoticeMinutes: CONFIG.minNoticeMinutes,
-        bufferBeforeMinutes: CONFIG.bufferBeforeMinutes,
-        bufferAfterMinutes: CONFIG.bufferAfterMinutes,
-      },
-    };
+    return json({
+      ...data,
+      slots: [],
+      calendarSync: "degraded",
+      storageSync: "calendar-only",
+      error: "Calendar connection is temporarily unavailable. Please try again shortly.",
+      code: cleanText(error.code || "calendar_temporarily_unavailable", 120),
+    }, 503, { "Cache-Control": "no-store" });
   }
-
-  let calendarSync = googleCalendarConfigured(env) ? "degraded" : "not_configured";
-  if (googleCalendarConfigured(env) && Array.isArray(data.slots) && data.slots.length) {
-    try {
-      const before = CONFIG.bufferBeforeMinutes * 60_000;
-      const after = CONFIG.bufferAfterMinutes * 60_000;
-      const fromMs = data.slots[0].startMs - before;
-      const toMs = data.slots.at(-1).endMs + after;
-      const busy = await runCalendarOperation(env, "availability", () => googleBusyIntervals(env, fromMs, toMs));
-      data.slots = filterSlotsAgainstGoogleBusy(data.slots, busy, CONFIG);
-      calendarSync = "google";
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "google_calendar_availability_failed",
-        message: String(error),
-        code: error.code || "calendar_error",
-      }));
-    }
-  }
-
-  return json({ ...data, calendarSync, storageSync }, 200, { "Cache-Control": "no-store" });
 }
 
 async function apiBook(request, env) {
