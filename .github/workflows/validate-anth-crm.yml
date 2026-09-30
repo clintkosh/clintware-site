@@ -33,6 +33,9 @@ jobs:
           grep -Fq 'Scale AI adoption into measurable customer value.' .build/anth-crm/public/anth-track.js
           grep -Fq 'Consumption + seat adoption' .build/anth-crm/public/anth-track.js
           grep -Fq 'Download QBR brief PDF' .build/anth-crm/public/anth-track.js
-          grep -Fq 'Apex Systems Integrator (Synthetic)' .build/anth-crm/src/index.js
+          grep -Fq 'Apex Systems Integrator (Synthetic)' .build/anth-crm/public/cw-astro-local-bootstrap.js
+          grep -Fq '/cw-astro-local-store.js' .build/anth-crm/public/index.html
+          grep -Fq 'databaseRowsPerDemoSession:0' .build/anth-crm/src/index.js
+          ! grep -Fq '"durable_objects"' .build/anth-crm/wrangler.jsonc
           grep -Fq 'anth.clintware.com' .build/anth-crm/wrangler.jsonc
           ! grep -RFi --exclude='anth-data.mjs' --exclude='materialize.mjs' 'Doppel' .build/anth-crm/public .build/anth-crm/src
