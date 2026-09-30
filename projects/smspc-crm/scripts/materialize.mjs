@@ -12,7 +12,7 @@ const sourceBuild=path.join(repo,".build","dplr-crm");
 const overlay=path.join(repo,"projects","smspc-crm");
 const out=path.join(repo,".build","smspc-crm");
 
-execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit"});
+execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit",env:{...process.env,CW_ASTRO_REFERENCE_MODE:"1"}});
 if(!fs.existsSync(sourceBuild))throw new Error("DPLR materializer did not produce its build.");
 fs.rmSync(out,{recursive:true,force:true});
 fs.cpSync(sourceBuild,out,{recursive:true});
@@ -147,5 +147,33 @@ if(!samples.includes("SAMPLE_SEED_VERSION=1")||!samples.includes("Liberty Grid O
 const track=fs.readFileSync(path.join(out,"public","smspc-track.js"),"utf8");
 if((track.match(/objective:/g)||[]).length!==8)throw new Error("SimSpace operating-track contract must remain eight tracks.");
 if(!wrangler.includes('"pattern":"smspc.clintware.com"'))throw new Error("SimSpace custom domain route missing.");
+
+// Browser-local data is already handled by smspc-local-store.js.  Retire the
+// inherited DPLR Durable Object so Cloudflare remains hosting only, not a required
+// database for this candidate demo.
+{
+  const wranglerPath=path.join(out,"wrangler.jsonc");
+  const wranglerObj=JSON.parse(fs.readFileSync(wranglerPath,"utf8"));
+  const oldClasses=Array.isArray(wranglerObj.durable_objects?.bindings)?[...new Set(wranglerObj.durable_objects.bindings.map(x=>x.class_name).filter(Boolean))]:[];
+  delete wranglerObj.durable_objects;
+  delete wranglerObj.services;
+  wranglerObj.assets={...(wranglerObj.assets||{}),directory:"./public",binding:"ASSETS",run_worker_first:false};
+  wranglerObj.vars={...(wranglerObj.vars||{}),CRM_RUNTIME_MODE:"browser-local-candidate-demo"};
+  if(oldClasses.length){
+    const migrations=Array.isArray(wranglerObj.migrations)?wranglerObj.migrations:[];
+    if(!migrations.some(m=>Array.isArray(m.deleted_classes)&&oldClasses.every(x=>m.deleted_classes.includes(x))))migrations.push({tag:"v2-browser-local",deleted_classes:oldClasses});
+    wranglerObj.migrations=migrations;
+  }
+  fs.writeFileSync(wranglerPath,JSON.stringify(wranglerObj,null,2)+"\\n");
+  const statelessWorker='const APP_ID="smspc-crm";\\nconst WORKSPACE_ID="smspc-simspace";\\nconst H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"};\\nconst j=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:H});\\nexport default {async fetch(req,env){const u=new URL(req.url);if(u.pathname==="/health")return j({service:"clintware-smspc-crm",ok:true,app:APP_ID,workspace:WORKSPACE_ID,storage:"browser-local",persistence:"localStorage-with-memory-fallback",databaseRowsPerDemoSession:0,durableObjectsRequired:false,quotaIndependent:true});if(u.pathname.startsWith("/api/"))return j({error:"browser_local_api"},409);return env.ASSETS.fetch(req)}};\\n';
+  fs.writeFileSync(workerPath,statelessWorker);
+  const packagePath=path.join(out,"package.json");
+  const packageJson=JSON.parse(fs.readFileSync(packagePath,"utf8"));
+  packageJson.scripts=packageJson.scripts||{};
+  packageJson.scripts["prepare:prod"]="node --check src/index.js";
+  fs.writeFileSync(packagePath,JSON.stringify(packageJson,null,2)+"\\n");
+  const finalWrangler=fs.readFileSync(wranglerPath,"utf8");
+  if(finalWrangler.includes('"durable_objects"'))throw new Error("SimSpace build still contains Durable Object binding.");
+}
 
 console.log("SMSPC CRM materialized at "+out);
