@@ -64,10 +64,12 @@ jobs:
           done
           exit 1
       - name: Real browser functional and persistence smoke
+        timeout-minutes: 6
         run: |
+          set -euo pipefail
+          google-chrome --version
           npm install --no-save --no-audit --no-fund playwright@1.55.0
-          npx playwright install --with-deps chromium
-          node tests/dplr_browser_smoke.mjs
+          PLAYWRIGHT_CHANNEL=chrome timeout 240s node tests/dplr_browser_smoke.mjs
       - name: Upload DPLR browser evidence
         if: always()
         uses: actions/upload-artifact@v4
