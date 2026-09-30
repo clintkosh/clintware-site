@@ -53,6 +53,22 @@ For owner-operated ChatGPT/MCP work, treat QQ/local execution as the default wor
 
 This policy is a default selection rule, not permission to weaken authorization or quality gates.
 
+## Default big-prompt activity
+
+For substantial requests, Quillgeist uses the big-prompt planner as the default orchestration activity before execution.
+
+- Recover durable project/state context first, then compact it before decomposition.
+- Break the request recursively into bounded dependency-aware work units. A child unit receives only its own objective, required durable state, and outputs from declared dependencies.
+- Prefer `qq_deterministic` for builds, tests, transforms, repository/file work, local automation, and other deterministic machine tasks.
+- Prefer `qq_local_model` for local reasoning that meets the quality and freshness requirement.
+- Route fresh external authority, explicit remote-model work, and consequential external mutations through `mcp.clintware.com`; the local planner does not hold reusable provider secrets.
+- Preserve execution evidence per work unit. A parent request is complete only when required leaves have passed their own checks and final synthesis has verified the original Definition of Done.
+- Re-plan only unresolved or failed branches. Do not resend the full original context to every provider call.
+- Context/token savings reported by the planner are estimates comparing naive full-prompt retransmission with routed leaf context. They are not provider billing records.
+- The planner may recommend parallelism only for units with no dependency or shared-mutation conflict. Dependency order and approval boundaries take precedence over speed.
+
+The allowlisted `big-prompt-plan` qq task exposes this plan locally. The Control Plane remains authoritative for remote provider/account resolution, permissions, consequential actions, and durable cross-device job state.
+
 ## Governed live-web policy
 
 Quillgeist Web extends qq with live search, page reading, and bounded browser automation while preserving the local execution boundary.
