@@ -80,6 +80,7 @@ BASE_HELP = {
         {"id":"alpha-3-dlp","date":"2026-08-16","version":"0.1.0-alpha.3","title":"Local sensitive-data gate","body":"Added deterministic local scanning for payment cards, private keys, common API/credential tokens, JWTs, U.S. SSNs, email addresses, and phone numbers; Standard protection is enabled by default with Strict, Monitor, and Off modes."},
         {"id":"core-0-4","date":"2026-09-07","version":"0.4.0-core","title":"Scoped rules, selective compilation, and company manifests","body":"Added global/project/task operating rules, selective rule compilation with context-avoidance telemetry, correction-to-proposed-rule behavior, and Assemblerer manifest compilation while preserving local execution and verification."},
         {"id":"core-big-prompt","date":"2026-09-30","version":"0.4.0-alpha.1","title":"Recursive big-prompt orchestration","body":"Added recursive dependency-aware prompt planning, local-first route lanes, DLP before work-graph construction, and estimated remote-context avoidance."},
+        {"id":"core-dlp-id-boundary","date":"2026-09-30","version":"0.4.0-alpha.1","title":"DLP identifier boundary hardening","body":"Payment-card detection now requires non-alphanumeric token boundaries so generated run/UUID identifiers are preserved while standalone card-like values remain protected."},
     ],
 }
 
