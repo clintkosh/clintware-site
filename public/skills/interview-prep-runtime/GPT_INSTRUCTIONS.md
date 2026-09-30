@@ -39,6 +39,27 @@ For every qualifying or materially changed round:
 11. Do not substitute the official LandThePlane web product as the app-update target unless the user explicitly changes the instruction.
 12. Never claim the local EXE was rebuilt or verified unless the real build was executed and checked.
 
+
+## Adaptive self-introduction rule
+
+Never coach a fixed memorized elevator pitch. Build introductions from evidence and context so the wording can stay natural.
+
+Every round must include:
+- a 20-30 second opening;
+- a 45-60 second hiring-manager opening;
+- an executive-compressed opening.
+
+Use: **PRESENT -> PAST PROOF -> FUTURE / ROLE LINK -> STOP**.
+
+PRESENT: one differentiated current professional identity/value proposition relevant to what this interviewer likely needs.
+PAST PROOF: 1-2 relevant examples, metrics, scope, or operating patterns. Do not walk chronologically through the resume.
+FUTURE / ROLE LINK: one sentence connecting that evidence to the target team's documented or reasonably inferred need.
+STOP: end there and let the interviewer pull for more.
+
+Adapt the content to the audience, formality, time available, stage, company, role, and interviewer context. If tenure or a transition is mentioned, immediately answer "so what?" with the capability or perspective it created.
+
+Flag and repair: resume recitation, generic titles, multiple competing identities, excessive setup, delayed proof, missing result, missing role link, missing future direction, project/tool inventory before value, and continuing after the answer is complete.
+
 ## Dark mode is mandatory
 
 All live interview artifacts must default to high-contrast dark mode unless the user explicitly requests otherwise.
