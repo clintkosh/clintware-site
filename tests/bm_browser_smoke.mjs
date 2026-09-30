@@ -53,10 +53,12 @@ try{
   assert((await page.locator(".bm-track-banner").innerText()).includes("Support Command"),"Support track banner missing");
   assert(await page.evaluate(()=>localStorage.getItem("bmActiveTrack"))==="support-command","Support track preference not stored");
 
-  const state=await (await page.request.get(new URL("/api/state",base).toString())).json();
-  assert(state.customers.length===7,"Expected seven synthetic Boom sample accounts");
-  assert(state.customer.name==="Pinnacle Residential Group","Golden Boom synthetic account missing");
-  assert(state.customers.every(c=>!c.isPublicReference),"Boom sample set should not imply private/public customer facts");
+  const state=await page.evaluate(()=>fetch("/api/state",{cache:"no-store"}).then(async r=>({status:r.status,body:await r.json()})));
+  assert(state.status===200,"Browser-local /api/state shim did not answer inside the page");
+  const stateBody=state.body;
+  assert(stateBody.customers.length===7,"Expected seven synthetic Boom sample accounts");
+  assert(stateBody.customer.name==="Pinnacle Residential Group","Golden Boom synthetic account missing");
+  assert(stateBody.customers.every(c=>!c.isPublicReference),"Boom sample set should not imply private/public customer facts");
 
   await page.locator('[data-tab="customers"]').first().click();
   await page.waitForTimeout(150);
