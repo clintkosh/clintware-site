@@ -289,7 +289,6 @@ const QUILLGEIST_LITE_TASKS = {
   "self-update":{runtime:"powershell",parameters:[]},
   "restart-window":{runtime:"powershell",parameters:[]},
   "repair-local-service":{runtime:"powershell",parameters:[]},
-  "reconcile-health":{runtime:"powershell",parameters:["TargetDevice","MaxGraceMinutes"]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
   "connect-confluence":{runtime:"powershell",parameters:[]},
