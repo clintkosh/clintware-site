@@ -58,6 +58,20 @@ Every visible surface must support that loop.
 
 If a feature does not materially prove the target role, remove it or leave it out.
 
+## Canonical adaptive-base rule
+
+The ASTRO is the conceptual base.  A prior company build is never the conceptual base.
+
+- Treat the one-off ASTRO plus the reusable Customer Success CRM architecture as the durable source of truth for how a role-specific build should be shaped.
+- Prior company implementations such as DPLR/Doppel, CXponent, SimSpace, Neuron7, Boom, or later builds are reference implementations only.  Reuse their strongest infrastructure when useful, but never inherit their company identity, terminology, operating assumptions, visual language, sample data, or feature scope by default.
+- Choose the strongest current implementation base at build time according to persistence, security, deployment, testing, and component maturity.  That implementation choice is an execution detail, not the product model.
+- Express the new company's role mission, operating loop, tracks, terminology, synthetic data, visual treatment, and acceptance criteria through an adaptable manifest/overlay or equivalent delta.
+- Strip source-company semantics before adding target-company semantics.  A successful build should be able to change its implementation reference later without changing the role-specific operating model.
+- In manifests, distinguish the conceptual base from the implementation reference when useful, for example `base_project: adaptive-astro-one-off` and `implementation_reference: dplr-crm`.
+- New reusable lessons belong back in ASTRO or the generic advanced CRM skill rather than being trapped inside a company-specific fork.
+
+This rule prevents the reusable system from slowly becoming "the Doppel template" or any other employer-specific template.
+
 ## Required discovery sequence
 
 1. Recover the strongest relevant prior CRM implementation and the user's corrections to it.

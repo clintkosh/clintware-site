@@ -1,0 +1,31 @@
+{
+  "mode": "one-off",
+  "project_id": "anth-crm",
+  "company": "Anthropic",
+  "name": "Anthropic GSI Customer Success Operating System",
+  "domain": "https://anth.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "role_mission": "Serve as the strategic and technically fluent Customer Success partner for Systems Integrators, converting Claude adoption across API, Claude for Enterprise, and Claude Code into measurable usage, realized value, organizational change, expansion, and scalable portfolio playbooks.",
+  "operating_loop": ["Align","Activate","Scale","Prove","Expand","Enable","Signal"],
+  "roles": [
+    {"id":"customer-success-manager-gsi","name":"Customer Success Manager, GSI"}
+  ],
+  "tracks": [
+    {"id":"portfolio","label":"Portfolio & Success Plans","tab":"customers","objective":"Prioritize a GSI portfolio around business objectives, product mix, health, stakeholder alignment, commitments, and next actions."},
+    {"id":"product-fit","label":"Product Fit & Use Cases","tab":"handoff","objective":"Map customer objectives and AI vision to the right mix of Claude API, Claude for Enterprise, and Claude Code use cases without inventing private product commitments."},
+    {"id":"usage","label":"Usage & Adoption","tab":"adoption","objective":"Plan and monitor consumption-based API usage plus seat-based Enterprise and Claude Code adoption, surfacing underutilization and optimization opportunities."},
+    {"id":"value","label":"Value & ROI","tab":"roi","objective":"Connect usage and deployed use cases to agreed business outcomes, ROI evidence, and internal investment narratives while separating targets from realized value."},
+    {"id":"expansion","label":"Expansion & New LOB","tab":"renewal","objective":"Identify additional use cases, teams, departments, and workflows that can create customer value and support a grounded expansion plan with Sales."},
+    {"id":"enablement","label":"Change Management & CoE","tab":"rollout","objective":"Coordinate Train-the-Trainer, Center of Excellence, champion development, organizational enablement, and adoption interventions."},
+    {"id":"qbr","label":"Executive QBR","tab":"meetings","objective":"Turn current account state, adoption, value evidence, risks, and expansion hypotheses into a concise executive review and decision agenda."},
+    {"id":"signal","label":"Product & Roadmap Signal","tab":"issues","objective":"Capture customer feedback, roadmap context, recurring use-case friction, and product signal cleanly for Product, Research, and GTM partners."}
+  ],
+  "public_sources": [
+    {"label":"Anthropic Customer Success Manager, GSI","url":"https://job-boards.greenhouse.io/anthropic/jobs/4986159008"},
+    {"label":"Anthropic Careers","url":"https://www.anthropic.com/careers"}
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public Anthropic role context with clearly synthetic Systems Integrator account data. It is not an official Anthropic product, customer tenant, private process description, or representation of real Anthropic customers."
+}
