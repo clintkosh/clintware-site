@@ -130,6 +130,10 @@ export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceNam
   const pkgPath=path.join(out,"package.json");
   const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
   pkg.scripts=pkg.scripts||{};
+  // Role-specific production transforms are applied before this helper. Once the
+  // generated runtime is stateless, later checks must not try to mutate the retired
+  // Durable Object worker again.
+  pkg.scripts["prepare:prod"]="node --check src/index.js";
   const extra="node --check public/cw-astro-local-bootstrap.js && node --check public/cw-astro-local-store.js";
   if(!String(pkg.scripts.check||"").includes("cw-astro-local-store.js"))pkg.scripts.check=(pkg.scripts.check||"node --check src/index.js")+" && "+extra;
   fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+"\n");
