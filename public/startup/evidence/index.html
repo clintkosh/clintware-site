@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Clintware venture evidence journal: current proof, measured progress surfaces, and next evidence gates without empty dashboard noise.">
+<link rel="canonical" href="https://www.clintware.com/startup/evidence/">
+<title>Venture Evidence Journal | Clintware™</title>
+<link rel="stylesheet" href="/assets/clintware.css">
+<style>
+.wrap{max-width:1080px;margin:auto;padding:0 22px}.hero{padding:38px 0 26px;border-bottom:1px solid var(--line)}.section{padding:28px 0;border-bottom:1px solid var(--line)}
+.ledger{border-top:1px solid var(--line);margin-top:18px}.venture{border-bottom:1px solid var(--line)}.venture summary{display:grid;grid-template-columns:190px 210px minmax(0,1fr) auto;gap:16px;align-items:start;padding:17px 0;cursor:pointer;list-style:none}.venture summary::-webkit-details-marker{display:none}.venture summary::after{content:"+";font:700 14px/1 var(--cw-mono);color:var(--cyan)}.venture[open] summary::after{content:"−"}.vname{font:700 14px/1.4 var(--cw-mono);color:var(--text)}.vstate{font:700 10px/1.45 var(--cw-mono);color:var(--green);text-transform:uppercase}.vnext{color:var(--muted);font-size:13px;line-height:1.55}.detail{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 0 18px 190px}.detail>div{border-left:2px solid #263f4b;padding-left:12px}.detail b{display:block;color:var(--cyan);font:700 10px/1.4 var(--cw-mono);text-transform:uppercase}.detail p{margin:5px 0 0;color:var(--muted);font-size:12.5px;line-height:1.55}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.links a{font:700 11px/1.4 var(--cw-mono)}.note{padding:14px 16px;border-left:3px solid var(--cyan);background:#0a141b;color:#9fb3c4;font-size:12.5px;line-height:1.6;margin-top:18px}.empty{color:var(--muted);padding:20px 0}@media(max-width:800px){.venture summary{grid-template-columns:1fr auto}.vstate,.vnext{grid-column:1}.detail{grid-template-columns:1fr;padding-left:0}.venture summary::after{grid-column:2;grid-row:1/4}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span>™</a><nav class="site-nav" aria-label="Primary navigation"><a href="/products/">Products</a><a href="/startup/">Startup / YC</a><a href="/about/">About</a><a href="/contact/">Contact</a></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
+<main>
+<section class="hero"><div class="wrap"><span class="section-kicker">VENTURE EVIDENCE JOURNAL · 2026-09-30</span><h1>One evidence contract across every venture.</h1><p>This view keeps portfolio progress comparable without pretending every idea has the same maturity. The summary shows current state and next gate; implementation detail stays behind disclosure.</p><div class="note"><strong>Evidence boundary:</strong> Internal build proof, estimates, aggregate activity, outside usage, retention, and revenue are different evidence classes. Empty metrics stay hidden until there is something real to report.</div></div></section>
+<section class="section"><div class="wrap"><h2>Current evidence state</h2><div id="ledger" class="ledger"><div class="empty">Loading venture registry…</div></div></div></section>
+</main>
+<footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware™ · GO FURTHEST.™</span><span class="footer-links"><a href="/startup/">Venture index</a><a href="/products/">Products</a><a href="/privacy/">Privacy</a></span></div></footer>
+<script src="/assets/clintware.js" defer></script>
+<script>
+(()=>{const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));async function load(){const el=document.getElementById("ledger");try{const r=await fetch("/data/venture-progress.json",{headers:{accept:"application/json"}});if(!r.ok)throw new Error("registry "+r.status);const data=await r.json();el.innerHTML=data.ventures.map(v=>'<details class="venture" id="'+esc(v.id)+'"><summary><span class="vname">'+esc(v.name)+'</span><span class="vstate">'+esc(v.stage)+'</span><span class="vnext">'+esc(v.next_gate)+'</span></summary><div class="detail"><div><b>Current proof</b><p>'+esc(v.current_proof)+'</p></div><div><b>Progress surface</b><p>'+(v.surface_mode==="live"?"Live evidence surface available.":"Tracking scaffold registered; empty metrics remain hidden.")+'</p><div class="links"><a href="'+esc(v.canonical_url)+'">Product ↗</a>'+(v.progress_url?'<a href="'+esc(v.progress_url)+'">Evidence journal ↗</a>':'')+'</div></div></div></details>').join("");const id=location.hash.slice(1);if(id){const d=document.getElementById(id);if(d)d.open=true}}catch(e){el.innerHTML='<div class="empty">The evidence registry is temporarily unavailable.</div>';console.debug(e)}}load()})();
+</script>
+</body></html>
