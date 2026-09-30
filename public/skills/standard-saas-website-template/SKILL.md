@@ -37,18 +37,27 @@ Use placeholders instead:
 
 Do not add analytics by default.
 
+## Hosting and persistence default
+
+Apply `docs/astro-local-first-persistence-standard.md`.
+
+For a landing page, portfolio artifact, product demo, or other single-user site, prefer static hosting or static assets behind a stateless Worker.  Browser-local state may use localStorage or IndexedDB.  Do not add a Cloudflare Durable Object or database solely because the site is deployed on Cloudflare.
+
+Add server persistence only for a concrete server-authoritative need.  Remote state must be explicit in the product/build manifest, and Durable Objects require a specific coordination or serialization justification.
+
 ## Cloudflare Worker contract
 
 For each independent SaaS product:
 
-1. Give the product its own Worker service.
-2. Give the Worker its own `wrangler.jsonc`.
+1. Use static hosting when no server behavior is required; otherwise give the product its own stateless Worker service.
+2. Give any Worker its own `wrangler.jsonc`.
 3. Bind only the intended product domain to that Worker.
 4. Enable observability.
 5. Use a recent compatibility date and `nodejs_compat` when needed.
 6. Never let a generic shared Worker claim another product's production hostname.
 7. Validate syntax and Wrangler configuration before deployment.
 8. Verify the live hostname after deployment.
+9. Do not add `durable_objects` for browser-local/stateless sites.
 
 ## Security defaults
 
