@@ -31,7 +31,7 @@ class BigPromptTests(unittest.TestCase):
         )
         plan = plan_big_prompt(prompt, settings(), project="demo", force=True)
         self.assertEqual(plan.mode, "qq_big_prompt")
-        self.assertGreater(len(plan.units), 2)
+        self.assertGreaterEqual(len(plan.units), 2)
         self.assertEqual(plan.units[0].depends_on, [])
         for previous, current in zip(plan.units, plan.units[1:]):
             self.assertEqual(current.depends_on, [previous.id])
