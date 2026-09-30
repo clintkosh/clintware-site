@@ -1,18 +1,24 @@
 name: Deploy NSM ServiceNow Customer Outcomes OS
+
 on:
   push:
     branches: [main]
     paths:
       - "projects/nsm-cs-os/**"
       - "projects/dpl-crm/**"
+      - "projects/dplr-crm/scripts/browser-local-runtime.mjs"
+      - "projects/dplr-crm/public/cw-astro-local-store.js"
       - "tests/nsm_browser_smoke.mjs"
       - ".github/workflows/deploy-nsm-cs-os.yml"
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: clintware-nsm-cs-os
   cancel-in-progress: true
+
 jobs:
   validate-deploy:
     runs-on: ubuntu-latest
@@ -24,46 +30,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Materialize and validate
+
+      - name: Materialize and validate browser-local artifact
         run: |
           set -euo pipefail
           node projects/nsm-cs-os/scripts/materialize.mjs
           cd .build/nsm-cs-os
           npm install --no-audit --no-fund
-          echo "CHECKPOINT syntax_index"
-          node --check src/index.js
-          echo "CHECKPOINT syntax_samples"
-          node --check src/sample-customers.js
-          echo "CHECKPOINT syntax_ui"
-          node --check public/nsm.js
-          grep -Fq '"name":"clintware-nsm-cs-os"' wrangler.jsonc
-          grep -Fq 'const APP_ID="nsm-cs-os"' src/index.js
-          grep -Fq 'const WORKSPACE_ID="nsm-norseman-demo"' src/index.js
-          grep -Fq 'idFromName("nsm-cs-main")' src/index.js
-          grep -Fq 'SAMPLE_SEED_VERSION=3' src/sample-customers.js
-          grep -Fq 'Aegis Federal Programs' src/index.js
-          grep -Fq 'INC0012847' src/index.js
+          npm run check
+          ! grep -Fq '"durable_objects"' wrangler.jsonc
+          grep -Fq '"deleted_classes"' wrangler.jsonc
+          grep -Fq '/cw-astro-local-store.js' public/index.html
+          grep -Fq 'databaseRowsPerDemoSession:0' src/index.js
+          grep -Fq 'durableObjectsRequired:false' src/index.js
+          grep -Fq 'Aegis Federal Programs' public/cw-astro-local-bootstrap.js
+          grep -Fq 'INC0012847' public/cw-astro-local-bootstrap.js
+          grep -Fq 'Harborview Health System' public/cw-astro-local-bootstrap.js
           grep -Fq 'NSM // SERVICE OUTCOMES' public/nsm.js
           grep -Fq 'ServiceNow compatibility' public/nsm.js
           grep -Fq 'Architect / delivery handoff' public/nsm.js
           grep -Fq 'Account Workspace' public/nsm.js
           grep -Fq 'Download PDF' public/nsm.js
-          grep -Fq 'pdfBlob' public/nsm.js
           ! grep -Rqi '<img' public
           npx wrangler deploy --dry-run
-      - name: Deploy Worker
+
+      - name: Deploy stateless Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           command: deploy --cwd .build/nsm-cs-os
+
       - name: Attach nsm.clintware.com
         run: |
           set -euo pipefail
           response=$(curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"nsm.clintware.com","service":"clintware-nsm-cs-os","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
-      - name: Verify live
+
+      - name: Verify live stateless and security contract
         run: |
           set -euo pipefail
           base=https://nsm.clintware.com
@@ -72,47 +77,28 @@ jobs:
             h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
             p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
             j=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/nsm.js" || true)
-            if grep -Fq '"service":"clintware-nsm-cs-os"' <<< "$h" && grep -Fq 'NSM ServiceNow Customer Outcomes OS' <<< "$p" && grep -Fq 'Post-implementation command view' <<< "$j"; then ready=1; break; fi
+            if grep -Fq '"service":"clintware-nsm-cs-os"' <<< "$h"               && grep -Fq '"storage":"browser-local"' <<< "$h"               && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$h"               && grep -Fq '"durableObjectsRequired":false' <<< "$h"               && grep -Fq 'NSM ServiceNow Customer Outcomes OS' <<< "$p"               && grep -Fq 'Post-implementation command view' <<< "$j"; then
+              ready=1; break
+            fi
             sleep 5
           done
           test "$ready" = "1"
-          rm -f /tmp/nsm.cookies
-          curl -fsS -c /tmp/nsm.cookies "$base/" >/tmp/nsm.html
-          curl -fsS -b /tmp/nsm.cookies "$base/api/state" >/tmp/nsm-state.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/nsm-state.json'))
-          assert d['access']['authenticated'] is False
-          assert d['access']['mode'] == 'browser-persistent'
-          assert len(d['customers']) == 5, len(d['customers'])
-          assert d['customer']['name'] == 'Aegis Federal Programs'
-          names={c['name'] for c in d['customers']}
-          assert {'Harborview Health System','Liberty State University','Ironclad Financial Cooperative','Falcon Mission Logistics'} <= names
-          harbor=next(c for c in d['customers'] if c['name']=='Harborview Health System')
-          print(harbor['id'])
-          PY
-          harbor_id=$(python3 -c 'import json; d=json.load(open("/tmp/nsm-state.json")); print(next(c["id"] for c in d["customers"] if c["name"]=="Harborview Health System"))')
-          curl -fsS -b /tmp/nsm.cookies "$base/api/state?customer=$harbor_id" >/tmp/nsm-harbor.json
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/nsm-harbor.json'))
-          types=[r['type'] for r in d['records']]
-          assert types.count('stakeholder') >= 3, types
-          assert types.count('kpi') >= 3, types
-          assert 'incident' in types and 'problem' in types and 'change' in types
-          assert 'success_play' in types and 'license' in types
-          PY
           headers=$(curl -fsS -D - -o /dev/null "$base/")
           grep -Fqi 'strict-transport-security:' <<< "$headers"
           grep -Fqi 'x-frame-options: DENY' <<< "$headers"
           grep -Fqi 'x-robots-tag: noindex' <<< "$headers"
+          grep -Fqi 'content-security-policy:' <<< "$headers"
           domains=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=nsm.clintware.com" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; assert r[0].get("service")=="clintware-nsm-cs-os",r[0]' <<< "$domains"
-      - name: Browser smoke
+
+      - name: Real browser CRUD and reload persistence smoke
+        timeout-minutes: 6
         run: |
+          set -euo pipefail
+          google-chrome --version
           npm install --no-save --no-audit --no-fund playwright@1.55.0
-          npx playwright install --with-deps chromium
-          node tests/nsm_browser_smoke.mjs
+          PLAYWRIGHT_CHANNEL=chrome timeout 240s node tests/nsm_browser_smoke.mjs
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
