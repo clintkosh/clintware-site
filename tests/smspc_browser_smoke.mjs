@@ -118,7 +118,8 @@ try {
 
   await page.reload({ waitUntil: "networkidle" });
   await waitApp();
-  assert((await page.locator("body").innerText()).includes("SMSPC Browser QA Stakeholder"), "Synthetic stakeholder survives reload in browser-persistent workspace");
+  const persistedState=await page.evaluate(async()=>{const r=await fetch("/api/state");return await r.json();});
+  assert((persistedState.records||[]).some(r=>r.type==="stakeholder"&&r.data?.name==="SMSPC Browser QA Stakeholder"), "Synthetic stakeholder survives reload in browser-persistent workspace");
 
   const tracks = [
     ["discovery", "Outcome Discovery"],
