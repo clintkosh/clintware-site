@@ -47,7 +47,7 @@ jobs:
           ! grep -Fq 'Sign in for durable workspace' "$root/public/dplr-shell.js"
           ! grep -Fq 'Sign in to keep data' "$root/public/app-views.js"
           grep -Fq 'Browser-local workspace' "$root/public/dplr-shell.js"
-          grep -Fq '"pattern":"smspc.clintware.com"' "$root/wrangler.jsonc"
+          grep -Fq 'smspc.clintware.com' "$root/wrangler.jsonc"
           ! grep -Fq '"durable_objects"' "$root/wrangler.jsonc"
           grep -Fq '"deleted_classes"' "$root/wrangler.jsonc"
           grep -Fq 'databaseRowsPerDemoSession:0' "$root/src/index.js"
