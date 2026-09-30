@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-30T16:45:00Z",
-  "reason": "Verify DRIZNET qq availability and stale prior dispatch before Anthropic GSI CRM build"
+  "requested_at": "2026-09-30T18:21:00Z",
+  "reason": "Verify current MEMORIA and DRIZNET QQ availability before applying and testing latency-bounded local-first routing."
 }
