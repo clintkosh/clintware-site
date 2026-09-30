@@ -26,6 +26,7 @@
 
   function appHeader(){
     const auth=S.access?.authenticated===true;
+    const localMode=!auth&&(S.access?.storage==='browser-local'||S.access?.mode==='browser-persistent'||['localStorage','memory'].includes(S.access?.persistence));
     const opts=S.customers.length?S.customers.map(c=>'<option value="'+e(c.id)+'" '+(S.customer&&c.id===S.customer.id?'selected':'')+'>'+(c.isGoldenExample?'★ ':'')+e(c.name)+'</option>').join(''):'<option value="">No customers</option>';
     return '<header class="dplr-appbar">'+
       '<div class="dplr-brand"><span class="dplr-mark" aria-hidden="true">D</span><span><strong>Technical Customer Engineering</strong><small>Customer OS · candidate operating prototype</small></span></div>'+
@@ -34,7 +35,7 @@
         '<label class="dplr-search"><span class="sr-only">Find customer</span><input id="dplr-search" type="search" placeholder="Find customer…" autocomplete="off"></label>'+
         '<select id="cust" class="select dplr-customer-select" aria-label="Selected customer" '+(S.customers.length?'':'disabled')+'>'+opts+'</select>'+
         '<span class="dplr-chip '+(aiResearchReady()?'ok':'neutral')+'">'+(aiResearchReady()?'Exa ready':'Research pending')+'</span>'+
-        '<span class="dplr-chip '+(auth?'ok':'guest')+'">'+(auth?'SSO durable':'Guest session')+'</span>'+
+        '<span class="dplr-chip '+(auth?'ok':'guest')+'">'+(auth?'Remote account':'Browser local')+'</span>'+
         '<details class="dplr-more"><summary aria-label="Workspace tools">•••</summary><div class="dplr-menu">'+
           '<button id="whatif">Scenario overlay'+(scen.size?' · '+scen.size:'')+'</button><button id="export">Export backup</button>'+
           '<label>Theme<select id="theme" class="select"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>'+
@@ -87,7 +88,8 @@
 
   persistenceBanner=function(){
     const auth=S.access?.authenticated===true;
-    return '<div class="dplr-persistence '+(auth?'saved':'guest')+'"><div><strong>'+(auth?'Durable SSO workspace':'Browser-local workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Data remains in this browser until authenticated workspace support is enabled for this CRM.')+'</span></div></div>';
+    const mode=S.access?.persistence==='memory'?'Memory fallback':'Browser-local';
+    return '<div class="dplr-persistence '+(auth?'saved':'guest')+'"><div><strong>'+(auth?'Remote account workspace':mode+' workspace')+'</strong><span>'+(auth?'This workspace is using explicitly configured remote retention.':'No login or server database is required. Data stays in this browser; export it when you need a portable copy.')+'</span></div></div>';
   };
 
   customers=function(){
@@ -95,20 +97,21 @@
     const syntheticCount=S.customers.filter(c=>sourceType(c)==='synthetic').length;
     const userCount=S.customers.filter(c=>sourceType(c)==='workspace').length;
     const auth=S.access?.authenticated===true;
+    const localMode=!auth&&(S.access?.storage==='browser-local'||S.access?.mode==='browser-persistent'||['localStorage','memory'].includes(S.access?.persistence));
     const view=portfolioView();
     const cards=S.customers.map(c=>{
       const type=sourceType(c),facts=c.facts||{},sourceUrl=type==='public'?safeUrl(c.sourceFile):'';
       return '<article class="dplr-customer" data-customer-open="'+e(c.id)+'"><div class="dplr-card-top"><div><span class="dplr-source '+type+'">'+e(sourceLabel(c))+'</span><h2>'+e(c.name)+'</h2><p>'+e(c.industry||'Industry not recorded')+'</p></div><span class="dplr-stage">'+e(c.stage||'Unstaged')+'</span></div><div class="dplr-customer-grid"><div><span>Use case</span><strong>'+e(facts.product||facts.businessGoal||facts.users||'Not recorded')+'</strong></div><div><span>Timeline</span><strong>'+e(facts.committedTimeline||'Not recorded')+'</strong></div><div><span>Success target</span><strong>'+e(facts.roiTarget||facts.successMetrics||'Not recorded')+'</strong></div><div><span>Current systems</span><strong>'+e(facts.currentSystems||'Discovery required')+'</strong></div></div>'+(sourceUrl?'<a class="dplr-source-link" href="'+e(sourceUrl)+'" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Open public source ↗</a>':'')+'</article>';
     }).join('');
     return head('Customer portfolio','Customer Portfolio','Operational accounts and training scenarios. Public Doppel references are labeled separately from synthetic or workspace data.','<div class="dplr-view-toggle" role="group" aria-label="Customer view"><button class="btn '+(view==='list'?'active':'')+'" data-portfolio-view="list" aria-pressed="'+(view==='list')+'">List</button><button class="btn '+(view==='tiles'?'active':'')+'" data-portfolio-view="tiles" aria-pressed="'+(view==='tiles')+'">Tiles</button></div><button class="btn primary" id="import-customers">Import customer</button><button class="btn" id="newc2">Add customer</button>')+
-      '<div class="dplr-kpis"><article><span>Total accounts</span><b>'+S.customers.length+'</b><small>current workspace</small></article><article><span>Public references</span><b>'+publicCount+'</b><small>Doppel-published evidence only</small></article><article><span>Synthetic scenarios</span><b>'+syntheticCount+'</b><small>clearly labeled training data</small></article><article><span>Retention</span><b class="text">'+(auth?'SSO durable':'Guest session')+'</b><small>'+userCount+' user/imported account'+(userCount===1?'':'s')+'</small></article></div>'+persistenceBanner()+'<div class="dplr-portfolio-grid '+view+'" data-portfolio-layout="'+view+'">'+(cards||'<div class="empty">No customers yet. Import a customer or populate the curated demo from Data & Persistence.</div>')+'</div>';
+      '<div class="dplr-kpis"><article><span>Total accounts</span><b>'+S.customers.length+'</b><small>current workspace</small></article><article><span>Public references</span><b>'+publicCount+'</b><small>Doppel-published evidence only</small></article><article><span>Synthetic scenarios</span><b>'+syntheticCount+'</b><small>clearly labeled training data</small></article><article><span>Retention</span><b class="text">'+(auth?'Remote account':'Browser local')+'</b><small>'+userCount+' user/imported account'+(userCount===1?'':'s')+'</small></article></div>'+persistenceBanner()+'<div class="dplr-portfolio-grid '+view+'" data-portfolio-layout="'+view+'">'+(cards||'<div class="empty">No customers yet. Import a customer or populate the curated demo from Data & Persistence.</div>')+'</div>';
   };
 
   accounts=function(){
-    const golden=S.customers.find(c=>c.isGoldenExample),auth=S.access?.authenticated===true;
+    const golden=S.customers.find(c=>c.isGoldenExample),auth=S.access?.authenticated===true,localMode=!auth&&(S.access?.storage==='browser-local'||S.access?.mode==='browser-persistent'||['localStorage','memory'].includes(S.access?.persistence));
     return head('Workspace administration','Data & Persistence','Control the dataset explicitly. Demo population, cleanup, import, and retention are separate operations.','<button class="btn primary" id="reset-samples">Populate / refresh demo data</button><button class="btn" id="import-customers">Import customer data</button>')+
       persistenceBanner()+
-      '<div class="dplr-admin-grid"><article><span>Workspace mode</span><strong>'+(auth?'Signed in / durable':'Guest / session-scoped')+'</strong><p>'+(auth?'Changes remain in the authenticated DPLR workspace.':'This CRM currently uses browser-local persistence. Durable sign-in is intentionally hidden until authenticated workspace support is enabled and verified.')+'</p></article><article><span>Golden scenario</span><strong>'+e(golden?.name||'Removed')+'</strong><p>Protected during standard cleanup and restorable with Populate / refresh.</p></article><article><span>External credentials</span><strong>Server-side only</strong><p>Exa, Jira, Confluence, AI, and other provider credentials stay behind the Clintware control plane.</p></article></div>'+
+      '<div class="dplr-admin-grid"><article><span>Workspace mode</span><strong>'+(auth?'Remote account workspace':'Browser-local workspace')+'</strong><p>'+(auth?'Changes remain in the authenticated remote workspace.':'Changes persist in this browser without a server database. Export data when you need a portable copy; cross-device sharing is not implied.')+'</p></article><article><span>Golden scenario</span><strong>'+e(golden?.name||'Removed')+'</strong><p>Protected during standard cleanup and restorable with Populate / refresh.</p></article><article><span>External credentials</span><strong>Server-side only</strong><p>Exa, Jira, Confluence, AI, and other provider credentials stay behind the Clintware control plane.</p></article></div>'+
       '<section class="dplr-data-controls"><div><h2>Dataset controls</h2><p>Clear operations apply only to the current workspace. They do not delete provider credentials or another user workspace.</p></div><div class="actions"><button class="btn" id="clear-non-golden">Clear all except golden</button><label class="override"><input type="checkbox" id="override-golden"> Allow golden removal</label><button class="btn danger" id="clear-all">Clear all data</button></div></section>'+
       '<div class="section"><h2>Current accounts</h2></div><div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Data type</th><th>Stage</th><th>Source</th></tr></thead><tbody>'+S.customers.map(c=>'<tr><td><strong>'+e(c.name)+'</strong>'+(c.isGoldenExample?'<div class="prov">Golden scenario</div>':'')+'</td><td>'+e(sourceLabel(c))+'</td><td>'+e(c.stage||'Not recorded')+'</td><td>'+e(c.sourceFile||c.provenance||'Internal')+'</td></tr>').join('')+'</tbody></table></div>';
   };
