@@ -25,9 +25,9 @@ def settings():
 
 class BigPromptTests(unittest.TestCase):
     def test_recursively_breaks_work_into_ordered_units(self):
-        prompt = (
-            "Inspect the repository; then build the application; then test it; then fix failures; "
-            "then verify the package; finally summarize the evidence."
+        prompt = " ".join(
+            f"Build component {idx} and capture deterministic verification evidence."
+            for idx in range(1, 12)
         )
         plan = plan_big_prompt(prompt, settings(), project="demo", force=True)
         self.assertEqual(plan.mode, "qq_big_prompt")
