@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070b">
+<meta name="description" content="Quillgeist progress journal: privacy-safe aggregate usage, efficiency telemetry, verified internal proof, and evidence boundaries.">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<title>Quillgeist Progress Journal | Clintware</title>
+<style>
+.progress-shell{max-width:1080px;margin:0 auto;padding:38px 24px 72px}.progress-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.progress-head h1{margin:.25rem 0 .5rem}.progress-head p{max-width:780px}.progress-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.progress-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0}.progress-card,.journal-panel,.boundary,.architecture{border:1px solid var(--line);border-radius:16px;background:rgba(7,11,17,.72)}.progress-card{padding:15px}.progress-card span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.progress-card b{display:block;font:800 25px/1.1 Consolas,monospace;margin-top:7px}.progress-card small{display:block;color:var(--muted);font-size:9px;margin-top:5px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.flow div{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(3,7,12,.5)}.flow span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.flow b{display:block;font:750 16px Consolas,monospace;margin-top:4px}.journal-panel,.boundary,.architecture{padding:18px;margin-top:14px}.journal-panel h2,.boundary h2,.architecture h2{margin-top:0}.journal-row,.milestone{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;padding:14px 0;border-top:1px solid var(--line)}.journal-date{color:var(--cyan);font:700 11px Consolas,monospace}.journal-title{font-weight:750}.journal-copy,.evidence{color:var(--muted);font-size:12px;line-height:1.6;margin-top:5px}.evidence{color:#b9c8d6}.kind{color:var(--violet);font:700 9px Consolas,monospace;letter-spacing:.1em;margin-bottom:5px}.boundary ul,.architecture ul{line-height:1.7;color:var(--muted)}.meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:10px}.empty{color:var(--muted);padding:12px 0}.architecture code{color:var(--cyan)}@media(max-width:760px){.progress-grid,.flow{grid-template-columns:repeat(2,1fr)}.journal-row,.milestone{grid-template-columns:1fr;gap:5px}}@media(max-width:480px){.progress-grid,.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<section class="landing">
+<header class="landing-top"><div class="brand-lockup"><div>QUILLGEIST<small>BY CLINTWARE</small></div></div><div class="health-pill"><span class="status-dot"></span><span>Evidence ledger</span></div></header>
+<main class="progress-shell">
+  <section class="progress-head">
+    <div>
+      <div class="kicker">Live progress journal · measured + clearly labeled estimates</div>
+      <h1>Show the work. Track the efficiency.</h1>
+      <p>This ledger separates measured product activity, internal proof, modeled efficiency estimates, and future external traction. Aggregate telemetry contains no prompt content. Usage totals may include founder/internal activity unless an entry explicitly says external user or paying customer.</p>
+      <div class="progress-nav"><a class="btn primary" href="/">Quillgeist</a><a class="btn ghost" href="/developers.html">Developer path</a><a class="btn ghost" href="https://www.clintware.com/tools/quillgeist/">Product page</a></div>
+    </div>
+  </section>
+  <section class="progress-grid" aria-label="Cumulative impact">
+    <div class="progress-card"><span>Est. net tokens saved</span><b id="qgSaved">0</b><small>Participating usage; estimated field</small></div>
+    <div class="progress-card"><span>Execution runs</span><b id="qgRuns">0</b><small>Completed reported runs</small></div>
+    <div class="progress-card"><span>Prompts compiled</span><b id="qgPrompts">0</b><small>Compiled / API compaction events</small></div>
+    <div class="progress-card"><span>Files changed</span><b id="qgFiles">0</b><small>Reported execution evidence</small></div>
+  </section>
+  <section class="journal-panel">
+    <div class="meta"><span>Latest reported activity: <b id="qgLatest">—</b></span><span>Feed refreshed: <b id="qgGenerated">—</b></span><span>90-day daily window</span></div>
+    <h2>Efficiency flow</h2>
+    <div class="flow">
+      <div><span>Raw context</span><b id="qgRaw">0</b></div>
+      <div><span>Sent externally</span><b id="qgSent">0</b></div>
+      <div><span>Local overhead</span><b id="qgLocal">0</b></div>
+      <div><span>Net saved</span><b id="qgNet">0</b><small id="qgRate">0%</small></div>
+    </div>
+  </section>
+  <section class="journal-panel">
+    <h2>Daily usage journal</h2>
+    <p class="muted">Automatically derived from privacy-safe aggregate telemetry. It is product-use evidence, not a unique-user count.</p>
+    <div id="qgDaily"><div class="empty">Loading aggregate metrics…</div></div>
+  </section>
+  <section class="journal-panel">
+    <h2>Build and product milestones</h2>
+    <p class="muted">Curated evidence with the measurement boundary stated directly.</p>
+    <div id="qgMilestones"></div>
+  </section>
+  <section class="architecture">
+    <h2>Product shape: portal + local runtime + MCP/API</h2>
+    <p>The web portal is the human-facing SaaS surface. The local runtime remains the execution authority. MCP/API is the machine interface connecting models, approved capabilities, and the portal/control plane.</p>
+    <ul>
+      <li><strong>Quillgeist local runtime:</strong> permissions, deterministic execution, verification, private state, and local-first operation.</li>
+      <li><strong>Quillgeist web portal:</strong> progress, personal usage/savings, workflows, policy management, team controls, billing, and future cross-device sync.</li>
+      <li><strong>MCP/API:</strong> model-agnostic capability protocol and orchestration interface, not the entire customer experience by itself.</li>
+    </ul>
+  </section>
+  <section class="boundary">
+    <h2>Evidence boundary</h2>
+    <ul>
+      <li><strong>Measured:</strong> counts, durations, pass/fail status, files changed, and browser checks emitted by instrumentation.</li>
+      <li><strong>Estimated:</strong> token fields and remote-only counterfactual savings unless a provider reports exact billing tokens for both sides of a controlled comparison.</li>
+      <li><strong>Internal proof:</strong> founder/Clintware production use. Useful product evidence, but not external-customer traction.</li>
+      <li><strong>External traction:</strong> outside repeat users, paid users, retention, and revenue will only appear when verified.</li>
+    </ul>
+  </section>
+</main>
+</section>
+<script src="/progress.js"></script>
+</body>
+</html>
