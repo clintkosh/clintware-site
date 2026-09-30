@@ -4015,10 +4015,12 @@ export default {
       }
       if(request.method==="GET"&&url.pathname==="/")return controlPlaneLanding();
       if(request.method==="GET"&&url.pathname==="/health"){
-        const products=await (await registryHub(env).fetch("https://internal/list")).json();
-        const rconfig=await researchConfig(env);
-        const jstatus=await jiraStatus(env);
-        const productList=products.products||[];
+        // Health must be constant-cost and deterministic. Do not read Durable
+        // Object state here: monitoring should never consume the storage budget
+        // it is intended to observe or become unavailable because historical
+        // state has grown. Deep state/integration checks belong to authenticated
+        // diagnostics, not the public liveness contract.
+        const productList=Object.values(DEFAULT_PRODUCTS);
         const githubIdentities=[...new Map(productList.map(p=>{
           const auth=githubAuth(env,p);
           return [auth.identity,{identity:auth.identity,configured:auth.configured,expected_secret:auth.secret_name,repositories:[]}];
@@ -4029,7 +4031,22 @@ export default {
           if(row&&p?.repo?.owner&&p?.repo?.name)row.repositories.push(`${p.repo.owner}/${p.repo.name}`);
         }
         const adapters={...safeConfig(env),github_write:githubIdentities.some(x=>x.configured),github_actions:githubIdentities.some(x=>x.configured)};
-        return json({ok:true,service:"Clintware Control Plane",version:VERSION,mcp:"/mcp",api:"/api/v1",products:productList.map(p=>p.product),github_identities:githubIdentities,adapters,mcp_oauth:{configured:Boolean(env.OAUTH_KV),resource:"https://mcp.clintware.com/mcp",issuer:"https://mcp.clintware.com"},jira:jstatus,research:{provider:"exa",configured:Boolean(env.EXA_API_KEY||(rconfig&&rconfig.exa_api_key)),synthesis:env.AI?SYNTHESIS_MODEL:"disabled"},time:nowIso()});
+        return json({
+          ok:true,
+          service:"Clintware Control Plane",
+          version:VERSION,
+          mcp:"/mcp",
+          api:"/api/v1",
+          products:productList.map(p=>p.product),
+          github_identities:githubIdentities,
+          adapters,
+          mcp_oauth:{configured:Boolean(env.OAUTH_KV),resource:"https://mcp.clintware.com/mcp",issuer:"https://mcp.clintware.com"},
+          jira:{configured:jiraConfigured(env),connected:null,probe:"not_run_on_liveness"},
+          research:{provider:"exa",configured:Boolean(env.EXA_API_KEY),synthesis:env.AI?SYNTHESIS_MODEL:"disabled",probe:"not_run_on_liveness"},
+          health_mode:"constant-cost-config",
+          durable_state_reads:0,
+          time:nowIso()
+        });
       }
       if(url.pathname==="/mcp")return handleMcp(request,env,ctx);
 
