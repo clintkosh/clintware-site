@@ -78,6 +78,15 @@ def request_json(method, path, body=None):
             except Exception:
                 parsed = {"error": payload}
             message = str(parsed.get("message") or parsed.get("error") or "")
+            quota_exhausted = (
+                "Exceeded allowed rows read in Durable Objects free tier" in message
+                or "rows read" in message.lower() and "durable object" in message.lower() and "limit" in message.lower()
+            )
+            if quota_exhausted:
+                parsed["error_class"] = "durable_object_rows_read_quota_exhausted"
+                parsed["retryable"] = False
+                print("CONTROL_PLANE_QUOTA durable_object_rows_read_exhausted; bounded relay retry suppressed", flush=True)
+                return e.code, parsed
             transient = (
                 e.code in (429, 500, 502, 503, 504)
                 or str(parsed.get("error") or "") == "internal_error"
