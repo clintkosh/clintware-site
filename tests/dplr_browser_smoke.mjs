@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 
 const base = process.env.DPLR_URL || "https://dplcrm.clintware.com/";
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
 const consoleErrors = [];
 const pageErrors = [];
@@ -21,7 +21,7 @@ async function assertNoHorizontalOverflow(label) {
 }
 
 try {
-  const response = await page.goto(base, { waitUntil: "networkidle", timeout: 60000 });
+  const response = await page.goto(base, { waitUntil: "domcontentloaded", timeout: 60000 });
   assert(response && response.ok(), "DPLR homepage HTTP request failed");
   await waitStable();
 
@@ -152,7 +152,7 @@ try {
   await waitStable();
   assert(await page.locator(".dplr-right").count() === 1, "Created customer did not enter customer workspace");
   assert((await page.locator(".dplr-right").innerText()).includes("Browser Smoke Customer"), "Created customer did not become selected");
-  await page.reload({waitUntil:"networkidle"});
+  await page.reload({waitUntil:"domcontentloaded"});
   await waitStable();
   assert((await page.locator("body").innerText()).includes("Browser Smoke Customer"), "Created customer did not survive browser reload");
 
@@ -176,7 +176,7 @@ try {
 
   // Mobile pass 1: portfolio is intentionally full-width and has no customer left rail.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await waitStable();
   assert(await page.locator(".dplr-portfolio-grid").count() === 1, "Mobile portfolio did not render");
   assert(await page.locator(".dplr-primary").count() === 1, "Mobile primary navigation is missing");
