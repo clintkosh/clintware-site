@@ -2,7 +2,11 @@ param(
   [string]$TargetDevice = $env:COMPUTERNAME,
   [int]$MaxGraceMinutes = 90,
   [switch]$ForceOtherDevice,
-  [switch]$SkipNomaValidation
+  [switch]$SkipNomaValidation,
+  [string]$OwnerSubject = "",
+  [string]$DefaultImageProvider = "",
+  [string]$DefaultCriticProvider = "",
+  [switch]$EnableWeeklyPulseGrade
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,12 +49,31 @@ if (-not (Test-Administrator)) {
   $argList=@("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-File",$PSCommandPath,"-TargetDevice",$TargetDevice,"-MaxGraceMinutes",$MaxGraceMinutes)
   if($ForceOtherDevice){$argList += "-ForceOtherDevice"}
   if($SkipNomaValidation){$argList += "-SkipNomaValidation"}
+  if($OwnerSubject){$argList += @("-OwnerSubject",$OwnerSubject)}
+  if($DefaultImageProvider){$argList += @("-DefaultImageProvider",$DefaultImageProvider)}
+  if($DefaultCriticProvider){$argList += @("-DefaultCriticProvider",$DefaultCriticProvider)}
+  if($EnableWeeklyPulseGrade){$argList += "-EnableWeeklyPulseGrade"}
   Start-Process -FilePath $hostExe -ArgumentList $argList -Verb RunAs
   exit 0
 }
 
 if((-not $ForceOtherDevice) -and ($env:COMPUTERNAME -ne $TargetDevice)){
   throw "Target is $TargetDevice; current machine is $env:COMPUTERNAME. Use -ForceOtherDevice only intentionally."
+}
+
+if($OwnerSubject){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_PRIVATE_DATA_OWNER_ID",$OwnerSubject,"User")
+}
+if($DefaultImageProvider){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_IMAGE_PROVIDER",$DefaultImageProvider,"User")
+}
+if($DefaultCriticProvider){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_ENABLE_CRITIC","true","User")
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_CRITIC_PROVIDER",$DefaultCriticProvider,"User")
+}
+if($EnableWeeklyPulseGrade){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_ENABLE_PULSE_GRADE","true","User")
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_PULSE_PROVIDER","ensemble","User")
 }
 
 $lock=$null
