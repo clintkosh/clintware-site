@@ -16,6 +16,8 @@ def test_desktop_intent_compiler_and_activity(tmp_path, monkeypatch):
     assert compiled["product"] == "Quillgeist"
     assert compiled["action"] == "summarize"
     assert compiled["routing"] == "local-only"
+    assert compiled["model_policy"]["text"]["provider"] == "local"
+    assert compiled["model_policy"]["private_data_allowed"] is False
     assert "table" in compiled["definition_of_done"].lower()
 
     ledger = ActivityLedger()
