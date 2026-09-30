@@ -75,6 +75,31 @@ For every serious interview stage:
    - Add durable lessons to the career graph.
    - Do not generalize one interviewer's preference into a global rule without repeated evidence.
 
+
+## Adaptive self-introduction gate
+
+The opening answer is a retrieval problem, not a memorization problem.
+
+LandThePlane must not mark an opening PREP READY when it is a generic elevator pitch or chronological resume summary. A ready opening must be regenerated for the current company, role, stage, interviewer context, and available time.
+
+Use the canonical rail:
+
+`PRESENT VALUE -> RELEVANT PAST PROOF -> FUTURE ROLE LINK -> STOP`
+
+Required checks:
+- **Audience fit:** What does this interviewer need to understand first?
+- **Distinctive identity:** Is there one memorable professional through-line rather than a generic job title?
+- **Specificity:** Is there a concrete proof point, metric, scope marker, or operating example?
+- **No chronology default:** Does the answer avoid walking role-by-role through the resume?
+- **So-what test:** If tenure/history is mentioned, does the answer state why it matters?
+- **Future direction:** Does the close connect the candidate to the work ahead?
+- **Stop discipline:** Does the answer end before adding a second thesis or biography?
+- **Natural delivery:** Is the candidate memorizing evidence and structure rather than exact wording?
+
+Red-team the opener by asking it in different forms: "Tell me about yourself," "Walk me through your background," "Why are you relevant here?", and "Give me the short version." The central value proposition should remain stable while the proof and emphasis adapt.
+
+Post-round transcript review must distinguish a capability gap from a transmission gap. If the evidence exists but appears after chronology, branching, self-correction, or excess setup, classify the repair primarily as ordering/compression rather than missing experience.
+
 ## Interviewer isolation invariant
 
 **One interviewer does not overwrite another interviewer.**
