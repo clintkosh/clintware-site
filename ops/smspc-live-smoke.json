@@ -1,26 +1,140 @@
 {
   "schema": "clintware-smspc-live-smoke/v1",
   "target": "https://smspc.clintware.com/",
-  "started_at": "2026-09-30T10:44:48.728Z",
-  "finished_at": "2026-09-30T10:45:21.516Z",
+  "started_at": "2026-09-30T10:50:30.181Z",
+  "finished_at": "2026-09-30T10:52:22.275Z",
   "passed": false,
-  "customer_count": 0,
+  "customer_count": 7,
   "tracks_verified": [],
-  "pdf_bytes": 0,
+  "pdf_bytes": 2680,
   "checks": [
     {
       "name": "Live homepage returns HTTP success",
       "ok": true,
       "detail": "200"
+    },
+    {
+      "name": "Live CRM reaches ready app shell after deployment convergence",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No visible startup error",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Exactly eight operating tracks render",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Candidate/synthetic boundary is visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Removed durable sign-in CTA is absent",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Removed keep-data sign-in CTA is absent",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No auth-login link is exposed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "/me endpoint responds",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Workspace is explicitly unauthenticated",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Workspace reports browser persistence",
+      "ok": true,
+      "detail": "{\"authenticated\":false,\"workspaceId\":\"browser-local\",\"persistence\":\"browser-persistent\"}"
+    },
+    {
+      "name": "State endpoint responds through browser-local resilience",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Browser-local resilience layer is active",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Seven synthetic opportunity samples are loaded",
+      "ok": true,
+      "detail": "7"
+    },
+    {
+      "name": "Aegis golden opportunity is selected",
+      "ok": true,
+      "detail": "Aegis National Bank"
+    },
+    {
+      "name": "Sample portfolio does not imply private customer facts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Operating-track chooser closes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Outcome Discovery banner renders",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Selected track persists in local storage",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical brief download has a local path",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical brief is a valid PDF header",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical brief PDF contains substantive output",
+      "ok": true,
+      "detail": "2680"
+    },
+    {
+      "name": "Synthetic stakeholder create is reflected in live UI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No visible startup error",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Synthetic stakeholder survives reload in browser-persistent workspace",
+      "ok": false,
+      "detail": ""
     }
   ],
-  "console_errors": [
-    "Failed to load resource: the server responded with a status of 500 ()",
-    "Failed to load resource: the server responded with a status of 500 ()",
-    "Failed to load resource: the server responded with a status of 500 ()",
-    "SimSpace TCE OS startup failed Error\n    at api (https://smspc.clintware.com/app-config.js:46:118)\n    at async Promise.all (index 0)\n    at async load (https://smspc.clintware.com/app-config.js:47:78)\n    at async bootstrap (https://smspc.clintware.com/app-router.js:68:7)",
-    "Failed to load resource: the server responded with a status of 500 ()"
-  ],
+  "console_errors": [],
   "page_errors": [],
-  "failure": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.dplr-appbar') to be visible\n\n    at waitApp (/home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:24:14)\n    at /home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:49:9"
+  "failure": "Error: Synthetic stakeholder survives reload in browser-persistent workspace\n    at record (file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:12:18)\n    at assert (file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:14:45)\n    at file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:121:3"
 }
