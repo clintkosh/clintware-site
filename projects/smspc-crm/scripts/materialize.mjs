@@ -164,14 +164,14 @@ if(!wrangler.includes('"pattern":"smspc.clintware.com"'))throw new Error("SimSpa
     if(!migrations.some(m=>Array.isArray(m.deleted_classes)&&oldClasses.every(x=>m.deleted_classes.includes(x))))migrations.push({tag:"v2-browser-local",deleted_classes:oldClasses});
     wranglerObj.migrations=migrations;
   }
-  fs.writeFileSync(wranglerPath,JSON.stringify(wranglerObj,null,2)+"\\n");
-  const statelessWorker='const APP_ID="smspc-crm";\\nconst WORKSPACE_ID="smspc-simspace";\\nconst H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"};\\nconst j=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:H});\\nexport default {async fetch(req,env){const u=new URL(req.url);if(u.pathname==="/health")return j({service:"clintware-smspc-crm",ok:true,app:APP_ID,workspace:WORKSPACE_ID,storage:"browser-local",persistence:"localStorage-with-memory-fallback",databaseRowsPerDemoSession:0,durableObjectsRequired:false,quotaIndependent:true});if(u.pathname.startsWith("/api/"))return j({error:"browser_local_api"},409);return env.ASSETS.fetch(req)}};\\n';
+  fs.writeFileSync(wranglerPath,JSON.stringify(wranglerObj,null,2)+"\n");
+  const statelessWorker='const APP_ID="smspc-crm";\nconst WORKSPACE_ID="smspc-simspace";\nconst H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"};\nconst j=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:H});\nexport default {async fetch(req,env){const u=new URL(req.url);if(u.pathname==="/health")return j({service:"clintware-smspc-crm",ok:true,app:APP_ID,workspace:WORKSPACE_ID,storage:"browser-local",persistence:"localStorage-with-memory-fallback",databaseRowsPerDemoSession:0,durableObjectsRequired:false,quotaIndependent:true});if(u.pathname.startsWith("/api/"))return j({error:"browser_local_api"},409);return env.ASSETS.fetch(req)}};\n';
   fs.writeFileSync(workerPath,statelessWorker);
   const packagePath=path.join(out,"package.json");
   const packageJson=JSON.parse(fs.readFileSync(packagePath,"utf8"));
   packageJson.scripts=packageJson.scripts||{};
   packageJson.scripts["prepare:prod"]="node --check src/index.js";
-  fs.writeFileSync(packagePath,JSON.stringify(packageJson,null,2)+"\\n");
+  fs.writeFileSync(packagePath,JSON.stringify(packageJson,null,2)+"\n");
   const finalWrangler=fs.readFileSync(wranglerPath,"utf8");
   if(finalWrangler.includes('"durable_objects"'))throw new Error("SimSpace build still contains Durable Object binding.");
 }
