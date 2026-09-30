@@ -31,13 +31,13 @@
 
   function cardMarkup(idPrefix){return `
     <div class="impact-grid">
-      <div class="impact-stat"><span>Prompts compiled</span><b id="${idPrefix}Prompts">0</b><small id="${idPrefix}PromptTrend">reported</small></div>
-      <div class="impact-stat"><span>Execution runs</span><b id="${idPrefix}Runs">0</b><small id="${idPrefix}RunTrend">reported</small></div>
-      <div class="impact-stat"><span>Compactions</span><b id="${idPrefix}Compactions">0</b><small id="${idPrefix}CompactionTrend">reported</small></div>
-      <div class="impact-stat"><span>Est. net tokens saved</span><b id="${idPrefix}Saved">0</b><small id="${idPrefix}SavingsTrend">reported</small></div>
+      <div class="impact-stat"><span>Prompts compiled</span><b id="${idPrefix}Prompts">—</b><small id="${idPrefix}PromptTrend">reported</small></div>
+      <div class="impact-stat"><span>Execution runs</span><b id="${idPrefix}Runs">—</b><small id="${idPrefix}RunTrend">reported</small></div>
+      <div class="impact-stat"><span>Compactions</span><b id="${idPrefix}Compactions">—</b><small id="${idPrefix}CompactionTrend">reported</small></div>
+      <div class="impact-stat"><span>Est. net tokens saved</span><b id="${idPrefix}Saved">—</b><small id="${idPrefix}SavingsTrend">reported</small></div>
     </div>
     <div class="impact-flow">
-      <div><span>Before compaction</span><b id="${idPrefix}Raw">0</b></div><i>→</i><div><span>Sent externally</span><b id="${idPrefix}Sent">0</b></div><i>+</i><div><span>Local overhead</span><b id="${idPrefix}Local">0</b></div><i>=</i><div><span>Net saved</span><b id="${idPrefix}Net">0</b></div>
+      <div><span>Before compaction</span><b id="${idPrefix}Raw">—</b></div><i>→</i><div><span>Sent externally</span><b id="${idPrefix}Sent">—</b></div><i>+</i><div><span>Local overhead</span><b id="${idPrefix}Local">—</b></div><i>=</i><div><span>Net saved</span><b id="${idPrefix}Net">—</b></div>
     </div>
     <div class="impact-foot"><span id="${idPrefix}CompactionRate">0% compacted</span><span id="${idPrefix}ApiCompactions">0 API/MCP compactions</span><span id="${idPrefix}PassThrough">0 pass-through</span><span id="${idPrefix}Success">0% success</span><span id="${idPrefix}Reduction">0% gross reduction</span><span id="${idPrefix}NetRate">0% net savings</span><span id="${idPrefix}AvgSaved">0 avg saved / compaction</span><span id="${idPrefix}Files">0 files changed</span><span id="${idPrefix}Patches">0 patches applied</span><span>Aggregate only · participating usage · no prompt content in product telemetry</span></div>`}
 
