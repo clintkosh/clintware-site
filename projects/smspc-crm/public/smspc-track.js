@@ -6,7 +6,7 @@ const TRACKS=[
 {id:"field-engineering",label:"Field Engineering & Integrations",tab:"deployment",objective:"Build the smallest credible API, scripting, protocol, tool, and agent integrations required to prove the customer decision."},
 {id:"demo-pilot",label:"Tailored Demo / Pilot",tab:"triage",objective:"Run realistic demonstrations and evaluations, isolate blockers, and preserve reproducible evidence from scenario to outcome."},
 {id:"rfp",label:"RFI / RFP Technical Narrative",tab:"documents",objective:"Map architecture, capability, security, proof, and value into a decision-ready technical narrative."},
-{id:"partners",label:"Partner Co-Sell & Enablement",tab:"adoption",objective:"Enable resellers, system integrators, MSSPs, and consulting partners with reusable technical proof and field-ready guidance."},
+{id:"partners",label:"Partner Co-Sell & Enablement",tab:"adoption",objective:"Enable resellers, system integrators, MSSPs, and implementation partners with reusable technical proof and field-ready guidance."},
 {id:"close-expand",label:"Technical Close, Expansion & Product Signal",tab:"renewal",objective:"Resolve final technical risk, capture broader use cases, hand off cleanly, and return recurring market signal to Product."}
 ];
 window.SMSPC_TRACKS=TRACKS;
