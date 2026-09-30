@@ -151,6 +151,8 @@ def complete(payload: dict, config: dict | None = None) -> tuple[int, dict]:
     messages = payload.get("messages")
     if not isinstance(messages, list) or not messages:
         return 400, {"error": {"message": "messages must be a non-empty array", "type": "invalid_request"}}
+    if bool(payload.get("stream")):
+        return 400, {"error": {"message": "Streaming must be handled by the HTTP gateway wrapper.", "type": "unsupported_request"}}
     model = _resolve_model(str(payload.get("model") or "auto"), config)
     if not model:
         return 404, {"error": {"message": "No requested or auto-selected installed local model is available.", "type": "model_not_found"}}
