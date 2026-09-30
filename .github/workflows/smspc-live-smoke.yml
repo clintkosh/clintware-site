@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "projects/smspc-crm/**"
       - "tests/smspc_browser_smoke.mjs"
       - ".github/workflows/smspc-live-smoke.yml"
   workflow_dispatch:
