@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node --check src/index.js && node --check src/sample-customers.js && node --check public/app-config.js && node --check public/app-views.js && node --check public/app-ai.js && node --check public/app-router.js && node --check public/app-forms.js && node --check public/import-utils.js",
-    "deploy": "wrangler deploy"
+    "deploy": "node scripts/materialize-local.mjs && npx wrangler deploy --cwd ../../.build/n7demo-crm-local"
   },
   "devDependencies": {
     "wrangler": "^4.40.0"
