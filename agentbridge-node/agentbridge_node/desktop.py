@@ -18,6 +18,7 @@ from .big_prompt import plan_big_prompt
 from .config import Config, home_dir
 from .dlp import sanitize as sanitize_dlp
 from .local_gateway import complete as local_complete
+from .model_policy import routing_summary
 from .prompt_planner import plan_prompt
 
 
@@ -108,6 +109,7 @@ def compile_intent(text: str, cfg: Config) -> dict:
             "raw_tokens_est": plan.raw_tokens_est,
             "planned_tokens_est": plan.compacted_tokens_est,
         },
+        "model_policy": routing_summary(cfg.data),
         "big_prompt": (
             {
                 "unit_count": len(big.units),
