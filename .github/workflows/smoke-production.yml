@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - "public/**"
+      - "landtheplane-worker/**"
+      - "venture-pages-worker/**"
+      - "agentbridge-cloud/public/progress.html"
+      - "control-plane/**"
       - ".github/workflows/smoke-production.yml"
   workflow_dispatch:
 
@@ -56,6 +60,10 @@ jobs:
           check_url "Clintware Games hub" "https://www.clintware.com/games/" "GAMES · SYSTEMS YOU CAN PLAY"
           check_url "QBRook live game" "https://www.clintware.com/games/qbrook/" "CUSTOMER SUCCESS × CHESS"
           check_url "Rotorwash contribution proposal" "https://www.clintware.com/games/rotorwash-zombie-rescue/" "PROPOSED CONTRIBUTION · ROTORWASH"
+          check_url "Unified venture evidence journal" "https://www.clintware.com/startup/evidence/" "One evidence contract across every venture."
+          check_url "LandThePlane prep evidence journal" "https://landtheplane.clintware.com/" "Prep evidence journal · local-first"
+          check_url "SuccessOS canonical venture page" "https://successos.clintware.com/" "Clintware SuccessOS"
+          check_url "Quillgeist progress journal" "https://quillgeist.clintware.com/progress.html" "Show the work. Track the efficiency."
 
       - name: Verify Clintware control plane
         shell: bash
