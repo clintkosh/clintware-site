@@ -315,9 +315,15 @@ Do not ship:
 - state that disappears unexpectedly
 - hard-coded updates masquerading as persistence
 
-Use the strongest existing repository persistence pattern when available.
+Follow `docs/astro-local-first-persistence-standard.md`.
 
-A browser-persistent guest workspace is acceptable for a one-off demo when privileged integrations are not required.
+For one-off demos, **browser-local persistence is the default**, not merely an acceptable fallback.  Prefer `localStorage` for ordinary structured CRM state and IndexedDB when the browser-local dataset is larger or file-oriented.  Use an in-memory fallback if browser persistence is unavailable.
+
+Hosting and persistence are separate decisions.  A demo may remain hosted on Cloudflare Pages or a stateless Cloudflare Worker without any Durable Object or server database.
+
+Remote persistence is allowed only when the requested workflow materially requires cross-device retention, shared multi-user state, server-authoritative audit history, background/webhook processing, or another capability that cannot be satisfied locally.  The manifest must explicitly declare the remote-state requirement and reason.
+
+Do not inherit Durable Objects merely because the implementation reference uses them.  A browser-local or stateless build must generate no required `durable_objects` binding and must stay usable when Durable Objects are unavailable.
 
 ## Seed and migration rule
 
