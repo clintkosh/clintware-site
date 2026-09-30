@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { applyBrowserLocalRuntime } from "../../dplr-crm/scripts/browser-local-runtime.mjs";
 import { boomDataBlock } from "./boom-data.mjs";
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -11,7 +12,7 @@ const sourceBuild=path.join(repo,".build","dplr-crm");
 const overlay=path.join(repo,"projects","bm-crm");
 const out=path.join(repo,".build","bm-crm");
 
-execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit"});
+execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit",env:{...process.env,CW_ASTRO_REFERENCE_MODE:"1"}});
 if(!fs.existsSync(sourceBuild)) throw new Error("DPLR materializer did not produce its build.");
 fs.rmSync(out,{recursive:true,force:true});
 fs.cpSync(sourceBuild,out,{recursive:true});
@@ -59,25 +60,8 @@ for(const file of ["index.html","bm-ui.css","bm-track.js"]){
 }
 
 
-// Boomi intentionally keeps the existing durable-workspace sign-in UX even
-// while the shared DPLR family hides it pending broader auth verification.
-const boomShellPath=path.join(out,"public","dplr-shell.js");
-let boomShell=fs.readFileSync(boomShellPath,"utf8");
-boomShell=boomShell
- .replace(
-   "(auth?'<form method=\"post\" action=\"/auth/logout\"><button type=\"submit\">Sign out</button></form>':'')+",
-   "(auth?'<form method=\"post\" action=\"/auth/logout\"><button type=\"submit\">Sign out</button></form>':'<a href=\"/auth/login\">Sign in for durable workspace</a>')+"
- )
- .replace(
-   "return '<div class=\"dplr-persistence '+(auth?'saved':'guest')+'\"><div><strong>'+(auth?'Durable SSO workspace':'Browser-local workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Data remains in this browser until authenticated workspace support is enabled for this CRM.')+'</span></div></div>';",
-   "return '<div class=\"dplr-persistence '+(auth?'saved':'guest')+'\"><div><strong>'+(auth?'Durable SSO workspace':'Guest session workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Guest records are scoped to this browser session and do not automatically migrate into the signed-in workspace.')+'</span></div>'+(auth?'':'<a class=\"btn primary\" href=\"/auth/login\">Sign in for durable workspace</a>')+'</div>';"
- )
- .replace(
-   "This CRM currently uses browser-local persistence. Durable sign-in is intentionally hidden until authenticated workspace support is enabled and verified.",
-   "Closing the session can remove access to guest data. Signing in opens the durable account workspace; it does not silently migrate guest records."
- );
-fs.writeFileSync(boomShellPath,boomShell);
-if(!boomShell.includes('href="/auth/login"')) throw new Error("Boom durable sign-in preservation patch failed.");
+// Browser-local persistence is the default for this candidate demo.  Remote
+// account retention is not required for the role-proof workflow.
 
 const pkgPath=path.join(out,"package.json");
 const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
@@ -117,4 +101,13 @@ if(!samples.includes("SAMPLE_SEED_VERSION=6")||!samples.includes("Atlas Property
 const track=fs.readFileSync(path.join(out,"public","bm-track.js"),"utf8");
 if((track.match(/group:"CSM"/g)||[]).length!==6||(track.match(/group:"Support"/g)||[]).length!==6) throw new Error("Boom track contract must remain 6 + 6.");
 
+const localRuntime=await applyBrowserLocalRuntime({
+  out,
+  appId:"bm-crm",
+  workspaceId:"bm-boom",
+  serviceName:"clintware-bm-crm",
+  workspaceName:"Boom CSM + Support browser-local workspace",
+  version:7
+});
+console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("BM CRM materialized at "+out);
