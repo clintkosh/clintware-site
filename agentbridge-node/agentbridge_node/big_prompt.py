@@ -97,16 +97,16 @@ def _provider_hint(text: str) -> str:
     return match.group(0).lower() if match else ""
 
 
-def _route(text: str) -> tuple[str, str, str, bool, bool]:
+def _route(text: str, remote_broker: str = "control_plane") -> tuple[str, str, str, bool, bool]:
     fresh = bool(FRESH_RE.search(text or ""))
     external_action = bool(EXTERNAL_ACTION_RE.search(text or ""))
     external_system = bool(EXTERNAL_SYSTEM_RE.search(text or ""))
     provider_hint = _provider_hint(text)
 
     if external_action or (external_system and re.search(r"\b(?:change|modify|write|create|update|delete|deploy|send|publish)\b", text, re.I)):
-        return "control_plane_action", "mcp.clintware.com", provider_hint, fresh, True
+        return "control_plane_action", remote_broker, provider_hint, fresh, True
     if fresh or provider_hint:
-        return "control_plane_provider", "mcp.clintware.com", provider_hint, fresh, False
+        return "control_plane_provider", remote_broker, provider_hint, fresh, False
     if LOCAL_EXEC_RE.search(text or ""):
         return "qq_deterministic", "qq", "", False, False
     if HEAVY_REASONING_RE.search(text or ""):
@@ -177,6 +177,7 @@ def plan_big_prompt(
     target_chars = max(600, int(settings.get("child_target_chars", 1600)))
     complexity_threshold = max(2, int(settings.get("child_complexity_threshold", 5)))
     max_children = max(2, min(24, int(settings.get("max_children", 12))))
+    remote_broker = str(settings.get("remote_broker") or "control_plane").strip() or "control_plane"
 
     planner_settings = dict(settings.get("prompt_planner") or {})
     if project:
@@ -209,7 +210,7 @@ def plan_big_prompt(
     units: list[WorkUnit] = []
     previous = ""
     for idx, (path, prompt, depth) in enumerate(leaves, 1):
-        lane, broker, provider_hint, fresh, mutates = _route(prompt)
+        lane, broker, provider_hint, fresh, mutates = _route(prompt, remote_broker)
         unit_id = f"u{idx:03d}"
         unit = WorkUnit(
             id=unit_id,
@@ -250,7 +251,7 @@ def plan_big_prompt(
         max_depth=max_depth,
         routing_contract=(
             "Route deterministic/local work through qq first. Route fresh external authority, explicit provider work, "
-            "and external mutations through mcp.clintware.com. Each unit receives only its prompt, dependency outputs, "
+            "and external mutations through the configured control plane. Each unit receives only its prompt, dependency outputs, "
             "and the minimum durable state required to continue."
         ),
         credential_contract=(
