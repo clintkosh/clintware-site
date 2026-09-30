@@ -52,6 +52,17 @@ def _defaults() -> dict:
             "max_steps": 24,
             "auto_continue": True
         },
+        "big_prompt": {
+            "enabled": True,
+            "default_for_substantial_work": True,
+            "max_depth": 2,
+            "max_units": 48,
+            "child_target_chars": 1600,
+            "child_complexity_threshold": 5,
+            "max_children": 12,
+            "remote_broker": "mcp.clintware.com",
+            "preserve_dependency_order": True
+        },
         "state_compactor": {
             "enabled": True,
             "auto_scope_from_project": True,
@@ -111,6 +122,7 @@ class Config:
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
             base["contextor"] = {**_defaults()["contextor"], **incoming.get("contextor", {})}
             base["prompt_planner"] = {**_defaults()["prompt_planner"], **incoming.get("prompt_planner", {})}
+            base["big_prompt"] = {**_defaults()["big_prompt"], **incoming.get("big_prompt", {})}
             base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
             base["local_inference"] = {**_defaults()["local_inference"], **incoming.get("local_inference", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
