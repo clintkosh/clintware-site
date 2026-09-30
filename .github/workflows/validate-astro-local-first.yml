@@ -1,0 +1,50 @@
+name: Validate Astro Local-First Persistence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ASTRO_**"
+      - "AGENTS.md"
+      - "docs/astro-local-first-persistence-standard.md"
+      - "projects/**"
+      - "quillgeist-lite/tools/crm_astro.py"
+      - "quillgeist-lite/tasks/crm-astro-build.ps1"
+      - "skills/advanced-customer-success-crm-builder/**"
+      - "skills/standard-saas-website-template/**"
+      - "scripts/validate-astro-local-first.mjs"
+      - ".github/workflows/validate-astro-local-first.yml"
+  pull_request:
+    paths:
+      - "ASTRO_**"
+      - "AGENTS.md"
+      - "docs/astro-local-first-persistence-standard.md"
+      - "projects/**"
+      - "quillgeist-lite/tools/crm_astro.py"
+      - "quillgeist-lite/tasks/crm-astro-build.ps1"
+      - "skills/advanced-customer-success-crm-builder/**"
+      - "skills/standard-saas-website-template/**"
+      - "scripts/validate-astro-local-first.mjs"
+      - ".github/workflows/validate-astro-local-first.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Astro manifests
+        run: |
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/anth-crm/manifest.json --Json
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/bm-crm/manifest.json --Json
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/cxp-crm/manifest.json --Json
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/nma-crm/manifest.json --Json
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/smspc-crm/manifest.json --Json
+      - name: Materialize and verify quota-independent outputs
+        run: node scripts/validate-astro-local-first.mjs
