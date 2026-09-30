@@ -26,6 +26,20 @@ for(const project of projects){
   ok(hasLocalRuntime,project+": browser-local runtime is not loaded by the generated app");
 }
 
+for(const legacy of [
+  {script:"projects/dpl-crm/scripts/materialize-local.mjs",out:"dpl-crm-local",label:"dpl-crm-live"},
+  {script:"projects/n7demo-crm/scripts/materialize-local.mjs",out:"n7demo-crm-local",label:"n7demo-crm-live"}
+]){
+  execFileSync(process.execPath,[path.join(root,legacy.script)],{cwd:root,stdio:"inherit"});
+  const out=path.join(root,".build",legacy.out);
+  const wrangler=fs.readFileSync(path.join(out,"wrangler.jsonc"),"utf8");
+  const worker=fs.readFileSync(path.join(out,"src","index.js"),"utf8");
+  const html=fs.readFileSync(path.join(out,"public","index.html"),"utf8");
+  ok(!wrangler.includes('"durable_objects"'),legacy.label+": generated live artifact still contains durable_objects");
+  ok(worker.includes("databaseRowsPerDemoSession:0"),legacy.label+": health contract does not prove zero required DB rows");
+  ok(html.includes("cw-astro-local-store.js"),legacy.label+": browser-local runtime is not loaded");
+}
+
 execFileSync(process.execPath,[path.join(root,"projects","dplr-crm","scripts","materialize.mjs")],{cwd:root,stdio:"inherit"});
 {
   const out=path.join(root,".build","dplr-crm");
@@ -53,4 +67,4 @@ if(failures.length){
   process.exit(2);
 }
 console.log("\nASTRO LOCAL-FIRST VALIDATION PASSED");
-console.log(JSON.stringify({projects:[...projects,"dplr-crm"],durableObjectsRequired:false,defaultPersistence:"browser-local"},null,2));
+console.log(JSON.stringify({projects:[...projects,"dplr-crm","dpl-crm-live","n7demo-crm-live"],durableObjectsRequired:false,defaultPersistence:"browser-local"},null,2));
