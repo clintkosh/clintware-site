@@ -6,7 +6,7 @@ Use this contract for any external AI client that can call MCP or HTTPS tools.
 
 - MCP endpoint: `https://mcp.clintware.com/mcp`
 - Control Plane API: `https://mcp.clintware.com/api/v1`
-- Authentication: a dedicated Clintware credential for that LLM/client in `Authorization: Bearer <credential>` or `x-api-key: <credential>`. Prefer one revocable credential per client rather than sharing the root MCP token.
+- Authentication: prefer the Clintware MCP OAuth flow when the client supports remote MCP OAuth. For clients that cannot complete that flow, use one revocable scoped Clintware credential per client in `Authorization: Bearer <credential>` or `x-api-key: <credential>`. Never share the root MCP token.
 - Never give the client a GitHub, Cloudflare, deployment, DNS, or other provider credential.
 - GitHub identity selection happens server-side from the product manifest's `repo.identity`.
 
@@ -14,7 +14,41 @@ Use this contract for any external AI client that can call MCP or HTTPS tools.
 
 Give the following instruction to an LLM after its Clintware MCP connection is configured:
 
-> Use the Clintware Control Plane at mcp.clintware.com as the authority boundary for this project. Start by calling `clintware_client_handshake` and, when a project/product is known, `clintware_product_manifest`. Do not ask me to switch GitHub accounts or expose GitHub/Cloudflare credentials. Resolve repository ownership, account identity, allowed paths, workflows, DNS names, and infrastructure permissions through the Control Plane. Use capability discovery/request tools for actions. If work is being continued by another model or handed back to ChatGPT, create a compact `clintware-handoff/v1` packet with `clintware_handoff_put`; return the handoff ID to me. Never put API keys, access tokens, cookies, passwords, private keys, or raw secret values in a handoff. Reuse existing project context and artifacts instead of re-fetching or re-sending the same data when possible. For every request, first decide whether meaningful work can be offloaded to Quillgeist Lite/qq without reducing correctness or quality. Prefer deterministic local work, local services, and local models before paid remote inference when they are equally capable. Use `clintware_quillgeist_lite_status` / `clintware_quillgeist_lite_checkin` to choose the fastest healthy eligible local device by task fit and current load, with MEMORIA affinity for its local-AI/data services. For long local builds/tests/automation, queue a durable `clintware_quillgeist_lite_run` job instead of keeping the conversational turn blocked; verify the job only when the result is needed. If local is unhealthy, saturated, or materially slower than an authorized included/remote route, use the faster reliable route.
+> Use `mcp.clintware.com` as the authority boundary and Quillgeist/qq as the default local workhorse. Start with `clintware_client_handshake`; when a project/product is known, recover its manifest, durable state, handoffs, prior decisions, and current execution evidence before rebuilding anything. For a substantial request, treat it as one parent objective: compact the context, recursively decompose it into dependency-aware work units, and send each unit only the minimum context plus required dependency outputs. Prefer deterministic local execution, then local services/models, then authorized included/remote providers. Use qq status/check-in to select a healthy eligible local target; use durable qq jobs for long builds/tests/automation. Route fresh external authority, provider-native data, explicit remote-model work, and consequential external mutations through the Control Plane. Resolve repository identity, provider/account references, permissions, workflows, DNS, and infrastructure server-side. Never expose or place API keys, access/refresh tokens, cookies, passwords, private keys, or raw secret values in prompts, handoffs, Flow definitions, repository files, or execution plans. If work moves to another model, persist a compact `clintware-handoff/v1` packet and continue from live state. Distinguish planned, dispatched, delivered, executing, passed/failed, and verified. Re-plan only unresolved or failed branches and finish with end-to-end verification against the original objective.
+
+## QuillGeist big-prompt contract
+
+The user's single prompt is the parent objective. QuillGeist is the context/orchestration layer, not a new foundation model.
+
+1. Recover project state, applicable user rules, existing handoffs, and execution evidence.
+2. Compact duplicated history while preserving constraints, identifiers, Definition-of-Done requirements, and unresolved work.
+3. Recursively split the request into bounded leaf units. Preserve dependencies and shared-mutation conflicts.
+4. Route each leaf independently:
+   - `qq_deterministic`: local deterministic execution.
+   - `qq_local_model`: local inference when it can meet the quality/freshness bar.
+   - `control_plane_provider`: fresh or provider-backed reasoning through a supported provider route.
+   - `control_plane_action`: external state change through a scoped Control Plane capability.
+5. Give each leaf only the durable state and dependency outputs it requires. Do not retransmit the entire parent prompt to every model.
+6. Persist leaf status/evidence so an interrupted request can resume without replaying completed work.
+7. Re-plan failed or unresolved leaves only, then synthesize and verify the parent objective.
+
+A provider is a replaceable execution target. QuillGeist owns the durable context graph, routing hints, local execution policy, compact state, and verification evidence; Clintware owns the server-side authority and credential boundary.
+
+## Provider identity and credential boundary
+
+For a managed multi-user version, keep two authentication layers distinct:
+
+- **Clintware sign-in:** OAuth authenticates the human/client to `mcp.clintware.com`, establishes tenant/user scope, and authorizes access to allowed products/capabilities.
+- **Provider connection:** a user separately connects an allowed model/provider using that provider's supported API/OAuth/enterprise mechanism. Store the resulting secret only in an encrypted server-side secret facility and persist an opaque `provider_account_ref` in ordinary application state.
+
+Requirements:
+
+- Never copy provider credential values into prompts, handoffs, Flow JSON, Git repositories, Durable Object records intended as ordinary state, browser automation fields, logs, or telemetry.
+- Resolve `provider_account_ref` to a credential only inside the scoped server-side adapter that needs it.
+- Bind provider accounts to tenant + user + provider + granted scopes. Support revocation, rotation, consent/audit history, and per-provider usage/cost policy.
+- Do not scrape browser cookies or extract consumer CLI OAuth token values for remote brokerage.
+- Official provider CLIs may use their own supported local sign-in state on the user's machine. Remote routing must use a provider-supported remote/API/enterprise authentication path.
+- Public QuillGeist remains local/self-hosted by default. Managed Clintware pairing is a separate authenticated distribution mode; do not weaken the public-build isolation guard to enable it.
 
 ## Handoff packet
 
