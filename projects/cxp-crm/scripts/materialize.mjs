@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { applyBrowserLocalRuntime } from "../../dplr-crm/scripts/browser-local-runtime.mjs";
 import { cxpDataBlock } from "./cxp-data.mjs";
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -11,7 +12,7 @@ const sourceBuild=path.join(repo,".build","dplr-crm");
 const overlay=path.join(repo,"projects","cxp-crm");
 const out=path.join(repo,".build","cxp-crm");
 
-execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit"});
+execFileSync(process.execPath,[dplr],{cwd:repo,stdio:"inherit",env:{...process.env,CW_ASTRO_REFERENCE_MODE:"1"}});
 if(!fs.existsSync(sourceBuild))throw new Error("DPLR materializer did not produce its build.");
 fs.rmSync(out,{recursive:true,force:true});
 fs.cpSync(sourceBuild,out,{recursive:true});
@@ -73,4 +74,13 @@ const trackText=fs.readFileSync(path.join(out,"public","cxp-track.js"),"utf8");
 if((trackText.match(/objective:/g)||[]).length!==8)throw new Error("CXponent operating-track contract must remain eight tracks.");
 if(!trackText.includes("Comparable TCO model")||!trackText.includes("Vendor / architecture comparison"))throw new Error("CXponent interactive decision tools missing.");
 if(!wrangler.includes('"pattern":"cxp.clintware.com"'))throw new Error("CXponent custom domain route missing.");
+const localRuntime=await applyBrowserLocalRuntime({
+  out,
+  appId:"cxp-crm",
+  workspaceId:"cxp-cxponent",
+  serviceName:"clintware-cxp-crm",
+  workspaceName:"CXponent Infrastructure Advisory browser-local workspace",
+  version:2
+});
+console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("CXP CRM materialized at "+out);
