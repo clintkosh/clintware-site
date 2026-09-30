@@ -10,6 +10,12 @@ from urllib.parse import urlparse
 def home_dir() -> Path:
     return Path(os.environ.get("QUILLGEIST_HOME", os.environ.get("AGENTBRIDGE_HOME", Path.home() / ".quillgeist"))).expanduser()
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = str(os.environ.get(name, "")).strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "on"}
+
 def _defaults() -> dict:
     return {
         "version": 5,
@@ -93,9 +99,9 @@ def _defaults() -> dict:
         "model_preferences": {
             "allow_user_choice": True,
             "text": {"mode": "local_auto", "provider": "local", "model": "auto"},
-            "image": {"mode": "user_choice", "provider": "", "model": ""},
-            "critic": {"enabled": False, "provider": "", "model": "", "compact": True},
-            "pulse_grade": {"enabled": False, "provider": "", "model": "", "cadence": "weekly"}
+            "image": {"mode": "user_choice", "provider": os.environ.get("QUILLGEIST_DEFAULT_IMAGE_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_IMAGE_MODEL", "")},
+            "critic": {"enabled": _env_bool("QUILLGEIST_ENABLE_CRITIC", False), "provider": os.environ.get("QUILLGEIST_DEFAULT_CRITIC_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_CRITIC_MODEL", ""), "compact": True},
+            "pulse_grade": {"enabled": _env_bool("QUILLGEIST_ENABLE_PULSE_GRADE", False), "provider": os.environ.get("QUILLGEIST_DEFAULT_PULSE_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_PULSE_MODEL", ""), "cadence": "weekly"}
         },
         "private_data": {
             "owner_subject": os.environ.get("QUILLGEIST_PRIVATE_DATA_OWNER_ID", ""),
