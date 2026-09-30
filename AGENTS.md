@@ -1,5 +1,9 @@
 # Repository Agent Instructions
 
+## Local-first persistence is the default for sites and demos
+
+Apply `docs/astro-local-first-persistence-standard.md`.  For Clintware portfolio sites, interview artifacts, CRM demos, and other single-user application proofs, use static/stateless hosting plus browser-local persistence when it satisfies the feature.  Cloudflare hosting does not imply Durable Objects.  Remote state and any Durable Object dependency must be explicitly justified by a real shared/server-authoritative requirement.
+
 ## ASTRO is mandatory for Clintware public-page and product work
 
 Before changing any public Clintware website page, product page, homepage, professional profile, startup / YC page, navigation, public product positioning, or public visual/copy system, read and apply `ASTRO_WEBSITE_SKILL.md` first.
