@@ -38,6 +38,21 @@ Unless the user explicitly names a language/runtime:
 Efficiency is a tiebreaker after quality, not a substitute for quality.
 
 
+## Default prompt offload and latency policy
+
+For owner-operated ChatGPT/MCP work, treat QQ/local execution as the default workhorse when it can meet the same correctness and quality bar.
+
+- Prefer: deterministic local task → local service → local model → included provider capability → low-cost remote → higher-cost remote.
+- Do not route locally merely for ideological purity. If the eligible local path is unhealthy, saturated, materially slower, or cannot meet the quality/freshness requirement, use the faster reliable authorized path.
+- Use live QQ status/check-in plus recent job state when choosing between eligible devices. Prefer the healthy device with the required capability and the lowest relevant queue/load; respect task affinity such as MEMORIA-local AI/data services.
+- Keep long builds, installs, tests, transformations, indexing, local browser work, and machine operations out of the conversational critical path when they can run as a durable QQ job. Queue the work, preserve the job ID, and verify from local-agent evidence when completion is required.
+- Chat/model time should be spent on intent resolution, decisions, reasoning that actually benefits from the model, synthesis, and verification rather than waiting on deterministic work.
+- Informational prompts that do not require fresh/private data or mutation may take the bounded local-first response path. The local attempt has a latency budget; on timeout/failure, escalate immediately rather than repeatedly blocking.
+- Fresh account data, current web facts, provider-native records, and actions requiring an external authority should use the relevant connector/control-plane path directly rather than forcing a local model into the loop.
+- Never equate queued or delivered with executed. Preserve the execution states: dispatched → delivered → executing → passed/failed → verified.
+
+This policy is a default selection rule, not permission to weaken authorization or quality gates.
+
 ## Governed live-web policy
 
 Quillgeist Web extends qq with live search, page reading, and bounded browser automation while preserving the local execution boundary.
