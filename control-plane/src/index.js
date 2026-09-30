@@ -1126,6 +1126,36 @@ export class RegistryHub extends DurableObject {
     return delivered;
   }
 
+  quillgeistLiteLiveServicePresence(){
+    const rows=[];
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite-wake")){
+      try{
+        if(ws.readyState!==1)continue;
+        const attachment=ws.deserializeAttachment()||{};
+        const presence=attachment.presence&&typeof attachment.presence==="object"?attachment.presence:{};
+        rows.push({
+          device_id:clip(attachment.device_id||presence.device_id||"unknown",120),
+          connected_at:clip(attachment.connected_at||"",80),
+          service_version:clip(presence.service_version||"",80),
+          runner_alive:Boolean(presence.runner_alive),
+          runner_state:clip(presence.runner_state||"",40),
+          job_id:clip(presence.job_id||"",120),
+          task_id:clip(presence.task_id||"",120),
+          heartbeat_at:clip(presence.heartbeat_at||"",80),
+          service_started_at:clip(presence.service_started_at||"",80),
+          maintenance:Boolean(presence.maintenance),
+          busy:Boolean(presence.busy),
+          heartbeat_age_seconds:Number.isFinite(Number(presence.heartbeat_age_seconds))?Number(presence.heartbeat_age_seconds):-1,
+          progress_age_seconds:Number.isFinite(Number(presence.progress_age_seconds))?Number(presence.progress_age_seconds):-1,
+          health_state:clip(presence.health_state||"",80),
+          updated_at:clip(presence.updated_at||attachment.last_seen||"",80),
+          source:"live-websocket"
+        });
+      }catch{}
+    }
+    return rows;
+  }
+
   async requestQuillgeistLiteCheckin(body={}){
     const request_id=clip(body.request_id||crypto.randomUUID(),120);
     const target_device=clip(body.target_device||"",120);
@@ -1164,12 +1194,20 @@ export class RegistryHub extends DurableObject {
     }
     row.delivered=delivered;
     row.status=delivered>0?"awaiting_reply":"offline";
-    await this.ctx.storage.put(`quillgeist_lite_checkin:${request_id}`,row);
-    let index=await this.ctx.storage.get("quillgeist_lite_checkin_index")||[];
-    index=index.filter(x=>x.request_id!==request_id);
-    index.unshift({request_id,target_device,action,status:row.status,requested_at:row.requested_at,replied_at:null});
-    await this.ctx.storage.put("quillgeist_lite_checkin_index",index.slice(0,100));
-    return {ok:true,...row};
+    let persistence="durable";
+    let persistence_error="";
+    try{
+      await this.ctx.storage.put(`quillgeist_lite_checkin:${request_id}`,row);
+      let index=await this.ctx.storage.get("quillgeist_lite_checkin_index")||[];
+      index=index.filter(x=>x.request_id!==request_id);
+      index.unshift({request_id,target_device,action,status:row.status,requested_at:row.requested_at,replied_at:null});
+      await this.ctx.storage.put("quillgeist_lite_checkin_index",index.slice(0,100));
+    }catch(e){
+      persistence="degraded-live-only";
+      persistence_error=clip(String(e?.message||e),240);
+      console.error(JSON.stringify({event:"quillgeist_checkin_persistence_degraded",request_id,target_device,message:persistence_error}));
+    }
+    return {ok:true,...row,persistence,persistence_error};
   }
 
   async recordQuillgeistLitePresence(data,deviceId){
@@ -1262,30 +1300,104 @@ export class RegistryHub extends DurableObject {
   }
 
   async quillgeistLiteCheckin(requestId){
-    const row=await this.ctx.storage.get(`quillgeist_lite_checkin:${clip(requestId||"",120)}`);
-    return row?{ok:true,checkin:row}:{ok:false,error:"checkin_not_found"};
+    const id=clip(requestId||"",120);
+    try{
+      const row=await this.ctx.storage.get(`quillgeist_lite_checkin:${id}`);
+      if(row)return {ok:true,checkin:row,persistence:"durable"};
+    }catch(e){
+      console.error(JSON.stringify({event:"quillgeist_checkin_read_degraded",request_id:id,message:clip(String(e?.message||e),240)}));
+    }
+    for(const ws of this.ctx.getWebSockets("quillgeist-lite-wake")){
+      try{
+        if(ws.readyState!==1)continue;
+        const attachment=ws.deserializeAttachment()||{};
+        const reply=attachment.last_checkin_reply;
+        if(reply&&clip(reply.request_id||"",120)===id){
+          return {ok:true,checkin:{
+            request_id:id,
+            protocol:"clintware-quillgeist-lite-checkin/v1",
+            target_device:clip(attachment.device_id||reply.device_id||"",120),
+            action:clip(reply.action||"status",40),
+            force:Boolean(reply.force),
+            status:"replied",
+            requested_at:clip(reply.requested_at||"",80),
+            delivered:1,
+            replied_at:clip(reply.replied_at||attachment.last_seen||nowIso(),80),
+            reply
+          },persistence:"degraded-live-only"};
+        }
+      }catch{}
+    }
+    return {ok:false,error:"checkin_not_found"};
   }
 
   async quillgeistLiteStatus(){
-    const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
-    const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
-    return {
-      online:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).length,
-      recovery_online:this.ctx.getWebSockets("quillgeist-lite-recovery").filter(ws=>ws.readyState===1).length,
-      wake_online:this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1).length,
-      recovery:await this.ctx.storage.get("quillgeist_lite_recovery_last")||null,
-      runner,
-      connected_devices:this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1).map(ws=>{
+    const runnerSockets=this.ctx.getWebSockets("quillgeist-lite").filter(ws=>ws.readyState===1);
+    const recoverySockets=this.ctx.getWebSockets("quillgeist-lite-recovery").filter(ws=>ws.readyState===1);
+    const wakeSockets=this.ctx.getWebSockets("quillgeist-lite-wake").filter(ws=>ws.readyState===1);
+    const connected_devices=runnerSockets.map(ws=>{
+      try{
         const attachment=ws.deserializeAttachment()||{};
         return {device_id:attachment.device_id,connected_at:attachment.connected_at,runner:attachment.runner||null};
-      }),
-      jobs:index.slice(0,50),
-      questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
-      service_devices:(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20),
-      diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse(),
-      checkins:(await this.ctx.storage.get("quillgeist_lite_checkin_index")||[]).slice(0,20),
-      service_presence:(await this.ctx.storage.get("quillgeist_lite_presence_index")||[]).slice(0,20)
+      }catch{return null;}
+    }).filter(Boolean);
+    const liveServicePresence=this.quillgeistLiteLiveServicePresence();
+    const liveServiceDevices=liveServicePresence.map(p=>({
+      device_id:p.device_id,
+      last_seen:p.updated_at||p.connected_at||"",
+      runner_alive:p.runner_alive,
+      service_version:p.service_version,
+      updated_at:p.updated_at||"",
+      source:"live-websocket"
+    }));
+    const liveBase={
+      online:runnerSockets.length,
+      recovery_online:recoverySockets.length,
+      wake_online:wakeSockets.length,
+      connected_devices,
+      live_service_presence:liveServicePresence,
+      live_service_devices:liveServiceDevices
     };
+    try{
+      const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
+      const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
+      const persistedServiceDevices=(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20);
+      const persistedPresence=(await this.ctx.storage.get("quillgeist_lite_presence_index")||[]).slice(0,20);
+      const mergeByDevice=(persisted,live)=>{
+        const map=new Map();
+        for(const row of persisted||[])if(row?.device_id)map.set(String(row.device_id),row);
+        for(const row of live||[])if(row?.device_id)map.set(String(row.device_id),{...(map.get(String(row.device_id))||{}),...row});
+        return [...map.values()].slice(0,20);
+      };
+      return {
+        ...liveBase,
+        status_mode:"live-plus-durable",
+        storage_degraded:false,
+        recovery:await this.ctx.storage.get("quillgeist_lite_recovery_last")||null,
+        runner,
+        jobs:index.slice(0,50),
+        questions:(await this.ctx.storage.get("quillgeist_lite_question_index")||[]).slice(0,50),
+        service_devices:mergeByDevice(persistedServiceDevices,liveServiceDevices),
+        diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse(),
+        checkins:(await this.ctx.storage.get("quillgeist_lite_checkin_index")||[]).slice(0,20),
+        service_presence:mergeByDevice(persistedPresence,liveServicePresence)
+      };
+    }catch(e){
+      return {
+        ...liveBase,
+        status_mode:"live-only",
+        storage_degraded:true,
+        storage_error:clip(String(e?.message||e),240),
+        recovery:null,
+        runner:connected_devices[0]?.runner||null,
+        jobs:[],
+        questions:[],
+        service_devices:liveServiceDevices,
+        diagnostics:[],
+        checkins:[],
+        service_presence:liveServicePresence
+      };
+    }
   }
 
   async infraUsageSnapshot(){
@@ -1444,11 +1556,34 @@ export class RegistryHub extends DurableObject {
       if(attachment.receiver==="quillgeist-lite-wake"){
         const deviceId=clip(attachment.device_id||data?.device_id||"unknown",120);
         if(data?.type==="service_hello"||data?.type==="service_presence"){
-          await this.recordQuillgeistLitePresence(data,deviceId);
+          const presence={
+            device_id:deviceId,
+            service_version:clip(data?.service_version||"",80),
+            runner_alive:Boolean(data?.runner_alive),
+            runner_state:clip(data?.runner_state||"",40),
+            job_id:clip(data?.job_id||"",120),
+            task_id:clip(data?.task_id||"",120),
+            heartbeat_at:clip(data?.heartbeat_at||"",80),
+            service_started_at:clip(data?.service_started_at||"",80),
+            maintenance:Boolean(data?.maintenance),
+            busy:Boolean(data?.busy),
+            heartbeat_age_seconds:Number.isFinite(Number(data?.heartbeat_age_seconds))?Number(data.heartbeat_age_seconds):-1,
+            progress_age_seconds:Number.isFinite(Number(data?.progress_age_seconds))?Number(data.progress_age_seconds):-1,
+            health_state:clip(data?.health_state||"",80),
+            updated_at:nowIso()
+          };
+          try{ws.serializeAttachment({...attachment,device_id:deviceId,last_seen:presence.updated_at,presence});}catch{}
+          try{await this.recordQuillgeistLitePresence(data,deviceId);}catch(e){
+            console.error(JSON.stringify({event:"quillgeist_presence_persistence_degraded",device_id:deviceId,message:clip(String(e?.message||e),240)}));
+          }
           return;
         }
         if(data?.type==="checkin_reply"){
-          await this.recordQuillgeistLiteCheckinReply(data,deviceId);
+          const replied_at=clip(data?.replied_at||nowIso(),80);
+          try{ws.serializeAttachment({...attachment,device_id:deviceId,last_seen:replied_at,last_checkin_reply:{...data,device_id:deviceId,replied_at}});}catch{}
+          try{await this.recordQuillgeistLiteCheckinReply(data,deviceId);}catch(e){
+            console.error(JSON.stringify({event:"quillgeist_checkin_reply_persistence_degraded",device_id:deviceId,request_id:clip(data?.request_id||"",120),message:clip(String(e?.message||e),240)}));
+          }
           return;
         }
         return;
@@ -4284,7 +4419,8 @@ export default {
           force:Boolean(body.force)
         })}));
         const data=await r.json();
-        await audit(env,"quillgeist-lite","local_checkin",data.request_id||target_device,{target_device,action,delivered:Number(data.delivered||0)},r.ok&&data.ok,data.error||"");
+        try{await audit(env,"quillgeist-lite","local_checkin",data.request_id||target_device,{target_device,action,delivered:Number(data.delivered||0)},r.ok&&data.ok,data.error||"");}
+        catch(e){console.error(JSON.stringify({event:"quillgeist_checkin_audit_degraded",target_device,message:clip(String(e?.message||e),240)}));}
         return json(data,r.ok&&data.ok?(Number(data.delivered||0)>0?202:409):r.status);
       }
       const qqCheckinMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/check-in\/([^/]+)$/);
