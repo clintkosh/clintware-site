@@ -150,11 +150,13 @@ export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceNam
   const staticWorker='const APP_ID='+JSON.stringify(appId)+';\n'
     +'const WORKSPACE_ID='+JSON.stringify(workspaceId)+';\n'
     +'const H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"};\n'
-    +'const j=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:H});\n'
+    +'const SEC={"strict-transport-security":"max-age=15552000; includeSubDomains","x-frame-options":"DENY","x-content-type-options":"nosniff","x-robots-tag":"noindex, nofollow, noarchive","referrer-policy":"no-referrer","content-security-policy":"default-src \'self\'; script-src \'self\' \'unsafe-inline\' https://www.googletagmanager.com; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: https:; connect-src \'self\' https://mcp.clintware.com https://www.google-analytics.com; font-src \'self\' data:; frame-ancestors \'none\'; form-action \'self\'; base-uri \'none\'"};\n'
+    +'const j=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...H,...SEC}});\n'
+    +'const secured=async r=>{const h=new Headers(r.headers);for(const [k,v] of Object.entries(SEC))h.set(k,v);return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})};\n'
     +'export default {async fetch(req,env){const u=new URL(req.url);'
     +'if(u.pathname==="/health")return j({service:'+JSON.stringify(serviceName)+',ok:true,app:APP_ID,workspace:WORKSPACE_ID,storage:"browser-local",persistence:"localStorage-with-memory-fallback",databaseRowsPerDemoSession:0,durableObjectsRequired:false,quotaIndependent:true});'
     +'if(u.pathname.startsWith("/api/"))return j({error:"browser_local_api",detail:"CRM demo persistence is handled in the browser; no Durable Object or server database is required."},409);'
-    +'return env.ASSETS.fetch(req)}};\n';
+    +'return secured(await env.ASSETS.fetch(req))}};\n';
   fs.writeFileSync(workerPath,staticWorker);
 
   const pkgPath=path.join(out,"package.json");
