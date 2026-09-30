@@ -21,7 +21,16 @@ $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
 $LocalGatewayKeyPath = "F:\\AI-Data\\Config\\LOCAL-CHATGPT\\quillgeist-gateway.key"
 $ProviderResponderPath = Join-Path $HomeDir "provider_responder.py"
 $RoutingLearningPath = Join-Path $HomeDir "routing-learning.json"
-$PreprocessorVersion = "2026-09-29-capability-aware-v3"
+$PreprocessorVersion = "2026-09-30-latency-aware-local-first-v4"
+$LocalFirstTimeoutSeconds = 18
+try {
+  if ($env:QQ_LOCAL_FIRST_TIMEOUT_SECONDS) {
+    $parsed = 0
+    if ([int]::TryParse([string]$env:QQ_LOCAL_FIRST_TIMEOUT_SECONDS,[ref]$parsed)) {
+      $LocalFirstTimeoutSeconds = [Math]::Max(5,[Math]::Min(45,$parsed))
+    }
+  }
+} catch {}
 
 New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
 
@@ -1571,7 +1580,7 @@ function Invoke-QQPortableLocalResponse {
         stream = $false
         options = @{ temperature = 0.15; num_predict = 700 }
       } | ConvertTo-Json -Depth 8 -Compress
-      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec 90 -ErrorAction Stop
+      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec $LocalFirstTimeoutSeconds -ErrorAction Stop
       $answer = [string]$response.message.content
     } else {
       $payload = @{
@@ -1584,7 +1593,7 @@ function Invoke-QQPortableLocalResponse {
         temperature = 0.15
         stream = $false
       } | ConvertTo-Json -Depth 8 -Compress
-      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec 90 -ErrorAction Stop
+      $response = Invoke-RestMethod -Method Post -Uri $target.Url -ContentType "application/json" -Body $payload -TimeoutSec $LocalFirstTimeoutSeconds -ErrorAction Stop
       $answer = [string]$response.choices[0].message.content
     }
 
@@ -1689,7 +1698,7 @@ For ordinary questions, brainstorming, explanations, calculations, and local gui
         stream = $false
       } | ConvertTo-Json -Depth 8 -Compress
 
-      $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec 75 -ErrorAction Stop
+      $response = Invoke-RestMethod -Method Post -Uri $LocalGatewayUrl -Headers $headers -Body $payload -TimeoutSec $LocalFirstTimeoutSeconds -ErrorAction Stop
       $answer = [string]$response.choices[0].message.content
       if ($answer) {
         if ($answer.TrimStart().StartsWith("REMOTE_REQUIRED:",[StringComparison]::OrdinalIgnoreCase)) {
@@ -1935,12 +1944,15 @@ Never include credentials or secrets.
 }
 
 function Send-QQQuestion {
-  param([string]$Text)
+  param(
+    [string]$Text,
+    [object]$Envelope = $null
+  )
 
   $Text = ([string]$Text).Trim()
   if (-not $Text) { Show-QQPrompt; return }
 
-  $envelope = Get-QQRequestEnvelope -Text $Text
+  $envelope = if ($Envelope) { $Envelope } else { Get-QQRequestEnvelope -Text $Text }
   $wireRaw = Redact-LogLine ([string]$envelope.raw_prompt)
   $wireNormalized = Redact-LogLine ([string]$envelope.normalized_prompt)
 
@@ -2277,7 +2289,17 @@ function Invoke-QQLocalCommand {
     }
   } catch {}
 
-  Send-QQQuestion $line
+  $envelope = Get-QQRequestEnvelope -Text $line
+  $routeHint = ([string]$envelope.route_hint).ToLowerInvariant()
+  $localFirstEligible = (-not [bool]$envelope.requires_action) -and (-not [bool]$envelope.requires_fresh_or_private) -and (@("llm","local","hybrid") -contains $routeHint)
+
+  if ($localFirstEligible) {
+    $localPrompt = [string]$envelope.normalized_prompt
+    if (-not $localPrompt) { $localPrompt = $line }
+    if (Invoke-QQLocalFirstResponse -Text $localPrompt) { return }
+  }
+
+  Send-QQQuestion -Text $line -Envelope $envelope
 }
 
 function Invoke-AllowlistedTask {
