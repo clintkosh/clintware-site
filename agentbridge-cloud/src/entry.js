@@ -128,7 +128,8 @@ export default{
         const telemetry=telemetryResp.ok?await telemetryResp.json():{metrics:{},bugs:[]};
         return json({state,telemetry,generated_at:new Date().toISOString()});
       }
-      if(request.method==="OPTIONS"&&url.pathname==="/api/public/product-stats")return new Response(null,{status:204,headers:{"access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type","access-control-max-age":"86400"}});\n      if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
+      if(request.method==="OPTIONS"&&url.pathname==="/api/public/product-stats")return new Response(null,{status:204,headers:{"access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type","access-control-max-age":"86400"}});
+      if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
