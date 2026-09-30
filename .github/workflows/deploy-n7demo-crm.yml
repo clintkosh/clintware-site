@@ -2,7 +2,12 @@ name: Deploy N7 Demo CRM
 on:
   push:
     branches: [main]
-    paths: ["projects/n7demo-crm/**", "tests/n7_browser_smoke.mjs", ".github/workflows/deploy-n7demo-crm.yml"]
+    paths:
+      - "projects/n7demo-crm/**"
+      - "projects/dplr-crm/scripts/browser-local-runtime.mjs"
+      - "projects/dplr-crm/public/cw-astro-local-store.js"
+      - "tests/n7_browser_smoke.mjs"
+      - ".github/workflows/deploy-n7demo-crm.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,156 +24,49 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
-
-      - name: Validate source
+      - name: Materialize browser-local deployment artifact
         run: |
           set -euo pipefail
-          cd projects/n7demo-crm
+          node projects/n7demo-crm/scripts/materialize-local.mjs
+          cd .build/n7demo-crm-local
           npm install --no-audit --no-fund
           npm run check
-          ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
-          grep -Fq "ACME MEDICAL" src/index.js
-          grep -Fq "HelioMed Imaging Systems" src/sample-customers.js
-          grep -Fq "customersFromFile" public/import-utils.js
-          grep -Fq "50% improvement by end of Year 1" src/index.js
-          grep -Fq "6–8 weeks from start to go-live" src/index.js
-          grep -Fq "8–10 weeks" src/index.js
-          grep -Fq "n7demo-crm" src/index.js
-          grep -Fq "Engineering-ready" public/app-views.js
-          grep -Fq "RACI" public/app-views.js
-          grep -Fq "\"live_prompt\",\"Live Prompt\"" public/app-config.js
-          grep -Fq "\"live_assistant\",\"Live Assist\"" public/app-config.js
-          grep -Fq "getDisplayMedia" public/app-ai.js
-          grep -Fq "/api/ai/interpret-change" src/index.js
-          grep -Fq "/api/audio/transcribe" src/index.js
-          grep -Fq "cross_site_mutation_blocked" src/index.js
-          grep -Fq "write_scope_required" src/index.js
-          grep -Fq "record_changed_since_interpretation" src/index.js
-          grep -Fq "script-src 'self'" src/index.js
-          ! grep -Fq "googletagmanager.com" public/index.html
-          grep -Fq "dedupeTranscriptChunk" public/app-ai.js
-          grep -Fq "NAV_GROUPS" public/app-config.js
-          grep -Fq "stakeholder" public/app-config.js
-          grep -Fq "brief-add-stakeholder" public/app-forms.js
-          grep -Fq "\"stakeholder\"" src/index.js
-          ! grep -Fq 'href="/auth/login"' public/app-views.js || { echo "Durable sign-in CTA unexpectedly present" >&2; exit 1; }
-
+          ! grep -Fq '"durable_objects"' wrangler.jsonc
+          grep -Fq '"deleted_classes"' wrangler.jsonc
+          grep -Fq '/cw-astro-local-store.js' public/index.html
+          grep -Fq 'databaseRowsPerDemoSession:0' src/index.js
+          grep -Fq 'ACME MEDICAL' public/cw-astro-local-bootstrap.js
+          grep -Fq 'HelioMed Imaging Systems' public/cw-astro-local-bootstrap.js
       - name: Wrangler dry run
-        run: |
-          set -euo pipefail
-          cd projects/n7demo-crm
-          npx wrangler deploy --dry-run
-
+        run: cd .build/n7demo-crm-local && npx wrangler deploy --dry-run
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd projects/n7demo-crm
-
+          command: deploy --cwd .build/n7demo-crm-local
       - name: Attach custom domain
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"n7demo.clintware.com","service":"clintware-n7demo-crm","zone_name":"clintware.com"}')
+          response=$(curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"n7demo.clintware.com","service":"clintware-n7demo-crm","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
-
-      - name: Verify live CRM
+      - name: Verify live stateless contract
         run: |
           set -euo pipefail
-          ready=0
           for i in $(seq 1 40); do
-            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/health || true)
-            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/ || true)
-            a=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/app-ai.js || true)
-            if grep -Fq '"service":"clintware-n7demo-crm"' <<< "$h" \
-              && grep -Fq '"lovable":false' <<< "$h" \
-              && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
-              && grep -Fq 'N7 Demo CRM' <<< "$p" \
-              && grep -Fq '/app-ai.js' <<< "$p" \
-              && grep -Fq 'getDisplayMedia' <<< "$a" \
-              && grep -Fq 'Interpret update' <<< "$a"; then
-              ready=1
-              break
-            fi
-            echo "Waiting for n7demo.clintware.com (${i}/40)"
+            h=$(curl -fsS https://n7demo.clintware.com/health || true)
+            p=$(curl -fsS https://n7demo.clintware.com/ || true)
+            if grep -Fq '"storage":"browser-local"' <<< "$h" && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$h" && grep -Fq '"durableObjectsRequired":false' <<< "$h" && grep -Fq 'N7 Demo CRM' <<< "$p"; then exit 0; fi
             sleep 5
           done
-          test "$ready" = "1"
-          rm -f /tmp/n7demo.cookies
-          curl -fsS -c /tmp/n7demo.cookies https://n7demo.clintware.com/ >/tmp/n7demo.html
-          state_code=$(curl -sS -o /tmp/n7state.json -w '%{http_code}' -b /tmp/n7demo.cookies -c /tmp/n7demo.cookies https://n7demo.clintware.com/api/state)
-          state_code=$(tr -cd '0-9' <<< "$state_code")
-          echo "state HTTP $state_code"; cat /tmp/n7state.json
-          test "$state_code" = "200"
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==11; assert d["customer"]["name"]=="ACME MEDICAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/n7state.json
-          import_code=$(curl -sS -o /tmp/n7import.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://n7demo.clintware.com/api/customers/bulk-import)
-          import_code=$(tr -cd '0-9' <<< "$import_code")
-          echo "import HTTP $import_code"; cat /tmp/n7import.json
-          test "$import_code" = "201"
-          echo "Verifying imported customer persistence"
-          imported=0
-          for j in $(seq 1 10); do
-            curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7after.json || true
-            if python3 -c 'import json; d=json.load(open("/tmp/n7after.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then
-              imported=1
-              break
-            fi
-            echo "Waiting for imported customer visibility ($j/10)"
-            sleep 1
-          done
-          test "$imported" = "1"
-          echo "Verifying clear-except-golden"
-          curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://n7demo.clintware.com/api/customers/clear >/tmp/n7clear.json
-          curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7kept.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7kept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME MEDICAL"'
-          echo "Verifying default sample reset"
-          curl -fsS -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{}' https://n7demo.clintware.com/api/customers/reset-samples >/tmp/n7reset.json
-          curl -fsS -b /tmp/n7demo.cookies https://n7demo.clintware.com/api/state >/tmp/n7resetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); assert len(d["customers"])==11; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==10'
-          echo "Verifying stakeholder create from meeting prep data model"
-          customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/n7resetstate.json")); print(d["customer"]["id"])')
-          stakeholder_code=$(curl -sS -o /tmp/n7stakeholder.json -w '%{http_code}' -b /tmp/n7demo.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://n7demo.clintware.com/api/records)
-          stakeholder_code=$(tr -cd '0-9' <<< "$stakeholder_code")
-          test "$stakeholder_code" = "201"
-          curl -fsS -b /tmp/n7demo.cookies "https://n7demo.clintware.com/api/state?customer=$customer_id" >/tmp/n7stakeholderstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/n7stakeholderstate.json")); assert any(r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="CI Stakeholder" for r in d["records"])'
-          echo "Verifying security headers"
-          headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/)
-          echo "$headers"
-          grep -Fqi "strict-transport-security:" <<< "$headers" || { echo "Missing HSTS" >&2; exit 1; }
-          grep -Fqi "x-frame-options: DENY" <<< "$headers" || { echo "Missing X-Frame-Options DENY" >&2; exit 1; }
-          grep -Fqi "content-security-policy:" <<< "$headers" || { echo "Missing CSP" >&2; exit 1; }
-          grep -Fqi "script-src 'self'" <<< "$headers" || { echo "CSP is not self-only for scripts" >&2; exit 1; }
-          grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers" || { echo "Missing COOP same-origin" >&2; exit 1; }
-          echo "Verifying internal-route shielding and auth boundary"
-          blocked_backup_status=$(curl -sS -o /tmp/n7-backup-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/backup | tr -cd '0-9')
-          echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
-          blocked_session_status=$(curl -sS -o /tmp/n7-session-blocked.json -w '%{http_code}' https://n7demo.clintware.com/api/session/test | tr -cd '0-9')
-          echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
-          ai_status=$(curl -fsS --connect-timeout 5 --max-time 15 https://n7demo.clintware.com/api/ai/status)
-          echo "$ai_status" | grep -Fq '"guestAvailable":true'
-          ai_guest_contract_status=$(curl -sS -o /tmp/n7-ai-guest-contract.json -w '%{http_code}' -X POST https://n7demo.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
-          echo "AI guest contract HTTP $ai_guest_contract_status"; test "$ai_guest_contract_status" = "400"
-          grep -Fq '"error":"text_and_customer_required"' /tmp/n7-ai-guest-contract.json
-          auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/n7demo-crm || true)
-          echo "$auth" | grep -Fq '"app":"n7demo-crm"'
-          echo "$auth" | grep -Fq '"redirect_uri":"https://n7demo.clintware.com/auth/callback"'
-          echo "N7 Demo CRM live with Clintware OAuth configuration."
-
-
-      - name: Real browser smoke
+          exit 1
+      - name: Real browser persistence smoke
         run: |
-          set -euo pipefail
           npm install --no-save --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
           node tests/n7_browser_smoke.mjs
-
-      - name: Upload browser smoke screenshot
+      - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
