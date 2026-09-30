@@ -16,6 +16,7 @@ from . import __version__
 from .cloud import pair as cloud_pair
 from .big_prompt import plan_big_prompt
 from .config import Config, home_dir
+from .dlp import sanitize as sanitize_dlp
 from .local_gateway import complete as local_complete
 from .prompt_planner import plan_prompt
 
@@ -550,7 +551,8 @@ class QuillgeistDesktop:
         self.focus_command()
 
     def _prepare_connected_command(self, text: str, compiled: dict, reason: str = "") -> None:
-        payload = json.dumps(compiled, indent=2)
+        safe_compiled, _dlp_report = sanitize_dlp(compiled, self.cfg.data.get("dlp", {}), purpose="external")
+        payload = json.dumps(safe_compiled, indent=2)
         self.root.clipboard_clear()
         self.root.clipboard_append(payload)
         plan = compiled.get("prompt_plan", {})
@@ -663,7 +665,8 @@ class QuillgeistDesktop:
                 self.toggle_local_only()
             return
         compiled = compile_intent(text, self.cfg)
-        self.ledger.add("intent", compiled.get("action", "general"), text)
+        safe_text, _dlp_report = sanitize_dlp(text, self.cfg.data.get("dlp", {}), purpose="memory")
+        self.ledger.add("intent", compiled.get("action", "general"), str(safe_text))
         if compiled.get("execution_mode") == "qq_big_prompt":
             big = compiled.get("big_prompt") or {}
             self._write_output(
@@ -673,7 +676,7 @@ class QuillgeistDesktop:
                 f"Estimated repeated remote context avoided: {big.get('avoided_remote_context_tokens_est', 0)} tokens.\n\n"
                 "The dependency-aware payload is being prepared for the configured planner/control-plane path."
             )
-            self.ledger.add("big_prompt", f"{big.get('unit_count', 0)} routed units", text)
+            self.ledger.add("big_prompt", f"{big.get('unit_count', 0)} routed units", str(safe_text))
             self._prepare_connected_command(text, compiled, "Substantial request compiled into the big-prompt work graph.")
             return
         self._run_local_responder(text, compiled)
