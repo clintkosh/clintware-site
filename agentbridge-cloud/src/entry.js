@@ -153,6 +153,6 @@ export default{
       const approveMatch=url.pathname.match(/^\/api\/jobs\/([^/]+)\/approve$/);
       if(response.ok&&request.method==="POST"&&approveMatch){const auth=await accountContext(request,env);if(auth){try{const data=await response.clone().json();ctx.waitUntil(recordCloudSend(auth.telemetry,data.job,"sent","approval_retry"));}catch{}}}
       return rebrandPublicHtml(request,response);
-    }catch(error){console.error(JSON.stringify({event:"control_plane_error",path:url.pathname,error:String(error),stack:error?.stack}));return json({error:"internal_error",message:String(error)},500);}
+    }catch(error){console.error(JSON.stringify({event:"control_plane_error",path:url.pathname,error:String(error),stack:error?.stack}));if(url.pathname==="/api/public/product-stats")return json({error:"aggregate_stats_unavailable",available:false},503,{"cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type"});return json({error:"internal_error",message:String(error)},500);}
   }
 };
