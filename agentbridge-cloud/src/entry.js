@@ -73,7 +73,7 @@ async function publicProductStats(env,days=30){
     passed:Number(m.passed||0),failed:Number(m.failed||0),patches_applied:Number(m.patches_applied||0),files_changed:Number(m.files_changed||0)
   };
   const trends=(data.trends||[]).map(row=>({date:String(row.date||""),prompts_compiled:Number(row.prompts_compiled||0),runs:Number(row.runs||0),compactions:Number(row.compactions||0),api_compactions:Number(row.api_compactions||0),raw_tokens_est:Number(row.raw_tokens_est||0),sent_tokens_est:Number(row.sent_tokens_est||0),gross_tokens_removed_est:Number(row.tokens_avoided_est||0),net_tokens_saved_est:Number(row.net_tokens_saved_est||0),local_tokens_est:Number(row.local_tokens_est||0),compaction_rate_pct:Number(row.compaction_rate_pct||0),net_savings_pct:Number(row.net_savings_pct||0)}));
-  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs and API/MCP calls with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=600, s-maxage=1800"});
+  return json({generated_at:new Date().toISOString(),coverage:"participating Quillgeist installs and API/MCP calls with telemetry enabled",estimated_fields:["raw_tokens_est","sent_tokens_est","gross_tokens_removed_est","net_tokens_saved_est","local_tokens_est"],metrics,trends},200,{"cache-control":"public, max-age=600, s-maxage=1800","access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type"});
 }
 
 export default{
@@ -128,7 +128,7 @@ export default{
         const telemetry=telemetryResp.ok?await telemetryResp.json():{metrics:{},bugs:[]};
         return json({state,telemetry,generated_at:new Date().toISOString()});
       }
-      if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
+      if(request.method==="OPTIONS"&&url.pathname==="/api/public/product-stats")return new Response(null,{status:204,headers:{"access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type","access-control-max-age":"86400"}});\n      if(request.method==="GET"&&url.pathname==="/api/public/product-stats")return publicProductStats(env,url.searchParams.get("days"));
       if(request.method==="POST"&&url.pathname==="/api/device/telemetry"){
         const body=await request.json();const auth=await deviceContext(request,env,body);if(!auth)return json({error:"unauthorized"},401);const event={...(body.event||{}),device_id:auth.deviceId};const r=await auth.telemetry.fetch(new Request("https://internal/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(event)}));return new Response(r.body,{status:r.status,headers:JSON_HEADERS});
       }
