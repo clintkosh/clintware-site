@@ -44,6 +44,7 @@ jobs:
           grep -Fq 'Noma AI Security Customer Operating System' public/index.html
           grep -Fq 'noindex,nofollow,noarchive' public/index.html
           grep -Fq '/nma-local-api.js' public/index.html
+          grep -Fq 'data:image/svg+xml' public/index.html
           grep -Fq 'Customer Insight & Product Signal' public/nma-track.js
           grep -Fq 'Download CISO brief PDF' public/nma-track.js
           grep -Fq 'Print / Save PDF' public/nma-track.js
@@ -116,8 +117,10 @@ jobs:
           const ctx=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:960}});
           const page=await ctx.newPage();
           const errors=[];
-          page.on('pageerror',e=>errors.push(String(e)));
-          page.on('console',m=>{if(m.type()==='error') errors.push('console:'+m.text())});
+          const badResponses=[];
+          page.on('pageerror',e=>errors.push('page:'+String(e)));
+          page.on('response',r=>{if(r.status()>=400) badResponses.push(`${r.status()} ${r.url()}`)});
+          page.on('console',m=>{if(m.type()==='error'&&!/^Failed to load resource/i.test(m.text())) errors.push('console:'+m.text())});
           const response=await page.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
           if(!response?.ok()) throw new Error('landing HTTP '+response?.status());
           await page.locator('[data-nma-track="portfolio"]').click();
@@ -152,8 +155,8 @@ jobs:
           if(localBytes<2000) throw new Error('browser workspace unexpectedly small');
           await page.locator('#nma-present-btn').click();
           await page.locator('.nma-present').waitFor({state:'visible'});
+          await page.waitForFunction(()=>document.querySelectorAll('.nma-slide').length>=8);
           const slides=await page.locator('.nma-slide').count();
-          if(slides<8) throw new Error('presentation execution-evidence slide missing: '+slides);
           const presentationText=await page.locator('.nma-present').innerText();
           if(!presentationText.includes('Dispatched ≠ delivered ≠ executed ≠ verified.')) throw new Error('execution truth missing from presentation');
           await page.locator('#nma-close').click();
@@ -166,13 +169,14 @@ jobs:
           if(!download.suggestedFilename().endsWith('.pdf')) throw new Error('CISO brief is not PDF');
           const mobile=await ctx.newPage();
           await mobile.setViewportSize({width:390,height:844});
-          await mobile.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          const mobileResponse=await mobile.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          if(!mobileResponse?.ok()) throw new Error('mobile landing HTTP '+mobileResponse?.status());
           await mobile.evaluate(()=>sessionStorage.setItem('nmaTrackLaunched','1'));
           await mobile.reload({waitUntil:'networkidle'});
           const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
           if(overflow) throw new Error('mobile horizontal overflow');
-          if(errors.length) throw new Error('browser errors: '+errors.join(' | '));
-          console.log(JSON.stringify({ok:true,title,accounts:initial.customers.length,goldenRecords:initial.records.length,presentationSlides:slides,pdfBytes:bytes,browserLocalBytes:localBytes,databaseRowsPerDemoSession:0,mobileOverflow:false,errors:[]},null,2));
+          if(errors.length||badResponses.length) throw new Error('browser faults: '+[...errors,...badResponses].join(' | '));
+          console.log(JSON.stringify({ok:true,title,accounts:initial.customers.length,goldenRecords:initial.records.length,presentationSlides:slides,pdfBytes:bytes,browserLocalBytes:localBytes,databaseRowsPerDemoSession:0,mobileOverflow:false,errors:[],badResponses:[]},null,2));
           await browser.close();
           JS
           cd /tmp/nma-browser
