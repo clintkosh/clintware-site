@@ -30,6 +30,9 @@ $launcherText=Get-Content -LiteralPath (Join-Path $root 'launcher.ps1') -Raw
 foreach($needle in @('version="2"','job_id=""','task_id=""','progress_at=""','network_state="disconnected"')){
     if (-not $launcherText.Contains($needle)) { throw ('Launcher startup heartbeat missing v2 field: '+$needle) }
 }
+foreach($needle in @('function Test-ScriptSyntax','Parser]::ParseFile','Test-ScriptSyntax $tmp','runner_live_control_plane_disconnected','function Get-PowerShellHost')){
+    if (-not $reconcileText.Contains($needle)) { throw ('Reconcile syntax/health hardening marker missing: '+$needle) }
+}
 function Invoke-RestMethod { throw [Net.WebException]::new('temporary network failure') }
 $credential=[pscustomobject]@{Endpoint='https://example.com';DeviceId='TEST';Token='test-only'}
 Assert-Throws {Test-QQCredentialAgainstControlPlane $credential} 'retaining existing credentials'
