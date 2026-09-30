@@ -84,8 +84,8 @@ The planner reuses Quillgeist preferences, prompt compaction, and durable state.
 
 - `qq_deterministic`: local machine work that does not need model inference.
 - `qq_local_model`: local inference when it meets the quality/freshness bar.
-- `control_plane_provider`: provider-backed reasoning or fresh external information brokered through Clintware.
-- `control_plane_action`: consequential external mutations executed through scoped Control Plane capabilities.
+- `control_plane_provider`: provider-backed reasoning or fresh external information brokered through the configured remote control plane.
+- `control_plane_action`: consequential external mutations executed through scoped remote control-plane capabilities.
 
 The plan itself contains no reusable provider credential values. It can carry an opaque provider/account hint, while credential resolution remains behind the Control Plane or inside the provider's supported local client. Each leaf receives only the dependency outputs and durable context it needs, reducing repeated context transfer.
 
