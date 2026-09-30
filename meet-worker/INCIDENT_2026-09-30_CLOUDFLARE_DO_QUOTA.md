@@ -76,3 +76,5 @@ A fix is not considered complete until all of the following pass:
 7. Cancel removes/cancels the Google event.
 8. No test booking remains afterward.
 9. Production health stays green even when Durable Objects are quota-degraded.
+
+- Final live scheduler verification trigger: pending.
