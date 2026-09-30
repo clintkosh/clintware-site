@@ -16,8 +16,8 @@ try {
   assert(await page.locator(".top").count() === 1, "CRM top navigation did not render");
   assert(await page.locator(".side").count() === 1, "CRM side navigation did not render");
   const bodyText = await page.locator("body").innerText();
-  assert(bodyText.includes("No login required") || bodyText.includes("Guest"), "Guest/no-login state is not visible");
-  assert(await page.locator('a[href="/auth/login"]').count() >= 1, "Optional OAuth sign-in link is missing");
+  assert(bodyText.includes("Browser-local workspace") || bodyText.includes("No login is required"), "Browser-local/no-login state is not visible");
+  assert(await page.locator('a[href="/auth/login"]').count() === 0, "Durable sign-in must stay hidden until CRM auth is verified");
   const tabs = ["customers","command","implementation","deployment","risks","handoff","raci","rollout","issues","triage","roi","adoption","meetings","renewal","kb","documents","accounts","live_prompt","live_assistant"];
   for (const tab of tabs) {
     const btn = page.locator('[data-tab="' + tab + '"]').first();
