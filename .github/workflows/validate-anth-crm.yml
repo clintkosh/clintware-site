@@ -1,0 +1,38 @@
+name: Validate Anthropic GSI CRM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/anth-crm/**"
+      - "projects/dplr-crm/**"
+      - "ASTRO_CRM_ONE_OFF_SKILL.md"
+      - ".github/workflows/validate-anth-crm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Materialize adaptive role CRM
+        run: node projects/anth-crm/scripts/materialize.mjs
+      - name: Install generated project
+        run: npm install --prefix .build/anth-crm --no-audit --no-fund
+      - name: Source and contract checks
+        run: npm run check --prefix .build/anth-crm
+      - name: Wrangler dry run
+        run: npx --prefix .build/anth-crm wrangler deploy --dry-run --config .build/anth-crm/wrangler.jsonc
+      - name: Verify one-off boundaries
+        run: |
+          set -euo pipefail
+          grep -Fq 'noindex,nofollow,noarchive' .build/anth-crm/public/index.html
+          grep -Fq 'Scale AI adoption into measurable customer value.' .build/anth-crm/public/anth-track.js
+          grep -Fq 'Consumption + seat adoption' .build/anth-crm/public/anth-track.js
+          grep -Fq 'Download QBR brief PDF' .build/anth-crm/public/anth-track.js
+          grep -Fq 'Apex Systems Integrator (Synthetic)' .build/anth-crm/src/index.js
+          grep -Fq 'anth.clintware.com' .build/anth-crm/wrangler.jsonc
+          ! grep -RFi --exclude='anth-data.mjs' --exclude='materialize.mjs' 'Doppel' .build/anth-crm/public .build/anth-crm/src
