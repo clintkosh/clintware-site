@@ -63,6 +63,22 @@ function Read-JsonSafe {
   try {return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json}catch{return $null}
 }
 
+function Get-OptionalProperty {
+  param(
+    [object]$Object,
+    [Parameter(Mandatory=$true)][string]$Name,
+    $Default = $null
+  )
+  if($null -eq $Object){return $Default}
+  try {
+    $property=$Object.PSObject.Properties[$Name]
+    if($null -eq $property){return $Default}
+    return $property.Value
+  } catch {
+    return $Default
+  }
+}
+
 function Get-RunnerPid {
   try {
     if(-not (Test-Path $RunnerPidPath)){return 0}
@@ -82,11 +98,16 @@ function Test-RunnerAlive {
 function Get-TaskTimeoutSeconds {
   param([string]$TaskId)
   $registry=Read-JsonSafe $RegistryPath
-  if(-not $registry -or -not $registry.tasks -or -not $TaskId){return 3600}
+  $tasks=Get-OptionalProperty $registry "tasks" $null
+  if(-not $tasks -or -not $TaskId){return 3600}
   try {
-    $task=$registry.tasks.PSObject.Properties[$TaskId].Value
-    if($task.timeout_seconds){return [Math]::Max(60,[int]$task.timeout_seconds)}
-    if($task.timeout){return [Math]::Max(60,[int]$task.timeout)}
+    $taskProperty=$tasks.PSObject.Properties[$TaskId]
+    if($null -eq $taskProperty){return 3600}
+    $task=$taskProperty.Value
+    $timeoutSeconds=Get-OptionalProperty $task "timeout_seconds" $null
+    if($null -ne $timeoutSeconds){return [Math]::Max(60,[int]$timeoutSeconds)}
+    $timeout=Get-OptionalProperty $task "timeout" $null
+    if($null -ne $timeout){return [Math]::Max(60,[int]$timeout)}
   } catch {}
   return 3600
 }
@@ -95,13 +116,18 @@ function Get-HeartbeatHealth {
   $hb=Read-JsonSafe $HeartbeatPath
   $now=[DateTimeOffset]::UtcNow
   if(-not $hb){return [pscustomobject]@{Exists=$false;State="missing";JobId="";TaskId="";HeartbeatAge=1e99;ProgressAge=1e99;Healthy=$false;Busy=$false;Reason="heartbeat_missing"}}
-  try {$stamp=[DateTimeOffset]::Parse([string]$hb.timestamp).ToUniversalTime()}catch{$stamp=$null}
+  $stampRaw=[string](Get-OptionalProperty $hb "timestamp" "")
+  try {$stamp=[DateTimeOffset]::Parse($stampRaw).ToUniversalTime()}catch{$stamp=$null}
   $hbAge=if($stamp){[Math]::Max(0,($now-$stamp).TotalSeconds)}else{1e99}
   $progress=$null
-  try {if($hb.progress_at){$progress=[DateTimeOffset]::Parse([string]$hb.progress_at).ToUniversalTime()}}catch{}
+  $progressRaw=[string](Get-OptionalProperty $hb "progress_at" "")
+  try {if($progressRaw){$progress=[DateTimeOffset]::Parse($progressRaw).ToUniversalTime()}}catch{}
   if(-not $progress){try{if(Test-Path $RunnerLogPath){$progress=[DateTimeOffset](Get-Item $RunnerLogPath).LastWriteTimeUtc}}catch{}}
   $progressAge=if($progress){[Math]::Max(0,($now-$progress).TotalSeconds)}else{1e99}
-  $state=[string]$hb.state; $task=[string]$hb.task_id; $job=[string]$hb.job_id; $busy=($state -eq "busy")
+  $state=[string](Get-OptionalProperty $hb "state" "unknown")
+  $task=[string](Get-OptionalProperty $hb "task_id" "")
+  $job=[string](Get-OptionalProperty $hb "job_id" "")
+  $busy=($state -eq "busy")
   $alive=Test-RunnerAlive; $healthy=$alive -and ($hbAge -le 120); $reason="healthy"
   if(-not $alive){$healthy=$false;$reason="runner_not_alive"}
   elseif($hbAge -gt 120){$healthy=$false;$reason="heartbeat_stale"}
@@ -186,9 +212,12 @@ function Start-CanonicalRunner {
 function Invoke-QQTaskDirect {
   param([string]$TaskId,[hashtable]$Args=@{})
   $r=Read-JsonSafe $RegistryPath
-  $task=$r.tasks.PSObject.Properties[$TaskId].Value
-  if(-not $task){throw "Task missing: $TaskId"}
-  $relative=[string]$task.script
+  $tasks=Get-OptionalProperty $r "tasks" $null
+  if(-not $tasks){throw "Task registry is missing the tasks object."}
+  $taskProperty=$tasks.PSObject.Properties[$TaskId]
+  if($null -eq $taskProperty){throw "Task missing: $TaskId"}
+  $task=$taskProperty.Value
+  $relative=[string](Get-OptionalProperty $task "script" "")
   $local=Join-Path $HomeDir ([IO.Path]::GetFileName($relative))
   Download-Canonical $relative $local
   $argv=@();foreach($k in $Args.Keys){$argv+="-"+$k;$argv+=[string]$Args[$k]}
