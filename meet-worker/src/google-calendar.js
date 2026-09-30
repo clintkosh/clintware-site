@@ -225,9 +225,16 @@ export function buildGoogleCalendarEventBody(booking, { includeConference = true
     reminders: { useDefault: true },
     extendedProperties: {
       private: {
-        clintwareBookingId: booking.id,
+        clintwareBookingId: String(booking.id || ""),
         clintwareManageUrl: manage,
+        clintwareManageHash: String(booking.manageHash || ""),
         clintwareBackupRoom: room,
+        clintwareRoomCode: String(booking.roomCode || ""),
+        clintwareTimezone: String(booking.timezone || CONFIG.hostTimeZone).slice(0, 100),
+        clintwareCompany: String(booking.company || "").slice(0, 120),
+        clintwarePurpose: String(booking.purpose || "").slice(0, 100),
+        clintwareTopic: String(booking.topic || "").slice(0, 900),
+        clintwareSequence: String(Number(booking.sequence || 0)),
       },
     },
   };
@@ -285,6 +292,42 @@ export async function getGoogleCalendarEvent(env, booking) {
     hangoutLink: event.hangoutLink || "",
     status: event.status || "confirmed",
   };
+}
+
+export async function findGoogleCalendarEventByManage(env, manageToken, manageHash = "") {
+  const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events`;
+  const probes = [];
+  if (manageHash) probes.push(`clintwareManageHash=${manageHash}`);
+  if (manageToken) probes.push(`clintwareManageUrl=${CONFIG.publicUrl}/manage/${manageToken}`);
+
+  for (const privateExtendedProperty of probes) {
+    const url = new URL(base);
+    url.searchParams.set("privateExtendedProperty", privateExtendedProperty);
+    url.searchParams.set("maxResults", "5");
+    url.searchParams.set("singleEvents", "true");
+    url.searchParams.set("showDeleted", "false");
+    const data = await googleJson(env, url.toString());
+    const event = (data.items || []).find((item) => item && item.status !== "cancelled");
+    if (event) return event;
+  }
+  return null;
+}
+
+export async function listGoogleCalendarEvents(env, { q = "", maxResults = 50 } = {}) {
+  const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId(env))}/events`;
+  const url = new URL(base);
+  if (q) url.searchParams.set("q", String(q).slice(0, 200));
+  url.searchParams.set("maxResults", String(Math.max(1, Math.min(250, Number(maxResults || 50)))));
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("showDeleted", "false");
+  url.searchParams.set("timeMin", new Date(Date.now() - 7 * 86_400_000).toISOString());
+  url.searchParams.set("timeMax", new Date(Date.now() + 90 * 86_400_000).toISOString());
+  const data = await googleJson(env, url.toString());
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+export async function deleteGoogleCalendarEventById(env, eventId) {
+  return deleteGoogleCalendarEvent(env, { googleEventId: String(eventId || "") });
 }
 
 export async function deleteGoogleCalendarEvent(env, booking) {
