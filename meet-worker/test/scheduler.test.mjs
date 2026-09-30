@@ -94,7 +94,7 @@ test("Google Calendar event includes Google Meet and both attendees", () => {
     manageToken: "a".repeat(48),
   };
   const event = buildGoogleCalendarEventBody(booking);
-  assert.deepEqual(event.attendees.map((x) => x.email), ["guest@example.com", "clint@clintware.com"]);
+  assert.deepEqual(event.attendees.map((x) => x.email), ["guest@example.com", "clint.kosh@gmail.com"]);
   assert.equal(event.conferenceData.createRequest.conferenceSolutionKey.type, "hangoutsMeet");
   assert.match(event.description, /Backup room:/);
 });
