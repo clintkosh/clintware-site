@@ -14,7 +14,7 @@ Use this contract for any external AI client that can call MCP or HTTPS tools.
 
 Give the following instruction to an LLM after its Clintware MCP connection is configured:
 
-> Use `mcp.clintware.com` as the authority boundary and Quillgeist/qq as the default local workhorse. Start with `clintware_client_handshake`; when a project/product is known, recover its manifest, durable state, handoffs, prior decisions, and current execution evidence before rebuilding anything. For a substantial request, treat it as one parent objective: compact the context, recursively decompose it into dependency-aware work units, and send each unit only the minimum context plus required dependency outputs. Prefer deterministic local execution, then local services/models, then authorized included/remote providers. Use qq status/check-in to select a healthy eligible local target; use durable qq jobs for long builds/tests/automation. Route fresh external authority, provider-native data, explicit remote-model work, and consequential external mutations through the Control Plane. Resolve repository identity, provider/account references, permissions, workflows, DNS, and infrastructure server-side. Never expose or place API keys, access/refresh tokens, cookies, passwords, private keys, or raw secret values in prompts, handoffs, Flow definitions, repository files, or execution plans. If work moves to another model, persist a compact `clintware-handoff/v1` packet and continue from live state. Distinguish planned, dispatched, delivered, executing, passed/failed, and verified. Re-plan only unresolved or failed branches and finish with end-to-end verification against the original objective.
+> Use `mcp.clintware.com` as the authority boundary and Quillgeist/qq as the default local workhorse. Start with `clintware_client_handshake`; when a project/product is known, recover its manifest, durable state, handoffs, prior decisions, current execution evidence, and any unresolved prompt tickets before rebuilding anything. Open one prompt ticket for the user's request before substantial work begins. A ticket may terminate only as `verified_done`, `blocked`, or `carried_forward`; never silently stop with an unresolved `in_progress` ticket. Before beginning the next substantial prompt, reconcile prior open tickets or explicitly carry them forward with their blocker and next action. For a substantial request, treat it as one parent objective: compact the context, recursively decompose it into dependency-aware work units, and send each unit only the minimum context plus required dependency outputs. Prefer deterministic local execution, then local services/models, then authorized included/remote providers. Let users deliberately select a model/provider when supported; otherwise honor their configured defaults. Use qq status/check-in to select a healthy eligible local target; use durable qq jobs for long builds/tests/automation. Route fresh external authority, provider-native data, explicit remote-model work, and consequential external mutations through the Control Plane. Resolve repository identity, provider/account references, permissions, workflows, DNS, and infrastructure server-side. Treat local/private data as default-deny and release it only after the authenticated subject satisfies the configured owner/tenant policy. Never expose or place API keys, access/refresh tokens, cookies, passwords, private keys, or raw secret values in prompts, handoffs, Flow definitions, repository files, or execution plans. Before replacing, executing, committing, or merging generated scripts/code, run the appropriate syntax/parse/compile checks for every changed executable source and fail closed on parse errors. If work moves to another model, persist a compact `clintware-handoff/v1` packet and continue from live state. Distinguish planned, dispatched, delivered, executing, passed/failed, and verified. Re-plan only unresolved or failed branches and finish with end-to-end verification against the original objective plus an explicit prompt-ticket terminal state.
 
 ## QuillGeist big-prompt contract
 
@@ -33,6 +33,28 @@ The user's single prompt is the parent objective. QuillGeist is the context/orch
 7. Re-plan failed or unresolved leaves only, then synthesize and verify the parent objective.
 
 A provider is a replaceable execution target. QuillGeist owns the durable context graph, routing hints, local execution policy, compact state, and verification evidence; Clintware owns the server-side authority and credential boundary.
+
+## Prompt-ticket completion contract
+
+Every substantial prompt is tracked as one durable ticket using `quillgeist-prompt-ticket/v1`.
+
+- Open the ticket before work begins.
+- Keep the ticket `in_progress` only while work is actively owned and advancing.
+- Close as `verified_done` only after the requested Definition of Done is verified.
+- Close as `blocked` only with concrete evidence, the blocker, and the next required action.
+- Close as `carried_forward` only when work has been intentionally handed to another durable job/model/session and the handoff identifier/evidence is preserved.
+- Before taking a new substantial prompt, reconcile older `in_progress` tickets first.
+- No assistant/model may report completion from `planned`, `dispatched`, or `delivered` state alone.
+
+## Model-choice and private-data contract
+
+Public/self-hosted Quillgeist is local-first by default and must let the user deliberately choose installed local models or configured remote providers where supported. Provider defaults are per-user configuration, not public hardcoded preferences.
+
+For the owner-managed Clintware profile, provider-role defaults may be configured locally/privately without changing the public package. Owner-only local/private data remains fail-closed: a request must present a verified authenticated subject matching the configured owner subject before private/local owner data can enter a model context. Non-owner users receive only their own scoped/local data and public/shared context.
+
+## Syntax and executable-source gate
+
+Any generated or modified PowerShell, Python, JavaScript/TypeScript, C/C++, shell script, workflow, or other executable source must pass an appropriate parser/syntax/compiler check before it can replace a maintained runtime file, be committed/merged as working code, or be reported as verified. PowerShell uses the PowerShell parser in addition to repository tests. A structural string check is not a substitute for syntax validation.
 
 ## Provider identity and credential boundary
 
