@@ -6,7 +6,7 @@ const nowIso=()=>new Date().toISOString();
 
 export const BASE_HELP={
   schema:1,
-  updated_at:"2026-09-07T00:00:00Z",
+  updated_at:"2026-09-30T00:00:00Z",
   getting_started:[
     {id:"quick-start",title:"Quick start",body:"Run `agentbridge init` and use Quillgeist locally. Cloud is optional: deploy your own Quillgeist Cloud, pair with its explicit URL, then start `agentbridge daemon`."},
     {id:"execution-pack",title:"Execution Packs",body:"Quillgeist accepts `.abpack`, runtime JSON, and runtime Markdown. Inspect a pack before execution to review its workspace, permissions, steps, and Definition of Done."},
@@ -19,7 +19,8 @@ export const BASE_HELP={
     {id:"operating-rules",title:"Scoped operating rules",body:"Quillgeist stores explicit user-owned operating rules with global, project, or task scope. `quillgeist-rules` manages them and `quillgeist-plan --project <name> --task <type>` compiles only applicable rules, reporting how much saved context was not sent."},
     {id:"assemblerer-manifest",title:"Assemblerer company manifests",body:"`quillgeist-manifest <manifest.json>` compiles an Assemblerer company export into bounded authority, routing, pending-work, and evidence context. The manifest is not silently converted into permanent user rules."},
     {id:"scheduling",title:"Scheduling",body:"Schedules may be device-owned or cloud-owned. Device-owned schedules can continue while Quillgeist Cloud is unavailable. Cloud-owned schedules are dispatched to the selected paired Node."},
-    {id:"telemetry",title:"Metrics and error reporting",body:"Public builds keep telemetry off by default. If the user explicitly enables telemetry against their own self-hosted cloud, operational metadata can be sent there; prompt text and file contents are not telemetry."}
+    {id:"telemetry",title:"Metrics and error reporting",body:"Public builds keep telemetry off by default. If the user explicitly enables telemetry against their own self-hosted cloud, operational metadata can be sent there; prompt text and file contents are not telemetry."},
+    {id:"progress-journal",title:"Public progress journal",body:"The Clintware-hosted Quillgeist distribution publishes a public progress journal at https://quillgeist.clintware.com/progress.html using privacy-safe aggregate product metrics. The journal does not contain prompt text or file contents. Aggregate activity may include founder/internal usage and is not a unique-user or customer count; external users, retention, paying users, and revenue are reported only when separately verified."}
   ],
   setup_removal:[
     {id:"install-node",title:"Initial setup",body:"Download the correct Node for Windows, macOS, or Linux. Run `agentbridge init` and review the local configuration. Public builds start local-only; pairing is optional and requires your own self-hosted cloud URL."},
@@ -37,6 +38,7 @@ export const BASE_HELP={
     {id:"faq-rules",q:"Does Quillgeist automatically learn permanent rules from corrections?",a:"No. A correction may create a proposed operating rule, but it remains unsaved until the user accepts it and chooses global, project, or task scope."},
     {id:"faq-delta-state",q:"Does delta-state context persist conversation history?",a:"Only when a project/state scope is used. The Node stores extracted project context locally so repeated work can avoid replaying known history. The local state can be inspected and explicitly reset, and planner state can be disabled per call with `--no-state`."},
     {id:"faq-data",q:"What metrics go to Cloud?",a:"Operational metadata such as connection/send/receive counts, run status and duration, estimated token savings, patch/file counts, Node version, and redacted errors. Prompt text and file contents are not sent as telemetry."},
+    {id:"faq-progress-journal",q:"Does the public progress journal show customer traction?",a:"Not by itself. It shows privacy-safe aggregate product activity and clearly labeled internal proof and estimates. Aggregate activity can include founder/internal usage, so it is not presented as a unique-user count. Verified outside users, retention, paying users, and revenue are separate traction metrics."},
     {id:"faq-dlp",q:"What happens if Quillgeist detects sensitive data?",a:"Detection happens locally before an Execution Pack runs. Standard mode asks before high-risk data can proceed, Strict blocks findings until the data is removed or redacted, Monitor allows the run while recording only sanitized finding metadata, and Off disables the check. Matching secret values are not included in DLP finding reports."},
     {id:"faq-error",q:"What happens when a run fails?",a:"Quillgeist stores the Result Pack locally, sends a redacted error/metrics event when telemetry is enabled, and returns compact planner feedback for a repair iteration."},
     {id:"faq-bugs",q:"How are product bugs tracked?",a:"Quillgeist-internal or user-reported failures receive a stable bug fingerprint. Successful repair packs can identify bugs they fix, allowing Cloud to move them from open to resolved and reopen them if they recur."},
