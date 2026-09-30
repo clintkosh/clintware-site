@@ -118,7 +118,7 @@ function Test-ScriptSyntax {
     [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $Path),[ref]$tokens,[ref]$errors)|Out-Null
     if($errors.Count -gt 0){
       $detail=($errors|ForEach-Object{$_.Message}) -join "; "
-      throw "PowerShell syntax validation failed for $Path: $detail"
+      throw "PowerShell syntax validation failed for ${Path}: $detail"
     }
   }
 }
