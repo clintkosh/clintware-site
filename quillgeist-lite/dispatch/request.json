@@ -1,12 +1,12 @@
 {
-  "request_id": "driznet-cxp-auth-clean-full-20260929-1920",
+  "request_id": "driznet-smspc-auth-clean-full-20260929-1923",
   "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "args": {
     "Action": "full",
-    "Project": "cxp-crm",
+    "Project": "smspc-crm",
     "SkipInstall": "false",
     "RepoRoot": "C:\\Users\\batman\\AppData\\Local\\Clintware\\code-search\\clintware-site"
   },
-  "objective": "Rebuild and deploy the CXponent CRM from the refreshed shared DPLR source after durable-sign-in CTA removal. Preserve all CXponent role-specific functionality. Confirm source checks pass and deploy to https://cxp.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
+  "objective": "Rebuild and deploy the SimSpace CRM from the refreshed shared DPLR source after durable-sign-in CTA removal. Preserve all SimSpace role-specific functionality. Confirm source checks pass and deploy to https://smspc.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
 }
