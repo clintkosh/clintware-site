@@ -6,6 +6,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  "vars": {
+    "GOOGLE_CALENDAR_ID": "clint.kosh@gmail.com"
+  },
   "routes": [
     { "pattern": "meet.clintware.com", "custom_domain": true }
   ],
