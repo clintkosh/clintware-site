@@ -6,6 +6,7 @@ import json
 from .config import Config, home_dir
 from .executor import execute
 from .helpdb import apply_updates
+from .health import HealthPulse
 from .pack import load_pack
 from .telemetry import emit_error, emit_run_result
 
@@ -35,7 +36,10 @@ def execute_pack_path(
             emit_error(config, "pack_input", str(exc), product_bug=False, metadata={"pack_path": str(path)})
         raise
 
-    result = execute(pack, config=config, workspace_override=workspace_override, approved=approved)
+    pulse_path = home_dir() / "health-pulse.json"
+    with HealthPulse(pulse_path, task_id=str(getattr(pack, "id", "") or "")) as pulse:
+        result = execute(pack, config=config, workspace_override=workspace_override, approved=approved)
+        pulse.mark_progress("result")
     manifest = pack.manifest
     result["agentbridge_result"] = "1.1"
     result["fixes_bug_ids"] = list(manifest.get("fixes_bug_ids") or [])
