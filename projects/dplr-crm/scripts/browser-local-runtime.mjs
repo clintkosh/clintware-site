@@ -38,6 +38,7 @@ function customerFromSample(s){
     isPublicReference:isPublic,
     defaultSample:true,
     sourceFile:String(s.f||""),
+    portfolio:clone(s.portfolio||{}),
     facts:{
       serviceModel:String(s.sm||""),
       product:String(s.sc||""),
