@@ -115,5 +115,9 @@
       "label": "Boom Help Center",
       "url": "https://intercom.help/boomhelpcenter/en"
     }
-  ]
+  ],
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage."
 }
