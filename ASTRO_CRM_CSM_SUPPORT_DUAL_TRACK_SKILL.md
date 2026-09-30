@@ -52,7 +52,7 @@ Each track must:
 
 The first usable screen must offer the twelve tracks in two visibly separated groups. A returning user may restore the previous track preference, but a visible **Switch track** control must remain available.
 
-Track selection is a navigation preference, not customer data. It may be kept locally. Customer/account records, KPIs, contacts, actions, notes, escalations, and meeting artifacts continue to use the CRM's durable persistence layer.
+Track selection and demo customer state are browser-local by default.  Customer/account records, KPIs, contacts, actions, notes, escalations, and meeting artifacts should use the same quota-independent browser workspace unless the manifest explicitly proves a need for shared or cross-device remote state.  Hosting the demo on Cloudflare does not justify a Durable Object.  Apply `docs/astro-local-first-persistence-standard.md`.
 
 ## Shared operating model
 
