@@ -1,5 +1,13 @@
 # ASTRO Website / Product Skill
 
+## Local-first persistence default
+
+Apply `docs/astro-local-first-persistence-standard.md` to new sites and product demos.
+
+Hosting and persistence are separate decisions.  Static content and single-user demo/application state should default to static/stateless hosting plus browser-local persistence.  Do not add a database or Cloudflare Durable Object solely because a site is hosted on Cloudflare or because a reference project used one.
+
+Use server-authoritative persistence only when the feature actually requires shared users, cross-device state, background/webhook processing, centralized audit history, secrets, or another server-only capability.  Record that exception explicitly.  When remote state is needed, choose the storage service by access pattern rather than defaulting to Durable Objects.
+
 This is the canonical Clintware website and product-positioning skill.  Read it before changing any public Clintware page, product page, startup / YC page, portfolio page, homepage, navigation, product positioning, or public-facing visual/copy system.
 
 ## Why this exists
