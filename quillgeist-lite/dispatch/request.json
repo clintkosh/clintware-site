@@ -1,14 +1,11 @@
 {
-  "request_id": "driznet-anth-cache-refresh-20260930-1148",
-  "task_id": "repo-code-search",
+  "request_id": "driznet-nma-crm-full-20260930-1234",
+  "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "args": {
-    "Query": "anth-crm",
-    "Path": "projects/anth-crm",
-    "Mode": "text",
-    "Max": "20",
-    "Json": "true",
-    "FilesOnly": "false"
+    "Action": "full",
+    "Project": "nma-crm",
+    "SkipInstall": "false"
   },
-  "objective": "Refresh DRIZNET's dedicated Clintware source cache to current main and verify the newly persisted Anthropic GSI CRM source is present before local build/deploy."
+  "objective": "Materialize the Noma role-specific CRM from the current DPLR adaptive base, validate the ASTRO manifest, run production transforms and dedicated NMA logic checks, install dependencies, run source checks, and deploy nma.clintware.com. Return local-agent-confirmed evidence; live browser verification remains a separate gate."
 }
