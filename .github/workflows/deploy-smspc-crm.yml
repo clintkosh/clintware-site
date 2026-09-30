@@ -48,6 +48,9 @@ jobs:
           ! grep -Fq 'Sign in to keep data' "$root/public/app-views.js"
           grep -Fq 'Browser-local workspace' "$root/public/dplr-shell.js"
           grep -Fq '"pattern":"smspc.clintware.com"' "$root/wrangler.jsonc"
+          ! grep -Fq '"durable_objects"' "$root/wrangler.jsonc"
+          grep -Fq '"deleted_classes"' "$root/wrangler.jsonc"
+          grep -Fq 'databaseRowsPerDemoSession:0' "$root/src/index.js"
 
       - name: Wrangler dry run
         run: |
@@ -70,8 +73,11 @@ jobs:
           for i in $(seq 1 36); do
             page=$(curl -fsS --connect-timeout 5 --max-time 15 https://smspc.clintware.com/ || true)
             shell=$(curl -fsS --connect-timeout 5 --max-time 15 https://smspc.clintware.com/dplr-shell.js || true)
+            health=$(curl -fsS --connect-timeout 5 --max-time 15 https://smspc.clintware.com/health || true)
             if grep -Fq 'SimSpace Senior Solution Engineer OS' <<< "$page" \
               && grep -Fq 'Browser-local workspace' <<< "$shell" \
+              && grep -Fq '"storage":"browser-local"' <<< "$health" \
+              && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$health" \
               && ! grep -Fq 'Sign in for durable workspace' <<< "$shell"; then
               ready=1
               break
@@ -79,4 +85,4 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
-          echo "SimSpace live without unauthenticated durable sign-in CTA."
+          echo "SimSpace live with browser-local persistence and no Durable Object dependency."
