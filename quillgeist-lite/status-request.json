@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-09-30T18:21:00Z",
-  "reason": "Verify current MEMORIA and DRIZNET QQ availability before applying and testing latency-bounded local-first routing."
+  "requested_at": "2026-09-30T19:46:30Z",
+  "reason": "Verify DRIZNET and MEMORIA after Quillgeist health-contract v2 rollout: fresh local pulse, progress age, watchdog version, delivery state, active job ownership, and queue readiness."
 }
