@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-smspc-auth-clean-full-20260929-1925",
+  "request_id": "driznet-smspc-auth-clean-full-20260929-1928",
   "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "args": {
@@ -8,5 +8,5 @@
     "SkipInstall": "false",
     "RepoRoot": "C:\\Users\\batman\\AppData\\Local\\Clintware\\code-search\\clintware-site"
   },
-  "objective": "Retry the SimSpace CRM rebuild/deploy after a transient control-plane 500. Use the refreshed DPLR source with durable-sign-in CTA removed, preserve all SimSpace role-specific functionality, run source checks, and deploy to https://smspc.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
+  "objective": "Retry the SimSpace CRM rebuild now that the Quillgeist cloud runtime deployment has completed successfully. Use the refreshed DPLR source with durable-sign-in CTA removed, preserve all SimSpace role-specific functionality, run source checks, and deploy to https://smspc.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
 }
