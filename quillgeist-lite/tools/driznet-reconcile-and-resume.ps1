@@ -79,6 +79,14 @@ function Get-OptionalProperty {
   }
 }
 
+function Get-PowerShellHost {
+  $pwsh=Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  if($pwsh){return $pwsh.Source}
+  $candidate=Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+  if(Test-Path $candidate){return $candidate}
+  return "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+}
+
 function Get-RunnerPid {
   try {
     if(-not (Test-Path $RunnerPidPath)){return 0}
@@ -128,7 +136,8 @@ function Get-HeartbeatHealth {
   $task=[string](Get-OptionalProperty $hb "task_id" "")
   $job=[string](Get-OptionalProperty $hb "job_id" "")
   $busy=($state -eq "busy")
-  $alive=Test-RunnerAlive; $healthy=$alive -and ($hbAge -le 120); $reason="healthy"
+  $alive=Test-RunnerAlive; $healthy=$alive -and ($hbAge -le 120)
+  $reason=if($state -eq "connected"){"connected"}elseif($state -eq "disconnected"){"runner_live_control_plane_disconnected"}elseif($state -eq "starting"){"startup_live"}else{"runner_live_"+$state}
   if(-not $alive){$healthy=$false;$reason="runner_not_alive"}
   elseif($hbAge -gt 120){$healthy=$false;$reason="heartbeat_stale"}
   elseif($busy){
@@ -191,8 +200,10 @@ function Refresh-CanonicalRuntime {
 
 function Repair-Supervision {
   $repair=Join-Path $HomeDir "repair-local-service.ps1"
-  & $repair -SkipRunnerRestart
-  if($LASTEXITCODE -ne 0){throw "health-service repair failed: $LASTEXITCODE"}
+  $hostExe=Get-PowerShellHost
+  & $hostExe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipRunnerRestart
+  $code=$LASTEXITCODE
+  if($code -ne 0){throw "health-service repair failed: $code"}
 }
 
 function Start-CanonicalRunner {
@@ -223,10 +234,19 @@ function Invoke-QQTaskDirect {
   Download-Canonical $relative $local
   $argv=@();foreach($k in $Args.Keys){$argv+="-"+$k;$argv+=[string]$Args[$k]}
   Write-AdminLog ("TASK // "+$TaskId) Cyan
-  if($relative -like "*.ps1"){& $local @argv}
-  elseif($relative -like "*.py"){$py=Get-Command py.exe -ErrorAction SilentlyContinue;if($py){& $py.Source -3 $local @argv}else{& python.exe $local @argv}}
+  $code=0
+  if($relative -like "*.ps1"){
+    $hostExe=Get-PowerShellHost
+    & $hostExe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $local @argv
+    $code=$LASTEXITCODE
+  }
+  elseif($relative -like "*.py"){
+    $py=Get-Command py.exe -ErrorAction SilentlyContinue
+    if($py){& $py.Source -3 $local @argv}else{& python.exe $local @argv}
+    $code=$LASTEXITCODE
+  }
   else{throw "Unsupported recovery runtime: $relative"}
-  if($LASTEXITCODE -ne 0){throw "$TaskId failed: $LASTEXITCODE"}
+  if($code -ne 0){throw "$TaskId failed: $code"}
 }
 
 function Test-NomaVerified {
