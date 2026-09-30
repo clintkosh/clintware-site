@@ -82,10 +82,27 @@ def validate(data):
                 cover=bundle.get("cover_letter")
                 if cover is not None and not isinstance(cover,dict):
                     errors.append("cover_letter_must_be_object")
-    return errors,groups,mode
+    persistence=str(data.get("persistence_mode") or "browser-local").strip().lower()
+    remote_required=bool(data.get("remote_state_required",False))
+    durable_required=bool(data.get("durable_objects_required",False))
+    remote_reason=str(data.get("remote_state_reason") or "").strip()
+    allowed_persistence={"browser-local","stateless","remote-required"}
+    if persistence not in allowed_persistence:
+        errors.append(f"unsupported_persistence_mode:{persistence}")
+    if durable_required and not remote_required:
+        errors.append("durable_objects_require_remote_state")
+    if remote_required and persistence!="remote-required":
+        errors.append("remote_state_requires_remote-required_persistence_mode")
+    if persistence=="remote-required" and not remote_required:
+        errors.append("remote-required_mode_requires_remote_state")
+    if remote_required and not remote_reason:
+        errors.append("remote_state_reason_required")
+    if persistence in {"browser-local","stateless"} and durable_required:
+        errors.append("local_or_stateless_mode_cannot_require_durable_objects")
+    return errors,groups,mode,persistence,remote_required,durable_required,remote_reason
 
 def result(action,path,data):
-    errors,groups,mode=validate(data)
+    errors,groups,mode,persistence,remote_required,durable_required,remote_reason=validate(data)
     bundle=data.get("application_bundle") if isinstance(data.get("application_bundle"),dict) else {}
     application_profile=str(bundle.get("profile","")).strip().lower() or None
     base={
@@ -102,6 +119,11 @@ def result(action,path,data):
         "application_profile":application_profile,
         "crm_link_policy":bundle.get("crm_link_policy") if application_profile else None,
         "local_first":True,
+        "persistence_mode":persistence,
+        "remote_state_required":remote_required,
+        "durable_objects_required":durable_required,
+        "remote_state_reason":remote_reason,
+        "quota_independent":not durable_required,
         "remote_shell_exposed":False
     }
     if action=="describe":
@@ -111,7 +133,9 @@ def result(action,path,data):
             "local npm/source checks",
             "reviewed deployment handoff",
             "browser-smoke handoff",
-            "CRM+Cover application bundle validation and planning"
+            "CRM+Cover application bundle validation and planning",
+            "browser-local persistence by default for demos",
+            "Durable Object rejection unless remote state is explicitly required"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
