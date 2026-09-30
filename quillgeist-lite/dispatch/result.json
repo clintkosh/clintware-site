@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-crm-auth-hide-refresh-20260929-1915",
-  "job_id": "ebf453a5-9a82-4aa0-a8e2-3c6bfa0a3081",
+  "request_id": "driznet-crm-auth-login-scan-20260929-1916",
+  "job_id": "c41a73a7-4028-4f4e-a274-0232762cb37d",
   "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 5186,
+  "duration_ms": 3145,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-30T00:13:22.4480809Z",
-  "recorded_at": 1790727201,
+  "confirmed_at": "2026-09-30T00:13:48.7765433Z",
+  "recorded_at": 1790727228,
   "recovery_history": [],
-  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + c6b59b7...4f7e0b8 main       -> origin/main  (forced update)\r\n[run] HEAD is now at 4f7e0b8 Refresh DRIZNET CRM source after auth UI cleanup\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=text query=Browser-local workspace\r\n[run] projects/bm-crm/scripts/materialize.mjs\r\n[run] projects/dpl-crm/public/app-views.js\r\n[run] projects/dplr-crm/public/dplr-shell.js\r\n[run] projects/n7demo-crm/public/app-views.js\r\n[run] Matched 4; scanned 233 text candidates."
+  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + 4f7e0b8...c11f822 main       -> origin/main  (forced update)\r\n[run] HEAD is now at c11f822 Scan CRM projects for remaining auth login UI\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=text query=/auth/login\r\n[run] projects/bm-crm/scripts/materialize.mjs\r\n[run] projects/cpl-cs-os/scripts/materialize.mjs\r\n[run] projects/dpl-crm/public/app-ai.js\r\n[run] projects/dpl-crm/src/index.js\r\n[run] projects/dplr-crm/public/dplr-enrich.js\r\n[run] projects/dplr-crm/README.md\r\n[run] projects/dplr-crm/scripts/dplr-production.mjs\r\n[run] projects/landtheplane-cc/overlay/public/cc.js\r\n[run] projects/landtheplane-cc/overlay/src/cc-entry.js\r\n[run] projects/landtheplane-cc/scripts/materialize.mjs\r\n[run] projects/n7demo-crm/public/app-ai.js\r\n[run] projects/n7demo-crm/src/index.js\r\n[run] projects/nsm-cs-os/scripts/materialize.mjs\r\n[run] Matched 13; scanned 233 text candidates."
 }
