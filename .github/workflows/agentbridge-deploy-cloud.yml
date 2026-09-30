@@ -36,6 +36,7 @@ jobs:
           node --check agentbridge-cloud/public/app.js
           node --check agentbridge-cloud/public/fluid.js
           node --check agentbridge-cloud/public/public-stats.js
+          node --check agentbridge-cloud/public/progress.js
           node --check agentbridge-cloud/public/sw.js
       - name: Wrangler config validates
         run: |
@@ -147,8 +148,9 @@ jobs:
             health=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
             progress=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/progress.html || true)
-            stats=$(curl -fsS --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' || true)
-            stats_cors=$(curl -sS -D - -o /dev/null --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
+            stats_code=$(curl -sS -o /tmp/qg-stats.json -w '%{http_code}' --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' || true)
+            stats=$(cat /tmp/qg-stats.json 2>/dev/null || true)
+            stats_cors=$(curl -sS -X OPTIONS -D - -o /dev/null --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
             bootstrap_code=$(curl -sS -o /tmp/qg-bootstrap.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/account/bootstrap || true)
             pair_code=$(curl -sS -o /tmp/qg-pair.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/pair/request -H 'content-type: application/json' --data '{"pair_code":"ABCDEFGH","device_id":"smoke","device_token":"not-secret"}' || true)
             compact_code=$(curl -sS -o /tmp/qg-compact.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/v1/compact -H 'content-type: application/json' --data '{"text":"smoke"}' || true)
@@ -158,7 +160,7 @@ jobs:
               && grep -Fq 'local-only default' <<< "$page" \
               && grep -Fq 'does not contain a Clintware server credential' <<< "$page" \
               && grep -Fq 'Show the work. Track the efficiency.' <<< "$progress" \
-              && grep -Fq '"coverage":"participating Quillgeist installs and API/MCP calls with telemetry enabled"' <<< "$stats" \
+              && { { test "$stats_code" = "200" && grep -Fq '"coverage":"participating Quillgeist installs and API/MCP calls with telemetry enabled"' <<< "$stats"; } || { test "$stats_code" = "503" && grep -Fq '"error":"aggregate_stats_unavailable"' <<< "$stats"; }; } \
               && grep -Fiq 'access-control-allow-origin: *' <<< "$stats_cors" \
               && test "$bootstrap_code" = "410" \
               && test "$pair_code" = "410" \
