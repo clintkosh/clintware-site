@@ -1368,7 +1368,8 @@ export class RegistryHub extends DurableObject {
     await this.ctx.storage.put(`quillgeist_lite_job:${normalized.job_id}`,normalized);
     index=index.filter(x=>x.job_id!==normalized.job_id);
     index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,runtime_version:normalized.runtime_version,resume_after:normalized.resume_after,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
-    // Keep the hot job index well below Durable Object single-value limits.\n    // Individual job records remain stored separately and are not deleted here.\n    index=index.slice(0,100);\n    await this.ctx.storage.put("quillgeist_lite_job_index",index);
+    index=index.slice(0,200);
+    await this.ctx.storage.put("quillgeist_lite_job_index",index);
     return {ok:true,job:normalized,coalesced:false};
   }
   async updateQuillgeistLiteJob(jobId,patch){
