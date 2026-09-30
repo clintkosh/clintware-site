@@ -54,10 +54,40 @@ def validate(data):
             errors.append("dual_track_roles_must_include_two_roles")
     elif mode!="one-off":
         errors.append(f"unsupported_mode:{mode}")
+
+    bundle=data.get("application_bundle")
+    if bundle is not None:
+        if not isinstance(bundle,dict):
+            errors.append("application_bundle_must_be_object")
+        else:
+            profile=str(bundle.get("profile","")).strip().lower()
+            if profile and profile!="crm+cover":
+                errors.append(f"unsupported_application_profile:{profile}")
+            if profile=="crm+cover":
+                policy=str(bundle.get("crm_link_policy") or "live-verified-only").strip().lower()
+                if policy!="live-verified-only":
+                    errors.append(f"unsupported_crm_link_policy:{policy}")
+                why=bundle.get("why_company")
+                if why is not None and not isinstance(why,dict):
+                    errors.append("why_company_must_be_object")
+                elif isinstance(why,dict) and why.get("enabled",True):
+                    lo=why.get("word_min")
+                    hi=why.get("word_max")
+                    if lo is not None and (not isinstance(lo,int) or lo < 1):
+                        errors.append("why_company_word_min_invalid")
+                    if hi is not None and (not isinstance(hi,int) or hi < 1):
+                        errors.append("why_company_word_max_invalid")
+                    if isinstance(lo,int) and isinstance(hi,int) and lo > hi:
+                        errors.append("why_company_word_range_invalid")
+                cover=bundle.get("cover_letter")
+                if cover is not None and not isinstance(cover,dict):
+                    errors.append("cover_letter_must_be_object")
     return errors,groups,mode
 
 def result(action,path,data):
     errors,groups,mode=validate(data)
+    bundle=data.get("application_bundle") if isinstance(data.get("application_bundle"),dict) else {}
+    application_profile=str(bundle.get("profile","")).strip().lower() or None
     base={
         "ok":not errors,
         "action":action,
@@ -69,6 +99,8 @@ def result(action,path,data):
         "track_count":len(data.get("tracks",[]) if isinstance(data.get("tracks"),list) else []),
         "groups":groups if mode=="dual-track" else None,
         "errors":errors,
+        "application_profile":application_profile,
+        "crm_link_policy":bundle.get("crm_link_policy") if application_profile else None,
         "local_first":True,
         "remote_shell_exposed":False
     }
@@ -78,7 +110,8 @@ def result(action,path,data):
             "deterministic materialization handoff",
             "local npm/source checks",
             "reviewed deployment handoff",
-            "browser-smoke handoff"
+            "browser-smoke handoff",
+            "CRM+Cover application bundle validation and planning"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
@@ -90,6 +123,13 @@ def result(action,path,data):
             "deploy only when explicitly requested",
             "verify live domain before reporting live"
         ]
+        if application_profile=="crm+cover":
+            base["steps"] += [
+                "draft Why Company against the verified application prompt and word range",
+                "draft a distinct role-specific cover letter with the CRM as optional proof-of-work",
+                "insert the CRM URL only after live + interactive browser verification",
+                "run redundancy, claim, and synthetic-data disclosure checks"
+            ]
     return base
 
 def main():
