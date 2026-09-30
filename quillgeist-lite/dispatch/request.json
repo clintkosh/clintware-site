@@ -1,15 +1,14 @@
 {
-  "request_id": "driznet-cxp-browser-verify-20260929-1828",
-  "task_id": "browser-work",
+  "request_id": "driznet-crm-auth-hide-refresh-20260929-1915",
+  "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "run",
-    "Url": "https://cxp.clintware.com/",
-    "StepsJson": "[{\"op\":\"goto\",\"url\":\"https://cxp.clintware.com/\"},{\"op\":\"wait_for_text\",\"text\":\"Make the infrastructure decision defensible.\",\"timeout_ms\":20000},{\"op\":\"click\",\"selector\":\"[data-cxp-track=\\\"tco\\\"]\"},{\"op\":\"wait_for_text\",\"text\":\"Comparable TCO model\",\"timeout_ms\":15000},{\"op\":\"fill\",\"selector\":\"[data-tco=\\\"years\\\"]\",\"value\":\"5\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"current\\\"]\"},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"cloud\\\"]\"},{\"op\":\"extract\",\"selector\":\"[data-r=\\\"private\\\"]\"},{\"op\":\"screenshot\",\"path\":\"cxp-tco-live.png\",\"full_page\":true},{\"op\":\"click\",\"selector\":\"#cxp-switch\"},{\"op\":\"wait_for_text\",\"text\":\"Make the infrastructure decision defensible.\",\"timeout_ms\":10000},{\"op\":\"click\",\"selector\":\"[data-cxp-track=\\\"vendor-selection\\\"]\"},{\"op\":\"wait_for_text\",\"text\":\"Vendor / architecture comparison\",\"timeout_ms\":15000},{\"op\":\"fill\",\"selector\":\"[data-matrix=\\\"0:fit\\\"]\",\"value\":\"5\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"extract\",\"selector\":\"[data-score=\\\"0\\\"]\"},{\"op\":\"screenshot\",\"path\":\"cxp-vendor-live.png\",\"full_page\":true},{\"op\":\"inspect\"}]",
-    "Approved": "false",
-    "Headless": "true",
-    "WaitMs": "500",
-    "MaxChars": "16000"
+    "Query": "Browser-local workspace",
+    "Path": "projects",
+    "Mode": "text",
+    "Max": "50",
+    "Json": "false",
+    "FilesOnly": "true"
   },
-  "objective": "Retry live CXponent functional verification using CXponent-specific selectors. Confirm landing gate, enter TCO track, change horizon to 5 years and capture recalculated totals, switch tracks, enter Vendor Evaluation, change the first fit score to 5 and confirm the total updates, capture screenshots and final page inspection. No authentication or consequential external actions."
+  "objective": "Refresh DRIZNET's dedicated Clintware repository cache from current origin/main before rebuilding CRM demos after durable-sign-in UI removal. Confirm the updated shared CRM sources are present. Read-only repository refresh/search."
 }
