@@ -72,6 +72,23 @@ This provides the MVP cross-model loop:
 `user correction → local Quillgeist preference → new task → preference injected → any connected model`
 
 
+## Big-prompt orchestration
+
+Substantial prompts can be compiled into a recursive, dependency-aware work graph before execution. This is the default planning mode for owner-operated large work.
+
+```bash
+python -m agentbridge_node.big_prompt_cli --project my-project --state-scope my-project --force "Build, test, verify, and summarize the project."
+```
+
+The planner reuses Quillgeist preferences, prompt compaction, and durable state. Leaf units are routed to one of four lanes:
+
+- `qq_deterministic`: local machine work that does not need model inference.
+- `qq_local_model`: local inference when it meets the quality/freshness bar.
+- `control_plane_provider`: provider-backed reasoning or fresh external information brokered through Clintware.
+- `control_plane_action`: consequential external mutations executed through scoped Control Plane capabilities.
+
+The plan itself contains no reusable provider credential values. It can carry an opaque provider/account hint, while credential resolution remains behind the Control Plane or inside the provider's supported local client. Each leaf receives only the dependency outputs and durable context it needs, reducing repeated context transfer.
+
 ## Local inference manager
 
 Quillgeist Full now includes a Windows-first local inference manager for installed runtimes and models. It inventories available RAM, detected GPU metadata, Ollama, llama.cpp binaries, ONNX Runtime GenAI when installed, Ollama models, and GGUF files from configured model directories. It applies a conservative memory-fit guard before recommending or planning local execution.
