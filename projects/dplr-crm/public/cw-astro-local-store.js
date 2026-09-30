@@ -127,7 +127,7 @@
     if(cm&&method==="PATCH"){
       const b=await bodyOf(input,init),c=db.customers.find(x=>x.id===decodeURIComponent(cm[1]));
       if(!c)return json({error:"customer_not_found"},404);
-      Object.assign(c,b,{id:c.id});persist(db);return json({customer:clone(c)});
+      const next={...clone(b)};if(next.portfolio&&typeof next.portfolio==="object"&&!Array.isArray(next.portfolio))next.portfolio={...(c.portfolio||{}),...next.portfolio};if(next.facts&&typeof next.facts==="object"&&!Array.isArray(next.facts))next.facts={...(c.facts||{}),...next.facts};Object.assign(c,next,{id:c.id});persist(db);return json({customer:clone(c)});
     }
     if(method==="POST"&&p==="/customers/clear"){
       const b=await bodyOf(input,init),override=b.overrideGolden===true,remove=new Set(db.customers.filter(c=>override||!c.isGoldenExample).map(c=>c.id));
