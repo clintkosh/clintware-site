@@ -219,7 +219,7 @@ jobs:
             "startMs": int("$first"),
             "timezone": "America/Chicago",
             "name": "ClintCal Deployment Test",
-            "email": "clint@clintware.com",
+            "email": "clint.kosh@gmail.com",
             "company": "Clintware",
             "purpose": "Other",
             "topic": "Automated production booking verification"
