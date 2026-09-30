@@ -1,5 +1,9 @@
 # ASTRO Website / Product Skill
 
+## Local-first persistence default
+
+For sites and demos, hosting and persistence are separate choices.  Default to static/stateless hosting plus browser-local state when that satisfies the workflow.  Do not require Cloudflare Durable Objects merely because Cloudflare hosts the site.  Use remote state only for a concrete shared, cross-device, background, secret-bearing, or server-authoritative requirement, and choose the storage service intentionally.
+
 Use this skill before editing Clintware public pages, product positioning, startup / YC pages, portfolio pages, navigation, or public visual/copy systems.
 
 ## Purpose
