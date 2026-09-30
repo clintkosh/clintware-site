@@ -1,9 +1,9 @@
 {
   "schema": "clintware-smspc-live-smoke/v1",
   "target": "https://smspc.clintware.com/",
-  "started_at": "2026-09-30T10:53:41.372Z",
-  "finished_at": "2026-09-30T10:54:17.338Z",
-  "passed": false,
+  "started_at": "2026-09-30T10:55:21.533Z",
+  "finished_at": "2026-09-30T10:55:29.507Z",
+  "passed": true,
   "customer_count": 7,
   "tracks_verified": [
     "Outcome Discovery",
@@ -181,9 +181,54 @@
       "name": "Track renders: Technical Close, Expansion & Product Signal",
       "ok": true,
       "detail": ""
+    },
+    {
+      "name": "Light theme applies",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Dark theme applies",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical-brief control remains present after track cycling",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No visible startup error",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mobile track switcher is present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Selected track survives mobile reload",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mobile SimSpace CRM has no horizontal overflow",
+      "ok": true,
+      "detail": "390 <= 390"
+    },
+    {
+      "name": "No uncaught page errors",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "No browser console errors",
+      "ok": true,
+      "detail": ""
     }
   ],
   "console_errors": [],
   "page_errors": [],
-  "failure": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('#theme')\n    - locator resolved to <select id=\"theme\" class=\"select\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    60 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n\n    at /home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:147:32"
+  "failure": ""
 }
