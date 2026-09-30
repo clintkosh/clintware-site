@@ -1,0 +1,34 @@
+{
+  "mode": "one-off",
+  "project_id": "gns-crm",
+  "company": "Genesys",
+  "name": "Genesys Customer Success Director Operating System + Cover Letter",
+  "domain": "https://gns.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "anth-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "role_mission": "Operate as a strategic enterprise Customer Success Director who connects customer goals, Genesys adoption, executive alignment, risk mitigation, realized business value, retention, expansion, advocacy, and cross-functional execution into one measurable success system.",
+  "operating_loop": ["Align","Adopt","Prove","Mitigate","Expand","Advocate","Orchestrate"],
+  "roles": [{"id":"customer-success-director","name":"Customer Success, Director"}],
+  "tracks": [
+    {"id":"portfolio","label":"Enterprise Portfolio","tab":"customers","objective":"Prioritize enterprise accounts around objectives, health, executive alignment, risk, decisions, value, and next actions."},
+    {"id":"success-plan","label":"Success Plan & KPIs","tab":"command","objective":"Translate customer business priorities into measurable success plans, owners, milestones, adoption outcomes, and executive checkpoints."},
+    {"id":"adoption","label":"Adoption & Value Realization","tab":"adoption","objective":"Connect platform adoption and usage to customer-defined outcomes while separating activity, adoption, and realized value."},
+    {"id":"risk","label":"Risk & Escalation","tab":"issues","objective":"Surface adoption, technical, relationship, or commercial risk early and coordinate mitigation across the right teams."},
+    {"id":"executive","label":"Executive Business Review","tab":"meetings","objective":"Turn customer outcomes, evidence, risks, decisions, and next-quarter priorities into an executive decision agenda."},
+    {"id":"growth","label":"Retention & Expansion","tab":"renewal","objective":"Use verified customer value and adoption evidence to support retention, expansion, and broader strategic partnership."},
+    {"id":"advocacy","label":"Advocacy & Referenceability","tab":"roi","objective":"Identify credible value stories and advocacy opportunities only after customer outcomes are evidenced and approved."},
+    {"id":"orchestration","label":"Cross-functional Orchestration","tab":"handoff","objective":"Coordinate Sales, Onboarding, Professional Services, Renewals, Product, Support, and Engineering around explicit owners and customer outcomes."},
+    {"id":"cover","label":"Cover Letter & Positioning","tab":"prep","objective":"Generate a concise role-specific application narrative that maps Clinton Kosh's evidence to the Genesys Customer Success Director operating model without overclaiming."}
+  ],
+  "public_sources": [
+    {"label":"Genesys Customer Success, Director","url":"https://genesys.wd1.myworkdayjobs.com/Genesys/job/North-Carolina-USA/Customer-Success--Director_JR112454?source=Linkedin1"},
+    {"label":"Genesys","url":"https://www.genesys.com/"}
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public Genesys role context with clearly synthetic enterprise account data. It is not an official Genesys product, customer tenant, private process description, or representation of real Genesys customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage."
+}
