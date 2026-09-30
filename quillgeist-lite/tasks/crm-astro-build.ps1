@@ -147,9 +147,27 @@ if (-not (Test-Path -LiteralPath $Materializer -PathType Leaf)) { throw "Missing
 if ($LASTEXITCODE -ne 0) { throw "CRM materialization failed." }
 if (-not (Test-Path -LiteralPath $BuildRoot -PathType Container)) { throw "Materializer did not produce $BuildRoot" }
 
+$ManifestData = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+$PersistenceMode = if ($ManifestData.persistence_mode) { [string]$ManifestData.persistence_mode } else { "browser-local" }
+$RemoteStateRequired = [bool]$ManifestData.remote_state_required
+$DurableObjectsRequired = [bool]$ManifestData.durable_objects_required
+if ($PersistenceMode -in @("browser-local","stateless")) {
+  $GeneratedWrangler = Join-Path $BuildRoot "wrangler.jsonc"
+  if (Test-Path -LiteralPath $GeneratedWrangler -PathType Leaf) {
+    $WranglerText = Get-Content -LiteralPath $GeneratedWrangler -Raw
+    if ($WranglerText -match '"durable_objects"\s*:') {
+      throw "Quota-independence gate failed: $Project is $PersistenceMode but generated wrangler still requires Durable Objects."
+    }
+  }
+  if ($DurableObjectsRequired) {
+    throw "Manifest contradiction: $Project cannot require Durable Objects in $PersistenceMode mode."
+  }
+}
+
 if ($Action -eq "materialize") {
   [pscustomobject]@{
     ok=$true; action=$Action; project=$Project; build=$BuildRoot; local_first=$true
+    persistence_mode=$PersistenceMode; remote_state_required=$RemoteStateRequired; durable_objects_required=$DurableObjectsRequired
     source_mode=$source.Mode; source_refreshed=$source.Refreshed
   } | ConvertTo-Json
   exit 0
@@ -179,6 +197,9 @@ finally {
   project=$Project
   build=$BuildRoot
   local_first=$true
+  persistence_mode=$PersistenceMode
+  remote_state_required=$RemoteStateRequired
+  durable_objects_required=$DurableObjectsRequired
   source_mode=$source.Mode
   source_refreshed=$source.Refreshed
   deployed=($Action -in @("deploy","full"))
