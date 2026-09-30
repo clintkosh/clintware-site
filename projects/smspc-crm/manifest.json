@@ -95,5 +95,9 @@
       "url": "https://simspace.com/value/"
     }
   ],
-  "disclosure": "Candidate-built Clintware operating prototype using public SimSpace context and clearly synthetic opportunity data. It is not an official SimSpace product or tenant."
+  "disclosure": "Candidate-built Clintware operating prototype using public SimSpace context and clearly synthetic opportunity data. It is not an official SimSpace product or tenant.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage."
 }
