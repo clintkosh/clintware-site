@@ -139,7 +139,15 @@ try {
     foreach ($repoRelative in @(
         'agentbridge-node/agentbridge_node/__init__.py',
         'agentbridge-node/agentbridge_node/local_gateway.py',
-        'agentbridge-node/agentbridge_node/local_inference.py'
+        'agentbridge-node/agentbridge_node/local_inference.py',
+        'agentbridge-node/agentbridge_node/big_prompt.py',
+        'agentbridge-node/agentbridge_node/big_prompt_cli.py',
+        'agentbridge-node/agentbridge_node/prompt_planner.py',
+        'agentbridge-node/agentbridge_node/contextor.py',
+        'agentbridge-node/agentbridge_node/dlp.py',
+        'agentbridge-node/agentbridge_node/preferences.py',
+        'agentbridge-node/agentbridge_node/state_compactor.py',
+        'agentbridge-node/agentbridge_node/config.py'
     )) {
         Get-ReviewedRuntimeFile -RemotePath $repoRelative -Destination (Join-Path $stage ($repoRelative -replace '/','\'))
     }

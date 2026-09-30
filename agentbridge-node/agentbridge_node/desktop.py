@@ -14,7 +14,9 @@ import webbrowser
 
 from . import __version__
 from .cloud import pair as cloud_pair
+from .big_prompt import plan_big_prompt
 from .config import Config, home_dir
+from .dlp import sanitize as sanitize_dlp
 from .local_gateway import complete as local_complete
 from .prompt_planner import plan_prompt
 
@@ -77,29 +79,56 @@ def compile_intent(text: str, cfg: Config) -> dict:
         output = "Return a compact table with the requested fields."
 
     plan = plan_prompt(source, cfg.data.get("prompt_planner", {}))
+    big_settings = dict(cfg.data.get("big_prompt", {}))
+    use_big = (
+        bool(big_settings.get("enabled", True))
+        and bool(big_settings.get("default_for_substantial_work", True))
+        and plan.mode == "auto_continue"
+    )
+    big = None
+    if use_big:
+        big_settings["prompt_planner"] = dict(cfg.data.get("prompt_planner", {}))
+        big_settings["state_compaction"] = dict(cfg.data.get("state_compactor", {}))
+        big_settings["dlp"] = dict(cfg.data.get("dlp", {}))
+        big = plan_big_prompt(source, big_settings, force=True)
+
     return {
         "product": "Quillgeist",
         "version": __version__,
-        "intent": plan.master_prompt,
+        "intent": big.master_prompt if big else plan.master_prompt,
         "action": action,
         "routing": privacy,
-        "execution_mode": plan.mode,
+        "execution_mode": big.mode if big else plan.mode,
         "prompt_plan": {
             "step_count": len(plan.steps),
             "triggered_by": plan.triggered_by,
             "complexity_score": plan.complexity_score,
             "raw_chars": plan.raw_chars,
-            "planned_chars": len(plan.master_prompt),
+            "planned_chars": len(big.master_prompt if big else plan.master_prompt),
             "raw_tokens_est": plan.raw_tokens_est,
             "planned_tokens_est": plan.compacted_tokens_est,
         },
+        "big_prompt": (
+            {
+                "unit_count": len(big.units),
+                "local_units": big.local_units,
+                "remote_units": big.remote_units,
+                "avoided_remote_context_tokens_est": big.avoided_remote_context_tokens_est,
+                "routing_contract": big.routing_contract,
+                "credential_contract": big.credential_contract,
+                "units": [unit.to_dict() for unit in big.units],
+            }
+            if big
+            else None
+        ),
         "constraints": {
             "preserve_user_intent": True,
             "minimize_unnecessary_context": True,
             "local_policy_authoritative": True,
-            "auto_continue_non_sensitive_steps": plan.mode == "auto_continue",
-            "qa_each_step_before_continuing": plan.mode == "auto_continue",
-            "preserve_accepted_work_across_batches": plan.mode == "auto_continue",
+            "auto_continue_non_sensitive_steps": bool(big) or plan.mode == "auto_continue",
+            "qa_each_step_before_continuing": bool(big) or plan.mode == "auto_continue",
+            "preserve_accepted_work_across_batches": bool(big) or plan.mode == "auto_continue",
+            "credentials_outside_work_graph": bool(big),
         },
         "definition_of_done": output,
     }
@@ -522,12 +551,22 @@ class QuillgeistDesktop:
         self.focus_command()
 
     def _prepare_connected_command(self, text: str, compiled: dict, reason: str = "") -> None:
-        payload = json.dumps(compiled, indent=2)
+        safe_compiled, _dlp_report = sanitize_dlp(compiled, self.cfg.data.get("dlp", {}), purpose="external")
+        payload = json.dumps(safe_compiled, indent=2)
         self.root.clipboard_clear()
         self.root.clipboard_append(payload)
         plan = compiled.get("prompt_plan", {})
+        big = compiled.get("big_prompt") or {}
         plan_note = ""
-        if compiled.get("execution_mode") == "auto_continue":
+        if compiled.get("execution_mode") == "qq_big_prompt":
+            plan_note = (
+                f"\nBig-prompt graph: ON · {big.get('unit_count', 0)} routed units "
+                f"· local {big.get('local_units', 0)} · remote/control-plane {big.get('remote_units', 0)}\n"
+                f"Estimated repeated remote context avoided: {big.get('avoided_remote_context_tokens_est', 0)} tokens "
+                "(planning estimate, not billing telemetry).\n"
+                "The copied payload contains the dependency graph; credentials are not part of the work graph.\n"
+            )
+        elif compiled.get("execution_mode") == "auto_continue":
             plan_note = (
                 f"\nAuto-compact: ON · {plan.get('step_count', 1)} dependency-aware steps "
                 f"· trigger: {', '.join(plan.get('triggered_by') or ['complexity'])}\n"
@@ -626,7 +665,20 @@ class QuillgeistDesktop:
                 self.toggle_local_only()
             return
         compiled = compile_intent(text, self.cfg)
-        self.ledger.add("intent", compiled.get("action", "general"), text)
+        safe_text, _dlp_report = sanitize_dlp(text, self.cfg.data.get("dlp", {}), purpose="memory")
+        self.ledger.add("intent", compiled.get("action", "general"), str(safe_text))
+        if compiled.get("execution_mode") == "qq_big_prompt":
+            big = compiled.get("big_prompt") or {}
+            self._write_output(
+                "QUILLGEIST BIG PROMPT // compiled\n\n"
+                f"Units: {big.get('unit_count', 0)} · local: {big.get('local_units', 0)} "
+                f"· remote/control-plane: {big.get('remote_units', 0)}\n"
+                f"Estimated repeated remote context avoided: {big.get('avoided_remote_context_tokens_est', 0)} tokens.\n\n"
+                "The dependency-aware payload is being prepared for the configured planner/control-plane path."
+            )
+            self.ledger.add("big_prompt", f"{big.get('unit_count', 0)} routed units", str(safe_text))
+            self._prepare_connected_command(text, compiled, "Substantial request compiled into the big-prompt work graph.")
+            return
         self._run_local_responder(text, compiled)
 
     def show_window(self) -> None:

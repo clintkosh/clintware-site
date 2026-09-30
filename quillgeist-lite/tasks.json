@@ -1,5 +1,5 @@
 {
-  "version": 23,
+  "version": 24,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
   "runtimes": [
@@ -311,6 +311,19 @@
       "auto_continue": false,
       "max_attempts": 1,
       "timeout_seconds": 120
+    },
+    "big-prompt-plan": {
+      "title": "Recursively decompose a substantial prompt into dependency-aware local and control-plane work units",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/big-prompt-plan.ps1",
+      "parameters": [
+        "Prompt",
+        "Project",
+        "StateScope",
+        "MaxDepth"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
     }
   }
 }
