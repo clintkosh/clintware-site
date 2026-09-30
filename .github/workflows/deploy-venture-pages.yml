@@ -46,7 +46,7 @@ jobs:
       - name: Verify venture domains
         run: |
           set -euo pipefail
-          for host in quillgeist.clintware.com promptiris.clintware.com orgsynapse.clintware.com portability.clintware.com; do
+          for host in quillgeist.clintware.com successos.clintware.com promptiris.clintware.com orgsynapse.clintware.com portability.clintware.com; do
             ok=0
             for i in $(seq 1 20); do
               health=$(curl -sS --connect-timeout 5 --max-time 15 "https://$host/healthz" || true)

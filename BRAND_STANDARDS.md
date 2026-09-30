@@ -67,18 +67,19 @@ The slogan is not a substitute for a product description. Product copy must rema
 
 ## Product hierarchy
 
-The current founder-priority / Winter 2027 validation order, updated September 19, 2026:
+The current founder-priority / Winter 2027 validation order, updated September 30, 2026:
 
-1. **Mind to Form**: primary new venture thesis. Intent-to-physical-product compiler with a mandatory Definition-of-Done approval gate.
-2. **BuyerOrigin**: working merchant-controlled acquisition-offer eligibility MVP and strongest commercial-validation challenger.
-3. **Quillgeist**: working adaptive-intent/local-execution alpha and strongest technical alternate.
-4. **LandThePlane**: working candidate-owned evidence / career-system alpha.
-5. **Prompt Iris**: working browser MVP for quality-adjusted AI efficiency.
-6. **RenewNudge**: live Customer Success renewal-risk and action workflow.
-7. **OrgSynapse**: working shared company-operating-state alpha.
-8. **ShoulderSoldier**: working deterministic user-interaction risk evaluator.
-9. **Portability Check**: defined portability assessment/remediation track.
-10. **MindVergent™**: supporting verified-work network thesis.
+1. **Quillgeist** — primary W27 candidate; working local-execution/context alpha with aggregate efficiency telemetry and a public progress journal.
+2. **Mind to Form** — working intent-to-physical-product browser alpha.
+3. **BuyerOrigin** — working merchant-controlled acquisition-offer eligibility MVP and commercial-validation challenger.
+4. **Clintware SuccessOS** — architecture + prototype track for a portable governed AI operating environment.
+5. **LandThePlane** — working candidate-owned evidence / career-system alpha with prep provenance and interview review.
+6. **Prompt Iris** — browser MVP for quality-adjusted AI efficiency.
+7. **RenewNudge** — live Customer Success renewal-risk and action workflow.
+8. **OrgSynapse** — working shared company-operating-state alpha.
+9. **ShoulderSoldier** — working deterministic user-interaction risk evaluator.
+10. **Portability Check** — defined portability assessment/remediation track.
+11. **MindVergent™** — broader verified-work network thesis.
 
 Idea priority and evidence maturity are separate. Never imply that the #1 idea has more external proof than a lower-ranked working product unless verified evidence supports that claim.
 
@@ -89,6 +90,7 @@ Every venture in the YC/startup ranking gets its own dedicated Clintware subdoma
 - `mindtoform.clintware.com`
 - `buyerorigin.clintware.com`
 - `quillgeist.clintware.com`
+- `successos.clintware.com`
 - `landtheplane.clintware.com`
 - `promptiris.clintware.com`
 - `renewnudge.clintware.com`
@@ -112,7 +114,7 @@ Do not present **MindVergent™ Labs** as the permanent company name. Labs is on
 
 ## Winter 2027 YC language
 
-BuyerOrigin may be described as the **primary Winter 2027 Y Combinator application candidate** or **being prepared for a Winter 2027 YC application** while that remains the actual plan. Quillgeist is the close technical alternate, followed by RenewNudge, ShoulderSoldier, and Portability Check in the current evidence-ranked validation order.
+Quillgeist may be described as the current primary Winter 2027 Y Combinator application path while that remains the actual plan. This is founder priority, not a YC endorsement or prediction. Keep the venture evidence registry and next-gate language current as proof changes.
 
 Do not call a planned application an `Applicant` before it has actually been submitted.  Do not imply acceptance, YC interview selection, endorsement, affiliation, funding, or participation unless it actually occurs.
 

@@ -31,13 +31,18 @@ def log_event(event:dict)->None:
 def parse_json(text:str)->dict:
     decoder=json.JSONDecoder()
     objects=[]
-    for match in re.finditer(r"\{",text):
+    pos=0
+    while pos < len(text):
+        start=text.find("{",pos)
+        if start < 0: break
         try:
-            obj,end=decoder.raw_decode(text[match.start():])
+            obj,end=decoder.raw_decode(text[start:])
         except json.JSONDecodeError:
+            pos=start+1
             continue
         if isinstance(obj,dict):
             objects.append(obj)
+        pos=start+max(end,1)
     if objects:
         return objects[-1]
     raise ValueError("Planner did not return valid JSON")

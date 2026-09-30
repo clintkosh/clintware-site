@@ -216,6 +216,22 @@ The code supports a shared Clintware Google OAuth client through the `GOOGLE_OAU
 
 Until the shared client is configured and completes the applicable Google restricted-scope verification, the live public app exposes a **tester BYO Google OAuth client ID** fallback. This allows design partners/testers to exercise the complete browser-direct Gmail flow using their own Google Cloud OAuth client.
 
+### Prep provenance and improvement journal
+
+LandThePlane is the canonical cross-channel ledger for interview-prep provenance; it is not required to be the only generator.
+
+Supported generator labels include `landtheplane-web`, `landtheplane-review`, `chatgpt`, and `interviewprepper-local`. The current browser alpha automatically records privacy-safe metadata for its own evidence-map runs and can import/export metadata for external prep runs.
+
+Current browser-local improvement metrics include:
+
+- prep-run count;
+- requirement-to-evidence coverage;
+- coverage change over time;
+- matched evidence-anchor count;
+- generator source and interview stage.
+
+Raw resume text, job descriptions, recruiter email, transcript text, compensation, and private prep content are not part of the public progress journal. Authenticated cross-channel cloud ingestion remains a future/private-store capability; until that exists, external runs must be explicitly imported or recorded through a local producer.
+
 ## Target preparation surfaces
 
 - requirement/evidence matrix;

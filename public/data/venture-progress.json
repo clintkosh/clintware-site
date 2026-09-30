@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-09-30",
+  "purpose": "Unified evidence/progress registry for Clintware YC candidates and operational venture ideas. Empty metrics are never rendered as fake traction.",
+  "ui_contract": {
+    "summary_jobs": [
+      "current_status",
+      "meaningful_change",
+      "measured_evidence",
+      "next_gate"
+    ],
+    "progressive_disclosure": true,
+    "hide_empty_metrics": true,
+    "separate_internal_proof_from_external_traction": true
+  },
+  "ventures": [
+    {
+      "id": "quillgeist",
+      "name": "Quillgeist",
+      "canonical_url": "https://quillgeist.clintware.com/",
+      "stage": "Primary YC candidate · public alpha",
+      "surface_mode": "live",
+      "progress_url": "https://quillgeist.clintware.com/progress.html",
+      "current_proof": "Cross-platform local runtime, scoped operating context, verified execution, aggregate efficiency telemetry, and a live public progress journal.",
+      "next_gate": "Repeat outside usage across providers, verified user count/retention, and paid conversion or paid intent.",
+      "metric_source": "live_product_telemetry",
+      "metrics": []
+    },
+    {
+      "id": "mindtoform",
+      "name": "Mind to Form",
+      "canonical_url": "https://mindtoform.clintware.com/",
+      "stage": "Working alpha · physical-product thesis",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Adaptive intake, Definition-of-Done approval, structured engineering draft, local parametric 3D preview, and local export package.",
+      "next_gate": "Outside users, real parametric CAD/DFM, live RFQ, and one physical prototype.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "buyerorigin",
+      "name": "BuyerOrigin",
+      "canonical_url": "https://buyerorigin.clintware.com/",
+      "stage": "Working MVP · commercial challenger",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Working merchant-policy and audit MVP.",
+      "next_gate": "Merchant-confirmed leakage, false-positive/override quality, and paid intent.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "successos",
+      "name": "Clintware SuccessOS",
+      "canonical_url": "https://successos.clintware.com/",
+      "stage": "Architecture + prototype track",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Portable governed-AI operating-environment architecture and executable prototype components with validation tests.",
+      "next_gate": "Repeatable bootable image across multiple hardware targets with offline inference, driver discovery, scoped execution, and verified rollback behavior.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "landtheplane",
+      "name": "LandThePlane",
+      "canonical_url": "https://landtheplane.clintware.com/",
+      "stage": "Working alpha",
+      "surface_mode": "live",
+      "progress_url": "https://landtheplane.clintware.com/#progress",
+      "current_proof": "Evidence mapping, Brief Builder, interview review, adaptive self-introduction standard, and browser-local longitudinal prep statistics.",
+      "next_gate": "Verified prep-run provenance across generation channels, repeat evidence reuse across rounds/roles, and external retention.",
+      "metric_source": "browser_local_plus_curated_milestones",
+      "metrics": []
+    },
+    {
+      "id": "promptiris",
+      "name": "Prompt Iris",
+      "canonical_url": "https://promptiris.clintware.com/",
+      "stage": "Browser MVP",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Working browser MVP for quality-adjusted AI efficiency.",
+      "next_gate": "Outside users and provider telemetry.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "renewnudge",
+      "name": "RenewNudge",
+      "canonical_url": "https://renewnudge.clintware.com/",
+      "stage": "Live product",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Live Customer Success renewal-risk and action workflow using synthetic/demo data.",
+      "next_gate": "Sustained outside-team usage and paid value.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "orgsynapse",
+      "name": "OrgSynapse",
+      "canonical_url": "https://orgsynapse.clintware.com/",
+      "stage": "Working alpha",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Working CRM-first shared operating state.",
+      "next_gate": "Outside-team usage and production connectors.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "shouldersoldier",
+      "name": "ShoulderSoldier",
+      "canonical_url": "https://shouldersoldier.clintware.com/",
+      "stage": "Working security MVP",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Working deterministic user-interaction risk evaluator.",
+      "next_gate": "Measured intervention quality and false-positive behavior in real use.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "portability",
+      "name": "Portability Check",
+      "canonical_url": "https://portability.clintware.com/",
+      "stage": "Defined validation track",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Defined assessment and remediation method.",
+      "next_gate": "Outside assessment demand and paid remediation.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    },
+    {
+      "id": "mindvergent",
+      "name": "MindVergent™",
+      "canonical_url": "https://mindvergent.clintware.com/",
+      "stage": "Exploration track",
+      "surface_mode": "scaffold",
+      "progress_url": null,
+      "current_proof": "Public thesis, founding intake, seed research, and founding-community operating model.",
+      "next_gate": "Repeated contributions, peer validation, and durable trust signal.",
+      "metric_source": "not_yet_published",
+      "metrics": []
+    }
+  ]
+}

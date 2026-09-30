@@ -9,13 +9,14 @@ This file supersedes `docs/yc-venture-priority-2026-09-19.md`. Founder priority 
 | 1 | Quillgeist | https://quillgeist.clintware.com/ | Working cross-platform local runtime, scoped operating context, verified execution, aggregate efficiency telemetry, and a live public progress journal | Repeat outside usage across providers, verified user count/retention, and paid conversion or paid intent |
 | 2 | Mind to Form | https://mindtoform.clintware.com/ | Browser alpha: adaptive intake, Definition-of-Done approval gate, first structured engineering draft, local parametric 3D preview, local export package | Outside users, real parametric CAD/DFM, live RFQ, and one physical prototype |
 | 3 | BuyerOrigin | https://buyerorigin.clintware.com/ | Working merchant-policy/audit MVP | Merchant-confirmed leakage, false-positive/override quality, paid intent |
-| 4 | LandThePlane | https://landtheplane.clintware.com/ | Working evidence mapping, Brief Builder, and interview review | Repeat evidence reuse across rounds/roles and retention |
-| 5 | Prompt Iris | https://promptiris.clintware.com/ | Working browser MVP | Outside users and provider telemetry |
-| 6 | RenewNudge | https://renewnudge.clintware.com/ | Live CS workflow product/demo | Sustained outside-team usage and paid value |
-| 7 | OrgSynapse | https://orgsynapse.clintware.com/ | Working CRM-first shared-state alpha | Outside-team usage and production connectors |
-| 8 | ShoulderSoldier | https://shouldersoldier.clintware.com/ | Working deterministic interaction-risk evaluator | Measured intervention quality and false positives |
-| 9 | Portability Check | https://portability.clintware.com/ | Defined assessment/remediation method | Outside assessment demand and paid remediation |
-| 10 | MindVergent™ | https://mindvergent.clintware.com/ | Public thesis/founding surface | Repeated contributions, peer validation, and durable trust signal |
+| 4 | Clintware SuccessOS | https://successos.clintware.com/ | Architecture plus executable prototype components for governed local-first AI operation | Repeatable bootable image on multiple hardware targets with offline inference, driver discovery, scoped execution, and verified rollback |
+| 5 | LandThePlane | https://landtheplane.clintware.com/ | Working evidence mapping, Brief Builder, interview review, prep provenance journal, and adaptive interview-prep standards | Verified cross-channel prep provenance, repeat evidence reuse across rounds/roles, and retention |
+| 6 | Prompt Iris | https://promptiris.clintware.com/ | Working browser MVP | Outside users and provider telemetry |
+| 7 | RenewNudge | https://renewnudge.clintware.com/ | Live CS workflow product/demo | Sustained outside-team usage and paid value |
+| 8 | OrgSynapse | https://orgsynapse.clintware.com/ | Working CRM-first shared-state alpha | Outside-team usage and production connectors |
+| 9 | ShoulderSoldier | https://shouldersoldier.clintware.com/ | Working deterministic interaction-risk evaluator | Measured intervention quality and false positives |
+| 10 | Portability Check | https://portability.clintware.com/ | Defined assessment/remediation method | Outside assessment demand and paid remediation |
+| 11 | MindVergent™ | https://mindvergent.clintware.com/ | Public thesis/founding surface | Repeated contributions, peer validation, and durable trust signal |
 
 ## Why Quillgeist moved back to #1
 

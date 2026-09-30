@@ -73,7 +73,9 @@ jobs:
             headers=$(curl -sS -D - --connect-timeout 5 --max-time 20 "https://landtheplane.clintware.com/?release=${GITHUB_SHA}" -o /tmp/landtheplane.html || true)
             if grep -Fqi 'x-landtheplane-gmail-mvp: browser-direct-oauth-v1' <<< "$headers" \
               && grep -Fq 'Gmail evidence · OAuth MVP' /tmp/landtheplane.html \
-              && grep -Fq 'Create + verify Gmail draft' /tmp/landtheplane.html; then
+              && grep -Fq 'Create + verify Gmail draft' /tmp/landtheplane.html \
+              && grep -Fq 'Prep evidence journal · local-first' /tmp/landtheplane.html \
+              && grep -Fq 'recordExternalPrep' /tmp/landtheplane.html; then
               echo 'LandThePlane Gmail OAuth MVP is live.'
               ready=1
               break

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/styles.css">
 <title>Quillgeist Progress Journal | Clintware</title>
 <style>
-.progress-shell{max-width:1080px;margin:0 auto;padding:38px 24px 72px}.progress-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.progress-head h1{margin:.25rem 0 .5rem}.progress-head p{max-width:780px}.progress-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.progress-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0}.progress-card,.journal-panel,.boundary,.architecture{border:1px solid var(--line);border-radius:16px;background:rgba(7,11,17,.72)}.progress-card{padding:15px}.progress-card span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.progress-card b{display:block;font:800 25px/1.1 Consolas,monospace;margin-top:7px}.progress-card small{display:block;color:var(--muted);font-size:9px;margin-top:5px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.flow div{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(3,7,12,.5)}.flow span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.flow b{display:block;font:750 16px Consolas,monospace;margin-top:4px}.journal-panel,.boundary,.architecture{padding:18px;margin-top:14px}.journal-panel h2,.boundary h2,.architecture h2{margin-top:0}.journal-row,.milestone{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;padding:14px 0;border-top:1px solid var(--line)}.journal-date{color:var(--cyan);font:700 11px Consolas,monospace}.journal-title{font-weight:750}.journal-copy,.evidence{color:var(--muted);font-size:12px;line-height:1.6;margin-top:5px}.evidence{color:#b9c8d6}.kind{color:var(--violet);font:700 9px Consolas,monospace;letter-spacing:.1em;margin-bottom:5px}.boundary ul,.architecture ul{line-height:1.7;color:var(--muted)}.meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:10px}.empty{color:var(--muted);padding:12px 0}.architecture code{color:var(--cyan)}@media(max-width:760px){.progress-grid,.flow{grid-template-columns:repeat(2,1fr)}.journal-row,.milestone{grid-template-columns:1fr;gap:5px}}@media(max-width:480px){.progress-grid,.flow{grid-template-columns:1fr}}
+.progress-shell{max-width:1080px;margin:0 auto;padding:38px 24px 72px}.progress-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.progress-head h1{margin:.25rem 0 .5rem}.progress-head p{max-width:780px}.progress-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.progress-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0}.progress-card,.journal-panel,.boundary,.architecture{border:1px solid var(--line);border-radius:16px;background:rgba(7,11,17,.72)}.progress-card{padding:15px}.progress-card span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.progress-card b{display:block;font:800 25px/1.1 Consolas,monospace;margin-top:7px}.progress-card small{display:block;color:var(--muted);font-size:9px;margin-top:5px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.flow div{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(3,7,12,.5)}.flow span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.flow b{display:block;font:750 16px Consolas,monospace;margin-top:4px}.journal-panel,.boundary,.architecture{padding:18px;margin-top:14px}.journal-panel h2,.boundary h2,.architecture h2{margin-top:0}.architecture summary,.boundary summary{cursor:pointer;font-weight:750;color:var(--text);list-style:none}.architecture summary::-webkit-details-marker,.boundary summary::-webkit-details-marker{display:none}.architecture summary::after,.boundary summary::after{content:'+';float:right;color:var(--cyan);font:700 14px Consolas,monospace}.architecture[open] summary::after,.boundary[open] summary::after{content:'−'}.architecture summary+*,.boundary summary+*{margin-top:14px}.journal-row,.milestone{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;padding:14px 0;border-top:1px solid var(--line)}.journal-date{color:var(--cyan);font:700 11px Consolas,monospace}.journal-title{font-weight:750}.journal-copy,.evidence{color:var(--muted);font-size:12px;line-height:1.6;margin-top:5px}.evidence{color:#b9c8d6}.kind{color:var(--violet);font:700 9px Consolas,monospace;letter-spacing:.1em;margin-bottom:5px}.boundary ul,.architecture ul{line-height:1.7;color:var(--muted)}.meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:10px}.empty{color:var(--muted);padding:12px 0}.architecture code{color:var(--cyan)}@media(max-width:760px){.progress-grid,.flow{grid-template-columns:repeat(2,1fr)}.journal-row,.milestone{grid-template-columns:1fr;gap:5px}}@media(max-width:480px){.progress-grid,.flow{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -50,24 +50,24 @@
     <p class="muted">Curated evidence with the measurement boundary stated directly.</p>
     <div id="qgMilestones"></div>
   </section>
-  <section class="architecture">
-    <h2>Product shape: portal + local runtime + MCP/API</h2>
+  <details class="architecture">
+    <summary>Product shape: portal + local runtime + MCP/API</summary>
     <p>The web portal is the human-facing SaaS surface. The local runtime remains the execution authority. MCP/API is the machine interface connecting models, approved capabilities, and the portal/control plane.</p>
     <ul>
       <li><strong>Quillgeist local runtime:</strong> permissions, deterministic execution, verification, private state, and local-first operation.</li>
       <li><strong>Quillgeist web portal:</strong> progress, personal usage/savings, workflows, policy management, team controls, billing, and future cross-device sync.</li>
       <li><strong>MCP/API:</strong> model-agnostic capability protocol and orchestration interface, not the entire customer experience by itself.</li>
     </ul>
-  </section>
-  <section class="boundary">
-    <h2>Evidence boundary</h2>
+  </details>
+  <details class="boundary">
+    <summary>Evidence boundary</summary>
     <ul>
       <li><strong>Measured:</strong> counts, durations, pass/fail status, files changed, and browser checks emitted by instrumentation.</li>
       <li><strong>Estimated:</strong> token fields and remote-only counterfactual savings unless a provider reports exact billing tokens for both sides of a controlled comparison.</li>
       <li><strong>Internal proof:</strong> founder/Clintware production use. Useful product evidence, but not external-customer traction.</li>
       <li><strong>External traction:</strong> outside repeat users, paid users, retention, and revenue will only appear when verified.</li>
     </ul>
-  </section>
+  </details>
 </main>
 </section>
 <script src="/progress.js"></script>
