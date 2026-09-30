@@ -38,4 +38,19 @@ Planned/persisted source:
 Synthetic-data boundary is explicit.  No real Anthropic customer data is used.
 
 ### Execution evidence
-Pending qq dispatch at the time this entry is created.  Update only from local-agent or live-domain verification evidence.
+- Source/ASTRO commit: `0e51b033bc62077064a2164703413a5dddda2130`.
+- Repository validation on that commit: Brand/isolation **passed**; CRM analytics coverage **passed**.
+- qq cache-refresh request: `driznet-anth-cache-refresh-20260930-1148`, task `repo-code-search`, target `DRIZNET`.
+- GitHub relay run: `36747335289`.
+- Dispatch outcome: **failed before queue/delivery**.  The Control Plane returned `Exceeded allowed rows read in Durable Objects free tier.`
+- Therefore no local execution, deployment, or live-domain verification is claimed from this request.
+- The relay is now hardened to treat this quota condition as non-retryable instead of spending four additional failed requests.
+
+### Current state
+Source is persisted and ready for qq, but `anth.clintware.com` is **not yet claimed deployed or verified**.
+
+Next verified execution sequence remains:
+1. qq `repo-code-search` to refresh DRIZNET's dedicated source cache.
+2. qq `crm-astro-build` with `Action=full`, `Project=anth-crm`.
+3. qq `browser-work` against `https://anth.clintware.com`.
+4. Public live-route verification and journal update with exact evidence.
