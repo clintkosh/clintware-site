@@ -1,5 +1,5 @@
 param(
-  [string]$TargetDevice = "DRIZNET",
+  [string]$TargetDevice = $env:COMPUTERNAME,
   [int]$MaxGraceMinutes = 90,
   [switch]$ForceOtherDevice,
   [switch]$SkipNomaValidation
