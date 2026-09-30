@@ -1,11 +1,11 @@
 import { chromium } from "playwright";
 
 const base="https://cpl.clintware.com";
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
 let page;
 try{
   page=await browser.newPage({viewport:{width:1440,height:1000}});
-  await page.goto(base,{waitUntil:"networkidle",timeout:60000});
+  await page.goto(base,{waitUntil:"domcontentloaded",timeout:60000});
 
   await page.getByText("Customer Success CRM").first().waitFor({timeout:20000});
   const accounts=await page.locator(".account-row").count();
@@ -68,6 +68,14 @@ try{
   await page.locator('.modal button[type="submit"]').click();
   await page.getByText("Note added").waitFor({timeout:15000});
   await page.getByText("Browser verification note").waitFor();
+  const persisted=await page.evaluate(async()=>{const r=await fetch("/api/state",{cache:"no-store"});return {status:r.status,body:await r.json(),mode:window.CW_ASTRO_LOCAL_MODE===true,stored:Object.keys(localStorage).some(k=>k.startsWith("cw-astro:cpl-cs-os:"))}});
+  if(persisted.status!==200||!persisted.mode||persisted.body?.access?.storage!=="browser-local"||!persisted.stored)throw new Error("CPL browser-local persistence contract missing");
+  if(persisted.body.customer?.portfolio?.healthScore!==77||persisted.body.customer?.portfolio?.adoption!==82)throw new Error("CPL account edits missing from browser-local state");
+  if(!persisted.body.records.some(r=>r.type==="note"&&r.data?.title==="Browser verification note"))throw new Error("CPL note missing from browser-local state");
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.getByText("Customer Success CRM").first().waitFor({timeout:20000});
+  const reloaded=await page.evaluate(async()=>{const r=await fetch("/api/state",{cache:"no-store"});return r.json()});
+  if(reloaded.customer?.portfolio?.healthScore!==77||!reloaded.records.some(r=>r.type==="note"&&r.data?.title==="Browser verification note"))throw new Error("CPL browser-local changes did not survive reload");
 
   await page.click('[data-action="application"]');
   const drawer=page.locator("#applicationDrawer");
@@ -80,7 +88,7 @@ try{
 
   await page.evaluate(()=>localStorage.setItem("cpl-crm-view","overview"));
   await page.setViewportSize({width:390,height:844});
-  await page.goto(base,{waitUntil:"networkidle",timeout:60000});
+  await page.goto(base,{waitUntil:"domcontentloaded",timeout:60000});
   await page.getByText("Customer Success CRM").first().waitFor();
   await page.getByText("Next actions").waitFor();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
@@ -89,8 +97,8 @@ try{
   if(!(await page.locator("#applicationDrawer").evaluate(el=>el.classList.contains("open"))))throw new Error("Mobile application drawer did not open");
   await page.screenshot({path:"cpl-mobile-smoke.png",fullPage:true});
 
-  const reset=await page.request.post(base+"/api/customers/reset-samples",{data:{}});
-  if(!reset.ok())throw new Error("Could not restore synthetic defaults after browser mutation");
+  const reset=await page.evaluate(async()=>{const r=await fetch("/api/customers/reset-samples",{method:"POST",headers:{"content-type":"application/json"},body:"{}"});return {ok:r.ok,status:r.status,body:await r.json()}});
+  if(!reset.ok)throw new Error("Could not restore synthetic defaults after browser mutation: "+reset.status);
   console.log("CPL working CRM browser smoke passed");
 }catch(err){
   if(page)await page.screenshot({path:"cpl-failure.png",fullPage:true}).catch(()=>{});
