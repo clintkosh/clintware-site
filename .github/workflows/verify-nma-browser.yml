@@ -1,4 +1,5 @@
 name: Verify NMA Browser Runtime
+# Independent acceptance gate for the live candidate demo.
 
 on:
   push:
