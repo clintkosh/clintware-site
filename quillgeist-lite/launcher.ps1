@@ -244,7 +244,22 @@ if (-not $launcherOwnsMutex) {
 }
 try {
 Set-Content -Path $PidPath -Value $PID -Encoding ASCII
-@{state="starting";pid=$PID;runner_id=$env:COMPUTERNAME;timestamp=(Get-Date).ToUniversalTime().ToString("o")} | ConvertTo-Json | Set-Content -Path (Join-Path $HomeDir "runner-heartbeat.json") -Encoding UTF8
+$launcherHeartbeatAt=(Get-Date).ToUniversalTime()
+@{
+  version="2"
+  runner_id=$env:COMPUTERNAME
+  pid=$PID
+  session_id=("launcher-"+$PID)
+  state="starting"
+  job_id=""
+  task_id=""
+  phase="launcher"
+  sequence=1
+  progress_sequence=0
+  progress_at=""
+  network_state="disconnected"
+  timestamp=$launcherHeartbeatAt.ToString("o")
+} | ConvertTo-Json | Set-Content -Path (Join-Path $HomeDir "runner-heartbeat.json") -Encoding UTF8
 Set-ClintwareBaseTheme
 Ensure-QuillgeistHealthService
 $script:QQRuntimeRefreshRequired = Initialize-QQRuntimeVersion
