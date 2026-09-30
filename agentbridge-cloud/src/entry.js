@@ -64,7 +64,7 @@ async function canonicalBugBody(telemetry,body){
 async function publicProductStats(env,days=30){
   const stub=env.PRODUCT_METRICS_HUB.getByName("agentbridge-global");
   const r=await stub.fetch(`https://internal/impact?days=${Math.max(7,Math.min(90,Number(days)||30))}`);
-  if(!r.ok)return json({error:"stats_unavailable"},503);
+  if(!r.ok)return json({error:"aggregate_stats_unavailable",available:false},503,{"cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-methods":"GET,OPTIONS","access-control-allow-headers":"content-type"});
   const data=await r.json();const m=data.metrics||{};
   const metrics={
     prompts_compiled:Number(m.prompts_compiled||0),runs:Number(m.runs||0),compactions:Number(m.compactions||0),api_compactions:Number(m.api_compactions||0),pass_through_runs:Number(m.pass_through_runs||0),
