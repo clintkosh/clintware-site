@@ -75,6 +75,11 @@ jobs:
           grep -Fq 'No default Quillgeist Cloud URL.' agentbridge-cloud/public/index.html
           grep -Fq 'does not contain a Clintware server credential' agentbridge-cloud/public/index.html
           grep -Fq 'quillgeist-v0.4.0-selfhost-alpha' agentbridge-cloud/public/index.html
+          test -f agentbridge-cloud/public/progress.html
+          test -f agentbridge-cloud/public/progress.js
+          grep -Fq 'Live progress journal' agentbridge-cloud/public/index.html
+          grep -Fq 'Product shape: portal + local runtime + MCP/API' agentbridge-cloud/public/progress.html
+          grep -Fq 'access-control-allow-origin' agentbridge-cloud/src/entry.js
       - name: Runtime markers
         run: |
           set -euo pipefail
@@ -141,6 +146,9 @@ jobs:
           for i in $(seq 1 30); do
             health=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
+            progress=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/progress.html || true)
+            stats=$(curl -fsS --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' || true)
+            stats_cors=$(curl -sSI --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
             bootstrap_code=$(curl -sS -o /tmp/qg-bootstrap.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/account/bootstrap || true)
             pair_code=$(curl -sS -o /tmp/qg-pair.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/pair/request -H 'content-type: application/json' --data '{"pair_code":"ABCDEFGH","device_id":"smoke","device_token":"not-secret"}' || true)
             compact_code=$(curl -sS -o /tmp/qg-compact.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/v1/compact -H 'content-type: application/json' --data '{"text":"smoke"}' || true)
@@ -149,6 +157,9 @@ jobs:
               && grep -Fq '"public_runtime":false' <<< "$health" \
               && grep -Fq 'local-only default' <<< "$page" \
               && grep -Fq 'does not contain a Clintware server credential' <<< "$page" \
+              && grep -Fq 'Show the work. Track the efficiency.' <<< "$progress" \
+              && grep -Fq '"coverage":"participating Quillgeist installs and API/MCP calls with telemetry enabled"' <<< "$stats" \
+              && grep -Fiq 'access-control-allow-origin: *' <<< "$stats_cors" \
               && test "$bootstrap_code" = "410" \
               && test "$pair_code" = "410" \
               && test "$compact_code" = "410" \
