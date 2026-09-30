@@ -1,7 +1,9 @@
 import platform
+import time
 import unittest
 
 from agentbridge_node.config import Config
+from agentbridge_node import desktop as desktop_module
 from agentbridge_node.desktop import ActivityLedger, compile_intent
 from agentbridge_node.usage_desktop import QuillgeistDesktopWithUsage
 
@@ -41,9 +43,29 @@ def test_windows_desktop_ui_starts_with_inline_command_workflow(tmp_path, monkey
         after = [w for w in app.root.winfo_children() if isinstance(w, app.tk.Toplevel)]
         assert len(after) == len(before)
 
+        monkeypatch.setattr(
+            desktop_module,
+            "local_complete",
+            lambda payload, config: (
+                200,
+                {"choices": [{"message": {"content": "Local smoke response."}}]},
+            ),
+        )
         app.command_input.insert("1.0", "summarize this report")
         app.submit_command()
-        assert "Command prepared" in app.output.get("1.0", "end")
+
+        # The current workflow is local-first and asynchronous. The old
+        # "Command prepared" handoff text predates the local responder.
+        deadline = time.time() + 2.0
+        output = ""
+        while time.time() < deadline:
+            app.root.update()
+            output = app.output.get("1.0", "end")
+            if "QUILLGEIST LOCAL" in output:
+                break
+            time.sleep(0.01)
+        assert "QUILLGEIST LOCAL" in output
+        assert "Local smoke response." in output
     finally:
         app._running = False
         app.root.destroy()
