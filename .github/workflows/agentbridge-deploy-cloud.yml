@@ -148,7 +148,7 @@ jobs:
             page=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
             progress=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/progress.html || true)
             stats=$(curl -fsS --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' || true)
-            stats_cors=$(curl -sSI --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
+            stats_cors=$(curl -sS -D - -o /dev/null --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
             bootstrap_code=$(curl -sS -o /tmp/qg-bootstrap.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/account/bootstrap || true)
             pair_code=$(curl -sS -o /tmp/qg-pair.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/pair/request -H 'content-type: application/json' --data '{"pair_code":"ABCDEFGH","device_id":"smoke","device_token":"not-secret"}' || true)
             compact_code=$(curl -sS -o /tmp/qg-compact.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/v1/compact -H 'content-type: application/json' --data '{"text":"smoke"}' || true)
