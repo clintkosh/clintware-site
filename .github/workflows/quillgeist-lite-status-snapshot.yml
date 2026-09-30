@@ -26,11 +26,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ops
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" -o /tmp/status.json
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=100" -o /tmp/diag.json
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" -o /tmp/tasks.json
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" -o /tmp/codex-task.ps1
-          curl -fsS -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" -H "Accept: text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" -o /tmp/qq-health.cs
+          # This workflow is event-driven, but it can start while a new Control Plane
+          # deployment is still converging. Use a bounded readiness retry instead of
+          # converting health collection into a recurring poller.
+          qq_fetch() {
+            local accept="$1"
+            local url="$2"
+            local out="$3"
+            curl --fail --silent --show-error \
+              --retry 20 --retry-delay 5 --retry-max-time 110 --retry-all-errors \
+              -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+              -H "Accept: $accept" \
+              "$url" -o "$out"
+          }
+          qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" /tmp/status.json
+          qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=100" /tmp/diag.json
+          qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" /tmp/tasks.json
+          qq_fetch "text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" /tmp/codex-task.ps1
+          qq_fetch "text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" /tmp/qq-health.cs
           python3 - <<'PY'
           import hashlib, json, os, time, urllib.error, urllib.request
           from datetime import datetime, timezone
