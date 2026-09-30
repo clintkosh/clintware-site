@@ -1,4 +1,4 @@
-> Status update — September 19, 2026: This remains a usable Quillgeist-specific application draft, but Quillgeist is no longer the repository-wide #1 venture priority. See `docs/yc-venture-priority-2026-09-19.md`. Retain this draft if evidence later promotes Quillgeist again; its older prioritization language must not override the current portfolio ranking.
+> Status update — September 30, 2026: Quillgeist is again the current likely Winter 2027 application path. See `docs/yc-venture-priority-2026-09-30.md`. The evidence boundary remains strict: internal efficiency proof and aggregate usage do not count as external-user traction.
 
 # Quillgeist — Y Combinator Winter 2027 Application Draft
 
@@ -29,6 +29,8 @@ Quillgeist has packaged Windows, macOS, and Linux local nodes.  It can pair a ma
 The current MVP also persists explicit user-approved preferences locally and injects them into future compiled instructions independently of the connected model.  For example, a user can tell Quillgeist `remember: Keep the original file and create a copy`, switch AI providers, and have that rule remain part of the user's local operating context.
 
 The broader adaptive-learning layer is earlier.  The next proof is whether relevant user-owned context measurably improves repeated work across providers without creating bloated prompts or reducing user control.
+
+The product now also has a public progress journal at **https://quillgeist.clintware.com/progress.html**.  It reads privacy-safe aggregate product telemetry and shows daily execution/compaction activity plus clearly labeled internal build milestones.  Estimated token fields remain labeled estimates, and the page explicitly states that aggregate activity may include founder/internal usage rather than implying a unique-user count.
 
 
 A recent anonymized internal proof also tested the execution-economics side of the product.  For a role-specific CRM build, Quillgeist locally refreshed the source, materialized the application, ran checks, deployed it, and functionally verified the live TCO and vendor-comparison workflows.  The successful local build/deploy step took 22.220 seconds and the live browser verification took 13.560 seconds.  A directional model of the equivalent remote-supervised workflow estimates **30k–60k cloud-model tokens avoided**, roughly **60–80% of the implementation-token load**.  The timing and pass/fail results are measured; the token reduction is an estimate until I run controlled A/B token telemetry.
@@ -97,7 +99,7 @@ The initial paid product would be a Pro plan for individuals who use multiple AI
 
 A likely starting structure is roughly $20–30/month for individual Pro users and $50–100/user/month for teams, with enterprise pricing for centralized policy, audit, deployment, and reporting.
 
-The local runtime can remain useful without a paid cloud dependency.  Paid value comes from synchronization, managed routing, team controls, analytics, shared workflows, and enterprise management.
+The local runtime can remain useful without a paid cloud dependency.  The likely paid SaaS surface is the Quillgeist web portal: personal usage and savings, cross-device synchronization, workflow libraries, policy controls, team administration, audit, and billing.  MCP/API is the model-independent machine interface underneath that portal rather than the entire customer-facing product by itself.
 
 ## How will users find you?
 
@@ -114,6 +116,8 @@ The number of capable AI agents is increasing quickly, and users will increasing
 If each provider owns the user's context, permissions, and execution history, people and companies end up rebuilding their operating context repeatedly.
 
 Quillgeist can become the persistent user-owned layer beneath those agents: the place where intent, permissions, memory, execution, verification, and feedback live regardless of which model is currently best.
+
+The product architecture is now clearer: **local runtime for authority and execution + MCP/API for model interoperability + web portal for the recurring SaaS relationship**.
 
 Individual AI models can change quickly.  The user's accumulated operating context becomes more valuable over time.
 
@@ -138,6 +142,12 @@ More recently I have used AI-assisted development to turn recurring problems int
 **Personal Primer:** A user-controlled AI that learns both what a person knows and what they are trying to understand about themselves, combining longitudinal personal context with adaptive research, reflection, and learning.
 
 I chose Quillgeist because I have already built substantially more of the underlying product and because the same persistent-context problem appears underneath the other ideas.
+
+## Progress journal / traction reporting
+
+Use the public progress journal as an evidence surface during the application and demo.  It should show measured activity, estimates, and internal proof separately.  Do not convert aggregate activity into an external-user claim.  Add verified outside-user count, retention, paying users, and revenue only when those values are known.
+
+The current internal CRM build proofs are useful because they demonstrate that Quillgeist can move deterministic build/deploy/browser work out of the reasoning model while returning verification evidence.  They strengthen the technical/economic claim but do not substitute for customer traction.
 
 # Founder video bullets
 
