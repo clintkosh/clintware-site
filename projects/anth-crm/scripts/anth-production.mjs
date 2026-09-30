@@ -108,9 +108,14 @@ rewrite("public/dplr-prep.js",[
  ["Technical Customer Engineer","Customer Success Manager, GSI"]
 ]);
 
+rewrite("public/import-utils.js",[
+ ["Doppel-style scope","Product / use-case scope"],
+ ["NEURON7-STYLE CRM SEED RECORD","ROLE-SPECIFIC CRM SEED RECORD"]
+]);
+
 fs.rmSync(path.join(root,"public","dplr-enrich.js"),{force:true});
 
-for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/dplr-shell.js","public/dplr-prep.js"]){
+for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/import-utils.js","public/dplr-shell.js","public/dplr-prep.js"]){
  const text=read(rel);
  if(/Doppel|doppel\.com/i.test(text))throw new Error("Source-company semantics leaked into generated runtime: "+rel);
 }
