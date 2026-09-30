@@ -52,6 +52,18 @@ Public/self-hosted Quillgeist is local-first by default and must let the user de
 
 For the owner-managed Clintware profile, provider-role defaults may be configured locally/privately without changing the public package. Owner-only local/private data remains fail-closed: a request must present a verified authenticated subject matching the configured owner subject before private/local owner data can enter a model context. Non-owner users receive only their own scoped/local data and public/shared context.
 
+## Owner-managed Clintware defaults
+
+These defaults apply only after the authenticated subject matches the configured owner subject `Clint.Kosh`. They are preferences, not secrets, and must never become defaults for public/self-hosted Quillgeist users.
+
+- Text/reasoning: local-first. Prefer deterministic local execution, then the healthiest eligible local model when quality/freshness is sufficient.
+- Image generation: prefer Grok by default when the owner route exposes an authorized Grok image capability; otherwise follow the owner's explicit override/fallback.
+- Devil's-advocate review: run a compact Gemini critic pass for substantial owner work when Gemini is authorized and the extra check is useful. The critic is advisory and must not silently override the primary result.
+- Weekly AI pulse: run a compact model/provider pulse grade for Surfing the Wave, compare available model/provider performance/evidence, and feed only the bounded result into the newsletter draft pipeline.
+- Inference cooperation: models may critique/compare one another through bounded routed work units; do not retransmit full private context to every model.
+- Private/local data: only `Clint.Kosh` receives the owner-local data capability. Every other subject is default-deny and may access only its own scoped data plus public/shared context.
+- Surfing the Wave: use the existing Clintware newsletter delivery stack after human review; do not create a second subscriber database or auto-publish model-generated copy.
+
 ## Syntax and executable-source gate
 
 Any generated or modified PowerShell, Python, JavaScript/TypeScript, C/C++, shell script, workflow, or other executable source must pass an appropriate parser/syntax/compiler check before it can replace a maintained runtime file, be committed/merged as working code, or be reported as verified. PowerShell uses the PowerShell parser in addition to repository tests. A structural string check is not a substitute for syntax validation.
