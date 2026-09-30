@@ -29,6 +29,10 @@ jobs:
           node-version: "22"
       - name: Run newsletter unit tests
         run: npm --prefix newsletter test
+      - name: Validate Surfing the Wave draft generator
+        run: |
+          python3 -m py_compile newsletter/scripts/surfing_wave.py
+          python3 -m unittest newsletter/test/test_surfing_wave.py
       - name: Validate Worker configuration
         run: XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config newsletter/wrangler.jsonc
 
