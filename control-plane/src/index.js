@@ -8,7 +8,7 @@ import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jira
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-29-always-on-checkin-v26";
+const QUILLGEIST_RUNTIME_VERSION = "2026-09-30-health-contract-v27";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -242,6 +242,8 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/service/QuillgeistLiteHealthService.cs",
   "quillgeist-lite/service/install-service.ps1",
   "quillgeist-lite/service/recovery-watch.ps1",
+  "quillgeist-lite/tools/driznet-reconcile-and-resume.ps1",
+  "quillgeist-lite/HEALTH_CONTRACT.md",
   "quillgeist-lite/tasks/restart-window.ps1",
   "quillgeist-lite/tasks/ensure-powershell.ps1",
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
@@ -287,6 +289,7 @@ const QUILLGEIST_LITE_TASKS = {
   "self-update":{runtime:"powershell",parameters:[]},
   "restart-window":{runtime:"powershell",parameters:[]},
   "repair-local-service":{runtime:"powershell",parameters:[]},
+  "reconcile-health":{runtime:"powershell",parameters:["TargetDevice","MaxGraceMinutes"]},
   "apply-terminal-glass":{runtime:"powershell",parameters:[]},
   "connect-jira":{runtime:"powershell",parameters:[]},
   "connect-confluence":{runtime:"powershell",parameters:[]},
@@ -1068,6 +1071,16 @@ export class RegistryHub extends DurableObject {
         }
       }catch{}
     }
+    if(job?.job_id){
+      const current=await this.ctx.storage.get(`quillgeist_lite_job:${job.job_id}`);
+      const attempts=Number(current?.delivery_attempts||0)+1;
+      await this.updateQuillgeistLiteJob(job.job_id,{
+        delivery_state:delivered>0?"delivered":"waiting_for_device",
+        delivery_attempts:attempts,
+        last_delivery_attempt_at:nowIso(),
+        delivered_at:delivered>0?(current?.delivered_at||nowIso()):(current?.delivered_at||null)
+      });
+    }
     return delivered;
   }
   async broadcastQuillgeistLiteWake(job){
@@ -1174,6 +1187,9 @@ export class RegistryHub extends DurableObject {
       service_started_at:clip(data?.service_started_at||"",80),
       maintenance:Boolean(data?.maintenance),
       busy:Boolean(data?.busy),
+      heartbeat_age_seconds:Number.isFinite(Number(data?.heartbeat_age_seconds))?Number(data.heartbeat_age_seconds):-1,
+      progress_age_seconds:Number.isFinite(Number(data?.progress_age_seconds))?Number(data.progress_age_seconds):-1,
+      health_state:clip(data?.health_state||"",80),
       updated_at:nowIso()
     };
     await this.ctx.storage.put(`quillgeist_lite_presence:${device_id}`,presence);
@@ -1219,6 +1235,30 @@ export class RegistryHub extends DurableObject {
       index.unshift({request_id,target_device:reply.device_id,action:reply.action,status:"replied",requested_at:current.requested_at,replied_at:reply.replied_at});
     }
     await this.ctx.storage.put("quillgeist_lite_checkin_index",index.slice(0,100));
+
+    if(presence.job_id){
+      const active=await this.ctx.storage.get(`quillgeist_lite_job:${presence.job_id}`);
+      if(active&&(!active.target_device||active.target_device===presence.device_id)){
+        const stale=["down","stale_or_reconnecting"].includes(String(presence.health_state||""));
+        await this.updateQuillgeistLiteJob(presence.job_id,{
+          status:stale?"stale":"running",
+          delivery_state:"acknowledged",
+          health_state:presence.health_state||"",
+          heartbeat_age_seconds:presence.heartbeat_age_seconds,
+          progress_age_seconds:presence.progress_age_seconds,
+          health_checked_at:reply.replied_at
+        });
+        await this.broadcastQuillgeistLiteJobEvent(presence.job_id,{
+          event:"health",
+          source:"qq-watchdog-checkin",
+          device_id:presence.device_id,
+          status:stale?"stale":"running",
+          health_state:presence.health_state||"",
+          heartbeat_age_seconds:presence.heartbeat_age_seconds,
+          progress_age_seconds:presence.progress_age_seconds
+        });
+      }
+    }
     return {ok:true,checkin:next};
   }
 
@@ -1370,6 +1410,10 @@ export class RegistryHub extends DurableObject {
       runtime_version,
       resume_after:Boolean(job.resume_after),
       status:"queued",
+      delivery_state:"pending",
+      delivery_attempts:0,
+      last_delivery_attempt_at:null,
+      delivered_at:null,
       created_at:nowIso(),
       updated_at:nowIso(),
       logs:[],
@@ -1377,7 +1421,7 @@ export class RegistryHub extends DurableObject {
     };
     await this.ctx.storage.put(`quillgeist_lite_job:${normalized.job_id}`,normalized);
     index=index.filter(x=>x.job_id!==normalized.job_id);
-    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,runtime_version:normalized.runtime_version,resume_after:normalized.resume_after,status:normalized.status,created_at:normalized.created_at,updated_at:normalized.updated_at});
+    index.unshift({job_id:normalized.job_id,task_id:normalized.task_id,target_device:normalized.target_device,runtime_version:normalized.runtime_version,resume_after:normalized.resume_after,status:normalized.status,delivery_state:normalized.delivery_state,created_at:normalized.created_at,updated_at:normalized.updated_at});
     index=index.slice(0,200);
     await this.ctx.storage.put("quillgeist_lite_job_index",index);
     return {ok:true,job:normalized,coalesced:false};
@@ -1390,7 +1434,7 @@ export class RegistryHub extends DurableObject {
     if(Array.isArray(next.logs)&&next.logs.length>500)next.logs=next.logs.slice(-500);
     await this.ctx.storage.put(key,next);
     let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
-    index=index.map(x=>x.job_id===jobId?{...x,status:next.status,updated_at:next.updated_at}:x);
+    index=index.map(x=>x.job_id===jobId?{...x,status:next.status,delivery_state:next.delivery_state||x.delivery_state||"pending",updated_at:next.updated_at}:x);
     await this.ctx.storage.put("quillgeist_lite_job_index",index);
     return next;
   }
@@ -1429,7 +1473,7 @@ export class RegistryHub extends DurableObject {
             return;
           }
           const startedAt=clip(data.started_at||nowIso(),80);
-          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",started_at:startedAt});
+          await this.updateQuillgeistLiteJob(recoveryJobId,{status:"running",delivery_state:"acknowledged",started_at:startedAt,delivered_at:job?.delivered_at||nowIso()});
           await this.broadcastQuillgeistLiteJobEvent(recoveryJobId,{event:"ack",source:"qq-local-agent-recovery",device_id:attachment.device_id||"",status:"running",started_at:startedAt});
           return;
         }
@@ -1604,7 +1648,7 @@ export class RegistryHub extends DurableObject {
           const job=await this.ctx.storage.get(`quillgeist_lite_job:${jobId}`);
           if(job?.target_device&&job.target_device!==attachment.device_id)return;
           const startedAt=clip(data.started_at||nowIso(),80);
-          await this.updateQuillgeistLiteJob(jobId,{status:"running",started_at:startedAt});
+          await this.updateQuillgeistLiteJob(jobId,{status:"running",delivery_state:"acknowledged",started_at:startedAt,delivered_at:job?.delivered_at||nowIso()});
           await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),last_seen:nowIso()});
           await this.broadcastQuillgeistLiteJobEvent(jobId,{event:"ack",source:"qq-local-agent",device_id:attachment.device_id||"",status:"running",started_at:startedAt});
           return;
