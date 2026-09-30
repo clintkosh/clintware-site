@@ -83,7 +83,7 @@ const trackText=fs.readFileSync(path.join(out,"public","anth-track.js"),"utf8");
 if((trackText.match(/objective:/g)||[]).length!==8)throw new Error("Anthropic operating-track contract must remain eight tracks.");
 if(!trackText.includes("Consumption + seat adoption")||!trackText.includes("Download QBR brief PDF"))throw new Error("Anthropic role-specific controls missing.");
 if(!wrangler.includes('"pattern":"anth.clintware.com"'))throw new Error("Anthropic custom domain route missing.");
-for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/dplr-shell.js","public/dplr-prep.js"]){
+for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/import-utils.js","public/dplr-shell.js","public/dplr-prep.js"]){
  const text=fs.readFileSync(path.join(out,rel),"utf8");
  if(/Doppel|doppel\.com/i.test(text))throw new Error("Source-company semantics leaked into generated runtime: "+rel);
 }
