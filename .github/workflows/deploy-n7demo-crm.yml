@@ -2,7 +2,7 @@ name: Deploy N7 Demo CRM
 on:
   push:
     branches: [main]
-    paths: ["projects/n7demo-crm/**", ".github/workflows/deploy-n7demo-crm.yml"]
+    paths: ["projects/n7demo-crm/**", "tests/n7_browser_smoke.mjs", ".github/workflows/deploy-n7demo-crm.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -51,6 +51,7 @@ jobs:
           grep -Fq "stakeholder" public/app-config.js
           grep -Fq "brief-add-stakeholder" public/app-forms.js
           grep -Fq "\"stakeholder\"" src/index.js
+          ! grep -Fq 'href="/auth/login"' public/app-views.js || { echo "Durable sign-in CTA unexpectedly present" >&2; exit 1; }
 
       - name: Wrangler dry run
         run: |
