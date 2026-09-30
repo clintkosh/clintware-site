@@ -176,8 +176,12 @@ jobs:
           test "$login_code" = "302"
           grep -Eqi '^location: https://auth\.clintware\.com/' "$login_headers"
 
+          disclosure=$(curl -fsS 'https://auth.clintware.com/delegated/google/start?return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected')
+          echo "$disclosure" | grep -Fq 'Connect Google to Clintware'
+          echo "$disclosure" | grep -Fq 'Continue to Google'
+
           delegated_headers=$(mktemp)
-          curl -sS -o /dev/null -D "$delegated_headers" 'https://auth.clintware.com/delegated/google/start?return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected'
+          curl -sS -o /dev/null -D "$delegated_headers" 'https://auth.clintware.com/delegated/google/start?confirm=1&return_to=https%3A%2F%2Fcc.clintware.com%2F%3Fgoogle%3Dconnected'
           delegated_location=$(awk 'BEGIN{IGNORECASE=1}/^location:/{sub(/^[^:]+:[[:space:]]*/,"");gsub(/\r/,"");print;exit}' "$delegated_headers")
           echo "$delegated_location" | grep -Eq '^https://accounts\.google\.com/'
           echo "$delegated_location" | grep -Eq 'gmail(\.readonly|%2Fgmail)'
