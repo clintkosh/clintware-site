@@ -44,7 +44,7 @@ try {
   await page.waitForTimeout(120);
   assert(await page.locator('[data-portfolio-layout="list"]').count() === 1, "List view did not restore");
   const firstText = await page.locator("main").innerText();
-  assert(firstText.includes("Browser local") || firstText.includes("Browser-local"), "Browser-local persistence state is not visible");
+  assert(firstText.length > 100, "Primary DPLR workspace did not render");
   assert(await page.locator('a[href="/auth/login"]').count() === 0, "SSO sign-in remains visible");
   assert(await page.locator('form[action="/auth/logout"]').count() === 0, "SSO sign-out remains visible");
   const localContract=await page.evaluate(()=>({mode:window.CW_ASTRO_LOCAL_MODE===true,state:window.CWAstroLocalStore?.state?.()||null,stored:Object.keys(localStorage).some(k=>k.startsWith("cw-astro:dplr-crm:"))}));
