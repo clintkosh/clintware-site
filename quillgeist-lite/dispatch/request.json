@@ -7,5 +7,11 @@
     "Project": "nma-crm",
     "SkipInstall": "false"
   },
-  "objective": "Materialize the Noma role-specific CRM from the current DPLR adaptive base, validate the ASTRO manifest, run production transforms and dedicated NMA logic checks, install dependencies, run source checks, and deploy nma.clintware.com. Return local-agent-confirmed evidence; live browser verification remains a separate gate."
+  "objective": "Materialize the Noma role-specific CRM from the current DPLR adaptive base, validate the ASTRO manifest, run production transforms and dedicated NMA logic checks, install dependencies, run source checks, and deploy nma.clintware.com. Return local-agent-confirmed evidence; live browser verification remains a separate gate.",
+  "status": "closed",
+  "delivery_state": "delivery_failed",
+  "closed_at": "2026-09-30T18:25:00Z",
+  "close_reason": "Control Plane quota failure occurred before DRIZNET delivery; no local execution started.",
+  "superseded_by": "evidence/nma-crm/VERIFICATION.json",
+  "verified_outcome": "NMA CRM completed and independently verified through deterministic fallback; do not treat this legacy request file as active execution."
 }
