@@ -68,3 +68,13 @@ Next verified execution sequence remains:
 2. qq `crm-astro-build` with `Action=full`, `Project=anth-crm`.
 3. qq `browser-work` against `https://anth.clintware.com`.
 4. Public live-route verification and journal update with exact evidence.
+
+## 2026-09-30 — CRM+Cover ASTRO
+
+- Created reusable `ASTRO_CRM_COVER_SKILL.md`.
+- Canonical base remains ASTRO; employer builds remain implementation references / overlays only.
+- CRM+Cover packages a role-fit one-off CRM with distinct Why Company and Cover Letter artifacts.
+- Added verified-only CRM link policy: source/CI status is not enough to put a public CRM URL into final application copy as a live proof point.
+- Updated `quillgeist-lite/tools/crm_astro.py` so qq recognizes and validates the optional `application_bundle.profile = "crm+cover"` manifest profile and plans the paired writing / verification steps.
+- Tracking issue: #115.
+
