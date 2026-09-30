@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-crm-auth-login-scan-20260929-1916",
-  "job_id": "c41a73a7-4028-4f4e-a274-0232762cb37d",
+  "request_id": "driznet-crm-auth-cta-scan-20260929-1918",
+  "job_id": "28388d4f-9059-4015-9340-b251d277d61a",
   "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 3145,
+  "duration_ms": 4138,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-09-30T00:13:48.7765433Z",
-  "recorded_at": 1790727228,
+  "confirmed_at": "2026-09-30T00:16:04.9496118Z",
+  "recorded_at": 1790727364,
   "recovery_history": [],
-  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + 4f7e0b8...c11f822 main       -> origin/main  (forced update)\r\n[run] HEAD is now at c11f822 Scan CRM projects for remaining auth login UI\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=text query=/auth/login\r\n[run] projects/bm-crm/scripts/materialize.mjs\r\n[run] projects/cpl-cs-os/scripts/materialize.mjs\r\n[run] projects/dpl-crm/public/app-ai.js\r\n[run] projects/dpl-crm/src/index.js\r\n[run] projects/dplr-crm/public/dplr-enrich.js\r\n[run] projects/dplr-crm/README.md\r\n[run] projects/dplr-crm/scripts/dplr-production.mjs\r\n[run] projects/landtheplane-cc/overlay/public/cc.js\r\n[run] projects/landtheplane-cc/overlay/src/cc-entry.js\r\n[run] projects/landtheplane-cc/scripts/materialize.mjs\r\n[run] projects/n7demo-crm/public/app-ai.js\r\n[run] projects/n7demo-crm/src/index.js\r\n[run] projects/nsm-cs-os/scripts/materialize.mjs\r\n[run] Matched 13; scanned 233 text candidates."
+  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + c11f822...81834e1 main       -> origin/main  (forced update)\r\n[run] HEAD is now at 81834e1 Scan CRM source for remaining durable sign-in CTAs\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=regex query=Sign in (to keep data|for durable workspace)\r\n[run] projects/bm-crm/scripts/materialize.mjs\r\n[run] Matched 1; scanned 233 text candidates."
 }
