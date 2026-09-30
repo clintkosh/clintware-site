@@ -2,7 +2,11 @@ param(
   [string]$TargetDevice = $env:COMPUTERNAME,
   [int]$MaxGraceMinutes = 90,
   [switch]$ForceOtherDevice,
-  [switch]$SkipNomaValidation
+  [switch]$SkipNomaValidation,
+  [string]$OwnerSubject = "",
+  [string]$DefaultImageProvider = "",
+  [string]$DefaultCriticProvider = "",
+  [switch]$EnableWeeklyPulseGrade
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,12 +49,31 @@ if (-not (Test-Administrator)) {
   $argList=@("-NoLogo","-NoProfile","-ExecutionPolicy","Bypass","-File",$PSCommandPath,"-TargetDevice",$TargetDevice,"-MaxGraceMinutes",$MaxGraceMinutes)
   if($ForceOtherDevice){$argList += "-ForceOtherDevice"}
   if($SkipNomaValidation){$argList += "-SkipNomaValidation"}
+  if($OwnerSubject){$argList += @("-OwnerSubject",$OwnerSubject)}
+  if($DefaultImageProvider){$argList += @("-DefaultImageProvider",$DefaultImageProvider)}
+  if($DefaultCriticProvider){$argList += @("-DefaultCriticProvider",$DefaultCriticProvider)}
+  if($EnableWeeklyPulseGrade){$argList += "-EnableWeeklyPulseGrade"}
   Start-Process -FilePath $hostExe -ArgumentList $argList -Verb RunAs
   exit 0
 }
 
 if((-not $ForceOtherDevice) -and ($env:COMPUTERNAME -ne $TargetDevice)){
   throw "Target is $TargetDevice; current machine is $env:COMPUTERNAME. Use -ForceOtherDevice only intentionally."
+}
+
+if($OwnerSubject){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_PRIVATE_DATA_OWNER_ID",$OwnerSubject,"User")
+}
+if($DefaultImageProvider){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_IMAGE_PROVIDER",$DefaultImageProvider,"User")
+}
+if($DefaultCriticProvider){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_ENABLE_CRITIC","true","User")
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_CRITIC_PROVIDER",$DefaultCriticProvider,"User")
+}
+if($EnableWeeklyPulseGrade){
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_ENABLE_PULSE_GRADE","true","User")
+  [Environment]::SetEnvironmentVariable("QUILLGEIST_DEFAULT_PULSE_PROVIDER","ensemble","User")
 }
 
 $lock=$null
@@ -76,6 +99,27 @@ function Get-OptionalProperty {
     return $property.Value
   } catch {
     return $Default
+  }
+}
+
+function Get-PowerShellHost {
+  $pwsh=Get-Command pwsh.exe -ErrorAction SilentlyContinue
+  if($pwsh){return $pwsh.Source}
+  $candidate=Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"
+  if(Test-Path $candidate){return $candidate}
+  return "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+}
+
+function Test-ScriptSyntax {
+  param([Parameter(Mandatory=$true)][string]$Path)
+  $ext=[IO.Path]::GetExtension($Path).ToLowerInvariant()
+  if($ext -eq ".ps1"){
+    $tokens=$null;$errors=$null
+    [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $Path),[ref]$tokens,[ref]$errors)|Out-Null
+    if($errors.Count -gt 0){
+      $detail=($errors|ForEach-Object{$_.Message}) -join "; "
+      throw "PowerShell syntax validation failed for ${Path}: $detail"
+    }
   }
 }
 
@@ -128,7 +172,8 @@ function Get-HeartbeatHealth {
   $task=[string](Get-OptionalProperty $hb "task_id" "")
   $job=[string](Get-OptionalProperty $hb "job_id" "")
   $busy=($state -eq "busy")
-  $alive=Test-RunnerAlive; $healthy=$alive -and ($hbAge -le 120); $reason="healthy"
+  $alive=Test-RunnerAlive; $healthy=$alive -and ($hbAge -le 120)
+  $reason=if($state -eq "connected"){"connected"}elseif($state -eq "disconnected"){"runner_live_control_plane_disconnected"}elseif($state -eq "starting"){"startup_live"}else{"runner_live_"+$state}
   if(-not $alive){$healthy=$false;$reason="runner_not_alive"}
   elseif($hbAge -gt 120){$healthy=$false;$reason="heartbeat_stale"}
   elseif($busy){
@@ -173,6 +218,7 @@ function Download-Canonical {
   Invoke-WebRequest -Uri "$RawBase/$Relative" -OutFile $tmp -UseBasicParsing -TimeoutSec 30
   if((Get-Item $tmp).Length -lt 20){throw "Downloaded file too small: $Relative"}
   if($Contains -and -not (Get-Content $tmp -Raw).Contains($Contains)){throw "Structural check failed: $Relative"}
+  Test-ScriptSyntax $tmp
   Move-Item $tmp $Destination -Force
 }
 
@@ -191,8 +237,10 @@ function Refresh-CanonicalRuntime {
 
 function Repair-Supervision {
   $repair=Join-Path $HomeDir "repair-local-service.ps1"
-  & $repair -SkipRunnerRestart
-  if($LASTEXITCODE -ne 0){throw "health-service repair failed: $LASTEXITCODE"}
+  $hostExe=Get-PowerShellHost
+  & $hostExe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipRunnerRestart
+  $code=$LASTEXITCODE
+  if($code -ne 0){throw "health-service repair failed: $code"}
 }
 
 function Start-CanonicalRunner {
@@ -223,10 +271,17 @@ function Invoke-QQTaskDirect {
   Download-Canonical $relative $local
   $argv=@();foreach($k in $Args.Keys){$argv+="-"+$k;$argv+=[string]$Args[$k]}
   Write-AdminLog ("TASK // "+$TaskId) Cyan
-  if($relative -like "*.ps1"){& $local @argv}
-  elseif($relative -like "*.py"){$py=Get-Command py.exe -ErrorAction SilentlyContinue;if($py){& $py.Source -3 $local @argv}else{& python.exe $local @argv}}
-  else{throw "Unsupported recovery runtime: $relative"}
-  if($LASTEXITCODE -ne 0){throw "$TaskId failed: $LASTEXITCODE"}
+  $code=0
+  if($relative -like "*.ps1"){
+    $hostExe=Get-PowerShellHost
+    & $hostExe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $local @argv
+    $code=$LASTEXITCODE
+  } elseif($relative -like "*.py"){
+    $py=Get-Command py.exe -ErrorAction SilentlyContinue
+    if($py){& $py.Source -3 $local @argv}else{& python.exe $local @argv}
+    $code=$LASTEXITCODE
+  } else{throw "Unsupported recovery runtime: $relative"}
+  if($code -ne 0){throw "$TaskId failed: $code"}
 }
 
 function Test-NomaVerified {

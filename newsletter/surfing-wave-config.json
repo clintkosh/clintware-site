@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "slug": "surfing-the-wave",
+  "delivery": {
+    "reuse_existing_newsletter_worker": true,
+    "auto_publish": false,
+    "human_review_required": true
+  },
+  "routing": {
+    "public_default_text": "local_auto",
+    "allow_user_model_choice": true,
+    "owner_profile_from_environment": true,
+    "private_data_default": "deny",
+    "require_verified_owner_subject": true
+  },
+  "owner_defaults": {
+    "image_provider_env": "QUILLGEIST_DEFAULT_IMAGE_PROVIDER",
+    "critic_provider_env": "QUILLGEIST_DEFAULT_CRITIC_PROVIDER",
+    "compact_critic": true,
+    "weekly_pulse_provider_env": "QUILLGEIST_DEFAULT_PULSE_PROVIDER"
+  },
+  "ticketing": {
+    "protocol": "quillgeist-prompt-ticket/v1",
+    "terminal_states": ["verified_done", "blocked", "carried_forward"]
+  }
+}

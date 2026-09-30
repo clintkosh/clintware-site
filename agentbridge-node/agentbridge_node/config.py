@@ -10,9 +10,15 @@ from urllib.parse import urlparse
 def home_dir() -> Path:
     return Path(os.environ.get("QUILLGEIST_HOME", os.environ.get("AGENTBRIDGE_HOME", Path.home() / ".quillgeist"))).expanduser()
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = str(os.environ.get(name, "")).strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "on"}
+
 def _defaults() -> dict:
     return {
-        "version": 4,
+        "version": 5,
         "device_id": str(uuid.uuid4()),
         "device_token": secrets.token_urlsafe(32),
         "device_name": os.environ.get("COMPUTERNAME") or os.environ.get("HOSTNAME") or "Quillgeist Node",
@@ -90,6 +96,18 @@ def _defaults() -> dict:
             "auto_fit": False,
             "auto_apply": False
         },
+        "model_preferences": {
+            "allow_user_choice": True,
+            "text": {"mode": "local_auto", "provider": "local", "model": "auto"},
+            "image": {"mode": "user_choice", "provider": os.environ.get("QUILLGEIST_DEFAULT_IMAGE_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_IMAGE_MODEL", "")},
+            "critic": {"enabled": _env_bool("QUILLGEIST_ENABLE_CRITIC", False), "provider": os.environ.get("QUILLGEIST_DEFAULT_CRITIC_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_CRITIC_MODEL", ""), "compact": True},
+            "pulse_grade": {"enabled": _env_bool("QUILLGEIST_ENABLE_PULSE_GRADE", False), "provider": os.environ.get("QUILLGEIST_DEFAULT_PULSE_PROVIDER", ""), "model": os.environ.get("QUILLGEIST_DEFAULT_PULSE_MODEL", ""), "cadence": "weekly"}
+        },
+        "private_data": {
+            "owner_subject": os.environ.get("QUILLGEIST_PRIVATE_DATA_OWNER_ID", ""),
+            "default": "deny",
+            "require_verified_subject": True
+        },
         "telemetry": {
             "enabled": False,
             "privacy": "local_only_default",
@@ -125,6 +143,12 @@ class Config:
             base["big_prompt"] = {**_defaults()["big_prompt"], **incoming.get("big_prompt", {})}
             base["state_compactor"] = {**_defaults()["state_compactor"], **incoming.get("state_compactor", {})}
             base["local_inference"] = {**_defaults()["local_inference"], **incoming.get("local_inference", {})}
+            base["model_preferences"] = {**_defaults()["model_preferences"], **incoming.get("model_preferences", {})}
+            base["model_preferences"]["text"] = {**_defaults()["model_preferences"]["text"], **incoming.get("model_preferences", {}).get("text", {})}
+            base["model_preferences"]["image"] = {**_defaults()["model_preferences"]["image"], **incoming.get("model_preferences", {}).get("image", {})}
+            base["model_preferences"]["critic"] = {**_defaults()["model_preferences"]["critic"], **incoming.get("model_preferences", {}).get("critic", {})}
+            base["model_preferences"]["pulse_grade"] = {**_defaults()["model_preferences"]["pulse_grade"], **incoming.get("model_preferences", {}).get("pulse_grade", {})}
+            base["private_data"] = {**_defaults()["private_data"], **incoming.get("private_data", {})}
             base["telemetry"] = {**_defaults()["telemetry"], **incoming.get("telemetry", {})}
             base["desktop"] = {**_defaults()["desktop"], **incoming.get("desktop", {})}
             # Public builds must never silently reconnect to Clintware infrastructure.
