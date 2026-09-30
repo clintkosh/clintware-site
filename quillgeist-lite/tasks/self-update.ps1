@@ -130,6 +130,14 @@ try {
 }
 
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
+$AdminReconcilePath = Join-Path $HomeDir "driznet-reconcile-and-resume.ps1"
+Get-ReviewedQQAsset -Relative "tools/driznet-reconcile-and-resume.ps1" -Destination $AdminReconcilePath -Required @(
+  "QQ HEALTH CONTRACT",
+  "Wait-ForActiveJobGracefully",
+  "Start-CanonicalRunner"
+)
+Write-Host "HEALTH // canonical admin reconcile entry point refreshed" -ForegroundColor Green
+
 Write-Host "SERVICE // aligning QQ health service with reviewed Clintware source" -ForegroundColor Cyan
 Get-ReviewedQQAsset -Relative "tasks/repair-local-service.ps1" -Destination $ServiceRepairPath -Required @(
   "SERVICE_DEFERRED",

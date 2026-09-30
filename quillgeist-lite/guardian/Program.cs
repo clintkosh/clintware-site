@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Clintware.QuillgeistLite.Guardian;
 
-internal sealed record RunnerHeartbeat(string? version, string? runner_id, int pid, string? state, string? job_id, string? task_id, DateTimeOffset timestamp);
+internal sealed record RunnerHeartbeat(string? version, string? runner_id, int pid, string? state, string? job_id, string? task_id, DateTimeOffset timestamp, DateTimeOffset? progress_at = null, long progress_sequence = 0, string? phase = null);
 internal sealed record GuardianStatus(string state, int? runnerPid, string runnerState, DateTimeOffset updatedAt, int restartCount, string detail);
 
 internal static class Program
@@ -59,10 +59,11 @@ internal static class Program
     static int SelfTest()
     {
         var now = DateTimeOffset.UtcNow;
-        var hb = new RunnerHeartbeat("1", "TEST", 1234, "connected", "", "", now);
+        var hb = new RunnerHeartbeat("2", "TEST", 1234, "connected", "", "", now, now, 1, "idle");
         if (!HeartbeatHealthy(hb, now, out _)) return 10;
         if (HeartbeatHealthy(hb with { timestamp = now.AddMinutes(-10) }, now, out _)) return 11;
-        if (!HeartbeatHealthy(hb with { state = "busy", timestamp = now.AddMinutes(-10) }, now, out _)) return 12;
+        if (!HeartbeatHealthy(hb with { state = "busy", timestamp = now, progress_at = now.AddMinutes(-1) }, now, out _)) return 12;
+        if (HeartbeatHealthy(hb with { state = "busy", timestamp = now, progress_at = now.AddMinutes(-20) }, now, out _)) return 13;
         Console.WriteLine("GUARDIAN_SELF_TEST_PASS");
         return 0;
     }
@@ -123,8 +124,14 @@ internal static class Program
         var age = now - hb.timestamp;
         if (string.Equals(hb.state, "busy", StringComparison.OrdinalIgnoreCase))
         {
-            if (age <= TimeSpan.FromMinutes(45)) { reason = "busy_within_limit"; return true; }
-            reason = "busy_heartbeat_stale"; return false;
+            if (age > TimeSpan.FromSeconds(120)) { reason = "busy_heartbeat_stale"; return false; }
+            if (hb.progress_at.HasValue && now - hb.progress_at.Value > TimeSpan.FromMinutes(15))
+            {
+                reason = "busy_no_progress";
+                return false;
+            }
+            reason = hb.progress_at.HasValue ? "busy_progress_fresh" : "busy_legacy_heartbeat";
+            return true;
         }
 
         if (age <= TimeSpan.FromSeconds(100))

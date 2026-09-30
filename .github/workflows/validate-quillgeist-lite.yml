@@ -63,6 +63,7 @@ jobs:
             "quillgeist-lite/tasks/update-powerchatbridge.ps1",
             "quillgeist-lite/tasks/self-update.ps1",
             "quillgeist-lite/tasks/repair-local-service.ps1",
+            "quillgeist-lite/tools/driznet-reconcile-and-resume.ps1",
             "quillgeist-lite/tasks/apply-terminal-glass.ps1",
             "quillgeist-lite/tasks/connect-jira.ps1",
             "quillgeist-lite/tasks/enable-admin-console.ps1",
@@ -336,14 +337,22 @@ jobs:
           }
 
           $sourceText = Get-Content $source -Raw
-          if ($sourceText -notlike '*ServiceVersion = "1.3.0-checkin"*') {
-            throw "Health service version marker is not 1.3.0-checkin."
+          if ($sourceText -notlike '*ServiceVersion = "1.4.0-health-contract"*') {
+            throw "Health service version marker is not 1.4.0-health-contract."
           }
           if ($sourceText -notlike '*checkin_reply*' -or $sourceText -notlike '*deferred_busy*') {
             throw "Health service is missing independent check-in behavior."
           }
           if ($sourceText -notlike '*wake_received_runner_pid_alive_but_control_plane_disconnected*') {
             throw "Health service is missing stale-runner wake recovery."
+          }
+          if ($sourceText -notlike '*progress_age_seconds*' -or $sourceText -notlike '*busy_progressing*') {
+            throw "Health service is missing progress-aware check-in evidence."
+          }
+
+          $adminReconcile = Get-Content "quillgeist-lite/tools/driznet-reconcile-and-resume.ps1" -Raw
+          if ($adminReconcile -notlike '*QQ HEALTH CONTRACT*' -or $adminReconcile -notlike '*Wait-ForActiveJobGracefully*') {
+            throw "Canonical admin reconcile script is missing required health-contract behavior."
           }
 
           $selfUpdateText = Get-Content "quillgeist-lite/tasks/self-update.ps1" -Raw

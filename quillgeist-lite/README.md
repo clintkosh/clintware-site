@@ -154,6 +154,14 @@ PowerShell, Python, and C are tools, not rankings. The task decides the runtime.
 
 See `EXECUTION_POLICY.md`.
 
+## Health contract v2
+
+QQ now separates **liveness** from **work progress**.  The local runner writes an atomic heartbeat at least every 15 seconds, but only meaningful output/activity advances `progress_at` and `progress_sequence`.  The native watchdog, fallback watcher, Guardian, installer/self-update path, and standalone Quillgeist runtime use the same distinction so a timer-only `busy` pulse cannot hide a hung job.
+
+A privileged repair/update never terminates a healthy busy job.  It waits within the task timeout plus bounded grace, and only stale/no-progress QQ-owned execution can be recovered.  Health check-ins expose current job/task, heartbeat age, progress age, and a health classification without model calls.  See [HEALTH_CONTRACT.md](HEALTH_CONTRACT.md).
+
+The canonical administrator reconcile entry point is `tools/driznet-reconcile-and-resume.ps1`.  Despite the historical filename it is device-portable by default and is distributed by install/self-update; it stays outside ordinary runner dispatch so it cannot restart the runner that is executing it.
+
 ## Local health service
 
 The normal Windows installation now has two cooperating components:

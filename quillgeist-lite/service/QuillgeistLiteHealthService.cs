@@ -38,6 +38,11 @@ namespace Clintware.QuillgeistLite
         [DataMember] public bool runner_alive;
         [DataMember] public string runner_state;
         [DataMember] public bool busy;
+        [DataMember] public string job_id;
+        [DataMember] public string task_id;
+        [DataMember] public double heartbeat_age_seconds;
+        [DataMember] public double progress_age_seconds;
+        [DataMember] public string health_state;
         [DataMember] public string action;
         [DataMember] public string action_result;
         [DataMember] public string timestamp;
@@ -46,7 +51,7 @@ namespace Clintware.QuillgeistLite
 
     public sealed class QuillgeistLiteHealthService : ServiceBase
     {
-        private const string ServiceVersion = "1.3.0-checkin";
+        private const string ServiceVersion = "1.4.0-health-contract";
         private readonly object gate = new object();
         private readonly Queue<DateTime> restarts = new Queue<DateTime>();
         private readonly Queue<DateTime> errorSignals = new Queue<DateTime>();
@@ -230,7 +235,33 @@ namespace Clintware.QuillgeistLite
                                 Match actionMatch = Regex.Match(payload, "\\\"action\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
                                 string requestId = idMatch.Success ? idMatch.Groups[1].Value : "";
                                 string action = actionMatch.Success ? actionMatch.Groups[1].Value : "status";
+                                bool aliveNow = RunnerAlive();
                                 bool busy = FreshBusyHeartbeatActive();
+                                string heartbeatText = "";
+                                double heartbeatAgeSeconds = -1;
+                                double progressAgeSeconds = -1;
+                                string jobId = "";
+                                string taskId = "";
+                                try
+                                {
+                                    string home = Path.GetDirectoryName(config.RunnerPidPath);
+                                    string heartbeatPath = Path.Combine(home, "runner-heartbeat.json");
+                                    if (File.Exists(heartbeatPath))
+                                    {
+                                        heartbeatText = File.ReadAllText(heartbeatPath);
+                                        heartbeatAgeSeconds = Math.Max(0, (DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeatPath)).TotalSeconds);
+                                        Match jobMatch = Regex.Match(heartbeatText, "\"job_id\"\\s*:\\s*\"([^\"]*)\"");
+                                        Match taskMatch = Regex.Match(heartbeatText, "\"task_id\"\\s*:\\s*\"([^\"]*)\"");
+                                        Match progressMatch = Regex.Match(heartbeatText, "\"progress_at\"\\s*:\\s*\"([^\"]+)\"");
+                                        if (jobMatch.Success) jobId = jobMatch.Groups[1].Value;
+                                        if (taskMatch.Success) taskId = taskMatch.Groups[1].Value;
+                                        DateTime progressAt;
+                                        if (progressMatch.Success && DateTime.TryParse(progressMatch.Groups[1].Value, out progressAt))
+                                            progressAgeSeconds = Math.Max(0, (DateTime.UtcNow - progressAt.ToUniversalTime()).TotalSeconds);
+                                    }
+                                }
+                                catch { }
+                                string healthState = !aliveNow ? "down" : (busy ? "busy_progressing" : (heartbeatAgeSeconds >= 0 && heartbeatAgeSeconds <= 120 ? "healthy" : "stale_or_reconnecting"));
                                 string actionResult = "status";
                                 if (String.Equals(action, "restart_runner", StringComparison.OrdinalIgnoreCase))
                                 {
@@ -243,9 +274,14 @@ namespace Clintware.QuillgeistLite
                                     request_id = requestId,
                                     device_id = config.DeviceId,
                                     service_version = ServiceVersion,
-                                    runner_alive = RunnerAlive(),
-                                    runner_state = busy ? "busy" : (RunnerAlive() ? "connected" : "down"),
+                                    runner_alive = aliveNow,
+                                    runner_state = busy ? "busy" : (aliveNow ? "connected" : "down"),
                                     busy = busy,
+                                    job_id = jobId,
+                                    task_id = taskId,
+                                    heartbeat_age_seconds = heartbeatAgeSeconds,
+                                    progress_age_seconds = progressAgeSeconds,
+                                    health_state = healthState,
                                     action = action,
                                     action_result = actionResult,
                                     timestamp = DateTime.UtcNow.ToString("o"),
@@ -374,7 +410,7 @@ namespace Clintware.QuillgeistLite
                     string state = File.ReadAllText(heartbeat);
                     double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat)).TotalSeconds;
                     if (age < 600 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"(starting|enrolling)\"")) return true;
-                    if (!ignoreBusyHeartbeat && age < 2700 && Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return true;
+                    if (!ignoreBusyHeartbeat && FreshBusyHeartbeatActive()) return true;
                 }
                 string marker = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -443,6 +479,17 @@ namespace Clintware.QuillgeistLite
 
                 string state = File.ReadAllText(heartbeat);
                 if (!Regex.IsMatch(state, "\"state\"\\s*:\\s*\"busy\"")) return false;
+
+                Match progressMatch = Regex.Match(state, "\"progress_at\"\\s*:\\s*\"([^\"]+)\"");
+                if (progressMatch.Success)
+                {
+                    DateTime progressAt;
+                    if (DateTime.TryParse(progressMatch.Groups[1].Value, out progressAt))
+                    {
+                        double progressAge = (DateTime.UtcNow - progressAt.ToUniversalTime()).TotalSeconds;
+                        if (progressAge > 900) return false;
+                    }
+                }
 
                 Match pidMatch = Regex.Match(state, "\"pid\"\\s*:\\s*(\\d+)");
                 if (!pidMatch.Success) return false;
