@@ -26,6 +26,10 @@ if ((Get-OptionalProperty $partialHeartbeat 'job_id' '') -ne '') { throw 'Option
 if ((Get-OptionalProperty $partialHeartbeat 'progress_at' '') -ne '') { throw 'Optional progress_at default failed' }
 $reconcileText=Get-Content -LiteralPath (Join-Path $root 'tools/driznet-reconcile-and-resume.ps1') -Raw
 if ($reconcileText -match '\$hb\.(task_id|job_id|progress_at)') { throw 'Reconcile script still directly accesses optional heartbeat members under StrictMode' }
+$launcherText=Get-Content -LiteralPath (Join-Path $root 'launcher.ps1') -Raw
+foreach($needle in @('version="2"','job_id=""','task_id=""','progress_at=""','network_state="disconnected"')){
+    if (-not $launcherText.Contains($needle)) { throw ('Launcher startup heartbeat missing v2 field: '+$needle) }
+}
 function Invoke-RestMethod { throw [Net.WebException]::new('temporary network failure') }
 $credential=[pscustomobject]@{Endpoint='https://example.com';DeviceId='TEST';Token='test-only'}
 Assert-Throws {Test-QQCredentialAgainstControlPlane $credential} 'retaining existing credentials'
