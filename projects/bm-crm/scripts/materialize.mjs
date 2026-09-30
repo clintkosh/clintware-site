@@ -58,6 +58,27 @@ for(const file of ["index.html","bm-ui.css","bm-track.js"]){
   fs.copyFileSync(path.join(overlay,"public",file),path.join(out,"public",file));
 }
 
+
+// Boomi intentionally keeps the existing durable-workspace sign-in UX even
+// while the shared DPLR family hides it pending broader auth verification.
+const boomShellPath=path.join(out,"public","dplr-shell.js");
+let boomShell=fs.readFileSync(boomShellPath,"utf8");
+boomShell=boomShell
+ .replace(
+   "(auth?'<form method=\"post\" action=\"/auth/logout\"><button type=\"submit\">Sign out</button></form>':'')+",
+   "(auth?'<form method=\"post\" action=\"/auth/logout\"><button type=\"submit\">Sign out</button></form>':'<a href=\"/auth/login\">Sign in for durable workspace</a>')+"
+ )
+ .replace(
+   "return '<div class=\"dplr-persistence '+(auth?'saved':'guest')+'\"><div><strong>'+(auth?'Durable SSO workspace':'Browser-local workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Data remains in this browser until authenticated workspace support is enabled for this CRM.')+'</span></div></div>';",
+   "return '<div class=\"dplr-persistence '+(auth?'saved':'guest')+'\"><div><strong>'+(auth?'Durable SSO workspace':'Guest session workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Guest records are scoped to this browser session and do not automatically migrate into the signed-in workspace.')+'</span></div>'+(auth?'':'<a class=\"btn primary\" href=\"/auth/login\">Sign in for durable workspace</a>')+'</div>';"
+ )
+ .replace(
+   "This CRM currently uses browser-local persistence. Durable sign-in is intentionally hidden until authenticated workspace support is enabled and verified.",
+   "Closing the session can remove access to guest data. Signing in opens the durable account workspace; it does not silently migrate guest records."
+ );
+fs.writeFileSync(boomShellPath,boomShell);
+if(!boomShell.includes('href="/auth/login"')) throw new Error("Boom durable sign-in preservation patch failed.");
+
 const pkgPath=path.join(out,"package.json");
 const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
 pkg.name="clintware-bm-crm";
