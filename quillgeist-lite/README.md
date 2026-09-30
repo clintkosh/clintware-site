@@ -271,3 +271,27 @@ run crm-astro-build Action=deploy Project=bm-crm
 ```
 
 The task does not accept raw shell source from a remote caller.  It can only operate on reviewed repository projects and manifests.  The local-only `! <PowerShell>` console escape remains local-only.
+
+
+### Anonymized CRM efficiency proof
+
+A completed internal build provides a concrete example of why the local ASTRO path exists.
+
+For a confidential **Senior Infrastructure Pre-Sales Architect** use case, the cloud model defined the role-specific delta while qq locally refreshed the repository, materialized the mature CRM base, ran source checks, deployed the result, and exercised the live TCO and vendor-evaluation workflows in the governed browser.
+
+Measured qq evidence from the successful run:
+
+- repository refresh: **2.996 seconds**;
+- validate + materialize + checks + deployment: **22.220 seconds**;
+- live browser functional verification: **13.560 seconds**;
+- **8** role-specific operating tracks;
+- **14** production assets uploaded;
+- live TCO recalculation and vendor-score recalculation both passed.
+
+A modeled comparison estimates that this architecture avoided roughly **30k–60k cloud-model tokens**, or about **60–80% of the implementation-token load**, compared with making a cloud model supervise the same deterministic repository/build/deploy/browser loop.  This is a directional estimate, **not provider billing telemetry**.  The measured claims are the qq execution results above.
+
+The reusable product principle is:
+
+> **The model decides and designs the delta.  Quillgeist executes, verifies, and returns compact evidence.**
+
+See `docs/quillgeist-role-crm-case-study.md` for the anonymized case study and evidence boundary.
