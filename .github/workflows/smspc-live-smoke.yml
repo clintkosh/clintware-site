@@ -1,0 +1,80 @@
+name: Verify SimSpace Live CRM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/smspc_browser_smoke.mjs"
+      - ".github/workflows/smspc-live-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clintware-smspc-live-smoke
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install isolated browser test runtime
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Run live SimSpace functional smoke
+        id: smoke
+        continue-on-error: true
+        env:
+          SMSPC_URL: https://smspc.clintware.com/
+          SMSPC_SMOKE_RESULT: ops/smspc-live-smoke.json
+        run: node tests/smspc_browser_smoke.mjs
+
+      - name: Publish sanitized smoke evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          test -f ops/smspc-live-smoke.json
+          cp ops/smspc-live-smoke.json /tmp/smspc-live-smoke.json
+          git config user.name "clintware-browser-smoke"
+          git config user.email "browser-smoke@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p ops
+            cp /tmp/smspc-live-smoke.json ops/smspc-live-smoke.json
+            git add ops/smspc-live-smoke.json
+            if git diff --cached --quiet; then
+              break
+            fi
+            git commit -m "Record SimSpace live browser smoke"
+            if git push origin HEAD:main; then
+              break
+            fi
+            sleep $((attempt * 2))
+          done
+
+      - name: Require passing live smoke
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          with open("/tmp/smspc-live-smoke.json", encoding="utf-8") as f:
+              d=json.load(f)
+          assert d.get("passed") is True, d
+          assert len(d.get("tracks_verified") or []) == 8, d
+          assert int(d.get("customer_count") or 0) == 7, d
+          assert int(d.get("pdf_bytes") or 0) > 500, d
+          print("SMSPC_LIVE_SMOKE_OK=true")
+          PY
