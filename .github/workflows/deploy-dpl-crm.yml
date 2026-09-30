@@ -118,7 +118,7 @@ jobs:
           state_code=$(tr -cd '0-9' <<< "$state_code")
           echo "state HTTP $state_code"; cat /tmp/dplstate.json
           test "$state_code" = "200"
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==7; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==3; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
+          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==10; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
           import_code=$(curl -sS -o /tmp/dplimport.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dpl.clintware.com/api/customers/bulk-import)
           import_code=$(tr -cd '0-9' <<< "$import_code")
           echo "import HTTP $import_code"; cat /tmp/dplimport.json
@@ -138,7 +138,7 @@ jobs:
           echo "Verifying hybrid demo reset"
           curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{}' https://dpl.clintware.com/api/customers/reset-samples >/tmp/dplreset.json
           curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplresetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==7; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==3; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
+          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==10; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
           echo "Verifying stakeholder create from meeting prep data model"
           customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); print(d["customer"]["id"])')
           stakeholder_code=$(curl -sS -o /tmp/dplstakeholder.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dpl.clintware.com/api/records)
