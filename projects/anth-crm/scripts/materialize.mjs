@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { applyBrowserLocalRuntime } from "../../dplr-crm/scripts/browser-local-runtime.mjs";
 import { anthDataBlock } from "./anth-data.mjs";
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -11,7 +12,7 @@ const sourceBuild=path.join(repo,".build","dplr-crm");
 const overlay=path.join(repo,"projects","anth-crm");
 const out=path.join(repo,".build","anth-crm");
 
-execFileSync(process.execPath,[reference],{cwd:repo,stdio:"inherit"});
+execFileSync(process.execPath,[reference],{cwd:repo,stdio:"inherit",env:{...process.env,CW_ASTRO_REFERENCE_MODE:"1"}});
 if(!fs.existsSync(sourceBuild))throw new Error("Adaptive implementation reference did not materialize.");
 fs.rmSync(out,{recursive:true,force:true});
 fs.cpSync(sourceBuild,out,{recursive:true});
@@ -88,4 +89,13 @@ for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","
  if(/Doppel|doppel\.com/i.test(text))throw new Error("Source-company semantics leaked into generated runtime: "+rel);
 }
 if(fs.existsSync(path.join(out,"public","dplr-enrich.js")))throw new Error("Source-company enrichment module must not ship in Anthropic build.");
+const localRuntime=await applyBrowserLocalRuntime({
+  out,
+  appId:"anth-crm",
+  workspaceId:"anth-gsi",
+  serviceName:"clintware-anth-crm",
+  workspaceName:"Anthropic GSI Customer Success browser-local workspace",
+  version:2
+});
+console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("ANTH CRM materialized at "+out);
