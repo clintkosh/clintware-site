@@ -1,0 +1,203 @@
+name: Deploy NMA AI Security Customer Operating System
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/nma-crm/**"
+      - "projects/dplr-crm/**"
+      - "projects/dpl-crm/**"
+      - ".github/workflows/deploy-nma-crm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-nma-crm
+  cancel-in-progress: true
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Layer 1 - materialize and role logic validation
+        run: |
+          set -euo pipefail
+          node projects/nma-crm/scripts/materialize.mjs
+          cd .build/nma-crm
+          npm install --no-audit --no-fund
+          npm run check
+          grep -Fq '"name":"clintware-nma-crm"' wrangler.jsonc
+          grep -Fq 'const APP_ID="nma-crm"' src/index.js
+          grep -Fq 'const WORKSPACE_ID="nma-northstar"' src/index.js
+          grep -Fq 'Northstar Bank (Synthetic)' src/index.js
+          grep -Fq 'Priority MCP governance coverage' src/index.js
+          grep -Fq 'Noma AI Security Customer Operating System' public/index.html
+          grep -Fq 'noindex,nofollow,noarchive' public/index.html
+          grep -Fq 'Customer Insight & Product Signal' public/nma-track.js
+          grep -Fq 'Download CISO brief PDF' public/nma-track.js
+          grep -Fq 'Print / Save PDF' public/nma-track.js
+          grep -Fq 'MCP governance' public/nma-track.js
+          grep -Fq '"pattern":"nma.clintware.com"' wrangler.jsonc
+          ! grep -RqiE 'Doppel|doppel\.com' src public
+
+      - name: Layer 1 - Wrangler dry run
+        run: |
+          set -euo pipefail
+          cd .build/nma-crm
+          npx wrangler deploy --dry-run
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/nma-crm
+
+      - name: Layer 2 - live HTTP, data, persistence, and CRUD logic
+        run: |
+          set -euo pipefail
+          base=https://nma.clintware.com
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
+            t=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/nma-track.js" || true)
+            if grep -Fq '"service":"clintware-nma-crm"' <<< "$h" \
+              && grep -Fq 'Noma AI Security Customer Operating System' <<< "$p" \
+              && grep -Fq 'Customer Insight & Product Signal' <<< "$t"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for nma.clintware.com (${i}/48)"
+            sleep 5
+          done
+          test "$ready" = "1"
+
+          rm -f /tmp/nma.cookies /tmp/nma.headers
+          curl -fsS -D /tmp/nma.headers -c /tmp/nma.cookies "$base/" >/tmp/nma.html
+          grep -Fqi 'max-age=15552000' /tmp/nma.headers
+          me=$(curl -fsS -b /tmp/nma.cookies "$base/me")
+          grep -Fq '"authenticated":false' <<< "$me"
+          grep -Fq '"persistence":"browser-persistent"' <<< "$me"
+          test "$(curl -sS -o /tmp/nma-login.json -w '%{http_code}' "$base/auth/login" | tr -cd '0-9')" = "404"
+
+          curl -fsS -b /tmp/nma.cookies -c /tmp/nma.cookies "$base/api/state" >/tmp/nma-state.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/nma-state.json'))
+          assert d['access']['authenticated'] is False
+          assert d['access']['mode']=='browser-persistent'
+          assert d['customer']['name']=='Northstar Bank (Synthetic)', d['customer']['name']
+          assert len(d['customers'])>=7, len(d['customers'])
+          names={c['name'] for c in d['customers']}
+          assert {'Northstar Bank (Synthetic)','Harbor Financial Group','Aster Health Systems','Vector Commerce','Forge Industrial','Summit SaaS','Northwind Technology Services'} <= names
+          types={r['type'] for r in d['records']}
+          required={'handoff','integration','kpi','adoption','risk','stakeholder','action','issue','meeting','call_prep','assistant_profile','raci'}
+          assert required <= types, sorted(required-types)
+          kpis=[r for r in d['records'] if r['type']=='kpi']
+          assert len(kpis)>=5, len(kpis)
+          assert any(r.get('data',{}).get('name')=='Priority MCP governance coverage' for r in kpis)
+          assert any('MCP' in r.get('data',{}).get('title','') for r in d['records'] if r['type']=='risk')
+          PY
+
+          customer_id=$(python3 -c 'import json; print(json.load(open("/tmp/nma-state.json"))["customer"]["id"])')
+          marker="NMA CI Persistence $(date +%s)"
+          create_code=$(curl -sS -o /tmp/nma-create.json -w '%{http_code}' -b /tmp/nma.cookies -c /tmp/nma.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"action","provenance":"internal_record","data":{"title":"'"$marker"'","owner":"Customer Solutions","status":"Planned","audience":"Internal"}}' "$base/api/records" | tr -cd '0-9')
+          test "$create_code" = "201"
+          curl -fsS -b /tmp/nma.cookies "$base/api/state?customer=$customer_id" >/tmp/nma-after-create.json
+          MARKER="$marker" python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/nma-after-create.json')); marker=os.environ['MARKER']
+          hits=[r for r in d['records'] if r.get('data',{}).get('title')==marker]
+          assert len(hits)==1
+          open('/tmp/nma-record-id','w').write(hits[0]['id'])
+          PY
+          record_id=$(cat /tmp/nma-record-id)
+          patch_code=$(curl -sS -o /tmp/nma-patch.json -w '%{http_code}' -X PATCH -b /tmp/nma.cookies -H 'content-type: application/json' --data '{"data":{"status":"Complete"}}' "$base/api/records/$record_id" | tr -cd '0-9')
+          test "$patch_code" = "200"
+          curl -fsS -b /tmp/nma.cookies "$base/api/state?customer=$customer_id" >/tmp/nma-after-patch.json
+          RECORD_ID="$record_id" python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/nma-after-patch.json')); rid=os.environ['RECORD_ID']
+          r=next(x for x in d['records'] if x['id']==rid)
+          assert r['data']['status']=='Complete'
+          PY
+          delete_code=$(curl -sS -o /tmp/nma-delete.json -w '%{http_code}' -X DELETE -b /tmp/nma.cookies "$base/api/records/$record_id" | tr -cd '0-9')
+          test "$delete_code" = "200"
+          curl -fsS -b /tmp/nma.cookies "$base/api/state?customer=$customer_id" >/tmp/nma-after-delete.json
+          RECORD_ID="$record_id" python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/nma-after-delete.json')); rid=os.environ['RECORD_ID']
+          assert not any(x['id']==rid for x in d['records'])
+          PY
+
+      - name: Install browser verifier
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nma-browser
+          cd /tmp/nma-browser
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Layer 3 - real Chromium workflow, presentation, PDF, and responsive checks
+        run: |
+          set -euo pipefail
+          cat >/tmp/nma-browser/verify.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const ctx=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:960}});
+          const page=await ctx.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error') errors.push('console:'+m.text())});
+          const response=await page.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          if(!response?.ok()) throw new Error('landing HTTP '+response?.status());
+          await page.locator('[data-nma-track="portfolio"]').click();
+          await page.locator('.nma-banner').waitFor({state:'visible'});
+          const title=await page.title();
+          if(!title.includes('Noma AI Security')) throw new Error('wrong title');
+          if(!(await page.locator('body').innerText()).includes('Northstar Bank')) throw new Error('golden account not rendered');
+          await page.locator('#nma-present-btn').click();
+          await page.locator('.nma-present').waitFor({state:'visible'});
+          if(await page.locator('.nma-slide').count()<7) throw new Error('presentation slide count');
+          await page.locator('#nma-close').click();
+          const downloadPromise=page.waitForEvent('download');
+          await page.locator('#nma-brief').click();
+          const download=await downloadPromise;
+          const path=await download.path();
+          const fs=await import('node:fs');
+          const bytes=fs.statSync(path).size;
+          if(bytes<500) throw new Error('CISO brief PDF too small: '+bytes);
+          if(!download.suggestedFilename().endsWith('.pdf')) throw new Error('CISO brief is not PDF');
+          await page.reload({waitUntil:'networkidle'});
+          await page.locator('.nma-banner').waitFor({state:'visible'});
+          if(await page.locator('.nma-gate').count()) throw new Error('track selection did not persist in browser session');
+          const mobile=await ctx.newPage();
+          await mobile.setViewportSize({width:390,height:844});
+          await mobile.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          await mobile.evaluate(()=>sessionStorage.setItem('nmaTrackLaunched','1'));
+          await mobile.reload({waitUntil:'networkidle'});
+          const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
+          if(overflow) throw new Error('mobile horizontal overflow');
+          if(errors.length) throw new Error('browser errors: '+errors.join(' | '));
+          console.log(JSON.stringify({ok:true,title,presentationSlides:await page.locator('.nma-slide').count(),pdfBytes:bytes,mobileOverflow:false,errors:[]},null,2));
+          await browser.close();
+          JS
+          cd /tmp/nma-browser
+          node verify.mjs
+
+      - name: Verification summary
+        run: |
+          echo 'NMA_VERIFIED=source+logic+dry-run+deploy+live-http+crud+persistence+chromium+presentation+pdf+mobile'
