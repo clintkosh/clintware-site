@@ -1,0 +1,98 @@
+name: Verify NMA Browser Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-nma-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install verifier against hosted Chrome
+        run: |
+          set -euo pipefail
+          google-chrome --version
+          mkdir -p /tmp/nma-browser
+          cd /tmp/nma-browser
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+      - name: Live browser acceptance
+        run: |
+          set -euo pipefail
+          cat >/tmp/nma-browser/verify.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,channel:'chrome'});
+          const ctx=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:960}});
+          const page=await ctx.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error') errors.push('console:'+m.text())});
+          const response=await page.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          if(!response?.ok()) throw new Error('landing HTTP '+response?.status());
+          await page.locator('[data-nma-track="portfolio"]').click();
+          await page.locator('.nma-banner').waitFor({state:'visible'});
+          const title=await page.title();
+          if(!title.includes('Noma AI Security')) throw new Error('wrong title');
+          const initial=await page.evaluate(()=>fetch('/api/state').then(r=>r.json()));
+          if(initial.access?.storage!=='browser-local') throw new Error('browser-local storage contract missing');
+          if(initial.customer?.name!=='Northstar Bank (Synthetic)') throw new Error('wrong golden account');
+          if(initial.customers.length<7) throw new Error('sample portfolio incomplete: '+initial.customers.length);
+          const names=new Set(initial.customers.map(x=>x.name));
+          for(const n of ['Northstar Bank (Synthetic)','Harbor Financial Group','Aster Health Systems','Vector Commerce','Forge Industrial','Summit SaaS','Northwind Technology Services']) if(!names.has(n)) throw new Error('missing sample '+n);
+          const types=new Set(initial.records.map(x=>x.type));
+          for(const t of ['handoff','integration','kpi','adoption','risk','stakeholder','action','issue','meeting','call_prep','assistant_profile','raci']) if(!types.has(t)) throw new Error('missing record type '+t);
+          if(initial.records.filter(x=>x.type==='kpi').length<5) throw new Error('KPI evidence set incomplete');
+          if(!initial.records.some(x=>x.type==='kpi'&&x.data?.name==='Priority MCP governance coverage')) throw new Error('MCP KPI missing');
+          const marker='NMA Browser Persistence '+Date.now();
+          const created=await page.evaluate(async ({customerId,marker})=>{const r=await fetch('/api/records',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customerId,type:'action',provenance:'internal_record',data:{title:marker,owner:'Customer Solutions',status:'Planned',audience:'Internal'}})});return {status:r.status,body:await r.json()}},{customerId:initial.customer.id,marker});
+          if(created.status!==201||!created.body?.id) throw new Error('create failed');
+          const recordId=created.body.id;
+          await page.reload({waitUntil:'networkidle'});
+          await page.locator('.nma-banner').waitFor({state:'visible'});
+          const persisted=await page.evaluate(marker=>fetch('/api/state').then(r=>r.json()).then(s=>s.records.find(x=>x.data?.title===marker)||null),marker);
+          if(!persisted||persisted.id!==recordId) throw new Error('localStorage persistence failed after reload');
+          const patched=await page.evaluate(async id=>{const r=await fetch('/api/records/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({data:{status:'Complete'}})});return {status:r.status,body:await r.json()}},recordId);
+          if(patched.status!==200||patched.body?.data?.status!=='Complete') throw new Error('patch failed');
+          const deleted=await page.evaluate(async id=>{const r=await fetch('/api/records/'+encodeURIComponent(id),{method:'DELETE'});return {status:r.status,body:await r.json()}},recordId);
+          if(deleted.status!==200) throw new Error('delete failed');
+          const gone=await page.evaluate(id=>fetch('/api/state').then(r=>r.json()).then(s=>s.records.some(x=>x.id===id)),recordId);
+          if(gone) throw new Error('delete persistence failed');
+          const localBytes=await page.evaluate(()=>new Blob([localStorage.getItem('nma.crm.local.v2')||'']).size);
+          if(localBytes<2000) throw new Error('browser workspace unexpectedly small');
+          await page.locator('#nma-present-btn').click();
+          await page.locator('.nma-present').waitFor({state:'visible'});
+          await page.waitForFunction(()=>document.querySelectorAll('.nma-slide').length>=8);
+          const slides=await page.locator('.nma-slide').count();
+          const presentationText=await page.locator('.nma-present').innerText();
+          if(!presentationText.includes('Dispatched ≠ delivered ≠ executed ≠ verified.')) throw new Error('execution truth missing from presentation');
+          await page.locator('#nma-close').click();
+          const downloadPromise=page.waitForEvent('download');
+          await page.locator('#nma-brief').click();
+          const download=await downloadPromise;
+          const path=await download.path();
+          const bytes=fs.statSync(path).size;
+          if(bytes<500) throw new Error('CISO brief PDF too small: '+bytes);
+          if(!download.suggestedFilename().endsWith('.pdf')) throw new Error('CISO brief is not PDF');
+          const mobile=await ctx.newPage();
+          await mobile.setViewportSize({width:390,height:844});
+          await mobile.goto('https://nma.clintware.com/',{waitUntil:'networkidle'});
+          await mobile.evaluate(()=>sessionStorage.setItem('nmaTrackLaunched','1'));
+          await mobile.reload({waitUntil:'networkidle'});
+          const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
+          if(overflow) throw new Error('mobile horizontal overflow');
+          if(errors.length) throw new Error('browser errors: '+errors.join(' | '));
+          console.log(JSON.stringify({ok:true,title,accounts:initial.customers.length,goldenRecords:initial.records.length,presentationSlides:slides,pdfBytes:bytes,browserLocalBytes:localBytes,databaseRowsPerDemoSession:0,mobileOverflow:false,errors:[]},null,2));
+          await browser.close();
+          JS
+          cd /tmp/nma-browser
+          node verify.mjs
