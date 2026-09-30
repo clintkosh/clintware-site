@@ -119,6 +119,7 @@ def result(action,path,data):
             f"validate projects/{pid}/manifest.json",
             f"node projects/{pid}/scripts/materialize.mjs",
             f"run checks inside .build/{pid}",
+            "verify browser-local/stateless builds contain no durable_objects binding",
             "run role-specific browser smoke",
             "deploy only when explicitly requested",
             "verify live domain before reporting live"
