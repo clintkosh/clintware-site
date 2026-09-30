@@ -1,14 +1,12 @@
 {
-  "request_id": "driznet-crm-auth-cta-scan-20260929-1918",
-  "task_id": "repo-code-search",
+  "request_id": "driznet-cxp-auth-clean-full-20260929-1920",
+  "task_id": "crm-astro-build",
   "target_device": "DRIZNET",
   "args": {
-    "Query": "Sign in (to keep data|for durable workspace)",
-    "Path": "projects",
-    "Mode": "regex",
-    "Max": "200",
-    "Json": "false",
-    "FilesOnly": "true"
+    "Action": "full",
+    "Project": "cxp-crm",
+    "SkipInstall": "false",
+    "RepoRoot": "C:\\Users\\batman\\AppData\\Local\\Clintware\\code-search\\clintware-site"
   },
-  "objective": "Refresh DRIZNET repository cache to current origin/main and scan project source for remaining CRM durable-sign-in CTA phrases. Boomi is intentionally allowed to retain the CTA. LandThePlane uses separate working Google auth and does not use these shared CTA phrases. RenewNudge is out of scope."
+  "objective": "Rebuild and deploy the CXponent CRM from the refreshed shared DPLR source after durable-sign-in CTA removal. Preserve all CXponent role-specific functionality. Confirm source checks pass and deploy to https://cxp.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
 }
