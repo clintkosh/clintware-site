@@ -43,6 +43,11 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForSelector(".top", { timeout: 30000 });
   assert(await page.locator(".startup-error").count() === 0, "Startup failed after reload");
+  await page.locator('[data-tab="customers"]').first().click();
+  await page.waitForTimeout(180);
+  assert((await page.locator("body").innerText()).includes("Browser Smoke Customer"), "Browser-local customer did not persist after reload");
+  const localContract=await page.evaluate(()=>({mode:window.CW_ASTRO_LOCAL_MODE===true,state:window.CWAstroLocalStore?.state?.()||null}));
+  assert(localContract.mode && localContract.state?.access?.storage==="browser-local", "Browser-local runtime contract missing");
   await page.screenshot({ path: "n7-home-smoke.png", fullPage: true });
   if (pageErrors.length) throw new Error("Page errors:\n" + pageErrors.join("\n---\n"));
   if (consoleErrors.length) throw new Error("Console errors:\n" + consoleErrors.join("\n---\n"));
