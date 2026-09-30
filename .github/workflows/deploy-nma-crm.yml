@@ -100,11 +100,11 @@ jobs:
       - name: Install browser verifier
         run: |
           set -euo pipefail
+          google-chrome --version
           mkdir -p /tmp/nma-browser
           cd /tmp/nma-browser
           npm init -y >/dev/null
           npm install --no-audit --no-fund playwright@1.55.0
-          npx playwright install --with-deps chromium
 
       - name: Layer 3 - Chromium state, CRUD, presentation, PDF, persistence, and responsive checks
         run: |
@@ -112,7 +112,7 @@ jobs:
           cat >/tmp/nma-browser/verify.mjs <<'JS'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          const browser=await chromium.launch({headless:true});
+          const browser=await chromium.launch({headless:true,channel:'chrome'});
           const ctx=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:960}});
           const page=await ctx.newPage();
           const errors=[];
@@ -180,4 +180,4 @@ jobs:
 
       - name: Verification summary
         run: |
-          echo 'NMA_VERIFIED=source+role-logic+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+chromium+presentation+pdf+mobile'
+          echo 'NMA_VERIFIED=source+role-logic+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile'
