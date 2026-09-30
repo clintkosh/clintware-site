@@ -72,6 +72,18 @@ The ASTRO is the conceptual base.  A prior company build is never the conceptual
 
 This rule prevents the reusable system from slowly becoming "the Doppel template" or any other employer-specific template.
 
+
+## Paired application profile: CRM+Cover
+
+When the application also includes a Why Company / Why Us field and/or a cover-letter field, use `ASTRO_CRM_COVER_SKILL.md` as the application-package wrapper around this CRM ASTRO.
+
+The CRM remains the operating proof-of-work.  The written artifacts remain separate:
+- Why Company explains company-specific motivation and trajectory.
+- Cover Letter maps the candidate's evidence to the role and may reference the CRM as proof.
+- The CRM demonstrates how the role would actually be operated.
+
+A public CRM link may enter final application copy only after the exact route has been live and interactively verified.
+
 ## Required discovery sequence
 
 1. Recover the strongest relevant prior CRM implementation and the user's corrections to it.
