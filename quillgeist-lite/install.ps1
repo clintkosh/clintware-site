@@ -25,6 +25,7 @@ $EnsurePwshPath = Join-Path $HomeDir "ensure-powershell.ps1"
 $AutoRepairPath = Join-Path $HomeDir "auto-repair-runtime.ps1"
 $ServiceRepairPath = Join-Path $HomeDir "repair-local-service.ps1"
 $RecoveryWatchPath = Join-Path $ServiceDir "recovery-watch.ps1"
+$AdminReconcilePath = Join-Path $HomeDir "driznet-reconcile-and-resume.ps1"
 $BootstrapPath = Join-Path $HomeDir "service-bootstrap.json"
 $RegistryPath = Join-Path $HomeDir "tasks.json"
 $LogoAssetPath = Join-Path $HomeDir "clintware-terminal-logo.b64"
@@ -178,7 +179,8 @@ $sources = @(
   @{ Relative = "tasks/ensure-powershell.ps1"; Destination = $EnsurePwshPath },
   @{ Relative = "tasks/auto-repair-runtime.ps1"; Destination = $AutoRepairPath },
   @{ Relative = "tasks/repair-local-service.ps1"; Destination = $ServiceRepairPath },
-  @{ Relative = "service/recovery-watch.ps1"; Destination = $RecoveryWatchPath }
+  @{ Relative = "service/recovery-watch.ps1"; Destination = $RecoveryWatchPath },
+  @{ Relative = "tools/driznet-reconcile-and-resume.ps1"; Destination = $AdminReconcilePath }
 )
 
 foreach ($entry in $sources) {
@@ -212,7 +214,7 @@ Remove-Item $RuntimeRoot -Recurse -Force -ErrorAction SilentlyContinue
 Move-Item $runtimeStage $RuntimeRoot -Force
 
 Write-Host "Validating local PowerShell files..." -ForegroundColor Cyan
-foreach ($file in @($RunnerPath,$LauncherPath,$WindowHostPath,$BrowserSetupPath,$BrowserWorkPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath)) {
+foreach ($file in @($RunnerPath,$LauncherPath,$WindowHostPath,$BrowserSetupPath,$BrowserWorkPath,$ServiceInstallerPath,$EnsurePwshPath,$AutoRepairPath,$ServiceRepairPath,$RecoveryWatchPath,$AdminReconcilePath)) {
   Test-PowerShellFile $file
 }
 
