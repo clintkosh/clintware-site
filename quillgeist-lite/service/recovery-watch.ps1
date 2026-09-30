@@ -13,7 +13,7 @@ $LogPath = Join-Path $ProgramDir "recovery.log"
 $RepairCooldownMinutes = 30
 $RunnerHeartbeatStaleSeconds = 90
 $RunnerHeartbeatStartupGraceSeconds = 180
-$RunnerBusyMaxMinutes = 45
+$RunnerBusyNoProgressSeconds = 900
 
 New-Item -ItemType Directory -Force -Path $ProgramDir | Out-Null
 
@@ -86,6 +86,7 @@ function Get-RunnerHeartbeatHealth {
     Reason = "unknown"
     State = ""
     AgeSeconds = [double]::PositiveInfinity
+    ProgressAgeSeconds = [double]::PositiveInfinity
   }
 
   if (-not $PidPath) {
@@ -130,11 +131,23 @@ function Get-RunnerHeartbeatHealth {
     }
 
     if ($state -eq "busy") {
-      if ($ageSeconds -le ($RunnerBusyMaxMinutes * 60)) {
-        $result.Healthy = $true
-        $result.Reason = "busy_within_limit"
-      } else {
+      $progressAge = [double]::PositiveInfinity
+      try {
+        if ($heartbeat.progress_at) {
+          $progressStamp = ([DateTime]$heartbeat.progress_at).ToUniversalTime()
+          $progressAge = ((Get-Date).ToUniversalTime() - $progressStamp).TotalSeconds
+        } elseif (Test-Path (Join-Path $homeDir "runner.log")) {
+          $progressAge = ((Get-Date).ToUniversalTime() - (Get-Item (Join-Path $homeDir "runner.log")).LastWriteTimeUtc).TotalSeconds
+        }
+      } catch {}
+      $result.ProgressAgeSeconds = $progressAge
+      if ($ageSeconds -gt $RunnerHeartbeatStaleSeconds) {
         $result.Reason = "busy_heartbeat_stale"
+      } elseif ($progressAge -gt $RunnerBusyNoProgressSeconds) {
+        $result.Reason = "busy_no_progress"
+      } else {
+        $result.Healthy = $true
+        $result.Reason = "busy_progress_fresh"
       }
       return [pscustomobject]$result
     }
@@ -315,7 +328,7 @@ $runnerAlive = Test-RunnerAlive $runnerPidPath
 $runnerHeartbeat = if ($runnerAlive) { Get-RunnerHeartbeatHealth $runnerPidPath } else { $null }
 
 if ($runnerAlive -and $runnerHeartbeat -and -not $runnerHeartbeat.Healthy) {
-  Write-RecoveryLog ("runner_stale_detected reason=" + $runnerHeartbeat.Reason + " state=" + $runnerHeartbeat.State + " age_seconds=" + [Math]::Round([double]$runnerHeartbeat.AgeSeconds,1))
+  Write-RecoveryLog ("runner_stale_detected reason=" + $runnerHeartbeat.Reason + " state=" + $runnerHeartbeat.State + " age_seconds=" + [Math]::Round([double]$runnerHeartbeat.AgeSeconds,1) + " progress_age_seconds=" + [Math]::Round([double]$runnerHeartbeat.ProgressAgeSeconds,1))
   $runnerAlive = Restart-SupervisedRunner -TaskName $RunnerTaskName -PidPath $runnerPidPath -Reason $runnerHeartbeat.Reason
   $runnerHeartbeat = if ($runnerAlive) { Get-RunnerHeartbeatHealth $runnerPidPath } else { $null }
 }
