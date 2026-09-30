@@ -51,8 +51,9 @@ For each qualifying or materially changed interview:
 8. Include the private ASTRO/reflection delivery lens when that workflow is enabled, but never use it as evidence or a hiring-probability claim.
 9. Render and visually QA every page before delivery.
 10. Extract newly anticipated questions and update the canonical local standalone interview-prep EXE Q&A/STAR bank when its source/build environment is accessible.
-11. The official LandThePlane web product is **not** the canonical update target for this workflow unless the user explicitly changes that instruction.
-12. Rebuild and verify the local EXE only when the actual build source/environment is available. Never claim a rebuild or verification that did not happen.
+11. Register privacy-safe prep-run provenance in LandThePlane when an authorized durable route exists. Record the true generator source (for example `chatgpt`, `interviewprepper-local`, `landtheplane-web`, or `landtheplane-review`) rather than implying LandThePlane generated every prep.
+12. The local standalone InterviewPrepper remains the canonical update target for its own Q&A/STAR bank. LandThePlane is the cross-channel prep evidence/provenance ledger.
+13. Rebuild and verify the local EXE only when the actual build source/environment is available. Never claim a rebuild or verification that did not happen.
 
 ## Mandatory conceptual bridge / experience-evolution pass
 
@@ -217,8 +218,9 @@ Before saying a kit is complete, confirm:
 6. no conceptual bridge overstates direct ownership or experience;
 7. ownership/evidence attribution is intact;
 8. PDF/DOCX/cockpit rendering and visual QA passed;
-9. the local-EXE Q&A/STAR update step was executed when the build source was available, or explicitly marked not executable when it was not.
+9. prep-run provenance was durably logged when an authorized LandThePlane route was available, or explicitly marked unlogged when it was not;
+10. the local-EXE Q&A/STAR update step was executed when the build source was available, or explicitly marked not executable when it was not.
 
 Canonical sequence:
 
-`CALENDAR + GMAIL -> QUALIFY / DEDUPE -> FRESH STAGE KIT -> QUESTION TEST -> DIRECT PROOF -> CONCEPTUAL BRIDGE / TRUTH LINE -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + QA -> DELIVERY -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE`
+`CALENDAR + GMAIL -> QUALIFY / DEDUPE -> FRESH STAGE KIT -> QUESTION TEST -> DIRECT PROOF -> CONCEPTUAL BRIDGE / TRUTH LINE -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + QA -> DELIVERY -> LANDTHEPLANE PROVENANCE -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE`
