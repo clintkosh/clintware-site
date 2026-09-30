@@ -38,7 +38,7 @@
         '<details class="dplr-more"><summary aria-label="Workspace tools">•••</summary><div class="dplr-menu">'+
           '<button id="whatif">Scenario overlay'+(scen.size?' · '+scen.size:'')+'</button><button id="export">Export backup</button>'+
           '<label>Theme<select id="theme" class="select"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>'+
-          (auth?'<form method="post" action="/auth/logout"><button type="submit">Sign out</button></form>':'<a href="/auth/login">Sign in for durable workspace</a>')+
+          (auth?'<form method="post" action="/auth/logout"><button type="submit">Sign out</button></form>':'')+
         '</div></details>'+
       '</div></header>';
   }
@@ -87,7 +87,7 @@
 
   persistenceBanner=function(){
     const auth=S.access?.authenticated===true;
-    return '<div class="dplr-persistence '+(auth?'saved':'guest')+'"><div><strong>'+(auth?'Durable SSO workspace':'Guest session workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Guest records are scoped to this browser session and do not automatically migrate into the signed-in workspace.')+'</span></div>'+(auth?'':'<a class="btn primary" href="/auth/login">Sign in for durable workspace</a>')+'</div>';
+    return '<div class="dplr-persistence '+(auth?'saved':'guest')+'"><div><strong>'+(auth?'Durable SSO workspace':'Browser-local workspace')+'</strong><span>'+(auth?'This account workspace persists across sessions and devices.':'No login is required. Data remains in this browser until authenticated workspace support is enabled for this CRM.')+'</span></div></div>';
   };
 
   customers=function(){
@@ -108,7 +108,7 @@
     const golden=S.customers.find(c=>c.isGoldenExample),auth=S.access?.authenticated===true;
     return head('Workspace administration','Data & Persistence','Control the dataset explicitly. Demo population, cleanup, import, and retention are separate operations.','<button class="btn primary" id="reset-samples">Populate / refresh demo data</button><button class="btn" id="import-customers">Import customer data</button>')+
       persistenceBanner()+
-      '<div class="dplr-admin-grid"><article><span>Workspace mode</span><strong>'+(auth?'Signed in / durable':'Guest / session-scoped')+'</strong><p>'+(auth?'Changes remain in the authenticated DPLR workspace.':'Closing the session can remove access to guest data. Signing in opens the durable account workspace; it does not silently migrate guest records.')+'</p></article><article><span>Golden scenario</span><strong>'+e(golden?.name||'Removed')+'</strong><p>Protected during standard cleanup and restorable with Populate / refresh.</p></article><article><span>External credentials</span><strong>Server-side only</strong><p>Exa, Jira, Confluence, AI, and other provider credentials stay behind the Clintware control plane.</p></article></div>'+
+      '<div class="dplr-admin-grid"><article><span>Workspace mode</span><strong>'+(auth?'Signed in / durable':'Guest / session-scoped')+'</strong><p>'+(auth?'Changes remain in the authenticated DPLR workspace.':'This CRM currently uses browser-local persistence. Durable sign-in is intentionally hidden until authenticated workspace support is enabled and verified.')+'</p></article><article><span>Golden scenario</span><strong>'+e(golden?.name||'Removed')+'</strong><p>Protected during standard cleanup and restorable with Populate / refresh.</p></article><article><span>External credentials</span><strong>Server-side only</strong><p>Exa, Jira, Confluence, AI, and other provider credentials stay behind the Clintware control plane.</p></article></div>'+
       '<section class="dplr-data-controls"><div><h2>Dataset controls</h2><p>Clear operations apply only to the current workspace. They do not delete provider credentials or another user workspace.</p></div><div class="actions"><button class="btn" id="clear-non-golden">Clear all except golden</button><label class="override"><input type="checkbox" id="override-golden"> Allow golden removal</label><button class="btn danger" id="clear-all">Clear all data</button></div></section>'+
       '<div class="section"><h2>Current accounts</h2></div><div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Data type</th><th>Stage</th><th>Source</th></tr></thead><tbody>'+S.customers.map(c=>'<tr><td><strong>'+e(c.name)+'</strong>'+(c.isGoldenExample?'<div class="prov">Golden scenario</div>':'')+'</td><td>'+e(sourceLabel(c))+'</td><td>'+e(c.stage||'Not recorded')+'</td><td>'+e(c.sourceFile||c.provenance||'Internal')+'</td></tr>').join('')+'</tbody></table></div>';
   };
