@@ -20,6 +20,7 @@ on:
       - "shouldersoldier-worker/wrangler.jsonc"
       - "mindvergent-worker/wrangler.jsonc"
       - "tests/validate_yc_venture_domains.py"
+      - "tests/validate_venture_progress_ui.py"
       - ".github/workflows/validate-yc-venture-domains.yml"
   pull_request:
     paths:
@@ -46,3 +47,4 @@ jobs:
         with:
           python-version: "3.13"
       - run: python tests/validate_yc_venture_domains.py
+      - run: python tests/validate_venture_progress_ui.py
