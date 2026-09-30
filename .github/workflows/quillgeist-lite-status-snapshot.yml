@@ -40,7 +40,15 @@ jobs:
               "$url" -o "$out"
           }
           qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" /tmp/status.json
-          qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=100" /tmp/diag.json
+          # Diagnostics are historical enrichment. A storage-quota incident must not
+          # make current liveness unreportable once /status has returned its live-only
+          # fallback.
+          if ! curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CONTROL_PLANE_MCP_TOKEN" \
+            -H "Accept: application/json" \
+            "$CONTROL_PLANE/api/v1/quillgeist-lite/diagnostics?limit=100" -o /tmp/diag.json; then
+            printf '%s\n' '{"ok":false,"degraded":true,"diagnostics":[],"reason":"durable_diagnostics_unavailable"}' > /tmp/diag.json
+          fi
           qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks.json" /tmp/tasks.json
           qq_fetch "text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/tasks/repair-codex-org-identity.ps1" /tmp/codex-task.ps1
           qq_fetch "text/plain" "$CONTROL_PLANE/api/v1/quillgeist-lite/runtime/service/QuillgeistLiteHealthService.cs" /tmp/qq-health.cs
