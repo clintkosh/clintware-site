@@ -1,0 +1,10 @@
+(()=>{
+const update=()=>{
+  document.querySelectorAll('.dplr-chip.guest').forEach(x=>{if(/Guest session/i.test(x.textContent||''))x.textContent='Browser local'});
+  const p=document.querySelector('.nma-present');if(!p||p.dataset.executionPatched==='1')return;p.dataset.executionPatched='1';
+  const slides=p.querySelectorAll('.nma-slide');const s=slides[6];if(s){const h=s.querySelector('h2'),d=s.querySelector('p');if(h)h.textContent='Preferred: ChatGPT → Clintware control plane → qq → local execution → verification';if(d)d.textContent='This run attempted that path first. The qq dispatch was blocked before DRIZNET delivery by an exhausted control-plane Durable Object row-read quota, so it was not counted as local execution. The authorized fallback used deterministic GitHub validation/deployment and live browser verification. The application itself was then moved to browser-local persistence so the demo no longer consumes Durable Object rows.'}
+  const wrap=p.querySelector('.nma-slides');if(wrap){const extra=document.createElement('section');extra.className='nma-slide';extra.innerHTML='<span class="eyebrow">08 · Execution evidence</span><h2>Dispatched ≠ delivered ≠ executed ≠ verified.</h2><div class="nma-slide-grid"><div class="nma-slide-card"><strong>qq</strong><small>Dispatch attempted. Control-plane quota blocked delivery to DRIZNET, so local execution is recorded as 0 for this run.</small></div><div class="nma-slide-card"><strong>Fallback</strong><small>Deterministic repository build, source/logic checks, Wrangler deployment, live state/CRUD, Chromium workflow, PDF, and mobile gates.</small></div><div class="nma-slide-card"><strong>Runtime cost</strong><small>Browser-local persistence removes database reads/writes from normal demo use and keeps the synthetic account workspace usable when server-side persistence quota is unavailable.</small></div></div></section>';wrap.appendChild(extra)}
+};
+new MutationObserver(update).observe(document.documentElement,{subtree:true,childList:true});
+document.addEventListener('DOMContentLoaded',update);setTimeout(update,0);
+})();
