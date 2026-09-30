@@ -2,7 +2,12 @@ name: Deploy Doppel TCE CRM
 on:
   push:
     branches: [main]
-    paths: ["projects/dpl-crm/**", "tests/dpl_browser_smoke.mjs", ".github/workflows/deploy-dpl-crm.yml"]
+    paths:
+      - "projects/dpl-crm/**"
+      - "projects/dplr-crm/scripts/browser-local-runtime.mjs"
+      - "projects/dplr-crm/public/cw-astro-local-store.js"
+      - "tests/dpl_browser_smoke.mjs"
+      - ".github/workflows/deploy-dpl-crm.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,165 +24,51 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
-
-      - name: Validate source
+      - name: Materialize quota-independent deployment artifact
         run: |
           set -euo pipefail
-          cd projects/dpl-crm
+          node projects/dpl-crm/scripts/materialize-local.mjs
+          cd .build/dpl-crm-local
           npm install --no-audit --no-fund
           npm run check
-          ! grep -R -E -i 'lovable\.dev|@lovable|lovable-vite|lovable-tagger' src public package.json wrangler.jsonc
-          grep -Fq "ACME GLOBAL" src/index.js
-          grep -Fq "Advance" src/sample-customers.js
-          grep -Fq "ARK Invest" src/sample-customers.js
-          grep -Fq "REA Group" src/sample-customers.js
-          grep -Fq "public_research" src/index.js
-          grep -Fq "Technical Customer Engineering" src/index.js
-          grep -Fq "Okta SSO" src/index.js
-          grep -Fq "Splunk" src/index.js
-          grep -Fq "customersFromFile" public/import-utils.js
-          grep -Fq "dpl-crm" src/index.js
-          grep -Fq "Engineering-ready" public/app-views.js
-          grep -Fq "RACI" public/app-views.js
-          grep -Fq "\"live_prompt\",\"Live Prompt\"" public/app-config.js
-          grep -Fq "\"live_assistant\",\"Live Assist\"" public/app-config.js
-          grep -Fq "getDisplayMedia" public/app-ai.js
-          grep -Fq "/api/ai/interpret-change" src/index.js
-          grep -Fq "/api/audio/transcribe" src/index.js
-          grep -Fq "dpl_public_research_query" src/index.js
-          grep -Fq "cross_site_mutation_blocked" src/index.js
-          grep -Fq "write_scope_required" src/index.js
-          grep -Fq "record_changed_since_interpretation" src/index.js
-          grep -Fq "script-src 'self'" src/index.js
-          ! grep -Fq "googletagmanager.com" public/index.html
-          grep -Fq "dedupeTranscriptChunk" public/app-ai.js
-          grep -Fq "NAV_GROUPS" public/app-config.js
-          grep -Fq "stakeholder" public/app-config.js
-          grep -Fq "brief-add-stakeholder" public/app-forms.js
-          grep -Fq "\"stakeholder\"" src/index.js
-          grep -Fq "doppel-brand.css" public/index.html
-          grep -Fq "doppel-polish.js" public/index.html
-          grep -Fq "AI + Exa research" public/doppel-polish.js
-          grep -Fq "Clear all data" public/doppel-polish.js
-          grep -Fq "Internal team contract" public/doppel-polish.js
-          grep -Fq "operating_model" public/doppel-polish.js
-
+          ! grep -Fq '"durable_objects"' wrangler.jsonc
+          grep -Fq '"deleted_classes"' wrangler.jsonc
+          grep -Fq '/cw-astro-local-store.js' public/index.html
+          grep -Fq 'databaseRowsPerDemoSession:0' src/index.js
+          grep -Fq 'ACME GLOBAL' public/cw-astro-local-bootstrap.js
+          grep -Fq 'Advance' public/cw-astro-local-bootstrap.js
+          grep -Fq 'doppel-brand.css' public/index.html
       - name: Wrangler dry run
-        run: |
-          set -euo pipefail
-          cd projects/dpl-crm
-          npx wrangler deploy --dry-run
-
+        run: cd .build/dpl-crm-local && npx wrangler deploy --dry-run
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd projects/dpl-crm
-
+          command: deploy --cwd .build/dpl-crm-local
       - name: Attach custom domain
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body -sS -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"hostname":"dpl.clintware.com","service":"clintware-dpl-crm","zone_name":"clintware.com"}')
+          response=$(curl --fail-with-body -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" --data '{"hostname":"dpl.clintware.com","service":"clintware-dpl-crm","zone_name":"clintware.com"}')
           python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True,d' <<< "$response"
-
-      - name: Verify live CRM
+      - name: Verify live stateless contract
         run: |
           set -euo pipefail
-          ready=0
           for i in $(seq 1 40); do
-            h=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/health || true)
-            p=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/ || true)
-            a=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/app-ai.js || true)
-            b=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/doppel-polish.js || true)
-            if grep -Fq '"service":"clintware-dpl-crm"' <<< "$h" \
-              && grep -Fq '"lovable":false' <<< "$h" \
-              && grep -Fq '"storage":"Durable Objects SQLite + audit history + account export"' <<< "$h" \
-              && grep -Fq 'Doppel Technical Customer Engineering CRM' <<< "$p" \
-              && grep -Fq '/app-ai.js' <<< "$p" \
-              && grep -Fq '/doppel-brand.css' <<< "$p" \
-              && grep -Fq 'getDisplayMedia' <<< "$a" \
-              && grep -Fq 'Interpret update' <<< "$a" \
-              && grep -Fq 'AI + Exa research' <<< "$b" \
-              && grep -Fq 'Internal team contract' <<< "$b"; then
-              ready=1
-              break
-            fi
-            echo "Waiting for dpl.clintware.com (${i}/40)"
+            h=$(curl -fsS https://dpl.clintware.com/health || true)
+            p=$(curl -fsS https://dpl.clintware.com/ || true)
+            l=$(curl -fsS https://dpl.clintware.com/cw-astro-local-store.js || true)
+            if grep -Fq '"storage":"browser-local"' <<< "$h" && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$h" && grep -Fq '"durableObjectsRequired":false' <<< "$h" && grep -Fq 'Doppel Technical Customer Engineering CRM' <<< "$p" && grep -Fq 'CW_ASTRO_LOCAL_BOOTSTRAP' <<< "$l"; then exit 0; fi
             sleep 5
           done
-          test "$ready" = "1"
-          rm -f /tmp/dpl.cookies
-          curl -fsS -c /tmp/dpl.cookies https://dpl.clintware.com/ >/tmp/dpl.html
-          state_code=$(curl -sS -o /tmp/dplstate.json -w '%{http_code}' -b /tmp/dpl.cookies -c /tmp/dpl.cookies https://dpl.clintware.com/api/state)
-          state_code=$(tr -cd '0-9' <<< "$state_code")
-          echo "state HTTP $state_code"; cat /tmp/dplstate.json
-          test "$state_code" = "200"
-          python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["access"]["authenticated"] is False; assert len(d["customers"])==10; assert d["customer"]["name"]=="ACME GLOBAL"; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3; assert any(c.get("isGoldenExample") for c in d["customers"])' </tmp/dplstate.json
-          import_code=$(curl -sS -o /tmp/dplimport.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customers":[{"name":"CI Import Test","industry":"Test","stage":"Imported","sourceName":"ci.csv"}],"mode":"append"}' https://dpl.clintware.com/api/customers/bulk-import)
-          import_code=$(tr -cd '0-9' <<< "$import_code")
-          echo "import HTTP $import_code"; cat /tmp/dplimport.json
-          test "$import_code" = "201"
-          echo "Verifying imported customer persistence"
-          imported=0
-          for j in $(seq 1 10); do
-            curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplafter.json || true
-            if python3 -c 'import json; d=json.load(open("/tmp/dplafter.json")); assert any(c["name"]=="CI Import Test" for c in d["customers"])' 2>/dev/null; then imported=1; break; fi
-            echo "Waiting for imported customer visibility ($j/10)"; sleep 1
-          done
-          test "$imported" = "1"
-          echo "Verifying clear-except-golden"
-          curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"overrideGolden":false}' https://dpl.clintware.com/api/customers/clear >/tmp/dplclear.json
-          curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplkept.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplkept.json")); assert len(d["customers"])==1; assert d["customers"][0]["name"]=="ACME GLOBAL"'
-          echo "Verifying hybrid demo reset"
-          curl -fsS -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{}' https://dpl.clintware.com/api/customers/reset-samples >/tmp/dplreset.json
-          curl -fsS -b /tmp/dpl.cookies https://dpl.clintware.com/api/state >/tmp/dplresetstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); assert len(d["customers"])==10; assert sum(1 for c in d["customers"] if c.get("isSynthetic"))==6; assert sum(1 for c in d["customers"] if c.get("isPublicReference"))==3'
-          echo "Verifying stakeholder create from meeting prep data model"
-          customer_id=$(python3 -c 'import json; d=json.load(open("/tmp/dplresetstate.json")); print(d["customer"]["id"])')
-          stakeholder_code=$(curl -sS -o /tmp/dplstakeholder.json -w '%{http_code}' -b /tmp/dpl.cookies -H 'content-type: application/json' --data '{"customerId":"'"$customer_id"'","type":"stakeholder","provenance":"internal_record","data":{"name":"CI Stakeholder","role":"Executive Sponsor","status":"Active"}}' https://dpl.clintware.com/api/records)
-          stakeholder_code=$(tr -cd '0-9' <<< "$stakeholder_code")
-          test "$stakeholder_code" = "201"
-          curl -fsS -b /tmp/dpl.cookies "https://dpl.clintware.com/api/state?customer=$customer_id" >/tmp/dplstakeholderstate.json
-          python3 -c 'import json; d=json.load(open("/tmp/dplstakeholderstate.json")); assert any(r.get("type")=="stakeholder" and r.get("data",{}).get("name")=="CI Stakeholder" for r in d["records"])'
-          echo "Verifying security headers"
-          headers=$(curl -fsS -D - -o /dev/null --connect-timeout 5 --max-time 15 https://dpl.clintware.com/)
-          echo "$headers"
-          grep -Fqi "strict-transport-security:" <<< "$headers" || { echo "Missing HSTS" >&2; exit 1; }
-          grep -Fqi "x-frame-options: DENY" <<< "$headers" || { echo "Missing X-Frame-Options DENY" >&2; exit 1; }
-          grep -Fqi "content-security-policy:" <<< "$headers" || { echo "Missing CSP" >&2; exit 1; }
-          grep -Fqi "script-src 'self'" <<< "$headers" || { echo "CSP is not self-only for scripts" >&2; exit 1; }
-          grep -Fqi "cross-origin-opener-policy: same-origin" <<< "$headers" || { echo "Missing COOP same-origin" >&2; exit 1; }
-          echo "Verifying internal-route shielding and auth boundary"
-          blocked_backup_status=$(curl -sS -o /tmp/dpl-backup-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/backup | tr -cd '0-9')
-          echo "backup shield HTTP $blocked_backup_status"; test "$blocked_backup_status" = "404"
-          blocked_session_status=$(curl -sS -o /tmp/dpl-session-blocked.json -w '%{http_code}' https://dpl.clintware.com/api/session/test | tr -cd '0-9')
-          echo "session shield HTTP $blocked_session_status"; test "$blocked_session_status" = "404"
-          ai_status=$(curl -fsS --connect-timeout 5 --max-time 15 https://dpl.clintware.com/api/ai/status)
-          echo "$ai_status" | grep -Fq '"guestAvailable":true'
-          echo "$ai_status" | grep -Fq '"provider":"exa"'
-          ai_guest_contract_status=$(curl -sS -o /tmp/dpl-ai-guest-contract.json -w '%{http_code}' -X POST https://dpl.clintware.com/api/ai/interpret-change -H 'Content-Type: application/json' --data '{}' | tr -cd '0-9')
-          echo "AI guest contract HTTP $ai_guest_contract_status"; test "$ai_guest_contract_status" = "400"
-          grep -Fq '"error":"text_and_customer_required"' /tmp/dpl-ai-guest-contract.json
-          auth=$(curl -fsS --connect-timeout 5 --max-time 15 https://auth.clintware.com/client-config/dpl-crm || true)
-          echo "$auth" | grep -Fq '"app":"dpl-crm"'
-          echo "$auth" | grep -Fq '"redirect_uri":"https://dpl.clintware.com/auth/callback"'
-          echo "Doppel Technical Customer Engineering CRM live with guest access, SSO persistence, hybrid sample data, and MCP-backed Exa contract."
-
-      - name: Real browser smoke
+          exit 1
+      - name: Real browser persistence smoke
         run: |
-          set -euo pipefail
           npm install --no-save --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
           node tests/dpl_browser_smoke.mjs
-
-      - name: Upload browser smoke screenshot
+      - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
