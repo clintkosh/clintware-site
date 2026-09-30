@@ -37,6 +37,7 @@ def main(argv=None) -> int:
     settings = dict(cfg.data.get("big_prompt", {}))
     settings["prompt_planner"] = dict(cfg.data.get("prompt_planner", {}))
     settings["state_compaction"] = dict(cfg.data.get("state_compactor", {}))
+    settings["dlp"] = dict(cfg.data.get("dlp", {}))
     if args.max_depth is not None:
         settings["max_depth"] = args.max_depth
 
