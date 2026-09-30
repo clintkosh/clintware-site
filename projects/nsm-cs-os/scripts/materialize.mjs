@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyBrowserLocalRuntime } from "../../dplr-crm/scripts/browser-local-runtime.mjs";
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const repo=path.resolve(here,"../../..");
@@ -162,6 +163,7 @@ fs.copyFileSync(path.join(overlay,"src","sample-customers.js"),path.join(out,"sr
 
 fs.rmSync(path.join(out,"public"),{recursive:true,force:true});
 fs.cpSync(path.join(overlay,"public"),path.join(out,"public"),{recursive:true});
+fs.copyFileSync(path.join(repo,"projects","dplr-crm","public","cw-astro-local-store.js"),path.join(out,"public","cw-astro-local-store.js"));
 
 const pkg={
  name:"nsm-cs-os",private:true,version:"1.0.0",type:"module",
@@ -188,4 +190,14 @@ const checks=[
  ['public/nsm.js','Post-implementation command view']
 ];
 for(const [f,s] of checks) if(!read(f).includes(s)) throw new Error("Missing build contract: "+f+" :: "+s);
+const localRuntime=await applyBrowserLocalRuntime({
+  out,
+  appId:"nsm-cs-os",
+  workspaceId:"nsm-norseman-demo",
+  serviceName:"clintware-nsm-cs-os",
+  workspaceName:"NSM ServiceNow Customer Outcomes browser-local workspace",
+  version:4
+});
+if(fs.readFileSync(path.join(out,"wrangler.jsonc"),"utf8").includes('"durable_objects"'))throw new Error("Browser-local nsm-cs-os still contains Durable Objects.");
+console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("NSM ServiceNow Customer Outcomes OS materialized at "+out);
