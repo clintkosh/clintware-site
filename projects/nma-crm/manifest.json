@@ -8,23 +8,95 @@
   "unofficial_candidate_artifact": true,
   "synthetic_data_default": true,
   "role_mission": "Own strategic post-sales relationships for enterprise customers and turn each customer's AI environment, security priorities, governance program, deployment state, adoption signals, measurable outcomes, commercial opportunities, and product feedback into an explicit operating plan.",
-  "operating_loop": ["Align", "Discover", "Prioritize", "Deploy", "Adopt", "Prove", "Expand", "Signal"],
-  "roles": [{"id": "senior-customer-solutions-architect", "name": "Senior Customer Solutions Architect"}],
+  "operating_loop": [
+    "Align",
+    "Discover",
+    "Prioritize",
+    "Deploy",
+    "Adopt",
+    "Prove",
+    "Expand",
+    "Signal"
+  ],
+  "roles": [
+    {
+      "id": "senior-customer-solutions-architect",
+      "name": "Senior Customer Solutions Architect"
+    }
+  ],
   "tracks": [
-    {"id": "portfolio", "label": "Strategic Customer Leadership", "tab": "customers", "objective": "Prioritize an enterprise portfolio around customer objectives, executive relationships, security posture, risks, commitments, decisions, and next actions."},
-    {"id": "discovery", "label": "AI Estate & Security Discovery", "tab": "handoff", "objective": "Understand the customer's AI environment across generative AI, LLM applications, RAG, agents, AI development pipelines, MCP servers, tools, identities, data, and business priorities."},
-    {"id": "program", "label": "AI Security & Governance Program", "tab": "implementation", "objective": "Translate discovered risk into a maturity roadmap spanning visibility, governance, testing, runtime protection, GRC evidence, owners, milestones, and decision rights."},
-    {"id": "deployment", "label": "Deployment & Technical Operationalization", "tab": "deployment", "objective": "Coordinate deployment, integrations, configuration, troubleshooting, technical resources, and acceptance criteria without losing customer outcome context."},
-    {"id": "value", "label": "Adoption, Outcomes & Value", "tab": "roi", "objective": "Connect customer objectives to Noma capabilities, define measurable outcomes, track adoption and risk reduction, and articulate security plus business value without overstating evidence."},
-    {"id": "expansion", "label": "Retention & Expansion", "tab": "renewal", "objective": "Partner with Sales on customer strategy and identify additional stakeholders, workloads, teams, use cases, and business units where verified value can expand."},
-    {"id": "orchestration", "label": "Cross-functional Execution", "tab": "issues", "objective": "Coordinate Product, Research, Engineering, Security, Support, and customer operationalization work through explicit owners, dependencies, escalation criteria, and closed-loop follow-up."},
-    {"id": "executive", "label": "CISO / GRC Executive Review", "tab": "meetings", "objective": "Turn technical evidence, governance posture, adoption, open risk, decisions, and value into a concise executive review for security leadership and risk stakeholders."},
-    {"id": "signal", "label": "Customer Insight & Product Signal", "tab": "prep", "objective": "Capture recurring customer friction, risk patterns, adoption blockers, and product/research signal with provenance and a clear internal follow-through path."}
+    {
+      "id": "portfolio",
+      "label": "Strategic Customer Leadership",
+      "tab": "customers",
+      "objective": "Prioritize an enterprise portfolio around customer objectives, executive relationships, security posture, risks, commitments, decisions, and next actions."
+    },
+    {
+      "id": "discovery",
+      "label": "AI Estate & Security Discovery",
+      "tab": "handoff",
+      "objective": "Understand the customer's AI environment across generative AI, LLM applications, RAG, agents, AI development pipelines, MCP servers, tools, identities, data, and business priorities."
+    },
+    {
+      "id": "program",
+      "label": "AI Security & Governance Program",
+      "tab": "implementation",
+      "objective": "Translate discovered risk into a maturity roadmap spanning visibility, governance, testing, runtime protection, GRC evidence, owners, milestones, and decision rights."
+    },
+    {
+      "id": "deployment",
+      "label": "Deployment & Technical Operationalization",
+      "tab": "deployment",
+      "objective": "Coordinate deployment, integrations, configuration, troubleshooting, technical resources, and acceptance criteria without losing customer outcome context."
+    },
+    {
+      "id": "value",
+      "label": "Adoption, Outcomes & Value",
+      "tab": "roi",
+      "objective": "Connect customer objectives to Noma capabilities, define measurable outcomes, track adoption and risk reduction, and articulate security plus business value without overstating evidence."
+    },
+    {
+      "id": "expansion",
+      "label": "Retention & Expansion",
+      "tab": "renewal",
+      "objective": "Partner with Sales on customer strategy and identify additional stakeholders, workloads, teams, use cases, and business units where verified value can expand."
+    },
+    {
+      "id": "orchestration",
+      "label": "Cross-functional Execution",
+      "tab": "issues",
+      "objective": "Coordinate Product, Research, Engineering, Security, Support, and customer operationalization work through explicit owners, dependencies, escalation criteria, and closed-loop follow-up."
+    },
+    {
+      "id": "executive",
+      "label": "CISO / GRC Executive Review",
+      "tab": "meetings",
+      "objective": "Turn technical evidence, governance posture, adoption, open risk, decisions, and value into a concise executive review for security leadership and risk stakeholders."
+    },
+    {
+      "id": "signal",
+      "label": "Customer Insight & Product Signal",
+      "tab": "prep",
+      "objective": "Capture recurring customer friction, risk patterns, adoption blockers, and product/research signal with provenance and a clear internal follow-through path."
+    }
   ],
   "public_sources": [
-    {"label": "Noma Security Senior Customer Solutions Architect", "url": "https://noma.security/positions/position-04_277"},
-    {"label": "Noma Security Platform", "url": "https://noma.security/platform"},
-    {"label": "Noma Security MCP Security", "url": "https://noma.security/solutions/mcp-security"}
+    {
+      "label": "Noma Security Senior Customer Solutions Architect",
+      "url": "https://noma.security/positions/position-04_277"
+    },
+    {
+      "label": "Noma Security Platform",
+      "url": "https://noma.security/platform"
+    },
+    {
+      "label": "Noma Security MCP Security",
+      "url": "https://noma.security/solutions/mcp-security"
+    }
   ],
-  "disclosure": "Candidate-built Clintware operating prototype using public Noma Security and role context with clearly synthetic enterprise account data. It is not an official Noma Security product, customer tenant, private process description, or representation of a real Noma customer."
+  "disclosure": "Candidate-built Clintware operating prototype using public Noma Security and role context with clearly synthetic enterprise account data. It is not an official Noma Security product, customer tenant, private process description, or representation of a real Noma customer.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage."
 }
