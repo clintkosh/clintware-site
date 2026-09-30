@@ -2,13 +2,13 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 const base="https://nsm.clintware.com"; let browser;
 try{
-  browser=await chromium.launch({headless:true});
+  browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   page.on("console",m=>console.log("BROWSER_CONSOLE",m.type(),m.text()));
   page.on("pageerror",e=>console.log("BROWSER_PAGEERROR",e.message));
   page.on("requestfailed",r=>console.log("BROWSER_REQUEST_FAILED",r.url(),r.failure()?.errorText));
   page.on("response",r=>{if(/nsm\.js|\/api\/state|\/api\/records/.test(r.url()))console.log("BROWSER_RESPONSE",r.status(),r.url(),r.headers()["content-type"]||"no-content-type");});
-  await page.goto(base,{waitUntil:"networkidle"});
+  await page.goto(base,{waitUntil:"domcontentloaded"});
   try{await page.getByText("Post-implementation command view").waitFor({timeout:12000});}
   catch(e){console.log("BROWSER_BODY",(await page.locator("body").innerText()).slice(0,3000));throw e;}
 
@@ -23,6 +23,12 @@ try{
   await page.locator('#contact-form input[name="decisionRole"]').fill("Technical contributor");
   await page.locator('#contact-form button[type="submit"]').click();
   await page.getByText("Jamie Rivera").waitFor();
+  const localState=await page.evaluate(async()=>{const r=await fetch("/api/state",{cache:"no-store"});return {status:r.status,body:await r.json(),mode:window.CW_ASTRO_LOCAL_MODE===true,stored:Object.keys(localStorage).some(k=>k.startsWith("cw-astro:nsm-cs-os:"))}});
+  if(localState.status!==200||!localState.mode||localState.body?.access?.storage!=="browser-local"||!localState.stored)throw new Error("NSM browser-local persistence contract missing");
+  if(!localState.body.records.some(r=>r.type==="stakeholder"&&r.data?.name==="Jamie Rivera"))throw new Error("NSM browser-local stakeholder write missing");
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.getByText("Post-implementation command view").waitFor({timeout:12000});
+  await page.getByText("Jamie Rivera").waitFor({timeout:12000});
 
   await page.getByRole("button",{name:"Meeting Brief"}).click();
   await page.getByRole("heading",{name:"Meeting Brief",exact:true}).waitFor();
@@ -41,7 +47,7 @@ try{
   await page.screenshot({path:"nsm-desktop.png",fullPage:true});
 
   const mobile=await browser.newPage({viewport:{width:390,height:844}});
-  await mobile.goto(base,{waitUntil:"networkidle"});
+  await mobile.goto(base,{waitUntil:"domcontentloaded"});
   await mobile.getByText("Post-implementation command view").waitFor();
   await mobile.screenshot({path:"nsm-mobile.png",fullPage:true});
 }catch(e){
