@@ -858,9 +858,33 @@ export class SchedulerState extends DurableObject {
 }
 
 async function apiAvailability(env) {
-  const response = await store(env).fetch("https://scheduler/availability");
-  const data = await response.json();
-  if (!response.ok) return json(data, response.status, { "Cache-Control": "no-store" });
+  let data;
+  let storageSync = "durable";
+
+  try {
+    const response = await store(env).fetch("https://scheduler/availability");
+    if (!response.ok) throw new Error(`scheduler_availability_failed:${response.status}`);
+    data = await response.json();
+  } catch (error) {
+    storageSync = "calendar-only";
+    console.warn(JSON.stringify({
+      event: "scheduler_storage_availability_fallback",
+      message: String(error),
+    }));
+    const candidates = generateCandidateSlots(Date.now(), CONFIG)
+      .slice(0, 320)
+      .map((slot) => ({ startMs: slot.startMs, endMs: slot.endMs }));
+    data = {
+      slots: candidates,
+      config: {
+        durationMinutes: CONFIG.durationMinutes,
+        hostTimeZone: CONFIG.hostTimeZone,
+        minNoticeMinutes: CONFIG.minNoticeMinutes,
+        bufferBeforeMinutes: CONFIG.bufferBeforeMinutes,
+        bufferAfterMinutes: CONFIG.bufferAfterMinutes,
+      },
+    };
+  }
 
   let calendarSync = googleCalendarConfigured(env) ? "degraded" : "not_configured";
   if (googleCalendarConfigured(env) && Array.isArray(data.slots) && data.slots.length) {
@@ -881,7 +905,7 @@ async function apiAvailability(env) {
     }
   }
 
-  return json({ ...data, calendarSync }, response.status, { "Cache-Control": "no-store" });
+  return json({ ...data, calendarSync, storageSync }, 200, { "Cache-Control": "no-store" });
 }
 
 async function apiBook(request, env) {
