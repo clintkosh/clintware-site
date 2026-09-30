@@ -20,6 +20,8 @@ test("watchdog remains responsive while runner work is protected", () => {
   assert.match(watchdog, /FreshBusyHeartbeatActive\(\)/);
   assert.match(watchdog, /deferred_busy/);
   assert.match(watchdog, /restart_requested/);
+  assert.match(watchdog, /progress_age_seconds/);
+  assert.match(watchdog, /busy_progressing/);
 });
 
 test("status snapshots actively ask every registered watchdog for live state", () => {
