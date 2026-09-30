@@ -160,13 +160,10 @@ jobs:
           import json, os
           d=json.load(open('/tmp/meet-health.json'))
           assert d.get('mode') == 'clintcal-native',d
-          assert d.get('storage') == 'sqlite',d
-          delegated=bool(os.environ.get('GOOGLE_DELEGATED_REFRESH_TOKEN'))
-          if delegated:
-              assert d.get('ok') is True,d
-              assert d.get('mailer') == 'gmail',d
-          else:
-              print('Google delegated access not configured yet; mail health is intentionally non-blocking.')
+          assert d.get('storage') == 'google-calendar',d
+          assert d.get('ok') is True,d
+          assert d.get('calendarState') == 'connected',d
+          print('Core scheduler health is Calendar-backed; mail and Durable Objects are non-blocking.')
           PY
           python3 - <<'PY'
           import json
@@ -186,7 +183,7 @@ jobs:
           curl --fail-with-body -sS -X POST https://meet.clintware.com/api/admin/cleanup-deployment-tests \
             -H "x-clintware-admin-secret: $scheduler_admin_secret"
 
-      - name: Run protected storage self-test
+      - name: Run calendar-first scheduler self-test
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -201,12 +198,13 @@ jobs:
           import json
           d=json.load(open('/tmp/selftest.json'))
           assert d.get('ok') is True,d
-          assert d.get('storage',{}).get('storage') == 'sqlite',d
+          assert d.get('storage',{}).get('storage') == 'google-calendar',d
           assert d.get('slots',0) > 0,d
           assert d.get('calendarBridgeConfigured') is True,d
           assert d.get('calendarReady') is True,d
-          assert d.get('repairMode') == 'event-driven-durable-alarm',d
-          print('Protected storage + live Calendar self-test passed:',d)
+          assert d.get('repairMode') == 'calendar-first-no-durable-object-dependency',d
+          assert d.get('bookingFlow') == 'google-calendar-create/update/delete',d
+          print('Calendar-first scheduler self-test passed:',d)
           PY
 
       - name: Run one live book-reschedule-cancel test
