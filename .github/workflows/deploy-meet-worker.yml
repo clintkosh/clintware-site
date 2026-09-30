@@ -95,6 +95,19 @@ jobs:
           printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | npx --yes wrangler@4 secret put GOOGLE_OAUTH_CLIENT_SECRET --config meet-worker/wrangler.jsonc
           printf '%s' "$GOOGLE_DELEGATED_REFRESH_TOKEN" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_REFRESH_TOKEN --config meet-worker/wrangler.jsonc
 
+      - name: Verify delegated Google account identity
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          broker_identity=$(curl --fail-with-body -sS -X POST https://auth.clintware.com/internal/google-access-token \
+            -H "x-clintware-google-secret: $google_bridge_secret" \
+            -H "accept: application/json")
+          broker_email=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("email") or "").lower())' <<< "$broker_identity")
+          test "$broker_email" = "clint.kosh@gmail.com"
+          echo "Delegated Google Calendar identity verified: $broker_email"
+
       - name: Attach or verify meet.clintware.com
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
