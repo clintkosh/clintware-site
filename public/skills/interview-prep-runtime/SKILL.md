@@ -95,6 +95,63 @@ Do not force a bridge when one does not exist. Classify it honestly as adjacent 
 
 Use prior interview transcripts as a feedback loop. Promote conceptual bridges that clearly resonated or unlocked stronger follow-up discussion. Shorten, reframe, or retire bridges that confused the interviewer or required too much explanation.
 
+
+## Mandatory adaptive self-introduction standard
+
+Do not prepare or coach a fixed memorized elevator pitch. The candidate should know the evidence and structure, not a word-for-word script.
+
+For every interview round, generate self-introduction variants from the current role, company, interviewer/stage, likely audience priorities, available time, and newest evidence.
+
+Required structure:
+
+**PRESENT -> PAST PROOF -> FUTURE / ROLE LINK -> STOP**
+
+1. **Present / value proposition**
+   - Lead with who the candidate is professionally now and the distinctive value they create.
+   - Use one memorable operating identity or leadership pattern, not a generic title.
+   - Make the opening answer the audience's implicit question: "Why is this person relevant to what I need?"
+
+2. **Past / credibility**
+   - Use only 1-2 highly relevant proof points.
+   - Prefer outcomes, scope, metrics, operating patterns, and ownership over job-title chronology.
+   - Do not recite the resume.
+   - If tenure or a transition is mentioned, immediately answer "so what?" by stating the capability, perspective, relationship network, or result it created.
+
+3. **Future / audience connection**
+   - End with one forward-looking sentence connecting the candidate's evidence to what this team, interviewer, or role is trying to accomplish.
+   - Make the future connection specific enough to show audience awareness without pretending to know undocumented internal priorities.
+
+4. **STOP**
+   - End after the role link. Let the interviewer pull for detail.
+   - Do not append extra chronology, a second thesis, another metric, or a project inventory unless asked.
+
+Audience adaptation is mandatory:
+- recruiter: role fit, scope, motivation, clarity;
+- hiring manager: operating value, judgment, outcomes, ownership;
+- technical/product partner: credible bridge, cross-functional translation, implementation/adoption implications;
+- executive: business outcome, scale, tradeoffs, leverage;
+- panel: one shared headline that remains legible across functions.
+
+Self-introduction failure modes to flag in prep and transcript review:
+- memorized or over-rehearsed wording;
+- chronology before value;
+- generic identity such as "I'm a CSM" without differentiation;
+- making the introduction entirely about the candidate rather than the audience's need;
+- multiple competing professional identities in the first answer;
+- long setup before proof;
+- proof without result;
+- result without role relevance;
+- missing future-facing close;
+- continuing after the answer is complete;
+- introducing tools/projects before establishing the human or business capability they prove.
+
+Generate at least:
+- a 20-30 second recruiter/opening version;
+- a 45-60 second hiring-manager version;
+- an executive-compressed version.
+
+These are frameworks and talking rails, not scripts to memorize. Preserve natural language and allow wording to vary live.
+
 ## Mandatory dark-mode artifact contract
 
 Dark mode is the default and required presentation for all live interview-prep artifacts unless the user explicitly requests otherwise.
