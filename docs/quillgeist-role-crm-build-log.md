@@ -46,6 +46,20 @@ Synthetic-data boundary is explicit.  No real Anthropic customer data is used.
 - Therefore no local execution, deployment, or live-domain verification is claimed from this request.
 - The relay is now hardened to treat this quota condition as non-retryable instead of spending four additional failed requests.
 
+
+### Source validation after semantic-base correction
+- Final source revision checked: `26f2792bdb8d7b88381d8ddac31bc89aaabb5120`.
+- Dedicated Anthropic validation run: `36749254629` — **passed**.
+- Materialization: passed.
+- Dependency install: passed.
+- Source/contract checks: passed.
+- Wrangler dry run: passed.
+- One-off semantic boundary: passed.
+- Brand / Quillgeist isolation validation: `36749254681` — **passed**.
+- CRM analytics coverage validation: `36749254673` — **passed**.
+- The inherited source-company enrichment module is removed from the generated Anthropic build.
+- The generated importer, sample-account model, workspace labels, and visible/runtime modules are now role-adaptive rather than source-company-derived.
+
 ### Current state
 Source is persisted and ready for qq, but `anth.clintware.com` is **not yet claimed deployed or verified**.
 
