@@ -36,6 +36,7 @@ jobs:
         run: |
           set -uo pipefail
           failures=0
+          quota_exhausted=false
 
           echo "=== HEALTH ==="
           health_body=$(mktemp)
@@ -106,6 +107,10 @@ jobs:
             if [[ ! "$gh_code" =~ ^2 ]]; then
               echo "::error::GitHub adapter MCP call failed with HTTP $gh_code"
               failures=$((failures+1))
+            elif grep -Fq 'Exceeded allowed rows read in Durable Objects free tier.' "$gh_body"; then
+              echo "::warning::Durable Objects daily read quota is exhausted; redeploy cannot repair a quota condition."
+              quota_exhausted=true
+              failures=$((failures+1))
             elif grep -Eq 'github_read_failed|Bad credentials|\"status\":401|isError\":true' "$gh_body"; then
               echo "::error::GitHub adapter is configured but not operational"
               failures=$((failures+1))
@@ -119,6 +124,7 @@ jobs:
 
           rm -f "$health_body" "${auth_body:-}" "${auth_headers:-}" "${gh_body:-}" /tmp/mcp-unauth.out 2>/dev/null || true
 
+          echo "quota_exhausted=$quota_exhausted" >> "$GITHUB_OUTPUT"
           if [[ "$failures" -eq 0 ]]; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -129,7 +135,7 @@ jobs:
           exit 1
 
       - name: Automatic recovery - redeploy Control Plane
-        if: steps.probe.outputs.healthy != 'true'
+        if: steps.probe.outputs.healthy != 'true' && steps.probe.outputs.quota_exhausted != 'true'
         id: redeploy
         continue-on-error: true
         shell: bash
@@ -145,7 +151,7 @@ jobs:
 
       - name: Recheck after automatic recovery
         id: recovery
-        if: steps.probe.outputs.healthy != 'true'
+        if: steps.probe.outputs.healthy != 'true' && steps.probe.outputs.quota_exhausted != 'true'
         shell: bash
         continue-on-error: true
         run: |
@@ -188,7 +194,7 @@ jobs:
           exit 1
 
       - name: Open incident issue if recovery failed
-        if: steps.probe.outputs.healthy != 'true' && steps.recovery.outputs.recovered != 'true'
+        if: steps.probe.outputs.healthy != 'true' && steps.probe.outputs.quota_exhausted != 'true' && steps.recovery.outputs.recovered != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -201,6 +207,12 @@ jobs:
             gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
           fi
           exit 1
+
+      - name: Report quota exhaustion without futile redeploy
+        if: steps.probe.outputs.quota_exhausted == 'true'
+        shell: bash
+        run: |
+          echo "::warning::Control Plane state reads are paused by the Durable Objects Free-plan daily rows-read limit. The limit resets at 00:00 UTC; no redeploy or repeated recovery call will be attempted."
 
       - name: Close prior monitor incident after health is restored
         if: steps.probe.outputs.healthy == 'true' || steps.recovery.outputs.recovered == 'true'
