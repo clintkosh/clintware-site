@@ -60,7 +60,7 @@ def _defaults() -> dict:
             "child_target_chars": 1600,
             "child_complexity_threshold": 5,
             "max_children": 12,
-            "remote_broker": "mcp.clintware.com",
+            "remote_broker": "control_plane",
             "preserve_dependency_order": True
         },
         "state_compactor": {
