@@ -11,7 +11,7 @@ const reference=path.join(repo,"projects","dplr-crm","scripts","materialize.mjs"
 const sourceBuild=path.join(repo,".build","dplr-crm");
 const overlay=path.join(repo,"projects","nma-crm");
 const out=path.join(repo,".build","nma-crm");
-execFileSync(process.execPath,[reference],{cwd:repo,stdio:"inherit"});
+execFileSync(process.execPath,[reference],{cwd:repo,stdio:"inherit",env:{...process.env,CW_ASTRO_REFERENCE_MODE:"1"}});
 if(!fs.existsSync(sourceBuild))throw new Error("Adaptive implementation reference did not materialize.");
 fs.rmSync(out,{recursive:true,force:true});
 fs.cpSync(sourceBuild,out,{recursive:true});
