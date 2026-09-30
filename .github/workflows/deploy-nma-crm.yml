@@ -51,7 +51,8 @@ jobs:
           grep -Fq 'blocked before DRIZNET delivery' public/nma-build-status.js
           grep -Fq '"pattern": "nma.clintware.com"' wrangler.jsonc
           ! grep -Fq 'durable_objects' wrangler.jsonc
-          ! grep -Fq 'migrations' wrangler.jsonc
+          grep -Fq '"deleted_classes"' wrangler.jsonc
+          grep -Fq '"v2-browser-local"' wrangler.jsonc
           ! grep -RqiE 'Doppel|doppel\.com' src public
 
       - name: Layer 1 - Wrangler dry run
@@ -177,4 +178,4 @@ jobs:
 
       - name: Verification summary
         run: |
-          echo 'NMA_VERIFIED=source+role-logic+quota-independent-runtime+dry-run+deploy+live-http+browser-crud+browser-persistence+chromium+presentation+pdf+mobile'
+          echo 'NMA_VERIFIED=source+role-logic+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+chromium+presentation+pdf+mobile'
