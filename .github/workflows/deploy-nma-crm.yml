@@ -89,8 +89,10 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
-          curl -fsS "$base/nma-track.js" | grep -Fq 'Customer Insight & Product Signal'
-          curl -fsS "$base/nma-build-status.js" | grep -Fq 'local execution is recorded as 0'
+          track_js=$(curl -fsS "$base/nma-track.js")
+          grep -Fq 'Customer Insight & Product Signal' <<< "$track_js"
+          build_status_js=$(curl -fsS "$base/nma-build-status.js")
+          grep -Fq 'local execution is recorded as 0' <<< "$build_status_js"
           code=$(curl -sS -o /tmp/nma-api-direct.json -w '%{http_code}' "$base/api/state" | tr -cd '0-9')
           test "$code" = "409"
           grep -Fq 'browser_local_api' /tmp/nma-api-direct.json
