@@ -161,22 +161,23 @@ The initial wedge can be interview preparation and review because it provides ur
 
 ## Winter 2027 YC language
 
-The current founder-priority / YC-validation order as of September 19, 2026 is:
+The current founder-priority / YC-validation order as of September 30, 2026 is:
 
-1. **Mind to Form** — primary new venture thesis; browser alpha is the immediate proof surface.
-2. **BuyerOrigin** — strongest current commercial-validation challenger with a working merchant-policy MVP.
-3. **Quillgeist** — strongest technical alternate with a working local-execution/context alpha.
-4. **LandThePlane** — working candidate-owned evidence system.
-5. **Prompt Iris** — browser MVP for quality-adjusted AI efficiency.
-6. **RenewNudge** — live Customer Success product.
-7. **OrgSynapse** — working shared-operational-state alpha.
-8. **ShoulderSoldier** — working deterministic interaction-risk MVP.
-9. **Portability Check** — defined assessment/remediation track.
-10. **MindVergent™** — broader verified-work network thesis.
+1. **Quillgeist** — primary W27 candidate; working local-execution/context alpha with aggregate efficiency telemetry and a public progress journal.
+2. **Mind to Form** — working intent-to-physical-product browser alpha.
+3. **BuyerOrigin** — working merchant-controlled acquisition-offer eligibility MVP and commercial-validation challenger.
+4. **Clintware SuccessOS** — architecture + prototype track for a portable governed AI operating environment.
+5. **LandThePlane** — working candidate-owned evidence / career-system alpha with prep provenance and interview review.
+6. **Prompt Iris** — browser MVP for quality-adjusted AI efficiency.
+7. **RenewNudge** — live Customer Success renewal-risk and action workflow.
+8. **OrgSynapse** — working shared company-operating-state alpha.
+9. **ShoulderSoldier** — working deterministic user-interaction risk evaluator.
+10. **Portability Check** — defined portability assessment/remediation track.
+11. **MindVergent™** — broader verified-work network thesis.
 
 Idea priority and evidence maturity are separate. Do not imply that a higher-ranked idea has more external proof than a lower-ranked working product.
 
-Every venture in this ranking uses its own canonical `<venture>.clintware.com` subdomain. The main `/startup/` page is the ranking/index only.
+Every venture in this ranking uses its own canonical `<venture>.clintware.com` subdomain, including `successos.clintware.com`. The main `/startup/` page is the ranking/index only. Progress/evidence surfaces follow `docs/VENTURE_PROGRESS_STANDARD.md`.
 
 Do not imply acceptance, endorsement, affiliation, interview selection, funding, or YC participation unless it actually occurs. Do not call a planned application an applicant status before submission.
 
