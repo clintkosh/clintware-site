@@ -5,6 +5,7 @@ import re
 from typing import Iterable
 
 from .contextor import estimate_tokens
+from .dlp import sanitize as sanitize_dlp
 from .prompt_planner import _chunk, _complexity, plan_prompt
 
 
@@ -186,7 +187,9 @@ def plan_big_prompt(
         planner_settings["state_scope"] = state_scope
     planner_settings.setdefault("state_compaction", settings.get("state_compaction") or {})
 
-    raw = _redact_secret_shapes(str(text or "").strip())
+    raw_input = str(text or "").strip()
+    sanitized, _dlp_report = sanitize_dlp(raw_input, settings.get("dlp") or {"enabled": True, "mode": "standard"}, purpose="big_prompt")
+    raw = _redact_secret_shapes(str(sanitized))
     root = plan_prompt(raw, planner_settings, force=force)
     seed_prompts = [step.prompt for step in root.steps] or [root.master_prompt]
 
