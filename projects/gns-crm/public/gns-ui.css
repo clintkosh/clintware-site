@@ -1,0 +1,34 @@
+:root{
+  --bg:#f5f7fb;--panel:#ffffff;--panel2:#edf2f8;--line:#d3dce8;--text:#101722;--muted:#627084;
+  --blue:#1769e0;--cyan:#00a6c7;--green:#238a57;--amber:#b77614;--red:#bd3e47;--lime:#1769e0;
+  --rail:#f8fafc;--hover:#edf4ff;--focus:rgba(23,105,224,.13);--shadow:0 18px 46px rgba(16,23,34,.10)
+}
+:root[data-theme=dark]{
+  --bg:#0b1018;--panel:#111925;--panel2:#182433;--line:#2d3d50;--text:#f4f7fb;--muted:#9eacc0;
+  --blue:#69a7ff;--cyan:#50c8e0;--green:#69c493;--amber:#e0ac56;--red:#ee7b84;--lime:#69a7ff;
+  --rail:#0e151f;--hover:#172335;--focus:rgba(105,167,255,.15)
+}
+body{background:linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 94%,var(--blue)))}
+.dplr-appbar{background:color-mix(in srgb,var(--panel) 95%,transparent);backdrop-filter:blur(16px);border-color:var(--line)}
+.dplr-mark{border:1px solid var(--line);background:var(--blue);color:white}
+.dplr-primary button.active{border-bottom-color:var(--blue);color:var(--text)}
+.dplr-left nav section button.active{background:var(--focus);color:var(--blue)}
+.dplr-left nav section button.active:before{background:var(--blue)}
+.dplr-kicker{color:var(--blue)}.btn.primary{background:var(--blue);border-color:var(--blue);color:white;font-weight:800}
+.gns-gate{position:fixed;inset:0;z-index:9999;background:color-mix(in srgb,var(--bg) 96%,transparent);backdrop-filter:blur(20px);overflow:auto;padding:28px;color:var(--text)}
+.gns-panel{max-width:1180px;margin:0 auto;border:1px solid var(--line);background:var(--panel);border-radius:24px;padding:30px;box-shadow:var(--shadow)}
+.gns-kicker,.gns-track-card>span,.gns-banner span,.gns-tool label{font:800 10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--blue)}
+.gns-panel h1{font-size:clamp(34px,6vw,68px);line-height:.98;letter-spacing:-.055em;margin:8px 0 14px;max-width:940px}
+.gns-panel>header p{max-width:850px;color:var(--muted);font-size:15px;line-height:1.55}
+.gns-disclosure{border-left:3px solid var(--blue);background:var(--panel2);padding:12px 14px;color:var(--muted);margin:22px 0;border-radius:8px}
+.gns-loop{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 22px}.gns-loop b{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:7px 10px;font-size:10px;letter-spacing:.08em}.gns-loop i{color:var(--muted)}
+.gns-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.gns-track-card{text-align:left;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:15px;padding:17px;min-height:168px;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:.16s ease}
+.gns-track-card:hover,.gns-track-card:focus-visible{transform:translateY(-2px);border-color:var(--blue);box-shadow:var(--shadow);outline:none}
+.gns-track-card strong{font-size:16px}.gns-track-card small{color:var(--muted);line-height:1.4;flex:1}.gns-track-card b{font-size:11px;color:var(--blue)}
+.gns-banner{display:flex;justify-content:space-between;align-items:center;gap:18px;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:11px;padding:12px 14px;margin:0 0 18px;background:var(--panel)}
+.gns-banner>div:first-child{display:grid;gap:3px}.gns-banner strong{font-size:17px}.gns-banner small{color:var(--muted);max-width:760px}.gns-banner .actions{display:flex;gap:7px;flex-wrap:wrap}
+.gns-tool{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px;margin:0 0 18px}.gns-tool h3{margin:3px 0 5px}.gns-tool p{color:var(--muted);margin:0 0 14px}
+.gns-cover{width:100%;min-height:360px;resize:vertical;border:1px solid var(--line);border-radius:11px;background:var(--panel2);color:var(--text);padding:14px;font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+@media(max-width:900px){.gns-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gns-banner{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.gns-gate{padding:12px}.gns-panel{padding:18px;border-radius:16px}.gns-grid{grid-template-columns:1fr}.gns-panel h1{font-size:38px}}
