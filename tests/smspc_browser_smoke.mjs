@@ -144,6 +144,7 @@ try {
     trackLabels.push(label);
   }
 
+  await page.locator(".dplr-more summary").click();
   await page.locator("#theme").selectOption("light");
   assert(await page.evaluate(() => document.documentElement.dataset.theme) === "light", "Light theme applies");
   await page.locator("#theme").selectOption("dark");
