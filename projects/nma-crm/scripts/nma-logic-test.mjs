@@ -25,7 +25,7 @@ const checks={
  noIndex:html.includes("noindex,nofollow,noarchive"),
  responsive:css.includes("@media(max-width:620px)"),
  browserPersistence:localApi.includes("localStorage")&&localApi.includes('mode:"browser-persistent"')&&html.includes("/nma-local-api.js"),
- quotaIndependent:worker.includes("databaseRowsPerDemoSession:0")&&!wrangler.includes("durable_objects")&&!wrangler.includes("migrations"),
+ quotaIndependent:worker.includes("databaseRowsPerDemoSession:0")&&!wrangler.includes("durable_objects")&&wrangler.includes('"deleted_classes"')&&wrangler.includes('"DPLCRM"'),
  executionTruth:status.includes("blocked before DRIZNET delivery")&&status.includes("local execution is recorded as 0"),
  sourceCompanyClean:!(/Doppel|doppel\.com/i.test(worker+track+status+localApi+html)),
  publicBoundary:track.includes("Not an official Noma product")
