@@ -91,6 +91,7 @@ jobs:
           node --check agentbridge-cloud/src/help.js
           node --check agentbridge-cloud/public/app.js
           node --check agentbridge-cloud/public/fluid.js
+          node --check agentbridge-cloud/public/progress.js
           node --check agentbridge-cloud/public/sw.js
       - name: Validate Wrangler config
         run: |
