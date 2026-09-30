@@ -47,6 +47,10 @@ $script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
 $script:LastPendingNotice = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
+$script:HeartbeatSequence = 0
+$script:ProgressSequence = 0
+$script:LastProgressAt = (Get-Date).ToUniversalTime()
+$script:RunnerSessionId = [guid]::NewGuid().ToString("n")
 $script:LastVisibleActivity = Get-Date
 $script:QQShortIdleShown = $false
 $script:QQLongIdleShown = $false
@@ -132,20 +136,35 @@ function Write-RunnerHeartbeat {
     [string]$State = "connected",
     [string]$JobId = "",
     [string]$TaskId = "",
+    [string]$Phase = "",
+    [switch]$Progress,
     [switch]$Force
   )
 
   $now = Get-Date
-  if (-not $Force -and (($now - $script:LastHeartbeatWrite).TotalSeconds -lt 15)) { return }
+  if (-not $Force -and -not $Progress -and (($now - $script:LastHeartbeatWrite).TotalSeconds -lt 15)) { return }
+
+  if ($Progress) {
+    $script:ProgressSequence++
+    $script:LastProgressAt = $now.ToUniversalTime()
+  }
+  $script:HeartbeatSequence++
 
   try {
+    $networkState = if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) { "connected" } else { "disconnected" }
     $payload = [ordered]@{
-      version = "1"
+      version = "2"
       runner_id = $env:COMPUTERNAME
       pid = $PID
+      session_id = $script:RunnerSessionId
       state = $State
       job_id = $JobId
       task_id = $TaskId
+      phase = $Phase
+      sequence = $script:HeartbeatSequence
+      progress_sequence = $script:ProgressSequence
+      progress_at = $script:LastProgressAt.ToString("o")
+      network_state = $networkState
       timestamp = $now.ToUniversalTime().ToString("o")
     }
     $temp = $HeartbeatPath + ".new"
@@ -1115,7 +1134,7 @@ function Emit-TaskLine {
   Mark-QQVisibleActivity
   Show-QQPrompt
 
-  Write-RunnerHeartbeat -State "busy" -JobId ([string]$Job.job_id) -TaskId ([string]$Job.task_id)
+  Write-RunnerHeartbeat -State "busy" -JobId ([string]$Job.job_id) -TaskId ([string]$Job.task_id) -Phase $Phase -Progress
 
   if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
     try {
@@ -1153,13 +1172,27 @@ function Invoke-ExternalStreaming {
       while ($true) {
         try {
           $now = (Get-Date).ToUniversalTime()
+          $previous = $null
+          try {
+            if (Test-Path $Path) { $previous = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json }
+          } catch {}
+          $priorSequence = 0
+          $priorProgressSequence = 0
+          try { $priorSequence = [int]$previous.sequence } catch {}
+          try { $priorProgressSequence = [int]$previous.progress_sequence } catch {}
           $payload = [ordered]@{
-            version = "1"
+            version = "2"
             runner_id = $RunnerId
             pid = $RunnerPid
+            session_id = $(if($previous -and $previous.session_id){[string]$previous.session_id}else{""})
             state = "busy"
             job_id = $JobId
             task_id = $TaskId
+            phase = $(if($previous -and $previous.phase){[string]$previous.phase}else{"run"})
+            sequence = ($priorSequence + 1)
+            progress_sequence = $priorProgressSequence
+            progress_at = $(if($previous -and $previous.progress_at){[string]$previous.progress_at}else{$now.ToString("o")})
+            network_state = $(if($previous -and $previous.network_state){[string]$previous.network_state}else{"unknown"})
             timestamp = $now.ToString("o")
           }
           $temp = $Path + ".busy"
@@ -1329,6 +1362,7 @@ function Show-QQStatus {
   $activeJob = ""
   $activeTask = ""
   $heartbeatAge = "unavailable"
+  $progressAge = "unavailable"
 
   try {
     if (Test-Path $HeartbeatPath) {
@@ -1339,6 +1373,11 @@ function Show-QQStatus {
       $stamp = [DateTimeOffset]::Parse([string]$heartbeat.timestamp)
       $age = [Math]::Max(0,[int]([DateTimeOffset]::UtcNow - $stamp.ToUniversalTime()).TotalSeconds)
       $heartbeatAge = ([string]$age + "s ago")
+      if ($heartbeat.progress_at) {
+        $progressStamp = [DateTimeOffset]::Parse([string]$heartbeat.progress_at)
+        $pAge = [Math]::Max(0,[int]([DateTimeOffset]::UtcNow - $progressStamp.ToUniversalTime()).TotalSeconds)
+        $progressAge = ([string]$pAge + "s ago")
+      }
     }
   } catch {
     $heartbeatAge = "invalid"
@@ -1361,6 +1400,7 @@ function Show-QQStatus {
   Write-Host ("  Active task   : " + $(if($activeTask){$activeTask}else{"none"})) -ForegroundColor $(if($activeTask){"DarkCyan"}else{"DarkGray"})
   Write-Host ("  Active job    : " + $(if($activeJob){$activeJob}else{"none"})) -ForegroundColor DarkGray
   Write-Host ("  Heartbeat     : " + $heartbeatAge) -ForegroundColor DarkGray
+  Write-Host ("  Job progress  : " + $progressAge) -ForegroundColor DarkGray
   Write-Host ("  Health service: " + $(if($service){$service.Status}else{"not installed"})) -ForegroundColor Cyan
   Write-Host ("  Check-in      : " + $checkinText) -ForegroundColor $(if($watchdogReady){"Green"}else{"DarkYellow"})
   Write-Host ("  Machine       : " + $env:COMPUTERNAME) -ForegroundColor DarkGray
@@ -2671,7 +2711,7 @@ try {
           started_at = (Get-Date).ToUniversalTime().ToString("o")
         }
 
-        Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$job.task_id) -Force
+        Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$job.task_id) -Phase "start" -Progress -Force
         Suspend-QQPrompt
         Write-Host ("WORKING // " + [string]$job.task_id + " // live task output follows when available") -ForegroundColor DarkCyan
         Mark-QQVisibleActivity
@@ -2700,7 +2740,7 @@ try {
         Send-Json $ws $result
         [void]$pendingResults.Remove($jobId)
         Save-PendingResults $pendingResults
-        Write-RunnerHeartbeat -State "connected" -Force
+        Write-RunnerHeartbeat -State "connected" -Phase "complete" -Progress -Force
 
         $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
         Write-Log ("Job {0} finished with status {1}" -f $jobId,$result.status) $level
