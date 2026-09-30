@@ -1,12 +1,14 @@
 {
-  "request_id": "driznet-smspc-auth-clean-full-20260929-1928",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-smspc-final-functional-smoke-20260930-0530",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "smspc-crm",
-    "SkipInstall": "false",
-    "RepoRoot": "C:\\Users\\batman\\AppData\\Local\\Clintware\\code-search\\clintware-site"
+    "Action": "run",
+    "Url": "https://smspc.clintware.com",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://smspc.clintware.com\"},{\"op\":\"wait_for_text\",\"text\":\"Prove the decision, not just the demo.\",\"timeout_ms\":20000},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"discovery\\\"]\"},{\"op\":\"wait\",\"ms\":500},{\"op\":\"click\",\"selector\":\"[data-add=\\\"stakeholder\\\"]\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"name\\\"]\",\"value\":\"QQ Verification Stakeholder (Synthetic)\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"role\\\"]\",\"value\":\"Synthetic Evaluation Owner\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"organization\\\"]\",\"value\":\"Aegis National Bank (Synthetic)\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"decisionRole\\\"]\",\"value\":\"QQ guest-mode CRUD verification only\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"status\\\"]\",\"value\":\"Verification\"},{\"op\":\"fill\",\"selector\":\"[data-f=\\\"notes\\\"]\",\"value\":\"Synthetic test record created by governed QQ browser automation in its isolated guest workspace.\"},{\"op\":\"select\",\"selector\":\"#pv\",\"value\":\"template\"},{\"op\":\"click\",\"selector\":\"#save\"},{\"op\":\"wait_for_text\",\"text\":\"QQ Verification Stakeholder (Synthetic)\",\"timeout_ms\":15000},{\"op\":\"reload\"},{\"op\":\"wait_for_text\",\"text\":\"QQ Verification Stakeholder (Synthetic)\",\"timeout_ms\":15000},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"range-blueprint\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"evaluation\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"field-engineering\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"demo-pilot\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"rfp\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"partners\\\"]\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"click\",\"selector\":\"#smspc-switch\"},{\"op\":\"click\",\"selector\":\"[data-smspc-track=\\\"close-expand\\\"]\"},{\"op\":\"wait\",\"ms\":400},{\"op\":\"select\",\"selector\":\"#theme\",\"value\":\"light\"},{\"op\":\"wait\",\"ms\":250},{\"op\":\"select\",\"selector\":\"#theme\",\"value\":\"dark\"},{\"op\":\"inspect\"},{\"op\":\"read\",\"max_chars\":18000},{\"op\":\"screenshot\",\"path\":\"smspc-final-live-smoke.png\",\"full_page\":true}]}",
+    "Approved": "false",
+    "Headless": "true",
+    "WaitMs": "300"
   },
-  "objective": "Retry the SimSpace CRM rebuild now that the Quillgeist cloud runtime deployment has completed successfully. Use the refreshed DPLR source with durable-sign-in CTA removed, preserve all SimSpace role-specific functionality, run source checks, and deploy to https://smspc.clintware.com. Do not reintroduce unauthenticated durable sign-in UI."
+  "objective": "Finish live functional testing of the SimSpace Senior Solution Engineer CRM on DRIZNET. Verify the deployed chooser, guest-mode synthetic stakeholder create/read persistence across reload, all eight operating-track switches, theme control, final rendered page, role-specific technical-brief control presence, and the absence of the removed durable-sign-in CTA. The synthetic mutation is confined to QQ's isolated guest browser workspace."
 }
