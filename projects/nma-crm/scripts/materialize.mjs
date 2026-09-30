@@ -42,8 +42,8 @@ let config=fs.readFileSync(configPath,"utf8");
 config=config.replace('localStorage.getItem("dplrtheme")||"light"','localStorage.getItem("dplrtheme")||"dark"');
 fs.writeFileSync(configPath,config);
 
-// First reuse the mature DPLR production cleanup, then deliberately swap only the
-// persistence/runtime layer for a quota-independent browser-local candidate demo.
+// Reuse the mature DPLR cleanup, then replace only the persistence/runtime layer
+// with a quota-independent browser-local candidate demo.
 execFileSync(process.execPath,[path.join(out,"nma-production.mjs")],{cwd:out,stdio:"inherit"});
 const localTemplate=fs.readFileSync(path.join(overlay,"public","nma-local-api.js"),"utf8");
 const localApi=localTemplate
@@ -57,7 +57,7 @@ fs.writeFileSync(workerPath,staticWorker);
 
 const pkgPath=path.join(out,"package.json");
 const pkg=JSON.parse(fs.readFileSync(pkgPath,"utf8"));
-pkg.name="clintware-nma-crm";pkg.version="1.1.0";pkg.scripts=pkg.scripts||{};
+pkg.name="clintware-nma-crm";pkg.version="1.1.1";pkg.scripts=pkg.scripts||{};
 pkg.scripts["prepare:prod"]="node nma-logic-test.mjs";
 pkg.scripts.check="node --check src/index.js && node --check src/sample-customers.js && node --check public/app-config.js && node --check public/app-views.js && node --check public/app-ai.js && node --check public/app-router.js && node --check public/app-forms.js && node --check public/import-utils.js && node --check public/dplr-shell.js && node --check public/dplr-prep.js && node --check public/nma-local-api.js && node --check public/nma-track.js && node --check public/nma-build-status.js && node --check nma-production.mjs && node nma-logic-test.mjs";
 fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+"\n");
@@ -70,8 +70,13 @@ wrangler.preview_urls=false;
 wrangler.routes=[{pattern:"nma.clintware.com",custom_domain:true}];
 wrangler.assets={directory:"./public",binding:"ASSETS",run_worker_first:false};
 delete wrangler.durable_objects;
-delete wrangler.migrations;
 delete wrangler.services;
+// The NMA Worker previously had DPLCRM v1. Keep its migration history and retire
+// that synthetic-only namespace explicitly; future deploys remain stateless.
+wrangler.migrations=[
+ {tag:"v1",new_sqlite_classes:["DPLCRM"]},
+ {tag:"v2-browser-local",deleted_classes:["DPLCRM"]}
+];
 wrangler.vars={NMA_RUNTIME_MODE:"browser-local-candidate-demo"};
 fs.writeFileSync(wranglerPath,JSON.stringify(wrangler,null,2)+"\n");
 
@@ -86,8 +91,8 @@ const trackText=fs.readFileSync(path.join(out,"public","nma-track.js"),"utf8");
 if((trackText.match(/objective:/g)||[]).length!==9)throw new Error("NMA operating-track contract must remain nine tracks.");
 for(const required of ["MCP governance","Presentation","Download CISO brief PDF","Customer Insight & Product Signal"])if(!trackText.includes(required))throw new Error("NMA role-specific control missing: "+required);
 const wranglerText=fs.readFileSync(wranglerPath,"utf8");
-if(!wranglerText.includes('"pattern": "nma.clintware.com"')||wranglerText.includes("durable_objects")||wranglerText.includes("migrations"))throw new Error("NMA quota-independent deployment contract failed.");
+if(!wranglerText.includes('"pattern": "nma.clintware.com"')||wranglerText.includes("durable_objects")||!wranglerText.includes('"deleted_classes"')||!wranglerText.includes('"v2-browser-local"'))throw new Error("NMA quota-independent deployment / retirement contract failed.");
 for(const rel of ["src/index.js","public/app-config.js","public/app-router.js","public/app-views.js","public/app-ai.js","public/app-forms.js","public/import-utils.js","public/dplr-shell.js","public/dplr-prep.js","public/nma-local-api.js","public/nma-track.js","public/nma-build-status.js"]){const text=fs.readFileSync(path.join(out,rel),"utf8");if(/Doppel|doppel\.com/i.test(text))throw new Error("Source-company semantics leaked into generated runtime: "+rel)}
 if(fs.existsSync(path.join(out,"public","dplr-enrich.js")))throw new Error("Source-company enrichment module must not ship in NMA build.");
 execFileSync(process.execPath,[path.join(out,"nma-logic-test.mjs")],{cwd:out,stdio:"inherit"});
-console.log("NMA CRM materialized with browser-local persistence at "+out);
+console.log("NMA CRM materialized with browser-local persistence and DPLCRM retirement at "+out);
