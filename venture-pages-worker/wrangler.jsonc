@@ -8,6 +8,7 @@
   "preview_urls": false,
   "routes": [
     { "pattern": "quillgeist.clintware.com", "custom_domain": true },
+    { "pattern": "successos.clintware.com", "custom_domain": true },
     { "pattern": "promptiris.clintware.com", "custom_domain": true },
     { "pattern": "orgsynapse.clintware.com", "custom_domain": true },
     { "pattern": "portability.clintware.com", "custom_domain": true }
