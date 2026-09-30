@@ -60,6 +60,7 @@ Canonical venture domains:
 - Mind to Form: `https://mindtoform.clintware.com/`
 - BuyerOrigin: `https://buyerorigin.clintware.com/`
 - Quillgeist: `https://quillgeist.clintware.com/`
+- Clintware SuccessOS: `https://successos.clintware.com/`
 - LandThePlane: `https://landtheplane.clintware.com/`
 - Prompt Iris: `https://promptiris.clintware.com/`
 - RenewNudge: `https://renewnudge.clintware.com/`
@@ -72,6 +73,25 @@ Legacy `/tools/` pages may remain for product documentation, but YC/startup navi
 
 A Clintware public-page change made without first applying ASTRO is an incomplete task and must be revisited before delivery.
 
+
+## Venture evidence journal invariant
+
+Every YC candidate and operational business idea must register a durable evidence/progress contract before it is treated as a first-class venture surface.
+
+Required rules:
+
+1. Register the venture in `public/data/venture-progress.json` with a stable ID, canonical URL, current proof, next evidence gate, metric source, and `surface_mode`.
+2. Use `surface_mode: "scaffold"` when useful telemetry does not yet exist. Do not render fake zero-value KPI cards merely because the registry exists.
+3. Promote to `surface_mode: "live"` only when the product has a useful evidence surface.
+4. Separate measured results, estimates, internal/founder proof, and external traction. Never convert aggregate runs into user counts or internal dogfood into customer traction.
+5. The first visible progress view must prioritize current status, meaningful change, measured evidence, and the next evidence gate. Put history and secondary metrics behind progressive disclosure or a dedicated journal.
+6. New startup-index entries must fail CI when their canonical domain or evidence contract is missing.
+7. Read `docs/VENTURE_PROGRESS_STANDARD.md` before materially changing a venture progress surface.
+8. For LandThePlane, the product is the canonical prep-run provenance/evidence ledger even when generation originates in ChatGPT, the local InterviewPrepper app, LandThePlane web, or another authorized tool. Generator source must remain explicit.
+
+Canonical sequence:
+
+`IDEA -> REGISTER -> BUILD -> MEASURE -> LABEL EVIDENCE -> REVIEW TREND -> NEXT GATE -> REPEAT`
 
 ## Public positioning invariant: no consulting brand
 
@@ -207,8 +227,9 @@ For every newly qualifying interview or materially changed round:
 6. Explicitly include “What Changed Since the Last Round.”
 7. Preserve evidence attribution and ownership boundaries. Never invent events, metrics, quotes, objections, motives, internal decisions, or technical experience.
 8. Render and visually QA all artifacts before calling them complete.
-9. After the kit is complete, extract newly anticipated interviewer questions and update the canonical local standalone interview-prep EXE’s Q&A/STAR bank when that source/build is available. Do not substitute the official LandThePlane web product for this local-EXE update target unless the user explicitly changes the target.
-10. Rebuild and verify the local EXE only when the actual source/build system is accessible. Never claim a rebuild or verification that did not occur.
+9. After the kit is complete, register privacy-safe prep-run provenance in LandThePlane when an authorized durable route exists, including the true generator source. If durable registration is unavailable, mark the run unlogged rather than implying LandThePlane generated or stored it.
+10. Extract newly anticipated interviewer questions and update the canonical local standalone interview-prep EXE’s Q&A/STAR bank when that source/build is available. The local EXE remains the execution/update target for its own Q&A/STAR bank; LandThePlane is the cross-channel prep evidence ledger.
+11. Rebuild and verify the local EXE only when the actual source/build system is accessible. Never claim a rebuild or verification that did not occur.
 
 Canonical sequence:
 
