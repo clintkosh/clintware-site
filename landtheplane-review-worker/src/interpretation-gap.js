@@ -1,4 +1,4 @@
-export const INTERPRETATION_GAP_VERSION = '2026-09-18-gap-v1';
+export const INTERPRETATION_GAP_VERSION = '2026-09-30-self-intro-v2';
 
 function clampText(value, max) {
   return String(value || '').slice(0, max);
@@ -172,6 +172,21 @@ Use the Minimal Intervention Principle:
 - make personal ownership explicit before collaboration when ownership could be ambiguous;
 - surface result/business impact before architecture when the question is outcome-focused;
 - explicitly notice repeated or rephrased interviewer questions because they can indicate an unresolved concern, while acknowledging alternative explanations.
+
+
+Also run a dedicated self-introduction / opening-answer check whenever the transcript contains "tell me about yourself," "walk me through your background," an opening professional summary, or a functionally equivalent answer.
+
+For that check, evaluate:
+- whether the first clear signal is a differentiated present-tense value proposition or merely a title/chronology;
+- whether the answer is adapted to the role/interviewer rather than reusable generic wording;
+- whether 1-2 relevant proof points appear early enough to support the headline;
+- whether metrics/results are stated before unnecessary background;
+- whether the candidate answers the "so what?" of any tenure, transition, or job-history detail;
+- whether the answer includes a future-facing role/team connection;
+- whether the candidate stops after the connection instead of branching into additional biography;
+- whether tools, projects, or AI are presented as evidence of business capability rather than as the primary identity.
+
+Use PRESENT -> PAST PROOF -> FUTURE / ROLE LINK -> STOP as the preferred repair rail. Do not penalize natural wording variation; the goal is adaptive structure, not memorization.
 
 The user may explicitly select a coaching lens. A selected ADHD, autism, AuDHD, or high-bandwidth lens is user-provided context, not something to infer. Use it only to adapt coaching. Never diagnose, validate a diagnosis, or attribute a specific behavior to a condition as fact.
 
