@@ -1,11 +1,20 @@
 {
   "schema": "clintware-smspc-live-smoke/v1",
   "target": "https://smspc.clintware.com/",
-  "started_at": "2026-09-30T10:50:30.181Z",
-  "finished_at": "2026-09-30T10:52:22.275Z",
+  "started_at": "2026-09-30T10:53:41.372Z",
+  "finished_at": "2026-09-30T10:54:17.338Z",
   "passed": false,
   "customer_count": 7,
-  "tracks_verified": [],
+  "tracks_verified": [
+    "Outcome Discovery",
+    "Range Blueprint",
+    "Evaluation & Success Criteria",
+    "Field Engineering & Integrations",
+    "Tailored Demo / Pilot",
+    "RFI / RFP Technical Narrative",
+    "Partner Co-Sell & Enablement",
+    "Technical Close, Expansion & Product Signal"
+  ],
   "pdf_bytes": 2680,
   "checks": [
     {
@@ -130,11 +139,51 @@
     },
     {
       "name": "Synthetic stakeholder survives reload in browser-persistent workspace",
-      "ok": false,
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Outcome Discovery",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Range Blueprint",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Evaluation & Success Criteria",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Field Engineering & Integrations",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Tailored Demo / Pilot",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: RFI / RFP Technical Narrative",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Partner Co-Sell & Enablement",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Track renders: Technical Close, Expansion & Product Signal",
+      "ok": true,
       "detail": ""
     }
   ],
   "console_errors": [],
   "page_errors": [],
-  "failure": "Error: Synthetic stakeholder survives reload in browser-persistent workspace\n    at record (file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:12:18)\n    at assert (file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:14:45)\n    at file:///home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:121:3"
+  "failure": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('#theme')\n    - locator resolved to <select id=\"theme\" class=\"select\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    60 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n\n    at /home/runner/work/clintware-site/clintware-site/tests/smspc_browser_smoke.mjs:147:32"
 }
