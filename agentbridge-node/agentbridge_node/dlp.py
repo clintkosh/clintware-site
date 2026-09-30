@@ -58,7 +58,7 @@ def _add(out: list[Finding], *, kind: str, severity: str, path: str, match: re.M
 def scan_text(text: str, path: str = "$", *, include_contact_pii: bool = True) -> list[Finding]:
     findings: list[Finding] = []
 
-    for match in re.finditer(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)", text):
+    for match in re.finditer(r"(?<![A-Za-z0-9])(?:\d[ -]?){12,18}\d(?![A-Za-z0-9])", text):
         raw = match.group(0)
         if _luhn(raw):
             _add(findings, kind="payment_card", severity="critical", path=path, match=match, replacement="[PAYMENT_CARD]", value=raw)

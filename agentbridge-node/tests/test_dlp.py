@@ -19,6 +19,10 @@ class DlpTests(unittest.TestCase):
         self.assertNotIn("4111", str([f.public() for f in findings]))
         self.assertIn("[PAYMENT_CARD]", redact_text(text, findings))
 
+    def test_card_detector_ignores_embedded_alphanumeric_identifiers(self):
+        generated = "run-96d1f1f1-f10c-4741-a279-0cce20eb4111111111111111-1790727449"
+        self.assertFalse(any(f.kind == "payment_card" for f in scan_text(generated)))
+
     def test_standard_requires_approval_for_high_risk(self):
         decision = evaluate({"prompt": "SSN 123-45-6789"}, {"enabled": True, "mode": "standard"})
         self.assertEqual(decision["action"], "approval_required")
