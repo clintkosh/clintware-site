@@ -35,9 +35,10 @@ For every qualifying or materially changed round:
 7. Preserve exact evidence classes and ownership boundaries. Never invent events, metrics, quotes, concerns, objections, motives, internal decisions, technical depth, or commercial ownership.
 8. Include a separate private ASTRO/reflection delivery lens when that workflow is enabled. Never turn it into evidence or a hiring-probability claim.
 9. Render and visually QA every page before calling the artifacts complete.
-10. After prep, extract newly anticipated interviewer questions and update the canonical **local standalone interview-prep EXE** Q&A/STAR bank when the actual source/build environment is accessible.
-11. Do not substitute the official LandThePlane web product as the app-update target unless the user explicitly changes the instruction.
-12. Never claim the local EXE was rebuilt or verified unless the real build was executed and checked.
+10. Register privacy-safe prep-run provenance in LandThePlane when an authorized durable route exists, preserving the true generator source. If no durable route is available, mark the run unlogged rather than implying it was stored.
+11. After prep, extract newly anticipated interviewer questions and update the canonical **local standalone interview-prep EXE** Q&A/STAR bank when the actual source/build environment is accessible.
+12. LandThePlane is the cross-channel prep evidence/provenance ledger; the local InterviewPrepper remains the update target for its own Q&A/STAR bank.
+13. Never claim the local EXE was rebuilt or verified unless the real build was executed and checked.
 
 
 ## Adaptive self-introduction rule
@@ -90,4 +91,4 @@ A kit fails if it is not dark mode. A scan fails if Gmail was not checked. A bui
 
 ## Canonical execution sequence
 
-**CALENDAR + GMAIL -> QUALIFY / EXACT-INSTANCE DEDUPE -> FRESH STAGE KIT -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + VISUAL QA -> DELIVERY -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE**
+**CALENDAR + GMAIL -> QUALIFY / EXACT-INSTANCE DEDUPE -> FRESH STAGE KIT -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + VISUAL QA -> DELIVERY -> LANDTHEPLANE PROVENANCE -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE**
