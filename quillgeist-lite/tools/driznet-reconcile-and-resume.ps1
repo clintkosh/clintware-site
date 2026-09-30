@@ -218,6 +218,7 @@ function Invoke-QQTaskDirect {
   if($null -eq $taskProperty){throw "Task missing: $TaskId"}
   $task=$taskProperty.Value
   $relative=[string](Get-OptionalProperty $task "script" "")
+  if(-not $relative){throw "Task script missing: $TaskId"}
   $local=Join-Path $HomeDir ([IO.Path]::GetFileName($relative))
   Download-Canonical $relative $local
   $argv=@();foreach($k in $Args.Keys){$argv+="-"+$k;$argv+=[string]$Args[$k]}
