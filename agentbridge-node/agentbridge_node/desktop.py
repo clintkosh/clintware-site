@@ -20,6 +20,7 @@ from .dlp import sanitize as sanitize_dlp
 from .local_gateway import complete as local_complete
 from .model_policy import routing_summary
 from .prompt_planner import plan_prompt
+from .prompt_ticket import open_ticket, set_status, ticket_contract
 
 
 APP_NAME = "Quillgeist"
@@ -132,6 +133,7 @@ def compile_intent(text: str, cfg: Config) -> dict:
             "preserve_accepted_work_across_batches": bool(big) or plan.mode == "auto_continue",
             "credentials_outside_work_graph": bool(big),
         },
+        "prompt_ticket_contract": ticket_contract(),
         "definition_of_done": output,
     }
 
@@ -552,7 +554,7 @@ class QuillgeistDesktop:
     def show_palette(self) -> None:
         self.focus_command()
 
-    def _prepare_connected_command(self, text: str, compiled: dict, reason: str = "") -> None:
+    def _prepare_connected_command(self, text: str, compiled: dict, reason: str = "", ticket_id: str = "") -> None:
         safe_compiled, _dlp_report = sanitize_dlp(compiled, self.cfg.data.get("dlp", {}), purpose="external")
         payload = json.dumps(safe_compiled, indent=2)
         self.root.clipboard_clear()
@@ -585,9 +587,14 @@ class QuillgeistDesktop:
             "Local policy remains authoritative when an execution pack is run."
         )
         self.ledger.add("escalation", compiled.get("action", "general"), text)
+        if ticket_id:
+            try:
+                set_status(ticket_id, "carried_forward", "Connected/provider execution required: " + (reason or "handoff prepared"))
+            except Exception:
+                pass
         self.refresh()
 
-    def _run_local_responder(self, text: str, compiled: dict) -> None:
+    def _run_local_responder(self, text: str, compiled: dict, ticket_id: str = "") -> None:
         self._write_output("LOCAL RESPONDER // thinking…")
 
         def worker():
@@ -623,6 +630,11 @@ class QuillgeistDesktop:
                     if status == 200 and answer and not answer.upper().startswith("REMOTE_REQUIRED:"):
                         self._write_output("QUILLGEIST LOCAL\n\n" + answer)
                         self.ledger.add("local_answer", compiled.get("action", "general"), text)
+                        if ticket_id:
+                            try:
+                                set_status(ticket_id, "verified_done", "Local responder completed the prompt.")
+                            except Exception:
+                                pass
                         self.refresh()
                         return
                     reason = error or answer or str(((response or {}).get("error") or {}).get("message") or f"local responder returned HTTP-style status {status}")
@@ -631,10 +643,15 @@ class QuillgeistDesktop:
                         self.ledger.add("local_error", "responder unavailable", reason)
                         self.refresh()
                         return
-                    self._prepare_connected_command(text, compiled, reason)
+                    self._prepare_connected_command(text, compiled, reason, ticket_id=ticket_id)
                 except Exception as exc:
                     self._write_output(f"Responder handoff failed: {exc}")
                     self.ledger.add("error", "responder handoff failed", str(exc))
+                    if ticket_id:
+                        try:
+                            set_status(ticket_id, "blocked", str(exc))
+                        except Exception:
+                            pass
                     self.refresh()
 
             self.root.after(0, finish)
@@ -642,21 +659,29 @@ class QuillgeistDesktop:
         threading.Thread(target=worker, daemon=True).start()
 
     def execute_palette(self, text: str) -> None:
+        ticket = open_ticket(text)
+        ticket_id = ticket.ticket_id
+        self.ledger.add("prompt_ticket", ticket_id, text)
         lowered = text.lower().strip()
         if lowered in {"pair", "pair device", "connect"}:
             self.pair_device()
+            set_status(ticket_id, "verified_done", "Pair-device command completed or handed control to the user.")
             return
         if lowered in {"doctor", "diagnose", "status"}:
             self.run_doctor()
+            set_status(ticket_id, "verified_done", "Doctor/status command completed.")
             return
         if lowered in {"open cloud", "cloud", "control room"}:
             self.open_cloud()
+            set_status(ticket_id, "verified_done", "Open-cloud command completed.")
             return
         if lowered in {"start", "start runtime", "daemon"}:
             self.start_runtime()
+            set_status(ticket_id, "verified_done", "Runtime start command completed.")
             return
         if lowered in {"stop", "stop runtime", "stop daemon"}:
             self.stop_runtime()
+            set_status(ticket_id, "verified_done", "Runtime stop command completed.")
             return
         if lowered in {"local only", "offline", "privacy local"}:
             if not self.cfg.data.get("desktop", {}).get("local_only", False):
@@ -679,9 +704,9 @@ class QuillgeistDesktop:
                 "The dependency-aware payload is being prepared for the configured planner/control-plane path."
             )
             self.ledger.add("big_prompt", f"{big.get('unit_count', 0)} routed units", str(safe_text))
-            self._prepare_connected_command(text, compiled, "Substantial request compiled into the big-prompt work graph.")
+            self._prepare_connected_command(text, compiled, "Substantial request compiled into the big-prompt work graph.", ticket_id=ticket_id)
             return
-        self._run_local_responder(text, compiled)
+        self._run_local_responder(text, compiled, ticket_id=ticket_id)
 
     def show_window(self) -> None:
         self.root.deiconify()
