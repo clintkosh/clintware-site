@@ -44,13 +44,14 @@ try {
   await page.waitForTimeout(120);
   assert(await page.locator('[data-portfolio-layout="list"]').count() === 1, "List view did not restore");
   const firstText = await page.locator("main").innerText();
-  assert(firstText.includes("Browser-persistent"), "No-login browser persistence state is not visible");
+  assert(firstText.includes("Browser local") || firstText.includes("Browser-local"), "Browser-local persistence state is not visible");
   assert(await page.locator('a[href="/auth/login"]').count() === 0, "SSO sign-in remains visible");
   assert(await page.locator('form[action="/auth/logout"]').count() === 0, "SSO sign-out remains visible");
-  const loginProbe = await page.request.get(new URL("/auth/login", base).toString(), { maxRedirects: 0 });
-  assert(loginProbe.status() === 404, "DPLR auth login route should be disabled");
-  const me = await (await page.request.get(new URL("/me", base).toString())).json();
-  assert(me.authenticated === false && me.persistence === "browser-persistent", "DPLR /me is not explicitly no-login browser-persistent");
+  const localContract=await page.evaluate(()=>({mode:window.CW_ASTRO_LOCAL_MODE===true,state:window.CWAstroLocalStore?.state?.()||null,stored:Object.keys(localStorage).some(k=>k.startsWith("cw-astro:dplr-crm:"))}));
+  assert(localContract.mode, "DPLR browser-local fetch/runtime shim is not active");
+  assert(localContract.state?.access?.authenticated===false, "DPLR browser-local workspace should not require authentication");
+  assert(localContract.state?.access?.storage==="browser-local", "DPLR browser-local storage contract missing");
+  assert(localContract.stored, "DPLR browser-local workspace was not persisted to localStorage");
 
   // Theme controls exist in every view through the persistent app bar.
   await page.locator(".dplr-more summary").click();
@@ -151,6 +152,9 @@ try {
   await waitStable();
   assert(await page.locator(".dplr-right").count() === 1, "Created customer did not enter customer workspace");
   assert((await page.locator(".dplr-right").innerText()).includes("Browser Smoke Customer"), "Created customer did not become selected");
+  await page.reload({waitUntil:"networkidle"});
+  await waitStable();
+  assert((await page.locator("body").innerText()).includes("Browser Smoke Customer"), "Created customer did not survive browser reload");
 
   // First-class stakeholder CRUD from the persistent right context rail.
   await page.locator('[data-add="stakeholder"]').first().click();
