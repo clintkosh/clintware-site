@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { applyBrowserLocalRuntime } from "./browser-local-runtime.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "../../..");
@@ -48,7 +50,7 @@ rewrite("public/app-config.js", [
 rewrite("public/app-router.js", [["dpltheme", "dplrtheme"], ["DOPPEL TCE CRM", "DOPPEL TCE OS"], ["Doppel TCE CRM", "Doppel TCE OS"]]);
 rewrite("public/app-forms.js", [["o.remove();load(x.customer.id)", "o.remove();tab='command';load(x.customer.id)"]]);
 
-for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js", "dplr-prep.js", "dplr-enrich.js"]) {
+for (const file of ["index.html", "dplr-ui.css", "dplr-shell.js", "dplr-prep.js", "dplr-enrich.js", "cw-astro-local-store.js"]) {
   fs.copyFileSync(path.join(overlay, "public", file), path.join(out, "public", file));
 }
 fs.copyFileSync(path.join(overlay, "scripts", "dplr-production.mjs"), path.join(out, "dplr-production.mjs"));
@@ -77,5 +79,22 @@ const config = fs.readFileSync(path.join(out, "public/app-config.js"), "utf8");
 if (!config.includes('localStorage.getItem("dplrtheme")||"light"')) throw new Error("DPLR must default to N7-style light mode");
 const forms = fs.readFileSync(path.join(out, "public/app-forms.js"), "utf8");
 if (!forms.includes("o.remove();tab='command';load(x.customer.id)")) throw new Error("New-customer navigation patch missing");
+
+if (process.env.CW_ASTRO_REFERENCE_MODE !== "1") {
+  // Apply role-specific seed enrichment while the reference Worker still exists,
+  // then retire the server-state runtime in favor of browser-local persistence.
+  execFileSync(process.execPath,[path.join(out,"dplr-production.mjs")],{cwd:out,stdio:"inherit"});
+  const local=await applyBrowserLocalRuntime({
+    out,
+    appId:"dplr-crm",
+    workspaceId:"dplr-doppel",
+    serviceName:"clintware-dplr-crm",
+    workspaceName:"Doppel Technical Customer Engineering browser-local workspace",
+    version:6
+  });
+  console.log("DPLR browser-local runtime:",JSON.stringify(local));
+} else {
+  console.log("DPLR reference mode retained temporarily for role-specific overlay materialization.");
+}
 
 console.log(`DPLR materialized at ${out}`);
