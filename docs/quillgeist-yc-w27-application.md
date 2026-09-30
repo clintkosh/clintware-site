@@ -30,6 +30,9 @@ The current MVP also persists explicit user-approved preferences locally and inj
 
 The broader adaptive-learning layer is earlier.  The next proof is whether relevant user-owned context measurably improves repeated work across providers without creating bloated prompts or reducing user control.
 
+
+A recent anonymized internal proof also tested the execution-economics side of the product.  For a role-specific CRM build, Quillgeist locally refreshed the source, materialized the application, ran checks, deployed it, and functionally verified the live TCO and vendor-comparison workflows.  The successful local build/deploy step took 22.220 seconds and the live browser verification took 13.560 seconds.  A directional model of the equivalent remote-supervised workflow estimates **30k–60k cloud-model tokens avoided**, roughly **60–80% of the implementation-token load**.  The timing and pass/fail results are measured; the token reduction is an estimate until I run controlled A/B token telemetry.
+
 **Active external users:** [VERIFIED NUMBER]
 
 **Paying users:** [VERIFIED NUMBER]
@@ -158,6 +161,8 @@ I chose Quillgeist because I have already built substantially more of the underl
 8. Execute and show changed-file / Definition-of-Done evidence.
 9. Show Contextor's compact result rather than the full execution trace.
 10. End with: **The model changed.  The user's operating context didn't.**
+
+11. Optional second proof: show the anonymized role-specific CRM build evidence and say: **The model designed the delta.  Quillgeist handled the deterministic build, deploy, and verification locally.**
 
 # Before submitting
 
