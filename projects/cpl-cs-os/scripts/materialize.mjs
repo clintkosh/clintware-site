@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyBrowserLocalRuntime } from "../../dplr-crm/scripts/browser-local-runtime.mjs";
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const repo=path.resolve(here,"../../..");
@@ -159,6 +160,7 @@ fs.copyFileSync(path.join(overlay,"src","sample-customers.js"),path.join(out,"sr
 
 fs.rmSync(path.join(out,"public"),{recursive:true,force:true});
 fs.cpSync(path.join(overlay,"public"),path.join(out,"public"),{recursive:true});
+fs.copyFileSync(path.join(repo,"projects","dplr-crm","public","cw-astro-local-store.js"),path.join(out,"public","cw-astro-local-store.js"));
 
 const pkg={
  name:"cpl-cs-os",private:true,version:"1.0.0",type:"module",
@@ -185,4 +187,14 @@ const checks=[
  ['public/cpl.js','Customer Success CRM']
 ];
 for(const [f,s] of checks) if(!read(f).includes(s)) throw new Error("Missing build contract: "+f+" :: "+s);
+const localRuntime=await applyBrowserLocalRuntime({
+  out,
+  appId:"cpl-cs-os",
+  workspaceId:"cpl-compyl-demo",
+  serviceName:"clintware-cpl-cs-os",
+  workspaceName:"CPL Customer Success browser-local workspace",
+  version:9
+});
+if(fs.readFileSync(path.join(out,"wrangler.jsonc"),"utf8").includes('"durable_objects"'))throw new Error("Browser-local cpl-cs-os still contains Durable Objects.");
+console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("CPL Customer Success CRM materialized at "+out);
