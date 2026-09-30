@@ -34,7 +34,7 @@ try {
     $RegistryPath=Join-Path $fixture 'tasks.json'
     $bundle=Join-Path $RuntimeRoot 'quillgeist-lite'
     New-Item -ItemType Directory -Path (Join-Path $bundle 'tasks'),(Join-Path $bundle 'service'),(Join-Path $bundle 'tools') -Force | Out-Null
-    foreach($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
+    foreach($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/driznet-reconcile-and-resume.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
         Set-Content -LiteralPath (Join-Path $bundle $relative) -Value 'fixture'
     }
     $registry=@{version=1;tasks=@{doctor=@{script='quillgeist-lite/tasks/doctor.ps1'}}}|ConvertTo-Json -Depth 5
@@ -50,7 +50,7 @@ try {
     if ((Get-Registry).version -ne 1) { throw 'Complete registry rejected' }
     $RunnerHeartbeatStaleSeconds=90
     $RunnerHeartbeatStartupGraceSeconds=180
-    $RunnerBusyMaxMinutes=45
+    $RunnerBusyNoProgressSeconds=900
     $pidPath=Join-Path $fixture 'runner.pid'
     Set-Content -LiteralPath $pidPath -Value $PID
     @{state='starting';timestamp=(Get-Date).ToUniversalTime().AddSeconds(-150).ToString('o')}|ConvertTo-Json|Set-Content (Join-Path $fixture 'runner-heartbeat.json')
@@ -58,7 +58,13 @@ try {
     @{state='starting';timestamp=(Get-Date).ToUniversalTime().AddSeconds(-601).ToString('o')}|ConvertTo-Json|Set-Content (Join-Path $fixture 'runner-heartbeat.json')
     $stalled=Get-RunnerHeartbeatHealth $pidPath
     if ($stalled.Healthy) { throw ('Stalled startup incorrectly accepted: '+($stalled|ConvertTo-Json -Compress)) }
-    Write-Output 'PASS: credential outages, no background enrollment, missing task gating, complete bundle, bounded startup grace'
+    @{state='busy';timestamp=(Get-Date).ToUniversalTime().ToString('o');progress_at=(Get-Date).ToUniversalTime().AddSeconds(-901).ToString('o')}|ConvertTo-Json|Set-Content (Join-Path $fixture 'runner-heartbeat.json')
+    $noProgress=Get-RunnerHeartbeatHealth $pidPath
+    if ($noProgress.Healthy -or $noProgress.Reason -ne 'busy_no_progress') { throw ('Busy no-progress state incorrectly accepted: '+($noProgress|ConvertTo-Json -Compress)) }
+    @{state='busy';timestamp=(Get-Date).ToUniversalTime().ToString('o');progress_at=(Get-Date).ToUniversalTime().AddSeconds(-30).ToString('o')}|ConvertTo-Json|Set-Content (Join-Path $fixture 'runner-heartbeat.json')
+    $moving=Get-RunnerHeartbeatHealth $pidPath
+    if (-not $moving.Healthy -or $moving.Reason -ne 'busy_progress_fresh') { throw ('Fresh busy progress incorrectly rejected: '+($moving|ConvertTo-Json -Compress)) }
+    Write-Output 'PASS: credential outages, no background enrollment, complete bundle, bounded startup grace, progress-aware stale detection'
 } finally {
     $resolved=[IO.Path]::GetFullPath($fixture)
     if (-not $resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe fixture path' }
