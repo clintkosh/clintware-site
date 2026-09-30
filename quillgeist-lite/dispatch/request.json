@@ -1,14 +1,14 @@
 {
-  "request_id": "driznet-crm-auth-hide-refresh-20260929-1915",
+  "request_id": "driznet-crm-auth-login-scan-20260929-1916",
   "task_id": "repo-code-search",
   "target_device": "DRIZNET",
   "args": {
-    "Query": "Browser-local workspace",
+    "Query": "/auth/login",
     "Path": "projects",
     "Mode": "text",
-    "Max": "50",
+    "Max": "200",
     "Json": "false",
     "FilesOnly": "true"
   },
-  "objective": "Refresh DRIZNET's dedicated Clintware repository cache from current origin/main before rebuilding CRM demos after durable-sign-in UI removal. Confirm the updated shared CRM sources are present. Read-only repository refresh/search."
+  "objective": "Scan the refreshed Clintware projects tree for remaining CRM auth-login references after hiding durable sign-in. This is read-only. Boomi is intentionally allowed to retain its auth-login UX; RenewNudge is out of scope."
 }
