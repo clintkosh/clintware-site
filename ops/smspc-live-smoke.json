@@ -1,8 +1,8 @@
 {
   "schema": "clintware-smspc-live-smoke/v1",
   "target": "https://smspc.clintware.com/",
-  "started_at": "2026-09-30T10:55:21.533Z",
-  "finished_at": "2026-09-30T10:55:29.507Z",
+  "started_at": "2026-09-30T10:56:18.088Z",
+  "finished_at": "2026-09-30T10:56:25.637Z",
   "passed": true,
   "customer_count": 7,
   "tracks_verified": [
