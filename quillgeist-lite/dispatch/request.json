@@ -1,48 +1,8 @@
 {
-  "request_id": "all-machines-cross-device-overlap-20261001-0952",
-  "mode": "batch",
-  "jobs": [
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "MEMORIA",
-      "args": {
-        "Message": "MEMORIA_CROSS_1",
-        "DelayMs": "15000"
-      },
-      "objective": "Cross-machine concurrent worker proof.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "DRIZNET",
-      "args": {
-        "Message": "DRIZNET_CROSS_1",
-        "DelayMs": "15000"
-      },
-      "objective": "Cross-machine concurrent worker proof.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "MEMORIA",
-      "args": {
-        "Message": "MEMORIA_CROSS_2",
-        "DelayMs": "15000"
-      },
-      "objective": "Cross-machine concurrent worker proof.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "DRIZNET",
-      "args": {
-        "Message": "DRIZNET_CROSS_2",
-        "DelayMs": "15000"
-      },
-      "objective": "Cross-machine concurrent worker proof.",
-      "resume_after": false
-    }
-  ],
-  "objective": "Prove MEMORIA and DRIZNET execute compatible QQ workers concurrently across devices while retaining independent local worker slots.",
-  "verify_seconds": 180
+  "request_id": "driznet-task-isolation-refresh-20261001-0958",
+  "task_id": "self-update",
+  "target_device": "DRIZNET",
+  "args": {},
+  "objective": "Update DRIZNET Quillgeist Lite to the latest verified runtime that includes Clintware Task Isolation v1.2.0, its bundled Windows GUI executable, automatic scheduled-task focus protection, and Downloads refresh behavior. Resume the runner and return qq-local-agent confirmation.",
+  "resume_after": true
 }
