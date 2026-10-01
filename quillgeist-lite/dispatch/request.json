@@ -1,68 +1,48 @@
 {
-  "request_id": "all-machines-parallel-overlap-smoke-20261001-0950",
+  "request_id": "all-machines-cross-device-overlap-20261001-0952",
   "mode": "batch",
   "jobs": [
     {
       "task_id": "worker-pool-smoke",
       "target_device": "MEMORIA",
       "args": {
-        "Message": "MEMORIA_PARALLEL_1",
-        "DelayMs": "5000"
+        "Message": "MEMORIA_CROSS_1",
+        "DelayMs": "15000"
       },
-      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 1.",
+      "objective": "Cross-machine concurrent worker proof.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "DRIZNET",
+      "args": {
+        "Message": "DRIZNET_CROSS_1",
+        "DelayMs": "15000"
+      },
+      "objective": "Cross-machine concurrent worker proof.",
       "resume_after": false
     },
     {
       "task_id": "worker-pool-smoke",
       "target_device": "MEMORIA",
       "args": {
-        "Message": "MEMORIA_PARALLEL_2",
-        "DelayMs": "5000"
+        "Message": "MEMORIA_CROSS_2",
+        "DelayMs": "15000"
       },
-      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 2.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "MEMORIA",
-      "args": {
-        "Message": "MEMORIA_PARALLEL_3",
-        "DelayMs": "5000"
-      },
-      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 3.",
+      "objective": "Cross-machine concurrent worker proof.",
       "resume_after": false
     },
     {
       "task_id": "worker-pool-smoke",
       "target_device": "DRIZNET",
       "args": {
-        "Message": "DRIZNET_PARALLEL_1",
-        "DelayMs": "5000"
+        "Message": "DRIZNET_CROSS_2",
+        "DelayMs": "15000"
       },
-      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 1.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "DRIZNET",
-      "args": {
-        "Message": "DRIZNET_PARALLEL_2",
-        "DelayMs": "5000"
-      },
-      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 2.",
-      "resume_after": false
-    },
-    {
-      "task_id": "worker-pool-smoke",
-      "target_device": "DRIZNET",
-      "args": {
-        "Message": "DRIZNET_PARALLEL_3",
-        "DelayMs": "5000"
-      },
-      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 3.",
+      "objective": "Cross-machine concurrent worker proof.",
       "resume_after": false
     }
   ],
-  "objective": "Prove MEMORIA and DRIZNET can each execute multiple compatible QQ jobs concurrently while both machines work at the same time.",
+  "objective": "Prove MEMORIA and DRIZNET execute compatible QQ workers concurrently across devices while retaining independent local worker slots.",
   "verify_seconds": 180
 }
