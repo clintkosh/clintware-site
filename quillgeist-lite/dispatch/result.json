@@ -1,14 +1,14 @@
 {
-  "request_id": "memoria-recovery-live-inspection-20261001-1625",
+  "request_id": "memoria-recovery-progress-20261001-1624",
   "mode": "inspect",
-  "recorded_at": 1790871835,
+  "recorded_at": 1790871884,
   "inspection": {
-    "online": 2,
+    "online": 0,
     "recovery_online": 0,
-    "wake_online": 2,
+    "wake_online": 0,
     "recovery": null,
     "runner_version": "1.10.0",
-    "runner_last_seen": "2026-10-01T16:23:47.557Z",
+    "runner_last_seen": "2026-10-01T16:24:13.039Z",
     "runner": {
       "runner_id": "DRIZNET",
       "version": "1.10.0",
@@ -34,104 +34,31 @@
         "capability_inventory",
         "capability_aware_routing"
       ],
-      "connected_at": "2026-10-01T16:23:05.715Z",
-      "last_seen": "2026-10-01T16:23:47.557Z",
+      "connected_at": "2026-10-01T16:24:00.765Z",
+      "last_seen": "2026-10-01T16:24:13.039Z",
       "source_revision": "993c8cadbb7f4ad2f657c3fa7535be0d439f6b2a",
       "registry_version": "29"
     },
-    "connected_devices": [
-      {
-        "device_id": "MEMORIA",
-        "connected_at": "2026-10-01T16:19:44.646Z",
-        "runner": {
-          "runner_id": "MEMORIA",
-          "version": "1.10.0",
-          "capabilities": [
-            "interactive_relay",
-            "question_poll",
-            "allowlisted_tasks",
-            "local_shell_escape",
-            "web_search",
-            "web_read",
-            "browser_automation",
-            "manual_browser_login",
-            "responder_agent",
-            "portable_local_responder",
-            "local_first_inference",
-            "infra_usage_gauge",
-            "event_driven_usage",
-            "subscription_responder",
-            "provider_usage_estimates",
-            "reset_countdown",
-            "workers_ai_responder",
-            "fast_responder_fallback",
-            "capability_inventory",
-            "capability_aware_routing"
-          ],
-          "connected_at": "2026-10-01T16:19:44.646Z",
-          "last_seen": "2026-10-01T16:19:44.694Z",
-          "source_revision": "6c228b557e2fa8b27d4db0072a142d1c49795213",
-          "registry_version": "29"
-        }
-      },
-      {
-        "device_id": "DRIZNET",
-        "connected_at": "2026-10-01T16:23:05.715Z",
-        "runner": {
-          "runner_id": "DRIZNET",
-          "version": "1.10.0",
-          "capabilities": [
-            "interactive_relay",
-            "question_poll",
-            "allowlisted_tasks",
-            "local_shell_escape",
-            "web_search",
-            "web_read",
-            "browser_automation",
-            "manual_browser_login",
-            "responder_agent",
-            "portable_local_responder",
-            "local_first_inference",
-            "infra_usage_gauge",
-            "event_driven_usage",
-            "subscription_responder",
-            "provider_usage_estimates",
-            "reset_countdown",
-            "workers_ai_responder",
-            "fast_responder_fallback",
-            "capability_inventory",
-            "capability_aware_routing"
-          ],
-          "connected_at": "2026-10-01T16:23:05.715Z",
-          "last_seen": "2026-10-01T16:23:05.758Z",
-          "source_revision": "993c8cadbb7f4ad2f657c3fa7535be0d439f6b2a",
-          "registry_version": "29"
-        }
-      }
-    ],
+    "connected_devices": [],
     "service_devices": [
       {
         "device_id": "MEMORIA",
         "label": "MEMORIA / batman",
-        "registered_at": "2026-09-26T05:25:34.942Z",
-        "last_seen": "2026-10-01T16:19:28.887Z",
-        "runner_alive": false,
-        "service_version": "",
-        "updated_at": "",
-        "source": "live-websocket"
+        "registered_at": "2026-09-26T05:25:34.942Z"
       },
       {
         "device_id": "DRIZNET",
         "label": "DRIZNET / batman",
-        "registered_at": "2026-09-22T20:47:30.020Z",
-        "last_seen": "2026-10-01T16:23:46.446Z",
-        "runner_alive": false,
-        "service_version": "",
-        "updated_at": "",
-        "source": "live-websocket"
+        "registered_at": "2026-09-22T20:47:30.020Z"
       }
     ],
     "jobs": [
+      {
+        "job_id": "4f79c959-9319-4d8c-8e23-394adb9c2986",
+        "task_id": "cwinteract",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
       {
         "job_id": "e007d5b2-a755-4cff-b508-5d0e3b28e263",
         "task_id": "self-update",
@@ -197,46 +124,40 @@
         "task_id": "cwinteract",
         "target_device": "DRIZNET",
         "status": "passed"
-      },
-      {
-        "job_id": "6a5b38cd-f10a-419d-bd0e-40d3be45db13",
-        "task_id": "big-prompt-plan",
-        "target_device": "MEMORIA",
-        "status": "passed"
       }
     ],
     "diagnostics": [
       {
         "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "control-plane",
+        "level": "WARN",
+        "phase": "runner-log",
         "kind": "other",
-        "message": "resume_work job=e007d5b2-a755-4cff-b508-5d0e3b28e263",
-        "timestamp": "2026-10-01T16:23:49.6309580Z"
+        "message": "2026-10-01T11:24:42 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-10-01T16:24:44.4328668Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "Job e007d5b2-a755-4cff-b508-5d0e3b28e263 finished with status passed",
-        "timestamp": "2026-10-01T16:23:49.5774426Z"
+        "message": "Job 4f79c959-9319-4d8c-8e23-394adb9c2986 finished with status passed",
+        "timestamp": "2026-10-01T16:24:15.0464766Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "heartbeat",
+        "phase": "runner",
         "kind": "other",
-        "message": "runner_alive",
-        "timestamp": "2026-10-01T16:23:49.4263633Z"
+        "message": "Running task cwinteract [powershell] (quillgeist-lite/tasks/cwinteract.ps1)",
+        "timestamp": "2026-10-01T16:24:12.4488605Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "health",
+        "phase": "runner",
         "kind": "other",
-        "message": "runner_state=alive",
-        "timestamp": "2026-10-01T16:23:49.3162987Z"
+        "message": "Refreshed reviewed task source: cwinteract",
+        "timestamp": "2026-10-01T16:24:12.4235975Z"
       },
       {
         "device_id": "DRIZNET",
@@ -244,7 +165,7 @@
         "phase": "wake",
         "kind": "other",
         "message": "wake_deferred_runner_busy",
-        "timestamp": "2026-10-01T16:23:48.6208254Z"
+        "timestamp": "2026-10-01T16:24:12.2351020Z"
       },
       {
         "device_id": "DRIZNET",
@@ -252,56 +173,249 @@
         "phase": "wake",
         "kind": "other",
         "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
-        "timestamp": "2026-10-01T16:23:48.4861734Z"
+        "timestamp": "2026-10-01T16:24:12.1162667Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "service",
+        "phase": "desktop-focus",
         "kind": "other",
-        "message": "health_service_started",
-        "timestamp": "2026-10-01T16:23:48.3142085Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "service",
-        "kind": "other",
-        "message": "health_service_stopped",
-        "timestamp": "2026-10-01T16:23:45.7643259Z"
+        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-01T16:24:05.2956659Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
-        "timestamp": "2026-10-01T16:23:39.5215643Z"
+        "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-01T16:24:05.2918400Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=alive",
+        "timestamp": "2026-10-01T16:24:04.3440253Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "Refreshed reviewed task source: self-update",
-        "timestamp": "2026-10-01T16:23:39.5039501Z"
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-10-01T16:24:02.9644835Z"
       },
       {
         "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "wake",
+        "phase": "runner",
         "kind": "other",
-        "message": "wake_deferred_runner_busy",
-        "timestamp": "2026-10-01T16:23:39.4512915Z"
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-10-01T16:24:02.9469089Z"
       },
       {
-        "device_id": "MEMORIA",
+        "device_id": "DRIZNET",
         "level": "INFO",
-        "phase": "wake",
+        "phase": "runner-auth",
         "kind": "other",
-        "message": "wake_deferred_runner_busy",
-        "timestamp": "2026-10-01T16:23:48.3963022Z"
+        "message": "credential_selected device=DRIZNET source=machine",
+        "timestamp": "2026-10-01T16:24:02.6612063Z"
       }
-    ]
+    ],
+    "selected_job": {
+      "job_id": "6c8935fa-9b26-4453-9656-f48d2459b037",
+      "task_id": "finish-local-ai",
+      "status": "running",
+      "requested_by": "root",
+      "created_at": "2026-10-01T16:21:41.625Z",
+      "completed_at": null,
+      "duration_ms": null,
+      "exit_code": null,
+      "error_kind": "other",
+      "recent_logs": [
+        {
+          "seq": 244,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:45.8618745Z",
+          "line": "Requirement already satisfied: setuptools<82 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (81.0.0)"
+        },
+        {
+          "seq": 245,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:45.8678537Z",
+          "line": "Requirement already satisfied: sympy>=1.13.3 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (1.14.0)"
+        },
+        {
+          "seq": 246,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:45.8748570Z",
+          "line": "Requirement already satisfied: networkx>=2.5.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.7)"
+        },
+        {
+          "seq": 247,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:45.8816558Z",
+          "line": "Requirement already satisfied: jinja2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.1.6)"
+        },
+        {
+          "seq": 248,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:45.8880569Z",
+          "line": "Requirement already satisfied: fsspec>=0.8.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (2026.9.0)"
+        },
+        {
+          "seq": 249,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.0329052Z",
+          "line": "Requirement already satisfied: charset_normalizer<4,>=2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (3.5.1)"
+        },
+        {
+          "seq": 250,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.0403987Z",
+          "line": "Requirement already satisfied: idna<4,>=2.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (3.20)"
+        },
+        {
+          "seq": 251,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.0469442Z",
+          "line": "Requirement already satisfied: urllib3<3,>=1.26 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (2.8.0)"
+        },
+        {
+          "seq": 252,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.0531183Z",
+          "line": "Requirement already satisfied: certifi>=2023.5.7 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (2026.7.22)"
+        },
+        {
+          "seq": 253,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.1211910Z",
+          "line": "Requirement already satisfied: mpmath<1.4,>=1.1.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from sympy>=1.13.3->torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (1.3.0)"
+        },
+        {
+          "seq": 254,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.1646504Z",
+          "line": "Requirement already satisfied: colorama in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from tqdm>=4.27->transformers==4.57.6->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_legacy_llama.txt (line 4)) (0.4.6)"
+        },
+        {
+          "seq": 255,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.2186459Z",
+          "line": "Requirement already satisfied: MarkupSafe>=2.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from jinja2->torch==2.11.0->-r F:\\AI-Data\\BitNet\\3rdparty\\llama.cpp\\requirements\\requirements-convert_hf_to_gguf.txt (line 5)) (3.0.3)"
+        },
+        {
+          "seq": 256,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.8863205Z",
+          "line": "Requirement already satisfied: huggingface_hub in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (0.36.2)"
+        },
+        {
+          "seq": 257,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.8961816Z",
+          "line": "Requirement already satisfied: filelock in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.0.3)"
+        },
+        {
+          "seq": 258,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9041470Z",
+          "line": "Requirement already satisfied: fsspec>=2023.5.0 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (2026.9.0)"
+        },
+        {
+          "seq": 259,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9115211Z",
+          "line": "Requirement already satisfied: packaging>=20.9 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (26.3)"
+        },
+        {
+          "seq": 260,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9190556Z",
+          "line": "Requirement already satisfied: pyyaml>=5.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (6.0.3)"
+        },
+        {
+          "seq": 261,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9258811Z",
+          "line": "Requirement already satisfied: requests in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (2.34.2)"
+        },
+        {
+          "seq": 262,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9325812Z",
+          "line": "Requirement already satisfied: tqdm>=4.42.1 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.70.1)"
+        },
+        {
+          "seq": 263,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9399208Z",
+          "line": "Requirement already satisfied: typing-extensions>=3.7.4.3 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from huggingface_hub) (4.16.0)"
+        },
+        {
+          "seq": 264,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9463324Z",
+          "line": "Requirement already satisfied: colorama in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from tqdm>=4.42.1->huggingface_hub) (0.4.6)"
+        },
+        {
+          "seq": 265,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9526839Z",
+          "line": "Requirement already satisfied: charset_normalizer<4,>=2 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (3.5.1)"
+        },
+        {
+          "seq": 266,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9591488Z",
+          "line": "Requirement already satisfied: idna<4,>=2.5 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (3.20)"
+        },
+        {
+          "seq": 267,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9659108Z",
+          "line": "Requirement already satisfied: urllib3<3,>=1.26 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (2.8.0)"
+        },
+        {
+          "seq": 268,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:46.9755381Z",
+          "line": "Requirement already satisfied: certifi>=2023.5.7 in f:\\ai-data\\bitnet\\.venv\\lib\\site-packages (from requests->huggingface_hub) (2026.7.22)"
+        },
+        {
+          "seq": 269,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:47.0413426Z",
+          "line": "BITNET // Building official BitNet Windows runtime with QQ progress supervision"
+        },
+        {
+          "seq": 270,
+          "phase": null,
+          "timestamp": "2026-10-01T16:23:50.4545438Z",
+          "line": "BITNET // PROGRESS // stage=build state=starting attempt=1 files=46339 bytes=733744885 stdout=0 stderr=0"
+        },
+        {
+          "seq": 271,
+          "phase": null,
+          "timestamp": "2026-10-01T16:24:07.9370204Z",
+          "line": "BITNET // PROGRESS // stage=build state=running attempt=1 files=46339 bytes=733756338 stdout=247 stderr=43"
+        },
+        {
+          "seq": 272,
+          "phase": null,
+          "timestamp": "2026-10-01T16:24:25.1157925Z",
+          "line": "BITNET // PROGRESS // stage=build state=running attempt=1 files=46340 bytes=733704846 stdout=247 stderr=43"
+        },
+        {
+          "seq": 273,
+          "phase": null,
+          "timestamp": "2026-10-01T16:24:42.5092134Z",
+          "line": "BITNET // PROGRESS // stage=build state=running attempt=1 files=46340 bytes=733756338 stdout=247 stderr=43"
+        }
+      ]
+    }
   }
 }
