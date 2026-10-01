@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cwinteract-runtime-repair-check-20261001-1137",
-  "job_id": "01e34c14-b8ac-4a27-a82b-082a8f56d035",
-  "task_id": "browser-work",
+  "request_id": "driznet-cwinteract-selfupdate-20261001-1141",
+  "job_id": "e1143538-5d51-4f12-9269-16f79c8220e2",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 4319,
+  "status": "failed",
+  "exit_code": 1,
+  "duration_ms": 9627,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:11:27.1149046Z",
-  "recorded_at": 1790871085,
+  "confirmed_at": "2026-10-01T16:12:08.2383044Z",
+  "recorded_at": 1790871126,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"read\",\"page\":{\"title\":\"\",\"url\":\"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version\",\"description\":\"\",\"headings\":[],\"text\":\"{\\\"ok\\\":true,\\\"runtime_version\\\":\\\"2026-10-01-task-isolation-v31\\\",\\\"source_revision\\\":\\\"613af9cc347cd7bb2d885c83810f77d2fe704026\\\",\\\"control_plane_version\\\":\\\"2026-10-01-task-isolation-contract.4\\\",\\\"time\\\":\\\"2026-10-01T16:11:23.630Z\\\"}\",\"links\":[],\"images\":[],\"truncated\":false}}"
+  "output_tail": "[run] \u001b[31;1mInvoke-WebRequest: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\restore-runtime.ps1:78\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  78 | \u001b[0m             \u001b[36;1mInvoke-WebRequest -Uri $uri -OutFile $temp -UseBasicParsi\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1m {   \"error\": \"runtime_binary_invalid\" }\u001b[0m"
 }
