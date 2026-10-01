@@ -74,7 +74,7 @@ function sampleRecords(c,s){
   return rows.map((r,i)=>({id:c.id+"-seed-"+String(i+1).padStart(3,"0"),customerId:c.id,type:r[0],provenance:r[1],data:r[2],createdAt:"2026-09-30T00:00:00.000Z",updatedAt:"2026-09-30T00:00:00.000Z"}));
 }
 
-export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceName,workspaceName,version=1}){
+export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceName,workspaceName,version=1,sampleRecordFactory=null}){
   const workerPath=path.join(out,"src","index.js");
   const htmlPath=path.join(out,"public","index.html");
   const wranglerPath=path.join(out,"wrangler.jsonc");
@@ -82,6 +82,7 @@ export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceNam
   const worker=fs.readFileSync(workerPath,"utf8");
   const seed=parseSeed(worker);
   const referenceSampleRecords=parseSampleRecordFactory(worker);
+  const activeSampleRecordFactory=typeof sampleRecordFactory==="function"?sampleRecordFactory:referenceSampleRecords;
   const samples=fs.existsSync(samplePath)
     ? (await import(pathToFileURL(samplePath).href+"?v="+Date.now())).SAMPLE_CUSTOMERS||[]
     : [];
@@ -99,8 +100,8 @@ export async function applyBrowserLocalRuntime({out,appId,workspaceId,serviceNam
   samples.forEach((s,i)=>{
     const customer=customers[i+1];
     let rows=null;
-    if(referenceSampleRecords){
-      try{rows=referenceSampleRecords(clone(s))}catch{}
+    if(activeSampleRecordFactory){
+      try{rows=activeSampleRecordFactory(clone(s))}catch{}
     }
     if(!Array.isArray(rows))rows=sampleRecords(customer,s).map(r=>[r.type,r.provenance,r.data]);
     const mapped=rows.map((r,n)=>({
