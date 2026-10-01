@@ -34,6 +34,23 @@ A fresh `busy` heartbeat is not, by itself, proof of forward progress. Prefer ex
 
 Never cross device state: MEMORIA evidence belongs to MEMORIA; DRIZNET evidence belongs to DRIZNET. Device substitution requires an explicit routing decision and must not be inferred from whichever device happens to be online.
 
+## Autonomous continuation contract
+
+Once an LLM accepts a substantial parent objective, it owns that objective until one of two terminal states is true: **verified complete** or **hard blocked on a required human action**.
+
+- Do not stop merely because one leaf task failed, one repository write was rejected, one provider path was unavailable, or the likely fix has been identified.
+- After a failure, inspect the evidence, choose the safest approved alternative path, repair only the unresolved branch, validate the repair, and retry within bounded attempts.
+- A blocked implementation path is not a blocked objective while another reviewed capability, local task, connector, relay, provider route, or equivalent safe implementation path remains available.
+- Prefer an already-reviewed recovery capability over asking the user to perform local diagnostics or copy terminal output.
+- Do not report "I found the fix" as completion. Apply the fix when authorized, validate it, and continue to the original Definition of Done.
+- Preserve displaced or interrupted work. If recovery temporarily replaces a queued request, explicitly restore/requeue it and continue until its own terminal state is known.
+- If the user adds an instruction while work is in progress, incorporate the instruction and resume the unresolved parent objective unless the user explicitly says to stop, cancel, or replace that objective.
+- `carried_forward` is valid only when another durable executor/session has actually accepted ownership and has a preserved identifier/evidence. It is not a synonym for "left unfinished."
+- `blocked` is valid only when no approved technical path remains without a user-only action, unavailable credential/consent, prohibited action, destructive approval, or external dependency that cannot be resolved by the connected tools.
+- When a safe recovery path exists, continue autonomously. Do not make the user send another message simply to say "continue."
+
+For every retry loop, remain bounded: avoid blind repetition, compare new evidence to prior evidence, and change strategy when a retry reproduces the same failure.
+
 ## QuillGeist big-prompt contract
 
 The user's single prompt is the parent objective. QuillGeist is the context/orchestration layer, not a new foundation model.
@@ -60,9 +77,11 @@ Every substantial prompt is tracked as one durable ticket using `quillgeist-prom
 - Keep the ticket `in_progress` only while work is actively owned and advancing.
 - Close as `verified_done` only after the requested Definition of Done is verified.
 - Close as `blocked` only with concrete evidence, the blocker, and the next required action.
-- Close as `carried_forward` only when work has been intentionally handed to another durable job/model/session and the handoff identifier/evidence is preserved.
+- Close as `carried_forward` only when work has been intentionally handed to another durable job/model/session, that executor has accepted ownership, and the handoff identifier/evidence is preserved.
+- Do not use `carried_forward` to stop on a known fix, failed leaf, rejected mutation path, or temporary infrastructure error while another approved recovery path exists.
 - Before taking a new substantial prompt, reconcile older `in_progress` tickets first.
 - No assistant/model may report completion from `planned`, `dispatched`, or `delivered` state alone.
+- No assistant/model should require a new user message merely to resume work it already owns when a safe, authorized next action remains.
 
 ## Model-choice and private-data contract
 
