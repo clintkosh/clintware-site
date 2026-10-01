@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-10-01T17:45:30Z",
-  "reason": "Final LinkedIn Evidence Post implementation gate: confirm MEMORIA registry v30, public-skill-verify job state, and latest local-agent confirmation."
+  "requested_at": "2026-10-01T20:52:30Z",
+  "reason": "Observe active MEMORIA finish-local-ai job without interfering with its serialized dispatch. Capture live job details, recent logs/checkpoints, and MEMORIA check-in so stalled-vs-progressing state is evidence-based."
 }
