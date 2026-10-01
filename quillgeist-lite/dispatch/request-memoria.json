@@ -1,8 +1,12 @@
 {
-  "request_id": "memoria-selfupdate-deploy-handoff-20261001-0725",
-  "task_id": "self-update",
+  "request_id": "memoria-gns-local-handoff-verification-20261001-0730",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA with the current reviewed CRM deployment handoff behavior so provider credentials remain server-side.",
-  "resume_after": true
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "true"
+  },
+  "objective": "Verify the current local CRM full path completes materialization/checks and hands provider deployment to the server-authorized path instead of requiring Cloudflare credentials on MEMORIA.",
+  "resume_after": false
 }
