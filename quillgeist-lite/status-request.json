@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-10-01T14:16:30Z",
-  "reason": "Final verification after Control Plane routing-contract deployment and DRIZNET v29 convergence: confirm live Control Plane version, DRIZNET/MEMORIA health, runtime source revision, and recent local-first big-prompt result."
+  "requested_at": "2026-10-01T17:39:00Z",
+  "reason": "Verify MEMORIA self-update to QQ registry v30 before running public-skill-verify for linkedin-evidence-post."
 }
