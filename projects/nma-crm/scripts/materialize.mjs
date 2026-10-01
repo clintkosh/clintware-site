@@ -86,7 +86,7 @@ const finalWorker=fs.readFileSync(workerPath,"utf8"),finalLocal=fs.readFileSync(
 for(const required of ['const APP_ID="nma-crm"','const WORKSPACE_ID="nma-northstar"'])if(!finalWorker.includes(required))throw new Error("NMA worker identity missing: "+required);
 for(const required of ["Northstar Bank (Synthetic)","Priority MCP governance coverage","localStorage","databaseRowsPerDemoSession"])if(!finalLocal.includes(required)&&!finalWorker.includes(required))throw new Error("NMA local runtime/data patch missing: "+required);
 const sampleText=fs.readFileSync(path.join(out,"src","sample-customers.js"),"utf8");
-if(!sampleText.includes("SAMPLE_SEED_VERSION=1")||!sampleText.includes("Summit SaaS"))throw new Error("NMA sample set missing.");
+if(!sampleText.includes("SAMPLE_SEED_VERSION=2")||!sampleText.includes("Summit SaaS")||!sampleText.includes('phase:"discover"')||!sampleText.includes('phase:"expand"'))throw new Error("NMA lifecycle-varied sample set missing.");
 const trackText=fs.readFileSync(path.join(out,"public","nma-track.js"),"utf8");
 if((trackText.match(/objective:/g)||[]).length!==9)throw new Error("NMA operating-track contract must remain nine tracks.");
 for(const required of ["MCP governance","Presentation","Download CISO brief PDF","Customer Insight & Product Signal"])if(!trackText.includes(required))throw new Error("NMA role-specific control missing: "+required);
