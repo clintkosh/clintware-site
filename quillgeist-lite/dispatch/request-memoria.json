@@ -1,10 +1,10 @@
 {
-  "request_id": "memoria-recovery-inventory-20261001-1618",
+  "request_id": "memoria-diagnostics-20261001-1620",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "recovery-inventory"
+    "Action": "diagnostics"
   },
-  "objective": "Inspect MEMORIA unfinished AI jobs, desktop continuation scripts, Codex handoffs and Immich without changing user data",
+  "objective": "Inspect current AI and Immich services, Docker mount integrity and exact errors before repair",
   "resume_after": false
 }
