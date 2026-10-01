@@ -105,11 +105,17 @@ func runWorker(encoded string) int {
 	// Preserve the Scheduled Task's original Windows command line exactly.
 	// Do not bounce through cmd.exe or PowerShell; CreateProcessW with
 	// CREATE_NO_WINDOW is what prevents console allocation/focus theft.
-	app, err := syscall.UTF16PtrFromString(spec.Command)
+	resolvedCommand := spec.Command
+	if !strings.ContainsAny(resolvedCommand, `\\/`) {
+		if found, lookErr := exec.LookPath(resolvedCommand); lookErr == nil {
+			resolvedCommand = found
+		}
+	}
+	app, err := syscall.UTF16PtrFromString(resolvedCommand)
 	if err != nil {
 		return 87
 	}
-	cmdLine := `"` + strings.ReplaceAll(spec.Command, `"`, `\"`) + `"`
+	cmdLine := `"` + strings.ReplaceAll(resolvedCommand, `"`, `\"`) + `"`
 	if strings.TrimSpace(spec.Arguments) != "" {
 		cmdLine += " " + spec.Arguments
 	}
