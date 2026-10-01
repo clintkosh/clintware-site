@@ -18,3 +18,7 @@ This implementation does not wrap TinyFish or require a TinyFish credential. Sea
 ## Local-first execution skill
 
 For ordinary ChatGPT work, use the companion `quillgeist-local-offload` skill to decide whether deterministic work, local services, local inference, builds, tests, or Windows execution should be handed to qq before consuming remote model time. The skill is latency-aware: local is preferred only when it meets the same quality bar and is competitive with the available authorized route.
+
+## CWInteract™ desktop skill
+
+CWInteract™ is the canonical governed desktop-interaction skill for visible Windows apps and the user's signed-in system browser windows, including Edge and Chrome. Use Quillgeist Web for DOM-native search/read/automation and CWInteract™ when the authenticated desktop/browser session itself is the required execution surface. The canonical qq task is `cwinteract`; `windows-app-uia` remains only as a compatibility alias.
