@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-company-fields-20261001-1239",
+  "request_id": "driznet-cwinteract-linkedin-page-type-company-20261001-1240",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "Page",
+    "Query": "Company",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "80",
+    "MaxResults": "40",
     "WaitMs": "250"
   },
-  "objective": "Inspect LinkedIn company creation form controls containing 'Page' to identify page name, public URL, and submission controls. Do not change fields.",
+  "objective": "Locate the Company page-type button on LinkedIn's Create a Page screen before selecting it.",
   "resume_after": false
 }
