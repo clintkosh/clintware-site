@@ -14,7 +14,7 @@
     {"id":"CWS-7","jira_alias":"KAN-7","state":"blocked","title":"Fix newsletter Google delegated OAuth 403"},
     {"id":"CWS-8","jira_alias":"KAN-8","state":"in_progress","title":"Remove newsletter dependence on exhausted Durable Object path"},
     {"id":"CWS-9","jira_alias":"KAN-9","state":"verified_done","title":"Jira tracking + explicit active/done status"},
-    {"id":"CWS-10","jira_alias":"KAN-10","state":"in_progress","title":"Make Astro demos local-first and quota-independent"},
+    {"id":"CWS-10","jira_alias":"KAN-10","state":"verified_done","title":"Make Astro demos local-first and quota-independent"},
     {"id":"CWS-11","jira_alias":"KAN-11","state":"verified_done","provider_status":"Done","status_sync_required":false,"title":"Adopt PXE master architecture + migrate KAN aliases"}
   ]
 }
