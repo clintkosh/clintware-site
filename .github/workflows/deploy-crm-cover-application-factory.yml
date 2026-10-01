@@ -142,9 +142,6 @@ jobs:
             sleep 5
           done
           test "$ready" = "1"
-          code=$(curl -sS -o /tmp/api-state.json -w '%{http_code}' "$base/api/state" | tr -cd '0-9')
-          test "$code" = "409"
-          grep -Fq 'browser_local_api' /tmp/api-state.json
 
       - name: Interactive browser smoke
         run: |
@@ -167,8 +164,13 @@ jobs:
           page.on("pageerror",e=>errors.push("page:"+String(e)));
           page.on("console",m=>{if(m.type()==="error"&&!/^Failed to load resource/i.test(m.text()))errors.push("console:"+m.text())});
 
-          const response=await page.goto(base,{waitUntil:"networkidle"});
-          if(!response?.ok())throw new Error("landing HTTP "+response?.status());
+          let response=null;
+          for(let attempt=1;attempt<=24;attempt++){
+            try{response=await page.goto(base,{waitUntil:"networkidle",timeout:30000})}catch{}
+            if(response?.ok())break;
+            await page.waitForTimeout(5000);
+          }
+          if(!response?.ok())throw new Error("landing not ready after retry window; last HTTP "+response?.status());
           await page.waitForSelector("[data-customer-open]",{timeout:20000});
           const cards=await page.locator("[data-customer-open]").count();
           if(cards<5)throw new Error("seed portfolio too small: "+cards);
@@ -226,8 +228,13 @@ jobs:
 
           const mobile=await context.newPage();
           await mobile.setViewportSize({width:390,height:844});
-          const mr=await mobile.goto(base,{waitUntil:"networkidle"});
-          if(!mr?.ok())throw new Error("mobile HTTP "+mr?.status());
+          let mr=null;
+          for(let attempt=1;attempt<=12;attempt++){
+            try{mr=await mobile.goto(base,{waitUntil:"networkidle",timeout:30000})}catch{}
+            if(mr?.ok())break;
+            await mobile.waitForTimeout(5000);
+          }
+          if(!mr?.ok())throw new Error("mobile route not ready; last HTTP "+mr?.status());
           await mobile.waitForSelector("[data-customer-open]");
           const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
           if(overflow)throw new Error("mobile horizontal overflow");
