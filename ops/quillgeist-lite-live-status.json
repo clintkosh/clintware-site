@@ -16,7 +16,7 @@
       "mindtoform",
       "orgsynapse",
       "quillgeist-lite",
-      "codefeddy"
+      "external-workspace"
     ],
     "github_identities": [
       {
@@ -36,11 +36,11 @@
         ]
       },
       {
-        "identity": "codefeddy",
+        "identity": "external-workspace",
         "configured": false,
-        "expected_secret": "GITHUB_TOKEN_CODEFEDDY",
+        "expected_secret": "GITHUB_TOKEN_external-workspace",
         "repositories": [
-          "codeFEDDY/codeFEDDY.github.io"
+          "external-workspace/external-workspace.github.io"
         ]
       }
     ],
