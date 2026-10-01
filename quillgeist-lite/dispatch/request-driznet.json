@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-runtime-version-check-20261001-1113",
+  "request_id": "driznet-cwinteract-runtime-check-20261001-1121",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -17,6 +17,6 @@
     "WaitMs": "300",
     "UserWaitMs": "0"
   },
-  "objective": "Recheck the deployed QQ runtime source revision after adding the Windows app UI task.",
+  "objective": "Verify the deployed Clintware QQ runtime revision includes the CWInteract task and routing updates before self-updating DRIZNET.",
   "resume_after": false
 }
