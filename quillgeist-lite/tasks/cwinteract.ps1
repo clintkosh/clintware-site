@@ -2,7 +2,7 @@
 # Canonical governed desktop interaction task for visible Windows apps and signed-in browser windows.
 # Uses Windows UI Automation and never types credentials or other sensitive values.
 param(
-  [ValidateSet("discover","launch","inspect","form")]
+  [ValidateSet("discover","launch","inspect","tabscan","form")]
   [string]$Action = "discover",
   [string]$AppName = "LinkedIn",
   [string]$WindowTitle = "LinkedIn",
@@ -211,7 +211,7 @@ if($Action -eq "inspect"){
   foreach($el in $all){
     try{
       $type=Get-ControlTypeName $el
-      if($type -notin @("Edit","ComboBox","Button","CheckBox","RadioButton","Hyperlink","Text","MenuItem","TabItem","ListItem")){continue}
+      if($type -notin @("Edit","ComboBox","Button","CheckBox","RadioButton","Hyperlink","Text","MenuItem","TabItem","ListItem","Pane","Document","Custom")){continue}
       $s=Summarize $el
       if(-not $s.rect -or $s.rect.width -le 0 -or $s.rect.height -le 0){continue}
       if($Query -and ([string]$s.name).IndexOf($Query,[StringComparison]::OrdinalIgnoreCase) -lt 0){continue}
@@ -220,6 +220,32 @@ if($Action -eq "inspect"){
     }catch{}
   }
   Emit-Json ([ordered]@{ok=$true;action="inspect";window_title=$window.MainWindowTitle;pid=$window.Id;query=$Query;controls=@($rows.ToArray())})
+  exit 0
+}
+
+if($Action -eq "tabscan"){
+  [void][CWInteractNative]::ShowWindow($window.MainWindowHandle,9)
+  [void][CWInteractNative]::SetForegroundWindow($window.MainWindowHandle)
+  Start-Sleep -Milliseconds 350
+
+  $seen=New-Object System.Collections.ArrayList
+  $limit=[math]::Max(1,[math]::Min($MaxResults,100))
+  for($i=0;$i -lt $limit;$i++){
+    [Windows.Forms.SendKeys]::SendWait("{TAB}")
+    Start-Sleep -Milliseconds ([math]::Max(120,[math]::Min($WaitMs,700)))
+    try{
+      $focused=[Windows.Automation.AutomationElement]::FocusedElement
+      if($focused){
+        $s=Summarize $focused
+        if($s -and -not (Test-SensitiveElement $focused)){
+          if(-not $Query -or ([string]$s.name).IndexOf($Query,[StringComparison]::OrdinalIgnoreCase) -ge 0){
+            [void]$seen.Add([pscustomobject]$s)
+          }
+        }
+      }
+    }catch{}
+  }
+  Emit-Json ([ordered]@{ok=$true;action="tabscan";window_title=$window.MainWindowTitle;pid=$window.Id;query=$Query;focus_sequence=@($seen.ToArray())})
   exit 0
 }
 
