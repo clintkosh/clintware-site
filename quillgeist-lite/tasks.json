@@ -1,5 +1,5 @@
 {
-  "version": 28,
+  "version": 29,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
   "runtimes": [
@@ -145,7 +145,7 @@
       "parameters": []
     },
     "browser-work": {
-      "title": "Operate the governed persistent QQ browser with visible control signaling; provider sign-in UI is never automated",
+      "title": "Operate the governed persistent QQ browser; use CWInteract™ for signed-in system browser windows and native Windows apps",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/browser-work.ps1",
       "parameters": [
@@ -427,9 +427,26 @@
       "max_parallel": 8
     },
     "windows-app-uia": {
-      "title": "Inspect and operate a visible signed-in Windows app through reviewed UI Automation without handling credentials",
+      "title": "Compatibility alias for CWInteract™ desktop interaction",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/windows-app-uia.ps1",
+      "parameters": [
+        "Action",
+        "AppName",
+        "WindowTitle",
+        "Query",
+        "StepsJson",
+        "Approved",
+        "MaxResults",
+        "WaitMs"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
+    },
+    "cwinteract": {
+      "title": "CWInteract™ — inspect and operate visible Windows apps and signed-in browser windows through governed Windows UI Automation",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/cwinteract.ps1",
       "parameters": [
         "Action",
         "AppName",
