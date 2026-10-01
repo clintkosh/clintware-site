@@ -73,7 +73,7 @@ for(const required of ["/gns-ui.css","/gns-track.js","noindex,nofollow,noarchive
 const finalWorker=fs.readFileSync(workerPath,"utf8");
 for(const required of ['const APP_ID="gns-crm"','const WORKSPACE_ID="gns-enterprise"','Northstar Retail Group (Synthetic)','Customer satisfaction'])if(!finalWorker.includes(required))throw new Error("Genesys identity/data patch missing: "+required);
 const sampleText=fs.readFileSync(path.join(out,"src","sample-customers.js"),"utf8");
-if(!sampleText.includes("SAMPLE_SEED_VERSION=1")||!sampleText.includes("Atlas Financial Services"))throw new Error("Genesys sample set missing.");
+if(!sampleText.includes("SAMPLE_SEED_VERSION=2")||!sampleText.includes("Atlas Financial Services"))throw new Error("Genesys sample set missing.");
 const trackText=fs.readFileSync(path.join(out,"public","gns-track.js"),"utf8");
 if((trackText.match(/objective:/g)||[]).length!==9)throw new Error("Genesys operating-track contract must remain nine tracks.");
 if(!trackText.includes("Copy cover letter")||!trackText.includes("Retention & Expansion"))throw new Error("Genesys CRM+Cover controls missing.");
@@ -88,7 +88,7 @@ const localRuntime=await applyBrowserLocalRuntime({
   workspaceId:"gns-enterprise",
   serviceName:"clintware-gns-crm",
   workspaceName:"Genesys Customer Success Director browser-local workspace",
-  version:1
+  version:2
 });
 console.log("ASTRO browser-local runtime:",JSON.stringify(localRuntime));
 console.log("GNS CRM materialized at "+out);
