@@ -46,6 +46,17 @@ Once a substantial task is accepted, continue owning the parent objective until 
 - Stop only for a required human consent/login/credential, destructive approval, safety boundary, or an external dependency no connected tool can resolve.
 - Keep retries bounded and evidence-driven; change strategy when the same failure repeats.
 
+## Adaptive CPU/GPU worker pool
+
+Use qq's adaptive worker pool for compatible local work. The pool calculates safe capacity from current CPU load, free RAM, GPU/VRAM availability, and configured caps.
+
+- Use `worker-pool-profile` when selecting or explaining local capacity.
+- Fan out dependency-free work instead of serializing it by default.
+- Route local-model work to `local-model-work`, which is GPU-classed and uses the installed local inference stack; GPU slots are bounded by live capacity.
+- Only tasks marked `parallel_safe` may run in isolated worker processes.
+- Serialized maintenance/mutation tasks wait for conflicting parallel workers rather than racing them.
+- After fan-out, join results and continue the original objective automatically.
+
 ## Long-running work
 
 For work expected to take long enough to hold the conversational turn open unnecessarily, queue `clintware_quillgeist_lite_run` and preserve the returned job ID. Do not busy-wait merely to keep the turn open.
