@@ -1,10 +1,9 @@
 {
-  "request_id": "driznet-storage-reassess-20261001-0939",
-  "task_id": "storage-audit",
-  "target_device": "DRIZNET",
-  "args": {
-    "ExpectedComputer": "DRIZNET",
-    "LargestFiles": 80
-  },
-  "objective": "Reassess HP DRIZNET storage after the user's manual cleanup. Read-only only. Preserve all C:\\AI work. Report current free space, C:\\AI and C:\\AI\\CHATBOT model footprint, default Ollama store footprint, Docker/WSL footprint, large files, and D: external state. Do not move/delete anything and do not affect MEMORIA."
+  "request_id": "all-machines-adaptive-workers-selfupdate-20261001-0946",
+  "mode": "rollout",
+  "task_id": "self-update",
+  "args": {},
+  "objective": "Install the validated adaptive QQ worker pool on every registered machine: runtime v30, registry v26, bounded CPU/RAM/GPU worker scheduling, parallel-safe task isolation, GPU local-model routing, and dependency-aware large-job fan-out. Preserve device-specific state and existing work.",
+  "resume_after": true,
+  "verify_seconds": 360
 }
