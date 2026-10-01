@@ -62,6 +62,20 @@ If I say **CATShadow**, **D@V1D**, **David**, **Shadow Hacker**, or equivalent, 
 
 If both apply, reload both.
 
+## MASTER CONTRACT INTEGRITY
+
+After `clintware_master_prompt_get` succeeds, verify that the returned canonical master includes the complete numbered operating contract:
+
+`1. EXPERT OPERATING MODE` through `30. CURRENT REVIEWED CAPABILITY EXAMPLES`
+
+and the final directive ending with:
+
+`Continue automatically until the original objective is verified complete or there is a real human-only blocker.`
+
+The required contract includes, at minimum: authority-boundary credential handling; live capability discovery; direct-MCP-first execution; QQ Big-Prompt decomposition; deterministic/local/provider/action routing; adaptive CPU/RAM/GPU worker scheduling; GPU routing; concurrent MEMORIA and DRIZNET execution; local-first owner defaults; CWInteract/browser separation; scheduled-task focus protection; state recovery; cross-model handoffs; prompt-ticket ownership; autonomous continuation; durable long-running jobs; verification; hung-work detection; failure recovery; fresh-information routing; workspace/brand isolation; GitHub/provider authority; model cooperation; owner provider preferences; user experience; execution safety; Definition of Done; operational-loop semantics; and live capability discovery.
+
+If any required numbered section or the final continuation directive is missing, treat that master response as incomplete/stale, re-fetch it from MCP, and do not substitute `UNIVERSAL-LLM-ROUTING.md` for the canonical master.
+
 ## CACHE / VERSION RULE
 
 Canonical MCP state outranks stale local copies of these two documents.
