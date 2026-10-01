@@ -186,6 +186,7 @@ func buildScript(helper, mode string, restart bool) string {
 		restartPS = "$RestartRunning=$true"
 	}
 	return fmt.Sprintf(`$ErrorActionPreference='Stop'
+$ProgressPreference='SilentlyContinue'
 $Mode='%s'
 $Helper='%s'
 %s
@@ -254,7 +255,7 @@ if($Mode -eq 'scan'){
   exit 0
 }
 
-$manifest=@(); $changed=0; $restarted=0
+$manifestRows=@(); $changed=0; $restarted=0
 foreach($r in $c){
   $t=$r.Task
   try {
@@ -282,11 +283,11 @@ foreach($r in $c){
         Start-ScheduledTask -TaskName $t.TaskName -TaskPath $t.TaskPath -ErrorAction Stop
         $restarted++
       }
-      $manifest += [pscustomobject]@{task_path=$t.TaskPath;task_name=$t.TaskName;backup=$backupFile;was_running=$wasRunning;updated=(Get-Date).ToUniversalTime().ToString('o')}
+      $manifestRows += [pscustomobject]@{task_path=$t.TaskPath;task_name=$t.TaskName;backup=$backupFile;was_running=$wasRunning;updated=(Get-Date).ToUniversalTime().ToString('o')}
     }
   } catch { Write-Output ('SKIP '+$t.TaskPath+$t.TaskName+' :: '+$_.Exception.Message) }
 }
-$manifest|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $Manifest -Encoding UTF8
+$manifestRows|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $Manifest -Encoding UTF8
 Write-Output ('Found '+$c.Count+' candidate task(s).')
 Write-Output ('Converted '+$changed+' task(s) to true no-console background execution.')
 Write-Output ('Restarted '+$restarted+' currently-running task(s) under the new background wrapper.')
