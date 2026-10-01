@@ -66,3 +66,16 @@ QQ was used for deterministic source synchronization on MEMORIA:
 An earlier local CRM build returned a pass against stale source and is excluded from final validation/savings credit. A later request containing `RepoRoot` was rejected by the bounded remote allowlist before execution and likewise receives no execution credit.
 
 The final application verification used deterministic CI/browser checks and did not invoke an LLM inside materialization, role-logic validation, deployment, CRUD, persistence, PDF, lifecycle-depth, or responsive testing.
+
+
+### Final QQ execution result
+
+After the canonical control-plane path was republished, `crm-astro-build` executed successfully on MEMORIA against refreshed source:
+
+- local job: `349eb03a-d357-4c37-8264-84588614252a`
+- duration: **9,687 ms**
+- result: **passed**
+- confirmation: `qq-local-agent`
+- local work included ASTRO manifest validation, NMA materialization, dependency install, JavaScript syntax checks, role logic, lifecycle-stage diversity, dense-flow data, seed migration, and deployment-handoff validation.
+
+This is measurable local offload. No remote LLM call was used inside those deterministic build/check steps. An exact “tokens saved” number is not asserted because neither the local runner nor the equivalent remote path exposes a common token counter for this execution; fabricating a percentage would be misleading.
