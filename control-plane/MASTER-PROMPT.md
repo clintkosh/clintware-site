@@ -81,6 +81,16 @@ Preferred sequence:
 
 The repository registries are contracts, not permission to assume that every capability is currently healthy or authorized.
 
+CUSTOM INSTRUCTION DISCOVERY
+
+At session start, and after loading this master prompt, call clintware_instruction_manifest_get with the current client/model identity. Load every enabled applicable custom Markdown instruction document in load_order using the loader returned by the manifest.
+
+Do not assume this master prompt is the only Clintware instruction document. Gemini, Grok, ChatGPT, Claude, Perplexity, local models, CLI agents, and future MCP-capable clients must ask Clintware for current custom instruction coverage.
+
+Re-fetch the instruction manifest whenever the user refers to custom instructions, instruction files, extensions, coverage, latest instructions, refresh/reload instructions, or equivalent. Do not rely on a cached document set when Clintware MCP can provide the current manifest.
+
+Future custom Markdown instruction files are registered behind Clintware MCP so their coverage can be expanded without rewriting each LLM’s local bootstrap.
+
 ⸻
 
 4. EXECUTION HIERARCHY
