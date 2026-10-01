@@ -53,20 +53,22 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database"
           name="clintware-blog-newsletter"
-          listed=$(curl --fail-with-body -sS -G "$api"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             --data-urlencode "name=$name"             --data-urlencode "per_page=100")
-          id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((x.get("uuid","") for x in d.get("result",[]) if x.get("name")==sys.argv[1]),""))' "$name" <<< "$listed")
+          export XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg
+          listed=$(npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 d1 list --json)
+          id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); rows=d if isinstance(d,list) else d.get("result",[]); print(next((x.get("uuid","") for x in rows if x.get("name")==sys.argv[1]),""))' "$name" <<< "$listed")
           if [ -z "$id" ]; then
-            created=$(curl --fail-with-body -sS -X POST "$api"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"               -H 'Content-Type: application/json'               --data "{"name":"$name"}")
-            id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("result",{}).get("uuid",""))' <<< "$created")
+            echo "D1 database not found; creating $name."
+            created=$(npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 d1 create "$name" --location enam 2>&1)
+            printf '%s\n' "$created"
+            id=$(python3 -c 'import re,sys; m=re.search(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", sys.stdin.read()); print(m.group(0) if m else "")' <<< "$created")
           fi
-          if ! [[ "$id" =~ ^[0-9a-fA-F-]{36}$ ]]; then
-            echo "Could not resolve/create newsletter D1 database." >&2
+          if ! [[ "$id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "Could not resolve/create newsletter D1 database through Wrangler." >&2
             exit 1
           fi
           echo "database_id=$id" >> "$GITHUB_OUTPUT"
-          echo "Newsletter D1 ready: $name"
+          echo "Newsletter D1 ready: $name ($id)"
 
       - name: Render newsletter production config
         run: node newsletter/scripts/render-wrangler.mjs "${{ steps.newsletter_d1.outputs.database_id }}"
