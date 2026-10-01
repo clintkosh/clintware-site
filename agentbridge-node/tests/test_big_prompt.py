@@ -24,18 +24,29 @@ def settings():
 
 
 class BigPromptTests(unittest.TestCase):
-    def test_recursively_breaks_work_into_ordered_units(self):
+    def test_recursively_breaks_independent_work_into_parallel_ready_units(self):
         prompt = " ".join(
-            f"Build component {idx} and capture deterministic verification evidence."
+            f"Build independent component {idx} and capture deterministic verification evidence."
             for idx in range(1, 12)
         )
         plan = plan_big_prompt(prompt, settings(), project="demo", force=True)
         self.assertEqual(plan.mode, "qq_big_prompt")
         self.assertGreaterEqual(len(plan.units), 2)
-        self.assertEqual(plan.units[0].depends_on, [])
+        self.assertGreaterEqual(plan.parallel_units, 2)
+        self.assertTrue(any(not unit.depends_on for unit in plan.units))
+        self.assertTrue(any(unit.depth > 0 for unit in plan.units))
+        self.assertTrue(all(unit.resource_class in {"cpu", "io", "gpu", "remote"} for unit in plan.units))
+
+    def test_explicit_sequence_preserves_ordered_dependencies(self):
+        prompt = (
+            "First inspect the current state in detail. Then build the required component and run deterministic checks. "
+            "Next package the result and record evidence. Finally verify the final state end to end."
+        )
+        plan = plan_big_prompt(prompt, settings(), project="demo", force=True)
+        self.assertGreaterEqual(len(plan.units), 2)
+        self.assertGreaterEqual(plan.sequential_units, 1)
         for previous, current in zip(plan.units, plan.units[1:]):
             self.assertEqual(current.depends_on, [previous.id])
-        self.assertTrue(any(unit.depth > 0 for unit in plan.units))
 
     def test_external_actions_stay_behind_control_plane(self):
         prompt = "Deploy the release to Cloudflare, then send the customer an email. Finally verify current deployment status."
