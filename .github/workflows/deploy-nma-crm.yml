@@ -49,7 +49,7 @@ jobs:
           grep -Fq 'Download CISO brief PDF' public/nma-track.js
           grep -Fq 'Print / Save PDF' public/nma-track.js
           grep -Fq 'MCP governance' public/nma-track.js
-          grep -Fq 'blocked before DRIZNET delivery' public/nma-build-status.js
+          grep -Fq 'qq-local-agent' public/nma-build-status.js
           grep -Fq '"pattern": "nma.clintware.com"' wrangler.jsonc
           ! grep -Fq 'durable_objects' wrangler.jsonc
           grep -Fq '"deleted_classes"' wrangler.jsonc
@@ -93,7 +93,7 @@ jobs:
           track_js=$(curl -fsS "$base/nma-track.js")
           grep -Fq 'Customer Insight & Product Signal' <<< "$track_js"
           build_status_js=$(curl -fsS "$base/nma-build-status.js")
-          grep -Fq 'local execution is recorded as 0' <<< "$build_status_js"
+          grep -Fq '349eb03a-d357-4c37-8264-84588614252a' <<< "$build_status_js"
           code=$(curl -sS -o /tmp/nma-api-direct.json -w '%{http_code}' "$base/api/state" | tr -cd '0-9')
           test "$code" = "409"
           grep -Fq 'browser_local_api' /tmp/nma-api-direct.json
