@@ -321,6 +321,26 @@
       ],
       "timeout_seconds": 7200
     },
+    "crm-cover-batch": {
+      "title": "Run multiple DPLR-derived CRM+Cover ASTRO application builds concurrently on the local machine",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/crm-cover-batch.ps1",
+      "parameters": [
+        "Projects",
+        "Action",
+        "Workers",
+        "GenerateCopy",
+        "Model",
+        "OllamaUrl",
+        "RepoRoot"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 10800,
+      "parallel_safe": false,
+      "resource_class": "mixed",
+      "concurrency_group": "crm-cover-batch",
+      "max_parallel": 1
+    },
     "scheduled-task-isolation": {
       "title": "Continuously scan and isolate Scheduled Tasks that open console windows or steal desktop focus",
       "runtime": "powershell",
