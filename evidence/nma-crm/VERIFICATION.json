@@ -1,19 +1,26 @@
 {
   "project": "nma-crm",
   "url": "https://nma.clintware.com",
-  "verified_at": "2026-09-30T18:23:39Z",
-  "source_commit": "eddba9fe446a53009ac1ff1e878c6554f136349c",
-  "workflow_run_id": 36758149682,
-  "job_id": 110033565562,
+  "verified_at": "2026-10-01T14:09:19Z",
+  "source_commit": "e780299d364b047108eb0b163f62d867060f53e8",
+  "workflow_run_id": 36873979087,
+  "job_id": 110408573511,
   "workflow_conclusion": "success",
-  "deployment_version": "79d5ab56-5c68-4c9f-b345-dc9d0ab1eb28",
+  "deployment_version": "1762b3ba-2089-4220-bd2a-c046a936b5dd",
   "execution": {
-    "qq_dispatch_request": "driznet-nma-crm-full-20260930-1234",
-    "qq_dispatched": 1,
-    "qq_delivered": 0,
-    "qq_executed": 0,
-    "qq_blocker": "control-plane Durable Object row-read quota exhausted before DRIZNET delivery",
-    "fallback": "deterministic repository validation/deployment plus hosted Chrome verification"
+    "final_live_verification": "deterministic repository deployment plus hosted Chrome acceptance",
+    "qq_source_refresh": {
+      "request_id": "memoria-nma-repo-sync-20261001-0909",
+      "job_id": "53dfbd0b-2844-49ea-8ff1-e28ba667a6ba",
+      "target_device": "MEMORIA",
+      "status": "passed",
+      "confirmation_source": "qq-local-agent",
+      "confirmation_transport": "websocket-event",
+      "purpose": "refresh maintained repository cache to origin/main and confirm SAMPLE_SEED_VERSION=2"
+    },
+    "stale_local_build_excluded": true,
+    "stale_local_build_reason": "Earlier crm-astro-build pass used source revision 7af9dce34d1b212f732b4e91642fb95ad3cffcdd and is not counted as final validation.",
+    "rejected_final_local_request": "RepoRoot was rejected by the bounded remote crm-astro-build allowlist before local execution."
   },
   "logic_checks": {
     "identity": true,
@@ -25,9 +32,12 @@
     "presentation": true,
     "executivePdf": true,
     "samplePortfolio": true,
+    "stageDiversity": true,
+    "denseFlowData": true,
     "noIndex": true,
     "responsive": true,
     "browserPersistence": true,
+    "seedMigration": true,
     "quotaIndependent": true,
     "executionTruth": true,
     "sourceCompanyClean": true,
@@ -37,10 +47,88 @@
     "ok": true,
     "title": "Noma AI Security Customer Operating System · Clintware",
     "accounts": 7,
+    "lifecyclePhases": [
+      "discover",
+      "govern",
+      "test",
+      "protect",
+      "prove",
+      "expand"
+    ],
+    "sampleDepth": [
+      {
+        "name": "Harbor Financial Group",
+        "stage": "Discovery · estate mapping",
+        "phase": "discover",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      },
+      {
+        "name": "Aster Health Systems",
+        "stage": "Governance design · evidence mapping",
+        "phase": "govern",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      },
+      {
+        "name": "Forge Industrial",
+        "stage": "Pre-production testing · release gates",
+        "phase": "test",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      },
+      {
+        "name": "Vector Commerce",
+        "stage": "Runtime protection · SOC operationalization",
+        "phase": "protect",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      },
+      {
+        "name": "Summit SaaS",
+        "stage": "Adoption + value proof · MCP governance",
+        "phase": "prove",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      },
+      {
+        "name": "Northwind Technology Services",
+        "stage": "Renewal + expansion · multi-practice rollout",
+        "phase": "expand",
+        "stakeholders": 3,
+        "kpis": 3,
+        "actions": 3,
+        "riskIssue": 3,
+        "meetings": 1
+      }
+    ],
+    "actionStatusVariety": [
+      "In Progress",
+      "Scheduled",
+      "Planned",
+      "Complete",
+      "Blocked",
+      "Ready for Decision"
+    ],
     "goldenRecords": 34,
     "presentationSlides": 8,
     "pdfBytes": 2996,
-    "browserLocalBytes": 81066,
+    "browserLocalBytes": 121747,
     "databaseRowsPerDemoSession": 0,
     "mobileOverflow": false,
     "errors": [],
@@ -49,6 +137,8 @@
   "verified_gates": [
     "source",
     "role-logic",
+    "multi-stage-seed-depth",
+    "seed-migration",
     "quota-independent-runtime",
     "state-class-retirement",
     "dry-run",
@@ -61,5 +151,15 @@
     "pdf",
     "mobile"
   ],
+  "default_contract": {
+    "persisted": true,
+    "files": [
+      "ASTRO_CRM_ONE_OFF_SKILL.md",
+      "skills/crm-one-off/SKILL.md",
+      "quillgeist-lite/tools/crm_astro.py",
+      "quillgeist-lite/tasks/crm-astro-build.ps1"
+    ],
+    "behavior": "One-off CRMs default to coherent multi-account, multi-stage synthetic seeded data unless an empty template is explicitly requested."
+  },
   "runtime_limit": "CRM state persists per browser using localStorage and is not a shared multi-user server tenant."
 }
