@@ -2756,6 +2756,7 @@ function Invoke-AllowlistedTask {
     "finish-local-ai" = @{ Relative = "tasks/finish-local-ai.ps1"; Required = "AUTOPILOT COMPLETE" }
     "finish-google-oauth" = @{ Relative = "tasks/finish-google-oauth.ps1"; Required = "FINISH CLINTWARE GOOGLE OAUTH" }
     "open-edge-tab" = @{ Relative = "tasks/open-edge-tab.ps1"; Required = "OPENED EDGE TAB" }
+    "cwinteract" = @{ Relative = "tasks/cwinteract.ps1"; Required = "CWInteract™" }
   }
   $fresh = $freshSources[[string]$Job.task_id]
   if ($fresh) {
@@ -2882,7 +2883,7 @@ try {
         source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
         registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection","adaptive_worker_pool","parallel_safe_tasks","gpu_worker_routing")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection","adaptive_worker_pool","parallel_safe_tasks","gpu_worker_routing","cwinteract","desktop_ui_automation","system_browser_interaction")
       }
 
       Flush-RunnerDiagnostics
