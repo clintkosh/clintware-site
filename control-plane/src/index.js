@@ -9,7 +9,7 @@ import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, conflue
 import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" with { type: "json" };
 
 const VERSION = "2026-10-01-qq-routing-contract.2";
-const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-concurrency-python-v28";
+const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-local-routing-v29";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
