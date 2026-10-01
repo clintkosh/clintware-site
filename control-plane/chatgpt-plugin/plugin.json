@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "clintware-control",
-  "version": "0.2.0",
-  "description": "Operate Clintware and paired Quillgeist Lite devices through the authenticated MCP control plane, with direct status, durable jobs, local-first execution, recovery, and governed web automation.",
+  "version": "0.3.0",
+  "description": "Operate Clintware and paired Quillgeist Lite devices through the authenticated MCP control plane, with local-first execution, governed web automation, and CWInteract™ desktop control.",
   "author": {
     "name": "Clintware",
     "url": "https://clintware.com"
@@ -18,17 +18,23 @@
     "windows",
     "web",
     "browser",
-    "agent-tools"
+    "agent-tools",
+    "desktop",
+    "cwinteract",
+    "uia"
   ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "Clintware Control",
         "shortDescription": "Direct authenticated control of Clintware and paired qq devices.",
-        "longDescription": "Clintware Control connects ChatGPT and Codex to mcp.clintware.com. It provides live qq status and watchdog check-ins, allowlisted local jobs, durable logs and verification evidence, local-first model routing, governed browser automation, and bounded recovery without exposing raw machine or provider credentials.",
+        "longDescription": "Clintware Control connects ChatGPT and Codex to mcp.clintware.com. It provides live qq status and watchdog check-ins, allowlisted local jobs, durable logs and verification evidence, local-first model routing, governed browser automation, and CWInteract™ for bounded interaction with signed-in Windows apps and browser windows without exposing raw machine or provider credentials.",
         "developerName": "Clintware",
         "category": "Developer Tools",
-        "capabilities": ["Read", "Write"],
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
         "websiteURL": "https://mcp.clintware.com/",
         "privacyPolicyURL": "https://quillgeist.clintware.com/privacy.html",
         "termsOfServiceURL": "https://quillgeist.clintware.com/terms.html",
