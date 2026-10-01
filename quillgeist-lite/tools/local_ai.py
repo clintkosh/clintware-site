@@ -452,6 +452,71 @@ def diagnostics():
 
 
 
+
+def continuation_inventory():
+    """Read bounded local handoffs; return metadata and defect categories, not private text."""
+    if os.name != "nt":
+        return {"ok": False, "error": "windows_only"}
+    home = Path(os.environ.get("USERPROFILE", ""))
+    roots = [home / "Desktop", home / "OneDrive" / "Desktop",
+             Path(r"C:\Users\Public\Desktop"), Path(r"C:\AI\LOCAL-CHATGPT"),
+             home / ".codex"]
+    rows, scanned = [], 0
+    deadline = time.monotonic() + 15
+    skip = {".git", "node_modules", "venv", ".venv", "models", "secrets", "auth",
+            "sessions", "archived_sessions", "logs", "__pycache__"}
+    for root in roots:
+        if not root.is_dir() or root.is_symlink():
+            continue
+        stack = [(root, 0)]
+        while stack and scanned < 10000 and time.monotonic() < deadline and len(rows) < 120:
+            folder, depth = stack.pop()
+            try:
+                for item in os.scandir(folder):
+                    scanned += 1
+                    if item.is_symlink():
+                        continue
+                    name = item.name.lower()
+                    if item.is_dir(follow_symlinks=False):
+                        if depth < 3 and name not in skip:
+                            stack.append((Path(item.path), depth + 1))
+                        continue
+                    if not item.is_file(follow_symlinks=False) or item.stat().st_size > 200000:
+                        continue
+                    p = Path(item.path)
+                    if p.suffix.lower() not in {".ps1", ".bat", ".cmd", ".md", ".txt"}:
+                        continue
+                    if not re.search(r"ai|memoria|immich|codex|resume|continu|readme|handoff|todo|start|finish", name):
+                        continue
+                    text = p.read_text(encoding="utf-8-sig", errors="replace")
+                    if not re.search(r"ai|immich|ollama|bitnet|comfy|webui|memoria|quillgeist", text, re.I):
+                        continue
+                    # Local files may contain private prose or secrets. Only report
+                    # fixed diagnostic categories, counts and executable basenames.
+                    refs = re.findall(r"[A-Za-z]:[\\/][A-Za-z0-9_ ./\\-]+\.(?:ps1|bat|cmd|exe|py)\b", text)
+                    deps = []
+                    for ref in refs[:20]:
+                        if re.match(r"(?i)^D:", ref):
+                            deps.append({"file": Path(ref).name, "excluded_drive": True})
+                        else:
+                            q = Path(ref)
+                            deps.append({"file": q.name, "exists": q.is_file()})
+                    rows.append({"path": str(p), "bytes": item.stat().st_size,
+                                 "kind": "handoff" if p.suffix.lower() in {".md", ".txt"} else "launcher",
+                                 "pending_markers": len(re.findall(r"(?im)^\s*(?:[-*]\s*)?(?:\[\s\]|TODO\b|FIXME\b|PENDING\b|BLOCKED\b)", text)),
+                                 "interactive_wait": bool(re.search(r"(?im)^\s*(?:pause\b|Read-Host\b)", text)),
+                                 "store_python_alias": "WindowsApps" in text,
+                                 "excluded_drive_reference": bool(re.search(r"(?i)(?:\bD:|/mnt/d/)", text)),
+                                 "dependencies": deps,
+                                 "raw_contents_exported": False})
+                    if scanned >= 10000 or len(rows) >= 120 or time.monotonic() >= deadline:
+                        break
+            except OSError:
+                continue
+    return {"ok": True, "files": rows, "entries_scanned": scanned,
+            "bounded_scan": True, "raw_contents_exported": False, "files_executed": False}
+
+
 def recovery_inventory():
     """Metadata-only bounded discovery; never read databases, keys or excluded drives."""
     roots = [Path(r"C:\AI\LOCAL-CHATGPT"), Path(r"F:\AI-Data")]
@@ -492,7 +557,7 @@ def recovery_inventory():
             lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
             safe = [line for line in lines if not re.search(r"(?i)(password|token|secret|api.?key|authorization)", line)]
             launchers.append({"path": raw, "source_without_secret_lines": "\n".join(safe)[:5000]})
-    return {"roots": folders, "files": found[:180], "launchers": launchers, "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
+    return {"continuations": continuation_inventory(), "roots": folders, "files": found[:180], "launchers": launchers, "entries_scanned": count, "bounded_scan": True, "excluded_drive_accessed": False}
 
 
 
@@ -556,7 +621,7 @@ def repair_storage():
                             "backup": str(backup), "preserved_files": sum(p.is_file() for p in entries),
                             "new_empty_data_folder": not any(p.is_file() for p in entries)})
         except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
-            results.append({"container": name, "error": type(exc).__name__, "backup": str(backup)})
+            results.append({"container": name, "error": type(exc).__name__, "errno": getattr(exc, "errno", None), "winerror": getattr(exc, "winerror", None), "backup": str(backup)})
         finally:
             run([docker, "start", name], 30)
     return {"ok": not any("error" in x for x in results), "results": results,
