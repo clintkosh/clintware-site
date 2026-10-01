@@ -15,7 +15,7 @@ Jobs should make applying faster without making opaque decisions or sending appl
 - Browser automation is assistive and governed.
 - No automatic final submission unless the user explicitly enables/approves that action.
 - Reuse existing Clintware identity, Quillgeist, MCP, browser automation, job-search, CRM/cover-letter, and local-model capabilities where practical.
-- Keep professional/job-search data inside Clintware. Do not mix CodeFEDDY.
+- Keep professional/job-search data inside Clintware. Do not mix external-workspace data or assets into Clintware.
 - Prefer deterministic local execution, then local models, then remote providers only when freshness/quality requires them.
 - Build for Windows first on DRIZNET; preserve portability to MEMORIA later without moving MEMORIA's existing workload.
 
