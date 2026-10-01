@@ -1,13 +1,8 @@
 {
-  "request_id": "memoria-public-skill-runtime-script-check-20261001-1255",
-  "task_id": "browser-work",
+  "request_id": "memoria-self-update-public-skill-runtime-final-20261001-1257",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "read",
-    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/public-skill-verify.ps1",
-    "MaxChars": "30000",
-    "Headless": "true"
-  },
-  "objective": "Read the deployed control-plane runtime copy of public-skill-verify.ps1 from MEMORIA and verify whether it contains the maintained code-search checkout logic. Read-only.",
-  "resume_after": false
+  "args": {},
+  "objective": "Install the now-deployed corrected public-skill-verify.ps1 from the control-plane runtime on MEMORIA, preserving registry v30, then reconnect safely.",
+  "resume_after": true
 }
