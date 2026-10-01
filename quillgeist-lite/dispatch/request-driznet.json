@@ -1,17 +1,8 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-industry-20261001-1252",
-  "task_id": "cwinteract",
+  "request_id": "driznet-self-update-routing-portal-20261001-1425",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "inspect",
-    "AppName": "LinkedIn",
-    "WindowTitle": "LinkedIn",
-    "Query": "Industry",
-    "StepsJson": "",
-    "Approved": "false",
-    "MaxResults": "40",
-    "WaitMs": "250"
-  },
-  "objective": "Inspect the LinkedIn Company Page creation form for Industry controls. Do not change fields.",
-  "resume_after": false
+  "args": {},
+  "objective": "Update DRIZNET Quillgeist Lite/QQ to the latest reviewed runtime after capability-first routing and portal ALT source update. Preserve registration, reconcile runtime/task bundle, restart safely, resume queued work, and return local-agent evidence.",
+  "resume_after": true
 }

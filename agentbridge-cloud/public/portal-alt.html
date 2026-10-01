@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Quillgeist Portal ALT | Clintware</title>
+<style>
+:root{color-scheme:dark;--bg:#05070b;--panel:#0b111a;--line:#223247;--text:#eef6ff;--muted:#8fa7bd;--accent:#79d8ff;--ok:#8ee6a8;--warn:#ffd479}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#102136 0,transparent 34%),var(--bg);color:var(--text);font:14px/1.5 Arial,Helvetica,sans-serif}.shell{max-width:1240px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:20px}.brand{font:700 22px ui-monospace,Consolas,monospace;letter-spacing:.08em}.badge{border:1px solid var(--line);padding:7px 10px;border-radius:999px;color:var(--warn)}.hero{display:grid;grid-template-columns:1.4fr .9fr;gap:16px}.panel{background:rgba(11,17,26,.88);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 14px 40px rgba(0,0,0,.2)}h1{font-size:34px;line-height:1.08;margin:4px 0 12px}h2{font-size:16px;margin:0 0 12px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.metric b{display:block;font-size:24px}.metric span{color:var(--muted)}textarea,select{width:100%;background:#07101a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}textarea{min-height:110px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}button{background:var(--accent);color:#04111a;border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}.route{margin-top:12px;padding:12px;border:1px dashed #31516b;border-radius:10px}.route b{color:var(--accent)}.stack{display:grid;gap:10px}.item{padding:12px;border:1px solid var(--line);border-radius:10px;background:#07101a}.status{float:right;color:var(--ok)}.roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.tiny{font-size:12px;color:var(--muted)}@media(max-width:850px){.hero,.grid,.roadmap,.row{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main class="shell">
+<div class="top"><div><div class="brand">QUILLGEIST // PORTAL ALT</div><div class="muted">Human SaaS layer prototype · local runtime stays authoritative</div></div><div class="badge">DEMO DATA · NOT LIVE CUSTOMER STATE</div></div>
+<section class="hero">
+<div class="panel"><div class="tiny">TYPE → UNDERSTAND → ROUTE → EXECUTE → VERIFY</div><h1>One operating layer across models, tools, and local execution.</h1><p class="muted">This alternate portal explores the subscription surface without reconnecting the retired public hosted runtime. Clintware decides the route; QQ owns eligible local execution; MCP/API remains the governed machine interface.</p>
+<label for="task">Try the routing preview</label><textarea id="task">Create an image concept for the new product landing page, then critique the messaging.</textarea>
+<div class="row"><select id="modality"><option value="image">Image generation</option><option value="vision">Image / vision analysis</option><option value="code">Code / build</option><option value="fresh">Fresh web facts</option><option value="private">Private local reasoning</option><option value="action">External mutation</option></select><button id="routeBtn">Compile route</button></div>
+<div class="route" id="route"><b>Route:</b> Authorized Grok image route → compact Gemini critic when useful → verified result.</div></div>
+<div class="panel"><h2>Runtime health</h2><div class="stack">
+<div class="item"><span class="status">READY</span><b>Primary workstation</b><div class="tiny">QQ local runtime · deterministic + local model</div></div>
+<div class="item"><span class="status">READY</span><b>Secondary workstation</b><div class="tiny">QQ local runtime · browser/UI + overflow execution</div></div>
+<div class="item"><span class="status">POLICY</span><b>Control Plane</b><div class="tiny">Provider routing · authority · external actions · evidence</div></div>
+</div></div></section>
+<section class="grid">
+<div class="panel metric"><b>38%</b><span>demo net context reduction</span></div>
+<div class="panel metric"><b>74%</b><span>demo local/deterministic share</span></div>
+<div class="panel metric"><b>6</b><span>demo reusable workflows</span></div>
+<div class="panel metric"><b>2</b><span>demo connected runtimes</span></div>
+</section>
+<section class="roadmap">
+<div class="panel"><h2>Usage + savings</h2><p class="muted">Provider mix, local-vs-remote execution, context avoided, latency, and estimated savings with evidence labels.</p></div>
+<div class="panel"><h2>Workflow library</h2><p class="muted">Saved rules, recurring work, reusable execution packs, approval boundaries, and definition-of-done checks.</p></div>
+<div class="panel"><h2>Team / Pro</h2><p class="muted">Policy, audit, billing, connectors, shared workflows, and cross-device state remain gated behind authenticated tenant boundaries.</p></div>
+</section>
+<p class="tiny">ALT prototype only. Seeded values are illustrative and must never be represented as external traction, unique users, or live customer telemetry.</p>
+</main>
+<script>
+const out=document.getElementById("route");const select=document.getElementById("modality");
+const routes={
+ image:"Authorized Grok image route by owner default when capable → optional compact Gemini critic → verified result.",
+ vision:"Best currently authorized vision-capable route by quality/capability → do not force Grok solely because the input is an image.",
+ code:"QQ deterministic/local execution first → build/test evidence → remote provider only if quality or authority requires it.",
+ fresh:"Live connector/web/provider authority → bounded context → cite/verify current result.",
+ private:"Healthy eligible local model first → preserve private context locally → escalate only when quality requires it.",
+ action:"Clintware Control Plane action route → ordered mutation → retrieve evidence → verify definition of done."
+};
+document.getElementById("routeBtn").addEventListener("click",()=>{out.innerHTML="<b>Route:</b> "+routes[select.value]});
+</script>
+</body></html>

@@ -1,11 +1,8 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-final2-20261001-1258",
-  "task_id": "public-skill-verify",
+  "request_id": "memoria-self-update-routing-portal-20261001-1425",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "SkillSlug": "linkedin-evidence-post",
-    "CheckLive": "true"
-  },
-  "objective": "Final verification of the implemented LinkedIn Evidence Post skill on MEMORIA after the corrected verifier runtime deployment. Require all local and live gates to pass.",
-  "resume_after": false
+  "args": {},
+  "objective": "Update MEMORIA Quillgeist Lite/QQ to the latest reviewed runtime after capability-first routing and portal ALT source update. Preserve registration, reconcile runtime/task bundle, restart safely, resume queued work, and return local-agent evidence.",
+  "resume_after": true
 }

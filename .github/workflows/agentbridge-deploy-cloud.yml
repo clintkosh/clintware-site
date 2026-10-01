@@ -144,7 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           ready=0
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             health=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
             page=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
             progress=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/progress.html || true)
@@ -173,4 +173,10 @@ jobs:
             fi
             sleep 3
           done
+          if [ "$ready" != 1 ]; then
+            echo "Quillgeist live smoke diagnostics after bounded propagation wait:" >&2
+            echo "health=$health" >&2
+            echo "stats_code=$stats_code bootstrap_code=$bootstrap_code pair_code=$pair_code compact_code=$compact_code mcp_code=$mcp_code" >&2
+            printf '%s\n' "$stats_cors" | grep -i '^access-control-' >&2 || true
+          fi
           test "$ready" = 1

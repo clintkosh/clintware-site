@@ -90,3 +90,10 @@ The immediate validation gate remains external:
 - paid conversion or strong paid intent.
 
 Internal efficiency evidence supports the technical claim but does not replace external traction.
+
+
+## ALT SaaS portal prototype
+
+A non-production alternate portal prototype lives at `/portal-alt.html`. It exists to iterate the human SaaS layer without changing the public local-only distribution boundary. It demonstrates the intended subscription surface: intent/routing preview, usage and savings, device/runtime health, workflow reuse, provider policy, evidence, team controls, and billing/connectors roadmap. Any seeded values are explicitly labeled demo data and are not customer traction or live account state.
+
+The production gate remains unchanged: do not reconnect the retired Clintware-hosted public runtime merely to make the prototype interactive. Production authenticated portal work must use an explicitly authorized tenant/runtime boundary.

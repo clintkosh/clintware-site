@@ -142,6 +142,21 @@ For substantial local work, use the machine's adaptive qq worker pool rather tha
 - MEMORIA and DRIZNET may execute independent work concurrently. Never serialize one device behind the other when their dependency graph does not require it.
 - Preserve end-to-end ownership: parallel fan-out must rejoin at verification, and the parent objective is not complete until all required branches are terminal and the original Definition of Done passes.
 
+## Capability-first multimodal routing
+
+Route each work unit by **required modality/capability first**, then authorization/privacy/residency, live availability, task-class quality, latency/load, and only then cost/locality. Preserve multimodal structure through PXE/provider rendering.
+
+- deterministic file/system/code/build work -> QQ/local deterministic execution when eligible;
+- local/private inference -> healthy eligible local model when quality is sufficient;
+- image generation -> prefer the authorized owner Grok image route by default unless explicitly overridden;
+- image/vision analysis -> choose the best currently authorized vision-capable route for the requested analysis; an image input alone does not force Grok;
+- audio/video/multimodal -> require a route that natively supports the modality and preserve the media reference;
+- fresh/current facts -> live connector/web/provider authority;
+- consequential external mutation -> Control Plane action route;
+- explicit provider/model request -> honor when authorized and capable.
+
+Clintware/Quillgeist remains authoritative for the final route. Provider defaults are preferences after hard capability and authority gates, never a substitute for live discovery.
+
 ## QuillGeist big-prompt contract
 
 The user's single prompt is the parent objective. QuillGeist is the context/orchestration layer, not a new foundation model.
