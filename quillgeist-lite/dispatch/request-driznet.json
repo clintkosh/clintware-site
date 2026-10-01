@@ -1,9 +1,9 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-discover-20261001-1152",
+  "request_id": "driznet-cwinteract-linkedin-launch-20261001-1154",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "discover",
+    "Action": "launch",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
     "Query": "",
@@ -12,6 +12,6 @@
     "MaxResults": "60",
     "WaitMs": "450"
   },
-  "objective": "Use CWInteract™ on DRIZNET to discover the installed LinkedIn desktop/PWA application without changing anything.",
+  "objective": "Launch the installed LinkedIn app on DRIZNET through CWInteract™ and return the visible window evidence. Do not make changes yet.",
   "resume_after": false
 }
