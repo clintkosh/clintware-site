@@ -21,6 +21,18 @@ Call `clintware_quillgeist_lite_status` when device choice matters. Use `clintwa
 
 Choose the healthy eligible device with the best task affinity and lowest relevant queue/load. MEMORIA has affinity for its local-AI/model/data services. Explicit user target-device instructions override automatic selection.
 
+## Autonomous continuation
+
+Once a substantial task is accepted, continue owning the parent objective until it is verified complete or a hard user-only blocker remains.
+
+- A failed child job is a signal to inspect, repair, and retry the unresolved branch, not a reason to stop.
+- If one mutation path is blocked but another reviewed capability can accomplish the same objective, switch paths and continue.
+- Do not stop at diagnosis when the repair is authorized and executable.
+- Preserve/requeue displaced work after maintenance or recovery.
+- Do not require the user to send "continue" to resume work already in progress.
+- Stop only for a required human consent/login/credential, destructive approval, safety boundary, or an external dependency no connected tool can resolve.
+- Keep retries bounded and evidence-driven; change strategy when the same failure repeats.
+
 ## Long-running work
 
 For work expected to take long enough to hold the conversational turn open unnecessarily, queue `clintware_quillgeist_lite_run` and preserve the returned job ID. Do not busy-wait merely to keep the turn open.
