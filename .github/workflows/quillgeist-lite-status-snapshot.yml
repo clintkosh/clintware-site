@@ -100,13 +100,26 @@ jobs:
             except Exception as exc:
               job_details[jid]={"error":str(exc)[:500]}
 
+          try:
+            with open("quillgeist-lite/status-request.json",encoding="utf-8") as f:
+              control_request=json.load(f)
+          except Exception:
+            control_request={}
+          requested_action=str(control_request.get("action") or "status").strip().lower()
+          if requested_action not in {"status","restart_runner"}:
+            requested_action="status"
+          requested_target=str(control_request.get("target_device") or "").strip()
+          requested_force=bool(control_request.get("force") is True)
+
           checkin_results={}
           for device in (status.get("service_devices") or []):
             device_id=str(device.get("device_id") or "").strip()
             if not device_id:
               continue
-            request_id="status-"+device_id.lower()+"-"+datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-            payload=json.dumps({"request_id":request_id,"target_device":device_id,"action":"status"}).encode("utf-8")
+            action=requested_action if (requested_target and device_id.lower()==requested_target.lower()) else "status"
+            force=requested_force if action=="restart_runner" else False
+            request_id=action.replace("_","-")+"-"+device_id.lower()+"-"+datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+            payload=json.dumps({"request_id":request_id,"target_device":device_id,"action":action,"force":force}).encode("utf-8")
             try:
               req=urllib.request.Request(
                 f"{base}/api/v1/quillgeist-lite/check-in",
