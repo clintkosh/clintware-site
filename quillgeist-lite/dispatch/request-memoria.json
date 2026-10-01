@@ -1,13 +1,8 @@
 {
-  "request_id": "memoria-linkedin-skill-live-read-20261001-1243",
-  "task_id": "browser-work",
+  "request_id": "memoria-self-update-public-skill-v30-retry-20261001-1252",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "read",
-    "Url": "https://www.clintware.com/skills/linkedin-evidence-post/SKILL.md",
-    "MaxChars": "30000",
-    "Headless": "true"
-  },
-  "objective": "Verify from MEMORIA that the deployed LinkedIn Evidence Post skill URL resolves and contains the expected skill frontmatter and framework. Read-only.",
-  "resume_after": false
+  "args": {},
+  "objective": "Refresh MEMORIA after the control-plane/runtime deployment so task registry v30 and public-skill-verify are installed. Return the installed registry version in qq-local-agent evidence.",
+  "resume_after": true
 }
