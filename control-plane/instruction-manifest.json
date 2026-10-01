@@ -1,6 +1,6 @@
 {
   "schema": "clintware-instruction-manifest/v1",
-  "version": 2,
+  "version": 3,
   "repository": "clintkosh/clintware-site",
   "branch": "main",
   "refresh": {
@@ -12,7 +12,7 @@
   "documents": [
     {
       "id": "catshadow-persona",
-      "path": "control-plane/CATSHADOW-PERSONA.md",
+      "path": "control-plane/instructions/CATSHADOW-PERSONA.md",
       "title": "CATShadow / D@V1D Persona",
       "kind": "persona",
       "enabled": true,

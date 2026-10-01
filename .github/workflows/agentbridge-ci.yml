@@ -82,7 +82,17 @@ jobs:
         with:
           node-version: "22"
       - name: Install Cloud dependencies
-        run: npm install --prefix agentbridge-cloud --no-audit --no-fund
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm install --prefix agentbridge-cloud --no-audit --no-fund; then
+              exit 0
+            fi
+            echo "npm install attempt $attempt failed; clearing cache metadata and retrying" >&2
+            npm cache clean --force || true
+            sleep $((attempt * 3))
+          done
+          exit 1
       - name: JavaScript syntax
         run: |
           node --check agentbridge-cloud/src/index.js
