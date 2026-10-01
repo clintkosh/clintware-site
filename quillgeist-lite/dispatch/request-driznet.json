@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-inspect-v2-20261001-1225",
+  "request_id": "driznet-cwinteract-linkedin-business-controls-20261001-1227",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "",
+    "Query": "Business",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "100",
-    "WaitMs": "300"
+    "MaxResults": "60",
+    "WaitMs": "250"
   },
-  "objective": "Inspect the LinkedIn app on DRIZNET with the updated CWInteract™ accessibility tree, including Document/Pane/Custom controls. Do not mutate LinkedIn data.",
+  "objective": "Inspect LinkedIn app controls containing 'Business' to locate the Company Page creation path. Do not change anything.",
   "resume_after": false
 }
