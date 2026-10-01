@@ -47,6 +47,7 @@ def test_windows_desktop_ui_starts_with_inline_command_workflow(tmp_path, monkey
         def fake_local_responder(text, compiled, ticket_id=None):
             routed["text"] = text
             routed["compiled"] = compiled
+            routed["ticket_id"] = ticket_id
             app._write_output("LOCAL RESPONDER // routed")
 
         # Tk is intentionally not running mainloop() in this startup smoke.
@@ -61,6 +62,7 @@ def test_windows_desktop_ui_starts_with_inline_command_workflow(tmp_path, monkey
         assert routed["text"] == "summarize this report"
         assert routed["compiled"]["routing"] == "local-only"
         assert routed["compiled"]["action"] == "summarize"
+        assert routed["ticket_id"]
     finally:
         app._running = False
         app.root.destroy()
