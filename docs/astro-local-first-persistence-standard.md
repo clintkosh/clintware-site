@@ -1,6 +1,6 @@
 # Astro Local-First Persistence Standard
 
-**Tracking:** Jira KAN-10  
+**Tracking:** CWS-10 (Jira provider alias: KAN-10)  
 **Effective:** 2026-09-30  
 **Default:** Browser-local or stateless. Remote persistence is an explicit capability decision.
 
