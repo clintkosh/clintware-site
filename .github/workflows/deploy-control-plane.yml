@@ -59,6 +59,11 @@ jobs:
       - name: Syntax check
         run: npm run check --prefix control-plane
 
+      - name: Test local QQ big-prompt routing
+        env:
+          PYTHONPATH: agentbridge-node
+        run: python3 -m unittest agentbridge-node/tests/test_big_prompt.py agentbridge-node/tests/test_prompt_planner.py
+
       - name: Render validation config
         run: node control-plane/scripts/render-wrangler.mjs 00000000000000000000000000000000
 
