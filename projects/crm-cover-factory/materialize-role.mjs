@@ -146,7 +146,7 @@ const profile={
     "AI may prepare and synthesize; human judgment validates claims and owns consequential outbound communication."
   ]
 };
-const profileJs=`(()=>{const P=${JSON.stringify(profile)};
+const profileJs=String.raw`(()=>{const P=${JSON.stringify(profile)};
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const unique=[];for(const t of P.tracks){if(t.tab&&!unique.some(x=>x[0]===t.tab))unique.push([t.tab,t.label])}
 TABS.splice(0,TABS.length,["customers","Portfolio"],["command","Command Center"],...unique.filter(x=>x[0]!=="prep"),["prep","Meeting Brief"],["application","Application"],["accounts","Admin"]);
