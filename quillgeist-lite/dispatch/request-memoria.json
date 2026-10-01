@@ -1,9 +1,8 @@
 {
-  "request_id": "memoria-ensure-python-retry-20261001-0658",
-  "task_id": "ensure-python",
+  "request_id": "memoria-selfupdate-gns-fixes-20261001-0702",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Force": "false"
-  },
-  "objective": "Ensure MEMORIA has a discoverable real Python 3 runtime for reviewed QQ tasks, excluding WindowsApps aliases, and return local-agent evidence."
+  "args": {},
+  "objective": "Refresh MEMORIA with the current reviewed runtime after the CRM ASTRO Python and Genesys materialization fixes.",
+  "resume_after": true
 }
