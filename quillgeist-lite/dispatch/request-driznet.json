@@ -1,8 +1,8 @@
 {
-  "request_id": "driznet-cwinteract-selfupdate-20261001-1141",
+  "request_id": "driznet-cwinteract-selfupdate-20261001-1147",
   "task_id": "self-update",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Retry DRIZNET self-update against repaired runtime source 613af9cc, install CWInteract™, preserve registration, restart safely, and resume queued work.",
+  "objective": "Install the repaired deployed QQ runtime with CWInteract™ on DRIZNET, preserving device registration and resuming queued work.",
   "resume_after": true
 }
