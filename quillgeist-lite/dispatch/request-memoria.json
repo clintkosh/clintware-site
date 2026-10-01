@@ -1,8 +1,11 @@
 {
-  "request_id": "memoria-bitnet-singleturn-final-20260930-2201",
-  "task_id": "bitnet-setup",
+  "request_id": "memoria-gns-crm-full-20260930-1846-requeued",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Finish and verify the existing MEMORIA BitNet installation.",
-  "resume_after": false
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Build, validate, test, and deploy the Genesys CRM+Cover ASTRO at gns.clintware.com from the committed role-specific project. Use MEMORIA local execution as the primary compute path. Enforce browser-local persistence and the ASTRO quota-independence gate so Durable Objects are absent unless explicitly required. Verify source checks and deployment; live browser verification remains a separate evidence gate."
 }
