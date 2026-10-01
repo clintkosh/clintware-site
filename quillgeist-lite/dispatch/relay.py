@@ -17,44 +17,50 @@ TOKEN = os.environ.get("CONTROL_PLANE_MCP_TOKEN", "")
 REQUEST_FILE = os.environ.get("REQUEST_FILE", "quillgeist-lite/dispatch/request.json")
 RESULT_FILE = os.environ.get("RESULT_FILE", "quillgeist-lite/dispatch/result.json")
 
-ALLOWED = {
-    "clintware-doctor": set(),
-    "google-cloud-support-access": {"OwnerAccount", "SupportAccount", "ProjectName"},
-    "finish-google-oauth": {"Repo"},
-    "python-runtime-check": {"Message"},
-    "c-runtime-check": {"Message"},
-    "ensure-c-runtime": set(),
-    "ensure-powershell": set(),
-    "ensure-python": {"Force"},
-    "update-powerchatbridge": set(),
-    "self-update": set(),
-    "self-heal": set(),
-    "browser-setup": set(),
-    "install-desktop-app": {"NoLaunch"},
-    "browser-work": {"Action", "Url", "Selector", "Value", "StepsJson", "Query", "Engine", "MaxResults", "MaxChars", "Approved", "Headless", "WaitMs", "UserWaitMs"},
-    "record-google-oauth-verification": set(),
-    "open-edge-tab": {"Url"},
-    "repair-codex-org-identity": set(),
-    "local-ai": {"Action", "Model", "Prompt", "ContextTokens", "MaxTokens"},
-    "repo-code-search": {"Query", "Path", "Mode", "Max", "Json", "FilesOnly"},
-    "storage-audit": {"ExpectedComputer", "LargestFiles"},
-    "crm-astro-build": {"Action", "Project", "Manifest", "SkipInstall", "RepoRoot"},
-    "big-prompt-plan": {"Prompt", "Project", "StateScope", "MaxDepth"},
-    "bitnet-setup": set(),
-    "local-ai-integrate": set(),
-    "finish-local-ai": {"MaxPasses"},
-    "restore-immich": set(),
-    "share-ai-network": set(),
-    "responder-agent": {"Action"},
-    "restart-window": set(),
-    "repair-local-service": set(),
-    "apply-terminal-glass": set(),
-    "connect-jira": set(),
-    "enable-admin-console": set(),
-    "bootstrap-admin-console": set(),
-    "gimp-clintware-eclipse": set(),
-    "dedupe-qq-windows": set(),
-}
+REMOTE_TASK_REGISTRY_FILE = os.environ.get(
+    "REMOTE_TASK_REGISTRY_FILE",
+    "control-plane/quillgeist-remote-tasks.json",
+)
+LOCAL_TASK_REGISTRY_FILE = os.environ.get(
+    "LOCAL_TASK_REGISTRY_FILE",
+    "quillgeist-lite/tasks.json",
+)
+
+def load_remote_task_allowlist():
+    """Load one canonical remote-dispatch contract and fail closed on drift."""
+    try:
+        with open(REMOTE_TASK_REGISTRY_FILE, "r", encoding="utf-8") as handle:
+            remote = json.load(handle)
+        with open(LOCAL_TASK_REGISTRY_FILE, "r", encoding="utf-8") as handle:
+            local = json.load(handle)
+    except Exception as exc:
+        raise SystemExit(f"task_registry_unavailable: {exc}")
+
+    remote_tasks = remote.get("tasks") if isinstance(remote, dict) else None
+    local_tasks = local.get("tasks") if isinstance(local, dict) else None
+    if not isinstance(remote_tasks, dict) or not isinstance(local_tasks, dict):
+        raise SystemExit("task_registry_invalid: tasks must be objects")
+
+    allowed = {}
+    for task_id, spec in remote_tasks.items():
+        if task_id not in local_tasks:
+            raise SystemExit(f"task_registry_drift: remote task missing locally: {task_id}")
+        params = spec.get("parameters") or []
+        local_params = local_tasks[task_id].get("parameters") or []
+        if not isinstance(params, list) or not all(isinstance(x, str) and x for x in params):
+            raise SystemExit(f"task_registry_invalid_parameters: {task_id}")
+        if len(params) != len(set(params)):
+            raise SystemExit(f"task_registry_duplicate_parameters: {task_id}")
+        unknown = set(params) - set(local_params)
+        if unknown:
+            raise SystemExit(f"task_registry_drift: {task_id} remote-only parameters: {sorted(unknown)}")
+        allowed[str(task_id)] = set(params)
+
+    if not allowed:
+        raise SystemExit("task_registry_empty")
+    return allowed, int(remote.get("version") or 0), int(local.get("version") or 0)
+
+ALLOWED, REMOTE_TASK_REGISTRY_VERSION, LOCAL_TASK_REGISTRY_VERSION = load_remote_task_allowlist()
 
 def request_json(method, path, body=None):
     data = None if body is None else json.dumps(body).encode("utf-8")
@@ -110,7 +116,7 @@ def request_json(method, path, body=None):
             return 599, {"error": "control_plane_unreachable", "message": last_error}
     return 599, {"error": "control_plane_unreachable", "message": last_error or "unknown"}
 
-def create_job_with_settle(body, settle_seconds=120):
+def create_job_with_settle(body, settle_seconds=360):
     deadline = time.time() + settle_seconds
     attempt = 0
     while True:
@@ -690,7 +696,7 @@ unknown = set(args) - ALLOWED[task_id]
 if unknown:
     raise SystemExit(f"argument_not_allowed: {sorted(unknown)}")
 
-print(f"REQUEST_OK task={task_id} request_id={req.get('request_id','')}", flush=True)
+print(f"REQUEST_OK task={task_id} request_id={req.get('request_id','')} remote_registry={REMOTE_TASK_REGISTRY_VERSION} local_registry={LOCAL_TASK_REGISTRY_VERSION}", flush=True)
 
 job_request = {
     "task_id": task_id,
