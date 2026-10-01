@@ -3404,7 +3404,10 @@ function createMcpServer(env,mcpRequest,mcpAuth){
         "For substantial multi-step work, recover durable state first and use the allowlisted qq big-prompt-plan task when available to compile a dependency-aware work graph before execution.",
         "Prefer deterministic local work and capable local inference; route fresh external authority, explicit remote-model work, and consequential external mutations through scoped Control Plane capabilities.",
         "Provider/account selections may be represented by opaque references, but provider tokens, cookies, passwords, and raw credential values must never enter prompts, handoffs, work graphs, repository files, or telemetry.",
-        "For a hands-free ChatGPT handoff, set target_client to chatgpt. Clintware will route the sanitized packet to the private PowerChatBridge inbox automatically."
+        "For a hands-free ChatGPT handoff, set target_client to chatgpt. Clintware will route the sanitized packet to the private PowerChatBridge inbox automatically.",
+        "Do not interpret a missing client-side MCP binding as proof that Clintware itself is unreachable. First inspect the tools/connectors exposed to this client and use Clintware directly when present.",
+        "If the Clintware binding is absent or unusable, report the concrete binding state (mcp_binding_not_exposed, authentication_required, authorization_required, tool_not_available_in_client, or the actual connection error) rather than inventing a qq CLI command or guessed local path.",
+        "Never fabricate qq send/status/jobs syntax, job directories, cache paths, or local configuration locations. Only provide manual commands or paths that are verified from live Clintware capability data, repository documentation, or the target machine."
       ]
     })}]};
   });
