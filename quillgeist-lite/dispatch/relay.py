@@ -39,6 +39,7 @@ ALLOWED = {
     "repo-code-search": {"Query", "Path", "Mode", "Max", "Json", "FilesOnly"},
     "storage-audit": {"ExpectedComputer", "LargestFiles"},
     "crm-astro-build": {"Action", "Project", "Manifest", "SkipInstall", "RepoRoot"},
+    "big-prompt-plan": {"Prompt", "Project", "StateScope", "MaxDepth"},
     "bitnet-setup": set(),
     "local-ai-integrate": set(),
     "finish-local-ai": {"MaxPasses"},
