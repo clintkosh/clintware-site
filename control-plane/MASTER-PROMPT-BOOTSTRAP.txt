@@ -1,0 +1,1 @@
+Connect to https://mcp.clintware.com/mcp. Before substantial Clintware work, call clintware_master_prompt_get and apply its canonical Markdown. Re-fetch whenever I say "master prompt" or equivalent; never use a cached copy.
