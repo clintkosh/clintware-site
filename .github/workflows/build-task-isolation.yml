@@ -57,7 +57,11 @@ jobs:
 
           # Apply the real production binary, silently.
           $p = Start-Process -FilePath ".\Clintware-TaskIsolation.exe" -ArgumentList "--quiet" -Wait -PassThru -WindowStyle Hidden
-          if ($p.ExitCode -ne 0) { throw "Isolation run failed: $($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) {
+            $diag = Join-Path $env:ProgramData "Clintware\TaskIsolation\last-run.log"
+            if (Test-Path $diag) { Get-Content $diag | Write-Host }
+            throw "Isolation run failed: $($p.ExitCode)"
+          }
 
           $after = Get-ScheduledTask -TaskName $task
           $afterXml = [xml](Export-ScheduledTask -TaskName $task)
