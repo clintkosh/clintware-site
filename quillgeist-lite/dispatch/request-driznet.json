@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-website-20261001-1250",
+  "request_id": "driznet-cwinteract-linkedin-form-industry-20261001-1252",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "Website",
+    "Query": "Industry",
     "StepsJson": "",
     "Approved": "false",
     "MaxResults": "40",
     "WaitMs": "250"
   },
-  "objective": "Inspect the LinkedIn Company Page creation form for Website controls. Do not change fields.",
+  "objective": "Inspect the LinkedIn Company Page creation form for Industry controls. Do not change fields.",
   "resume_after": false
 }
