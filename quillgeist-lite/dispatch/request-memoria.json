@@ -1,8 +1,8 @@
 {
-  "request_id": "memoria-selfupdate-20260930-2152",
-  "task_id": "self-update",
+  "request_id": "memoria-bitnet-final-20260930-2153",
+  "task_id": "bitnet-setup",
   "target_device": "MEMORIA",
   "args": {},
-  "objective": "Refresh MEMORIA reviewed runtime.",
-  "resume_after": true
+  "objective": "Finish and verify the existing MEMORIA BitNet installation.",
+  "resume_after": false
 }
