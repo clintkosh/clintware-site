@@ -1,11 +1,11 @@
 {
-  "request_id": "email-route-discovery-20261001-0856b",
+  "request_id": "email-route-discovery-20261001-0856c",
   "task_id": "repo-code-search",
   "target_device": "MEMORIA",
   "args": {
     "Query": "clint.kosh@gmail.com",
     "Path": "",
-    "Mode": "literal",
+    "Mode": "text",
     "Max": "100",
     "Json": "true",
     "FilesOnly": "false"
