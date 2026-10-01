@@ -149,8 +149,8 @@ const profile={
 const profileJs=`(()=>{const P=${JSON.stringify(profile)};
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const unique=[];for(const t of P.tracks){if(t.tab&&!unique.some(x=>x[0]===t.tab))unique.push([t.tab,t.label])}
-TABS.splice(0,TABS.length,["customers","Portfolio"],["command","Command Center"],...unique,["application","Application"],["accounts","Admin"]);
-NAV_GROUPS.splice(0,NAV_GROUPS.length,["Operate",["customers","command",...unique.slice(0,4).map(x=>x[0])]],["Inspect",unique.slice(4).map(x=>x[0])],["Apply",["application"]],["Admin",["accounts"]]);
+TABS.splice(0,TABS.length,["customers","Portfolio"],["command","Command Center"],...unique.filter(x=>x[0]!=="prep"),["prep","Meeting Brief"],["application","Application"],["accounts","Admin"]);
+NAV_GROUPS.splice(0,NAV_GROUPS.length,["Operate",["customers","command",...unique.slice(0,4).map(x=>x[0]).filter(x=>x!=="prep")]],["Inspect",unique.slice(4).map(x=>x[0]).filter(x=>x!=="prep")],["Apply",["prep","application"]],["Admin",["accounts"]]);
 const baseHeader=appHeader,baseBody=body,baseBind=bind;
 appHeader=function(){return baseHeader().split("Technical Customer Engineering").join(esc(P.role)).split("Doppel").join(esc(P.company))}
 function appPage(){const b=P.applicationBundle||{},cl=b.cover_letter?.draft||"",why=b.why_company?.draft||"";
