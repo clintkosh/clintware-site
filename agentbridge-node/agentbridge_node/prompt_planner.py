@@ -8,7 +8,7 @@ from .preferences import PreferenceStore, infer_task_type, parse_preference_comm
 from .state_compactor import maybe_compact_with_state
 
 
-ACTION_RE = re.compile(r"\b(?:build|create|generate|make|update|edit|modify|fix|implement|add|remove|replace|assemble|combine|export|render|deploy|test|verify|check|review|research|search|compare|analyze|summarize|draft|send|save|upload|download|then|after|once|next|finally|before|proceed|continue)\b", re.I)
+ACTION_RE = re.compile(r"\b(?:build|create|generate|make|update|edit|modify|fix|implement|harden|recover|recontext|re-context|compact|decompose|route|dispatch|persist|orchestrate|migrate|reconcile|resume|add|remove|replace|assemble|combine|export|render|deploy|test|verify|check|review|research|search|compare|analyze|summarize|draft|send|save|upload|download|then|after|once|next|finally|before|proceed|continue)\b", re.I)
 SEQUENCE_RE = re.compile(r"\b(?:then|after(?:ward)?|once|next|finally|before|only after|proceed|continue)\b", re.I)
 NUMBERED_RE = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s+", re.M)
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])")
