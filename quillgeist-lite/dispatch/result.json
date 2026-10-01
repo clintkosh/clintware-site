@@ -1,15 +1,26 @@
 {
-  "request_id": "memoria-nma-repo-sync-20261001-0909",
-  "job_id": "53dfbd0b-2844-49ea-8ff1-e28ba667a6ba",
-  "task_id": "repo-code-search",
-  "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 3020,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T14:09:28.7013671Z",
-  "recorded_at": 1790863757,
-  "recovery_history": [],
-  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            main       -> FETCH_HEAD\r\n[run]  + 6682904...2813aec main       -> origin/main  (forced update)\r\n[run] HEAD is now at 2813aec Refresh MEMORIA repo cache for final NMA seed build\r\n[run] CODE SEARCH // repo=clintkosh/clintware-site mode=text query=SAMPLE_SEED_VERSION=2\r\n[run] {\r\n[run]   \"query\": \"SAMPLE_SEED_VERSION=2\",\r\n[run]   \"root\": \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Clintware\\\\code-search\\\\clintware-site\",\r\n[run]   \"mode\": \"text\",\r\n[run]   \"caseSensitive\": false,\r\n[run]   \"pathFilters\": [\r\n[run]     \"projects/nma-crm\"\r\n[run]   ],\r\n[run]   \"filesScanned\": 11,\r\n[run]   \"matchedFiles\": 2,\r\n[run]   \"matches\": 2,\r\n[run]   \"truncated\": false,\r\n[run]   \"results\": [\r\n[run]     {\r\n[run]       \"path\": \"projects/nma-crm/scripts/materialize.mjs\",\r\n[run]       \"line\": 89,\r\n[run]       \"text\": \"if(!sampleText.includes(\\\"SAMPLE_SEED_VERSION=2\\\")||!sampleText.includes(\\\"Summit SaaS\\\")||!sampleText.includes('phase:\\\"discover\\\"')||!sampleText.includes('phase:\\\"expand\\\"'))throw new Error(\\\"NMA lifecycle-varied sample set missing.\\\");\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"path\": \"projects/nma-crm/src/sample-customers.js\",\r\n[run]       \"line\": 1,\r\n[run]       \"text\": \"export const SAMPLE_SEED_VERSION=2;\"\r\n[run]     }\r\n[run]   ]\r\n[run] }"
+  "request_id": "all-machines-autonomous-continuation-doctor-20261001-0914",
+  "mode": "rollout",
+  "task_id": "clintware-doctor",
+  "runtime_version": "2026-10-01-local-routing-v29",
+  "registered_devices": 2,
+  "jobs": [
+    {
+      "job_id": "8ac09658-8302-4484-aaa7-26b2ff7d2d78",
+      "target_device": "MEMORIA",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_ms": 2049,
+      "output_tail": "[run] === CLINTWARE QUILLGEIST LITE DOCTOR ===\r\n[run] Machine identity:\r\n[run]   Computer:     MEMORIA\r\n[run]   Manufacturer: Micro-Star International Co., Ltd.\r\n[run]   Model:        Katana GF76 12UE\r\n[run]   Memory GiB:   63.7\r\n[run]   CPU:          12th Gen Intel(R) Core(TM) i7-12700H\r\n[run]   GPU:          Intel(R) Iris(R) Xe Graphics\r\n[run]   GPU:          NVIDIA GeForce RTX 3060 Laptop GPU\r\n[run]   Drive C:      17.5 GiB free / 453.1 GiB\r\n[run]   Drive F:      1626.6 GiB free / 1863 GiB\r\n[run] \u001b[32;1mTool      \u001b[0m\u001b[32;1m Found\u001b[0m\u001b[32;1m Path\u001b[0m\r\n[run] \u001b[32;1m----      \u001b[0m \u001b[32;1m-----\u001b[0m \u001b[32;1m----\u001b[0m\r\n[run] powershell  True C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] pwsh        True C:\\Program Files\\PowerShell\\7\\pwsh.exe\r\n[run] gh          True C:\\Program Files\\GitHub CLI\\gh.exe\r\n[run] git         True C:\\Program Files\\Git\\cmd\\git.exe\r\n[run] gcloud     False \r\n[run] python      True C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe\r\n[run] python3     True C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\python3.exe\r\n[run] node        True C:\\Program Files\\nodejs\\node.exe\r\n[run] docker      True C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\r\n[run] ollama      True C:\\Users\\user\\AppData\\Local\\Programs\\Ollama\\ollama.exe\r\n[run] clang      False \r\n[run] gcc        False \r\n[run] cl         False \r\n[run] GitHub authentication:\r\n[run] You are not logged into any GitHub hosts. To log in, run: gh auth login\r\n[run] Runtime summary:\r\n[run]   PowerShell: True\r\n[run]   Python:     True\r\n[run]   C compiler: False\r\n[run] Scheduled-task desktop isolation:\r\n[run]   TASK-ISOLATION // bundled helper missing: C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tools\\Clintware-TaskIsolation.exe\r\n[run] Quillgeist Lite doctor complete."
+    },
+    {
+      "job_id": "0ffbc15d-39b3-4aae-b0b5-16c1160f9984",
+      "target_device": "DRIZNET",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_ms": 5558,
+      "output_tail": "[run] === CLINTWARE QUILLGEIST LITE DOCTOR ===\r\n[run] Machine identity:\r\n[run]   Computer:     DRIZNET\r\n[run]   Manufacturer: HP\r\n[run]   Model:        HP EliteBook 845 14 inch G10 Notebook PC\r\n[run]   Memory GiB:   61.8\r\n[run]   CPU:          AMD Ryzen 5 PRO 7545U w/ Radeon 740M Graphics  \r\n[run]   GPU:          AMD Radeon(TM) Graphics\r\n[run]   Drive C:      14.2 GiB free / 475.9 GiB\r\n[run]   Drive F:      not present\r\n[run] \u001b[32;1mTool      \u001b[0m\u001b[32;1m Found\u001b[0m\u001b[32;1m Path\u001b[0m\r\n[run] \u001b[32;1m----      \u001b[0m \u001b[32;1m-----\u001b[0m \u001b[32;1m----\u001b[0m\r\n[run] powershell  True C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] pwsh        True C:\\Program Files\\PowerShell\\7\\pwsh.exe\r\n[run] gh          True C:\\Program Files\\GitHub CLI\\gh.exe\r\n[run] git         True C:\\Program Files\\Git\\cmd\\git.exe\r\n[run] gcloud      True C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.ps1\r\n[run] python      True C:\\Users\\batman\\AppData\\Local\\Programs\\Python\\Python311\\python.exe\r\n[run] python3     True C:\\Users\\batman\\AppData\\Local\\Microsoft\\WindowsApps\\python3.exe\r\n[run] node        True C:\\Program Files\\nodejs\\node.exe\r\n[run] docker      True C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\r\n[run] ollama      True C:\\Users\\batman\\AppData\\Local\\Programs\\Ollama\\ollama.exe\r\n[run] clang      False \r\n[run] gcc        False \r\n[run] cl         False \r\n[run] GitHub authentication:\r\n[run] github.com\r\n[run]   \u2713 Logged in to github.com account clintkosh (keyring)\r\n[run]   - Active account: true\r\n[run]   - Git operations protocol: https\r\n[run]   - Token: gho_************************************\r\n[run]   - Token scopes: 'gist', 'read:org', 'repo', 'workflow'\r\n[run] Google Cloud accounts:\r\n[run] ACCOUNT               ACTIVE\r\n[run] clint.kosh@gmail.com  *\r\n[run] Runtime summary:\r\n[run]   PowerShell: True\r\n[run]   Python:     True\r\n[run]   C compiler: False\r\n[run] Scheduled-task desktop isolation:\r\n[run]   TASK-ISOLATION // bundled helper missing: C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tools\\Clintware-TaskIsolation.exe\r\n[run] Quillgeist Lite doctor complete."
+    }
+  ],
+  "recorded_at": 1790864153
 }
