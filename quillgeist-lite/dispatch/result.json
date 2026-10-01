@@ -1,16 +1,16 @@
 {
-  "request_id": "memoria-recovery-progress-20261001-1624",
+  "request_id": "memoria-recovery-progress-20261001-1627",
   "mode": "inspect",
-  "recorded_at": 1790871884,
+  "recorded_at": 1790871991,
   "inspection": {
-    "online": 0,
+    "online": 2,
     "recovery_online": 0,
-    "wake_online": 0,
+    "wake_online": 2,
     "recovery": null,
     "runner_version": "1.10.0",
-    "runner_last_seen": "2026-10-01T16:24:13.039Z",
+    "runner_last_seen": "2026-10-01T16:26:26.446Z",
     "runner": {
-      "runner_id": "DRIZNET",
+      "runner_id": "MEMORIA",
       "version": "1.10.0",
       "capabilities": [
         "interactive_relay",
@@ -34,25 +34,140 @@
         "capability_inventory",
         "capability_aware_routing"
       ],
-      "connected_at": "2026-10-01T16:24:00.765Z",
-      "last_seen": "2026-10-01T16:24:13.039Z",
-      "source_revision": "993c8cadbb7f4ad2f657c3fa7535be0d439f6b2a",
+      "connected_at": "2026-10-01T16:26:13.107Z",
+      "last_seen": "2026-10-01T16:26:26.446Z",
+      "source_revision": "30649da303e7362b6bcc41c807ccfb930f1cf18a",
       "registry_version": "29"
     },
-    "connected_devices": [],
+    "connected_devices": [
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-10-01T16:25:50.260Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-01T16:25:50.260Z",
+          "last_seen": "2026-10-01T16:25:50.308Z",
+          "source_revision": "30649da303e7362b6bcc41c807ccfb930f1cf18a",
+          "registry_version": "29"
+        }
+      },
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-10-01T16:26:13.107Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-01T16:26:13.107Z",
+          "last_seen": "2026-10-01T16:26:13.151Z",
+          "source_revision": "30649da303e7362b6bcc41c807ccfb930f1cf18a",
+          "registry_version": "29"
+        }
+      }
+    ],
     "service_devices": [
       {
         "device_id": "MEMORIA",
         "label": "MEMORIA / batman",
-        "registered_at": "2026-09-26T05:25:34.942Z"
+        "registered_at": "2026-09-26T05:25:34.942Z",
+        "last_seen": "2026-10-01T16:26:24.648Z",
+        "runner_alive": false,
+        "service_version": "",
+        "updated_at": "",
+        "source": "live-websocket"
       },
       {
         "device_id": "DRIZNET",
         "label": "DRIZNET / batman",
-        "registered_at": "2026-09-22T20:47:30.020Z"
+        "registered_at": "2026-09-22T20:47:30.020Z",
+        "last_seen": "2026-10-01T16:25:35.996Z",
+        "runner_alive": false,
+        "service_version": "",
+        "updated_at": "",
+        "source": "live-websocket"
       }
     ],
     "jobs": [
+      {
+        "job_id": "b597447f-148f-4599-9831-53008d37c43a",
+        "task_id": "finish-local-ai",
+        "target_device": "MEMORIA",
+        "status": "running"
+      },
+      {
+        "job_id": "5762495c-6092-412e-a953-3dc580a6d032",
+        "task_id": "cwinteract",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "c85bed9c-e405-4909-9b67-01d5b4da5eb4",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "d6cbc2d7-51e7-4a05-8249-6222ff77c343",
+        "task_id": "repair-local-service",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "b139345b-7c0b-4045-989a-13c9296a0c5d",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "1f50463f-9d1c-40ba-8b79-d2dff984178a",
+        "task_id": "cwinteract",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
       {
         "job_id": "4f79c959-9319-4d8c-8e23-394adb9c2986",
         "task_id": "cwinteract",
@@ -69,7 +184,7 @@
         "job_id": "6f4845ac-67b1-44f6-af8a-164c57f809f8",
         "task_id": "self-update",
         "target_device": "MEMORIA",
-        "status": "queued"
+        "status": "passed"
       },
       {
         "job_id": "c6145eb2-144f-483d-85bd-85aeb3789951",
@@ -87,153 +202,117 @@
         "job_id": "6c8935fa-9b26-4453-9656-f48d2459b037",
         "task_id": "finish-local-ai",
         "target_device": "MEMORIA",
-        "status": "running"
-      },
-      {
-        "job_id": "d2069e17-fdc7-4122-ab89-0645e4a055d5",
-        "task_id": "local-ai",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "8bb6ae88-9b75-4a0b-924d-b1d96bf68c5f",
-        "task_id": "self-update",
-        "target_device": "DRIZNET",
-        "status": "passed"
-      },
-      {
-        "job_id": "4f9408bf-6e12-416f-b3fa-05e994b53489",
-        "task_id": "self-update",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "9427babf-be05-4b6a-b84f-7a2f0b09eece",
-        "task_id": "local-ai",
-        "target_device": "MEMORIA",
-        "status": "passed"
-      },
-      {
-        "job_id": "3eadccb4-6947-44ed-aec3-d64dc3317fc4",
-        "task_id": "cwinteract",
-        "target_device": "DRIZNET",
-        "status": "passed"
-      },
-      {
-        "job_id": "2252c94c-8184-4aea-bdee-f9f19bfa65ee",
-        "task_id": "cwinteract",
-        "target_device": "DRIZNET",
-        "status": "passed"
+        "status": "failed"
       }
     ],
     "diagnostics": [
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "WARN",
-        "phase": "runner-log",
+        "phase": "health",
         "kind": "other",
-        "message": "2026-10-01T11:24:42 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
-        "timestamp": "2026-10-01T16:24:44.4328668Z"
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-10-01T16:26:38.3734533Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "Job 4f79c959-9319-4d8c-8e23-394adb9c2986 finished with status passed",
-        "timestamp": "2026-10-01T16:24:15.0464766Z"
+        "message": "Running task finish-local-ai [powershell] (quillgeist-lite/tasks/finish-local-ai.ps1)",
+        "timestamp": "2026-10-01T16:26:37.9423275Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "Running task cwinteract [powershell] (quillgeist-lite/tasks/cwinteract.ps1)",
-        "timestamp": "2026-10-01T16:24:12.4488605Z"
+        "message": "Refreshed reviewed task source: finish-local-ai",
+        "timestamp": "2026-10-01T16:26:37.9259871Z"
       },
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
         "kind": "other",
-        "message": "Refreshed reviewed task source: cwinteract",
-        "timestamp": "2026-10-01T16:24:12.4235975Z"
+        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
+        "timestamp": "2026-10-01T16:26:37.4485793Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "wake",
+        "phase": "health",
         "kind": "other",
-        "message": "wake_deferred_runner_busy",
-        "timestamp": "2026-10-01T16:24:12.2351020Z"
+        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
+        "timestamp": "2026-10-01T16:26:37.2827779Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "WARN",
         "phase": "wake",
         "kind": "other",
         "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
-        "timestamp": "2026-10-01T16:24:12.1162667Z"
+        "timestamp": "2026-10-01T16:26:37.1243306Z"
       },
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "desktop-focus",
-        "kind": "other",
-        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
-        "timestamp": "2026-10-01T16:24:05.2956659Z"
-      },
-      {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "runner",
         "kind": "other",
-        "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
-        "timestamp": "2026-10-01T16:24:05.2918400Z"
+        "message": "Job c85bed9c-e405-4909-9b67-01d5b4da5eb4 finished with status passed",
+        "timestamp": "2026-10-01T16:26:37.0749037Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "auto-recovery",
+        "kind": "other",
+        "message": "queued stage=retry task=finish-local-ai source_job=6c8935fa-9b26-4453-9656-f48d2459b037",
+        "timestamp": "2026-10-01T16:26:25.978Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_alive",
+        "timestamp": "2026-10-01T16:26:36.7337200Z"
+      },
+      {
+        "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "health",
         "kind": "other",
         "message": "runner_state=alive",
-        "timestamp": "2026-10-01T16:24:04.3440253Z"
+        "timestamp": "2026-10-01T16:26:36.6110311Z"
       },
       {
-        "device_id": "DRIZNET",
+        "device_id": "MEMORIA",
         "level": "INFO",
-        "phase": "runner",
+        "phase": "wake",
         "kind": "other",
-        "message": "Interactive relay channel initialized.",
-        "timestamp": "2026-10-01T16:24:02.9644835Z"
+        "message": "wake_deferred_runner_busy",
+        "timestamp": "2026-10-01T16:26:35.9662078Z"
       },
       {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
         "kind": "other",
-        "message": "Connected to Clintware Control Plane.",
-        "timestamp": "2026-10-01T16:24:02.9469089Z"
-      },
-      {
-        "device_id": "DRIZNET",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "kind": "other",
-        "message": "credential_selected device=DRIZNET source=machine",
-        "timestamp": "2026-10-01T16:24:02.6612063Z"
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-10-01T16:26:35.7628528Z"
       }
     ],
     "selected_job": {
       "job_id": "6c8935fa-9b26-4453-9656-f48d2459b037",
       "task_id": "finish-local-ai",
-      "status": "running",
+      "status": "failed",
       "requested_by": "root",
       "created_at": "2026-10-01T16:21:41.625Z",
-      "completed_at": null,
-      "duration_ms": null,
-      "exit_code": null,
-      "error_kind": "other",
+      "completed_at": "2026-10-01T16:25:29.5976866Z",
+      "duration_ms": 216217,
+      "exit_code": 2,
+      "error_kind": "service_missing",
       "recent_logs": [
         {
           "seq": 244,
