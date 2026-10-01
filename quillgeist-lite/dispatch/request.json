@@ -1,12 +1,8 @@
 {
-  "request_id": "driznet-jobs-v1-plan-resume-20261001-0717",
-  "task_id": "big-prompt-plan",
+  "request_id": "driznet-selfupdate-config-recovery-20261001-0722",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Prompt": "Build Jobs, the Clintware local-first job-application copilot, using docs/jobs-product-spec.md as the authoritative product spec. Recover relevant existing Clintware/Quillgeist/browser automation/job-search/CRM+cover-letter state first. Recursively decompose into dependency-aware implementation units. Prioritize deterministic local execution on DRIZNET, local storage, a local UI, job capture, application ledger, fit analysis, resume/answer selection, governed browser autofill, duplicate detection, and an explicit final-submit approval gate. Keep professional data local on the happy path. Do not mix external-workspace data or assets into Clintware. Preserve verification requirements and produce an actionable plan that can be executed/resumed by QQ.",
-    "Project": "Jobs",
-    "StateScope": "clintware/jobs",
-    "MaxDepth": "4"
-  },
-  "objective": "Create the executable local-first Jobs v1 implementation plan on DRIZNET from docs/jobs-product-spec.md, preserving user-owned data, approval-gated submission, browser governance, resumability, and verification evidence."
+  "args": {},
+  "objective": "Refresh DRIZNET to the current reviewed runtime containing the resilient local config loader before resuming the preserved Jobs big-prompt plan.",
+  "resume_after": true
 }
