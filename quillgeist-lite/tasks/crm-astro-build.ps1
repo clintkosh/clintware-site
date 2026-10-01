@@ -192,9 +192,20 @@ try {
   & npm run check
   if ($LASTEXITCODE -ne 0) { throw "CRM source checks failed." }
 
+  $Deployed = $false
+  $RemoteDeploymentRequired = $false
   if ($Action -in @("deploy","full")) {
-    & npx wrangler deploy
-    if ($LASTEXITCODE -ne 0) { throw "Wrangler deploy failed." }
+    if ($env:CLOUDFLARE_API_TOKEN -and $env:CLOUDFLARE_ACCOUNT_ID) {
+      & npx wrangler deploy
+      if ($LASTEXITCODE -ne 0) { throw "Wrangler deploy failed." }
+      $Deployed = $true
+    } else {
+      # Provider credentials stay behind Clintware/GitHub. Local qq performs
+      # deterministic materialization/checks and hands the external mutation
+      # to the server-authorized deployment workflow.
+      $RemoteDeploymentRequired = $true
+      Write-Host "DEPLOYMENT_HANDOFF // local checks passed; server-authorized deployment required"
+    }
   }
 }
 finally {
@@ -212,6 +223,7 @@ finally {
   durable_objects_required=$DurableObjectsRequired
   source_mode=$source.Mode
   source_refreshed=$source.Refreshed
-  deployed=($Action -in @("deploy","full"))
-  note="Live-domain and browser verification remain separate evidence gates."
+  deployed=$Deployed
+  remote_deployment_required=$RemoteDeploymentRequired
+  note="External deployment uses the server-authorized workflow when provider credentials are not present locally; live browser verification remains a separate evidence gate."
 } | ConvertTo-Json
