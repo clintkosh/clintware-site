@@ -1,15 +1,13 @@
 {
-  "request_id": "memoria-nma-repo-sync-20261001-0909",
-  "task_id": "repo-code-search",
+  "request_id": "memoria-nma-final-seed-verify-20261001-0910",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
   "args": {
-    "Query": "SAMPLE_SEED_VERSION=2",
-    "Path": "projects/nma-crm",
-    "Mode": "text",
-    "Max": "20",
-    "Json": "true",
-    "FilesOnly": "false"
+    "Action": "full",
+    "Project": "nma-crm",
+    "SkipInstall": "false",
+    "RepoRoot": "C:\\Users\\user\\AppData\\Local\\Clintware\\code-search\\clintware-site"
   },
-  "objective": "Refresh MEMORIA's maintained Clintware repository cache directly from origin/main, then confirm the final NMA multi-stage seed revision is present before rerunning crm-astro-build.",
+  "objective": "Final local validation of the refreshed NMA CRM source after repo sync. Verify SAMPLE_SEED_VERSION=2, lifecycle phases discover/govern/test/protect/prove/expand, dense stage-specific stakeholders/KPIs/actions/risks/issues/adoption/meetings, browser-local seed migration version 3, role logic, syntax, materialization, and deployment handoff. Return qq-local-agent confirmation from MEMORIA.",
   "resume_after": true
 }
