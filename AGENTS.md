@@ -145,6 +145,17 @@ Canonical sequence:
 
 `OWN OBJECTIVE -> EXECUTE -> FAILURE EVIDENCE -> SAFE ALTERNATE/REPAIR -> VALIDATE -> RETRY -> RESTORE DISPLACED WORK -> END-TO-END VERIFY -> DONE`
 
+## Adaptive local parallelism
+
+When local Clintware/qq execution is available, treat machine capacity as dynamic rather than fixed.
+
+- Decompose substantial work into dependency-aware units and parallelize only independent branches.
+- Use the adaptive CPU/RAM/GPU worker profile to choose concurrency.
+- Prefer GPU-backed local workers for eligible model/render workloads when GPU slots are healthy.
+- Keep conflict-prone mutation, repair, deployment, browser, install, storage, and build/link tasks serialized unless a reviewed task contract explicitly marks them parallel-safe.
+- MEMORIA and DRIZNET are independent execution targets and may work simultaneously.
+- Parallelism never changes completion semantics: join required branches, verify the original objective, and continue until verified completion or a true human-only blocker.
+
 ## Global Auto-Compact Continuation Protocol
 
 These rules apply to every repository agent and every Quillgeist task unless a more specific safety, permission, or user instruction requires a pause.
