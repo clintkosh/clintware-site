@@ -275,8 +275,14 @@ $models = Invoke-GatewayModels -Key $key
 $modelIds = @($models.data | ForEach-Object { [string]$_.id })
 $ollamaModel = $modelIds | Where-Object { $_ -like "ollama/*" -and $_ -notlike "*embed*" } | Select-Object -First 1
 $bitnetAlias = $modelIds | Where-Object { $_ -like "bitnet/*" } | Select-Object -First 1
-if (-not $ollamaModel) { throw "Gateway model inventory did not expose an Ollama chat model." }
-if (-not $bitnetAlias) { throw "Gateway model inventory did not expose BitNet." }
+$autoAlias = $modelIds | Where-Object { $_ -eq "local-auto" } | Select-Object -First 1
+if (-not $bitnetAlias) { throw "Gateway model inventory did not expose the validated BitNet model." }
+if (-not $autoAlias) { throw "Gateway model inventory did not expose local-auto." }
+if ($ollamaModel) {
+  Log ("Gateway chat inventory includes Ollama model " + $ollamaModel + " plus " + $bitnetAlias)
+} else {
+  Log ("Gateway chat inventory is BitNet-only; using local-auto -> " + $bitnetAlias + " without downloading another model")
+}
 
 Log "Updating existing Docker configuration with local-only gateway connection"
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
