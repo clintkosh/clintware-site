@@ -1,0 +1,29 @@
+{
+  "schema": "clintware-instruction-manifest/v1",
+  "version": 1,
+  "repository": "clintkosh/clintware-site",
+  "branch": "main",
+  "refresh": {
+    "on_session_start": true,
+    "on_master_prompt_reference": true,
+    "on_instruction_reference": true,
+    "no_cached_assumption": true
+  },
+  "documents": [
+    {
+      "id": "clintware-master-prompt",
+      "path": "control-plane/MASTER-PROMPT.md",
+      "title": "Clintware Universal Master Prompt",
+      "kind": "core",
+      "enabled": true,
+      "required": true,
+      "load_order": 0,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_master_prompt_get"
+    }
+  ],
+  "extension_root": "control-plane/instructions/",
+  "notes": "Add future custom Markdown instruction documents under extension_root and register them here. MCP-capable clients refresh this manifest and load every enabled applicable document in load_order."
+}
