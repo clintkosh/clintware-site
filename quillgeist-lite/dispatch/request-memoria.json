@@ -1,12 +1,13 @@
 {
-  "request_id": "memoria-gns-local-handoff-verification-20261001-0730",
-  "task_id": "crm-astro-build",
+  "request_id": "memoria-recovery-plan-20261001-1619",
+  "task_id": "big-prompt-plan",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "full",
-    "Project": "gns-crm",
-    "SkipInstall": "true"
+    "Prompt": "Resume all unfinished MEMORIA jobs. Inspect Codex remainders, READMEs, handoffs and broken desktop continuation scripts. Finish and functionally test the self-hosted local AI server and Immich. Preserve models photos databases configurations and active jobs. Use reviewed QQ tasks, deterministic local processing, GPU-aware capacity and conflict locks. Persist checkpoints and report measured local/provider usage. Planning alone is not execution or completion.",
+    "Project": "memoria-recovery",
+    "StateScope": "memoria-ai-immich-recovery",
+    "MaxDepth": "3"
   },
-  "objective": "Verify the current local CRM full path completes materialization/checks and hands provider deployment to the server-authorized path instead of requiring Cloudflare credentials on MEMORIA.",
+  "objective": "Recover MEMORIA repair plan before execution",
   "resume_after": false
 }
