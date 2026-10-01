@@ -93,21 +93,53 @@ jobs:
         run: |
           set -euo pipefail
           google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$google_bridge_secret" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_BRIDGE_SECRET --config newsletter/wrangler.generated.jsonc
+          for attempt in 1 2 3 4; do
+            if printf '%s' "$google_bridge_secret" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_BRIDGE_SECRET --config newsletter/wrangler.generated.jsonc; then
+              break
+            fi
+            if [ "$attempt" = "4" ]; then
+              echo "Failed to configure GOOGLE_DELEGATED_BRIDGE_SECRET after bounded retries." >&2
+              exit 1
+            fi
+            echo "Cloudflare secret API attempt $attempt failed; retrying." >&2
+            sleep $((attempt * 5))
+          done
 
       - name: Configure publish authentication
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -euo pipefail
           publish_secret=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$publish_secret" | npx --yes wrangler@4 secret put NEWSLETTER_PUBLISH_SECRET --config newsletter/wrangler.generated.jsonc
+          for attempt in 1 2 3 4; do
+            if printf '%s' "$publish_secret" | npx --yes wrangler@4 secret put NEWSLETTER_PUBLISH_SECRET --config newsletter/wrangler.generated.jsonc; then
+              break
+            fi
+            if [ "$attempt" = "4" ]; then
+              echo "Failed to configure NEWSLETTER_PUBLISH_SECRET after bounded retries." >&2
+              exit 1
+            fi
+            echo "Cloudflare secret API attempt $attempt failed; retrying." >&2
+            sleep $((attempt * 5))
+          done
       - name: Configure internal mail authentication
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          set -euo pipefail
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.generated.jsonc
+          for attempt in 1 2 3 4; do
+            if printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.generated.jsonc; then
+              break
+            fi
+            if [ "$attempt" = "4" ]; then
+              echo "Failed to configure INTERNAL_MAIL_SECRET after bounded retries." >&2
+              exit 1
+            fi
+            echo "Cloudflare secret API attempt $attempt failed; retrying." >&2
+            sleep $((attempt * 5))
+          done
 
       - name: Best-effort legacy Durable Object migration
         continue-on-error: true
