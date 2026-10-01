@@ -1,0 +1,58 @@
+{
+  "pxe_version": "clintware-pxe/v1",
+  "artifact_id": "prm_cws11_master_architecture",
+  "work_item_id": "CWS-11",
+  "branch": "main",
+  "revision": {
+    "id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "parents": [],
+    "author": "Clintware",
+    "device": "control-plane",
+    "created_at": "2026-10-01T17:30:00Z"
+  },
+  "content": {
+    "policy": [
+      {
+        "id": "policy-local-first",
+        "type": "text",
+        "text": "Prefer deterministic local execution and local models when policy and quality allow.",
+        "classification": "INTERNAL"
+      }
+    ],
+    "task": [
+      {
+        "id": "task-cws11",
+        "type": "text",
+        "text": "Adopt PXE semantics and CWS canonical work-item identity across the universal routing contract.",
+        "classification": "INTERNAL"
+      }
+    ],
+    "context": []
+  },
+  "tools": [],
+  "output_contract": {
+    "format": "artifact",
+    "strict": true
+  },
+  "execution_policy": {
+    "allowed_provider_classes": ["approved_local", "approved_cloud"],
+    "locality": "prefer_local",
+    "max_data_classification": "CONFIDENTIAL",
+    "fallback": true,
+    "require_lossless_render": true
+  },
+  "model_preferences": {
+    "capabilities_required": ["tool_calling", "structured_output"]
+  },
+  "security": {
+    "disclosure_policy": "selective",
+    "secret_refs": [],
+    "integrity_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "extensions": {
+    "openai": {},
+    "google": {},
+    "anthropic": {},
+    "local": {}
+  }
+}
