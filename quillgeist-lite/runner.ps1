@@ -15,6 +15,7 @@ $UiInputPath = Join-Path $HomeDir "ui-input.jsonl"
 $UiInputCursorPath = Join-Path $HomeDir "ui-input.cursor"
 $HeartbeatPath = Join-Path $HomeDir "runner-heartbeat.json"
 $RuntimeRoot = Join-Path $HomeDir "runtime"
+$WorkerDir = Join-Path $HomeDir "workers"
 $DeviceConfigPath = Join-Path $env:ProgramData "Clintware\QuillgeistLite\service.json"
 $UserDeviceConfigPath = Join-Path $HomeDir "device.json"
 $LocalGatewayUrl = "http://127.0.0.1:11435/v1/chat/completions"
@@ -32,7 +33,7 @@ try {
   }
 } catch {}
 
-New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir | Out-Null
+New-Item -ItemType Directory -Force -Path $HomeDir,$CacheDir,$WorkerDir | Out-Null
 
 $script:RunnerSocket = $null
 $script:RunnerDiagSeq = 0
@@ -60,6 +61,14 @@ $script:LastInfraUsageAlertSignature = ""
 $script:ReconnectBackoffSeconds = 5
 $script:ConnectedSince = $null
 $script:LastTaskIsolationCheck = [DateTime]::MinValue
+$script:ActiveWorkers = @{}
+$script:QueuedJobs = New-Object System.Collections.ArrayList
+$script:QueuedJobIds = @{}
+$script:WorkerProfile = $null
+$script:WorkerProfileAt = [DateTime]::MinValue
+$script:WorkerSlotSequence = 0
+$script:CompletedJobs = $null
+$script:PendingResultMap = $null
 
 function Mark-QQVisibleActivity {
   $script:LastVisibleActivity = Get-Date
@@ -2342,6 +2351,352 @@ function Invoke-QQLocalCommand {
   Send-QQQuestion -Text $line -Envelope $envelope
 }
 
+
+function Get-QQWorkerProfile {
+  $now = Get-Date
+  if ($script:WorkerProfile -and (($now - $script:WorkerProfileAt).TotalSeconds -lt 20)) {
+    return $script:WorkerProfile
+  }
+
+  $fallback = [pscustomobject]@{
+    ok = $true
+    host = $env:COMPUTERNAME
+    logical_cpu_count = [Environment]::ProcessorCount
+    cpu_load_percent = $null
+    memory = [pscustomobject]@{}
+    gpu_devices = @()
+    gpu_slot_indices = @()
+    limits = [pscustomobject]@{max_workers=2;cpu_workers=2;io_workers=2;gpu_workers=0;hard_cap=2}
+    policy = [pscustomobject]@{adaptive=$false;gpu_preferred_for_local_model=$true;exclusive_mutations_serialized=$true}
+  }
+
+  try {
+    $profiler = Join-Path $RuntimeRoot "quillgeist-lite\tools\resource_scheduler.py"
+    if (-not (Test-Path -LiteralPath $profiler -PathType Leaf)) { throw "resource scheduler missing" }
+    $python = Resolve-Python
+    $cap = 12
+    try {
+      if ($env:QQ_MAX_WORKERS) { $cap = [Math]::Max(1,[Math]::Min(32,[int]$env:QQ_MAX_WORKERS)) }
+    } catch {}
+    $raw = (& $python $profiler --max-workers $cap 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $raw) { throw "resource scheduler failed" }
+    $profile = $raw | ConvertFrom-Json
+    if (-not $profile.limits -or [int]$profile.limits.max_workers -lt 1) { throw "invalid worker profile" }
+    $script:WorkerProfile = $profile
+  } catch {
+    $script:WorkerProfile = $fallback
+    try { Queue-RunnerDiagnostic "WARN" ("worker_profile_fallback=" + $_.Exception.Message) "worker-pool" } catch {}
+  }
+  $script:WorkerProfileAt = $now
+  return $script:WorkerProfile
+}
+
+function Get-QQParallelPolicy {
+  param([object]$Job)
+  $registry = Get-Registry
+  $task = Find-Task $registry ([string]$Job.task_id)
+  if (-not $task) { return $null }
+
+  $parallel = $false
+  try { $parallel = [bool]$task.parallel_safe } catch {}
+  $resource = "cpu"
+  try { if ($task.resource_class) { $resource = ([string]$task.resource_class).ToLowerInvariant() } } catch {}
+  if (@("cpu","io","gpu") -notcontains $resource) { $resource = "cpu" }
+  $group = [string]$Job.task_id
+  try { if ($task.concurrency_group) { $group = [string]$task.concurrency_group } } catch {}
+  $maxParallel = 1
+  try { if ($task.max_parallel) { $maxParallel = [Math]::Max(1,[int]$task.max_parallel) } } catch {}
+
+  return [pscustomobject]@{
+    parallel_safe = $parallel
+    resource_class = $resource
+    concurrency_group = $group
+    max_parallel = $maxParallel
+  }
+}
+
+function Get-QQGpuIndex {
+  param([object]$Profile)
+  $slots = @($Profile.gpu_slot_indices)
+  if ($slots.Count -eq 0) { return -1 }
+  $used = @{}
+  foreach ($row in @($script:ActiveWorkers.Values)) {
+    $idx = [int]$row.GpuIndex
+    if ($idx -lt 0) { continue }
+    if (-not $used.ContainsKey($idx)) { $used[$idx] = 0 }
+    $used[$idx]++
+  }
+  $capacity = @{}
+  foreach ($raw in $slots) {
+    $idx = [int]$raw
+    if (-not $capacity.ContainsKey($idx)) { $capacity[$idx] = 0 }
+    $capacity[$idx]++
+  }
+  foreach ($idx in @($capacity.Keys | Sort-Object)) {
+    $active = if($used.ContainsKey($idx)){[int]$used[$idx]}else{0}
+    if ($active -lt [int]$capacity[$idx]) { return [int]$idx }
+  }
+  return -1
+}
+
+function Get-QQWorkerAllocation {
+  param([object]$Job)
+  $policy = Get-QQParallelPolicy $Job
+  if (-not $policy -or -not $policy.parallel_safe) {
+    return [pscustomobject]@{allowed=$false;reason="exclusive";policy=$policy;gpu_index=-1}
+  }
+
+  $profile = Get-QQWorkerProfile
+  $active = @($script:ActiveWorkers.Values)
+  if ($active.Count -ge [int]$profile.limits.max_workers) {
+    return [pscustomobject]@{allowed=$false;reason="worker_capacity";policy=$policy;gpu_index=-1}
+  }
+
+  $groupCount = @($active | Where-Object { $_.Group -eq $policy.concurrency_group }).Count
+  if ($groupCount -ge [int]$policy.max_parallel) {
+    return [pscustomobject]@{allowed=$false;reason="group_capacity";policy=$policy;gpu_index=-1}
+  }
+
+  $resourceCount = @($active | Where-Object { $_.ResourceClass -eq $policy.resource_class }).Count
+  $limit = switch ($policy.resource_class) {
+    "gpu" { [int]$profile.limits.gpu_workers }
+    "io"  { [int]$profile.limits.io_workers }
+    default { [int]$profile.limits.cpu_workers }
+  }
+
+  $gpuIndex = -1
+  if ($policy.resource_class -eq "gpu") {
+    if ($limit -lt 1) {
+      # CPU fallback is intentionally bounded to one local-model worker on
+      # machines without usable GPU capacity.
+      if ($resourceCount -ge 1) {
+        return [pscustomobject]@{allowed=$false;reason="gpu_capacity";policy=$policy;gpu_index=-1}
+      }
+    } else {
+      $gpuIndex = Get-QQGpuIndex $profile
+      if ($gpuIndex -lt 0) {
+        return [pscustomobject]@{allowed=$false;reason="gpu_slots_busy";policy=$policy;gpu_index=-1}
+      }
+    }
+  } elseif ($resourceCount -ge [Math]::Max(1,$limit)) {
+    return [pscustomobject]@{allowed=$false;reason="resource_capacity";policy=$policy;gpu_index=-1}
+  }
+
+  return [pscustomobject]@{allowed=$true;reason="ready";policy=$policy;gpu_index=$gpuIndex;profile=$profile}
+}
+
+function Add-QQQueuedJob {
+  param([object]$Job)
+  $jobId = [string]$Job.job_id
+  if (-not $jobId -or $script:QueuedJobIds.ContainsKey($jobId) -or $script:ActiveWorkers.ContainsKey($jobId)) { return }
+  [void]$script:QueuedJobs.Add($Job)
+  $script:QueuedJobIds[$jobId] = $true
+  Write-Log ("QUEUED // " + [string]$Job.task_id + " // " + $jobId) "INFO"
+}
+
+function Complete-QQJobResult {
+  param([object]$Job,[object]$Result,[System.Net.WebSockets.ClientWebSocket]$Socket)
+  $jobId = [string]$Job.job_id
+  $script:CompletedJobs[$jobId] = $Result
+  Save-Completed $script:CompletedJobs
+  $script:PendingResultMap[$jobId] = $Result
+  Save-PendingResults $script:PendingResultMap
+  try {
+    if ($Socket -and $Socket.State -eq [Net.WebSockets.WebSocketState]::Open) {
+      Send-Json $Socket $Result
+      [void]$script:PendingResultMap.Remove($jobId)
+      Save-PendingResults $script:PendingResultMap
+    }
+  } catch {}
+}
+
+function Start-QQParallelWorker {
+  param([object]$Job,[System.Net.WebSockets.ClientWebSocket]$Socket,[object]$Allocation)
+
+  $jobId = [string]$Job.job_id
+  $safe = ($jobId -replace '[^A-Za-z0-9._-]','_')
+  $jobPath = Join-Path $WorkerDir ($safe + ".job.json")
+  $resultPath = Join-Path $WorkerDir ($safe + ".result.json")
+  $logPath = Join-Path $WorkerDir ($safe + ".log")
+  $hostPath = Join-Path $RuntimeRoot "quillgeist-lite\worker-host.ps1"
+  if (-not (Test-Path -LiteralPath $hostPath -PathType Leaf)) { throw "Parallel worker host is missing." }
+
+  Remove-Item -LiteralPath $resultPath -Force -ErrorAction SilentlyContinue
+  $Job | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $jobPath -Encoding UTF8
+
+  $ps = Get-Command pwsh -ErrorAction SilentlyContinue
+  if (-not $ps) { $ps = Get-Command powershell -ErrorAction Stop }
+  $script:WorkerSlotSequence++
+  $slot = $script:WorkerSlotSequence
+  $gpuIndex = [int]$Allocation.gpu_index
+
+  $argLine = @(
+    "-NoProfile",
+    "-ExecutionPolicy","Bypass",
+    "-File",('"' + $hostPath + '"'),
+    "-JobPath",('"' + $jobPath + '"'),
+    "-ResultPath",('"' + $resultPath + '"'),
+    "-LogPath",('"' + $logPath + '"'),
+    "-RegistryPath",('"' + $RegistryPath + '"'),
+    "-RuntimeRoot",('"' + $RuntimeRoot + '"'),
+    "-WorkerSlot",[string]$slot,
+    "-GpuIndex",[string]$gpuIndex
+  )
+  $proc = Start-Process -FilePath $ps.Source -ArgumentList $argLine -WindowStyle Hidden -PassThru
+
+  $script:ActiveWorkers[$jobId] = [pscustomobject]@{
+    Job=$Job
+    Process=$proc
+    ResultPath=$resultPath
+    LogPath=$logPath
+    JobPath=$jobPath
+    Slot=$slot
+    GpuIndex=$gpuIndex
+    Group=[string]$Allocation.policy.concurrency_group
+    ResourceClass=[string]$Allocation.policy.resource_class
+    LastLogLength=0L
+    StartedAt=(Get-Date)
+  }
+
+  Send-Json $Socket @{
+    type="ack";job_id=$jobId;status="started";started_at=(Get-Date).ToUniversalTime().ToString("o");
+    worker_slot=$slot;resource_class=[string]$Allocation.policy.resource_class;gpu_index=$gpuIndex
+  }
+  Write-Log ("WORKER START // slot=" + $slot + " resource=" + [string]$Allocation.policy.resource_class + " gpu=" + $gpuIndex + " task=" + [string]$Job.task_id + " job=" + $jobId) "OK"
+}
+
+function Pump-QQParallelWorkers {
+  param([System.Net.WebSockets.ClientWebSocket]$Socket)
+  foreach ($jobId in @($script:ActiveWorkers.Keys)) {
+    $row = $script:ActiveWorkers[$jobId]
+    if (-not $row) { continue }
+
+    try {
+      if (Test-Path -LiteralPath $row.LogPath -PathType Leaf) {
+        $len = (Get-Item -LiteralPath $row.LogPath).Length
+        if ($len -gt [long]$row.LastLogLength) {
+          $row.LastLogLength = [long]$len
+          Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$row.Job.task_id) -Phase "parallel-worker" -Progress
+        }
+      }
+    } catch {}
+
+    $done = Test-Path -LiteralPath $row.ResultPath -PathType Leaf
+    $exited = $false
+    try { $exited = $row.Process.HasExited } catch {}
+
+    if (-not $done -and -not $exited) { continue }
+
+    $result = $null
+    if ($done) {
+      try { $result = Get-Content -LiteralPath $row.ResultPath -Raw | ConvertFrom-Json } catch {}
+    }
+    if (-not $result) {
+      $tail = ""
+      try {
+        if (Test-Path -LiteralPath $row.LogPath) { $tail = (Get-Content -LiteralPath $row.LogPath -Tail 80 | Out-String).Trim() }
+      } catch {}
+      $result = [pscustomobject]@{
+        type="result";job_id=$jobId;task_id=[string]$row.Job.task_id;runtime="";
+        status="failed";exit_code=1;duration_ms=[int]((Get-Date)-$row.StartedAt).TotalMilliseconds;
+        output=$(if($tail){$tail}else{"Parallel worker exited without a result."});
+        log_lines=0;worker_slot=[int]$row.Slot;gpu_index=[int]$row.GpuIndex;
+        completed_at=(Get-Date).ToUniversalTime().ToString("o")
+      }
+    }
+
+    Complete-QQJobResult $row.Job $result $Socket
+    $level = if ([string]$result.status -eq "passed") { "OK" } else { "ERROR" }
+    Write-Log ("WORKER COMPLETE // slot=" + $row.Slot + " task=" + [string]$row.Job.task_id + " job=" + $jobId + " status=" + [string]$result.status) $level
+    [void]$script:ActiveWorkers.Remove($jobId)
+    Remove-Item -LiteralPath $row.JobPath,$row.ResultPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Invoke-QQSynchronousJob {
+  param([object]$Job,[System.Net.WebSockets.ClientWebSocket]$Socket)
+  $jobId = [string]$Job.job_id
+  Send-Json $Socket @{
+    type = "ack"; job_id = $jobId; status = "started"; started_at = (Get-Date).ToUniversalTime().ToString("o")
+  }
+
+  Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$Job.task_id) -Phase "start" -Progress -Force
+  Suspend-QQPrompt
+  Write-Host ("WORKING // " + [string]$Job.task_id + " // live task output follows when available") -ForegroundColor DarkCyan
+  Mark-QQVisibleActivity
+  Show-QQPrompt
+
+  try {
+    $result = Invoke-AllowlistedTask $Job $Socket
+  } catch {
+    $result = @{
+      type="result";job_id=$jobId;task_id=[string]$Job.task_id;status="failed";exit_code=1;
+      duration_ms=0;output=$_.Exception.Message;completed_at=(Get-Date).ToUniversalTime().ToString("o")
+    }
+    Write-Log $_.Exception.Message "ERROR"
+  }
+
+  Complete-QQJobResult $Job $result $Socket
+  Write-RunnerHeartbeat -State "connected" -Phase "complete" -Progress -Force
+  $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
+  Write-Log ("Job {0} finished with status {1}" -f $jobId,$result.status) $level
+}
+
+function Start-QQQueuedJobs {
+  param([System.Net.WebSockets.ClientWebSocket]$Socket)
+  if ($script:QueuedJobs.Count -eq 0) { return }
+
+  $index = 0
+  while ($index -lt $script:QueuedJobs.Count) {
+    $job = $script:QueuedJobs[$index]
+    $jobId = [string]$job.job_id
+    $policy = Get-QQParallelPolicy $job
+
+    if ($policy -and $policy.parallel_safe) {
+      $allocation = Get-QQWorkerAllocation $job
+      if (-not $allocation.allowed) { $index++; continue }
+      $script:QueuedJobs.RemoveAt($index)
+      [void]$script:QueuedJobIds.Remove($jobId)
+      Start-QQParallelWorker $job $Socket $allocation
+      continue
+    }
+
+    if ($script:ActiveWorkers.Count -gt 0) { return }
+    $script:QueuedJobs.RemoveAt($index)
+    [void]$script:QueuedJobIds.Remove($jobId)
+    Invoke-QQSynchronousJob $job $Socket
+    return
+  }
+}
+
+function Route-QQIncomingJob {
+  param([object]$Job,[System.Net.WebSockets.ClientWebSocket]$Socket)
+  $jobId = [string]$Job.job_id
+  if ($script:CompletedJobs.ContainsKey($jobId)) {
+    Write-Log "Duplicate job $jobId ignored; returning the prior result." "WARN"
+    Send-Json $Socket $script:CompletedJobs[$jobId]
+    return
+  }
+  if ($script:ActiveWorkers.ContainsKey($jobId) -or $script:QueuedJobIds.ContainsKey($jobId)) { return }
+
+  $policy = Get-QQParallelPolicy $Job
+  if ($policy -and $policy.parallel_safe) {
+    $allocation = Get-QQWorkerAllocation $Job
+    if ($allocation.allowed) {
+      Start-QQParallelWorker $Job $Socket $allocation
+    } else {
+      Add-QQQueuedJob $Job
+    }
+    return
+  }
+
+  if ($script:ActiveWorkers.Count -gt 0) {
+    Add-QQQueuedJob $Job
+    return
+  }
+  Invoke-QQSynchronousJob $Job $Socket
+}
+
 function Invoke-AllowlistedTask {
   param(
     [object]$Job,
@@ -2483,6 +2838,8 @@ function Invoke-AllowlistedTask {
 
 $completed = Get-Completed
 $pendingResults = Get-PendingResults
+$script:CompletedJobs = $completed
+$script:PendingResultMap = $pendingResults
 
 try {
   if ($env:QQ_HEADLESS -ne "1") { Show-QuillgeistSplash -Status "CONNECTING" }
@@ -2525,7 +2882,7 @@ try {
         source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
         registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection","adaptive_worker_pool","parallel_safe_tasks","gpu_worker_routing")
       }
 
       Flush-RunnerDiagnostics
@@ -2564,7 +2921,14 @@ try {
       Show-QQPrompt
 
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
-        Write-RunnerHeartbeat -State "connected"
+        Pump-QQParallelWorkers $ws
+        Start-QQQueuedJobs $ws
+        if ($script:ActiveWorkers.Count -gt 0) {
+          $first = @($script:ActiveWorkers.Values)[0]
+          Write-RunnerHeartbeat -State "busy" -JobId ([string]$first.Job.job_id) -TaskId ([string]$first.Job.task_id) -Phase ("parallel-workers:" + $script:ActiveWorkers.Count)
+        } else {
+          Write-RunnerHeartbeat -State "connected"
+        }
         Show-QQIdleNotice
         Show-QQPendingQuestions
         Invoke-QQScheduledTaskIsolationCheck
@@ -2696,54 +3060,8 @@ try {
         }
 
         $job = $msg.job
-        $jobId = [string]$job.job_id
-
-        if ($completed.ContainsKey($jobId)) {
-          Write-Log "Duplicate job $jobId ignored; returning the prior result." "WARN"
-          Send-Json $ws $completed[$jobId]
-          continue
-        }
-
-        Send-Json $ws @{
-          type = "ack"
-          job_id = $jobId
-          status = "started"
-          started_at = (Get-Date).ToUniversalTime().ToString("o")
-        }
-
-        Write-RunnerHeartbeat -State "busy" -JobId $jobId -TaskId ([string]$job.task_id) -Phase "start" -Progress -Force
-        Suspend-QQPrompt
-        Write-Host ("WORKING // " + [string]$job.task_id + " // live task output follows when available") -ForegroundColor DarkCyan
-        Mark-QQVisibleActivity
-        Show-QQPrompt
-        try {
-          $result = Invoke-AllowlistedTask $job $ws
-        } catch {
-          $result = @{
-            type = "result"
-            job_id = $jobId
-            task_id = [string]$job.task_id
-            status = "failed"
-            exit_code = 1
-            duration_ms = 0
-            output = $_.Exception.Message
-            completed_at = (Get-Date).ToUniversalTime().ToString("o")
-          }
-
-          Write-Log $_.Exception.Message "ERROR"
-        }
-
-        $completed[$jobId] = $result
-        Save-Completed $completed
-        $pendingResults[$jobId] = $result
-        Save-PendingResults $pendingResults
-        Send-Json $ws $result
-        [void]$pendingResults.Remove($jobId)
-        Save-PendingResults $pendingResults
-        Write-RunnerHeartbeat -State "connected" -Phase "complete" -Progress -Force
-
-        $level = if ($result.status -eq "passed") { "OK" } else { "ERROR" }
-        Write-Log ("Job {0} finished with status {1}" -f $jobId,$result.status) $level
+        Route-QQIncomingJob $job $ws
+        continue
       }
     } catch {
       Write-Log ("Connection error: " + $_.Exception.Message) "WARN"
