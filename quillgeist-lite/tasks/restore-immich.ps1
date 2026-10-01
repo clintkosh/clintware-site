@@ -47,23 +47,51 @@ function Get-ExistingImmichContainers([string]$Docker) {
 }
 
 function Get-ComposeCandidates {
-  $patterns = @("compose.yml","compose.yaml","docker-compose.yml","docker-compose.yaml")
+  $names = @("compose.yml","compose.yaml","docker-compose.yml","docker-compose.yaml")
+  $skip = @(".git","node_modules","venv",".venv","Models","HF","pipcache","Temp","Logs")
   $found = New-Object System.Collections.Generic.List[string]
+  $deadline = (Get-Date).AddSeconds(25)
+
   foreach($root in $ApprovedRoots){
     if(-not (Test-Path $root)){ continue }
-    foreach($pattern in $patterns){
-      Get-ChildItem -Path $root -Filter $pattern -File -Recurse -ErrorAction SilentlyContinue |
-        ForEach-Object {
-          try {
-            $text = Get-Content -Raw -LiteralPath $_.FullName -ErrorAction Stop
-            if($text -match '(?i)immich-app|immich_server|immich-server|ghcr\.io/immich-app'){
-              $found.Add($_.FullName)
-            }
-          } catch {}
+    $queue = New-Object System.Collections.Generic.Queue[object]
+    $queue.Enqueue([pscustomobject]@{Path=$root;Depth=0})
+    while($queue.Count -gt 0 -and (Get-Date) -lt $deadline){
+      $row = $queue.Dequeue()
+      try { $items = @(Get-ChildItem -LiteralPath $row.Path -Force -ErrorAction Stop) } catch { continue }
+      foreach($item in $items){
+        if($item.PSIsContainer){
+          if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){ continue }
+          $isImmich = $item.Name -match '(?i)immich'
+          if($row.Depth -lt 4 -and ($isImmich -or ($skip -notcontains $item.Name))){
+            $queue.Enqueue([pscustomobject]@{Path=$item.FullName;Depth=($row.Depth+1)})
+          }
+          continue
         }
+        if($names -notcontains $item.Name){ continue }
+        if($item.Length -gt 2097152){ continue }
+        try {
+          $text = Get-Content -Raw -LiteralPath $item.FullName -ErrorAction Stop
+          if($text -match '(?i)immich-app|immich_server|immich-server|ghcr\.io/immich-app'){
+            $found.Add($item.FullName)
+          }
+        } catch {}
+      }
     }
   }
   return @($found | Select-Object -Unique)
+}
+
+function Get-ImmichVolumeEvidence([string]$Docker) {
+  $rows = New-Object System.Collections.Generic.List[string]
+  try {
+    $names = & $Docker volume ls --format '{{.Name}}'
+    if($LASTEXITCODE -ne 0){ return @() }
+    foreach($name in @($names | Where-Object { $_ -match '(?i)immich' })){
+      $rows.Add([string]$name)
+    }
+  } catch {}
+  return @($rows | Select-Object -Unique)
 }
 
 $docker = Resolve-Docker
@@ -75,6 +103,7 @@ if(Test-Immich){
 
 $containers = Get-ExistingImmichContainers $docker
 $composeFiles = Get-ComposeCandidates
+$volumeEvidence = Get-ImmichVolumeEvidence $docker
 
 if($composeFiles.Count -gt 0){
   $compose = $composeFiles[0]
@@ -111,7 +140,8 @@ if($composeFiles.Count -gt 0){
     if($LASTEXITCODE -ne 0){ throw "Failed starting existing Immich container $id" }
   }
 } else {
-  throw ("No existing Immich deployment was found under the approved MEMORIA roots (" + ($ApprovedRoots -join ", ") + "), and no existing Immich Docker container is present. Refusing to create a fresh media database blindly because that could detach from existing libraries.")
+  $volumeNote = if($volumeEvidence.Count -gt 0){ " Existing Immich-named Docker volumes preserved: " + ($volumeEvidence -join ", ") + "." } else { "" }
+  throw ("No startable existing Immich deployment was found under the approved MEMORIA roots (" + ($ApprovedRoots -join ", ") + "), and no existing Immich Docker container is present." + $volumeNote + " Refusing to create a fresh media database blindly because that could detach from existing libraries.")
 }
 
 for($i=1; $i -le 18; $i++){
