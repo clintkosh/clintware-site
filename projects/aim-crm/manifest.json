@@ -1,0 +1,385 @@
+{
+  "mode": "one-off",
+  "project_id": "aim-crm",
+  "company": "AlphaSense",
+  "name": "AlphaSense Implementation Manager Operating System + Cover Letter",
+  "domain": "https://aim.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "aim-candidate",
+  "role_mission": "Own enterprise onboarding and rollout from pre-sale handoff through the first 90 days of adoption by coordinating milestones, stakeholders, risks, change management, adoption signals, and a clean maintenance handoff to Account Management and Customer Success.",
+  "operating_loop": [
+    "Shape",
+    "Handoff",
+    "Plan",
+    "Launch",
+    "Adopt",
+    "Measure",
+    "Handoff"
+  ],
+  "roles": [
+    {
+      "id": "implementation-manager",
+      "name": "Implementation Manager"
+    }
+  ],
+  "stakeholder_roles": [
+    "Executive / Business Sponsor",
+    "Implementation / Change Owner",
+    "Account Manager / Customer Success Partner"
+  ],
+  "tracks": [
+    {
+      "id": "plan",
+      "label": "90-Day Rollout Plan",
+      "tab": "implementation",
+      "objective": "Own project plan, milestones, risks, resources, and acceptance from pre-sale handoff through early adoption."
+    },
+    {
+      "id": "adoption",
+      "label": "Adoption Signals",
+      "tab": "roi",
+      "objective": "Track time to first login, first-login coverage, retention, frequency of use, and bottlenecks with explicit definitions."
+    },
+    {
+      "id": "change",
+      "label": "Change Management",
+      "tab": "adoption",
+      "objective": "Coordinate communications, training, champions, and interventions that move users from access to sustained usage."
+    },
+    {
+      "id": "risk",
+      "label": "Rollout Risk",
+      "tab": "risks",
+      "objective": "Surface blockers early, assign ownership, and protect the rollout timeline and customer experience."
+    },
+    {
+      "id": "stakeholders",
+      "label": "Stakeholder Alignment",
+      "tab": "meetings",
+      "objective": "Run status meetings that connect decisions, adoption evidence, risks, and next actions."
+    },
+    {
+      "id": "handoff",
+      "label": "AM / CSM Maintenance Handoff",
+      "tab": "handoff",
+      "objective": "Graduate the account with clear success criteria, adoption state, open risk, and a maintenance plan."
+    },
+    {
+      "id": "process",
+      "label": "Playbook Improvement",
+      "tab": "kb",
+      "objective": "Turn recurring rollout patterns into standardized playbooks and a smoother future onboarding motion."
+    },
+    {
+      "id": "work",
+      "label": "Implementation Work Queue",
+      "tab": "deployment",
+      "objective": "Keep cross-functional tasks, dependencies, owners, and current status visible without duplicating source systems."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "AlphaSense Implementation Manager",
+      "url": "https://job-boards.greenhouse.io/alphasense/jobs/8816770002?gh_src=47bfb1f32us"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point Customer Success Operations: increased dedicated CSM coverage for >$50K accounts to 99% and maintained onboarding outreach within a two-week SLA.",
+    "Managed 20–40 SaaS accounts totaling approximately $3M ARR; portfolio visibility improved from about 40% to 99%, churn reduced to under 30%, and team efficiency improved 30%.",
+    "Dedrone: standardized enterprise onboarding to about one month, increased engagement 25%, increased renewals 20%, and supported stakeholder buy-in for an approximately $3M AWS-hosted solution.",
+    "Built and operated Salesforce, Custify, Jira, and Salesforce-to-Jira workflow/reporting patterns; led QBR/EBR, health/risk, escalation, onboarding, and adoption motions.",
+    "Led distributed customer-facing support teams; Cofense enablement and automation contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute faster first response.",
+    "Current proof-of-work includes AI-assisted workflow automation and browser-local Customer Success operating systems built through Clintware."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public AlphaSense role context with clearly synthetic sample data. It is not an official AlphaSense product, customer tenant, private process description, or representation of real AlphaSense customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 5,
+    "lifecycle_stages_min": 4,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Implementation Manager",
+    "Doppel": "AlphaSense",
+    "Technical Services workspace": "Programs & operating work",
+    "Advanced technical investigations": "Operational issue triage",
+    "Advanced investigations": "Operational issue triage",
+    "Engineering handoffs": "Systems / cross-functional handoffs",
+    "Support scale & adoption": "Enablement, adoption & scale",
+    "Customer technical cadence": "Operating cadence",
+    "Customer reviews": "Business reviews",
+    "Technical delivery": "Program delivery",
+    "Service projects": "Operating workstreams",
+    "technical projects": "operating workstreams"
+  },
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "AlphaSense's Implementation Manager role maps closely to the implementation and adoption work I have done throughout Customer Success.  The part that stands out is the ownership boundary: Start at the pre-sale handoff, run the rollout through the first 90 days, use adoption data to intervene intelligently, and then hand the customer to the long-term account team with a maintenance plan.\n\nAt Dedrone, I standardized enterprise onboarding to about one month, increased engagement 25%, and increased renewals 20%.  Across Check Point and other customer-facing roles, I have managed milestones, escalations, stakeholder alignment, technical dependencies, QBRs, and adoption conversations while working across Salesforce, Jira, Support, Product, Sales, and Engineering.\n\nI am also aligned with the role's emphasis on change management and scalable process.  I do not treat go-live as the finish line.  I want to know whether users actually reached the product, whether the intended behaviors are occurring, what is blocking sustained usage, and what the account team needs in order to maintain momentum after implementation closes.\n\nAlphaSense's AI-driven market-intelligence platform makes that operating discipline especially important because value depends on sustained, trusted usage rather than simple access.\n\nI would bring a practical implementation approach: Make the plan explicit, surface risk early, measure adoption from the start, and leave the next team with a clean, evidence-based handoff."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear AlphaSense Hiring Team,\n\nI am applying for the Implementation Manager role because enterprise onboarding, cross-functional delivery, and adoption are recurring strengths in my Customer Success background.\n\nAt Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.  I also supported stakeholder alignment for an approximately $3M AWS-hosted solution.  At Check Point, I worked across Salesforce, Custify, Jira, Sales, Support, Product, and Engineering while managing customer risk, onboarding, adoption, executive reviews, and complex escalations.\n\nThe structure of this role is particularly aligned to how I think about implementation.  I would begin before close by clarifying the business outcome, rollout population, success criteria, owners, and likely dependencies.  During the first 90 days, I would keep milestones and risk visible while tracking adoption signals such as first login, percentage of users activated, retention, and frequency of use.  Those metrics should drive interventions rather than simply appear in a status report.\n\nI also care about the quality of the graduation handoff.  The Account Manager and Customer Success Manager should inherit a clear view of the customer's objectives, stakeholder map, adoption state, unresolved risk, and the maintenance plan rather than having to rediscover the account.\n\nI built a synthetic candidate operating prototype through Clintware to model that rollout and adoption motion using only public role context.  It is intended as proof of how I would structure the work, not as a representation of AlphaSense's private process.\n\nThank you for your consideration.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation"
+  },
+  "seed_scenarios": [
+    {
+      "name": "Northstar Research (Synthetic)",
+      "industry": "Enterprise research",
+      "stage": "Pre-sale to kickoff",
+      "health": "Healthy",
+      "priority": "High",
+      "goal": "Translate purchase intent into an executable 90-day rollout plan with named stakeholders and success criteria.",
+      "systems": [
+        "Salesforce",
+        "Jira",
+        "Excel / Google Sheets"
+      ],
+      "timeline": "First 90 days",
+      "dependency": "Final user cohort is not confirmed",
+      "kpis": [
+        {
+          "name": "Time to first login",
+          "target": "<=3 days from access",
+          "baseline": "Not started",
+          "current": "Planned",
+          "source": "Synthetic rollout tracker"
+        },
+        {
+          "name": "First-login coverage",
+          "target": "90% by day 14",
+          "baseline": "0%",
+          "current": "0%",
+          "source": "Synthetic adoption report"
+        },
+        {
+          "name": "Milestone on-time rate",
+          "target": "90%",
+          "baseline": "Not started",
+          "current": "100% planned",
+          "source": "Synthetic project plan"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Confirm rollout cohort",
+          "status": "In Progress"
+        },
+        {
+          "title": "Finalize kickoff success criteria",
+          "status": "Planned"
+        }
+      ],
+      "meeting": "Enterprise rollout kickoff",
+      "meeting_type": "Kickoff"
+    },
+    {
+      "name": "Summit Capital (Synthetic)",
+      "industry": "Investment management",
+      "stage": "Launch",
+      "health": "Watch",
+      "priority": "High",
+      "goal": "Keep a large enterprise launch on track while resolving access and change-management blockers.",
+      "systems": [
+        "Salesforce",
+        "Jira"
+      ],
+      "timeline": "Days 15-30",
+      "dependency": "SSO group mapping is delaying first-login coverage",
+      "kpis": [
+        {
+          "name": "First-login coverage",
+          "target": "90%",
+          "baseline": "42%",
+          "current": "68%",
+          "source": "Synthetic adoption report"
+        },
+        {
+          "name": "Open critical rollout risks",
+          "target": "0",
+          "baseline": "3",
+          "current": "1",
+          "source": "Synthetic risk log"
+        },
+        {
+          "name": "Weekly milestone closure",
+          "target": "90%",
+          "baseline": "70%",
+          "current": "84%",
+          "source": "Synthetic project plan"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Resolve SSO group mapping",
+          "status": "In Progress"
+        },
+        {
+          "title": "Run champion office hours",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Harbor Legal (Synthetic)",
+      "industry": "Legal services",
+      "stage": "Adoption",
+      "health": "Watch",
+      "priority": "Medium",
+      "goal": "Move from initial access to sustained usage through targeted interventions and stakeholder alignment.",
+      "systems": [
+        "Salesforce",
+        "Excel / Google Sheets"
+      ],
+      "timeline": "Days 31-60",
+      "dependency": "First login is strong but repeat usage is uneven",
+      "kpis": [
+        {
+          "name": "First-login coverage",
+          "target": "95%",
+          "baseline": "88%",
+          "current": "94%",
+          "source": "Synthetic adoption report"
+        },
+        {
+          "name": "Weekly retained users",
+          "target": "75%",
+          "baseline": "51%",
+          "current": "66%",
+          "source": "Synthetic usage report"
+        },
+        {
+          "name": "Use frequency",
+          "target": "3 sessions/week target cohort",
+          "baseline": "1.4",
+          "current": "2.2",
+          "source": "Synthetic usage report"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Identify low-retention user cohort",
+          "status": "In Progress"
+        },
+        {
+          "title": "Launch workflow-specific enablement",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Cedar Advisory (Synthetic)",
+      "industry": "Advisory",
+      "stage": "Graduation",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Graduate the account to AM/CSM ownership with clear objectives, adoption state, open risk, and maintenance plan.",
+      "systems": [
+        "Salesforce",
+        "Jira"
+      ],
+      "timeline": "Days 61-90",
+      "dependency": "One adoption cohort remains below target",
+      "kpis": [
+        {
+          "name": "Sustained usage",
+          "target": "80% target users",
+          "baseline": "55%",
+          "current": "77%",
+          "source": "Synthetic usage report"
+        },
+        {
+          "name": "Open critical risks",
+          "target": "0",
+          "baseline": "2",
+          "current": "0",
+          "source": "Synthetic risk log"
+        },
+        {
+          "name": "Maintenance handoff completeness",
+          "target": "100%",
+          "baseline": "60%",
+          "current": "92%",
+          "source": "Synthetic handoff checklist"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Complete maintenance handoff",
+          "status": "Review"
+        },
+        {
+          "title": "Assign low-adoption cohort follow-up",
+          "status": "In Progress"
+        }
+      ]
+    },
+    {
+      "name": "Pioneer Markets (Synthetic)",
+      "industry": "Capital markets",
+      "stage": "Process improvement",
+      "health": "Healthy",
+      "priority": "Low",
+      "goal": "Convert recurring rollout friction into a standardized playbook for future enterprise implementations.",
+      "systems": [
+        "Salesforce",
+        "Jira",
+        "Excel / Google Sheets"
+      ],
+      "timeline": "Post-implementation retrospective",
+      "dependency": "Teams use different kickoff templates",
+      "kpis": [
+        {
+          "name": "Template adoption",
+          "target": "100% new rollouts",
+          "baseline": "45%",
+          "current": "82%",
+          "source": "Synthetic process audit"
+        },
+        {
+          "name": "Implementation rework",
+          "target": "<10%",
+          "baseline": "21%",
+          "current": "12%",
+          "source": "Synthetic retrospective"
+        },
+        {
+          "name": "Median rollout cycle",
+          "target": "<=60 days",
+          "baseline": "74",
+          "current": "63",
+          "source": "Synthetic implementation analytics"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Publish standard kickoff template",
+          "status": "Done"
+        },
+        {
+          "title": "Document top three rollout bottlenecks",
+          "status": "In Progress"
+        }
+      ]
+    }
+  ]
+}
