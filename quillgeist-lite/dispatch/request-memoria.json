@@ -1,14 +1,8 @@
 {
-  "request_id": "memoria-local-ai-diagnostics-acceptance-20261001-1551",
-  "task_id": "local-ai",
+  "request_id": "memoria-final-doctor-20261001-1552",
+  "task_id": "clintware-doctor",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "diagnostics",
-    "Model": "",
-    "Prompt": "",
-    "ContextTokens": 4096,
-    "MaxTokens": 48
-  },
-  "objective": "Post-repair MEMORIA acceptance: collect sanitized diagnostics for local AI runtimes, installed models, Docker containers, mounts, and known error categories. Confirm n8n/Open WebUI/Immich/local-agent state without exporting secrets or raw private logs.",
+  "args": {},
+  "objective": "Final MEMORIA readiness verification after local AI/server completion. Confirm machine identity, local runtimes, scheduled-task isolation, storage, and that QQ remains healthy and able to accept work.",
   "resume_after": false
 }
