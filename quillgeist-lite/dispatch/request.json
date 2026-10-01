@@ -1,11 +1,11 @@
 {
-  "request_id": "memoria-linkedin-skill-repo-verify-20261001-1249",
+  "request_id": "memoria-linkedin-skill-repo-verify-20261001-1251",
   "task_id": "repo-code-search",
   "target_device": "MEMORIA",
   "args": {
     "Query": "linkedin-evidence-post",
     "Path": ".",
-    "Mode": "content",
+    "Mode": "text",
     "Max": "50",
     "Json": "true",
     "FilesOnly": "false"
