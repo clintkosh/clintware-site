@@ -1,11 +1,68 @@
 {
-  "request_id": "all-machines-worker-profile-20261001-0948",
-  "mode": "rollout",
-  "task_id": "worker-pool-profile",
-  "args": {
-    "MaxWorkers": "12"
-  },
-  "objective": "Report live adaptive CPU RAM GPU worker capacity on every registered QQ machine after runtime v30 rollout.",
-  "resume_after": false,
-  "verify_seconds": 240
+  "request_id": "all-machines-parallel-overlap-smoke-20261001-0950",
+  "mode": "batch",
+  "jobs": [
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "MEMORIA",
+      "args": {
+        "Message": "MEMORIA_PARALLEL_1",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 1.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "MEMORIA",
+      "args": {
+        "Message": "MEMORIA_PARALLEL_2",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 2.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "MEMORIA",
+      "args": {
+        "Message": "MEMORIA_PARALLEL_3",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on MEMORIA, worker 3.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "DRIZNET",
+      "args": {
+        "Message": "DRIZNET_PARALLEL_1",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 1.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "DRIZNET",
+      "args": {
+        "Message": "DRIZNET_PARALLEL_2",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 2.",
+      "resume_after": false
+    },
+    {
+      "task_id": "worker-pool-smoke",
+      "target_device": "DRIZNET",
+      "args": {
+        "Message": "DRIZNET_PARALLEL_3",
+        "DelayMs": "5000"
+      },
+      "objective": "Prove adaptive same-machine concurrency on DRIZNET, worker 3.",
+      "resume_after": false
+    }
+  ],
+  "objective": "Prove MEMORIA and DRIZNET can each execute multiple compatible QQ jobs concurrently while both machines work at the same time.",
+  "verify_seconds": 180
 }
