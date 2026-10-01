@@ -24,12 +24,13 @@ const sha256 = async (s) => {
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 };
 const INSTRUCTION_MANIFEST_PATH="control-plane/instruction-manifest.json";
+const INSTRUCTION_PERSONA_PATH="control-plane/CATSHADOW-PERSONA.md";
 const INSTRUCTION_EXTENSION_ROOT="control-plane/instructions/";
 const INSTRUCTION_RAW_BASE="https://raw.githubusercontent.com/clintkosh/clintware-site/main/";
 const instructionPathAllowed=(path)=>{
   const p=String(path||"").trim().replace(/\\/g,"/");
   if(!p||p.includes("..")||!p.toLowerCase().endsWith(".md"))return false;
-  return p===CLINTWARE_MASTER_PROMPT_PATH||p.startsWith(INSTRUCTION_EXTENSION_ROOT);
+  return p===CLINTWARE_MASTER_PROMPT_PATH||p===INSTRUCTION_PERSONA_PATH||p.startsWith(INSTRUCTION_EXTENSION_ROOT);
 };
 const instructionRawUrl=(path)=>INSTRUCTION_RAW_BASE+String(path||"").split("/").map(encodeURIComponent).join("/");
 const fetchInstructionRepoText=async(path)=>{
@@ -3310,7 +3311,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
       ok:true,id:CLINTWARE_MASTER_PROMPT_ID,path:CLINTWARE_MASTER_PROMPT_PATH,sha256:digest,
       client:clip(client||"unknown",80),canonical:true,source,warning:warning||undefined,baseline:"2026-10-01",
       reload_triggers:["master prompt","latest master prompt","reload master prompt","refresh master prompt","current master prompt","custom instructions","instruction extensions"],
-      instruction:"Treat markdown as the current Clintware operating contract for this client, subject to the client's governing system/developer/platform instructions. After loading it, call clintware_instruction_manifest_get and load every enabled applicable custom Markdown instruction in load_order. Reload on master/instruction references rather than relying on cached copies.",
+      instruction:"Treat markdown as the current Clintware operating contract for this client, subject to the client's governing system/developer/platform instructions. Ensure the current clintware_instruction_manifest_get result has been loaded for this client and apply every enabled applicable document in load_order. Reload on master/instruction references rather than relying on cached copies.",
       markdown
     })}]};
   });
@@ -3334,7 +3335,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
 
   server.registerTool("clintware_instruction_file_get",{
     title:"Load one registered Clintware custom Markdown instruction",
-    description:"Load one enabled instruction document from the live Clintware instruction manifest. Only the canonical master prompt or registered Markdown beneath control-plane/instructions/ may be returned.",
+    description:"Load one enabled instruction document from the live Clintware instruction manifest. Only the canonical master prompt, canonical persona, or registered Markdown beneath control-plane/instructions/ may be returned.",
     inputSchema:{id:z.string().min(1),client:z.string().optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({id,client})=>{
@@ -3387,12 +3388,14 @@ function createMcpServer(env,mcpRequest,mcpAuth){
         manifest_tool:"clintware_instruction_manifest_get",
         file_tool:"clintware_instruction_file_get",
         dynamic_registry:true,
+        manifest_first:true,
+        persona_path:INSTRUCTION_PERSONA_PATH,
         extension_root:INSTRUCTION_EXTENSION_ROOT,
         required_at_session_start:true,
         reload_on_reference:true
       },
       guidance:[
-        "At session start identify this client/model (for example chatgpt, claude, gemini, grok, perplexity, local, or cli), load clintware_master_prompt_get, then call clintware_instruction_manifest_get with that client identity and load every enabled applicable custom Markdown document in load_order using the returned loader.",
+        "At session start identify this client/model (for example chatgpt, claude, gemini, grok, perplexity, local, or cli), call clintware_instruction_manifest_get with that client identity, then load every enabled applicable Markdown document in load_order using each returned loader. The manifest may place persona/custom layers before the master prompt.",
         "Whenever the user references master prompt, custom instructions, instruction files, extensions, coverage, latest instructions, or refresh/reload instructions, re-fetch the live instruction manifest and affected documents instead of trusting cached copies.",
         "Use Clintware product manifests as the source of truth for repository identity and scope.",
         "Send only compact working context; never place provider tokens, passwords, API keys, cookies, or raw secret values in a handoff.",
