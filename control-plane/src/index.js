@@ -7,9 +7,10 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" with { type: "json" };
+import INSTRUCTION_MANIFEST_DEFAULT from "../instruction-manifest.json" with { type: "json" };
 import { CLINTWARE_MASTER_PROMPT, CLINTWARE_MASTER_PROMPT_ID, CLINTWARE_MASTER_PROMPT_PATH } from "./master-prompt.js";
 
-const VERSION = "2026-10-01-task-isolation-contract.4";
+const VERSION = "2026-10-01-dynamic-instruction-manifest.1";
 const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-task-isolation-v31";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
@@ -21,6 +22,47 @@ const bearer = (request) => {
 const sha256 = async (s) => {
   const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(s||"")));
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+};
+const INSTRUCTION_MANIFEST_PATH="control-plane/instruction-manifest.json";
+const INSTRUCTION_EXTENSION_ROOT="control-plane/instructions/";
+const INSTRUCTION_RAW_BASE="https://raw.githubusercontent.com/clintkosh/clintware-site/main/";
+const instructionPathAllowed=(path)=>{
+  const p=String(path||"").trim().replace(/\\/g,"/");
+  if(!p||p.includes("..")||!p.toLowerCase().endsWith(".md"))return false;
+  return p===CLINTWARE_MASTER_PROMPT_PATH||p.startsWith(INSTRUCTION_EXTENSION_ROOT);
+};
+const instructionRawUrl=(path)=>INSTRUCTION_RAW_BASE+String(path||"").split("/").map(encodeURIComponent).join("/");
+const fetchInstructionRepoText=async(path)=>{
+  const p=String(path||"").trim().replace(/\\/g,"/");
+  if(!instructionPathAllowed(p)&&p!==INSTRUCTION_MANIFEST_PATH)throw new Error("instruction_path_not_allowed");
+  const r=await fetch(instructionRawUrl(p),{headers:{"cache-control":"no-cache","user-agent":"clintware-control-plane"}});
+  if(!r.ok)throw new Error(`instruction_fetch_failed:${r.status}`);
+  return await r.text();
+};
+const sanitizeInstructionManifest=(raw)=>{
+  const source=raw&&typeof raw==="object"?raw:{};
+  const docs=Array.isArray(source.documents)?source.documents:[];
+  const documents=docs.map((d,index)=>{
+    const id=clip(d?.id||"",120);
+    const path=clip(d?.path||"",300).replace(/\\/g,"/");
+    const clients=Array.isArray(d?.clients)?d.clients.map(x=>clip(String(x).toLowerCase(),80)).filter(Boolean):["*"];
+    if(!id||!instructionPathAllowed(path))return null;
+    return {id,path,title:clip(d?.title||id,180),kind:clip(d?.kind||"extension",80),enabled:d?.enabled!==false,required:d?.required===true,load_order:Number.isFinite(Number(d?.load_order))?Number(d.load_order):index,clients:clients.length?clients:["*"],loader:clip(d?.loader||(path===CLINTWARE_MASTER_PROMPT_PATH?"clintware_master_prompt_get":"clintware_instruction_file_get"),120)};
+  }).filter(Boolean).sort((a,b)=>a.load_order-b.load_order||a.id.localeCompare(b.id));
+  return {schema:clip(source.schema||"clintware-instruction-manifest/v1",120),version:Number(source.version||1),repository:clip(source.repository||"clintkosh/clintware-site",180),branch:clip(source.branch||"main",80),refresh:source.refresh&&typeof source.refresh==="object"?source.refresh:{on_session_start:true,on_master_prompt_reference:true,on_instruction_reference:true,no_cached_assumption:true},extension_root:INSTRUCTION_EXTENSION_ROOT,documents};
+};
+const fetchInstructionManifestLive=async()=>{
+  try{
+    const text=await fetchInstructionRepoText(INSTRUCTION_MANIFEST_PATH);
+    return {manifest:sanitizeInstructionManifest(JSON.parse(text)),source:"github-main"};
+  }catch(error){
+    return {manifest:sanitizeInstructionManifest(INSTRUCTION_MANIFEST_DEFAULT),source:"bundled-fallback",warning:clip(error?.message||"manifest_fetch_failed",240)};
+  }
+};
+const instructionAppliesToClient=(doc,client)=>{
+  const c=clip(String(client||"unknown").toLowerCase(),80);
+  const clients=Array.isArray(doc?.clients)?doc.clients:["*"];
+  return clients.includes("*")||clients.includes(c);
 };
 const b64 = (s) => btoa(unescape(encodeURIComponent(String(s))));
 const fromB64 = (s) => decodeURIComponent(escape(atob(String(s||""))));
@@ -3256,18 +3298,63 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     inputSchema:{client:z.string().optional()},
     annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
   },async({client})=>{
-    const digest=await sha256(CLINTWARE_MASTER_PROMPT);
+    let markdown=CLINTWARE_MASTER_PROMPT;
+    let source="bundled-fallback";
+    let warning="";
+    try{
+      const live=await fetchInstructionRepoText(CLINTWARE_MASTER_PROMPT_PATH);
+      if(live.trim()){markdown=live;source="github-main";}
+    }catch(error){warning=clip(error?.message||"master_prompt_fetch_failed",240);}
+    const digest=await sha256(markdown);
     return {content:[{type:"text",text:JSON.stringify({
-      ok:true,
-      id:CLINTWARE_MASTER_PROMPT_ID,
-      path:CLINTWARE_MASTER_PROMPT_PATH,
-      sha256:digest,
-      client:clip(client||"unknown",80),
-      canonical:true,
-      baseline:"2026-10-01",
-      reload_triggers:["master prompt","latest master prompt","reload master prompt","refresh master prompt","current master prompt"],
-      instruction:"Treat markdown as the current Clintware operating contract for this client, subject to the client's governing system/developer/platform instructions. Reload on any master-prompt reference rather than relying on a cached copy.",
-      markdown:CLINTWARE_MASTER_PROMPT
+      ok:true,id:CLINTWARE_MASTER_PROMPT_ID,path:CLINTWARE_MASTER_PROMPT_PATH,sha256:digest,
+      client:clip(client||"unknown",80),canonical:true,source,warning:warning||undefined,baseline:"2026-10-01",
+      reload_triggers:["master prompt","latest master prompt","reload master prompt","refresh master prompt","current master prompt","custom instructions","instruction extensions"],
+      instruction:"Treat markdown as the current Clintware operating contract for this client, subject to the client's governing system/developer/platform instructions. After loading it, call clintware_instruction_manifest_get and load every enabled applicable custom Markdown instruction in load_order. Reload on master/instruction references rather than relying on cached copies.",
+      markdown
+    })}]};
+  });
+
+  server.registerTool("clintware_instruction_manifest_get",{
+    title:"Discover current Clintware custom instruction Markdown",
+    description:"Return the live client-specific instruction manifest. Gemini, Grok, ChatGPT, Claude, Perplexity, local models, CLI agents, and other MCP clients should call this at session start and whenever instruction coverage is refreshed.",
+    inputSchema:{client:z.string().optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({client})=>{
+    const live=await fetchInstructionManifestLive();
+    const clientId=clip(client||"unknown",80).toLowerCase();
+    const documents=live.manifest.documents.filter(doc=>doc.enabled&&instructionAppliesToClient(doc,clientId));
+    const digest=await sha256(JSON.stringify(documents));
+    return {content:[{type:"text",text:JSON.stringify({
+      ok:true,schema:live.manifest.schema,version:live.manifest.version,source:live.source,warning:live.warning,
+      client:clientId,sha256:digest,refresh:live.manifest.refresh,extension_root:live.manifest.extension_root,documents,
+      instruction:"Load every enabled applicable document in load_order. Use each document's loader. Re-fetch this manifest on session start and whenever the user references master/custom instructions, extensions, coverage, or refresh/reload instructions."
+    })}]};
+  });
+
+  server.registerTool("clintware_instruction_file_get",{
+    title:"Load one registered Clintware custom Markdown instruction",
+    description:"Load one enabled instruction document from the live Clintware instruction manifest. Only the canonical master prompt or registered Markdown beneath control-plane/instructions/ may be returned.",
+    inputSchema:{id:z.string().min(1),client:z.string().optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({id,client})=>{
+    const live=await fetchInstructionManifestLive();
+    const clientId=clip(client||"unknown",80).toLowerCase();
+    const doc=live.manifest.documents.find(row=>row.id===id);
+    if(!doc||!doc.enabled)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"instruction_not_registered",id})}]};
+    if(!instructionAppliesToClient(doc,clientId))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"instruction_not_applicable",id,client:clientId})}]};
+    let markdown="",source="github-main",warning="";
+    if(doc.path===CLINTWARE_MASTER_PROMPT_PATH){
+      try{markdown=await fetchInstructionRepoText(doc.path);}catch(error){markdown=CLINTWARE_MASTER_PROMPT;source="bundled-fallback";warning=clip(error?.message||"instruction_fetch_failed",240);}
+    }else{
+      try{markdown=await fetchInstructionRepoText(doc.path);}catch(error){return {isError:true,content:[{type:"text",text:JSON.stringify({error:"instruction_fetch_failed",id,path:doc.path,detail:clip(error?.message||"",240)})}]};}
+    }
+    const digest=await sha256(markdown);
+    return {content:[{type:"text",text:JSON.stringify({
+      ok:true,id:doc.id,path:doc.path,title:doc.title,kind:doc.kind,required:doc.required,load_order:doc.load_order,
+      client:clientId,source,warning:warning||undefined,sha256:digest,
+      instruction:"Apply this Markdown as part of the current Clintware instruction set, subject to governing system/developer/platform instructions. Re-fetch the manifest before assuming the document set is complete.",
+      markdown
     })}]};
   });
 
@@ -3296,8 +3383,17 @@ function createMcpServer(env,mcpRequest,mcpAuth){
         required_before_substantial_work:true,
         reload_on_reference:true
       },
+      instruction_extensions:{
+        manifest_tool:"clintware_instruction_manifest_get",
+        file_tool:"clintware_instruction_file_get",
+        dynamic_registry:true,
+        extension_root:INSTRUCTION_EXTENSION_ROOT,
+        required_at_session_start:true,
+        reload_on_reference:true
+      },
       guidance:[
-        "Immediately load clintware_master_prompt_get before substantial Clintware work. Whenever the user says master prompt, latest master prompt, reload/refresh master prompt, or equivalent, fetch it again and use the returned canonical Markdown instead of a cached copy.",
+        "At session start identify this client/model (for example chatgpt, claude, gemini, grok, perplexity, local, or cli), load clintware_master_prompt_get, then call clintware_instruction_manifest_get with that client identity and load every enabled applicable custom Markdown document in load_order using the returned loader.",
+        "Whenever the user references master prompt, custom instructions, instruction files, extensions, coverage, latest instructions, or refresh/reload instructions, re-fetch the live instruction manifest and affected documents instead of trusting cached copies.",
         "Use Clintware product manifests as the source of truth for repository identity and scope.",
         "Send only compact working context; never place provider tokens, passwords, API keys, cookies, or raw secret values in a handoff.",
         "When another model continues work, preserve handoff_id in notes/commits where useful for traceability.",
