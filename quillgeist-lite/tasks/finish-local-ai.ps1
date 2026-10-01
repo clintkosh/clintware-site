@@ -59,6 +59,25 @@ function Run-Checked([string]$Label,[scriptblock]$Body) {
   Log ("PASS " + $Label)
 }
 
+function Refresh-ReviewedDependency([string]$Relative,[string]$Destination,[string]$Required) {
+  $uri = "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/" + $Relative
+  $temp = $Destination + ".new"
+  try {
+    Invoke-WebRequest -Uri $uri -OutFile $temp -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+    $body = Get-Content -LiteralPath $temp -Raw
+    if($body.Length -lt 300 -or -not $body.Contains($Required)){ throw "reviewed dependency failed structural validation" }
+    if($Destination.EndsWith(".ps1",[StringComparison]::OrdinalIgnoreCase)){
+      $tokens=$null; $errors=$null
+      [Management.Automation.Language.Parser]::ParseFile($temp,[ref]$tokens,[ref]$errors) | Out-Null
+      if($errors.Count -gt 0){ throw "reviewed PowerShell dependency failed parse validation" }
+    }
+    Move-Item -LiteralPath $temp -Destination $Destination -Force
+    Log ("REFRESHED " + $Relative)
+  } finally {
+    Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+  }
+}
+
 if(-not (Test-Path $LocalRoot)){ throw "Existing local AI root is missing: $LocalRoot" }
 if(-not (Test-Path $ComposePath)){ throw "Existing Docker Compose file is missing: $ComposePath" }
 
@@ -88,6 +107,18 @@ if (@($requiredAssets | Where-Object { -not (Test-Path $_) }).Count -gt 0) {
 foreach($asset in $requiredAssets){
   if(-not (Test-Path $asset)){ throw "Required reviewed workflow asset missing: $asset" }
 }
+
+# Each durable continuation refreshes its repair dependencies too. This keeps
+# queued resume jobs from replaying stale repair logic after a reviewed fix.
+Refresh-ReviewedDependency "tools/local_ai.py" $reconcilePy "def repair_storage"
+Refresh-ReviewedDependency "tasks/integrate-local-ai.ps1" $integratePs "Gateway model inventory"
+Refresh-ReviewedDependency "tasks/restore-immich.ps1" $immichPs "IMMICH //"
+Refresh-ReviewedDependency "tools/local_ai_parity_check.py" $parityPy "LOCAL_AI_PARITY_OK"
+
+& $python -m py_compile $reconcilePy
+if($LASTEXITCODE -ne 0){ throw "Refreshed local_ai.py failed Python compilation." }
+& $python -m py_compile $parityPy
+if($LASTEXITCODE -ne 0){ throw "Refreshed parity helper failed Python compilation." }
 
 $pass=0
 $complete=$false
