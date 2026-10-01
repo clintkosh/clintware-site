@@ -277,6 +277,30 @@ Before reporting “no new interview,” explicitly verify both of these are tru
 A Calendar-only scan is a failed scan. A light-mode kit is a failed kit. A next-round kit that ignores newer recruiting email, transcript, interviewer, stage, or timing information is a failed refresh.
 
 
+## LinkedIn evidence-post invariant
+
+Before drafting, rewriting, polishing, or materially reviewing a LinkedIn post, article reshare, professional social reflection, interview-learning post, or evidence-led career post, read and apply `skills/linkedin-evidence-post/SKILL.md`.
+
+Required rules:
+
+1. Start from one real observation, lesson, metric, article idea, or field note rather than generic thought-leadership framing.
+2. Prefer one grounded proof point over stacked claims.
+3. For interview/career reflections, default to `PRESENT -> PROOF -> FUTURE -> STOP` when it fits the material.
+4. Treat proof as a breadcrumb: establish credibility, then leave room for the reader or interviewer to pull the next thread.
+5. Distinguish preparation from rehearsal. Know the numbers, stories, audience, and point without memorizing the performance.
+6. Run the skill's Devil's Advocate gate before release, including unintended recruiter/hiring-manager/customer interpretations.
+7. Keep private interviewers, active opportunities, customer details, and non-public pipeline context anonymized unless the user explicitly approves publication.
+8. When one person may recognize the story, keep the post independently useful to the broader audience and do not turn it into a disguised direct message.
+9. Use natural paragraphs by default; do not fragment every sentence into a separate line unless the structure genuinely benefits.
+10. Verify current platform/timing/algorithm claims at use time rather than encoding them as permanent rules.
+
+Canonical sequence:
+
+`OBSERVATION -> PROOF -> PRINCIPLE -> RELEVANCE -> DEVIL'S ADVOCATE -> STOP`
+
+A LinkedIn draft that sounds more polished than human, exposes private context unnecessarily, or keeps explaining after the point has landed fails this invariant and must be revised before release.
+
+
 ## ASTRO responder-agent invariant
 
 Before creating or materially changing any agent that discovers public questions, drafts community responses, publishes replies, or manages professional/community participation, read and apply `ASTRO_RESPONDER_AGENT_SKILL.md`.
