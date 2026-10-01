@@ -1,8 +1,5 @@
 {
-  "request_id": "memoria-doctor-post-update-20261001-1430",
-  "task_id": "clintware-doctor",
-  "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Post-update readiness verification for MEMORIA. Confirm local prerequisites, machine identity, runtime availability, scheduled-task desktop isolation, and that QQ can accept a fresh local-agent-confirmed job after the self-update/restart cycle.",
-  "resume_after": false
+  "request_id": "memoria-local-ai-pending-inspect-20261001-1540",
+  "mode": "inspect",
+  "target_device": "MEMORIA"
 }
