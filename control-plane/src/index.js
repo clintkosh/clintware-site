@@ -4294,7 +4294,7 @@ function controlPlaneLanding(){
 }
 
 function controlPlaneConnect(){
-  const html=\`<!doctype html>
+  const html=`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -4364,7 +4364,7 @@ for(const button of document.querySelectorAll("[data-copy]")){
 }
 </script>
 </body>
-</html>\`;
+</html>`;
   return new Response(html,{status:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-robots-tag":"noindex, nofollow","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'"}});
 }
 
