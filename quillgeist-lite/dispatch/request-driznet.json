@@ -1,10 +1,22 @@
 {
-  "request_id": "driznet-linkedin-open-system-edge-20261001-1050",
-  "task_id": "open-edge-tab",
+  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1051",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Url": "https://www.linkedin.com/company/setup/new/"
+    "Action": "edge-uia-inspect",
+    "Url": "",
+    "Selector": "LinkedIn",
+    "Value": "",
+    "StepsJson": "",
+    "Query": "Create a LinkedIn Page",
+    "Engine": "auto",
+    "MaxResults": "60",
+    "MaxChars": "20000",
+    "Approved": "false",
+    "Headless": "false",
+    "WaitMs": "450",
+    "UserWaitMs": "0"
   },
-  "objective": "Open LinkedIn Company Page setup in the user's normal Microsoft Edge session on DRIZNET so the existing signed-in session can be used without automating credentials.",
+  "objective": "Inspect the signed-in LinkedIn Company Page setup tab in normal Edge on DRIZNET through Windows UI Automation. Return nearby controls and labels only; do not change anything.",
   "resume_after": false
 }
