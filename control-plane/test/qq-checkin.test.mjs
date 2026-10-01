@@ -28,7 +28,9 @@ test("watchdog remains responsive while runner work is protected", () => {
 test("status snapshots actively ask every registered watchdog for live state", () => {
   assert.match(statusWorkflow, /live_checkins/);
   assert.match(statusWorkflow, /\/api\/v1\/quillgeist-lite\/check-in/);
-  assert.match(statusWorkflow, /"action":"status"/);
+  assert.match(statusWorkflow, /requested_action=str\(control_request\.get\("action"\) or "status"\)/);
+  assert.match(statusWorkflow, /requested_action not in \{"status","restart_runner"\}/);
+  assert.match(statusWorkflow, /action=requested_action if \(requested_target and device_id\.lower\(\)==requested_target\.lower\(\)\) else "status"/);
 });
 
 test("network share task is control-plane allowlisted", () => {
