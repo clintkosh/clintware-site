@@ -51,6 +51,10 @@ try {
     ($bundledHash + "  Clintware-TaskIsolation.exe") | Set-Content -LiteralPath $DownloadsHash -Encoding ASCII
     Write-Output ("TASK-ISOLATION // refreshed Downloads copy: " + $DownloadsExe)
   }
+  $currentDownloadsHash = Get-HashSafe $DownloadsExe
+  if ($currentDownloadsHash) {
+    Write-Output ("TASK-ISOLATION // Downloads sha256: " + $currentDownloadsHash)
+  }
 } catch {
   Write-Output ("TASK-ISOLATION // Downloads refresh warning: " + $_.Exception.Message)
 }
