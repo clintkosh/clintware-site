@@ -59,6 +59,9 @@ If there is a strong answer, keep it.  If there is not, remove it.
 
 ## Hard defaults
 
+- browser-local persistence is the default for one-off demos; use localStorage or IndexedDB as appropriate
+- remote/server-authoritative persistence is opt-in only when the workflow materially requires shared, cross-device, background, webhook, secret-bearing, or centrally audited state
+- Durable Objects are never inherited merely because a reference implementation used them; browser-local/stateless builds must remain functional when Durable Objects are unavailable
 - working beats decorative
 - persistent beats mocked
 - current role facts beat generic CRM assumptions
