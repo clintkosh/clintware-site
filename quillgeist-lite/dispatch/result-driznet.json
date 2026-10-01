@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-url-controls-20261001-1248",
-  "job_id": "03d49154-1600-4b85-962c-09972bec36fd",
+  "request_id": "driznet-cwinteract-linkedin-form-website-20261001-1250",
+  "job_id": "77841192-5408-4bda-b17a-a635593f7d64",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 1512,
+  "duration_ms": 1500,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:31:40.1933581Z",
-  "recorded_at": 1790872298,
+  "confirmed_at": "2026-10-01T16:32:04.6821188Z",
+  "recorded_at": 1790872322,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"linkedin.com/company\",\"controls\":[{\"name\":\"linkedin.com/company/\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":273.0,\"top\":374.0,\"width\":147.0,\"height\":20.0,\"right\":420.0,\"bottom\":394.0},\"patterns\":[]},{\"name\":\"linkedin.com/company/*\",\"automation_id\":\"single-line-text-form-component-urn-li-fsu-pageCreationFormItem-UNIVERSAL-NAME\",\"class\":\" artdeco-text-input--input\",\"control_type\":\"Edit\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":273.0,\"top\":396.0,\"width\":665.0,\"height\":33.0,\"right\":938.0,\"bottom\":429.0},\"patterns\":[\"Value\"]}]}"
+  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"Website\",\"controls\":[{\"name\":\"Website\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":273.0,\"top\":476.0,\"width\":50.0,\"height\":20.0,\"right\":323.0,\"bottom\":496.0},\"patterns\":[]},{\"name\":\"Website\",\"automation_id\":\"single-line-text-form-component-urn-li-fsu-pageCreationFormItem-WEBSITE\",\"class\":\" artdeco-text-input--input\",\"control_type\":\"Edit\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":273.0,\"top\":498.0,\"width\":665.0,\"height\":33.0,\"right\":938.0,\"bottom\":531.0},\"patterns\":[\"Value\"]}]}"
 }
