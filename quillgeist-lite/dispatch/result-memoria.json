@@ -1,15 +1,341 @@
 {
-  "request_id": "memoria-doctor-post-update-20261001-1430",
-  "job_id": "2b1527a6-6b80-49a2-a438-c9e50daced11",
-  "task_id": "clintware-doctor",
-  "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 5145,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T19:28:50.463766Z",
-  "recorded_at": 1790882919,
-  "recovery_history": [],
-  "output_tail": "\r\n=== CLINTWARE QUILLGEIST LITE DOCTOR ===\r\n\r\nMachine identity:\r\n  Computer:     MEMORIA\r\n  Manufacturer: Micro-Star International Co., Ltd.\r\n  Model:        Katana GF76 12UE\r\n  Memory GiB:   63.7\r\n  CPU:          12th Gen Intel(R) Core(TM) i7-12700H\r\n  GPU:          Intel(R) Iris(R) Xe Graphics\r\n  GPU:          NVIDIA GeForce RTX 3060 Laptop GPU\r\n  Drive C:      16.3 GiB free / 453.1 GiB\r\n  Drive F:      1626.2 GiB free / 1863 GiB\r\n\r\n\u001b[32;1mTool      \u001b[0m\u001b[32;1m Found\u001b[0m\u001b[32;1m Path\u001b[0m\r\n\u001b[32;1m----      \u001b[0m \u001b[32;1m-----\u001b[0m \u001b[32;1m----\u001b[0m\r\npowershell  True C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\npwsh        True C:\\Program Files\\PowerShell\\7\\pwsh.exe\r\ngh          True C:\\Program Files\\GitHub CLI\\gh.exe\r\ngit         True C:\\Program Files\\Git\\cmd\\git.exe\r\ngcloud     False \r\npython      True C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe\r\npython3     True C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\python3.exe\r\nnode        True C:\\Program Files\\nodejs\\node.exe\r\ndocker      True C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\r\nollama      True C:\\Users\\user\\AppData\\Local\\Programs\\Ollama\\ollama.exe\r\nclang      False \r\ngcc        False \r\ncl         False \r\n\r\n\r\nGitHub authentication:\r\nYou are not logged into any GitHub hosts. To log in, run: gh auth login\r\n\r\nRuntime summary:\r\n  PowerShell: True\r\n  Python:     True\r\n  C compiler: False\r\n\r\nScheduled-task desktop isolation:\r\n  TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b\r\n  version=1.2.0\r\nmode=scan\r\n\r\nFound 0 task(s) with desktop-interactive console actions.\r\n\r\nQuillgeist Lite doctor complete."
+  "request_id": "memoria-local-ai-pending-inspect-20261001-1540",
+  "mode": "inspect",
+  "recorded_at": 1790887269,
+  "inspection": {
+    "online": 3,
+    "recovery_online": 0,
+    "wake_online": 2,
+    "recovery": null,
+    "runner_version": "1.10.0",
+    "runner_last_seen": "2026-10-01T20:34:01.495Z",
+    "runner": {
+      "runner_id": "DRIZNET",
+      "version": "1.10.0",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback",
+        "capability_inventory",
+        "capability_aware_routing"
+      ],
+      "connected_at": "2026-10-01T20:34:01.453Z",
+      "last_seen": "2026-10-01T20:34:01.495Z",
+      "source_revision": "3a1223f0a5ac0146dc7bc169036f2c200a5fe3af",
+      "registry_version": "30"
+    },
+    "connected_devices": [
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-10-01T19:40:28.207Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-01T19:40:28.207Z",
+          "last_seen": "2026-10-01T19:40:28.250Z",
+          "source_revision": "1612f687aac4d283880bcd0bc1e820fd57b50057",
+          "registry_version": "30"
+        }
+      },
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-10-01T20:33:58.837Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-01T20:33:58.837Z",
+          "last_seen": "2026-10-01T20:33:58.881Z",
+          "source_revision": "3a1223f0a5ac0146dc7bc169036f2c200a5fe3af",
+          "registry_version": "30"
+        }
+      },
+      {
+        "device_id": "DRIZNET",
+        "connected_at": "2026-10-01T20:34:01.453Z",
+        "runner": {
+          "runner_id": "DRIZNET",
+          "version": "1.10.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-01T20:34:01.453Z",
+          "last_seen": "2026-10-01T20:34:01.495Z",
+          "source_revision": "3a1223f0a5ac0146dc7bc169036f2c200a5fe3af",
+          "registry_version": "30"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z",
+        "last_seen": "2026-10-01T20:33:44.717Z",
+        "runner_alive": false,
+        "service_version": "",
+        "updated_at": "",
+        "source": "live-websocket"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z",
+        "last_seen": "2026-10-01T20:33:47.095Z",
+        "runner_alive": false,
+        "service_version": "",
+        "updated_at": "",
+        "source": "live-websocket"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "083d678f-10ef-438a-839e-dac2ed5b752b",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "20cc7cbc-7c26-44d9-ac7b-ba2f7e881cbe",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "905ffd5c-f48a-417b-acb9-226a3ea754ca",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "26c33d3d-bb1e-4a29-aad7-276a6e1ab592",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "eec222be-5982-4cda-8301-52273cf1d19a",
+        "task_id": "clintware-doctor",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "2b1527a6-6b80-49a2-a438-c9e50daced11",
+        "task_id": "clintware-doctor",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "8f508955-4904-4c30-8c9e-6822e0a66664",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "489185dc-1c54-4e3a-a6d4-8a7ee7de30eb",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "5d158b6e-ff5a-46d0-a36a-616b37824ded",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "a8e8d607-4ca1-4ae8-93cd-00f6babdbe6d",
+        "task_id": "public-skill-verify",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "01d2e27e-90ed-4732-b96e-a0bebe078652",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "40e14d41-2adb-40e8-98a0-5985289529c0",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "failed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "desktop-focus",
+        "kind": "other",
+        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-01T20:34:03.9332943Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-01T20:34:03.9303529Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=alive",
+        "timestamp": "2026-10-01T20:34:03.0611440Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-10-01T20:34:01.7159504Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-10-01T20:34:01.7023798Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=DRIZNET source=machine",
+        "timestamp": "2026-10-01T20:34:01.4313059Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
+        "timestamp": "2026-10-01T20:34:01.1878130Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtimes enabled: PowerShell, Python, C.",
+        "timestamp": "2026-10-01T20:34:01.1744068Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Runtime host: PowerShell 7.6.6 / Core.",
+        "timestamp": "2026-10-01T20:34:01.1580771Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Clintware Quillgeist Lite starting.",
+        "timestamp": "2026-10-01T20:34:01.1245499Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-10-01T20:34:01.3010576Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "desktop-focus",
+        "kind": "other",
+        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-01T20:34:12.4607962Z"
+      }
+    ]
+  }
 }
