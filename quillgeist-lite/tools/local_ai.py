@@ -561,6 +561,55 @@ def recovery_inventory():
 
 
 
+def _materialize_internal_backup_links(root: Path, container_root: str):
+    """Materialize only symlinks whose final targets remain inside the preserved backup."""
+    try:
+        base = root.resolve(strict=True)
+    except OSError as exc:
+        return {"ok": False, "error": "backup_root_unresolvable", "detail": type(exc).__name__}
+    links = [p for p in root.rglob("*") if p.is_symlink()]
+    plans = []
+    prefix = str(container_root or "").replace("\\", "/").rstrip("/")
+    for link in links:
+        try:
+            raw = os.readlink(link)
+        except OSError as exc:
+            return {"ok": False, "error": "backup_link_unreadable", "link": str(link.relative_to(root)), "detail": type(exc).__name__}
+        normalized = str(raw).replace("\\", "/")
+        if normalized.startswith("/"):
+            if not prefix or not (normalized == prefix or normalized.startswith(prefix + "/")):
+                return {"ok": False, "error": "backup_link_escapes_container_data", "link": str(link.relative_to(root)), "target": normalized[:300]}
+            relative = normalized[len(prefix):].lstrip("/")
+            candidate = root / Path(relative)
+        else:
+            candidate = link.parent / Path(raw)
+        try:
+            resolved = candidate.resolve(strict=True)
+            common = os.path.commonpath([str(base), str(resolved)])
+        except (OSError, ValueError) as exc:
+            return {"ok": False, "error": "backup_link_target_unresolvable", "link": str(link.relative_to(root)), "detail": type(exc).__name__}
+        if os.path.normcase(common) != os.path.normcase(str(base)):
+            return {"ok": False, "error": "backup_link_escapes_backup", "link": str(link.relative_to(root))}
+        if resolved == link or resolved in link.parents:
+            return {"ok": False, "error": "backup_link_cycle_risk", "link": str(link.relative_to(root))}
+        plans.append((link, resolved))
+
+    # Validate every link before modifying the disposable backup copy.
+    for link, resolved in sorted(plans, key=lambda row: len(row[0].parts), reverse=True):
+        try:
+            link.unlink()
+            if resolved.is_dir():
+                shutil.copytree(resolved, link, symlinks=False)
+            elif resolved.is_file():
+                link.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(resolved, link)
+            else:
+                return {"ok": False, "error": "backup_link_target_not_regular", "link": str(link.relative_to(root))}
+        except OSError as exc:
+            return {"ok": False, "error": "backup_link_materialization_failed", "link": str(link.relative_to(root)), "detail": type(exc).__name__}
+    return {"ok": True, "materialized_links": len(plans)}
+
+
 def repair_storage():
     """Restore missing host bind folders from a preserved copy of the same container data."""
     import sqlite3
@@ -600,10 +649,15 @@ def repair_storage():
             if rc:
                 results.append({"container": name, "error": "container_data_backup_failed", "backup": str(backup)})
                 continue
-            # Refuse links; do not follow an old data symlink outside this backup.
+            # Preserve link safety without discarding a recoverable backup. Materialize
+            # only links whose final targets are proven to remain inside this backup.
+            link_result = _materialize_internal_backup_links(backup, inside)
+            if not link_result.get("ok"):
+                results.append({"container": name, **link_result, "backup": str(backup)})
+                continue
             entries = list(backup.rglob("*"))
             if any(p.is_symlink() for p in entries):
-                results.append({"container": name, "error": "backup_contains_links", "backup": str(backup)})
+                results.append({"container": name, "error": "backup_links_remain_after_materialization", "backup": str(backup)})
                 continue
             for db in (p for p in entries if p.is_file() and p.name in {"webui.db", "database.sqlite", "chroma.sqlite3"}):
                 with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as connection:
@@ -627,6 +681,77 @@ def repair_storage():
     return {"ok": not any("error" in x for x in results), "results": results,
             "deleted_user_files": False, "excluded_drive_accessed": False}
 
+
+
+def repair_comfy_runtime():
+    """Repair the existing ComfyUI venv in place; never replace models/config or global Python."""
+    if os.name != "nt":
+        return {"ok": False, "error": "windows_only"}
+    root = Path(r"C:\AI\ComfyUI")
+    python = root / "venv" / "Scripts" / "python.exe"
+    config = root / "extra_model_paths.yaml"
+    if not python.is_file():
+        return {"ok": False, "error": "existing_comfy_python_missing"}
+    if not config.is_file():
+        return {"ok": False, "error": "comfy_model_config_missing"}
+    config_text = config.read_text(encoding="utf-8-sig", errors="replace")
+    if re.search(r"(?i)(?:\bD:|/mnt/d/)", config_text):
+        return {"ok": False, "error": "comfy_config_references_excluded_drive"}
+
+    probe_code = (
+        "import json,sys\n"
+        "out={'python':sys.version.split()[0]}\n"
+        "try:\n import torch; out['torch']=torch.__version__; out['cuda']=getattr(torch.version,'cuda',None)\n"
+        "except Exception as e: out['torch_error']=type(e).__name__\n"
+        "try:\n import triton, triton.language; out['triton']=getattr(triton,'__version__','present'); out['triton_ok']=True\n"
+        "except Exception as e: out['triton_ok']=False; out['triton_error']=type(e).__name__\n"
+        "print(json.dumps(out))"
+    )
+    code, output = run([str(python), "-c", probe_code], 30)
+    try:
+        before = json.loads(output.splitlines()[-1]) if output else {}
+    except ValueError:
+        before = {"probe_error": "invalid_json"}
+
+    install = {"attempted": False}
+    if not before.get("triton_ok"):
+        install["attempted"] = True
+        rc, pip_output = run([str(python), "-m", "pip", "install", "--disable-pip-version-check", "--upgrade", "triton-windows<3.9"], 420)
+        install["exit_code"] = rc
+        install["result"] = "passed" if rc == 0 else "failed"
+        install["output_tail"] = pip_output[-1500:]
+        if rc != 0:
+            return {"ok": False, "error": "triton_windows_install_failed", "before": before, "install": install}
+
+    code, output = run([str(python), "-c", probe_code], 30)
+    try:
+        after = json.loads(output.splitlines()[-1]) if output else {}
+    except ValueError:
+        after = {"probe_error": "invalid_json"}
+    if code != 0 or not after.get("triton_ok"):
+        return {"ok": False, "error": "triton_import_failed_after_repair", "before": before, "after": after, "install": install}
+
+    # Reuse the governed hidden startup task if present; recover_agents will
+    # recreate it deterministically on the next stage if needed.
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if shell:
+        ps = "$t=Get-ScheduledTask -TaskName 'MEMORIA QQ ComfyUI' -ErrorAction SilentlyContinue; if($t){Start-ScheduledTask -TaskName 'MEMORIA QQ ComfyUI'}"
+        import base64
+        encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
+        run([shell, "-NoProfile", "-EncodedCommand", encoded], 20)
+    deadline = time.monotonic() + 50
+    healthy = False
+    while time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen("http://127.0.0.1:8188/system_stats", timeout=3).close()
+            healthy = True
+            break
+        except Exception:
+            time.sleep(2)
+    result = {"ok": True, "triton_ready": True, "comfy_health": healthy, "before": before, "after": after, "install": install}
+    if not healthy:
+        result["note"] = "runtime dependency repaired; recover-agents will recreate/start the hidden ComfyUI task"
+    return result
 
 
 def recover_agents():
@@ -767,12 +892,18 @@ def provider_test(prompt: str):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "repair-storage", "recover-agents"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "repair-storage", "repair-comfy-runtime", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "repair-comfy-runtime":
+        result = repair_comfy_runtime()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
     if a.Action == "recover-agents":
         result = recover_agents()
         print(json.dumps(result, indent=2))
