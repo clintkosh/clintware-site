@@ -1,11 +1,8 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-20261001-1256",
-  "task_id": "public-skill-verify",
+  "request_id": "memoria-self-update-public-skill-fix-20261001-1253",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "SkillSlug": "linkedin-evidence-post",
-    "CheckLive": "true"
-  },
-  "objective": "Run the complete reusable public-skill verification gate for linkedin-evidence-post on MEMORIA: source/public parity, public-skill sanitization, production build, public positioning, inventory/catalog consistency, and live Clintware skill/catalog verification. Return qq-local-agent evidence.",
-  "resume_after": false
+  "args": {},
+  "objective": "Refresh MEMORIA with the corrected public-skill-verify implementation that uses the maintained local Clintware checkout, preserving registry v30 and the runner connection.",
+  "resume_after": true
 }
