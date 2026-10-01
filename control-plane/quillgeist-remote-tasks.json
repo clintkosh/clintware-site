@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "description": "Canonical remote-dispatch allowlist for Clintware Quillgeist/qq. Local execution details remain in quillgeist-lite/tasks.json; this file defines only tasks and arguments that the control plane may accept remotely.",
   "tasks": {
     "clintware-doctor": {
@@ -231,6 +231,19 @@
       ]
     },
     "windows-app-uia": {
+      "runtime": "powershell",
+      "parameters": [
+        "Action",
+        "AppName",
+        "WindowTitle",
+        "Query",
+        "StepsJson",
+        "Approved",
+        "MaxResults",
+        "WaitMs"
+      ]
+    },
+    "cwinteract": {
       "runtime": "powershell",
       "parameters": [
         "Action",
