@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-10-01T12:20:00Z",
-  "reason": "Final verification after autonomous continuation changes, MEMORIA CRM deployment handoff, DRIZNET config recovery, Jobs plan replay, and workspace-isolation cleanup."
+  "requested_at": "2026-10-01T14:08:30Z",
+  "reason": "Verify live Control Plane version, QQ runtime version, DRIZNET health, and routing contract after permanent dispatch/local-offload fixes."
 }
