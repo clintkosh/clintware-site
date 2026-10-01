@@ -1,12 +1,10 @@
 {
-  "request_id": "memoria-nma-final-seed-verify-20261001-0917",
-  "task_id": "crm-astro-build",
-  "target_device": "MEMORIA",
+  "request_id": "driznet-storage-reassess-20261001-0939",
+  "task_id": "storage-audit",
+  "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "nma-crm",
-    "SkipInstall": "false"
+    "ExpectedComputer": "DRIZNET",
+    "LargestFiles": 80
   },
-  "objective": "Final local validation of the current NMA CRM after the canonical control plane passed deployment and MEMORIA's maintained repository cache was refreshed. Verify the populated multi-stage synthetic portfolio, lifecycle phases discover/govern/test/protect/prove/expand, stage-specific stakeholder/KPI/action/risk/issue/meeting depth, seed migration version 3, ASTRO populated-seed default, materialization, syntax, role logic, and deployment handoff. Return qq-local-agent confirmation.",
-  "resume_after": true
+  "objective": "Reassess HP DRIZNET storage after the user's manual cleanup. Read-only only. Preserve all C:\\AI work. Report current free space, C:\\AI and C:\\AI\\CHATBOT model footprint, default Ollama store footprint, Docker/WSL footprint, large files, and D: external state. Do not move/delete anything and do not affect MEMORIA."
 }
