@@ -5,8 +5,14 @@ $ProgressPreference = "SilentlyContinue"
 
 $ApprovedRoots = @(
   "C:\AI\LOCAL-CHATGPT",
-  "F:\AI-Data"
-)
+  "C:\AI",
+  "F:\AI-Data",
+  "F:\Immich",
+  "F:\Docker",
+  (Join-Path $env:USERPROFILE "Desktop"),
+  (Join-Path $env:USERPROFILE "Documents"),
+  (Join-Path $env:USERPROFILE "Downloads")
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
 $ImmichPort = 2283
 
 function Log([string]$Message) { Write-Host ("IMMICH // " + $Message) }
@@ -105,7 +111,7 @@ if($composeFiles.Count -gt 0){
     if($LASTEXITCODE -ne 0){ throw "Failed starting existing Immich container $id" }
   }
 } else {
-  throw "No existing Immich deployment was found under approved roots C:\AI\LOCAL-CHATGPT or F:\AI-Data, and no existing Docker compose project named immich is present. Refusing to create a fresh media database blindly because that could detach from existing libraries."
+  throw ("No existing Immich deployment was found under the approved MEMORIA roots (" + ($ApprovedRoots -join ", ") + "), and no existing Immich Docker container is present. Refusing to create a fresh media database blindly because that could detach from existing libraries.")
 }
 
 for($i=1; $i -le 18; $i++){
