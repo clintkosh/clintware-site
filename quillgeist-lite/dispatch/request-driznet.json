@@ -1,22 +1,10 @@
 {
-  "request_id": "driznet-linkedin-company-inspect-20261001-1047",
-  "task_id": "browser-work",
+  "request_id": "driznet-linkedin-open-system-edge-20261001-1050",
+  "task_id": "open-edge-tab",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "inspect",
-    "Url": "https://www.linkedin.com/company/setup/new/",
-    "Selector": "",
-    "Value": "",
-    "StepsJson": "",
-    "Query": "",
-    "Engine": "auto",
-    "MaxResults": "8",
-    "MaxChars": "20000",
-    "Approved": "false",
-    "Headless": "false",
-    "WaitMs": "900",
-    "UserWaitMs": "0"
+    "Url": "https://www.linkedin.com/company/setup/new/"
   },
-  "objective": "Inspect the LinkedIn Company Page creation/admin state in the authenticated QQ browser on DRIZNET so Clintware™ can be configured correctly without guessing. Do not submit or publish changes in this read-only step.",
+  "objective": "Open LinkedIn Company Page setup in the user's normal Microsoft Edge session on DRIZNET so the existing signed-in session can be used without automating credentials.",
   "resume_after": false
 }
