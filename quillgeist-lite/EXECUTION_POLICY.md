@@ -55,6 +55,9 @@ This policy is a default selection rule, not permission to weaken authorization 
 
 ## Default big-prompt activity
 
+For substantial owner prompts, this is a mandatory routing gate whenever an eligible QQ device is healthy. Recover state and re-context locally first; then execute local leaves locally and send only bounded external-authority leaves remotely. If this routing path itself is broken, repair it through the smallest authorized bootstrap path and verify the repaired path with an actual local QQ job before declaring it fixed.
+
+
 For substantial requests, Quillgeist uses the big-prompt planner as the default orchestration activity before execution.
 
 - Recover durable project/state context first, then compact it before decomposition.
