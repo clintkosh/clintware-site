@@ -13,9 +13,19 @@ PROVIDER_RE = re.compile(
     r"\b(?:chatgpt|openai|codex|claude|anthropic|gemini|grok|perplexity|openrouter|azure\s+openai)\b",
     re.I,
 )
+PROVIDER_REQUEST_RE = re.compile(
+    r"\b(?:use|ask|call|invoke|query|route\s+to|send\s+to|through|via|with)\s+"
+    r"(?:chatgpt|openai|codex|claude|anthropic|gemini|grok|perplexity|openrouter|azure\s+openai)\b",
+    re.I,
+)
 FRESH_RE = re.compile(
-    r"\b(?:latest|current|today|tonight|this\s+(?:week|month|year)|real[- ]?time|live\s+(?:web|data|status)|"
+    r"\b(?:latest|today|tonight|this\s+(?:week|month|year)|real[- ]?time|live\s+(?:web|data|status)|"
     r"breaking|news|price|prices|availability|weather|score|schedule|recent)\b",
+    re.I,
+)
+CURRENT_AUTHORITY_RE = re.compile(
+    r"\bcurrent\s+(?:status|state|version|price|prices|availability|weather|news|schedule|score|"
+    r"listing|listings|job|jobs|role|roles|release|deployment|documentation|docs|record|records)\b",
     re.I,
 )
 EXTERNAL_ACTION_RE = re.compile(
@@ -94,22 +104,28 @@ class BigPromptPlan:
 
 
 def _provider_hint(text: str) -> str:
-    match = PROVIDER_RE.search(text or "")
-    return match.group(0).lower() if match else ""
+    explicit = PROVIDER_REQUEST_RE.search(text or "")
+    if explicit:
+        provider = PROVIDER_RE.search(explicit.group(0))
+        return provider.group(0).lower() if provider else ""
+    return ""
 
 
 def _route(text: str, remote_broker: str = "control_plane") -> tuple[str, str, str, bool, bool]:
-    fresh = bool(FRESH_RE.search(text or ""))
+    fresh = bool(FRESH_RE.search(text or "") or CURRENT_AUTHORITY_RE.search(text or ""))
     external_action = bool(EXTERNAL_ACTION_RE.search(text or ""))
     external_system = bool(EXTERNAL_SYSTEM_RE.search(text or ""))
     provider_hint = _provider_hint(text)
 
     if external_action or (external_system and re.search(r"\b(?:change|modify|write|create|update|delete|deploy|send|publish)\b", text, re.I)):
         return "control_plane_action", remote_broker, provider_hint, fresh, True
-    if fresh or provider_hint:
-        return "control_plane_provider", remote_broker, provider_hint, fresh, False
+    # Deterministic implementation intent wins over incidental provider/system names.
+    # Mentioning ChatGPT, GitHub, or a current code/config state does not itself require
+    # a remote model or fresh authority.
     if LOCAL_EXEC_RE.search(text or ""):
         return "qq_deterministic", "qq", "", False, False
+    if fresh or provider_hint:
+        return "control_plane_provider", remote_broker, provider_hint, fresh, False
     if HEAVY_REASONING_RE.search(text or ""):
         return "qq_local_model", "qq", "", False, False
     return "qq_local_model", "qq", "", False, False
@@ -176,7 +192,7 @@ def plan_big_prompt(
     max_depth = max(1, min(6, int(settings.get("max_depth", 2))))
     max_units = max(2, min(128, int(settings.get("max_units", 48))))
     target_chars = max(600, int(settings.get("child_target_chars", 1600)))
-    complexity_threshold = max(2, int(settings.get("child_complexity_threshold", 5)))
+    complexity_threshold = max(2, int(settings.get("child_complexity_threshold", 3)))
     max_children = max(2, min(24, int(settings.get("max_children", 12))))
     remote_broker = str(settings.get("remote_broker") or "control_plane").strip() or "control_plane"
 
