@@ -1,13 +1,13 @@
 {
-  "request_id": "driznet-routing-recontext-v29-verify-20261001-0916",
+  "request_id": "driznet-jobs-v1-plan-v29-20261001-0918",
   "task_id": "big-prompt-plan",
   "target_device": "DRIZNET",
   "args": {
-    "Prompt": "Permanently harden the Clintware ChatGPT-to-QQ routing path so substantial prompts recover durable state, re-context and compact locally, decompose into dependency-aware work units, execute deterministic/local work through QQ where possible, minimize repeated remote context/token use, preserve explicit device routing, and verify execution evidence. Also preserve the pending Jobs product objective at jobs.clintware.com: a local-first job application copilot inspired by public job-application assistants without copying proprietary code or branding. Current bootstrap changes centralize the remote QQ task allowlist and add a mandatory substantial-prompt gate. Produce the compact continuation plan for unresolved work only, including verification steps and Jobs next actions.",
-    "Project": "Clintware QQ Routing + Jobs",
-    "StateScope": "clintware/qq-routing-jobs",
+    "Prompt": "Build Jobs from docs/jobs-product-spec.md as the Clintware local-first job-application copilot. Recover the existing Jobs spec and durable project state first. Decompose only unresolved implementation work into dependency-aware units. Keep profile data, job capture, application ledger, fit analysis, resume and answer selection, duplicate detection, and the normal happy path local on DRIZNET. Include governed browser-assisted autofill with an explicit final-submit approval gate. Reuse existing Clintware and Quillgeist capabilities rather than creating parallel infrastructure. Verify persistence across restart, controlled test-page field filling, duplicate detection, no automatic submission, and no remote data transfer on the local-only happy path. Route only unavoidable fresh external authority or external mutations through the control plane.",
+    "Project": "Jobs",
+    "StateScope": "clintware/jobs",
     "MaxDepth": "4"
   },
-  "objective": "Verify on updated DRIZNET that a substantial implementation prompt is re-contexted locally and routed to QQ-local work rather than falsely escaping to a remote provider because it mentions ChatGPT or current local state.",
+  "objective": "Re-establish the Jobs v1 implementation plan locally on DRIZNET using the repaired v29 QQ routing path, preserving the original product specification and verification requirements.",
   "resume_after": false
 }
