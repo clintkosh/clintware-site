@@ -1,8 +1,11 @@
 {
-  "request_id": "memoria-selfupdate-latest-gns-20261001-0707",
-  "task_id": "self-update",
+  "request_id": "memoria-gns-full-current-revision-20261001-0714",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA and its pinned Clintware source cache to the latest reviewed revision containing the validated Genesys materialization fixes.",
-  "resume_after": true
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Build, validate, check, and deploy the Genesys CRM+Cover ASTRO on MEMORIA from the current reviewed source revision, then return local-agent deployment evidence."
 }
