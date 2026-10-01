@@ -1,13 +1,12 @@
 {
-  "request_id": "driznet-jobs-v1-plan-after-config-recovery-20261001-0728",
-  "task_id": "big-prompt-plan",
-  "target_device": "DRIZNET",
+  "request_id": "memoria-gns-crm-reseed-20261001-0839",
+  "task_id": "crm-astro-build",
+  "target_device": "MEMORIA",
   "args": {
-    "Prompt": "Create the local-first Jobs product at jobs.clintware.com as a better Simplify-style job application workspace using Clintware/QQ. Recover prior Jobs project state first, recursively decompose the work into dependency-aware units, prefer local deterministic execution and local models where quality is not reduced, route fresh authority and external mutations through the Clintware Control Plane, keep provider credentials behind the control plane, preserve browser-local/local-first storage by default, track QQ savings and progress, and continue until the product is verified or a true user-only blocker remains. Keep professional/job-search data inside Clintware. Do not mix external-workspace data or assets into Clintware.",
-    "Project": "jobs",
-    "StateScope": "jobs.clintware.com",
-    "MaxDepth": "3"
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
   },
-  "objective": "Resume the preserved Jobs product plan on DRIZNET after config recovery and return a durable dependency-aware execution plan.",
-  "resume_after": false
+  "objective": "Rebuild and deploy the Genesys CRM+Cover ASTRO using the updated shared ASTRO default populated-seed behavior. Verify the generated browser-local workspace contains sensible synthetic data across major pages, uses no Durable Objects or server-authoritative CRM state, passes source/runtime checks, deploys gns.clintware.com, and return qq-local-agent confirmation evidence.",
+  "resume_after": true
 }
