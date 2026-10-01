@@ -1,11 +1,13 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-fixed-20261001-1254",
-  "task_id": "public-skill-verify",
+  "request_id": "memoria-public-skill-runtime-script-check-20261001-1255",
+  "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
-    "SkillSlug": "linkedin-evidence-post",
-    "CheckLive": "true"
+    "Action": "read",
+    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks/public-skill-verify.ps1",
+    "MaxChars": "30000",
+    "Headless": "true"
   },
-  "objective": "Run the corrected complete verification gate for linkedin-evidence-post on MEMORIA and return qq-local-agent evidence for local source/public parity, sanitization, production build, public-positioning guard, inventory/catalog consistency, and live Clintware URLs.",
+  "objective": "Read the deployed control-plane runtime copy of public-skill-verify.ps1 from MEMORIA and verify whether it contains the maintained code-search checkout logic. Read-only.",
   "resume_after": false
 }
