@@ -1,0 +1,68 @@
+name: Dispatch Quillgeist Lite DRIZNET Task
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "quillgeist-lite/dispatch/request-driznet.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quillgeist-lite-driznet-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CONTROL_PLANE_MCP_TOKEN: ${{ secrets.CONTROL_PLANE_MCP_TOKEN }}
+      CONTROL_PLANE: https://mcp.clintware.com
+      REQUEST_FILE: quillgeist-lite/dispatch/request-driznet.json
+      RESULT_FILE: quillgeist-lite/dispatch/result-driznet.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dispatch and stream DRIZNET task
+        run: python3 quillgeist-lite/dispatch/relay.py
+
+      - name: Persist sanitized DRIZNET evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -f quillgeist-lite/dispatch/result-driznet.json ]; then
+            echo "No DRIZNET result file was produced."
+            exit 0
+          fi
+          git config user.name "clintware-qq"
+          git config user.email "qq@users.noreply.github.com"
+
+          result_tmp="$(mktemp)"
+          cp quillgeist-lite/dispatch/result-driznet.json "$result_tmp"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$result_tmp" quillgeist-lite/dispatch/result-driznet.json
+            git add quillgeist-lite/dispatch/result-driznet.json
+
+            if git diff --cached --quiet; then
+              echo "DRIZNET result is already current."
+              exit 0
+            fi
+
+            git commit -m "Record sanitized DRIZNET QQ dispatch result"
+            if git push origin HEAD:main; then
+              echo "DRIZNET result persisted."
+              exit 0
+            fi
+
+            sleep $((attempt * 2))
+          done
+
+          echo "Could not persist DRIZNET result after bounded retries." >&2
+          exit 1
