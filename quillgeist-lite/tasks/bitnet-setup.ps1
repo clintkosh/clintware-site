@@ -362,9 +362,10 @@ $CliStdout = Join-Path $ProgressDir "bitnet-cli.stdout.log"
 $CliStderr = Join-Path $ProgressDir "bitnet-cli.stderr.log"
 Remove-Item -LiteralPath $CliStdout,$CliStderr -Force -ErrorAction SilentlyContinue
 
+$cliPrompt = '"Reply with exactly BITNET_READY."'
 $cliArgs = @(
   "-m",$Model,
-  "-p","Reply with exactly BITNET_READY.",
+  "-p",$cliPrompt,
   "-n","32",
   "-c","2048",
   "-t",[string]([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))),
