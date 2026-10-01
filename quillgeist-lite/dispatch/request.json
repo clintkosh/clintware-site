@@ -1,15 +1,13 @@
 {
-  "request_id": "memoria-linkedin-skill-repo-verify-20261001-1251",
-  "task_id": "repo-code-search",
+  "request_id": "memoria-qq-runtime-v30-check-20261001-1254",
+  "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
-    "Query": "linkedin-evidence-post",
-    "Path": ".",
-    "Mode": "text",
-    "Max": "50",
-    "Json": "true",
-    "FilesOnly": "false"
+    "Action": "read",
+    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json",
+    "MaxChars": "100000",
+    "Headless": "true"
   },
-  "objective": "Verify from MEMORIA's maintained Clintware repository that the LinkedIn Evidence Post skill, public mirror, catalog/inventory references, and routing invariant are present in source. Read-only.",
+  "objective": "From MEMORIA, read the deployed QQ runtime task registry and verify whether registry version 30 with public-skill-verify is available. Read-only.",
   "resume_after": false
 }
