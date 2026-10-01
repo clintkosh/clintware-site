@@ -133,6 +133,22 @@ jobs:
           if(initial.customers.length<7) throw new Error('sample portfolio incomplete: '+initial.customers.length);
           const names=new Set(initial.customers.map(x=>x.name));
           for(const n of ['Northstar Bank (Synthetic)','Harbor Financial Group','Aster Health Systems','Vector Commerce','Forge Industrial','Summit SaaS','Northwind Technology Services']) if(!names.has(n)) throw new Error('missing sample '+n);
+          const expectedPhases=new Set(['discover','govern','test','protect','prove','expand']);
+          const phases=new Set(initial.customers.map(x=>x.phase).filter(Boolean));
+          for(const p of expectedPhases) if(!phases.has(p)) throw new Error('missing lifecycle phase '+p);
+          const actionStatuses=new Set();
+          const depth=[];
+          for(const c of initial.customers.filter(x=>x.defaultSample&&!x.isGoldenExample)){
+            const st=await page.evaluate(id=>fetch('/api/state?customer='+encodeURIComponent(id)).then(r=>r.json()),c.id);
+            const count=t=>st.records.filter(r=>r.type===t).length;
+            const riskIssue=count('risk')+count('issue');
+            st.records.filter(r=>r.type==='action').forEach(r=>actionStatuses.add(String(r.data?.status||'')));
+            const row={name:c.name,stage:c.stage,phase:c.phase,stakeholders:count('stakeholder'),kpis:count('kpi'),actions:count('action'),riskIssue,meetings:count('meeting')};
+            depth.push(row);
+            if(row.stakeholders<3||row.kpis<3||row.actions<2||row.riskIssue<1||row.meetings<1) throw new Error('seed depth failed '+JSON.stringify(row));
+          }
+          if(actionStatuses.size<4) throw new Error('seed action status variety too low: '+[...actionStatuses].join(','));
+          await page.evaluate(id=>fetch('/api/state?customer='+encodeURIComponent(id)).then(r=>r.json()),initial.customer.id);
           const types=new Set(initial.records.map(x=>x.type));
           for(const t of ['handoff','integration','kpi','adoption','risk','stakeholder','action','issue','meeting','call_prep','assistant_profile','raci']) if(!types.has(t)) throw new Error('missing record type '+t);
           if(initial.records.filter(x=>x.type==='kpi').length<5) throw new Error('KPI evidence set incomplete');
@@ -176,7 +192,7 @@ jobs:
           const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
           if(overflow) throw new Error('mobile horizontal overflow');
           if(errors.length||badResponses.length) throw new Error('browser faults: '+[...errors,...badResponses].join(' | '));
-          console.log(JSON.stringify({ok:true,title,accounts:initial.customers.length,goldenRecords:initial.records.length,presentationSlides:slides,pdfBytes:bytes,browserLocalBytes:localBytes,databaseRowsPerDemoSession:0,mobileOverflow:false,errors:[],badResponses:[]},null,2));
+          console.log(JSON.stringify({ok:true,title,accounts:initial.customers.length,lifecyclePhases:[...phases],sampleDepth:depth,actionStatusVariety:[...actionStatuses],goldenRecords:initial.records.length,presentationSlides:slides,pdfBytes:bytes,browserLocalBytes:localBytes,databaseRowsPerDemoSession:0,mobileOverflow:false,errors:[],badResponses:[]},null,2));
           await browser.close();
           JS
           cd /tmp/nma-browser
@@ -184,4 +200,4 @@ jobs:
 
       - name: Verification summary
         run: |
-          echo 'NMA_VERIFIED=source+role-logic+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile'
+          echo 'NMA_VERIFIED=source+role-logic+multi-stage-seed-depth+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile'
