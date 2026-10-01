@@ -98,5 +98,17 @@
   "persistence_mode": "browser-local",
   "remote_state_required": false,
   "durable_objects_required": false,
-  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage."
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 7,
+    "lifecycle_stages_min": 6,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 3,
+    "risks_per_account_min": 2,
+    "cross_functional_issues_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  }
 }
