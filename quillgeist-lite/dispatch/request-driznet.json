@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-business-controls-20261001-1227",
+  "request_id": "driznet-cwinteract-linkedin-create-link-20261001-1229",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "Business",
+    "Query": "Create a Company Page",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "60",
+    "MaxResults": "30",
     "WaitMs": "250"
   },
-  "objective": "Inspect LinkedIn app controls containing 'Business' to locate the Company Page creation path. Do not change anything.",
+  "objective": "Locate the exact Create a Company Page control in the signed-in LinkedIn app before navigating. Do not mutate data.",
   "resume_after": false
 }
