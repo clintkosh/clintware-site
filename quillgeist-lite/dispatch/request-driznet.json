@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-runtime-version-check-20261001-1110",
+  "request_id": "driznet-runtime-version-check-20261001-1113",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -17,6 +17,6 @@
     "WaitMs": "300",
     "UserWaitMs": "0"
   },
-  "objective": "Read the public Clintware QQ runtime version endpoint from DRIZNET and report the currently deployed source revision before updating the local task bundle.",
+  "objective": "Recheck the deployed QQ runtime source revision after adding the Windows app UI task.",
   "resume_after": false
 }
