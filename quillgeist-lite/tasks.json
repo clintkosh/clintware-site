@@ -1,7 +1,7 @@
 {
-  "version": 25,
+  "version": 26,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
   "runtimes": [
     "powershell",
     "python",
@@ -12,7 +12,11 @@
       "title": "Check local Clintware prerequisites",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/clintware-doctor.ps1",
-      "parameters": []
+      "parameters": [],
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "diagnostics",
+      "max_parallel": 2
     },
     "google-cloud-support-access": {
       "title": "Grant the Clintware support Google account access to the existing Google Cloud project",
@@ -38,7 +42,11 @@
       "script": "quillgeist-lite/tasks/runtime-python-check.py",
       "parameters": [
         "Message"
-      ]
+      ],
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "runtime-check",
+      "max_parallel": 4
     },
     "c-runtime-check": {
       "title": "Verify compiled C execution through Quillgeist Lite",
@@ -46,7 +54,11 @@
       "script": "quillgeist-lite/tasks/runtime-c-check.c",
       "parameters": [
         "Message"
-      ]
+      ],
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "runtime-check",
+      "max_parallel": 2
     },
     "ensure-c-runtime": {
       "title": "Ensure an approved C compiler is available on Windows",
@@ -181,7 +193,11 @@
         "Max",
         "Json",
         "FilesOnly"
-      ]
+      ],
+      "parallel_safe": true,
+      "resource_class": "io",
+      "concurrency_group": "repo-read",
+      "max_parallel": 4
     },
     "bitnet-setup": {
       "title": "Install, build, and validate the official Microsoft BitNet runtime on this Windows machine",
@@ -286,7 +302,11 @@
         "LargestFiles"
       ],
       "approval": "pre-approved",
-      "timeout_seconds": 900
+      "timeout_seconds": 900,
+      "parallel_safe": true,
+      "resource_class": "io",
+      "concurrency_group": "storage-read",
+      "max_parallel": 1
     },
     "crm-astro-build": {
       "title": "Materialize, validate, check, or deploy an ASTRO role-specific CRM locally",
@@ -323,7 +343,11 @@
         "MaxDepth"
       ],
       "approval": "pre-approved",
-      "timeout_seconds": 600
+      "timeout_seconds": 600,
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "planner",
+      "max_parallel": 2
     },
     "ensure-python": {
       "title": "Install or repair Python 3 and return the current runtime",
@@ -334,6 +358,38 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 600
+    },
+    "worker-pool-profile": {
+      "title": "Report adaptive local CPU RAM GPU worker capacity and current load",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/resource_scheduler.py",
+      "parameters": [
+        "MaxWorkers"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 60,
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "diagnostics",
+      "max_parallel": 1
+    },
+    "local-model-work": {
+      "title": "Run one bounded local-model work unit using the best installed local model and GPU when available",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/local_model_work.py",
+      "parameters": [
+        "Prompt",
+        "Model",
+        "MaxTokens",
+        "ContextTokens",
+        "Temperature"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 900,
+      "parallel_safe": true,
+      "resource_class": "gpu",
+      "concurrency_group": "local-model",
+      "max_parallel": 2
     }
   }
 }
