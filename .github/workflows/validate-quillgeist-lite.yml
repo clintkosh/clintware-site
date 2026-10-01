@@ -160,6 +160,7 @@ jobs:
             "quillgeist-lite/tools/crm_astro.py",
             "quillgeist-lite/tools/resource_scheduler.py",
             "quillgeist-lite/tools/local_model_work.py",
+            "quillgeist-lite/tasks/worker-pool-smoke.py",
             "agentbridge-node/agentbridge_node/big_prompt.py",
             "quillgeist-lite/dispatch/relay.py"
           )
@@ -270,9 +271,12 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $src = Get-Content -LiteralPath "control-plane/src/index.js" -Raw
-          if ($src -notmatch '"crm-astro-build":\{runtime:"powershell",parameters:\["Action","Project","SkipInstall"\]\}') { throw "Control Plane does not allow the reviewed CRM ASTRO task contract." }
-          if ($src -match '"crm-astro-build":\{runtime:"powershell",parameters:\[[^\]]*(Manifest|RepoRoot)') { throw "CRM ASTRO remote allowlist exposes local path arguments." }
+          $remoteRegistry = Get-Content -LiteralPath "control-plane/quillgeist-remote-tasks.json" -Raw | ConvertFrom-Json
+          $crmRemote = $remoteRegistry.tasks.'crm-astro-build'
+          if (-not $crmRemote) { throw "Control Plane does not allow the reviewed CRM ASTRO task contract." }
+          $crmParams = @($crmRemote.parameters)
+          if (($crmParams -join ",") -ne "Action,Project,SkipInstall") { throw "CRM ASTRO remote argument contract drifted: $($crmParams -join ',')" }
+          if ($crmParams -contains "Manifest" -or $crmParams -contains "RepoRoot") { throw "CRM ASTRO remote allowlist exposes local path arguments." }
           $restore = Get-Content -LiteralPath "quillgeist-lite/tools/restore-runtime.ps1" -Raw
           if ($restore -notmatch "'tools/crm_astro\.py'") { throw "QQ runtime restore does not include the CRM ASTRO validator." }
           $task = Get-Content -LiteralPath "quillgeist-lite/tasks/crm-astro-build.ps1" -Raw
