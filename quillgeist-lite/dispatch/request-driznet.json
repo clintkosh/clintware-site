@@ -1,8 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-tabscan-selfupdate-20261001-1222",
-  "task_id": "self-update",
+  "request_id": "driznet-cwinteract-linkedin-inspect-v2-20261001-1225",
+  "task_id": "cwinteract",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Update DRIZNET to the latest deployed QQ runtime containing CWInteract™ browser-document visibility and tab-scan fallback, preserving device registration and resuming work.",
-  "resume_after": true
+  "args": {
+    "Action": "inspect",
+    "AppName": "LinkedIn",
+    "WindowTitle": "LinkedIn",
+    "Query": "",
+    "StepsJson": "",
+    "Approved": "false",
+    "MaxResults": "100",
+    "WaitMs": "300"
+  },
+  "objective": "Inspect the LinkedIn app on DRIZNET with the updated CWInteract™ accessibility tree, including Document/Pane/Custom controls. Do not mutate LinkedIn data.",
+  "resume_after": false
 }
