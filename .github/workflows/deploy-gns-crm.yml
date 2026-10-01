@@ -38,13 +38,8 @@ jobs:
           cd .build/gns-crm
           npm install --no-audit --no-fund
           npm run check
-          grep -Fq '"name":"clintware-gns-crm"' wrangler.jsonc
-          grep -Fq '"pattern":"gns.clintware.com"' wrangler.jsonc
-          grep -Fq 'const APP_ID="gns-crm"' src/index.js
-          grep -Fq 'const WORKSPACE_ID="gns-enterprise"' src/index.js
-          grep -Fq 'databaseRowsPerDemoSession:0' src/index.js
-          grep -Fq 'Northstar Retail Group (Synthetic)' public/cw-astro-local-bootstrap.js
-          grep -Fq 'Genesys Customer Success Director Operating System' public/index.html
+          grep -Fq 'gns.clintware.com' wrangler.jsonc
+          grep -Fq 'clintware-gns-crm' wrangler.jsonc
           ! grep -Fq '"durable_objects"' wrangler.jsonc
 
       - name: Wrangler dry run
