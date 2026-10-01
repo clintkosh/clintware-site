@@ -1,10 +1,13 @@
 {
-  "request_id": "memoria-desktop-inventory-20261001-1629",
-  "task_id": "local-ai",
+  "request_id": "memoria-linkedin-skill-implement-20261001-1235",
+  "task_id": "big-prompt-plan",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "recovery-inventory"
+    "Prompt": "Finish implementing the LinkedIn Evidence Post skill end to end. Verify the committed internal and public skill files, public skills catalog and inventory consistency, run the public-skill/security and site build checks available in the maintained repository, and verify the deployed Clintware skill URL and catalog entry. Preserve current repository work and do not overwrite unrelated changes. Return concrete local-agent-confirmed evidence and leave any failed gate explicit.",
+    "Project": "clintware-linkedin-evidence-post",
+    "StateScope": "clintware-linkedin-evidence-post",
+    "MaxDepth": "3"
   },
-  "objective": "Inspect desktop continuation scripts and local Codex handoffs using the newly deployed bounded inventory; preserve D exclusion and do not execute arbitrary historical scripts",
+  "objective": "Plan and execute the smallest dependency-aware QQ/MEMORIA verification path for the LinkedIn Evidence Post skill, using deterministic local checks first and requiring live deployment verification before completion.",
   "resume_after": false
 }
