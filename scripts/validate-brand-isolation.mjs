@@ -24,7 +24,21 @@ for (const file of files) {
   if (buf.includes(0)) continue;
   const text = buf.toString("utf8");
   if (text.toLowerCase().includes(brandNeedle)) {
-    errors.push(`BRAND_ISOLATION_FAIL ${file}: contains the separate-brand identifier`);
+    const policyFiles = new Set([
+      "control-plane/MASTER-PROMPT.md",
+      "control-plane/src/master-prompt.js",
+    ]);
+    if (policyFiles.has(file)) {
+      const lower = text.toLowerCase();
+      const count = lower.split(brandNeedle).length - 1;
+      const requiredA = "do not mix codefeddy material into professional clintware";
+      const requiredB = "do not infer that codefeddy credentials, repos, identities, or services may be substituted for clintware";
+      if (count !== 2 || !lower.includes(requiredA) || !lower.includes(requiredB)) {
+        errors.push(`BRAND_ISOLATION_FAIL ${file}: canonical policy contains unexpected separate-brand content`);
+      }
+    } else {
+      errors.push(`BRAND_ISOLATION_FAIL ${file}: contains the separate-brand identifier`);
+    }
   }
 
   const publicNodeCode =
