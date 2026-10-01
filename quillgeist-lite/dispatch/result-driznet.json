@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-linkedin-open-system-edge-20261001-1050",
-  "job_id": "ed4e7021-8df3-4464-a75a-9ef30dc6c764",
-  "task_id": "open-edge-tab",
+  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1051",
+  "job_id": "c61a3854-4096-420d-a57c-2885bd7a0ddb",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 1231,
+  "status": "failed",
+  "exit_code": 1,
+  "duration_ms": 768,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T15:50:10.9597437Z",
-  "recorded_at": 1790869809,
+  "confirmed_at": "2026-10-01T15:50:34.9161071Z",
+  "recorded_at": 1790869833,
   "recovery_history": [],
-  "output_tail": "[run] OPENED SYSTEM EDGE TAB // https://www.linkedin.com/company/setup/new/\r\n[run] AUTH MODE // normal browser session; no QQ automation flags"
+  "output_tail": "[run] \u001b[31;1mbrowser-work.ps1: \u001b[31;1mCannot validate argument on parameter 'MaxResults'. The 60 argument is greater than the maximum allowed range of 20. Supply an argument that is less than or equal to 20 and then try the command again.\u001b[0m"
 }
