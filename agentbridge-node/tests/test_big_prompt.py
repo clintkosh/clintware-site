@@ -48,6 +48,25 @@ class BigPromptTests(unittest.TestCase):
         plan = plan_big_prompt("Build the source code, run tests, and package the result.", settings(), force=True)
         self.assertTrue(any(unit.lane == "qq_deterministic" for unit in plan.units))
 
+    def test_provider_name_as_architecture_context_stays_local(self):
+        prompt = (
+            "Harden the ChatGPT-to-QQ routing path, recover state, compact context, "
+            "decompose the work, implement the fix, and verify execution evidence."
+        )
+        plan = plan_big_prompt(prompt, settings(), force=True)
+        self.assertGreaterEqual(plan.local_units, 1)
+        self.assertTrue(all(unit.lane == "qq_deterministic" for unit in plan.units))
+
+    def test_explicit_provider_request_routes_remote(self):
+        plan = plan_big_prompt("Use Gemini to compare the latest provider documentation.", settings(), force=True)
+        self.assertGreaterEqual(plan.remote_units, 1)
+        self.assertTrue(any(unit.provider_hint == "gemini" for unit in plan.units))
+
+    def test_plain_current_code_state_does_not_force_remote(self):
+        plan = plan_big_prompt("Inspect the current local configuration, patch the source code, and run tests.", settings(), force=True)
+        self.assertGreaterEqual(plan.local_units, 1)
+        self.assertTrue(all(not unit.requires_fresh_authority for unit in plan.units))
+
     def test_secret_shapes_are_redacted_from_plan(self):
         prompt = "Use Bearer abcdefghijklmnopqrstuvwxyz123456789 to deploy the project."
         plan = plan_big_prompt(prompt, settings(), force=True)
