@@ -9,6 +9,9 @@ $InstalledExe = Join-Path $ProgramRoot "Clintware-TaskIsolation.exe"
 $RuntimeRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $BundledExe = Join-Path $RuntimeRoot "quillgeist-lite\tools\Clintware-TaskIsolation.exe"
 $LogPath = Join-Path $ProgramRoot "last-run.log"
+$DownloadsDir = Join-Path $env:USERPROFILE "Downloads"
+$DownloadsExe = Join-Path $DownloadsDir "Clintware-TaskIsolation.exe"
+$DownloadsHash = Join-Path $DownloadsDir "Clintware-TaskIsolation-SHA256.txt"
 
 function Test-Administrator {
   $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -37,6 +40,19 @@ $bundledHash = Get-HashSafe $BundledExe
 $installedHash = Get-HashSafe $InstalledExe
 if (-not $installedHash -or $installedHash -ne $bundledHash) {
   Copy-Item -LiteralPath $BundledExe -Destination $InstalledExe -Force
+}
+
+# Keep a fresh user-facing copy in Downloads whenever the bundled build changes.
+try {
+  New-Item -ItemType Directory -Force -Path $DownloadsDir | Out-Null
+  $downloadHash = Get-HashSafe $DownloadsExe
+  if (-not $downloadHash -or $downloadHash -ne $bundledHash) {
+    Copy-Item -LiteralPath $BundledExe -Destination $DownloadsExe -Force
+    ($bundledHash + "  Clintware-TaskIsolation.exe") | Set-Content -LiteralPath $DownloadsHash -Encoding ASCII
+    Write-Output ("TASK-ISOLATION // refreshed Downloads copy: " + $DownloadsExe)
+  }
+} catch {
+  Write-Output ("TASK-ISOLATION // Downloads refresh warning: " + $_.Exception.Message)
 }
 
 $args = @("--quiet")
