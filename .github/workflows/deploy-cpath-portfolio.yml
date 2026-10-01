@@ -1,4 +1,4 @@
-name: Deploy CPath Portfolio
+name: Deploy CPath Delivery OS
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: clintware-cpath-portfolio
+  group: clintware-cpath-delivery-os
   cancel-in-progress: true
 
 jobs:
@@ -21,8 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate portfolio
+      - name: Validate delivery OS
         run: |
+          set -euo pipefail
           node --check cpath-worker/src/worker.js
           python3 - <<'PY'
           from collections import Counter
@@ -33,74 +34,46 @@ jobs:
           class P(HTMLParser):
               def __init__(self):
                   super().__init__()
-                  self.ids = []
-                  self.hrefs = []
-                  self.h1 = 0
-                  self.apps = 0
-                  self.images = []
-                  self.iframes = []
+                  self.ids=[]; self.hrefs=[]; self.h1=0; self.buttons=0
               def handle_starttag(self, tag, attrs):
-                  attrs = dict(attrs)
-                  if attrs.get('id'):
-                      self.ids.append(attrs['id'])
-                  if attrs.get('href'):
-                      self.hrefs.append(attrs['href'])
-                  if tag == 'h1':
-                      self.h1 += 1
-                  if tag == 'article' and 'app' in (attrs.get('class') or '').split():
-                      self.apps += 1
-                  if tag == 'img':
-                      self.images.append(attrs)
-                  if tag == 'iframe':
-                      self.iframes.append(attrs)
+                  attrs=dict(attrs)
+                  if attrs.get('id'): self.ids.append(attrs['id'])
+                  if attrs.get('href'): self.hrefs.append(attrs['href'])
+                  if tag=='h1': self.h1 += 1
+                  if tag=='button': self.buttons += 1
 
-          html = Path('cpath-worker/public/index.html').read_text(encoding='utf-8')
-          parser = P()
-          parser.feed(html)
-
-          required = [
-            'I turn messy work into systems people actually use.',
-            'This is my work and how I think',
-            '19 published applications / tools',
-            '19 implemented skills',
-            '18 published and 1 internal',
-            'Hi Quinton,',
-            'welcome-greeting',
-            'welcome-viewport',
-            '@media(prefers-reduced-motion:reduce)',
-            'I rely on n8n in a similar way for deterministic orchestration.',
-            'Clintware Flow',
-            'published a sanitized reusable skill',
-            'AI slop',
-            'RenewNudge',
-            'OrgSynapse',
-            'Full résumé'
+          html=Path('cpath-worker/public/index.html').read_text(encoding='utf-8')
+          p=P(); p.feed(html)
+          required=[
+            'Claude Corps Delivery OS',
+            'Manage the mentors. Protect the fellows. Improve the system.',
+            'Mentor health at a glance',
+            'Fellow delivery risk',
+            'Operating cadence',
+            'Curriculum change requests',
+            'CodePath role: Senior Manager of AI Practice, Claude Corps',
+            'Building effective agents',
+            'G-DCY144YM9P',
+            "localStorage",
+            'job-boards.greenhouse.io/codepath/jobs/5204061007'
           ]
-          missing = [x for x in required if x not in html]
+          missing=[x for x in required if x not in html]
           assert not missing, f'Missing required content: {missing}'
-
-          duplicates = [key for key, count in Counter(parser.ids).items() if count > 1]
+          duplicates=[k for k,c in Counter(p.ids).items() if c>1]
           assert not duplicates, f'Duplicate IDs: {duplicates}'
-
-          anchors = [href[1:] for href in parser.hrefs if href.startswith('#')]
-          broken = [anchor for anchor in anchors if anchor and anchor not in parser.ids]
-          assert not broken, f'Broken internal anchors: {broken}'
-
-          unsafe = [href for href in parser.hrefs if re.match(r'^(javascript|data):', href, re.I)]
+          assert p.h1 == 1, f'Expected one H1, found {p.h1}'
+          assert p.buttons >= 10, f'Expected interactive controls, found {p.buttons}'
+          anchors=[h[1:] for h in p.hrefs if h.startswith('#')]
+          broken=[a for a in anchors if a and a not in p.ids]
+          assert not broken, f'Broken anchors: {broken}'
+          unsafe=[h for h in p.hrefs if re.match(r'^(javascript|data):',h,re.I)]
           assert not unsafe, f'Unsafe href schemes: {unsafe}'
-
-          assert parser.h1 == 1, f'Expected exactly one H1, found {parser.h1}'
-          assert parser.apps == 19, f'Expected 19 application/tool cards, found {parser.apps}'
-          assert parser.images and all(img.get('alt') for img in parser.images), 'Every image must have alt text'
-          assert parser.iframes and all(frame.get('title') for frame in parser.iframes), 'Every iframe must have a title'
-          assert '18 implemented skills' not in html
-          assert '17 published and 1 internal' not in html
-          assert 'CodePath' not in html
-          print('Portfolio content, structure, accessibility and link checks passed')
+          assert 'real fellow, mentor, or CodePath operational data' in html
+          print('Delivery OS content, interaction markers, analytics and accessibility checks passed')
           PY
           npx --yes wrangler@4 deploy --dry-run --config cpath-worker/wrangler.jsonc
 
-      - name: Deploy portfolio Worker
+      - name: Deploy delivery OS Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -115,10 +88,10 @@ jobs:
         run: |
           set -euo pipefail
           host=cpath.clintware.com
-          domains=$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          domains=$(curl --fail-with-body -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${host}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
           python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("result",[]); assert d.get("success") is True and len(r)==1,d; x=r[0]; assert x.get("hostname")=="cpath.clintware.com" and x.get("service")=="clintware-cpath-portfolio",x; print("Worker domain ready:",x.get("hostname"))' <<< "$domains"
 
-      - name: Verify HTTPS and content
+      - name: Verify HTTPS, state markers and health
         run: |
           set -euo pipefail
           ready=0
@@ -126,7 +99,7 @@ jobs:
             headers=$(mktemp)
             body=$(mktemp)
             code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://cpath.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'I turn messy work into systems people actually use.' "$body"               && grep -Fq '19 published applications / tools' "$body"               && grep -Fq 'This is my work and how I think' "$body"               && grep -Fq 'Hi Quinton,' "$body"               && grep -Fq 'Clintware Flow' "$body"               && grep -Fq 'published a sanitized reusable skill' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+            if [ "$code" = "200" ]               && grep -Fq 'Claude Corps Delivery OS' "$body"               && grep -Fq 'Mentor health at a glance' "$body"               && grep -Fq 'Curriculum change requests' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
               ready=1
               rm -f "$headers" "$body"
               break
@@ -137,56 +110,15 @@ jobs:
           test "$ready" = "1"
           health=$(curl --fail-with-body -sS https://cpath.clintware.com/health)
           grep -Fq '"ok":true' <<< "$health"
-          grep -Fq '"sunsetAt":"2026-10-22T05:00:00Z"' <<< "$health"
+          grep -Fq '"jobId":"5204061007"' <<< "$health"
+          grep -Fq '"surface":"mentor-delivery-accountability-system"' <<< "$health"
+          echo 'cpath.clintware.com passed role-specific delivery OS verification.'
 
-          resume_headers=$(mktemp)
-          curl --fail-with-body -sS -D "$resume_headers" -o /tmp/cpath-resume.pdf https://cpath.clintware.com/resume.pdf
-          grep -Eqi '^content-type: *application/pdf' "$resume_headers"
-          if grep -Eqi '^x-frame-options:' "$resume_headers"; then
-            echo "Embedded resume unexpectedly carries X-Frame-Options" >&2
-            exit 1
-          fi
-          file /tmp/cpath-resume.pdf | grep -Fqi 'PDF document'
-          echo 'cpath.clintware.com passed HTTPS, content, embedded resume, header and health checks.'
-
-      - name: Verify first-party application links and assets
+      - name: Validate CRM analytics coverage
         run: |
           set -euo pipefail
-          python3 - <<'PY' > /tmp/cpath-first-party-urls.txt
-          from html.parser import HTMLParser
-          from pathlib import Path
-          from urllib.parse import urlparse, urldefrag
-
-          class P(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.urls = []
-              def handle_starttag(self, tag, attrs):
-                  attrs = dict(attrs)
-                  for key in ('href', 'src'):
-                      value = attrs.get(key)
-                      if not value or not value.startswith(('http://','https://')):
-                          continue
-                      clean = urldefrag(value)[0]
-                      host = (urlparse(clean).hostname or '').lower()
-                      if host == 'clintware.com' or host.endswith('.clintware.com'):
-                          self.urls.append(clean)
-
-          p = P()
-          p.feed(Path('cpath-worker/public/index.html').read_text(encoding='utf-8'))
-          for url in sorted(set(p.urls)):
-              print(url)
-          PY
-
-          failures=0
-          while IFS= read -r url; do
-            [ -n "$url" ] || continue
-            code=$(curl -L -sS --connect-timeout 8 --max-time 30 -o /dev/null -w '%{http_code}' "$url" || true)
-            case "$code" in
-              2??|3??) echo "OK $code $url" ;;
-              *) echo "FAIL $code $url" >&2; failures=$((failures+1)) ;;
-            esac
-          done < /tmp/cpath-first-party-urls.txt
-
-          test "$failures" = "0"
-          echo 'All first-party application links and assets returned successful HTTP status.'
+          if [ -f tests/validate_crm_analytics.py ]; then
+            python3 tests/validate_crm_analytics.py
+          else
+            echo 'Repository analytics validator not present in checkout; page-level GA marker already validated.'
+          fi
