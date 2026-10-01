@@ -73,6 +73,27 @@ The ASTRO is the conceptual base.  A prior company build is never the conceptual
 This rule prevents the reusable system from slowly becoming "the Doppel template" or any other employer-specific template.
 
 
+
+## Current implementation-reference default
+
+When the current verified repository still shows `dplr-crm` as the strongest mature browser-local CRM foundation, prefer it as the implementation reference for new Customer Success / CS Operations / Implementation / Professional Services / TAM / Support application CRMs.
+
+The manifest should state:
+
+```json
+{
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false
+}
+```
+
+This is an implementation default, not a conceptual-template rule.  Re-evaluate it when a later generic foundation is demonstrably stronger.
+
+For CRM+Cover local-factory builds, inherit the application quality gates from `ASTRO_CRM_COVER_SKILL.md`.  In particular, an unsupported metric is a release-blocking defect, not a cosmetic copy issue.
+
 ## Paired application profile: CRM+Cover
 
 When the application also includes a Why Company / Why Us field and/or a cover-letter field, use `ASTRO_CRM_COVER_SKILL.md` as the application-package wrapper around this CRM ASTRO.
