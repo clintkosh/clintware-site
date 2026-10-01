@@ -1,9 +1,11 @@
 {
-  "request_id": "all-machines-adaptive-workers-selfupdate-20261001-0946",
+  "request_id": "all-machines-worker-profile-20261001-0948",
   "mode": "rollout",
-  "task_id": "self-update",
-  "args": {},
-  "objective": "Install the validated adaptive QQ worker pool on every registered machine: runtime v30, registry v26, bounded CPU/RAM/GPU worker scheduling, parallel-safe task isolation, GPU local-model routing, and dependency-aware large-job fan-out. Preserve device-specific state and existing work.",
-  "resume_after": true,
-  "verify_seconds": 360
+  "task_id": "worker-pool-profile",
+  "args": {
+    "MaxWorkers": "12"
+  },
+  "objective": "Report live adaptive CPU RAM GPU worker capacity on every registered QQ machine after runtime v30 rollout.",
+  "resume_after": false,
+  "verify_seconds": 240
 }
