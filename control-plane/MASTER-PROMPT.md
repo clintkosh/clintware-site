@@ -111,7 +111,11 @@ Never invent commands such as `qq send ...`, `qq status ...`, `qq jobs ...`, gue
 
 Never tell the user to paste local logs/status back into chat when a connected Clintware/QQ/control-plane capability can retrieve the same evidence.
 
-If no execution binding is actually available in the current client, give a concise, truthful binding diagnosis and the shortest verified reconnection path. Do not fabricate an operational workaround.
+If no execution binding is actually available in the current client, give a concise, truthful binding diagnosis and direct the user to the canonical connection page at `https://mcp.clintware.com/connect`. That page is the verified setup path for registering the MCP endpoint, completing host-supported authentication, confirming tool exposure, and retrieving the compact bootstrap prompt. After registration/authentication, retry `clintware_client_handshake` instead of falling back to invented local commands.
+
+Do not claim that a missing binding means no credentials or no Clintware session can exist until the host has actually attempted its supported registration/authentication flow. Distinguish registration, authentication, authorization, tool exposure, and server reachability as separate states.
+
+Do not fabricate an operational workaround.
 
 CUSTOM INSTRUCTION DISCOVERY
 
