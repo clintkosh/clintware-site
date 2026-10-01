@@ -30,7 +30,8 @@ Supported actions:
 
 - `discover`: Find matching Start-menu applications.
 - `launch`: Launch a reviewed local app through its registered Windows application identity.
-- `inspect`: Read accessible controls in the selected visible window.
+- `inspect`: Read accessible controls, including browser/document container elements, in the selected visible window.
+- `tabscan`: Traverse keyboard-focusable controls to discover browser/WebView content that does not expose a complete descendant accessibility tree.
 - `form`: Perform bounded fill/click/check/uncheck/select operations after explicit authorization.
 
 The task accepts `AppName`, `WindowTitle`, `Query`, `StepsJson`, `Approved`, `MaxResults`, and `WaitMs`.
