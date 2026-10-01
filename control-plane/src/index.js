@@ -196,6 +196,19 @@ const DEFAULT_ORGSYNAPSE = {
   created_at:"2026-09-19T00:00:00.000Z"
 };
 
+const DEFAULT_CODEFEDDY = {
+  product:"codefeddy",
+  environment:"production",
+  version:1,
+  repo:{identity:"codefeddy",owner:"codeFEDDY",name:"codeFEDDY.github.io",default_branch:"main",read:true,write_prefixes:[""],delete_prefixes:[],allowed_workflows:[]},
+  capabilities:["repo.read:codeFEDDY.github.io","repo.write:**","repo.branch:create","repo.branch:read","repo.commit:status"],
+  deny:["secrets.read","secrets.export","billing.manage","repo.delete","repo.workflow:dispatch","deployment.execute","dns.ensure","infrastructure.admin:*"],
+  protected_paths:[".github/workflows/",".github/actions/"],
+  telemetry_namespace:"codefeddy",
+  workspace:{brand:"CodeFEDDY",strict_identity:true,no_clintware_fallback:true},
+  created_at:"2026-10-01T00:00:00.000Z"
+};
+
 const DEFAULT_QUILLGEIST_LITE = {
   product:"quillgeist-lite",
   environment:"production",
@@ -317,7 +330,7 @@ const QUILLGEIST_LITE_TASKS = {
   "share-ai-network":{runtime:"powershell",parameters:[]}
 };
 
-const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"landtheplane-cc":DEFAULT_LANDTHEPLANE_CC,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
+const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"landtheplane-cc":DEFAULT_LANDTHEPLANE_CC,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE,codefeddy:DEFAULT_CODEFEDDY};
 
 const DEFAULT_FLOW_DEFINITIONS = [
   {
@@ -1912,18 +1925,9 @@ export class RegistryHub extends DurableObject {
     let products=await this.ctx.storage.get("products");
     if(!products)products={};
     let changed=false;
-    // Brand isolation: this Clintware control plane must not retain or expose the
-    // separate creator-brand product in current registry/client state.
-    const retiredProduct=["code","feddy"].join("");
-    if(products[retiredProduct]){
-      delete products[retiredProduct];
-      changed=true;
-    }
-    const retiredClients=await this.ctx.storage.get("clients")||{};
-    if(retiredClients[retiredProduct]){
-      delete retiredClients[retiredProduct];
-      await this.ctx.storage.put("clients",retiredClients);
-    }
+    // Brand isolation is enforced by repository identity, not by hiding the workspace.
+    // CodeFEDDY remains a separate GitHub owner/repository and must never fall back
+    // to the Clintware GitHub identity.
     for(const [key,defaults] of Object.entries(DEFAULT_PRODUCTS)){
       if(!products[key]){products[key]=defaults;changed=true;continue;}
       if(products[key].version!==defaults.version){
