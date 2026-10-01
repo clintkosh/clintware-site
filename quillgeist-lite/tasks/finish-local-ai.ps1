@@ -116,6 +116,9 @@ while(-not $complete -and $pass -lt [Math]::Max(1,$MaxPasses)){
   Run-Independent "repair-existing-storage" {
     & $python $reconcilePy --Action repair-storage
   }
+  Run-Independent "repair-comfy-runtime" {
+    & $python $reconcilePy --Action repair-comfy-runtime
+  }
   Run-Independent "recover-local-agents" {
     & $python $reconcilePy --Action recover-agents
   }
