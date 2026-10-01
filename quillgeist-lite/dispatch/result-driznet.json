@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cwinteract-runtime-confirm-20261001-1128",
-  "job_id": "35511774-4a84-4d67-8d84-93d7287abc8b",
-  "task_id": "browser-work",
+  "request_id": "driznet-cwinteract-selfupdate-20261001-1130",
+  "job_id": "aefc843e-fed4-449b-8f97-2540fa57489b",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 4508,
+  "status": "failed",
+  "exit_code": 1,
+  "duration_ms": 1586,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:08:00.0109220Z",
-  "recorded_at": 1790870878,
+  "confirmed_at": "2026-10-01T16:08:28.1751197Z",
+  "recorded_at": 1790870906,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"read\",\"page\":{\"title\":\"\",\"url\":\"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version\",\"description\":\"\",\"headings\":[],\"text\":\"{\\\"ok\\\":true,\\\"runtime_version\\\":\\\"2026-10-01-task-isolation-v31\\\",\\\"source_revision\\\":\\\"49b6365c2c80423652d2cf206fbc9e80802ddce2\\\",\\\"control_plane_version\\\":\\\"2026-10-01-task-isolation-contract.4\\\",\\\"time\\\":\\\"2026-10-01T16:07:56.640Z\\\"}\",\"links\":[],\"images\":[],\"truncated\":false}}"
+  "output_tail": "[run] \u001b[31;1mException: \u001b[0mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\self-update.ps1:26\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  26 | \u001b[0m \u2026 nt -gt 0) { \u001b[36;1mthrow \"Reviewed QQ source failed PowerShell parse validat\u001b[0m \u2026\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mReviewed QQ source failed PowerShell parse validation:\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mC:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\restore-runtime.ps1.new\u001b[0m"
 }
