@@ -1,13 +1,13 @@
 {
-  "request_id": "memoria-linkedin-skill-live-read-20261001-1241",
+  "request_id": "memoria-linkedin-skill-catalog-read-20261001-1245",
   "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
     "Action": "read",
-    "Url": "https://www.clintware.com/skills/linkedin-evidence-post/SKILL.md",
-    "MaxChars": "30000",
+    "Url": "https://www.clintware.com/skills/",
+    "MaxChars": "40000",
     "Headless": "true"
   },
-  "objective": "From MEMORIA, read the deployed LinkedIn Evidence Post skill URL and return the live page content/status evidence. Do not authenticate or mutate the page.",
+  "objective": "From MEMORIA, verify the live Clintware skills catalog includes LinkedIn Evidence Post and links to /skills/linkedin-evidence-post/SKILL.md. Read-only.",
   "resume_after": false
 }
