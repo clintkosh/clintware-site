@@ -118,7 +118,7 @@ try {
   Invoke-WebRequest -Uri "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json" -OutFile $RegistryTemp -UseBasicParsing -TimeoutSec 25 -ErrorAction Stop
   $registry = Get-Content -LiteralPath $RegistryTemp -Raw | ConvertFrom-Json
   if (-not $registry.tasks) { throw "Reviewed QQ task registry is invalid." }
-  foreach ($requiredTask in @("self-update","local-ai","bitnet-setup","local-ai-integrate","browser-work","crm-astro-build","big-prompt-plan")) {
+  foreach ($requiredTask in @("self-update","local-ai","bitnet-setup","local-ai-integrate","browser-work","cwinteract","crm-astro-build","big-prompt-plan")) {
     if (-not $registry.tasks.PSObject.Properties[$requiredTask]) {
       throw ("Reviewed QQ task registry is missing: " + $requiredTask)
     }
