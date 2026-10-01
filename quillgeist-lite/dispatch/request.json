@@ -1,13 +1,14 @@
 {
-  "request_id": "memoria-linkedin-skill-catalog-read-20261001-1245",
+  "request_id": "memoria-linkedin-skill-catalog-assert-20261001-1247",
   "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "read",
+    "Action": "run",
     "Url": "https://www.clintware.com/skills/",
-    "MaxChars": "40000",
+    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://www.clintware.com/skills/\"},{\"op\":\"wait_for_text\",\"text\":\"LinkedIn Evidence Post\",\"timeout_ms\":15000},{\"op\":\"extract\",\"selector\":\"div.row:has-text(\\\"LinkedIn Evidence Post\\\")\",\"max_chars\":2500},{\"op\":\"attr\",\"selector\":\"a[href=\\\"/skills/linkedin-evidence-post/SKILL.md\\\"]\",\"name\":\"href\"}]}",
+    "MaxChars": "5000",
     "Headless": "true"
   },
-  "objective": "From MEMORIA, verify the live Clintware skills catalog includes LinkedIn Evidence Post and links to /skills/linkedin-evidence-post/SKILL.md. Read-only.",
+  "objective": "Assert from MEMORIA that the live Clintware skills catalog visibly contains LinkedIn Evidence Post and its canonical /skills/linkedin-evidence-post/SKILL.md link. Read-only.",
   "resume_after": false
 }
