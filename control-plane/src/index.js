@@ -23,6 +23,12 @@ const sha256 = async (s) => {
 };
 const b64 = (s) => btoa(unescape(encodeURIComponent(String(s))));
 const fromB64 = (s) => decodeURIComponent(escape(atob(String(s||""))));
+const binaryFromB64 = (s) => {
+  const raw=atob(String(s||"").replace(/\s+/g,""));
+  const bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  return bytes;
+};
 const clampDays = (v) => Math.max(1,Math.min(90,Number(v)||30));
 const reqJson = async (request, max=512_000) => {
   const len=Number(request.headers.get("content-length")||0);
@@ -277,7 +283,9 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/tools/local_ai_parity_check.py",
   "quillgeist-lite/tools/local_ai.py",
   "quillgeist-lite/tools/boot_splash.py",
-  "quillgeist-lite/assets/clintware-terminal-logo.b64"
+  "quillgeist-lite/assets/clintware-terminal-logo.b64",
+  "quillgeist-lite/tools/Clintware-TaskIsolation.exe",
+  "quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt"
 ]);
 
 const QUILLGEIST_LITE_TASKS = Object.freeze(QUILLGEIST_REMOTE_TASK_REGISTRY.tasks || {});
@@ -4288,10 +4296,21 @@ export default {
           /^identity-broker\/scripts\/[A-Za-z0-9._-]+\.ps1$/.test(repoPath) ||
           /^agentbridge-node\/agentbridge_node\/[A-Za-z0-9._-]+\.py$/.test(repoPath);
         if(!reviewedRuntimePath)return json({error:"runtime_asset_not_allowed"},404);
-        const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,env.QUILLGEIST_RUNTIME_REF||"main");
-        if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
-        const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
-        const response=new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"public, max-age=300","x-clintware-runtime-sha":asset.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
+        let response;
+        if(repoPath==="quillgeist-lite/tools/Clintware-TaskIsolation.exe"){
+          const owner=DEFAULT_QUILLGEIST_LITE.repo.owner,repo=DEFAULT_QUILLGEIST_LITE.repo.name;
+          const ref=env.QUILLGEIST_RUNTIME_REF||"main";
+          const gh=await github(env,DEFAULT_QUILLGEIST_LITE,`/repos/${owner}/${repo}/contents/${repoPath.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
+          if(!gh.ok)return json({error:"runtime_binary_unavailable"},gh.status||503);
+          const data=await gh.json();
+          if(Array.isArray(data)||data.type!=="file"||data.encoding!=="base64"||!data.content)return json({error:"runtime_binary_invalid"},503);
+          response=new Response(binaryFromB64(data.content),{status:200,headers:{"content-type":"application/vnd.microsoft.portable-executable","cache-control":"public, max-age=300","x-clintware-runtime-sha":data.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
+        }else{
+          const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,env.QUILLGEIST_RUNTIME_REF||"main");
+          if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
+          const type=repoPath.endsWith(".py")?"text/x-python":repoPath.endsWith(".ps1")?"text/plain; charset=utf-8":"text/plain; charset=utf-8";
+          response=new Response(asset.content,{status:200,headers:{"content-type":type,"cache-control":"public, max-age=300","x-clintware-runtime-sha":asset.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
+        }
         try{ctx.waitUntil(caches.default.put(cacheKey,response.clone()));}catch{}
         return response;
       }
