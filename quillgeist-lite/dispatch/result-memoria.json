@@ -1,15 +1,15 @@
 {
-  "request_id": "memoria-gns-localfirst-full-20261001-0340",
-  "job_id": "1b47ac5f-1b64-4549-930c-d5b5527c7eb1",
-  "task_id": "crm-astro-build",
+  "request_id": "memoria-ensure-python-retry-20261001-0658",
+  "job_id": "cc8a6e50-5db0-4cfc-8c6f-71facfb7ce65",
+  "task_id": "ensure-python",
   "target_device": "MEMORIA",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 2598,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 4401,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T08:43:40.5249483Z",
-  "recorded_at": 1790844209,
+  "confirmed_at": "2026-10-01T11:56:03.7248998Z",
+  "recorded_at": 1790855752,
   "recovery_history": [],
-  "output_tail": "[run] From https://github.com/clintkosh/clintware-site\r\n[run]  * branch            9be3283a072180375807ff7d299fadb45ba8cc1a -> FETCH_HEAD\r\n[run] Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n[run] \u001b[31;1mException: \u001b[0mC:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\crm-astro-build.ps1:128\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m 128 | \u001b[0m \u2026 LASTEXITCODE -ne 0) { \u001b[36;1mthrow \"CRM ASTRO manifest validation failed.\"\u001b[0m }\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n[run] \u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mCRM ASTRO manifest validation failed.\u001b[0m"
+  "output_tail": "[run] No installed package found matching input criteria.\r\n[run] PYTHON_READY // Python 3.13.12 // C:\\Users\\user\\Miniconda3\\python.exe\r\n[run] C:\\Users\\user\\Miniconda3\\python.exe"
 }
