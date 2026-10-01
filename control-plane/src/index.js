@@ -4303,8 +4303,16 @@ export default {
           const gh=await github(env,DEFAULT_QUILLGEIST_LITE,`/repos/${owner}/${repo}/contents/${repoPath.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`);
           if(!gh.ok)return json({error:"runtime_binary_unavailable"},gh.status||503);
           const data=await gh.json();
-          if(Array.isArray(data)||data.type!=="file"||data.encoding!=="base64"||!data.content)return json({error:"runtime_binary_invalid"},503);
-          response=new Response(binaryFromB64(data.content),{status:200,headers:{"content-type":"application/vnd.microsoft.portable-executable","cache-control":"public, max-age=300","x-clintware-runtime-sha":data.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
+          if(Array.isArray(data)||data.type!=="file"||!data.sha)return json({error:"runtime_binary_invalid"},503);
+          let encoded=(data.encoding==="base64"&&data.content)?String(data.content):"";
+          if(!encoded){
+            const blob=await github(env,DEFAULT_QUILLGEIST_LITE,`/repos/${owner}/${repo}/git/blobs/${encodeURIComponent(data.sha)}`);
+            if(!blob.ok)return json({error:"runtime_binary_blob_unavailable"},blob.status||503);
+            const blobData=await blob.json();
+            if(blobData.encoding!=="base64"||!blobData.content)return json({error:"runtime_binary_blob_invalid"},503);
+            encoded=String(blobData.content);
+          }
+          response=new Response(binaryFromB64(encoded),{status:200,headers:{"content-type":"application/vnd.microsoft.portable-executable","cache-control":"public, max-age=300","x-clintware-runtime-sha":data.sha||"","x-clintware-runtime-version":QUILLGEIST_RUNTIME_VERSION}});
         }else{
           const asset=await repoRead(env,DEFAULT_QUILLGEIST_LITE,repoPath,env.QUILLGEIST_RUNTIME_REF||"main");
           if(!asset.ok||asset.type!=="file")return json({error:asset.error||"runtime_asset_unavailable"},asset.status||503);
