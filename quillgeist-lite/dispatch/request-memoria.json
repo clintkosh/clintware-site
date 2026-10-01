@@ -1,8 +1,11 @@
 {
-  "request_id": "memoria-selfupdate-gns-fixes-20261001-0702",
-  "task_id": "self-update",
+  "request_id": "memoria-gns-full-after-repairs-20261001-0704",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA with the current reviewed runtime after the CRM ASTRO Python and Genesys materialization fixes.",
-  "resume_after": true
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Build, validate, check, and deploy the Genesys CRM+Cover ASTRO on MEMORIA using the reviewed local-first task and verify the resulting deployment evidence."
 }
