@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-const projects=["anth-crm","bm-crm","cxp-crm","nma-crm","smspc-crm"];
+const projects=["anth-crm","bm-crm","cxp-crm","gns-crm","nma-crm","smspc-crm"];
 const failures=[];
 const ok=(condition,message)=>{if(!condition)failures.push(message)};
 
