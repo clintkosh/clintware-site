@@ -126,11 +126,14 @@ test("instruction manifest keeps full bootstrap, CATShadow, expert mode, and mas
   assert.equal(fullBootstrap.path, "control-plane/instructions/CATSHADOW-DAV1D-CLINTWARE-BOOTSTRAP.md");
   assert.equal(fullBootstrap.required, true);
   assert.equal(fullBootstrap.loader, "clintware_instruction_file_get");
-  assert.ok(bootstrapMarkdown.length < 5000);
+  assert.ok(bootstrapMarkdown.length < 7000, `instruction bootstrap too large: ${bootstrapMarkdown.length}`);
   assert.match(bootstrapMarkdown, /^# CATSHADOW \/ D@V1D \/ CLINTWARE BOOTSTRAP/m);
   assert.match(bootstrapMarkdown, /## LOAD ORDER/);
   assert.match(bootstrapMarkdown, /## REFRESH RULE/);
   assert.match(bootstrapMarkdown, /## CACHE \/ VERSION RULE/);
+  assert.match(bootstrapMarkdown, /## MASTER CONTRACT INTEGRITY/);
+  assert.match(bootstrapMarkdown, /1\. EXPERT OPERATING MODE.*30\. CURRENT REVIEWED CAPABILITY EXAMPLES/s);
+  assert.match(bootstrapMarkdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
   assert.match(bootstrapMarkdown, /## CONTEXT EFFICIENCY/);
   assert.match(bootstrapMarkdown, /## FAILURE BEHAVIOR/);
   assert.match(bootstrapMarkdown, /## CANONICAL SOURCES/);
