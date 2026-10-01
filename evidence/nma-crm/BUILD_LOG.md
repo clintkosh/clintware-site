@@ -219,3 +219,32 @@ Final browser verifier:
 Verification marker:
 
 `NMA_VERIFIED=source+role-logic+multi-stage-seed-depth+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile`
+
+
+## Final closure — 2026-10-01 09:19 CT
+
+The canonical QQ/control-plane publication path was repaired without widening the remote execution boundary. The control plane now validates the registry-driven allowlist and explicitly tests that remote `crm-astro-build` remains limited to `Action`, `Project`, and `SkipInstall`.
+
+Final local CRM build:
+
+- request: `memoria-nma-final-seed-verify-20261001-0917`
+- MEMORIA job: `349eb03a-d357-4c37-8264-84588614252a`
+- status: **passed**
+- duration: **9,687 ms**
+- confirmation source: `qq-local-agent`
+- confirmation transport: `websocket-event`
+- source fetched for execution: `b909a151f03695804a4aa40aad79f57323e70817`
+- `synthetic_data_default`: **true**
+- seed contract: **7 accounts / 6 lifecycle stages / 3 contacts / 3 KPIs / 3 actions per account**, plus risk, cross-functional issue, mixed-status, meeting-context, and flow-coherence requirements
+- logic checks: `stageDiversity=true`, `denseFlowData=true`, `seedMigration=true`
+- deployment result: local checks passed and returned the expected **server-authorized deployment handoff**
+
+The in-app execution-evidence slide was then corrected to reflect this current MEMORIA pass rather than the original blocked attempt.
+
+Final deployed source: `ba57bac63907c0c147fac6c43ba83423d594cd68`  
+Final workflow: `36875338878`  
+Final job: `110413204539`  
+Final Cloud deployment version: `e686eff6-ecfe-4501-9a12-4c9e2465e105`  
+Conclusion: **success**
+
+Final live browser acceptance again confirmed all six lifecycle phases, the per-account depth gate, six distinct action statuses, 34 golden-account records, 8 presentation slides, a 2,996-byte generated PDF, 121,747 bytes of browser-local workspace state, zero normal demo database-row operations, no mobile overflow, no browser errors, and no bad HTTP responses.
