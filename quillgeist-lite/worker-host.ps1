@@ -148,6 +148,8 @@ try {
         log_lines = $output.Count
         worker_slot = $WorkerSlot
         gpu_index = $GpuIndex
+        resource_class = [string]$task.resource_class
+        concurrency_group = [string]$task.concurrency_group
         completed_at = (Get-Date).ToUniversalTime().ToString('o')
     }
 }
@@ -166,6 +168,8 @@ catch {
         log_lines = 1
         worker_slot = $WorkerSlot
         gpu_index = $GpuIndex
+        resource_class = ''
+        concurrency_group = ''
         completed_at = (Get-Date).ToUniversalTime().ToString('o')
     }
 }
