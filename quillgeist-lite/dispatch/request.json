@@ -1,14 +1,15 @@
 {
-  "request_id": "memoria-linkedin-skill-catalog-assert-20261001-1247",
-  "task_id": "browser-work",
+  "request_id": "memoria-linkedin-skill-repo-verify-20261001-1249",
+  "task_id": "repo-code-search",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "run",
-    "Url": "https://www.clintware.com/skills/",
-    "StepsJson": "{\"steps\":[{\"op\":\"goto\",\"url\":\"https://www.clintware.com/skills/\"},{\"op\":\"wait_for_text\",\"text\":\"LinkedIn Evidence Post\",\"timeout_ms\":15000},{\"op\":\"extract\",\"selector\":\"div.row:has-text(\\\"LinkedIn Evidence Post\\\")\",\"max_chars\":2500},{\"op\":\"attr\",\"selector\":\"a[href=\\\"/skills/linkedin-evidence-post/SKILL.md\\\"]\",\"name\":\"href\"}]}",
-    "MaxChars": "5000",
-    "Headless": "true"
+    "Query": "linkedin-evidence-post",
+    "Path": ".",
+    "Mode": "content",
+    "Max": "50",
+    "Json": "true",
+    "FilesOnly": "false"
   },
-  "objective": "Assert from MEMORIA that the live Clintware skills catalog visibly contains LinkedIn Evidence Post and its canonical /skills/linkedin-evidence-post/SKILL.md link. Read-only.",
+  "objective": "Verify from MEMORIA's maintained Clintware repository that the LinkedIn Evidence Post skill, public mirror, catalog/inventory references, and routing invariant are present in source. Read-only.",
   "resume_after": false
 }
