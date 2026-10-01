@@ -64,7 +64,7 @@ test("instruction manifest keeps extension loading explicit and client-aware", a
   assert.equal(manifest.refresh.on_instruction_reference, true);
   assert.equal(manifest.refresh.no_cached_assumption, true);
   assert.ok(persona);
-  assert.equal(persona.path, "control-plane/CATSHADOW-PERSONA.md");
+  assert.equal(persona.path, "control-plane/instructions/CATSHADOW-PERSONA.md");
   assert.equal(persona.required, true);
   assert.equal(persona.loader, "clintware_instruction_file_get");
   assert.ok(master);
