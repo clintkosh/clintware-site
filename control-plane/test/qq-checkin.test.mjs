@@ -3,6 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 const source = fs.readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
+const remoteTasks = JSON.parse(fs.readFileSync(new URL("../quillgeist-remote-tasks.json", import.meta.url), "utf8"));
 const watchdog = fs.readFileSync(new URL("../../quillgeist-lite/service/QuillgeistLiteHealthService.cs", import.meta.url), "utf8");
 const statusWorkflow = fs.readFileSync(new URL("../../.github/workflows/quillgeist-lite-status-snapshot.yml", import.meta.url), "utf8");
 
@@ -31,7 +32,7 @@ test("status snapshots actively ask every registered watchdog for live state", (
 });
 
 test("network share task is control-plane allowlisted", () => {
-  assert.match(source, /"share-ai-network":\{runtime:"powershell",parameters:\[\]\}/);
+  assert.deepEqual(remoteTasks.tasks["share-ai-network"], { runtime: "powershell", parameters: [] });
   assert.match(source, /quillgeist-lite\/tasks\/share-network-folder\.ps1/);
 });
 
