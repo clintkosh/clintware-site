@@ -25,6 +25,7 @@ ALLOWED = {
     "c-runtime-check": {"Message"},
     "ensure-c-runtime": set(),
     "ensure-powershell": set(),
+    "ensure-python": {"Force"},
     "update-powerchatbridge": set(),
     "self-update": set(),
     "self-heal": set(),
@@ -385,6 +386,8 @@ def error_kind(message):
         return "websocket_401"
     if ("start-process" in line and ("fail" in line or "error" in line)) or "microsoft edge executable not found" in line:
         return "browser_launch_failed"
+    if "python was not found" in line or "working python 3 runtime was not found" in line or "python 3 is not installed" in line:
+        return "python_runtime_missing"
     if "is not recognized as a name of a cmdlet" in line or "commandnotfoundexception" in line:
         return "command_not_found"
     if "cannot validate argument" in line and ("null or empty" in line or "cannot convert null" in line):
@@ -408,6 +411,7 @@ RECOVERABLE_TASK_FAILURES = {
     "file_not_found",
     "runtime_bundle_missing",
     "runtime_source_refresh_failed",
+    "python_runtime_missing",
     "task_registry_missing",
     "health_service_missing",
     "service_missing",
@@ -432,7 +436,9 @@ def auto_recover_failed_task(task_id, args, objective, target_device, state, res
         return None, history
 
     chain = ["self-update"]
-    if kind in {"health_service_missing", "service_missing", "managed_task_missing"}:
+    if kind == "python_runtime_missing":
+        chain = ["ensure-python"]
+    elif kind in {"health_service_missing", "service_missing", "managed_task_missing"}:
         chain = ["repair-local-service", "self-update"]
 
     print(f"AUTO_RECOVERY task_failure kind={kind} task={task_id} device={target_device or 'auto'}", flush=True)
