@@ -8,8 +8,8 @@ import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jira
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" with { type: "json" };
 
-const VERSION = "2026-10-01-adaptive-workers-contract.3";
-const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-adaptive-workers-v30";
+const VERSION = "2026-10-01-task-isolation-contract.4";
+const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-task-isolation-v31";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
