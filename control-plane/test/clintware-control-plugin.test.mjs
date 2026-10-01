@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
-const repoRoot = new URL("../../", root);
+const repoRoot = new URL("../", root);
 
 test("Clintware Control portable plugin points to authenticated MCP", async () => {
   const plugin = JSON.parse(await readFile(new URL("chatgpt-plugin/plugin.json", root), "utf8"));
