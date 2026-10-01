@@ -151,8 +151,20 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const unique=[];for(const t of P.tracks){if(t.tab&&!unique.some(x=>x[0]===t.tab))unique.push([t.tab,t.label])}
 TABS.splice(0,TABS.length,["customers","Portfolio"],["command","Command Center"],...unique.filter(x=>x[0]!=="prep"),["prep","Meeting Brief"],["application","Application"],["accounts","Admin"]);
 NAV_GROUPS.splice(0,NAV_GROUPS.length,["Operate",["customers","command",...unique.slice(0,4).map(x=>x[0]).filter(x=>x!=="prep")]],["Inspect",unique.slice(4).map(x=>x[0]).filter(x=>x!=="prep")],["Apply",["prep","application"]],["Admin",["accounts"]]);
-const baseHeader=appHeader,baseBody=body,baseBind=bind;
-appHeader=function(){return baseHeader().split("Technical Customer Engineering").join(esc(P.role)).split("Doppel").join(esc(P.company))}
+const baseBody=body,baseRender=render;
+function patchRoleUi(){
+ const root=document.querySelector("#app");if(!root)return;
+ const brand=root.querySelector(".dplr-brand strong");if(brand)brand.textContent=P.role;
+ const sub=root.querySelector(".dplr-brand small");if(sub)sub.textContent=P.company+" · candidate operating prototype";
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ let n;
+ while((n=walker.nextNode())){
+   let v=n.nodeValue||"";
+   v=v.split("Doppel").join(P.company);
+   for(const [a,b] of Object.entries(P.uiReplacements||{}))v=v.split(a).join(b);
+   n.nodeValue=v;
+ }
+}
 function appPage(){const b=P.applicationBundle||{},cl=b.cover_letter?.draft||"",why=b.why_company?.draft||"";
  return head("Application",P.company+" · "+P.role,"CRM+Cover package. Public role facts, synthetic demo data, and candidate evidence remain explicitly separated.")+
  '<div class="grid g2" style="margin-top:18px"><div class="card"><div class="eyebrow">Role mission</div><p>'+esc(P.mission)+'</p><div class="eyebrow">Operating loop</div><p>'+esc(P.operatingLoop.join(" -> "))+'</p></div><div class="card"><div class="eyebrow">Quality gates</div><ul>'+P.qualityGates.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div></div>'+
@@ -186,12 +198,12 @@ function downloadPdf(name,title,text){
  const bytes=makePdfBytes(title,text),blob=new Blob([bytes],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
  a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);return bytes.length
 }
-bind=function(){
- baseBind();
+function bindRoleExtras(){
  document.querySelectorAll("[data-copy-app]").forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copyApp==="why"?(P.applicationBundle.why_company?.draft||""):(P.applicationBundle.cover_letter?.draft||"")));
  const ap=document.querySelector("#download-application-pdf");if(ap)ap.onclick=()=>downloadPdf(P.projectId+"-application.pdf",P.company+" · "+P.role,"WHY COMPANY\n\n"+(P.applicationBundle.why_company?.draft||"")+"\n\nCOVER LETTER\n\n"+(P.applicationBundle.cover_letter?.draft||""));
  const prep=document.querySelector("#prep-pdf");if(prep&&window.DPLRPrep?.prepText)prep.onclick=()=>downloadPdf(P.projectId+"-"+String(S.customer?.name||"account").toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-meeting-brief.pdf",P.company+" · "+P.role+" · Meeting Brief",window.DPLRPrep.prepText());
-};
+}
+render=function(){baseRender();patchRoleUi();bindRoleExtras()};
 document.title=P.company+" · "+P.role+" · Clintware";render();})();`;
 fs.writeFileSync(path.join(out,"public","role-profile.js"),profileJs+"\n");
 let html=fs.readFileSync(path.join(out,"public","index.html"),"utf8");
