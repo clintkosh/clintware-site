@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-launch-20261001-1154",
+  "request_id": "driznet-cwinteract-linkedin-inspect-20261001-1155",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "launch",
+    "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
     "Query": "",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "60",
+    "MaxResults": "100",
     "WaitMs": "450"
   },
-  "objective": "Launch the installed LinkedIn app on DRIZNET through CWInteract™ and return the visible window evidence. Do not make changes yet.",
+  "objective": "Inspect the visible LinkedIn app on DRIZNET with CWInteract™ to determine whether the signed-in session exposes Company Page creation controls. Do not mutate anything.",
   "resume_after": false
 }
