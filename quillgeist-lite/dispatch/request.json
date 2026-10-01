@@ -1,13 +1,9 @@
 {
-  "request_id": "memoria-nma-final-seed-verify-20261001-0910",
-  "task_id": "crm-astro-build",
-  "target_device": "MEMORIA",
-  "args": {
-    "Action": "full",
-    "Project": "nma-crm",
-    "SkipInstall": "false",
-    "RepoRoot": "C:\\Users\\user\\AppData\\Local\\Clintware\\code-search\\clintware-site"
-  },
-  "objective": "Final local validation of the refreshed NMA CRM source after repo sync. Verify SAMPLE_SEED_VERSION=2, lifecycle phases discover/govern/test/protect/prove/expand, dense stage-specific stakeholders/KPIs/actions/risks/issues/adoption/meetings, browser-local seed migration version 3, role logic, syntax, materialization, and deployment handoff. Return qq-local-agent confirmation from MEMORIA.",
-  "resume_after": true
+  "request_id": "all-machines-autonomous-continuation-doctor-20261001-0914",
+  "mode": "rollout",
+  "task_id": "clintware-doctor",
+  "args": {},
+  "objective": "Verify every registered QQ machine is healthy, connected, on the reviewed runtime/task registry, and able to execute the current Clintware operating contract including autonomous continuation/recovery behavior.",
+  "resume_after": true,
+  "verify_seconds": 240
 }
