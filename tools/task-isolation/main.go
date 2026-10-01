@@ -15,7 +15,7 @@ import (
 	"unsafe"
 )
 
-const version = "1.1.0"
+const version = "1.2.0"
 
 var (
 	user32      = syscall.NewLazyDLL("user32.dll")
@@ -67,7 +67,7 @@ func main() {
 		if runErr != nil {
 			flags = 0x10
 		}
-		msg("Clintware Task Isolation", trimForBox(out)+"\n\nLog:\n"+logPath(), flags)
+		msg("Clintware Task Isolation", summarizeOutput(out, runErr)+"\n\nDetails: "+logPath(), flags)
 	}
 	if runErr != nil {
 		os.Exit(1)
@@ -324,6 +324,30 @@ func writeLog(mode, out string, err error) {
 	}
 	_ = os.WriteFile(logPath(), []byte(s), 0644)
 }
+func summarizeOutput(s string, runErr error) string {
+	if runErr != nil {
+		return "Task isolation did not complete successfully.\n\n" + trimForBox(s)
+	}
+	lines := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	keep := make([]string, 0, 8)
+	for _, line := range lines {
+		t := strings.TrimSpace(line)
+		if strings.HasPrefix(t, "Found ") ||
+			strings.HasPrefix(t, "Converted ") ||
+			strings.HasPrefix(t, "Restarted ") ||
+			strings.HasPrefix(t, "Microsoft ") ||
+			strings.HasPrefix(t, "Backups:") ||
+			strings.HasPrefix(t, "Restore:") ||
+			strings.HasPrefix(t, "Restored ") {
+			keep = append(keep, t)
+		}
+	}
+	if len(keep) == 0 {
+		return "Task Isolation completed successfully."
+	}
+	return strings.Join(keep, "\n")
+}
+
 func trimForBox(s string) string {
 	if s == "" {
 		return "Completed."
