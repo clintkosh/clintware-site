@@ -1,11 +1,10 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-final-20261001-1249",
-  "task_id": "public-skill-verify",
+  "request_id": "memoria-resume-all-local-ai-20261001",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "SkillSlug": "linkedin-evidence-post",
-    "CheckLive": "true"
+    "MaxPasses": "4"
   },
-  "objective": "Final end-to-end verification for the implemented LinkedIn Evidence Post skill on MEMORIA. Verify source/public parity, public-skill sanitization, production build, public positioning, catalog/inventory consistency, and live Clintware skill/catalog URLs. Return qq-local-agent confirmation.",
-  "resume_after": false
+  "objective": "Resume the existing MEMORIA local AI server recovery/build from current durable state. Preserve unique AI work and data, do not replace the existing Immich media database, do not move MEMORIA work to DRIZNET, repair only verified gaps, and continue through bounded passes until the local AI stack is verified complete or a hard blocker is recorded with evidence.",
+  "resume_after": true
 }
