@@ -1,13 +1,22 @@
 {
-  "request_id": "driznet-jobs-v1-plan-v29-20261001-0918",
-  "task_id": "big-prompt-plan",
+  "request_id": "driznet-linkedin-company-inspect-20261001-1047",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
-    "Prompt": "Build Jobs from docs/jobs-product-spec.md as the Clintware local-first job-application copilot. Recover the existing Jobs spec and durable project state first. Decompose only unresolved implementation work into dependency-aware units. Keep profile data, job capture, application ledger, fit analysis, resume and answer selection, duplicate detection, and the normal happy path local on DRIZNET. Include governed browser-assisted autofill with an explicit final-submit approval gate. Reuse existing Clintware and Quillgeist capabilities rather than creating parallel infrastructure. Verify persistence across restart, controlled test-page field filling, duplicate detection, no automatic submission, and no remote data transfer on the local-only happy path. Route only unavoidable fresh external authority or external mutations through the control plane.",
-    "Project": "Jobs",
-    "StateScope": "clintware/jobs",
-    "MaxDepth": "4"
+    "Action": "inspect",
+    "Url": "https://www.linkedin.com/company/setup/new/",
+    "Selector": "",
+    "Value": "",
+    "StepsJson": "",
+    "Query": "",
+    "Engine": "auto",
+    "MaxResults": "8",
+    "MaxChars": "20000",
+    "Approved": "false",
+    "Headless": "false",
+    "WaitMs": "900",
+    "UserWaitMs": "0"
   },
-  "objective": "Re-establish the Jobs v1 implementation plan locally on DRIZNET using the repaired v29 QQ routing path, preserving the original product specification and verification requirements.",
+  "objective": "Inspect the LinkedIn Company Page creation/admin state in the authenticated QQ browser on DRIZNET so Clintware™ can be configured correctly without guessing. Do not submit or publish changes in this read-only step.",
   "resume_after": false
 }
