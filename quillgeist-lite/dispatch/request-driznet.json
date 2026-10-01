@@ -1,8 +1,22 @@
 {
-  "request_id": "driznet-cwinteract-selfupdate-20261001-1130",
-  "task_id": "self-update",
+  "request_id": "driznet-cwinteract-runtime-repair-check-20261001-1137",
+  "task_id": "browser-work",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Update DRIZNET to the deployed QQ runtime that includes CWInteract™, preserve device registration, restart safely, and resume queued work.",
-  "resume_after": true
+  "args": {
+    "Action": "read",
+    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version",
+    "Selector": "",
+    "Value": "",
+    "StepsJson": "",
+    "Query": "",
+    "Engine": "auto",
+    "MaxResults": "8",
+    "MaxChars": "4000",
+    "Approved": "false",
+    "Headless": "true",
+    "WaitMs": "300",
+    "UserWaitMs": "0"
+  },
+  "objective": "Confirm the repaired QQ runtime restore source revision is deployed before retrying self-update on DRIZNET.",
+  "resume_after": false
 }
