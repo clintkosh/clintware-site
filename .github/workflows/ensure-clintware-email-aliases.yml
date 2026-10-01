@@ -1,4 +1,4 @@
-name: Ensure Clintware Email Aliases
+name: Ensure Clintware Email Routes
 
 on:
   push:
@@ -10,16 +10,16 @@ permissions:
   contents: read
 
 jobs:
-  ensure-aliases:
+  ensure-routes:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DOMAIN: clintware.com
       DESTINATION_ADDRESS: clint.kosh@gmail.com
-      ALIASES: "clint.kosh@clintware.com kkosh@clintware.com clinton@clintware.com"
+      ROUTED_ADDRESSES: "clint.kosh@clintware.com kkosh@clintware.com clinton@clintware.com stygma@clintware.com"
     steps:
-      - name: Ensure forwarding aliases
+      - name: Ensure forwarding routes
         shell: bash
         run: |
           set -euo pipefail
@@ -36,15 +36,15 @@ jobs:
           test "$acode" = "200"
           python3 -c 'import json,os; d=json.load(open("/tmp/addresses.json")); t=os.environ["DESTINATION_ADDRESS"].lower(); m=[x for x in (d.get("result") or []) if (x.get("email") or "").lower()==t]; assert m and (m[0].get("status")=="verified" or bool(m[0].get("verified"))),m; print("DESTINATION_VERIFIED=true")'
 
-          for alias in $ALIASES; do
-            echo "Ensuring $alias -> $DESTINATION_ADDRESS"
+          for address in $ROUTED_ADDRESSES; do
+            echo "Ensuring $address -> $DESTINATION_ADDRESS"
             rcode=$(curl --compressed -sS -o /tmp/rules.json -w '%{http_code}' \
               "${api}/zones/${zone_id}/email/routing/rules" "${auth[@]}")
             test "$rcode" = "200"
 
-            rule_id=$(ALIAS="$alias" python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); t=os.environ["ALIAS"].lower(); m=[r for r in (d.get("result") or []) if any(x.get("field")=="to" and (x.get("value") or "").lower()==t for x in (r.get("matchers") or []))]; print((m[0].get("id") or "") if m else "")')
+            rule_id=$(ADDRESS="$address" python3 -c 'import json,os; d=json.load(open("/tmp/rules.json")); t=os.environ["ADDRESS"].lower(); m=[r for r in (d.get("result") or []) if any(x.get("field")=="to" and (x.get("value") or "").lower()==t for x in (r.get("matchers") or []))]; print((m[0].get("id") or "") if m else "")')
 
-            payload=$(ALIAS="$alias" python3 -c 'import json,os; a=os.environ["ALIAS"]; d=os.environ["DESTINATION_ADDRESS"]; print(json.dumps({"actions":[{"type":"forward","value":[d]}],"matchers":[{"type":"literal","field":"to","value":a}],"enabled":True,"name":f"Forward {a} to {d}"}))')
+            payload=$(ADDRESS="$address" python3 -c 'import json,os; a=os.environ["ADDRESS"]; d=os.environ["DESTINATION_ADDRESS"]; print(json.dumps({"actions":[{"type":"forward","value":[d]}],"matchers":[{"type":"literal","field":"to","value":a}],"enabled":True,"name":f"Forward {a} to {d}"}))')
 
             if [[ -n "$rule_id" ]]; then
               wcode=$(curl --compressed -sS -o /tmp/write.json -w '%{http_code}' -X PUT \
@@ -64,9 +64,9 @@ jobs:
           import json, os
           d=json.load(open('/tmp/final.json'))
           dst=os.environ['DESTINATION_ADDRESS'].lower()
-          aliases=os.environ['ALIASES'].split()
+          addresses=os.environ['ROUTED_ADDRESSES'].split()
           rules=d.get('result') or []
-          for src in aliases:
+          for src in addresses:
               src=src.lower()
               matches=[r for r in rules if r.get('enabled') is True and any(x.get('field')=='to' and (x.get('value') or '').lower()==src for x in (r.get('matchers') or [])) and any(a.get('type')=='forward' and dst in [str(v).lower() for v in (a.get('value') or [])] for a in (r.get('actions') or []))]
               assert len(matches)==1,(src,matches)
