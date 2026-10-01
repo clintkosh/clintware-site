@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check src/lib.js && node --check src/worker.js && XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config wrangler.jsonc",
+    "check": "node --check src/lib.js && node --check src/state.js && node --check src/worker.js && XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config wrangler.jsonc",
     "test": "node --test test/*.test.js && node --experimental-loader ./test/cloudflare-loader.mjs --test test/worker-integration.test.mjs",
     "test:integration": "node test/local-integration.mjs"
   }
