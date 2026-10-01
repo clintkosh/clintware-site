@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-select-company-20261001-1242",
+  "request_id": "driznet-cwinteract-linkedin-form-page-name-20261001-1244",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "form",
+    "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "",
-    "StepsJson": "{\"steps\":[{\"op\":\"click\",\"name\":\"Company Small, medium, and large businesses\",\"control_type\":\"Button\"},{\"op\":\"wait\",\"ms\":1200}]}",
-    "Approved": "true",
-    "MaxResults": "100",
+    "Query": "Page name",
+    "StepsJson": "",
+    "Approved": "false",
+    "MaxResults": "40",
     "WaitMs": "250"
   },
-  "objective": "Select LinkedIn's Company page type on DRIZNET and inspect the resulting creation form. Do not submit/create the page yet.",
+  "objective": "Inspect the LinkedIn Company Page creation form for the Page name control. Do not change fields.",
   "resume_after": false
 }
