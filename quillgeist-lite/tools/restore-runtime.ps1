@@ -93,6 +93,7 @@ try {
 
     $core = @(
         'runner.ps1',
+        'worker-host.ps1',
         'launcher.ps1',
         'bootstrap.ps1',
         'install.ps1',
