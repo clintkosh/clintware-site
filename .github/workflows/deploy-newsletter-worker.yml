@@ -34,7 +34,9 @@ jobs:
           python3 -m py_compile newsletter/scripts/surfing_wave.py
           python3 -m unittest newsletter/test/test_surfing_wave.py
       - name: Validate Worker configuration
-        run: XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config newsletter/wrangler.jsonc
+        run: |
+          node newsletter/scripts/render-wrangler.mjs 00000000-0000-0000-0000-000000000001
+          XDG_CONFIG_HOME=/tmp/clintware-newsletter-xdg npx --yes --cache /tmp/clintware-newsletter-npm-cache wrangler@4 deploy --dry-run --config newsletter/wrangler.generated.jsonc
 
   deploy:
     if: github.event_name != 'pull_request'
@@ -42,20 +44,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Ensure newsletter D1 database
+        id: newsletter_d1
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database"
+          name="clintware-blog-newsletter"
+          listed=$(curl --fail-with-body -sS -G "$api"             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"             --data-urlencode "name=$name"             --data-urlencode "per_page=100")
+          id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((x.get("uuid","") for x in d.get("result",[]) if x.get("name")==sys.argv[1]),""))' "$name" <<< "$listed")
+          if [ -z "$id" ]; then
+            created=$(curl --fail-with-body -sS -X POST "$api"               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"               -H 'Content-Type: application/json'               --data "{"name":"$name"}")
+            id=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("result",{}).get("uuid",""))' <<< "$created")
+          fi
+          if ! [[ "$id" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "Could not resolve/create newsletter D1 database." >&2
+            exit 1
+          fi
+          echo "database_id=$id" >> "$GITHUB_OUTPUT"
+          echo "Newsletter D1 ready: $name"
+
+      - name: Render newsletter production config
+        run: node newsletter/scripts/render-wrangler.mjs "${{ steps.newsletter_d1.outputs.database_id }}"
+
+      - name: Apply newsletter D1 schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 d1 execute NEWSLETTER_DB             --remote             --file newsletter/schema.sql             --config newsletter/wrangler.generated.jsonc             --yes
+
       - name: Deploy newsletter Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd newsletter --keep-vars
+          command: deploy --cwd newsletter --config wrangler.generated.jsonc --keep-vars
       - name: Configure delegated Google broker access
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
           google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$google_bridge_secret" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_BRIDGE_SECRET --config newsletter/wrangler.jsonc
+          printf '%s' "$google_bridge_secret" | npx --yes wrangler@4 secret put GOOGLE_DELEGATED_BRIDGE_SECRET --config newsletter/wrangler.generated.jsonc
 
       - name: Configure publish authentication
         env:
@@ -63,13 +99,29 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           publish_secret=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$publish_secret" | npx --yes wrangler@4 secret put NEWSLETTER_PUBLISH_SECRET --config newsletter/wrangler.jsonc
+          printf '%s' "$publish_secret" | npx --yes wrangler@4 secret put NEWSLETTER_PUBLISH_SECRET --config newsletter/wrangler.generated.jsonc
       - name: Configure internal mail authentication
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           internal_mail_secret=$(printf 'clintware-internal-mail:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
-          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.jsonc
+          printf '%s' "$internal_mail_secret" | npx --yes wrangler@4 secret put INTERNAL_MAIL_SECRET --config newsletter/wrangler.generated.jsonc
+
+      - name: Best-effort legacy Durable Object migration
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          publish_secret=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
+          response=$(curl -fsS --connect-timeout 5 --max-time 30             -X POST https://newsletter.clintware.com/internal/migrate-legacy-state             -H "Authorization: Bearer $publish_secret"             -H 'Content-Type: application/json'             --data '{}' || echo '{"ok":false,"migrated":false,"reason":"migration_request_failed"}')
+          echo "$response"
+          if echo "$response" | grep -Fq '"migrated":true'; then
+            echo "Legacy newsletter state imported into D1."
+          else
+            echo "Legacy state migration remains deferred. D1 is still the production state path."
+          fi
+
       - name: Verify broker wiring and first-party newsletter endpoint
         run: |
           set -euo pipefail
@@ -84,7 +136,7 @@ jobs:
           ready=0
           for i in $(seq 1 24); do
             body=$(curl -fsS --connect-timeout 5 --max-time 20 https://newsletter.clintware.com/health || true)
-            if echo "$body" | grep -Fq '"ok":true' && echo "$body" | grep -Fq '"deliveryConfigured":true'; then
+            if echo "$body" | grep -Fq '"ok":true'               && echo "$body" | grep -Fq '"stateBackend":"d1"'               && echo "$body" | grep -Fq '"stateReady":true'               && echo "$body" | grep -Fq '"legacyDurableObjectRequired":false'               && echo "$body" | grep -Fq '"deliveryConfigured":true'; then
               ready=1
               echo "$body"
               break
