@@ -37,15 +37,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Validate local runner source
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate and concurrently materialize through the direct local runner
         run: |
           set -euo pipefail
           python3 -m py_compile quillgeist-lite/tools/crm_astro.py quillgeist-lite/tools/crm_cover_batch.py
           python3 quillgeist-lite/tools/crm_cover_batch.py \
             --Projects "gtl-crm,aso-crm,cwn-crm,tkm-crm,aim-crm" \
-            --Action plan \
+            --Action materialize \
             --Workers 3 \
             --RepoRoot .
+          summary=$(find .local/application-runs -name SUMMARY.json -print | sort | tail -n 1)
+          test -n "$summary"
+          grep -Fq '"ok": true' "$summary"
+          grep -Fq '"workers": 3' "$summary"
+          grep -Fq '"qq_required": false' "$summary"
+          for p in gtl-crm aso-crm cwn-crm tkm-crm aim-crm; do
+            test -f ".build/$p/public/role-profile.js"
+            test -f ".build/$p/APPLICATION.md"
+          done
 
       - name: Validate QQ wrapper parses
         shell: pwsh
@@ -209,6 +222,7 @@ jobs:
           await page.waitForSelector("[data-customer-open]",{timeout:20000});
           const cards=await page.locator("[data-customer-open]").count();
           if(cards<5)throw new Error("seed portfolio too small: "+cards);
+          await page.waitForFunction(([company,role])=>document.body.innerText.includes(company)&&document.body.innerText.includes(role),[company,role],{timeout:20000});
           const body=await page.locator("body").innerText();
           if(!body.includes(company)||!body.includes(role))throw new Error("role/company identity missing");
 
@@ -239,6 +253,9 @@ jobs:
           }));
           if(!persisted.contact||!persisted.kpi)throw new Error("browser-local persistence failed");
 
+          await page.waitForSelector("[data-customer-open]",{timeout:20000});
+          await page.locator("[data-customer-open]").first().click();
+          await page.waitForSelector("button[data-tab='prep']",{timeout:20000});
           await page.locator("button[data-tab='prep']").click();
           await page.waitForSelector("#prep-pdf");
           const prepDownload=page.waitForEvent("download");
