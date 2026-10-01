@@ -1,6 +1,10 @@
 {
-  "request_id": "memoria-recovery-progress-20261001-1627",
-  "mode": "inspect",
+  "request_id": "memoria-desktop-inventory-20261001-1629",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
-  "job_id": "6c8935fa-9b26-4453-9656-f48d2459b037"
+  "args": {
+    "Action": "recovery-inventory"
+  },
+  "objective": "Inspect desktop continuation scripts and local Codex handoffs using the newly deployed bounded inventory; preserve D exclusion and do not execute arbitrary historical scripts",
+  "resume_after": false
 }
