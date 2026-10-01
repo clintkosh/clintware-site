@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-page-name-20261001-1244",
+  "request_id": "driznet-cwinteract-linkedin-form-name-controls-20261001-1246",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "Page name",
+    "Query": "Name",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "40",
+    "MaxResults": "60",
     "WaitMs": "250"
   },
-  "objective": "Inspect the LinkedIn Company Page creation form for the Page name control. Do not change fields.",
+  "objective": "Inspect the LinkedIn Company Page creation form for controls containing Name. Do not change fields.",
   "resume_after": false
 }
