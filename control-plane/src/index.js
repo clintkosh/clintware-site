@@ -8,7 +8,7 @@ import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jira
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 
 const VERSION = "2026-09-28-capability-aware-runtime.1";
-const QUILLGEIST_RUNTIME_VERSION = "2026-09-30-health-contract-v27";
+const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-concurrency-python-v28";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
 const nowIso = () => new Date().toISOString();
@@ -246,6 +246,7 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/HEALTH_CONTRACT.md",
   "quillgeist-lite/tasks/restart-window.ps1",
   "quillgeist-lite/tasks/ensure-powershell.ps1",
+  "quillgeist-lite/tasks/ensure-python.ps1",
   "quillgeist-lite/tasks/auto-repair-runtime.ps1",
   "quillgeist-lite/tasks/repair-local-service.ps1",
   "quillgeist-lite/tools/crm_astro.py",
@@ -280,6 +281,7 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
 const QUILLGEIST_LITE_TASKS = {
   "clintware-doctor":{runtime:"powershell",parameters:[]},
   "ensure-powershell":{runtime:"powershell",parameters:[]},
+  "ensure-python":{runtime:"powershell",parameters:["Force"]},
   "update-powerchatbridge":{runtime:"powershell",parameters:[]},
   "google-cloud-support-access":{runtime:"powershell",parameters:["OwnerAccount","SupportAccount","ProjectName"]},
   "finish-google-oauth":{runtime:"powershell",parameters:["Repo"]},
