@@ -40,6 +40,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $files = @(
             "quillgeist-lite/runner.ps1",
+            "quillgeist-lite/worker-host.ps1",
             "quillgeist-lite/launch-visible.ps1",
             "quillgeist-lite/launcher.ps1",
             "quillgeist-lite/install.ps1",
@@ -103,8 +104,16 @@ jobs:
           $ErrorActionPreference = "Stop"
           $registry = Get-Content "quillgeist-lite/tasks.json" -Raw | ConvertFrom-Json
 
-          if ([int]$registry.version -lt 14) {
-            throw "Task registry version is older than the auto-continue baseline."
+          if ([int]$registry.version -lt 26) {
+            throw "Task registry version is older than the adaptive worker-pool baseline."
+          }
+          foreach ($requiredParallel in @("clintware-doctor","python-runtime-check","c-runtime-check","repo-code-search","storage-audit","big-prompt-plan","worker-pool-profile","local-model-work")) {
+            $task = $registry.tasks.PSObject.Properties[$requiredParallel].Value
+            if (-not $task -or $task.parallel_safe -ne $true) { throw "Parallel-safe task metadata missing: $requiredParallel" }
+            if (-not $task.resource_class -or -not $task.concurrency_group -or -not $task.max_parallel) { throw "Adaptive worker metadata incomplete: $requiredParallel" }
+          }
+          if ([string]$registry.tasks.'local-model-work'.resource_class -ne "gpu") {
+            throw "local-model-work must remain GPU-classed."
           }
 
           $extensions = @{
@@ -149,6 +158,9 @@ jobs:
             "quillgeist-lite/tools/provider_responder.py",
             "quillgeist-lite/tools/career_signal_agent.py",
             "quillgeist-lite/tools/crm_astro.py",
+            "quillgeist-lite/tools/resource_scheduler.py",
+            "quillgeist-lite/tools/local_model_work.py",
+            "agentbridge-node/agentbridge_node/big_prompt.py",
             "quillgeist-lite/dispatch/relay.py"
           )
           $logoB64 = (Get-Content "quillgeist-lite/assets/clintware-terminal-logo.b64" -Raw).Trim()
@@ -179,6 +191,36 @@ jobs:
             Write-Host "PYTHON_PARSE_OK $pyFile"
           }
 
+
+      - name: Validate adaptive worker planner contract
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:PYTHONPATH = (Resolve-Path "agentbridge-node").Path
+          $planRaw = @(python -m agentbridge_node.big_prompt_cli "Research three independent implementation options and summarize each independently." --project worker-test --max-depth 2 --force)
+          if ($LASTEXITCODE -ne 0) { throw "big-prompt planner failed." }
+          $plan = ($planRaw -join "`n") | ConvertFrom-Json
+          if ($plan.unit_count -lt 2) { throw "Planner did not decompose a substantial prompt." }
+          if ($plan.parallel_units -lt 2) { throw "Independent planner units were not made parallel-ready." }
+          if (@($plan.units | Where-Object { $_.resource_class -eq "gpu" -or $_.resource_class -eq "cpu" -or $_.resource_class -eq "io" }).Count -lt 1) {
+            throw "Planner omitted local resource classes."
+          }
+          $seqRaw = @(python -m agentbridge_node.big_prompt_cli "First inspect the state. Then modify the configuration. Finally verify the result." --project worker-test --max-depth 2 --force)
+          $seq = ($seqRaw -join "`n") | ConvertFrom-Json
+          if ($seq.sequential_units -lt 1) { throw "Explicitly sequenced planner work lost dependency ordering." }
+          Write-Host "ADAPTIVE_WORKER_PLANNER_OK"
+
+      - name: Smoke-test adaptive worker profile
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $raw = @(python quillgeist-lite/tools/resource_scheduler.py --max-workers 12)
+          if ($LASTEXITCODE -ne 0) { throw "Resource scheduler failed." }
+          $profile = ($raw -join "`n") | ConvertFrom-Json
+          if ($profile.ok -ne $true) { throw "Resource scheduler did not return ok." }
+          if ([int]$profile.limits.max_workers -lt 1) { throw "Resource scheduler returned no worker capacity." }
+          if ($null -eq $profile.gpu_devices -or $null -eq $profile.gpu_slot_indices) { throw "GPU capacity fields are missing." }
+          Write-Host "ADAPTIVE_WORKER_PROFILE_OK workers=$($profile.limits.max_workers) gpu=$($profile.limits.gpu_workers)"
 
       - name: Validate deterministic repository code search
         shell: pwsh
