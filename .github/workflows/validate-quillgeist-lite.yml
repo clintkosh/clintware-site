@@ -197,15 +197,15 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:PYTHONPATH = (Resolve-Path "agentbridge-node").Path
-          $parallelPrompt = @"
-Research independent implementation options:
-- Inspect CPU worker scheduling and summarize findings independently.
-- Inspect GPU worker scheduling and summarize findings independently.
-- Inspect memory-pressure controls and summarize findings independently.
-- Inspect I/O worker scheduling and summarize findings independently.
-- Inspect conflict-lock policy and summarize findings independently.
-- Inspect cross-machine fan-out and summarize findings independently.
-"@
+          $parallelPrompt = @(
+            "Research independent implementation options:",
+            "- Inspect CPU worker scheduling and summarize findings independently.",
+            "- Inspect GPU worker scheduling and summarize findings independently.",
+            "- Inspect memory-pressure controls and summarize findings independently.",
+            "- Inspect I/O worker scheduling and summarize findings independently.",
+            "- Inspect conflict-lock policy and summarize findings independently.",
+            "- Inspect cross-machine fan-out and summarize findings independently."
+          ) -join "`n"
           $planRaw = @(python -m agentbridge_node.big_prompt_cli $parallelPrompt --project worker-test --max-depth 2 --force)
           if ($LASTEXITCODE -ne 0) { throw "big-prompt planner failed." }
           $plan = ($planRaw -join "`n") | ConvertFrom-Json
