@@ -44,7 +44,7 @@ def test_windows_desktop_ui_starts_with_inline_command_workflow(tmp_path, monkey
         assert len(after) == len(before)
 
         routed = {}
-        def fake_local_responder(text, compiled):
+        def fake_local_responder(text, compiled, ticket_id=None):
             routed["text"] = text
             routed["compiled"] = compiled
             app._write_output("LOCAL RESPONDER // routed")
