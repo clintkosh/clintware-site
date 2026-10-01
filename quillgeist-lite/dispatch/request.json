@@ -1,13 +1,8 @@
 {
-  "request_id": "memoria-linkedin-skill-implement-20261001-1235",
-  "task_id": "big-prompt-plan",
+  "request_id": "memoria-self-update-public-skill-v30-20261001-1238",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Prompt": "Finish implementing the LinkedIn Evidence Post skill end to end. Verify the committed internal and public skill files, public skills catalog and inventory consistency, run the public-skill/security and site build checks available in the maintained repository, and verify the deployed Clintware skill URL and catalog entry. Preserve current repository work and do not overwrite unrelated changes. Return concrete local-agent-confirmed evidence and leave any failed gate explicit.",
-    "Project": "clintware-linkedin-evidence-post",
-    "StateScope": "clintware-linkedin-evidence-post",
-    "MaxDepth": "3"
-  },
-  "objective": "Plan and execute the smallest dependency-aware QQ/MEMORIA verification path for the LinkedIn Evidence Post skill, using deterministic local checks first and requiring live deployment verification before completion.",
-  "resume_after": false
+  "args": {},
+  "objective": "Refresh MEMORIA Quillgeist Lite from the maintained repository so registry version 30 and the public-skill-verify task are installed, then restart safely and return qq-local-agent confirmation.",
+  "resume_after": true
 }
