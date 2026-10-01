@@ -24,7 +24,7 @@ function Test-RuntimeBundle {
         if ($relative -notmatch '^(quillgeist-lite|identity-broker)/[A-Za-z0-9_./-]+$' -or $relative.Contains('..')) { throw 'Invalid QQ task source path.' }
         if (-not (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf)) { throw "Missing task source: $($task.Name)" }
     }
-    foreach ($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/driznet-reconcile-and-resume.ps1','tools/local_ai_parity_check.py','tasks/bitnet-i2-s-linkage.patch')) {
+    foreach ($relative in @('runner.ps1','launcher.ps1','tasks/auto-repair-runtime.ps1','service/QuillgeistLiteHealthService.cs','service/recovery-watch.ps1','tools/driznet-reconcile-and-resume.ps1','tools/local_ai_parity_check.py','tools/Clintware-TaskIsolation.exe','tools/Clintware-TaskIsolation-SHA256.txt','tasks/bitnet-i2-s-linkage.patch')) {
         if (-not (Test-Path -LiteralPath (Join-Path $Root ('quillgeist-lite/' + $relative)) -PathType Leaf)) { throw "Missing runtime source: $relative" }
     }
 }
@@ -111,6 +111,8 @@ try {
         'tools/local_ai.py',
         'tools/crm_astro.py',
         'tools/local_ai_parity_check.py',
+        'tools/Clintware-TaskIsolation.exe',
+        'tools/Clintware-TaskIsolation-SHA256.txt',
         'tasks/bitnet-i2-s-linkage.patch',
         'tools/provider_responder.py',
         'tasks/start-qq-window.ps1',
@@ -155,6 +157,66 @@ try {
     }
 
     Test-RuntimeBundle $stage
+
+    $taskIsolationExe = Join-Path $stage 'quillgeist-lite\tools\Clintware-TaskIsolation.exe'
+    $taskIsolationHashFile = Join-Path $stage 'quillgeist-lite\tools\Clintware-TaskIsolation-SHA256.txt'
+    $expectedTaskIsolationHash = ((Get-Content -LiteralPath $taskIsolationHashFile -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+    $actualTaskIsolationHash = (Get-FileHash -LiteralPath $taskIsolationExe -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($expectedTaskIsolationHash -notmatch '^[a-f0-9]{64}
+
+    $stagedRegistry = Join-Path $stage 'quillgeist-lite\tasks.json'
+    $taskMap = Get-Content -LiteralPath $stagedRegistry -Raw | ConvertFrom-Json
+    if (-not $taskMap.tasks -or @($taskMap.tasks.PSObject.Properties).Count -lt 20) {
+        throw 'The restored qq task registry is incomplete.'
+    }
+    $stageRoot = [IO.Path]::GetFullPath($stage + [IO.Path]::DirectorySeparatorChar)
+    foreach ($task in $taskMap.tasks.PSObject.Properties) {
+        $relative = [string]$task.Value.script
+        if ($relative -notmatch '^(quillgeist-lite|identity-broker)/[A-Za-z0-9_./-]+$' -or $relative.Contains('..')) {
+            throw "Invalid task path in registry: $($task.Name)"
+        }
+        $file = [IO.Path]::GetFullPath((Join-Path $stage ($relative -replace '/', '\')))
+        if (-not $file.StartsWith($stageRoot,[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $file -PathType Leaf)) {
+            throw "Missing task source: $($task.Name)"
+        }
+        if ($file.EndsWith('.ps1',[StringComparison]::OrdinalIgnoreCase)) {
+            $tokens = $null; $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors) | Out-Null
+            if ($errors.Count) { throw "Invalid PowerShell task source: $($task.Name)" }
+        }
+    }
+
+    foreach ($target in @($runtime,$backup,$stage)) {
+        if (-not [IO.Path]::GetFullPath($target).StartsWith($qqDir.TrimEnd('\') + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'QQ runtime path escaped its workspace.' }
+    }
+    if (Test-Path $runtime) {
+        Move-Item -LiteralPath $runtime -Destination $backup
+        $movedOld = $true
+    }
+    Move-Item -LiteralPath $stage -Destination $runtime
+    $movedNew = $true
+    $registryTemp = $registry + '.new'
+    Copy-Item -LiteralPath (Join-Path $runtime 'quillgeist-lite\tasks.json') -Destination $registryTemp -Force
+    Move-Item -LiteralPath $registryTemp -Destination $registry -Force
+    Write-Output ("QQ RUNTIME RESTORED VIA CONTROL PLANE // $(@($taskMap.tasks.PSObject.Properties).Count) reviewed tasks")
+    Write-Output 'QQ DEVICE CONNECTION PRESERVED // retry a fresh job'
+} catch {
+    if ($movedNew) { Move-Item -LiteralPath $runtime -Destination ($stage + '.failed') }
+    if ($movedOld -and (Test-Path $backup)) { Move-Item -LiteralPath $backup -Destination $runtime }
+    throw
+} finally {
+    if ($syncLock) { $syncLock.Dispose() }
+    foreach ($temporary in @($work,$stage)) {
+        $resolved = [IO.Path]::GetFullPath($temporary)
+        $allowedParent = if ($temporary -eq $work) { [IO.Path]::GetFullPath($env:TEMP) } else { $qqDir }
+        if (-not $resolved.StartsWith($allowedParent.TrimEnd('\') + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'QQ cleanup path escaped its workspace.' }
+        if (Test-Path -LiteralPath $resolved) { Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+ -or $actualTaskIsolationHash -ne $expectedTaskIsolationHash) {
+        throw ('TASK-ISOLATION runtime checksum mismatch. expected=' + $expectedTaskIsolationHash + ' actual=' + $actualTaskIsolationHash)
+    }
+
     [IO.File]::WriteAllText((Join-Path $stage 'source-revision.txt'),$Revision)
 
     $stagedRegistry = Join-Path $stage 'quillgeist-lite\tasks.json'
