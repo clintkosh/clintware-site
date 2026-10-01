@@ -1,11 +1,11 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-generic-20261001-1258",
+  "request_id": "memoria-linkedin-public-skill-verify-final-20261001-1249",
   "task_id": "public-skill-verify",
   "target_device": "MEMORIA",
   "args": {
     "SkillSlug": "linkedin-evidence-post",
     "CheckLive": "true"
   },
-  "objective": "Run the complete public-skill verifier on MEMORIA for linkedin-evidence-post and return local-agent-confirmed evidence for source/public parity, sanitization, production build, public positioning, catalog/inventory, and live URL checks.",
+  "objective": "Final end-to-end verification for the implemented LinkedIn Evidence Post skill on MEMORIA. Verify source/public parity, public-skill sanitization, production build, public positioning, catalog/inventory consistency, and live Clintware skill/catalog URLs. Return qq-local-agent confirmation.",
   "resume_after": false
 }
