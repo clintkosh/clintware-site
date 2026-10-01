@@ -91,6 +91,10 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(markdown, /PROACTIVENESS:/);
   assert.match(markdown, /Anticipate follow-up questions/);
   assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
+  assert.match(markdown, /CLIENT BINDING \/ TOOL AVAILABILITY/);
+  assert.match(markdown, /mcp_binding_not_exposed/);
+  assert.match(markdown, /Never invent commands such as `qq send \.\.\.`/);
+  assert.match(markdown, /Never tell the user to paste local logs\/status back into chat/);
   assert.ok(bootstrap.length < 400, `bootstrap too large: ${bootstrap.length}`);
   assert.match(bootstrap, /clintware_client_handshake/);
   assert.match(bootstrap, /clintware_instruction_manifest_get/);
@@ -104,6 +108,9 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(index, /persona_path:INSTRUCTION_PERSONA_PATH/);
   assert.match(index, /required_at_session_start:true/);
   assert.match(index, /reload_on_reference:true/);
+  assert.match(index, /mcp_binding_not_exposed/);
+  assert.match(index, /Never fabricate qq send\/status\/jobs syntax/);
+  assert.match(index, /missing client-side MCP binding as proof that Clintware itself is unreachable/);
 });
 
 test("instruction manifest keeps full bootstrap, CATShadow, expert mode, and master ordered", async () => {
