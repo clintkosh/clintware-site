@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-open-create-page-20261001-1235",
+  "request_id": "driznet-cwinteract-linkedin-company-form-inspect-20261001-1237",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "form",
+    "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
     "Query": "",
-    "StepsJson": "{\"steps\":[{\"op\":\"click\",\"name\":\"For Business\",\"control_type\":\"Button\"},{\"op\":\"wait\",\"ms\":650},{\"op\":\"click\",\"name\":\"Create a Company Page\",\"control_type\":\"Hyperlink\"},{\"op\":\"wait\",\"ms\":1400}]}",
-    "Approved": "true",
+    "StepsJson": "",
+    "Approved": "false",
     "MaxResults": "100",
     "WaitMs": "250"
   },
-  "objective": "Navigate the signed-in LinkedIn desktop app on DRIZNET to the Create a Company Page form using CWInteract™. This authorizes navigation only; do not submit/create the page until the form is inspected.",
+  "objective": "Inspect the current LinkedIn app window after navigating to Create a Company Page. Return form controls and current title; do not submit or change fields.",
   "resume_after": false
 }
