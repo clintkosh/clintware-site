@@ -1,7 +1,8 @@
 {
-  "request_id": "memoria-post-selfupdate-status-20260930-2144",
-  "mode": "checkin",
+  "request_id": "memoria-bitnet-hardened-resume-20260930-2146",
+  "task_id": "bitnet-setup",
   "target_device": "MEMORIA",
-  "action": "status",
-  "force": false
+  "args": {},
+  "objective": "Resume and verify the existing MEMORIA BitNet installation using the current reviewed task. Preserve existing F: data and do not use D:.",
+  "resume_after": false
 }
