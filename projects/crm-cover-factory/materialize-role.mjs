@@ -208,6 +208,8 @@ document.title=P.company+" · "+P.role+" · Clintware";render();})();`;
 fs.writeFileSync(path.join(out,"public","role-profile.js"),profileJs+"\n");
 let html=fs.readFileSync(path.join(out,"public","index.html"),"utf8");
 html=html.replace(/<title>[\s\S]*?<\/title>/i,"<title>"+m.company+" · "+m.roles[0].name+" · Clintware</title>");
+const identityBar='<div id="role-identity" style="font:600 12px/1.4 system-ui,sans-serif;padding:8px 16px;background:#0b1118;color:#e7edf4;border-bottom:1px solid #273241;letter-spacing:.02em">'+m.company+' · '+m.roles[0].name+' · Candidate-built synthetic operating prototype</div>';
+if(!html.includes('id="role-identity"'))html=html.replace('<div id="app"></div>',identityBar+'<div id="app"></div>');
 if(!html.includes("/role-profile.js"))html=html.replace("</body>",'  <script src="/role-profile.js"></script>\n</body>');
 fs.writeFileSync(path.join(out,"public","index.html"),html);
 
