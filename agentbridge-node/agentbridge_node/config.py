@@ -134,7 +134,18 @@ class Config:
         path = home_dir() / "config.json"
         base = _defaults()
         if path.exists():
-            incoming = json.loads(path.read_text(encoding="utf-8"))
+            raw = path.read_text(encoding="utf-8").strip()
+            incoming = {}
+            if raw:
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, dict):
+                        incoming = parsed
+                except json.JSONDecodeError:
+                    # A truncated/empty local config must not strand the local
+                    # planner. Keep the reviewed defaults and rewrite a valid
+                    # config below; provider credentials are never stored here.
+                    incoming = {}
             base.update(incoming)
             base["policy"] = {**_defaults()["policy"], **incoming.get("policy", {})}
             base["dlp"] = {**_defaults()["dlp"], **incoming.get("dlp", {})}
