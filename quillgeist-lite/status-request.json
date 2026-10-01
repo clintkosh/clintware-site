@@ -1,4 +1,7 @@
 {
-  "requested_at": "2026-10-01T21:12:00Z",
-  "reason": "Confirm MEMORIA QQ reconnection after local recovery/self-update and identify next queued finish-local-ai execution."
+  "requested_at": "2026-10-01T21:13:30Z",
+  "reason": "Stop stale MEMORIA finish-local-ai execution so queued repaired continuation can start.",
+  "target_device": "MEMORIA",
+  "action": "restart_runner",
+  "force": true
 }
