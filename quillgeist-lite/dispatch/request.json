@@ -1,12 +1,15 @@
 {
-  "request_id": "memoria-gns-crm-reseed-20261001-0839",
-  "task_id": "crm-astro-build",
+  "request_id": "email-route-discovery-20261001-0856",
+  "task_id": "repo-code-search",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "full",
-    "Project": "gns-crm",
-    "SkipInstall": "false"
+    "Query": "clint.kosh@gmail.com",
+    "Path": "",
+    "Mode": "literal",
+    "Max": "100",
+    "Json": "true",
+    "FilesOnly": "false"
   },
-  "objective": "Rebuild and deploy the Genesys CRM+Cover ASTRO using the updated shared ASTRO default populated-seed behavior. Verify the generated browser-local workspace contains sensible synthetic data across major pages, uses no Durable Objects or server-authoritative CRM state, passes source/runtime checks, deploys gns.clintware.com, and return qq-local-agent confirmation evidence.",
+  "objective": "Find the existing Clintware inbound email routing implementation, Cloudflare routing configuration, scripts, tasks, or prior route declarations that target clint.kosh@gmail.com so stygma@clintware.com can be added through the existing architecture rather than rebuilt.",
   "resume_after": true
 }
