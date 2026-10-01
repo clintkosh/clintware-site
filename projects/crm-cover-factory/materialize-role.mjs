@@ -61,6 +61,11 @@ function customer(s,i){
 
 function richRows(s,customerName){
   const p="synthetic_sample";
+  const milestones=(Array.isArray(s.milestones)&&s.milestones.length?s.milestones:[
+    {title:"Validate current state and decision criteria",owner:"Role owner + stakeholder",due:"Current cycle",status:"Done",column:"Done"},
+    {title:"Close highest-risk dependency",owner:"Role owner + cross-functional partner",due:"Next checkpoint",status:"In Progress",column:"In Progress"},
+    {title:"Measure target outcome and prepare next decision",owner:"Role owner",due:"End of cycle",status:"Planned",column:"Ready"}
+  ]);
   const rows=[
     ["handoff",p,{title:"Role operating context",value:s.context||m.role_mission,validation:"Synthetic candidate scenario",note:s.goal||""}],
     ["handoff",p,{title:"Customer / business objective",value:s.goal||"",validation:"Synthetic candidate scenario",note:s.success||""}],
@@ -76,9 +81,11 @@ function richRows(s,customerName){
   stakeholderRoles.slice(0,3).forEach((role,i)=>rows.push(["stakeholder",p,{name:["Alex Morgan","Taylor Reed","Jordan Lee"][i]+" (Synthetic)",role,organization:customerName,email:"",phone:"",decisionRole:role,status:i===0?"Active":"Engaged",notes:"Synthetic stakeholder for role-specific operating proof."}]));
   for(const a of s.actions)rows.push(["action",p,{title:a.title,owner:a.owner||"Role owner",due:a.due||"Next checkpoint",status:a.status||"Planned",audience:a.audience||"Internal / Customer"}]);
   (s.systems||[]).forEach(sys=>rows.push(["integration",p,{name:sys,purpose:"Role-relevant system / data source",connectorStatus:"Synthetic context",technicalValidation:s.dependency||"Validate ownership, field definitions, and source-of-truth boundaries."}]));
-  (s.milestones||[]).forEach((x,i)=>rows.push(["milestone",p,{title:x.title||String(x),owner:x.owner||"Role owner",due:x.due||"Planned",status:x.status||"Planned",dependencies:x.dependencies||s.dependency||""}]));
-  (s.milestones||[]).forEach((x,i)=>rows.push(["deployment_card",p,{title:x.title||String(x),column:x.column||(["Ready","In Progress","Blocked","Review","Done"][i%5]),stageOrder:i+1,sprint:x.sprint||"Current operating cycle",owner:x.owner||"Role owner",dependency:x.dependencies||s.dependency||"",jiraKey:"",jiraUrl:"",notes:"Synthetic operational program card."}]));
-  rows.push(["sprint",p,{name:"Current operating cycle",weeks:s.timeline||"Current cycle",goal:s.goal||m.role_mission,planned:Math.max(3,(s.milestones||[]).length),completed:Math.max(0,(s.milestones||[]).filter(x=>String(x.status||"").toLowerCase()==="done").length),notes:"Synthetic role-aligned work cycle."}]);
+  s.kpis.slice(0,2).forEach(k=>rows.push(["adoption",p,{name:k.name,value:k.current||"In progress",period:s.timeline||"Current cycle",source:k.source||"Synthetic source to validate",owner:k.owner||"Role owner"}]));
+  milestones.forEach((x,i)=>rows.push(["milestone",p,{title:x.title||String(x),owner:x.owner||"Role owner",due:x.due||"Planned",status:x.status||"Planned",dependencies:x.dependencies||s.dependency||""}]));
+  milestones.forEach((x,i)=>rows.push(["deployment_card",p,{title:x.title||String(x),column:x.column||(["Ready","In Progress","Blocked","Review","Done"][i%5]),stageOrder:i+1,sprint:x.sprint||"Current operating cycle",owner:x.owner||"Role owner",dependency:x.dependencies||s.dependency||"",jiraKey:"",jiraUrl:"",notes:"Synthetic operational program card."}]));
+  rows.push(["sprint",p,{name:"Current operating cycle",weeks:s.timeline||"Current cycle",goal:s.goal||m.role_mission,planned:milestones.length,completed:Math.max(0,milestones.filter(x=>String(x.status||"").toLowerCase()==="done").length),notes:"Synthetic role-aligned work cycle."}]);
+  if((m.tracks||[]).some(t=>t.tab==="issues"))rows.push(["engineering_issue",p,{title:"Cross-functional operating issue · "+(s.dependency||"dependency validation"),severity:s.health==="At Risk"?"High":"Medium",affected:customerName,environment:(s.systems||[]).join("; ")||"Operating workflow",firstObserved:"Current cycle",lastObserved:"Current cycle",actual:s.dependency||"A role-relevant dependency requires validation.",expected:"The operating workflow should have an explicit source of truth, owner, and acceptance condition.",reproducible:"Yes",reproSteps:"Review the synthetic account state, compare the expected operating contract with the current dependency, and confirm the gap.",evidence:"Synthetic CRM records, metric sources, actions, and risk state.",troubleshooting:"Validated ownership and current evidence captured in this synthetic scenario.",workaround:"Use a bounded manual review until the process or data rule is corrected.",businessImpact:"May affect decision quality, execution speed, reporting trust, adoption, or customer outcome.",engineeringAsk:"Confirm the durable process/system correction and its acceptance criteria.",jiraKey:"",jiraUrl:"",status:"Ready for Engineering"}]);
   return rows;
 }
 
@@ -151,12 +158,40 @@ function appPage(){const b=P.applicationBundle||{},cl=b.cover_letter?.draft||"",
  '<div class="grid g2" style="margin-top:18px"><div class="card"><div class="eyebrow">Role mission</div><p>'+esc(P.mission)+'</p><div class="eyebrow">Operating loop</div><p>'+esc(P.operatingLoop.join(" -> "))+'</p></div><div class="card"><div class="eyebrow">Quality gates</div><ul>'+P.qualityGates.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div></div>'+
  '<div class="section"><h2>Role map</h2></div><div class="grid g2">'+P.tracks.map(t=>'<div class="card"><div class="eyebrow">'+esc(t.tab)+'</div><h3>'+esc(t.label)+'</h3><p>'+esc(t.objective)+'</p></div>').join("")+'</div>'+
  '<div class="section"><h2>Why company</h2><button class="btn" data-copy-app="why">Copy</button></div><div class="card"><pre style="white-space:pre-wrap">'+esc(why)+'</pre></div>'+
- '<div class="section"><h2>Tailored cover letter</h2><button class="btn primary" data-copy-app="cover">Copy cover letter</button></div><div class="card"><pre style="white-space:pre-wrap">'+esc(cl)+'</pre></div>'+
+ '<div class="section"><h2>Tailored cover letter</h2><div class="actions"><button class="btn primary" data-copy-app="cover">Copy cover letter</button><button class="btn" id="download-application-pdf">Download application PDF</button></div></div><div class="card"><pre style="white-space:pre-wrap">'+esc(cl)+'</pre></div>'+
  '<div class="callout"><strong>Synthetic boundary</strong><span>'+esc(P.disclosure||"Candidate-built role-specific operating prototype.")+'</span></div>'+
  (P.jobUrl?'<p><a href="'+esc(P.jobUrl)+'" target="_blank" rel="noreferrer">Open verified job posting</a></p>':'');
 }
 body=function(){if(tab==="application")return appPage();let html=baseBody();for(const [a,b] of Object.entries(P.uiReplacements||{}))html=html.split(a).join(b);return '<div class="callout"><strong>'+esc(P.company)+' · '+esc(P.role)+'</strong><span>'+esc(P.tracks.find(x=>x.tab===tab)?.objective||P.mission)+'</span></div>'+html}
-bind=function(){baseBind();document.querySelectorAll("[data-copy-app]").forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copyApp==="why"?(P.applicationBundle.why_company?.draft||""):(P.applicationBundle.cover_letter?.draft||"")))};
+function pdfEscape(s){return String(s??"").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)").replace(/[^\x20-\x7E]/g,"?")}
+function makePdfBytes(title,text){
+ const raw=(title+"\n\n"+text).replace(/\r/g,"").split("\n");
+ const lines=[];for(const r of raw){let x=r||" ";while(x.length>92){let cut=x.lastIndexOf(" ",92);if(cut<40)cut=92;lines.push(x.slice(0,cut));x=x.slice(cut).trim()}lines.push(x)}
+ const pages=[];for(let i=0;i<lines.length;i+=48)pages.push(lines.slice(i,i+48));
+ const objects=[null];const pageIds=[];const streamIds=[];
+ objects[1]="<< /Type /Catalog /Pages 2 0 R >>";
+ objects[2]="";
+ for(const page of pages){const pid=objects.length;pageIds.push(pid);objects.push("");const sid=objects.length;streamIds.push(sid);const stream="BT /F1 10 Tf 48 748 Td 13 TL\n"+page.map((x,i)=>(i?"T* ":"")+"("+pdfEscape(x)+") Tj").join("\n")+"\nET";objects.push("<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream")}
+ const fontId=objects.length;objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+ pageIds.forEach((pid,i)=>{objects[pid]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 "+fontId+" 0 R >> >> /Contents "+streamIds[i]+" 0 R >>"});
+ objects[2]="<< /Type /Pages /Kids ["+pageIds.map(id=>id+" 0 R").join(" ")+"] /Count "+pageIds.length+" >>";
+ let pdf="%PDF-1.4\n",offsets=[0];
+ for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}
+ const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";
+ for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+ pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF\n";
+ return new TextEncoder().encode(pdf)
+}
+function downloadPdf(name,title,text){
+ const bytes=makePdfBytes(title,text),blob=new Blob([bytes],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);return bytes.length
+}
+bind=function(){
+ baseBind();
+ document.querySelectorAll("[data-copy-app]").forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.dataset.copyApp==="why"?(P.applicationBundle.why_company?.draft||""):(P.applicationBundle.cover_letter?.draft||"")));
+ const ap=document.querySelector("#download-application-pdf");if(ap)ap.onclick=()=>downloadPdf(P.projectId+"-application.pdf",P.company+" · "+P.role,"WHY COMPANY\n\n"+(P.applicationBundle.why_company?.draft||"")+"\n\nCOVER LETTER\n\n"+(P.applicationBundle.cover_letter?.draft||""));
+ const prep=document.querySelector("#prep-pdf");if(prep&&window.DPLRPrep?.prepText)prep.onclick=()=>downloadPdf(P.projectId+"-"+String(S.customer?.name||"account").toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-meeting-brief.pdf",P.company+" · "+P.role+" · Meeting Brief",window.DPLRPrep.prepText());
+};
 document.title=P.company+" · "+P.role+" · Clintware";render();})();`;
 fs.writeFileSync(path.join(out,"public","role-profile.js"),profileJs+"\n");
 let html=fs.readFileSync(path.join(out,"public","index.html"),"utf8");
