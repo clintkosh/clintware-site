@@ -390,6 +390,21 @@
       "resource_class": "gpu",
       "concurrency_group": "local-model",
       "max_parallel": 2
+    },
+    "worker-pool-smoke": {
+      "title": "Sleep briefly and report worker slot/process evidence for concurrency verification",
+      "runtime": "python",
+      "script": "quillgeist-lite/tasks/worker-pool-smoke.py",
+      "parameters": [
+        "Message",
+        "DelayMs"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 30,
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "worker-smoke",
+      "max_parallel": 8
     }
   }
 }
