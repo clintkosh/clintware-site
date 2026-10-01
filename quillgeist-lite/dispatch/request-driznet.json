@@ -1,22 +1,8 @@
 {
-  "request_id": "driznet-cwinteract-runtime-confirm-20261001-1128",
-  "task_id": "browser-work",
+  "request_id": "driznet-cwinteract-selfupdate-20261001-1130",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "read",
-    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version",
-    "Selector": "",
-    "Value": "",
-    "StepsJson": "",
-    "Query": "",
-    "Engine": "auto",
-    "MaxResults": "8",
-    "MaxChars": "4000",
-    "Approved": "false",
-    "Headless": "true",
-    "WaitMs": "300",
-    "UserWaitMs": "0"
-  },
-  "objective": "Confirm the deployed runtime source revision after CWInteract deployment.",
-  "resume_after": false
+  "args": {},
+  "objective": "Update DRIZNET to the deployed QQ runtime that includes CWInteract™, preserve device registration, restart safely, and resume queued work.",
+  "resume_after": true
 }
