@@ -7,7 +7,7 @@
   "items": [
     {"id":"CWS-1","jira_alias":"KAN-1","state":"in_progress","title":"Quillgeist Completion Control + Surfing the Wave"},
     {"id":"CWS-2","jira_alias":"KAN-2","state":"verified_done","title":"Finish and merge QQ model-policy + syntax-gate branch"},
-    {"id":"CWS-3","jira_alias":"KAN-3","state":"carried_forward","title":"Re-run DRIZNET reconcile and verify live QQ health"},
+    {"id":"CWS-3","jira_alias":"KAN-3","state":"verified_done","title":"Re-run DRIZNET reconcile and verify live QQ health"},
     {"id":"CWS-4","jira_alias":"KAN-4","state":"carried_forward","title":"Complete Surfing the Wave AI pulse + newsletter integration"},
     {"id":"CWS-5","jira_alias":"KAN-5","state":"verified_done","title":"Track and reconcile every substantial prompt"},
     {"id":"CWS-6","jira_alias":"KAN-6","state":"carried_forward","title":"Recheck pending Clintware workflows and unresolved functionality"},
