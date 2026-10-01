@@ -1,8 +1,10 @@
 {
-  "request_id": "driznet-task-isolation-refresh-20261001-0958",
-  "task_id": "self-update",
+  "request_id": "driznet-task-isolation-apply-20261001-0959",
+  "task_id": "scheduled-task-isolation",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Update DRIZNET Quillgeist Lite to the latest verified runtime that includes Clintware Task Isolation v1.2.0, its bundled Windows GUI executable, automatic scheduled-task focus protection, and Downloads refresh behavior. Resume the runner and return qq-local-agent confirmation.",
+  "args": {
+    "Mode": "Repair"
+  },
+  "objective": "On DRIZNET, run the verified Task Isolation v1.2.0 repair. Refresh the bundled EXE into the user's Downloads folder, scan non-Microsoft scheduled PowerShell/cmd/script tasks, convert desktop-interactive console actions to true CREATE_NO_WINDOW background execution, restart already-running converted tasks under the background wrapper, preserve backups, and return exact qq-local-agent evidence.",
   "resume_after": true
 }
