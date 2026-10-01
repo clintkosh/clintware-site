@@ -1,11 +1,8 @@
 {
-  "request_id": "memoria-gns-final-after-runtime-convergence-20261001-0719",
-  "task_id": "crm-astro-build",
+  "request_id": "memoria-selfupdate-deploy-handoff-20261001-0725",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "full",
-    "Project": "gns-crm",
-    "SkipInstall": "false"
-  },
-  "objective": "Build, validate, check, and deploy the Genesys CRM+Cover ASTRO from the converged reviewed source revision and return qq-local-agent deployment evidence."
+  "args": {},
+  "objective": "Refresh MEMORIA with the current reviewed CRM deployment handoff behavior so provider credentials remain server-side.",
+  "resume_after": true
 }
