@@ -230,6 +230,18 @@ jobs:
           echo "$page" | grep -Fq 'The browser page is informational. The control surface is authenticated.'
           echo 'mcp.clintware.com public landing page is live.'
 
+      - name: Verify MCP client connection page
+        run: |
+          set -euo pipefail
+          page=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors --connect-timeout 5 --max-time 20 https://mcp.clintware.com/connect)
+          echo "$page" | grep -Fq 'Bind this client to Clintware MCP.'
+          echo "$page" | grep -Fq 'https://mcp.clintware.com/mcp'
+          echo "$page" | grep -Fq 'clintware_client_handshake'
+          echo "$page" | grep -Fq 'clintware_instruction_manifest_get'
+          echo "$page" | grep -Fq 'mcp_binding_not_exposed'
+          echo "$page" | grep -Fq 'never invent qq CLI syntax'
+          echo 'mcp.clintware.com/connect is live with verified endpoint, bootstrap, and binding diagnostics.'
+
       - name: Verify admin console boundary
         run: |
           set -euo pipefail
