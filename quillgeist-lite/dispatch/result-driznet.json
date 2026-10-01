@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1103",
-  "job_id": "b6889f4d-777c-4ce1-81a1-f50290fb8a67",
+  "request_id": "driznet-runtime-version-check-20261001-1110",
+  "job_id": "bee98776-3a2a-4776-9243-9f475fabd80f",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 2237,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 4110,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T15:57:34.9935519Z",
-  "recorded_at": 1790870253,
+  "confirmed_at": "2026-10-01T16:01:34.2832992Z",
+  "recorded_at": 1790870492,
   "recovery_history": [],
-  "output_tail": "[run] \u001b[31;1mbrowser-work.ps1: \u001b[31;1mArgument types do not match\u001b[0m"
+  "output_tail": "[run] {\"ok\":true,\"action\":\"read\",\"page\":{\"title\":\"\",\"url\":\"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version\",\"description\":\"\",\"headings\":[],\"text\":\"{\\\"ok\\\":true,\\\"runtime_version\\\":\\\"2026-10-01-task-isolation-v31\\\",\\\"source_revision\\\":\\\"8e61085c44250ac7862e7d58ca436b7ef553d47a\\\",\\\"control_plane_version\\\":\\\"2026-10-01-task-isolation-contract.4\\\",\\\"time\\\":\\\"2026-10-01T16:01:30.847Z\\\"}\",\"links\":[],\"images\":[],\"truncated\":false}}"
 }
