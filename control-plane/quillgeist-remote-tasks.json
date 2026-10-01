@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Canonical remote-dispatch allowlist for Clintware Quillgeist/qq. Local execution details remain in quillgeist-lite/tasks.json; this file defines only tasks and arguments that the control plane may accept remotely.",
   "tasks": {
     "clintware-doctor": {
@@ -63,7 +63,7 @@
       "parameters": []
     },
     "apply-terminal-glass": {
-      "runtime": "powershell",
+      "runtime": "python",
       "parameters": []
     },
     "connect-jira": {
