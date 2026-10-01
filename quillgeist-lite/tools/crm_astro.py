@@ -3,6 +3,17 @@ import argparse, json, pathlib, sys
 from urllib.parse import urlparse
 
 REQUIRED_ACTIONS={"describe","validate","plan"}
+DEFAULT_SEED_CONTRACT={
+    "portfolio_accounts_min":5,
+    "lifecycle_stages_min":4,
+    "contacts_per_account_min":3,
+    "kpis_per_account_min":3,
+    "actions_per_account_min":2,
+    "risk_or_issue_per_account_min":1,
+    "mixed_statuses_required":True,
+    "meeting_context_per_account":True,
+    "flow_coherence_required":True,
+}
 
 def load_manifest(path):
     p=pathlib.Path(path).expanduser().resolve()
@@ -104,6 +115,8 @@ def validate(data):
 def result(action,path,data):
     errors,groups,mode,persistence,remote_required,durable_required,remote_reason=validate(data)
     bundle=data.get("application_bundle") if isinstance(data.get("application_bundle"),dict) else {}
+    synthetic_default=bool(data.get("synthetic_data_default", True if mode=="one-off" else False))
+    seed_contract=data.get("seed_expectations") if isinstance(data.get("seed_expectations"),dict) else (dict(DEFAULT_SEED_CONTRACT) if synthetic_default else None)
     application_profile=str(bundle.get("profile","")).strip().lower() or None
     base={
         "ok":not errors,
@@ -124,7 +137,9 @@ def result(action,path,data):
         "durable_objects_required":durable_required,
         "remote_state_reason":remote_reason,
         "quota_independent":not durable_required,
-        "remote_shell_exposed":False
+        "remote_shell_exposed":False,
+        "synthetic_data_default":synthetic_default,
+        "seed_contract":seed_contract
     }
     if action=="describe":
         base["capabilities"]=[
@@ -135,7 +150,8 @@ def result(action,path,data):
             "browser-smoke handoff",
             "CRM+Cover application bundle validation and planning",
             "browser-local persistence by default for demos",
-            "Durable Object rejection unless remote state is explicitly required"
+            "Durable Object rejection unless remote state is explicitly required",
+            "multi-account multi-stage synthetic seed contract for one-off demos"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
@@ -144,6 +160,8 @@ def result(action,path,data):
             f"node projects/{pid}/scripts/materialize.mjs",
             f"run checks inside .build/{pid}",
             "verify browser-local/stateless builds contain no durable_objects binding",
+            "seed a coherent portfolio across materially different lifecycle stages",
+            "verify stakeholder/KPI/action/risk/meeting depth and mixed statuses",
             "run role-specific browser smoke",
             "deploy only when explicitly requested",
             "verify live domain before reporting live"
