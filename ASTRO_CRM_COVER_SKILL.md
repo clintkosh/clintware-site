@@ -190,6 +190,86 @@ Before final submission:
 7. remove stale company names, source-template semantics, and unsupported claims;
 8. confirm the application still makes sense if the reviewer never clicks the CRM.
 
+
+## Local multi-application factory
+
+For repeated job-application builds, CRM+Cover has a local-first factory mode.  The purpose is to support several isolated application builds concurrently without requiring one ChatGPT thread or one QQ dispatch per company.
+
+Canonical execution:
+
+`VERIFIED JD -> ROLE MANIFEST -> DPLR IMPLEMENTATION REFERENCE -> ROLE-SPECIFIC SYNTHETIC SEEDS -> CRM+COPY MATERIALIZATION -> LOCAL CHECKS -> OPTIONAL LOCAL-MODEL COPY PASS -> EXTERNAL DEPLOYMENT HANDOFF -> LIVE/BROWSER VERIFICATION -> APPLICATION / LANDTHEPLANE STATE`
+
+### Conceptual base vs implementation reference
+
+ASTRO remains the conceptual source of truth.  For the current local factory, `dplr-crm` is the default implementation reference because it contains the mature browser-local persistence, CRM interaction shell, preparation workflow, and verification-compatible runtime.
+
+This does **not** make Doppel the reusable product model.  The factory must:
+
+- materialize the DPLR implementation foundation once;
+- clone that generated foundation into isolated role build directories;
+- replace company identity, role language, tracks, operating loop, samples, application copy, and domain from the current role manifest;
+- keep source-company semantics out of the generated application;
+- feed reusable lessons back into ASTRO and the factory, not into an employer-specific fork.
+
+### Three-letter domain rule
+
+Factory-generated application CRMs should default to a unique three-character Clintware subdomain when the user asks for the compact pattern.
+
+Examples of the format:
+
+`abc.clintware.com`
+
+The three-character code should be relevant to the company or role without simply repeating the full company name.  The manifest is the source of truth for the assignment.  Never describe the route as live until deployment and browser verification pass.
+
+### Parallel-local rule
+
+The same build must work in both of these modes:
+
+1. direct local invocation without QQ;
+2. QQ invocation of the same reviewed local runner.
+
+QQ is an orchestration option, not a dependency of CRM+Cover.
+
+The batch runner may execute independent role builds concurrently after one shared DPLR reference materialization.  Never allow parallel workers to mutate the shared reference build while other workers are cloning it.
+
+Each worker must have:
+
+- its own project manifest;
+- its own `.build/<project>` output;
+- isolated logs / run evidence;
+- bounded CPU/RAM concurrency;
+- independent validation status;
+- no automatic production deployment from the local batch runner unless explicitly requested.
+
+### Local cover-letter generation
+
+Every factory manifest must contain a complete deterministic Why Company and cover-letter draft so the package remains usable without a local model.
+
+A local model may create a second candidate draft or revision, but it may not silently overwrite the source-controlled version.  Local-model copy must obey the same evidence and quality gates as cloud-generated copy.
+
+### Permanent interview/application gates
+
+The following controls apply to every CRM+Cover package:
+
+- **Source gate:** Every consequential metric, percentage, financial figure, timeline, or factual claim must resolve to candidate evidence, the verified role, a named source, or an explicit synthetic/hypothetical label.
+- **Answer compression:** For interview-prep surfaces, default to `answer -> proof -> role link -> stop`.
+- **Core before extras:** Perfect the requested application material before adding bonus demos, art, side tools, or other optional artifacts.
+- **Personal connection:** Genuine reciprocal rapport is allowed.  Do not manufacture additional intimacy in follow-up with gifts, custom art, Easter eggs, biography, or elaborate callbacks unless explicitly invited.
+- **Follow-up restraint:** Default to 100–175 words with one substantive takeaway and one role-relevant proof point, then stop.
+- **Human validation:** AI may prepare, synthesize, and automate repeatable work.  Human judgment owns consequential claims, customer commitments, interpretation, and external communication.
+- **Outbound QA:** Verify names, addresses, company, role, dates, metrics, links, attachments, versions, and whether the outbound is necessary.
+- **Signal-to-noise:** Optimize for decision-relevant evidence rather than effort displayed.
+
+### Future application-platform boundary
+
+The factory is intended to become a reusable application-workflow layer that can later feed LandThePlane.
+
+Keep the interfaces separable:
+
+`JOB DISCOVERY -> VERIFIED JD -> APPLICATION RECORD -> CRM+Cover MANIFEST -> LOCAL BUILD/COPY WORKERS -> HUMAN REVIEW -> SUBMISSION -> INTERVIEW PREP -> FOLLOW-UP -> OUTCOME -> LANDTHEPLANE LEDGER`
+
+Do not tightly couple CRM generation to one job-source provider or one browser extension.  The application record and manifest should be portable so a later browser-assisted application product can invoke the same local factory.
+
 ## STOP rule
 
 The CRM+Cover package is done when:
