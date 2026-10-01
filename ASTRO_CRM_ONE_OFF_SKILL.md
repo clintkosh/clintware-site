@@ -286,6 +286,41 @@ Required:
 
 Use public company terminology only to make the operating model credible.
 
+## Default populated-demo rule
+
+A tailored CRM must **look and behave like an operating system already in motion**, not like a freshly installed empty shell.
+
+Unless the user explicitly requests an empty template, every new one-off CRM must ship with a coherent synthetic portfolio that demonstrates the lifecycle and the relationships between records.
+
+Default seed contract:
+
+- normally at least **5 synthetic accounts**, or enough accounts to cover the role's meaningful lifecycle
+- normally at least **4 distinct lifecycle stages** across the portfolio; use more when the role spans more stages
+- at least **3 stakeholder roles per substantive account**
+- at least **3 role-relevant KPIs per substantive account**
+- at least **2 actions per substantive account**, with mixed statuses across the portfolio
+- at least **1 material risk or operational issue per substantive account**
+- meeting-prep context derived from that account's current state
+- different health, progress, priority, ownership, evidence, and next-action states across accounts
+- dates, statuses, owners, dependencies, metrics, and next actions must tell one internally consistent story
+
+Do not clone one generic record bundle across every account. Seed data must show motion such as:
+
+`DISCOVERY -> DESIGN / GOVERN -> IMPLEMENT / DEPLOY -> ADOPT / OPERATE -> PROVE VALUE -> RENEW / EXPAND`
+
+Use role-appropriate stages rather than these exact labels when needed.
+
+The portfolio should visibly include a mix of:
+- early-stage accounts where discovery/evidence is incomplete;
+- in-flight accounts with implementation work, dependencies, and risk;
+- mature accounts with measurable adoption/value evidence;
+- at least one account where an escalation or blocker changes the operating plan when the role warrants it;
+- at least one account where renewal, expansion, executive review, or next-phase planning is credible when the role owns that motion.
+
+Synthetic progress must be plausible. A mature account should not simultaneously show untouched discovery, zero adoption, completed expansion, and no explanation. Metrics, risks, actions, meetings, and account stage must agree with each other.
+
+This is a **functional default**, not presentation filler. Browser acceptance should verify account-stage variety, record depth, mixed status state, and at least one complete cross-surface flow.
+
 ## Visual-tailoring rule
 
 Match the target company's **format, density, editorial feel, and public visual relationships** when useful.
