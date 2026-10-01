@@ -59,6 +59,7 @@ function endpointUrl(env, pathname, params = {}) {
 }
 
 function registry(env) {
+  if (env.__TEST_NEWSLETTER_STATE) return env.__TEST_NEWSLETTER_STATE;
   return new D1SubscriberRegistry(env.NEWSLETTER_DB, { createToken, sha256 });
 }
 
