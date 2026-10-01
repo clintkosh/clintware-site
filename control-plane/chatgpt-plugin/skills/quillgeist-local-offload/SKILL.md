@@ -13,7 +13,7 @@ Use this skill at the start of substantial owner-operated Clintware tasks.
 2. Discover existing Clintware/qq capabilities before inventing manual work.
 3. Prefer, in order: deterministic local task → local service → local model → included provider capability → low-cost remote → higher-cost remote.
 4. Do not force local execution when it is unhealthy, saturated, materially slower, missing required fresh/private data, or unable to meet the quality bar.
-5. Keep ChatGPT focused on intent, reasoning, synthesis, and verification. Offload builds, tests, transforms, indexing, local browser work, Windows administration, and other deterministic execution whenever a reviewed qq capability exists.
+5. Keep ChatGPT focused on intent, reasoning, synthesis, and verification. Offload builds, tests, transforms, indexing, local browser work, Windows administration, and other deterministic execution whenever a reviewed qq capability exists. Use **CWInteract™** as the canonical desktop-interaction skill for visible Windows apps and signed-in system browser windows.
 
 ## Mandatory substantial-prompt gate
 
