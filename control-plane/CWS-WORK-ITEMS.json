@@ -1,0 +1,20 @@
+{
+  "schema": "clintware-cws-registry/v1",
+  "namespace": "Clintware Support",
+  "canonical_prefix": "CWS",
+  "provider_alias_policy": "Canonical CWS identity is stable; provider issue keys are aliases only.",
+  "updated_at": "2026-10-01T17:30:00Z",
+  "items": [
+    {"id":"CWS-1","jira_alias":"KAN-1","state":"in_progress","title":"Quillgeist Completion Control + Surfing the Wave"},
+    {"id":"CWS-2","jira_alias":"KAN-2","state":"verified_done","title":"Finish and merge QQ model-policy + syntax-gate branch"},
+    {"id":"CWS-3","jira_alias":"KAN-3","state":"carried_forward","title":"Re-run DRIZNET reconcile and verify live QQ health"},
+    {"id":"CWS-4","jira_alias":"KAN-4","state":"carried_forward","title":"Complete Surfing the Wave AI pulse + newsletter integration"},
+    {"id":"CWS-5","jira_alias":"KAN-5","state":"verified_done","title":"Track and reconcile every substantial prompt"},
+    {"id":"CWS-6","jira_alias":"KAN-6","state":"carried_forward","title":"Recheck pending Clintware workflows and unresolved functionality"},
+    {"id":"CWS-7","jira_alias":"KAN-7","state":"blocked","title":"Fix newsletter Google delegated OAuth 403"},
+    {"id":"CWS-8","jira_alias":"KAN-8","state":"in_progress","title":"Remove newsletter dependence on exhausted Durable Object path"},
+    {"id":"CWS-9","jira_alias":"KAN-9","state":"verified_done","title":"Jira tracking + explicit active/done status"},
+    {"id":"CWS-10","jira_alias":"KAN-10","state":"in_progress","title":"Make Astro demos local-first and quota-independent"},
+    {"id":"CWS-11","jira_alias":"KAN-11","state":"in_progress","provider_status":"To Do","status_sync_required":true,"title":"Adopt PXE master architecture + migrate KAN aliases"}
+  ]
+}
