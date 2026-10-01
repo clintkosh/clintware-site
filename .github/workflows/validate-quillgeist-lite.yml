@@ -197,7 +197,16 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:PYTHONPATH = (Resolve-Path "agentbridge-node").Path
-          $planRaw = @(python -m agentbridge_node.big_prompt_cli "Research three independent implementation options and summarize each independently." --project worker-test --max-depth 2 --force)
+          $parallelPrompt = @"
+Research independent implementation options:
+- Inspect CPU worker scheduling and summarize findings independently.
+- Inspect GPU worker scheduling and summarize findings independently.
+- Inspect memory-pressure controls and summarize findings independently.
+- Inspect I/O worker scheduling and summarize findings independently.
+- Inspect conflict-lock policy and summarize findings independently.
+- Inspect cross-machine fan-out and summarize findings independently.
+"@
+          $planRaw = @(python -m agentbridge_node.big_prompt_cli $parallelPrompt --project worker-test --max-depth 2 --force)
           if ($LASTEXITCODE -ne 0) { throw "big-prompt planner failed." }
           $plan = ($planRaw -join "`n") | ConvertFrom-Json
           if ($plan.unit_count -lt 2) { throw "Planner did not decompose a substantial prompt." }
