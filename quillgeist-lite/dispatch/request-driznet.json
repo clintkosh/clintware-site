@@ -1,0 +1,13 @@
+{
+  "request_id": "driznet-routing-recontext-20261001-0833",
+  "task_id": "big-prompt-plan",
+  "target_device": "DRIZNET",
+  "args": {
+    "Prompt": "Permanently harden the Clintware ChatGPT-to-QQ routing path so substantial prompts recover durable state, re-context and compact locally, decompose into dependency-aware work units, execute deterministic/local work through QQ where possible, minimize repeated remote context/token use, preserve explicit device routing, and verify execution evidence. Also preserve the pending Jobs product objective at jobs.clintware.com: a local-first job application copilot inspired by public job-application assistants without copying proprietary code or branding. Current bootstrap changes centralize the remote QQ task allowlist and add a mandatory substantial-prompt gate. Produce the compact continuation plan for unresolved work only, including verification steps and Jobs next actions.",
+    "Project": "Clintware QQ Routing + Jobs",
+    "StateScope": "clintware/qq-routing-jobs",
+    "MaxDepth": "4"
+  },
+  "objective": "Locally re-context and decompose the remaining routing hardening and Jobs work on DRIZNET, proving the substantial-prompt QQ path after bootstrap repair.",
+  "resume_after": false
+}
