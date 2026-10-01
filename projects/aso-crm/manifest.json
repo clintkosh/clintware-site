@@ -1,0 +1,393 @@
+{
+  "mode": "one-off",
+  "project_id": "aso-crm",
+  "company": "AlphaSense",
+  "name": "AlphaSense Senior Manager, Customer Success Operations Operating System + Cover Letter",
+  "domain": "https://aso.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "aso-candidate",
+  "role_mission": "Own the operationalization of strategic Customer Success programs, metrics strategy, systems governance, QBR execution, escalation, data integrity, and repeatable scale across a large enterprise CS organization.",
+  "operating_loop": [
+    "Prioritize",
+    "Govern",
+    "Measure",
+    "Operationalize",
+    "Escalate",
+    "Scale"
+  ],
+  "roles": [
+    {
+      "id": "senior-manager-customer-success-operations",
+      "name": "Senior Manager, Customer Success Operations"
+    }
+  ],
+  "stakeholder_roles": [
+    "VP / CS Executive Sponsor",
+    "CS Operations / Program Owner",
+    "Product / Sales / Finance / BI Partner"
+  ],
+  "tracks": [
+    {
+      "id": "roadmap",
+      "label": "Strategic Program Roadmap",
+      "tab": "deployment",
+      "objective": "Prioritize customer-success programs, dependencies, owners, governance, and scale readiness."
+    },
+    {
+      "id": "metrics",
+      "label": "NRR / GRR / Usage Metrics",
+      "tab": "roi",
+      "objective": "Connect core CS metrics to business outcomes with explicit definitions and source-of-truth controls."
+    },
+    {
+      "id": "systems",
+      "label": "Systems & Tool Strategy",
+      "tab": "handoff",
+      "objective": "Map Salesforce, Gainsight, Clari, Gong, Tableau, and adjacent workflow needs into decision-ready requirements."
+    },
+    {
+      "id": "qbr",
+      "label": "QBR Operating System",
+      "tab": "meetings",
+      "objective": "Run QBR preparation, executive narrative, asks of the business, decisions, and accountable follow-through."
+    },
+    {
+      "id": "escalation",
+      "label": "Operational Escalation",
+      "tab": "risks",
+      "objective": "Resolve broken workflows, data discrepancies, and urgent tooling issues with bounded ownership and durable fixes."
+    },
+    {
+      "id": "governance",
+      "label": "Data Integrity & Governance",
+      "tab": "issues",
+      "objective": "Protect field accuracy, hierarchy integrity, reporting trust, and executive-level source-of-truth confidence."
+    },
+    {
+      "id": "scale",
+      "label": "Scale & Repeatability",
+      "tab": "implementation",
+      "objective": "Decide when programs are ready to scale and ensure the playbook holds beyond the pilot."
+    },
+    {
+      "id": "leadership",
+      "label": "Leadership & Coaching",
+      "tab": "command",
+      "objective": "Turn operational work into priorities, coaching, insight, and executive decisions rather than tactical throughput alone."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "AlphaSense Senior Manager, Customer Success Operations",
+      "url": "https://job-boards.greenhouse.io/alphasense/jobs/8658094002"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point Customer Success Operations: increased dedicated CSM coverage for >$50K accounts to 99% and maintained onboarding outreach within a two-week SLA.",
+    "Managed 20–40 SaaS accounts totaling approximately $3M ARR; portfolio visibility improved from about 40% to 99%, churn reduced to under 30%, and team efficiency improved 30%.",
+    "Dedrone: standardized enterprise onboarding to about one month, increased engagement 25%, increased renewals 20%, and supported stakeholder buy-in for an approximately $3M AWS-hosted solution.",
+    "Built and operated Salesforce, Custify, Jira, and Salesforce-to-Jira workflow/reporting patterns; led QBR/EBR, health/risk, escalation, onboarding, and adoption motions.",
+    "Led distributed customer-facing support teams; Cofense enablement and automation contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute faster first response.",
+    "Current proof-of-work includes AI-assisted workflow automation and browser-local Customer Success operating systems built through Clintware."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public AlphaSense role context with clearly synthetic sample data. It is not an official AlphaSense product, customer tenant, private process description, or representation of real AlphaSense customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 5,
+    "lifecycle_stages_min": 4,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Senior Manager, Customer Success Operations",
+    "Doppel": "AlphaSense",
+    "Technical Services workspace": "Programs & operating work",
+    "Advanced technical investigations": "Operational issue triage",
+    "Advanced investigations": "Operational issue triage",
+    "Engineering handoffs": "Systems / cross-functional handoffs",
+    "Support scale & adoption": "Enablement, adoption & scale",
+    "Customer technical cadence": "Operating cadence",
+    "Customer reviews": "Business reviews",
+    "Technical delivery": "Program delivery",
+    "Service projects": "Operating workstreams",
+    "technical projects": "operating workstreams"
+  },
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "AlphaSense is compelling because the role combines three areas where I have the strongest operating evidence: Customer Success domain depth, systems/process design, and executive-level measurement discipline.  The company is scaling an AI-driven market-intelligence platform across thousands of enterprise customers, and this position is specifically responsible for making Customer Success programs measurable, trustworthy, and repeatable.\n\nI have worked both sides of that problem.  I have managed enterprise customer portfolios directly, and I have built the operating layer around them.  At Check Point, I helped move portfolio visibility from roughly 40% to 99%, built workflows across Salesforce, Custify, and Jira, and supported 99% dedicated CSM coverage for accounts above $50K.  At Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.\n\nWhat particularly interests me is AlphaSense's emphasis on NRR, GRR, usage KPIs, QBR ownership, data integrity, systems strategy, and durable escalation.  Those are not independent functions.  They form one operating system for making better Customer Success decisions.\n\nI would bring a field-informed CS Operations perspective: Define the metric contract, make the source of truth defensible, turn strategic programs into repeatable motions, and ensure that executive reporting drives an accountable next action."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear AlphaSense Hiring Team,\n\nI am applying for the Senior Manager, Customer Success Operations role because it brings together the operating responsibilities that have defined the strongest parts of my career: Customer Success strategy, systems and reporting, process design, escalation leadership, and cross-functional execution.\n\nAt Check Point, I helped increase portfolio visibility from roughly 40% to 99%, supported 99% dedicated CSM coverage for accounts above $50K, and built operating workflows across Salesforce, Custify, and Jira.  I also managed 20 to 40 SaaS accounts totaling approximately $3M ARR, so my approach to Customer Success Operations is grounded in how data, process, and tooling affect the customer-facing team in practice.\n\nI am particularly aligned with AlphaSense's focus on metrics strategy, QBR ownership, data integrity, and scalable program governance.  I have built health and risk processes, executive reporting, onboarding and adoption motions, escalation workflows, and cross-functional handoffs across Sales, Support, Product, and Engineering.  At Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.\n\nI also build AI-assisted workflow systems through Clintware.  I use automation to reduce repetitive operational work, but keep human validation over metrics, external commitments, and executive decisions.  For this role, I built a synthetic candidate operating prototype to model how strategic programs, KPI governance, QBRs, escalation, and scale-readiness can connect without implying knowledge of AlphaSense's private processes.\n\nI would welcome the opportunity to help AlphaSense make Customer Success operations more measurable, durable, and scalable.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation"
+  },
+  "seed_scenarios": [
+    {
+      "name": "Northstar Markets (Synthetic)",
+      "industry": "Financial services",
+      "stage": "Strategic program pilot",
+      "health": "Watch",
+      "priority": "High",
+      "goal": "Operationalize a strategic CS program with defensible metrics, governance, and executive reporting.",
+      "systems": [
+        "Salesforce",
+        "Gainsight",
+        "Clari",
+        "Gong",
+        "Tableau"
+      ],
+      "timeline": "Q4 strategic program",
+      "dependency": "Hierarchy mismatch affects executive reporting",
+      "kpis": [
+        {
+          "name": "NRR signal integrity",
+          "target": "100% source-of-truth reconciliation",
+          "baseline": "92%",
+          "current": "96%",
+          "source": "Synthetic Salesforce/Clari reconciliation"
+        },
+        {
+          "name": "GRR risk coverage",
+          "target": "100% high-risk accounts with owner",
+          "baseline": "85%",
+          "current": "95%",
+          "source": "Synthetic risk tracker"
+        },
+        {
+          "name": "Usage KPI completeness",
+          "target": "95% strategic accounts",
+          "baseline": "72%",
+          "current": "88%",
+          "source": "Synthetic Tableau tracker"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Resolve account hierarchy mismatch",
+          "status": "In Progress"
+        },
+        {
+          "title": "Prepare QBR ask on data-governance ownership",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Account hierarchy mismatch in executive reporting",
+        "impact": "NRR/GRR narrative may be materially wrong.",
+        "mitigation": "Reconcile hierarchy before QBR and document source precedence."
+      },
+      "meeting": "Customer Success QBR",
+      "meeting_type": "QBR"
+    },
+    {
+      "name": "Beacon Legal (Synthetic)",
+      "industry": "Legal services",
+      "stage": "Scale readiness",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Decide whether a successful pilot is ready to scale to a full strategic segment.",
+      "systems": [
+        "Salesforce",
+        "Gainsight",
+        "Tableau"
+      ],
+      "timeline": "Next two quarters",
+      "dependency": "Playbook exceptions are not yet documented",
+      "kpis": [
+        {
+          "name": "Program adoption",
+          "target": "80% of target CSMs",
+          "baseline": "25%",
+          "current": "62%",
+          "source": "Synthetic program tracker"
+        },
+        {
+          "name": "Exception rate",
+          "target": "<10%",
+          "baseline": "22%",
+          "current": "12%",
+          "source": "Synthetic QA review"
+        },
+        {
+          "name": "Time-to-decision",
+          "target": "<5 business days",
+          "baseline": "9",
+          "current": "6",
+          "source": "Synthetic program operations"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Document top three playbook exceptions",
+          "status": "In Progress"
+        },
+        {
+          "title": "Approve scale-readiness gate",
+          "status": "Review"
+        }
+      ]
+    },
+    {
+      "name": "Cedar Capital (Synthetic)",
+      "industry": "Investment management",
+      "stage": "QBR prep",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Convert usage, risk, and strategic program evidence into an executive decision agenda.",
+      "systems": [
+        "Salesforce",
+        "Gong",
+        "Tableau"
+      ],
+      "timeline": "Quarterly",
+      "dependency": "Two KPIs use different cohort definitions",
+      "kpis": [
+        {
+          "name": "QBR metric consistency",
+          "target": "100% metric contract alignment",
+          "baseline": "70%",
+          "current": "90%",
+          "source": "Synthetic QBR QA"
+        },
+        {
+          "name": "Ask closure",
+          "target": "90% by next QBR",
+          "baseline": "75%",
+          "current": "83%",
+          "source": "Synthetic action ledger"
+        },
+        {
+          "name": "Usage narrative confidence",
+          "target": "High",
+          "baseline": "Medium",
+          "current": "High",
+          "source": "Synthetic usage dashboard"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Align cohort definitions",
+          "status": "In Progress"
+        },
+        {
+          "title": "Draft executive asks",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Pioneer Research (Synthetic)",
+      "industry": "Research services",
+      "stage": "Escalation",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Resolve a broken CS workflow without compromising reporting trust or downstream adoption.",
+      "systems": [
+        "Salesforce",
+        "Gainsight",
+        "Clari"
+      ],
+      "timeline": "Immediate",
+      "dependency": "Workflow automation skipped required status transition",
+      "kpis": [
+        {
+          "name": "Workflow success rate",
+          "target": "99.5%",
+          "baseline": "94%",
+          "current": "97%",
+          "source": "Synthetic workflow audit"
+        },
+        {
+          "name": "Data correction backlog",
+          "target": "0 critical",
+          "baseline": "18",
+          "current": "6",
+          "source": "Synthetic QA queue"
+        },
+        {
+          "name": "Reporting confidence",
+          "target": "Restored",
+          "baseline": "Low",
+          "current": "Medium",
+          "source": "Synthetic leadership review"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Repair workflow transition logic",
+          "status": "In Progress"
+        },
+        {
+          "title": "Backfill affected records",
+          "status": "In Progress"
+        }
+      ]
+    },
+    {
+      "name": "Summit Advisory (Synthetic)",
+      "industry": "Consulting",
+      "stage": "People / program planning",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Raise a Senior Analyst's work from tactical output to insight-driven program impact.",
+      "systems": [
+        "Salesforce",
+        "Tableau"
+      ],
+      "timeline": "Current half",
+      "dependency": "Priorities exceed available analyst capacity",
+      "kpis": [
+        {
+          "name": "Strategic work mix",
+          "target": "60% insight/program work",
+          "baseline": "35%",
+          "current": "48%",
+          "source": "Synthetic capacity review"
+        },
+        {
+          "name": "On-time program delivery",
+          "target": "90%",
+          "baseline": "78%",
+          "current": "86%",
+          "source": "Synthetic roadmap"
+        },
+        {
+          "name": "Executive-ready outputs",
+          "target": "4 per quarter",
+          "baseline": "2",
+          "current": "3",
+          "source": "Synthetic coaching plan"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Reprioritize analyst roadmap",
+          "status": "Done"
+        },
+        {
+          "title": "Coach next executive narrative",
+          "status": "In Progress"
+        }
+      ]
+    }
+  ]
+}
