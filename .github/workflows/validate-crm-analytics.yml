@@ -19,3 +19,5 @@ jobs:
           python-version: "3.13"
       - name: Require GA4 on every discovered CRM
         run: python3 tests/validate_crm_analytics.py
+      - name: Enforce ASTRO local-first persistence
+        run: python3 tests/validate_astro_local_first.py
