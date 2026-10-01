@@ -4250,7 +4250,7 @@ function controlPlaneLanding(){
       <div class="kicker">Model-agnostic AI infrastructure</div>
       <h1>Capabilities should outlive the model using them.</h1>
       <p class="lead">The Clintware Control Plane is a permissioned layer between AI systems and the tools they are allowed to use. It keeps identity, policy, reusable workflows, provider credentials, and audit boundaries outside the model itself.</p>
-      <div class="actions"><a class="btn primary" href="/health">Service health</a><a class="btn" href="/api/v1">API index</a><a class="btn" href="https://www.clintware.com/">Clintware</a></div>
+      <div class="actions"><a class="btn primary" href="/connect">Connect a client</a><a class="btn" href="/health">Service health</a><a class="btn" href="/api/v1">API index</a><a class="btn" href="https://www.clintware.com/">Clintware</a></div>
     </div></section>
 
     <section class="section"><div class="wrap">
@@ -4292,6 +4292,81 @@ function controlPlaneLanding(){
   return new Response(html,{status:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-robots-tag":"noindex, nofollow","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
 }
 
+function controlPlaneConnect(){
+  const html=\`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#071018">
+  <title>Connect to Clintware MCP</title>
+  <style>
+    :root{--bg:#071018;--panel:#0c1620;--line:#243341;--text:#edf5f8;--muted:#9bafbd;--cyan:#68dfff;--mint:#7ce4b4;--amber:#f2c36b}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(104,223,255,.1),transparent 30%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+    .wrap{width:min(980px,calc(100% - 32px));margin:auto}.top{padding:22px 0;border-bottom:1px solid var(--line)}.toprow{display:flex;justify-content:space-between;gap:20px;align-items:center}.brand{font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em}.brand span{color:var(--cyan)}a{color:var(--cyan)}main{padding:58px 0}.kicker{color:var(--cyan);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(40px,7vw,70px);line-height:1;letter-spacing:-.05em;margin:12px 0 18px}.lead{max-width:760px;color:#c7d3da;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:34px 0}.card{border:1px solid var(--line);background:var(--panel);padding:20px}.card h2{font-size:20px;margin:0 0 10px}.card p,.card li{color:var(--muted);font-size:14px}.code{margin-top:14px;padding:16px;border:1px solid var(--line);background:#050b10;overflow:auto;white-space:pre-wrap;color:#c8d8e0;font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace}.copy{margin-top:10px;border:1px solid #3d596a;background:#0a202c;color:var(--text);padding:8px 10px;cursor:pointer;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace}.steps{counter-reset:step}.step{display:grid;grid-template-columns:42px 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--line)}.step:before{counter-increment:step;content:counter(step);display:grid;place-items:center;width:30px;height:30px;border:1px solid #355065;color:var(--cyan);font:800 12px ui-monospace,SFMono-Regular,Menlo,monospace}.step b{display:block}.step span{display:block;color:var(--muted);font-size:14px;margin-top:4px}.state{border-left:3px solid var(--amber);padding:12px 14px;background:#11150f;color:#d9d3bd;font-size:13px}.ok{color:var(--mint)}footer{padding:28px 0;border-top:1px solid var(--line);color:var(--muted);font-size:12px}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="wrap toprow"><div class="brand">CLINT<span>WARE</span> / CONNECT</div><a href="/">Control Plane</a></div></header>
+<main><div class="wrap">
+  <div class="kicker">Client setup</div>
+  <h1>Bind this client to Clintware MCP.</h1>
+  <p class="lead">Registration happens in the host application's MCP or connector configuration. After the host exposes Clintware tools, the model loads current instructions and capabilities dynamically.</p>
+  <div class="grid">
+    <section class="card">
+      <h2>MCP endpoint</h2>
+      <div class="code" id="endpoint">https://mcp.clintware.com/mcp</div>
+      <button class="copy" data-copy="endpoint">Copy endpoint</button>
+      <p>Transport: Streamable HTTP. Use the host application's normal MCP authentication flow. Do not paste Clintware root tokens into prompts.</p>
+    </section>
+    <section class="card">
+      <h2>Generic MCP config</h2>
+      <div class="code" id="config">{
+  "mcpServers": {
+    "clintware": {
+      "type": "streamable-http",
+      "url": "https://mcp.clintware.com/mcp"
+    }
+  }
+}</div>
+      <button class="copy" data-copy="config">Copy config</button>
+      <p>Use this object only when the host supports this MCP config shape. Otherwise register the same endpoint through the host's MCP or connector UI.</p>
+    </section>
+  </div>
+  <div class="steps">
+    <div class="step"><div><b>Register the server</b><span>Add <code>https://mcp.clintware.com/mcp</code> to the client's MCP/connectors configuration. Client-specific menu names can vary.</span></div></div>
+    <div class="step"><div><b>Complete authentication</b><span>If the host opens OAuth or another approved Clintware authorization flow, complete it there. Credentials remain outside the prompt.</span></div></div>
+    <div class="step"><div><b>Verify tool exposure</b><span>The client should expose tools such as <code>clintware_client_handshake</code>, <code>clintware_instruction_manifest_get</code>, and <code>clintware_master_prompt_get</code>.</span></div></div>
+    <div class="step"><div><b>Bootstrap the session</b><span>Paste the compact bootstrap below only after the MCP server is registered. The full master prompt is loaded dynamically.</span></div></div>
+  </div>
+  <section class="card">
+    <h2>Compact bootstrap prompt</h2>
+    <div class="code" id="bootstrap">Connect to https://mcp.clintware.com/mcp. Call clintware_client_handshake(client=&lt;model&gt;), then clintware_instruction_manifest_get; load all enabled MDs in load_order via returned loaders. Refresh on master/instruction references. If Clintware tools are absent, open https://mcp.clintware.com/connect and report the exact binding/auth state; never invent qq CLI syntax, job paths, or manual telemetry workarounds.</div>
+    <button class="copy" data-copy="bootstrap">Copy bootstrap</button>
+  </section>
+  <section class="card" style="margin-top:16px">
+    <h2>Binding diagnostics</h2>
+    <div class="state"><b>Tools absent before registration:</b> report <code>mcp_binding_not_exposed</code>. Do not invent a local <code>qq</code> CLI or guessed job path.</div>
+    <p><span class="ok">Tools exposed but login is required:</span> report <code>authentication_required</code> or <code>authorization_required</code>, complete the host-supported auth flow, then retry the handshake.</p>
+    <p><span class="ok">Specific tool missing:</span> report <code>tool_not_available_in_client</code> and refresh capability discovery. Do not assume the entire Control Plane is unreachable.</p>
+    <p><span class="ok">Connection error:</span> report the concrete observed error. Check <a href="/health">/health</a> separately from the authenticated MCP binding.</p>
+  </section>
+</div></main>
+<footer><div class="wrap">Clintware™ · MCP client setup · <a href="/health">service health</a></div></footer>
+<script>
+for(const button of document.querySelectorAll("[data-copy]")){
+  button.addEventListener("click",async()=>{
+    const node=document.getElementById(button.dataset.copy);
+    try{await navigator.clipboard.writeText(node.textContent);button.textContent="Copied";setTimeout(()=>button.textContent="Copy "+button.dataset.copy,1200)}catch{button.textContent="Select and copy"}
+  });
+}
+</script>
+</body>
+</html>\`;
+  return new Response(html,{status:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-robots-tag":"noindex, nofollow","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'"}});
+}
+
 function safeConfig(env){
   const knownGithub=Boolean(env.GITHUB_CONTROL_PLANE_TOKEN||env.GITHUB_TOKEN_CLINTKOSH);
   return {
@@ -4324,6 +4399,7 @@ export default {
         if(adminResponse)return adminResponse;
       }
       if(request.method==="GET"&&url.pathname==="/")return controlPlaneLanding();
+      if(request.method==="GET"&&url.pathname==="/connect")return controlPlaneConnect();
       if(request.method==="GET"&&url.pathname==="/health"){
         // Health must be constant-cost and deterministic. Do not read Durable
         // Object state here: monitoring should never consume the storage budget
@@ -4503,7 +4579,7 @@ export default {
         return json({ok:true,email:result,runner_id:clip(body.runner_id||device.device_id,120),generated_at:clip(body.generated_at||"",80)});
       }
       if(request.method==="GET"&&url.pathname==="/api/v1"){
-        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
+        return json({name:"Clintware Control Plane",version:VERSION,endpoints:{connect:"/connect",health:"/health",products:"/api/v1/products",mcp_clients:"/api/v1/mcp/clients",events:"/api/v1/events",research:"/api/v1/research",jira_status:"/api/v1/jira/status",jira_oauth_start:"/api/v1/jira/oauth/start",jira_oauth_callback:"/api/v1/jira/oauth/callback",confluence_status:"/api/v1/confluence/status",confluence_oauth_start:"/api/v1/confluence/oauth/start",confluence_bridge:"/api/v1/confluence/bridge",capability:"/api/v1/capability",handoffs:"/api/v1/handoffs/:id",quillgeist_lite_stream:"/api/v1/quillgeist-lite/stream",summary:"/api/v1/products/:product/summary",mcp:"/mcp"},security:"identity -> context -> policy -> capability -> action -> audit"});
       }
       if(request.method==="POST"&&url.pathname==="/api/v1/quillgeist-lite/devices/register"){
         const receiver=await verifyGithubReceiver(request);
