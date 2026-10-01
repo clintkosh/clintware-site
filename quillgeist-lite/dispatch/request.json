@@ -1,8 +1,13 @@
 {
-  "request_id": "memoria-self-update-public-skill-v30-20261001-1238",
-  "task_id": "self-update",
+  "request_id": "memoria-linkedin-skill-live-read-20261001-1241",
+  "task_id": "browser-work",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA Quillgeist Lite from the maintained repository so registry version 30 and the public-skill-verify task are installed, then restart safely and return qq-local-agent confirmation.",
-  "resume_after": true
+  "args": {
+    "Action": "read",
+    "Url": "https://www.clintware.com/skills/linkedin-evidence-post/SKILL.md",
+    "MaxChars": "30000",
+    "Headless": "true"
+  },
+  "objective": "From MEMORIA, read the deployed LinkedIn Evidence Post skill URL and return the live page content/status evidence. Do not authenticate or mutate the page.",
+  "resume_after": false
 }
