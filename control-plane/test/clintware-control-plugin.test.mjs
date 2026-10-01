@@ -22,4 +22,7 @@ test("universal LLM routing makes direct MCP primary and user telemetry exceptio
   assert.match(routing, /MEMORIA/i);
   assert.match(routing, /DRIZNET/i);
   assert.match(routing, /manual PowerShell\/CMD only/i);
+  assert.match(routing, /Autonomous continuation contract/i);
+  assert.match(routing, /Do not make the user send another message simply to say "continue."/i);
+  assert.match(routing, /known fix/i);
 });
