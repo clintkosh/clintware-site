@@ -1,9 +1,12 @@
 {
-  "request_id": "all-machines-autonomous-continuation-doctor-20261001-0914",
-  "mode": "rollout",
-  "task_id": "clintware-doctor",
-  "args": {},
-  "objective": "Verify every registered QQ machine is healthy, connected, on the reviewed runtime/task registry, and able to execute the current Clintware operating contract including autonomous continuation/recovery behavior.",
-  "resume_after": true,
-  "verify_seconds": 240
+  "request_id": "memoria-nma-final-seed-verify-20261001-0917",
+  "task_id": "crm-astro-build",
+  "target_device": "MEMORIA",
+  "args": {
+    "Action": "full",
+    "Project": "nma-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Final local validation of the current NMA CRM after the canonical control plane passed deployment and MEMORIA's maintained repository cache was refreshed. Verify the populated multi-stage synthetic portfolio, lifecycle phases discover/govern/test/protect/prove/expand, stage-specific stakeholder/KPI/action/risk/issue/meeting depth, seed migration version 3, ASTRO populated-seed default, materialization, syntax, role logic, and deployment handoff. Return qq-local-agent confirmation.",
+  "resume_after": true
 }
