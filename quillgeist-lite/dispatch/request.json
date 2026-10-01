@@ -1,9 +1,9 @@
 {
-  "request_id": "driznet-jobs-v1-plan-20261001-0912",
+  "request_id": "driznet-jobs-v1-plan-sanitized-20261001-0712",
   "task_id": "big-prompt-plan",
   "target_device": "DRIZNET",
   "args": {
-    "Prompt": "Build Jobs, the Clintware local-first job-application copilot, using docs/jobs-product-spec.md as the authoritative product spec. Recover relevant existing Clintware/Quillgeist/browser automation/job-search/CRM+cover-letter state first. Recursively decompose into dependency-aware implementation units. Prioritize deterministic local execution on DRIZNET, local storage, a local UI, job capture, application ledger, fit analysis, resume/answer selection, governed browser autofill, duplicate detection, and an explicit final-submit approval gate. Keep professional data local on the happy path. Do not mix CodeFEDDY. Preserve verification requirements and produce an actionable plan that can be executed/resumed by QQ.",
+    "Prompt": "Build Jobs, the Clintware local-first job-application copilot, using docs/jobs-product-spec.md as the authoritative product spec. Recover relevant existing Clintware/Quillgeist/browser automation/job-search/CRM+cover-letter state first. Recursively decompose into dependency-aware implementation units. Prioritize deterministic local execution on DRIZNET, local storage, a local UI, job capture, application ledger, fit analysis, resume/answer selection, governed browser autofill, duplicate detection, and an explicit final-submit approval gate. Keep professional data local on the happy path. Do not mix external-workspace data or assets into Clintware. Preserve verification requirements and produce an actionable plan that can be executed/resumed by QQ.",
     "Project": "Jobs",
     "StateScope": "clintware/jobs",
     "MaxDepth": "4"
