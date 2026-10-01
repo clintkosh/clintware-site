@@ -36,6 +36,13 @@ test("network share task is control-plane allowlisted", () => {
   assert.match(source, /quillgeist-lite\/tasks\/share-network-folder\.ps1/);
 });
 
+test("CRM ASTRO remote task keeps a bounded argument surface", () => {
+  assert.deepEqual(remoteTasks.tasks["crm-astro-build"], {
+    runtime: "powershell",
+    parameters: ["Action", "Project", "SkipInstall"],
+  });
+});
+
 test("wake channel stays persistent across queued-job notifications", () => {
   const start = source.indexOf("async broadcastQuillgeistLiteWake(job)");
   const end = source.indexOf("async broadcastQuillgeistLiteJobEvent", start);
