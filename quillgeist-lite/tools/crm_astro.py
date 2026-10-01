@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, json, pathlib, sys
+import argparse, json, pathlib, re, sys
 from urllib.parse import urlparse
 
 REQUIRED_ACTIONS={"describe","validate","plan"}
@@ -93,6 +93,53 @@ def validate(data):
                 cover=bundle.get("cover_letter")
                 if cover is not None and not isinstance(cover,dict):
                     errors.append("cover_letter_must_be_object")
+
+                local_factory=bool(bundle.get("local_factory",False))
+                if local_factory:
+                    if str(data.get("implementation_reference") or "").strip()!="dplr-crm":
+                        errors.append("local_factory_requires_dplr_crm_reference")
+                    host=(urlparse(domain).hostname or "").lower()
+                    if not re.fullmatch(r"[a-z0-9]{3}\.clintware\.com",host):
+                        errors.append("local_factory_domain_must_be_three_letter_clintware_subdomain")
+                    sources=data.get("public_sources")
+                    if not isinstance(sources,list) or not any(isinstance(x,dict) and str(x.get("url") or "").startswith("http") for x in sources):
+                        errors.append("local_factory_requires_public_job_source")
+                    evidence=data.get("candidate_evidence")
+                    if not isinstance(evidence,list) or len([x for x in evidence if str(x).strip()])<3:
+                        errors.append("local_factory_requires_candidate_evidence")
+                    scenarios=data.get("seed_scenarios")
+                    if not isinstance(scenarios,list) or len(scenarios)<5:
+                        errors.append("local_factory_requires_five_seed_scenarios")
+                    else:
+                        stages=set()
+                        for idx,s in enumerate(scenarios):
+                            if not isinstance(s,dict):
+                                errors.append(f"seed_scenario_{idx+1}_not_object")
+                                continue
+                            stage=str(s.get("stage") or "").strip()
+                            if stage: stages.add(stage.lower())
+                            kpis=s.get("kpis")
+                            actions=s.get("actions")
+                            if not isinstance(kpis,list) or len(kpis)<3:
+                                errors.append(f"seed_scenario_{idx+1}_requires_three_kpis")
+                            else:
+                                for kidx,k in enumerate(kpis):
+                                    if not isinstance(k,dict) or not str(k.get("name") or "").strip() or not str(k.get("target") or "").strip() or not str(k.get("source") or "").strip():
+                                        errors.append(f"seed_scenario_{idx+1}_kpi_{kidx+1}_missing_name_target_or_source")
+                            if not isinstance(actions,list) or len(actions)<2:
+                                errors.append(f"seed_scenario_{idx+1}_requires_two_actions")
+                            if not str(s.get("goal") or "").strip():
+                                errors.append(f"seed_scenario_{idx+1}_missing_goal")
+                        if len(stages)<4:
+                            errors.append("local_factory_requires_four_lifecycle_stages")
+                    if not isinstance(why,dict) or not str(why.get("draft") or "").strip():
+                        errors.append("local_factory_requires_why_company_draft")
+                    if not isinstance(cover,dict) or not str(cover.get("draft") or "").strip():
+                        errors.append("local_factory_requires_cover_letter_draft")
+                    gates=str(bundle.get("interview_quality_gates") or "")
+                    for required_gate in ("source","compression","core-before-extras","follow-up-restraint","human-validation"):
+                        if required_gate not in gates:
+                            errors.append(f"local_factory_missing_quality_gate:{required_gate}")
     persistence=str(data.get("persistence_mode") or "browser-local").strip().lower()
     remote_required=bool(data.get("remote_state_required",False))
     durable_required=bool(data.get("durable_objects_required",False))
@@ -151,7 +198,10 @@ def result(action,path,data):
             "CRM+Cover application bundle validation and planning",
             "browser-local persistence by default for demos",
             "Durable Object rejection unless remote state is explicitly required",
-            "multi-account multi-stage synthetic seed contract for one-off demos"
+            "multi-account multi-stage synthetic seed contract for one-off demos",
+            "DPLR-derived local CRM+Cover factory validation",
+            "three-letter Clintware domain validation for local application factory builds",
+            "parallel local CRM+Cover build compatibility independent of QQ"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
@@ -171,7 +221,9 @@ def result(action,path,data):
                 "draft Why Company against the verified application prompt and word range",
                 "draft a distinct role-specific cover letter with the CRM as optional proof-of-work",
                 "insert the CRM URL only after live + interactive browser verification",
-                "run redundancy, claim, and synthetic-data disclosure checks"
+                "run redundancy, claim, and synthetic-data disclosure checks",
+                "apply source, answer-compression, core-before-extras, follow-up-restraint, and human-validation gates",
+                "when local_factory is enabled, materialize from the shared DPLR reference and preserve three-letter domain identity"
             ]
     return base
 
