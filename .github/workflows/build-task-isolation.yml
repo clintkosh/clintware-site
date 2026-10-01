@@ -39,7 +39,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $task = "CI Console Popup Canary"
-          $marker = Join-Path $env:TEMP "clintware-task-isolation-canary.txt"
+          $marker = Join-Path $env:WINDIR "Temp\clintware-task-isolation-canary.txt"
           Remove-Item $marker -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName $task -Confirm:$false -ErrorAction SilentlyContinue
 
@@ -47,7 +47,7 @@ jobs:
           $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument ('-NoProfile -Command "Set-Content -LiteralPath ''' + $marker + ''' -Value background-canary"')
           $trigger = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1)
           $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew
-          Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Settings $settings -User $env:USERNAME | Out-Null
+          Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Settings $settings -User "SYSTEM" -RunLevel Highest | Out-Null
 
           $before = Get-ScheduledTask -TaskName $task
           $beforeXml = [xml](Export-ScheduledTask -TaskName $task)
@@ -74,7 +74,13 @@ jobs:
           Start-ScheduledTask -TaskName $task
           $deadline = (Get-Date).AddSeconds(20)
           while ((Get-Date) -lt $deadline -and -not (Test-Path $marker)) { Start-Sleep -Milliseconds 250 }
-          if (-not (Test-Path $marker)) { throw "Rewritten task did not execute original PowerShell payload" }
+          if (-not (Test-Path $marker)) {
+            $ti = Get-ScheduledTaskInfo -TaskName $task
+            $ta = (Get-ScheduledTask -TaskName $task).Actions[0]
+            Write-Host ("CANARY_LAST_RESULT=" + $ti.LastTaskResult)
+            Write-Host ("CANARY_ACTION=" + $ta.Execute + " " + $ta.Arguments)
+            throw "Rewritten task did not execute original PowerShell payload"
+          }
           if ((Get-Content $marker -Raw).Trim() -ne "background-canary") { throw "Canary payload output mismatch" }
 
           # Verify the executable is GUI-subsystem; no console is allocated by the helper itself.
