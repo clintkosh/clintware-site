@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1052",
-  "job_id": "fb1b875d-78d6-4a72-b738-dd0a610639cc",
+  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1056",
+  "job_id": "249cd5b0-1189-4958-926b-e46d72415a3f",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "status": "failed",
   "exit_code": 1,
-  "duration_ms": 2430,
+  "duration_ms": 1566,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T15:51:13.2595493Z",
-  "recorded_at": 1790869871,
+  "confirmed_at": "2026-10-01T15:55:20.2690020Z",
+  "recorded_at": 1790870118,
   "recovery_history": [],
   "output_tail": "[run] \u001b[31;1mbrowser-work.ps1: \u001b[31;1mArgument types do not match\u001b[0m"
 }
