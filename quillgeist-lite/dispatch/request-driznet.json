@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1056",
+  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1103",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -17,6 +17,6 @@
     "WaitMs": "450",
     "UserWaitMs": "0"
   },
-  "objective": "Retry read-only inspection of LinkedIn Company Page setup in signed-in system Edge after the UI Automation reliability fix. Do not change anything.",
+  "objective": "Read-only inspect the LinkedIn Company Page setup tab in normal Edge on DRIZNET after the system-Edge UI automation repair deployment. Do not change anything.",
   "resume_after": false
 }
