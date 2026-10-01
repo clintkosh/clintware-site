@@ -1,5 +1,8 @@
 {
-  "request_id": "memoria-local-ai-pending-inspect-20261001-1540",
-  "mode": "inspect",
-  "target_device": "MEMORIA"
+  "request_id": "memoria-local-ai-refresh-20261001-1542",
+  "task_id": "self-update",
+  "target_device": "MEMORIA",
+  "args": {},
+  "objective": "Refresh MEMORIA Quillgeist Lite to the latest reviewed Clintware runtime before completing all pending local AI/server work. Preserve local AI data, model/build state, Immich data, and background/no-focus behavior.",
+  "resume_after": false
 }
