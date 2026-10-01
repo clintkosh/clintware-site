@@ -1175,11 +1175,28 @@ export class RegistryHub extends DurableObject {
       reply:null
     };
     let delivered=0;
+    let force_wake_delivered=0;
     for(const ws of this.ctx.getWebSockets("quillgeist-lite-wake")){
       try{
         const attachment=ws.deserializeAttachment()||{};
         if(target_device&&attachment.device_id!==target_device)continue;
         if(ws.readyState===1){
+          // A force restart must be able to recover an old runner that keeps
+          // refreshing a busy heartbeat while its child process is wedged.
+          // Older watchdog services already understand the wake contract and
+          // treat it as authoritative reconnect evidence, so emit the wake
+          // before the normal check-in. This breaks the self-update deadlock
+          // without exposing arbitrary shell or weakening the task allowlist.
+          if(force&&action==="restart_runner"){
+            ws.send(JSON.stringify({
+              type:"wake",
+              protocol:"clintware-quillgeist-lite-wake/v1",
+              request_id,
+              reason:"forced_checkin_restart",
+              time:nowIso()
+            }));
+            force_wake_delivered++;
+          }
           ws.send(JSON.stringify({
             type:"checkin",
             protocol:"clintware-quillgeist-lite-checkin/v1",
@@ -1193,6 +1210,7 @@ export class RegistryHub extends DurableObject {
       }catch{}
     }
     row.delivered=delivered;
+    row.force_wake_delivered=force_wake_delivered;
     row.status=delivered>0?"awaiting_reply":"offline";
     let persistence="durable";
     let persistence_error="";
