@@ -1,17 +1,8 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-foreground-inspect-20261001-1158",
-  "task_id": "cwinteract",
+  "request_id": "driznet-cwinteract-tabscan-selfupdate-20261001-1222",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "form",
-    "AppName": "LinkedIn",
-    "WindowTitle": "LinkedIn",
-    "Query": "",
-    "StepsJson": "{\"steps\":[{\"op\":\"wait\",\"ms\":1200}]}",
-    "Approved": "true",
-    "MaxResults": "100",
-    "WaitMs": "350"
-  },
-  "objective": "Restore the installed LinkedIn app window on DRIZNET and inspect its accessible controls without changing LinkedIn data. This is a read-only foreground inspection.",
-  "resume_after": false
+  "args": {},
+  "objective": "Update DRIZNET to the latest deployed QQ runtime containing CWInteract™ browser-document visibility and tab-scan fallback, preserving device registration and resuming work.",
+  "resume_after": true
 }
