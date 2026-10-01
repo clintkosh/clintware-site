@@ -1,10 +1,14 @@
 {
-  "request_id": "memoria-finish-local-ai-20261001-1546",
-  "task_id": "finish-local-ai",
+  "request_id": "memoria-local-model-acceptance-20261001-1550",
+  "task_id": "local-model-work",
   "target_device": "MEMORIA",
   "args": {
-    "MaxPasses": 6
+    "Prompt": "Reply with exactly MEMORIA_LOCAL_MODEL_OK.",
+    "Model": "local-auto",
+    "MaxTokens": 32,
+    "ContextTokens": 2048,
+    "Temperature": 0
   },
-  "objective": "Finish all remaining MEMORIA local AI/server work using the canonical QQ workflow. Preserve all existing models, databases, backups, Immich media/database, and incremental BitNet build state. Reconcile services, repair approved storage, recover local agents, restore existing Immich, verify BitNet, integrate Open WebUI/n8n/Ollama through the Quillgeist gateway, and continue repair passes until all required local service endpoints are healthy or a genuine hard blocker remains. Do not use the excluded D: drive and do not replace existing user data with fresh empty state.",
+  "objective": "Post-repair MEMORIA acceptance: perform an actual bounded local-model generation through Quillgeist local inference. This must execute locally and return non-empty generated text.",
   "resume_after": false
 }
