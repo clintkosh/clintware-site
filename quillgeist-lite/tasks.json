@@ -1,5 +1,5 @@
 {
-  "version": 26,
+  "version": 27,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
   "runtimes": [
@@ -322,7 +322,7 @@
       "timeout_seconds": 7200
     },
     "scheduled-task-isolation": {
-      "title": "Scan and repair Scheduled Tasks that open console windows or steal desktop focus",
+      "title": "Continuously scan and isolate Scheduled Tasks that open console windows or steal desktop focus",
       "runtime": "powershell",
       "script": "quillgeist-lite/tasks/scheduled-task-isolation.ps1",
       "parameters": [
