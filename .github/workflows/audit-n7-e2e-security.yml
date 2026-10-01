@@ -290,7 +290,9 @@ jobs:
           if((await page.locator("#nlabel").inputValue())!=="New node") throw new Error("Environment Add node did not create/select the new node");
           await page.locator("#gen").fill("one server running windows 98");
           await page.getByRole("button",{name:"Generate suggested environment"}).click();
-          await page.getByText(/^Proposed from approved sources · confidence /i).first().waitFor();
+          const proposedSource=page.getByText(/^Proposed from approved sources · confidence /i);
+          if((await proposedSource.count())<1) throw new Error("Environment proposal provenance marker missing");
+          await proposedSource.first().waitFor();
           await page.getByRole("button",{name:"Discard proposal"}).click();
 
           // Document registration and approval.
