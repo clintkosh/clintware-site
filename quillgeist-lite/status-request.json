@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-10-01T20:52:30Z",
-  "reason": "Observe active MEMORIA finish-local-ai job without interfering with its serialized dispatch. Capture live job details, recent logs/checkpoints, and MEMORIA check-in so stalled-vs-progressing state is evidence-based."
+  "requested_at": "2026-10-01T20:55:30Z",
+  "reason": "Second live snapshot of MEMORIA finish-local-ai after recover-local-agents reported missing triton. Capture progress through Immich/BitNet/integration and current unresolved service set without interrupting the active job."
 }
