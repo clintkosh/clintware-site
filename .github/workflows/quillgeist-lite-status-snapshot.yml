@@ -39,6 +39,7 @@ jobs:
               -H "Accept: $accept" \
               "$url" -o "$out"
           }
+          qq_fetch "application/json" "$CONTROL_PLANE/health" /tmp/health.json
           qq_fetch "application/json" "$CONTROL_PLANE/api/v1/quillgeist-lite/status" /tmp/status.json
           # Diagnostics are historical enrichment. A storage-quota incident must not
           # make current liveness unreportable once /status has returned its live-only
@@ -55,6 +56,7 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os, time, urllib.error, urllib.request
           from datetime import datetime, timezone
+          with open("/tmp/health.json",encoding="utf-8") as f: health=json.load(f)
           with open("/tmp/status.json",encoding="utf-8") as f: status=json.load(f)
           with open("/tmp/diag.json",encoding="utf-8") as f: diag=json.load(f)
           with open("/tmp/tasks.json",encoding="utf-8") as f: tasks=json.load(f)
@@ -135,6 +137,7 @@ jobs:
 
           out={
             "checked_at":datetime.now(timezone.utc).isoformat(),
+            "control_plane_health":health,
             "status":status,
             "diagnostics":diag,
             "job_details":job_details,
