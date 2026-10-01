@@ -1,8 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-selfupdate-20261001-1147",
-  "task_id": "self-update",
+  "request_id": "driznet-cwinteract-linkedin-discover-20261001-1152",
+  "task_id": "cwinteract",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Install the repaired deployed QQ runtime with CWInteract™ on DRIZNET, preserving device registration and resuming queued work.",
-  "resume_after": true
+  "args": {
+    "Action": "discover",
+    "AppName": "LinkedIn",
+    "WindowTitle": "LinkedIn",
+    "Query": "",
+    "StepsJson": "",
+    "Approved": "false",
+    "MaxResults": "60",
+    "WaitMs": "450"
+  },
+  "objective": "Use CWInteract™ on DRIZNET to discover the installed LinkedIn desktop/PWA application without changing anything.",
+  "resume_after": false
 }
