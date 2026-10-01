@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1051",
+  "request_id": "driznet-linkedin-system-edge-inspect-20261001-1052",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "args": {
@@ -10,7 +10,7 @@
     "StepsJson": "",
     "Query": "Create a LinkedIn Page",
     "Engine": "auto",
-    "MaxResults": "60",
+    "MaxResults": "20",
     "MaxChars": "20000",
     "Approved": "false",
     "Headless": "false",
