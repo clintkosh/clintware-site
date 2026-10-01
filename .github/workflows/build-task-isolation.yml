@@ -38,7 +38,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $task = "Clintware Task Isolation CI Canary"
+          $task = "CI Console Popup Canary"
           $marker = Join-Path $env:TEMP "clintware-task-isolation-canary.txt"
           Remove-Item $marker -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName $task -Confirm:$false -ErrorAction SilentlyContinue
