@@ -6,8 +6,9 @@ import { normalizeFlowName, normalizeWorkflow, runWorkflowDefinition } from "./f
 import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
+import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" with { type: "json" };
 
-const VERSION = "2026-09-28-capability-aware-runtime.1";
+const VERSION = "2026-10-01-qq-routing-contract.2";
 const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-concurrency-python-v28";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
@@ -278,44 +279,7 @@ const QUILLGEIST_RUNTIME_ASSETS = new Set([
   "quillgeist-lite/assets/clintware-terminal-logo.b64"
 ]);
 
-const QUILLGEIST_LITE_TASKS = {
-  "clintware-doctor":{runtime:"powershell",parameters:[]},
-  "ensure-powershell":{runtime:"powershell",parameters:[]},
-  "ensure-python":{runtime:"powershell",parameters:["Force"]},
-  "update-powerchatbridge":{runtime:"powershell",parameters:[]},
-  "google-cloud-support-access":{runtime:"powershell",parameters:["OwnerAccount","SupportAccount","ProjectName"]},
-  "finish-google-oauth":{runtime:"powershell",parameters:["Repo"]},
-  "python-runtime-check":{runtime:"python",parameters:["Message"]},
-  "c-runtime-check":{runtime:"c",parameters:["Message"]},
-  "ensure-c-runtime":{runtime:"powershell",parameters:[]},
-  "self-update":{runtime:"powershell",parameters:[]},
-  "restart-window":{runtime:"powershell",parameters:[]},
-  "repair-local-service":{runtime:"powershell",parameters:[]},
-  "apply-terminal-glass":{runtime:"powershell",parameters:[]},
-  "connect-jira":{runtime:"powershell",parameters:[]},
-  "connect-confluence":{runtime:"powershell",parameters:[]},
-  "enable-admin-console":{runtime:"powershell",parameters:[]},
-  "bootstrap-admin-console":{runtime:"powershell",parameters:[]},
-  "gimp-clintware-eclipse":{runtime:"powershell",parameters:[]},
-  "self-heal":{runtime:"powershell",parameters:[]},
-  "browser-setup":{runtime:"powershell",parameters:[]},
-  "browser-work":{runtime:"powershell",parameters:["Action","Url","Selector","Value","StepsJson","Query","Engine","MaxResults","MaxChars","Approved","Headless","WaitMs","UserWaitMs"]},
-  "crm-astro-build":{runtime:"powershell",parameters:["Action","Project","SkipInstall"]},
-  "big-prompt-plan":{runtime:"powershell",parameters:["Prompt","Project","StateScope","MaxDepth"]},
-  "repo-code-search":{runtime:"powershell",parameters:["Query","Path","Mode","Max","Json","FilesOnly"]},
-  "open-edge-tab":{runtime:"powershell",parameters:["Url"]},
-  "repair-codex-org-identity":{runtime:"powershell",parameters:[]},
-  "local-ai":{runtime:"python",parameters:["Action","Model","Prompt","ContextTokens","MaxTokens"]},
-  "storage-audit":{runtime:"powershell",parameters:["ExpectedComputer","LargestFiles"]},
-  "responder-agent":{runtime:"powershell",parameters:["Action"]},
-  "bitnet-setup":{runtime:"powershell",parameters:[]},
-  "local-ai-integrate":{runtime:"powershell",parameters:[]},
-  "install-desktop-app":{runtime:"powershell",parameters:["NoLaunch"]},
-  "finish-local-ai":{runtime:"powershell",parameters:["MaxPasses"]},
-  "restore-immich":{runtime:"powershell",parameters:[]},
-  "record-google-oauth-verification":{runtime:"powershell",parameters:[]},
-  "share-ai-network":{runtime:"powershell",parameters:[]}
-};
+const QUILLGEIST_LITE_TASKS = Object.freeze(QUILLGEIST_REMOTE_TASK_REGISTRY.tasks || {});
 
 const DEFAULT_PRODUCTS={proofos:DEFAULT_PROOFOS,landtheplane:DEFAULT_LANDTHEPLANE,"landtheplane-cc":DEFAULT_LANDTHEPLANE_CC,"background-mirror":DEFAULT_BACKGROUND_MIRROR,"neuron7-case":DEFAULT_NEURON7_CASE,"n7demo-crm":DEFAULT_N7DEMO_CRM,mindtoform:DEFAULT_MINDTOFORM,orgsynapse:DEFAULT_ORGSYNAPSE,"quillgeist-lite":DEFAULT_QUILLGEIST_LITE};
 
