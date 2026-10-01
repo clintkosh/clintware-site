@@ -12,6 +12,7 @@ import {
   validBlogPostUrl,
 } from "./lib.js";
 import { mailConfigured, mailProvider, sendMail, sendMailBatch } from "./mail.js";
+import { D1SubscriberRegistry, stateBackend } from "./state.js";
 
 const CONFIRMATION_COOLDOWN_MS = 10 * 60 * 1000;
 const CONFIRMATION_TTL_MS = 48 * 60 * 60 * 1000;
@@ -58,7 +59,11 @@ function endpointUrl(env, pathname, params = {}) {
 }
 
 function registry(env) {
-  return env.SUBSCRIBERS.getByName("clintware-blog-newsletter-v1");
+  return new D1SubscriberRegistry(env.NEWSLETTER_DB, { createToken, sha256 });
+}
+
+function legacyRegistry(env) {
+  return env.SUBSCRIBERS?.getByName?.("clintware-blog-newsletter-v1") || null;
 }
 
 
@@ -225,6 +230,39 @@ async function deliverPublication(publication, env) {
 
 function delegatedGrantMissing(error) {
   return error?.code === "gmail_broker_token_failed" && Number(error?.status || 0) === 404;
+}
+
+async function migrateLegacyState(request, env) {
+  if (!env.NEWSLETTER_PUBLISH_SECRET) return json({ error: "Migration authentication is not configured." }, 503);
+  const header = request.headers.get("authorization") || "";
+  const suppliedSecret = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!(await secureEquals(env.NEWSLETTER_PUBLISH_SECRET, suppliedSecret))) return json({ error: "Unauthorized." }, 401);
+
+  const legacy = legacyRegistry(env);
+  if (!legacy) return json({ ok: false, migrated: false, reason: "legacy_durable_object_not_bound" }, 409);
+
+  try {
+    const snapshot = await legacy.exportState();
+    const imported = await registry(env).importLegacy(snapshot);
+    return json({
+      ok: true,
+      migrated: true,
+      stateBackend: stateBackend(env),
+      imported,
+    }, 200);
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "newsletter_legacy_migration_deferred",
+      code: error.code || "legacy_state_unavailable",
+    }));
+    return json({
+      ok: true,
+      migrated: false,
+      deferred: true,
+      reason: "legacy_durable_object_unavailable",
+      stateBackend: stateBackend(env),
+    }, 202);
+  }
 }
 
 async function publish(request, env) {
@@ -414,6 +452,20 @@ export class SubscriberRegistry extends DurableObject {
   async failPublication(url) {
     this.sql.exec("UPDATE publications SET status = 'failed' WHERE url = ?", url);
   }
+
+  async exportState() {
+    return {
+      subscribers: this.sql.exec(
+        `SELECT email, status, confirmation_token_hash, confirmation_expires_at, confirmation_sent_at,
+                unsubscribe_token, created_at, confirmed_at, updated_at
+         FROM subscribers ORDER BY email ASC`,
+      ).toArray(),
+      publications: this.sql.exec(
+        `SELECT url, publication_id, title, excerpt, status, started_at, sent_at, recipient_count
+         FROM publications ORDER BY started_at ASC`,
+      ).toArray(),
+    };
+  }
 }
 
 export default {
@@ -436,11 +488,27 @@ export default {
         } else {
           grantConnected = Boolean(env.GOOGLE_DELEGATED_REFRESH_TOKEN);
         }
-        const pendingPublications = await registry(env).pendingPublicationCount();
+        let pendingPublications = null;
+        let migration = { imported: false };
+        let stateReady = false;
+        let stateError = "";
+        try {
+          const store = registry(env);
+          pendingPublications = await store.pendingPublicationCount();
+          migration = await store.migrationStatus();
+          stateReady = true;
+        } catch (error) {
+          stateError = error?.code || "state_unavailable";
+        }
         return json({
           ok: true,
+          stateBackend: stateBackend(env),
+          stateReady,
+          stateError,
+          legacyDurableObjectRequired: false,
+          legacyMigration: migration,
           deliveryConfigured: wired,
-          deliveryReady: wired && grantConnected,
+          deliveryReady: wired && grantConnected && stateReady,
           googleDelegatedConnected: grantConnected,
           pendingPublications,
           provider: mailProvider(env),
@@ -451,6 +519,7 @@ export default {
       if (request.method === "GET" && url.pathname === "/unsubscribe") return unsubscribeForm(url, env);
       if (request.method === "POST" && url.pathname === "/unsubscribe") return unsubscribe(request, url, env);
       if (request.method === "POST" && url.pathname === "/internal/send") return internalSend(request, env);
+      if (request.method === "POST" && url.pathname === "/internal/migrate-legacy-state") return migrateLegacyState(request, env);
       if (request.method === "POST" && url.pathname === "/publish") return publish(request, env);
       return plain("Not found", 404);
     } catch (error) {
