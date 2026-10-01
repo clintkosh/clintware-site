@@ -57,6 +57,17 @@ SECRET_VALUE_RE = re.compile(
     re.I,
 )
 
+SEQUENCE_DEP_RE = re.compile(
+    r"\b(?:then|next|after(?:ward)?|once|finally|before|only\s+after|in\s+order|"
+    r"step\s+\d+|after\s+that|when\s+complete)\b",
+    re.I,
+)
+GPU_WORK_RE = re.compile(
+    r"\b(?:llm|model|inference|generate|summarize|classify|embed|embedding|vision|"
+    r"image|render|diffusion|comfyui|cuda|gpu|ollama|bitnet)\b",
+    re.I,
+)
+
 
 @dataclass
 class WorkUnit:
@@ -71,6 +82,9 @@ class WorkUnit:
     estimated_tokens: int = 0
     requires_fresh_authority: bool = False
     mutates_external: bool = False
+    resource_class: str = "cpu"
+    gpu_eligible: bool = False
+    parallel_group: str = ""
     status: str = "planned"
 
     def to_dict(self) -> dict:
@@ -92,6 +106,8 @@ class BigPromptPlan:
     routed_remote_context_tokens_est: int
     avoided_remote_context_tokens_est: int
     max_depth: int
+    parallel_units: int
+    sequential_units: int
     routing_contract: str
     credential_contract: str
     triggered_by: list[str]
@@ -129,6 +145,18 @@ def _route(text: str, remote_broker: str = "control_plane") -> tuple[str, str, s
     if HEAVY_REASONING_RE.search(text or ""):
         return "qq_local_model", "qq", "", False, False
     return "qq_local_model", "qq", "", False, False
+
+
+def _resource_class(lane: str, text: str) -> tuple[str, bool]:
+    if lane == "qq_local_model":
+        return ("gpu", True)
+    if lane == "qq_deterministic":
+        if GPU_WORK_RE.search(text or ""):
+            return ("gpu", True)
+        if re.search(r"\b(?:scan|search|index|read|copy|archive|storage|disk|files?)\b", text or "", re.I):
+            return ("io", False)
+        return ("cpu", False)
+    return ("remote", False)
 
 
 def _needs_children(text: str, *, depth: int, max_depth: int, target_chars: int, complexity_threshold: int) -> bool:
@@ -228,9 +256,19 @@ def plan_big_prompt(
 
     units: list[WorkUnit] = []
     previous = ""
+    previous_external = ""
+    explicit_sequence = bool(SEQUENCE_DEP_RE.search(raw))
     for idx, (path, prompt, depth) in enumerate(leaves, 1):
         lane, broker, provider_hint, fresh, mutates = _route(prompt, remote_broker)
         unit_id = f"u{idx:03d}"
+        resource_class, gpu_eligible = _resource_class(lane, prompt)
+        dependencies: list[str] = []
+        if explicit_sequence and previous:
+            dependencies = [previous]
+        elif mutates and previous_external:
+            # External/stateful mutations remain ordered even when the surrounding
+            # analysis/research units can fan out.
+            dependencies = [previous_external]
         unit = WorkUnit(
             id=unit_id,
             path=path,
@@ -239,13 +277,18 @@ def plan_big_prompt(
             lane=lane,
             broker=broker,
             provider_hint=provider_hint,
-            depends_on=[previous] if previous else [],
+            depends_on=dependencies,
             estimated_tokens=estimate_tokens(prompt),
             requires_fresh_authority=fresh,
             mutates_external=mutates,
+            resource_class=resource_class,
+            gpu_eligible=gpu_eligible,
+            parallel_group=("serial" if dependencies else f"{resource_class}-ready"),
         )
         units.append(unit)
         previous = unit_id
+        if mutates:
+            previous_external = unit_id
 
     remote = [u for u in units if u.lane.startswith("control_plane_")]
     local = [u for u in units if u not in remote]
@@ -268,10 +311,13 @@ def plan_big_prompt(
         routed_remote_context_tokens_est=routed_remote,
         avoided_remote_context_tokens_est=avoided,
         max_depth=max_depth,
+        parallel_units=sum(1 for u in units if not u.depends_on),
+        sequential_units=sum(1 for u in units if u.depends_on),
         routing_contract=(
-            "Route deterministic/local work through qq first. Route fresh external authority, explicit provider work, "
-            "and external mutations through the configured control plane. Each unit receives only its prompt, dependency outputs, "
-            "and the minimum durable state required to continue."
+            "Route deterministic/local work through qq first. Independent dependency-free units may execute concurrently through "
+            "the adaptive CPU/RAM/GPU worker pool. Prefer GPU-class workers for local-model/inference units when GPU capacity is healthy. "
+            "Route fresh external authority, explicit provider work, and external mutations through the configured control plane. "
+            "Each unit receives only its prompt, dependency outputs, and the minimum durable state required to continue."
         ),
         credential_contract=(
             "Plans contain no reusable provider secrets. The control plane resolves opaque provider/account references "
