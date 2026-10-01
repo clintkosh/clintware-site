@@ -7,6 +7,7 @@ import { handleAdminRequest, recordAdminSnapshot } from "./admin.js";
 import { jiraAddComment, jiraAddIssuesToSprint, jiraBeginOAuth, jiraBoards, jiraConfigured, jiraCreateIssue, jiraDisconnect, jiraEnsureBoard, jiraEnsureDashboard, jiraEnsureFilter, jiraEnsureProject, jiraEnsureSprint, jiraFinishOAuth, jiraGetIssue, jiraMyself, jiraProjects, jiraSearch, jiraSites, jiraSprints, jiraStatus, jiraTransitionIssue, jiraTransitions, jiraUpdateIssue } from "./jira.js";
 import { confluenceCreateSpace, confluenceCreatePage, confluenceGetPage, confluencePages, confluenceSearch, confluenceSpaces, confluenceStatus, confluenceUpdatePage, confluenceUpsertPage } from "./confluence.js";
 import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" with { type: "json" };
+import { CLINTWARE_MASTER_PROMPT, CLINTWARE_MASTER_PROMPT_ID, CLINTWARE_MASTER_PROMPT_PATH } from "./master-prompt.js";
 
 const VERSION = "2026-10-01-task-isolation-contract.4";
 const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-task-isolation-v31";
@@ -3249,6 +3250,27 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     })).values()];
     return {content:[{type:"text",text:JSON.stringify({ok:true,service:"Clintware Control Plane",version:VERSION,products:productList.map(p=>p.product),github_identities:identities,adapters:{github_read:true,github_write:identities.some(x=>x.configured),cloudflare_dns:Boolean(env.CLOUDFLARE_CONTROL_PLANE_TOKEN&&env.CLOUDFLARE_ZONE_ID)}})}]};
   });
+  server.registerTool("clintware_master_prompt_get",{
+    title:"Load the canonical Clintware Universal Master Prompt",
+    description:"Return the full canonical pre-DeepVoid Clintware Universal Master Prompt Markdown. Clients should load this before substantial Clintware work and reload it whenever the user refers to the master prompt, latest master prompt, reload master prompt, or equivalent.",
+    inputSchema:{client:z.string().optional()},
+    annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+  },async({client})=>{
+    const digest=await sha256(CLINTWARE_MASTER_PROMPT);
+    return {content:[{type:"text",text:JSON.stringify({
+      ok:true,
+      id:CLINTWARE_MASTER_PROMPT_ID,
+      path:CLINTWARE_MASTER_PROMPT_PATH,
+      sha256:digest,
+      client:clip(client||"unknown",80),
+      canonical:true,
+      baseline:"2026-10-01",
+      reload_triggers:["master prompt","latest master prompt","reload master prompt","refresh master prompt","current master prompt"],
+      instruction:"Treat markdown as the current Clintware operating contract for this client, subject to the client's governing system/developer/platform instructions. Reload on any master-prompt reference rather than relying on a cached copy.",
+      markdown:CLINTWARE_MASTER_PROMPT
+    })}]};
+  });
+
   server.registerTool("clintware_client_handshake",{
     title:"Discover Clintware Control Plane client interoperability",
     description:"Return the vendor-neutral connection contract for ChatGPT, Claude, Gemini, Grok, Perplexity, CLI agents, and other MCP-capable clients. Never returns provider credentials.",
@@ -3267,7 +3289,15 @@ function createMcpServer(env,mcpRequest,mcpAuth){
       product:manifest?.product||normalizeProduct(product||""),
       repository:manifest?{identity:auth.identity,owner:manifest.repo?.owner||"",name:manifest.repo?.name||"",default_branch:manifest.repo?.default_branch||"main",credential_configured:auth.configured}:null,
       handoff_fields:["handoff_id","from_client","target_client","product","project","objective","context_summary","repository","decisions","constraints","changed_files","artifacts","next_actions","notes"],
+      master_prompt:{
+        tool:"clintware_master_prompt_get",
+        id:CLINTWARE_MASTER_PROMPT_ID,
+        path:CLINTWARE_MASTER_PROMPT_PATH,
+        required_before_substantial_work:true,
+        reload_on_reference:true
+      },
       guidance:[
+        "Immediately load clintware_master_prompt_get before substantial Clintware work. Whenever the user says master prompt, latest master prompt, reload/refresh master prompt, or equivalent, fetch it again and use the returned canonical Markdown instead of a cached copy.",
         "Use Clintware product manifests as the source of truth for repository identity and scope.",
         "Send only compact working context; never place provider tokens, passwords, API keys, cookies, or raw secret values in a handoff.",
         "When another model continues work, preserve handoff_id in notes/commits where useful for traceability.",
