@@ -25,6 +25,11 @@ test("universal LLM routing makes direct MCP primary and user telemetry exceptio
   assert.match(routing, /Autonomous continuation contract/i);
   assert.match(routing, /Do not make the user send another message simply to say "continue."/i);
   assert.match(routing, /known fix/i);
+  assert.match(routing, /Canonical master contract/);
+  assert.match(routing, /control-plane\/MASTER-PROMPT\.md/);
+  assert.match(routing, /clintware_master_prompt_get/);
+  assert.match(routing, /complete 1–30 operating contract/);
+  assert.match(routing, /current MCP-served .*MASTER-PROMPT\.md.*authoritative/i);
 });
 
 
@@ -38,6 +43,51 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.equal(mod.CLINTWARE_MASTER_PROMPT_PATH, "control-plane/MASTER-PROMPT.md");
   assert.match(markdown, /^CLINTWARE UNIVERSAL MASTER PROMPT/m);
   assert.match(markdown, /30\. CURRENT REVIEWED CAPABILITY EXAMPLES/);
+  const requiredSections = [
+    "1. EXPERT OPERATING MODE",
+    "2. CLINTWARE IS THE AUTHORITY BOUNDARY",
+    "3. LIVE DISCOVERY OVERRIDES HARDCODED ASSUMPTIONS",
+    "4. EXECUTION HIERARCHY",
+    "5. QQ BIG-PROMPT PROTOCOL",
+    "6. ROUTING RULES",
+    "7. ADAPTIVE CPU / RAM / GPU PARALLELISM",
+    "8. GPU ROUTING",
+    "9. MULTI-MACHINE EXECUTION",
+    "10. LOCAL-FIRST OWNER DEFAULT",
+    "11. CWInteract™ / WINDOWS UI CONTROL",
+    "12. SCHEDULED TASK / FOCUS PROTECTION",
+    "13. STATE RECOVERY BEFORE REBUILDING",
+    "14. HANDOFF CONTRACT",
+    "15. PROMPT TICKET CONTRACT",
+    "16. AUTONOMOUS CONTINUATION",
+    "17. LONG-RUNNING WORK",
+    "18. VERIFICATION REQUIREMENTS",
+    "19. HUNG-WORK DETECTION",
+    "20. FAILURE RECOVERY",
+    "21. FRESH INFORMATION",
+    "22. WORKSPACE / BRAND ISOLATION",
+    "23. GITHUB / PROVIDER AUTHORITY",
+    "24. MODEL COOPERATION",
+    "25. OWNER MODEL PREFERENCES",
+    "26. USER EXPERIENCE",
+    "27. EXECUTION SAFETY",
+    "28. DEFINITION OF DONE",
+    "29. DEFAULT OPERATIONAL LOOP",
+    "30. CURRENT REVIEWED CAPABILITY EXAMPLES"
+  ];
+  for (const section of requiredSections) {
+    assert.ok(markdown.includes(section), `canonical master missing section: ${section}`);
+  }
+  assert.match(markdown, /planned -> dispatched -> delivered -> executing -> passed\/failed -> verified/);
+  assert.match(markdown, /capabilities -> status -> checkin when needed -> run -> job\/result -> diagnostics -> verification/);
+  assert.match(markdown, /RAW REQUEST[\s\S]*RECOVER STATE[\s\S]*DEPENDENCY GRAPH[\s\S]*END-TO-END VERIFICATION/);
+  assert.match(markdown, /MEMORIA evidence belongs to MEMORIA\./);
+  assert.match(markdown, /DRIZNET evidence belongs to DRIZNET\./);
+  assert.match(markdown, /CUDA_VISIBLE_DEVICES/);
+  assert.match(markdown, /HIP_VISIBLE_DEVICES/);
+  assert.match(markdown, /clintware-handoff\/v1/);
+  assert.match(markdown, /verified_done/);
+  assert.match(markdown, /carried_forward/);
   assert.match(markdown, /PROACTIVENESS:/);
   assert.match(markdown, /Anticipate follow-up questions/);
   assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
