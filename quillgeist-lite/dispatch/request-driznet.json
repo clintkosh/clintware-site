@@ -1,8 +1,8 @@
 {
-  "request_id": "driznet-self-update-routing-portal-20261001-1425",
-  "task_id": "self-update",
+  "request_id": "driznet-doctor-post-update-20261001-1430",
+  "task_id": "clintware-doctor",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Update DRIZNET Quillgeist Lite/QQ to the latest reviewed runtime after capability-first routing and portal ALT source update. Preserve registration, reconcile runtime/task bundle, restart safely, resume queued work, and return local-agent evidence.",
-  "resume_after": true
+  "objective": "Post-update readiness verification for DRIZNET. Confirm local prerequisites, machine identity, runtime availability, scheduled-task desktop isolation, and that QQ can accept a fresh local-agent-confirmed job after the self-update/restart cycle.",
+  "resume_after": false
 }
