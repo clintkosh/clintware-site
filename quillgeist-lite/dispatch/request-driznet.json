@@ -1,8 +1,13 @@
 {
-  "request_id": "driznet-self-update-v29-20261001-0914",
-  "task_id": "self-update",
+  "request_id": "driznet-routing-recontext-v29-verify-20261001-0916",
+  "task_id": "big-prompt-plan",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Converge DRIZNET to the current Quillgeist Lite runtime including the corrected local-first big-prompt planner and canonical remote task contract.",
-  "resume_after": true
+  "args": {
+    "Prompt": "Permanently harden the Clintware ChatGPT-to-QQ routing path so substantial prompts recover durable state, re-context and compact locally, decompose into dependency-aware work units, execute deterministic/local work through QQ where possible, minimize repeated remote context/token use, preserve explicit device routing, and verify execution evidence. Also preserve the pending Jobs product objective at jobs.clintware.com: a local-first job application copilot inspired by public job-application assistants without copying proprietary code or branding. Current bootstrap changes centralize the remote QQ task allowlist and add a mandatory substantial-prompt gate. Produce the compact continuation plan for unresolved work only, including verification steps and Jobs next actions.",
+    "Project": "Clintware QQ Routing + Jobs",
+    "StateScope": "clintware/qq-routing-jobs",
+    "MaxDepth": "4"
+  },
+  "objective": "Verify on updated DRIZNET that a substantial implementation prompt is re-contexted locally and routed to QQ-local work rather than falsely escaping to a remote provider because it mentions ChatGPT or current local state.",
+  "resume_after": false
 }
