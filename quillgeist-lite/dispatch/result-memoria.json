@@ -1,4 +1,32 @@
 {
-  "status": "pending",
-  "request_id": "memoria-isolated-local-service-recovery-20260929-1124"
+  "request_id": "memoria-force-recover-bitnet-20260930-2140",
+  "mode": "checkin",
+  "target_device": "MEMORIA",
+  "action": "restart_runner",
+  "force": true,
+  "status": "replied",
+  "delivered": 1,
+  "reply": {
+    "device_id": "MEMORIA",
+    "protocol": "clintware-quillgeist-lite-checkin/v1",
+    "service_version": "1.4.0-health-contract",
+    "runner_alive": true,
+    "runner_state": "connected",
+    "job_id": "",
+    "task_id": "",
+    "heartbeat_at": "",
+    "service_started_at": "",
+    "maintenance": false,
+    "busy": false,
+    "heartbeat_age_seconds": 9.2920815,
+    "progress_age_seconds": 325.45914089999997,
+    "health_state": "healthy",
+    "updated_at": "2026-10-01T03:15:07.061Z",
+    "request_id": "memoria-force-recover-bitnet-20260930-2140",
+    "action": "restart_runner",
+    "action_result": "restart_requested",
+    "message": "watchdog responsive",
+    "replied_at": "2026-10-01T03:15:07.061Z"
+  },
+  "recorded_at": 1790824507
 }
