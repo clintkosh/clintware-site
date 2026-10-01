@@ -128,6 +128,23 @@ Required rules:
 6. Internal implementations may use Clintware infrastructure only outside the published skill tree and only behind the appropriate authenticated control-plane boundary.
 7. Run `node scripts/validate-public-skill-boundary.mjs` before publishing. A failure blocks publication until the artifact is sanitized.
 
+## Autonomous ownership until verified completion
+
+Repository agents must not stop at a known, safe, actionable fix and wait for the user to say `continue`.
+
+Once an agent accepts a substantial objective, it remains responsible for the unresolved parent objective until either:
+
+1. the original Definition of Done is verified; or
+2. a genuine user-only blocker remains, such as required consent/login/credential, destructive approval, safety boundary, or an external dependency no connected/reviewed path can resolve.
+
+Intermediate failures are work items, not stopping points. Inspect evidence, switch to another approved route when needed, repair only the unresolved branch, validate the repair, replay displaced work, and continue. A blocked repository mutation, provider path, relay, or child task is not a blocked parent objective while another safe reviewed path exists.
+
+If the user adds a new instruction during active work, incorporate it and then resume the prior unresolved objective unless the user explicitly cancels, replaces, or pauses that work.
+
+Canonical sequence:
+
+`OWN OBJECTIVE -> EXECUTE -> FAILURE EVIDENCE -> SAFE ALTERNATE/REPAIR -> VALIDATE -> RETRY -> RESTORE DISPLACED WORK -> END-TO-END VERIFY -> DONE`
+
 ## Global Auto-Compact Continuation Protocol
 
 These rules apply to every repository agent and every Quillgeist task unless a more specific safety, permission, or user instruction requires a pause.
