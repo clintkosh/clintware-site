@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Queued work replays in priority and FIFO order after reconnect.",
   "runtimes": [
@@ -321,6 +321,16 @@
         "Project",
         "StateScope",
         "MaxDepth"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
+    },
+    "ensure-python": {
+      "title": "Install or repair Python 3 and return the current runtime",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/ensure-python.ps1",
+      "parameters": [
+        "Force"
       ],
       "approval": "pre-approved",
       "timeout_seconds": 600
