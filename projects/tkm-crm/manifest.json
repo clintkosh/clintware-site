@@ -1,0 +1,391 @@
+{
+  "mode": "one-off",
+  "project_id": "tkm-crm",
+  "company": "Tekmetric",
+  "name": "Tekmetric Director, Customer Success Operations Operating System + Cover Letter",
+  "domain": "https://tkm.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "tkm-candidate",
+  "role_mission": "Serve as the operational engine behind Onboarding and Professional Services by owning analytics, enablement, process design, tooling, capacity planning, and cross-functional continuity from AE handoff through hypercare and CS graduation.",
+  "operating_loop": [
+    "Handoff",
+    "Kickoff",
+    "Implement",
+    "Enable",
+    "Go Live",
+    "Hypercare",
+    "Graduate",
+    "Improve"
+  ],
+  "roles": [
+    {
+      "id": "director-customer-success-operations",
+      "name": "Director, Customer Success Operations"
+    }
+  ],
+  "stakeholder_roles": [
+    "VP Onboarding / Professional Services",
+    "Onboarding / COM Leader",
+    "CS / Product / Support / Training Partner"
+  ],
+  "tracks": [
+    {
+      "id": "onboarding",
+      "label": "Onboarding Operating System",
+      "tab": "implementation",
+      "objective": "Manage the AE-to-COM handoff through go-live, hypercare, and CS graduation with clear ownership and acceptance criteria."
+    },
+    {
+      "id": "analytics",
+      "label": "Onboarding Analytics",
+      "tab": "roi",
+      "objective": "Track kickoff completion, rebook rate, time-to-live, graduation, CSAT, and early-churn indicators as decision metrics."
+    },
+    {
+      "id": "enablement",
+      "label": "Enablement & Readiness",
+      "tab": "adoption",
+      "objective": "Run internal training and readiness around product releases, process changes, and systems updates."
+    },
+    {
+      "id": "systems",
+      "label": "Vitally / Salesforce / Gong",
+      "tab": "handoff",
+      "objective": "Translate workflow and reporting needs into clean system requirements and adoption plans."
+    },
+    {
+      "id": "friction",
+      "label": "Friction & Automation",
+      "tab": "risks",
+      "objective": "Identify and remove manual work, broken handoffs, and repeatable onboarding friction."
+    },
+    {
+      "id": "capacity",
+      "label": "Capacity & Org Design",
+      "tab": "rollout",
+      "objective": "Connect workload, staffing, enablement, and operating targets into a visible capacity model."
+    },
+    {
+      "id": "continuity",
+      "label": "Onboarding-to-CS Continuity",
+      "tab": "renewal",
+      "objective": "Surface patterns that affect retention and ensure the graduation handoff preserves context."
+    },
+    {
+      "id": "leadership",
+      "label": "VP Operating Review",
+      "tab": "meetings",
+      "objective": "Turn analytics into recommendations, OKR decisions, ownership, and follow-through."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "Tekmetric Director, Customer Success Operations",
+      "url": "https://job-boards.greenhouse.io/tekmetric/jobs/6129037004"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point Customer Success Operations: increased dedicated CSM coverage for >$50K accounts to 99% and maintained onboarding outreach within a two-week SLA.",
+    "Managed 20–40 SaaS accounts totaling approximately $3M ARR; portfolio visibility improved from about 40% to 99%, churn reduced to under 30%, and team efficiency improved 30%.",
+    "Dedrone: standardized enterprise onboarding to about one month, increased engagement 25%, increased renewals 20%, and supported stakeholder buy-in for an approximately $3M AWS-hosted solution.",
+    "Built and operated Salesforce, Custify, Jira, and Salesforce-to-Jira workflow/reporting patterns; led QBR/EBR, health/risk, escalation, onboarding, and adoption motions.",
+    "Led distributed customer-facing support teams; Cofense enablement and automation contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute faster first response.",
+    "Current proof-of-work includes AI-assisted workflow automation and browser-local Customer Success operating systems built through Clintware."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public Tekmetric role context with clearly synthetic sample data. It is not an official Tekmetric product, customer tenant, private process description, or representation of real Tekmetric customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 5,
+    "lifecycle_stages_min": 4,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Director, Customer Success Operations",
+    "Doppel": "Tekmetric",
+    "Technical Services workspace": "Programs & operating work",
+    "Advanced technical investigations": "Operational issue triage",
+    "Advanced investigations": "Operational issue triage",
+    "Engineering handoffs": "Systems / cross-functional handoffs",
+    "Support scale & adoption": "Enablement, adoption & scale",
+    "Customer technical cadence": "Operating cadence",
+    "Customer reviews": "Business reviews",
+    "Technical delivery": "Program delivery",
+    "Service projects": "Operating workstreams",
+    "technical projects": "operating workstreams"
+  },
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "Tekmetric's Director, Customer Success Operations role is compelling because it is explicitly a builder role.  The immediate expectation is not to inherit a finished operations team.  It is to do the analytical, enablement, process, and systems work directly, prove what works, and then build the organization around it.\n\nThat pattern is familiar to me.  My Customer Success and Support work has repeatedly combined hands-on operating ownership with process improvement.  At Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.  At Check Point, I helped move portfolio visibility from roughly 40% to 99% and built workflows across Salesforce, Custify, and Jira.  In Support leadership, enablement and automation contributed to lower ticket volume and faster first response.\n\nI am particularly interested in Tekmetric's focus on the full onboarding motion from AE handoff through hypercare and CS graduation.  The metrics named in the role, including kickoff completion, time-to-live, graduation, CSAT, and early churn, create a clear operating contract for where the team should look for friction.\n\nI would bring a hands-on, systems-oriented leadership style: Make the workflow visible, validate the data, remove manual failure points, build the enablement path, and use the operating evidence to decide what team and tooling should come next."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear Tekmetric Hiring Team,\n\nI am applying for the Director, Customer Success Operations role because it combines the work I do best: Building the operating infrastructure around customer-facing teams while remaining close enough to the work to understand where the process actually breaks.\n\nAt Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.  At Check Point, I helped move portfolio visibility from roughly 40% to 99%, supported 99% dedicated CSM coverage for accounts above $50K, and built workflows across Salesforce, Custify, and Jira.  I have also led distributed customer-facing support teams and built enablement and automation that contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute improvement in first response.\n\nTekmetric's specific operating model is particularly attractive to me.  The role owns the path from AE handoff through onboarding, go-live, hypercare, and CS graduation, while also building the analytics and enablement layer around a roughly 70-person organization.  I would approach that by defining the lifecycle and acceptance criteria first, making kickoff, rebook, time-to-live, graduation, CSAT, and early-churn metrics trustworthy, and then using those signals to prioritize process, tooling, capacity, and coaching improvements.\n\nI also use AI-assisted automation to reduce repetitive operational work while keeping human validation over consequential metrics and decisions.  I built a synthetic candidate operating prototype for this role through Clintware to model the onboarding, analytics, enablement, handoff, and risk loops described in the public posting.\n\nI would welcome the opportunity to build that operating discipline with Tekmetric.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation"
+  },
+  "seed_scenarios": [
+    {
+      "name": "Northstar Auto Group (Synthetic)",
+      "industry": "Multi-shop auto repair",
+      "stage": "Implementation",
+      "health": "Watch",
+      "priority": "High",
+      "goal": "Reduce time-to-live while maintaining kickoff quality and a clean graduation into Customer Success.",
+      "systems": [
+        "Vitally",
+        "Salesforce",
+        "Gong"
+      ],
+      "timeline": "30-day rollout",
+      "dependency": "Data migration validation is delaying go-live",
+      "kpis": [
+        {
+          "name": "Time-to-live",
+          "target": "<=21 days",
+          "baseline": "32 days",
+          "current": "24 days",
+          "source": "Synthetic onboarding analytics"
+        },
+        {
+          "name": "Kickoff completion",
+          "target": "95%",
+          "baseline": "88%",
+          "current": "93%",
+          "source": "Synthetic onboarding tracker"
+        },
+        {
+          "name": "Graduation readiness",
+          "target": "100% acceptance criteria",
+          "baseline": "70%",
+          "current": "90%",
+          "source": "Synthetic graduation checklist"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Close migration validation gap",
+          "status": "In Progress"
+        },
+        {
+          "title": "Prepare hypercare graduation brief",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Migration validation is on critical path",
+        "impact": "Go-live and downstream CS graduation may slip.",
+        "mitigation": "Daily evidence checkpoint and explicit acceptance owner."
+      },
+      "meeting": "Onboarding operating review",
+      "meeting_type": "Implementation review"
+    },
+    {
+      "name": "Summit Garage Network (Synthetic)",
+      "industry": "Auto repair franchise",
+      "stage": "Enablement",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Improve COM readiness for product and process changes before they reach customers.",
+      "systems": [
+        "Vitally",
+        "Gong"
+      ],
+      "timeline": "Release readiness cycle",
+      "dependency": "Training completion is uneven across managers",
+      "kpis": [
+        {
+          "name": "Enablement completion",
+          "target": "95%",
+          "baseline": "72%",
+          "current": "88%",
+          "source": "Synthetic LMS tracker"
+        },
+        {
+          "name": "Knowledge check pass rate",
+          "target": "90%",
+          "baseline": "76%",
+          "current": "86%",
+          "source": "Synthetic readiness assessment"
+        },
+        {
+          "name": "Post-change rework",
+          "target": "<8%",
+          "baseline": "17%",
+          "current": "10%",
+          "source": "Synthetic QA review"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Run manager readiness session",
+          "status": "In Progress"
+        },
+        {
+          "title": "Publish release quick-reference",
+          "status": "Done"
+        }
+      ]
+    },
+    {
+      "name": "Harbor Automotive (Synthetic)",
+      "industry": "Independent repair group",
+      "stage": "Hypercare",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Stabilize early use after go-live and identify leading indicators of churn before graduation.",
+      "systems": [
+        "Vitally",
+        "Salesforce"
+      ],
+      "timeline": "First 30 days post-go-live",
+      "dependency": "Usage dropped after initial training",
+      "kpis": [
+        {
+          "name": "CSAT",
+          "target": ">=90%",
+          "baseline": "84%",
+          "current": "88%",
+          "source": "Synthetic survey"
+        },
+        {
+          "name": "Early-churn risk",
+          "target": "Low",
+          "baseline": "High",
+          "current": "Medium",
+          "source": "Synthetic health model"
+        },
+        {
+          "name": "Weekly active use",
+          "target": "80% target users",
+          "baseline": "55%",
+          "current": "68%",
+          "source": "Synthetic product usage"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Run adoption blocker interview",
+          "status": "In Progress"
+        },
+        {
+          "title": "Schedule targeted refresher",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Cedar Motor Works (Synthetic)",
+      "industry": "Auto repair",
+      "stage": "Graduation",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Complete onboarding-to-CS handoff with evidence, open risk, and customer context intact.",
+      "systems": [
+        "Vitally",
+        "Salesforce",
+        "Gong"
+      ],
+      "timeline": "Graduation week",
+      "dependency": "One open billing integration question remains",
+      "kpis": [
+        {
+          "name": "Graduation criteria",
+          "target": "100%",
+          "baseline": "85%",
+          "current": "96%",
+          "source": "Synthetic handoff checklist"
+        },
+        {
+          "name": "Open critical blockers",
+          "target": "0",
+          "baseline": "2",
+          "current": "0",
+          "source": "Synthetic risk log"
+        },
+        {
+          "name": "CSM context completeness",
+          "target": "100%",
+          "baseline": "70%",
+          "current": "95%",
+          "source": "Synthetic handoff audit"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Resolve billing question owner",
+          "status": "In Progress"
+        },
+        {
+          "title": "Complete CSM graduation brief",
+          "status": "Review"
+        }
+      ]
+    },
+    {
+      "name": "Pioneer Auto Care (Synthetic)",
+      "industry": "SMB auto repair",
+      "stage": "Capacity planning",
+      "health": "Healthy",
+      "priority": "Low",
+      "goal": "Use onboarding demand and cycle-time evidence to plan staffing and queue health.",
+      "systems": [
+        "Salesforce",
+        "Vitally"
+      ],
+      "timeline": "Quarterly planning",
+      "dependency": "Seasonal volume assumptions are not yet validated",
+      "kpis": [
+        {
+          "name": "COM capacity utilization",
+          "target": "80-90%",
+          "baseline": "96%",
+          "current": "89%",
+          "source": "Synthetic capacity model"
+        },
+        {
+          "name": "Rebook rate",
+          "target": "<8%",
+          "baseline": "15%",
+          "current": "9%",
+          "source": "Synthetic scheduling report"
+        },
+        {
+          "name": "Backlog aging",
+          "target": "<5 days",
+          "baseline": "9",
+          "current": "6",
+          "source": "Synthetic work queue"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Validate seasonal demand assumption",
+          "status": "In Progress"
+        },
+        {
+          "title": "Draft staffing scenario",
+          "status": "Planned"
+        }
+      ]
+    }
+  ]
+}
