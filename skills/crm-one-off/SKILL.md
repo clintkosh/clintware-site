@@ -29,14 +29,23 @@ Unless the role clearly requires otherwise, include:
 - Executive Brief
 - application rationale only when it helps the hiring artifact
 
-Each account should normally have:
+The seeded portfolio must look like work is already moving through the system. Unless explicitly asked for an empty template, seed multiple accounts across materially different lifecycle stages.
 
+Default portfolio contract:
+- normally 5+ synthetic accounts or enough to span the role's lifecycle
+- normally 4+ distinct lifecycle stages
+- materially different health, progress, priority, evidence, risk, and next-action state across accounts
+- at least one early-stage account, one in-flight implementation/operational account, and one mature value/renewal/expansion account when those motions exist
+
+Each substantive account should normally have:
 - at least 3 synthetic contacts with different decision roles
-- at least 3 editable KPIs
-- at least 1 open action
+- at least 3 editable KPIs with coherent baseline/current/target state
+- at least 2 actions; use mixed statuses across the portfolio
 - at least 1 risk / operational issue
-- meeting-prep context
+- stage-appropriate meeting-prep context
 - clearly labeled synthetic provenance
+
+Do not stamp the same generic record pack onto every account. Data across contacts, KPIs, risks, issues, actions, meetings, stage, and next action must form a coherent story.
 
 ## Scope-fit default
 
@@ -60,6 +69,7 @@ If there is a strong answer, keep it.  If there is not, remove it.
 - no arbitrary size target: a large CRM is correct when the role warrants it; irrelevant functionality is not
 - no fake PDF
 - no destructive seed upgrade
+- no uniform empty-shell seed set when a populated demo is expected
 - no completion claim without browser verification
 
 ## Reuse priority
