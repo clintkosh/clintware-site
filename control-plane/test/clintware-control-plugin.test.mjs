@@ -26,3 +26,22 @@ test("universal LLM routing makes direct MCP primary and user telemetry exceptio
   assert.match(routing, /Do not make the user send another message simply to say "continue."/i);
   assert.match(routing, /known fix/i);
 });
+
+
+test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays compact", async () => {
+  const markdown = await readFile(new URL("control-plane/MASTER-PROMPT.md", repoRoot), "utf8");
+  const bootstrap = await readFile(new URL("control-plane/MASTER-PROMPT-BOOTSTRAP.txt", repoRoot), "utf8");
+  const mod = await import(new URL("../src/master-prompt.js", import.meta.url));
+  const index = await readFile(new URL("src/index.js", root), "utf8");
+
+  assert.equal(mod.CLINTWARE_MASTER_PROMPT, markdown);
+  assert.equal(mod.CLINTWARE_MASTER_PROMPT_PATH, "control-plane/MASTER-PROMPT.md");
+  assert.match(markdown, /^CLINTWARE UNIVERSAL MASTER PROMPT/m);
+  assert.match(markdown, /30\. CURRENT REVIEWED CAPABILITY EXAMPLES/);
+  assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
+  assert.ok(bootstrap.length < 400, `bootstrap too large: ${bootstrap.length}`);
+  assert.match(bootstrap, /clintware_master_prompt_get/);
+  assert.match(index, /server\.registerTool\("clintware_master_prompt_get"/);
+  assert.match(index, /required_before_substantial_work:true/);
+  assert.match(index, /reload_on_reference:true/);
+});
