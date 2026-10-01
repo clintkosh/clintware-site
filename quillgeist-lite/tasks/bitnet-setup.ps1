@@ -58,6 +58,51 @@ function Get-FreeTcpPort {
   finally { $listener.Stop() }
 }
 
+function Get-BitNetRuntimeProcesses {
+  if (-not $script:Root -and -not $Root) { return @() }
+  $rootValue = if ($script:Root) { [string]$script:Root } else { [string]$Root }
+  $binRoot = (Join-Path $rootValue "build\bin").TrimEnd("\")
+  $rows = @()
+  try {
+    $rows = @(
+      Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.Name -in @("llama-cli.exe","llama-server.exe") -and
+        $_.ExecutablePath -and
+        ([string]$_.ExecutablePath).StartsWith($binRoot,[StringComparison]::OrdinalIgnoreCase)
+      }
+    )
+  } catch {}
+  return $rows
+}
+
+function Stop-BitNetRuntimeProcesses {
+  param([string]$Reason = "runtime-reconcile")
+
+  $rows = @(Get-BitNetRuntimeProcesses)
+  if ($rows.Count -eq 0) { return }
+
+  Log ("AUTO-REPAIR // stopping " + $rows.Count + " BitNet runtime process(es) before " + $Reason)
+  foreach ($row in $rows) {
+    try {
+      Stop-Process -Id ([int]$row.ProcessId) -Force -ErrorAction Stop
+      Log ("AUTO-REPAIR // stopped pid=" + $row.ProcessId + " name=" + $row.Name)
+    } catch {
+      Log ("AUTO-REPAIR // stop warning pid=" + $row.ProcessId + " " + $_.Exception.Message)
+    }
+  }
+
+  $deadline = (Get-Date).AddSeconds(15)
+  do {
+    Start-Sleep -Milliseconds 500
+    $remaining = @(Get-BitNetRuntimeProcesses)
+    if ($remaining.Count -eq 0) { return }
+  } while ((Get-Date) -lt $deadline)
+
+  $ids = (@(Get-BitNetRuntimeProcesses) | ForEach-Object { [string]$_.ProcessId }) -join ","
+  throw ("BitNet runtime lock could not be cleared before " + $Reason + ". Remaining PID(s): " + $ids)
+}
+
 Log "Checking storage and prerequisites without moving user files"
 $cFree = FreeGB "C"
 $fFree = FreeGB "F"
@@ -224,6 +269,11 @@ for ($attempt = 1; $attempt -le $maxAttempts -and -not $buildSucceeded; $attempt
     Log "AUTO-REPAIR // retrying the same incremental BitNet build from existing CMake state"
   }
 
+  # A prior interrupted validation can leave llama-cli/server alive and holding
+  # ggml-base.dll open. Clear only BitNet-owned runtime processes before the
+  # linker runs; preserve all build/model/source files.
+  Stop-BitNetRuntimeProcesses -Reason ("build attempt " + $attempt)
+
   Remove-Item -LiteralPath $BuildStdout,$BuildStderr -Force -ErrorAction SilentlyContinue
   $before = Get-BuildEvidence
   Write-Checkpoint "build" "starting" $attempt $before "Launching supervised CMake build"
@@ -306,8 +356,34 @@ if (-not $cli) { throw "BitNet build completed without llama-cli." }
 if (-not $server) { throw "BitNet build completed without llama-server." }
 
 Log "Running BitNet CLI validation generation"
-$out = & $cli -m $Model -p "Reply with exactly BITNET_READY." -n 32 -c 2048 -t ([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))) --no-display-prompt 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0 -or -not $out.Trim()) { throw "BitNet CLI validation failed." }
+Stop-BitNetRuntimeProcesses -Reason "CLI validation"
+
+$CliStdout = Join-Path $ProgressDir "bitnet-cli.stdout.log"
+$CliStderr = Join-Path $ProgressDir "bitnet-cli.stderr.log"
+Remove-Item -LiteralPath $CliStdout,$CliStderr -Force -ErrorAction SilentlyContinue
+
+$cliArgs = @(
+  "-m",$Model,
+  "-p","Reply with exactly BITNET_READY.",
+  "-n","32",
+  "-c","2048",
+  "-t",[string]([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))),
+  "--no-display-prompt"
+)
+$cliProc = Start-Process -FilePath $cli -ArgumentList $cliArgs -WindowStyle Hidden -PassThru -RedirectStandardOutput $CliStdout -RedirectStandardError $CliStderr
+$cliTimedOut = -not $cliProc.WaitForExit(180000)
+if ($cliTimedOut) {
+  try { Stop-Process -Id $cliProc.Id -Force -ErrorAction SilentlyContinue } catch {}
+  Start-Sleep -Milliseconds 750
+  throw "BitNet CLI validation timed out after 180 seconds."
+}
+$cliProc.Refresh()
+$cliOut = if (Test-Path $CliStdout) { Get-Content -LiteralPath $CliStdout -Raw -ErrorAction SilentlyContinue } else { "" }
+$cliErr = if (Test-Path $CliStderr) { Get-Content -LiteralPath $CliStderr -Raw -ErrorAction SilentlyContinue } else { "" }
+$out = ([string]$cliOut + [Environment]::NewLine + [string]$cliErr).Trim()
+if ($cliProc.ExitCode -ne 0 -or -not $out) {
+  throw ("BitNet CLI validation failed. exit=" + $cliProc.ExitCode + [Environment]::NewLine + $out)
+}
 
 Log "Running temporary BitNet HTTP server round trip"
 $port = Get-FreeTcpPort
