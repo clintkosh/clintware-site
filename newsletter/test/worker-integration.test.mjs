@@ -84,6 +84,7 @@ globalThis.fetch = async (url, options) => {
 after(() => { globalThis.fetch = originalFetch; });
 
 const env = {
+  __TEST_NEWSLETTER_STATE: registry,
   SUBSCRIBERS: { getByName: () => registry },
   PUBLIC_ENDPOINT: "https://newsletter.clintware.com",
   SITE_URL: "https://www.clintware.com",
