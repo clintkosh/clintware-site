@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-url-controls-20261001-1248",
+  "request_id": "driznet-cwinteract-linkedin-form-website-20261001-1250",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "linkedin.com/company",
+    "Query": "Website",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "60",
+    "MaxResults": "40",
     "WaitMs": "250"
   },
-  "objective": "Inspect the LinkedIn Company Page creation form for the public LinkedIn URL control. Do not change fields.",
+  "objective": "Inspect the LinkedIn Company Page creation form for Website controls. Do not change fields.",
   "resume_after": false
 }
