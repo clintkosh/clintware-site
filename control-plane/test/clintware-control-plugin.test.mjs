@@ -40,8 +40,31 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(markdown, /30\. CURRENT REVIEWED CAPABILITY EXAMPLES/);
   assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
   assert.ok(bootstrap.length < 400, `bootstrap too large: ${bootstrap.length}`);
+  assert.match(bootstrap, /clintware_client_handshake/);
   assert.match(bootstrap, /clintware_master_prompt_get/);
+  assert.match(bootstrap, /clintware_instruction_manifest_get/);
+  assert.match(bootstrap, /clintware_instruction_file_get/);
   assert.match(index, /server\.registerTool\("clintware_master_prompt_get"/);
+  assert.match(index, /server\.registerTool\("clintware_instruction_manifest_get"/);
+  assert.match(index, /server\.registerTool\("clintware_instruction_file_get"/);
   assert.match(index, /required_before_substantial_work:true/);
+  assert.match(index, /instruction_extensions:/);
+  assert.match(index, /dynamic_registry:true/);
+  assert.match(index, /required_at_session_start:true/);
   assert.match(index, /reload_on_reference:true/);
+});
+
+test("instruction manifest keeps extension loading explicit and client-aware", async () => {
+  const manifest = JSON.parse(await readFile(new URL("control-plane/instruction-manifest.json", repoRoot), "utf8"));
+  const master = manifest.documents.find((doc) => doc.id === "clintware-master-prompt");
+  assert.equal(manifest.schema, "clintware-instruction-manifest/v1");
+  assert.equal(manifest.extension_root, "control-plane/instructions/");
+  assert.equal(manifest.refresh.on_session_start, true);
+  assert.equal(manifest.refresh.on_instruction_reference, true);
+  assert.equal(manifest.refresh.no_cached_assumption, true);
+  assert.ok(master);
+  assert.equal(master.path, "control-plane/MASTER-PROMPT.md");
+  assert.equal(master.required, true);
+  assert.deepEqual(master.clients, ["*"]);
+  assert.equal(master.loader, "clintware_master_prompt_get");
 });
