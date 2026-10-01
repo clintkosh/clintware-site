@@ -95,9 +95,12 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(markdown, /mcp_binding_not_exposed/);
   assert.match(markdown, /Never invent commands such as `qq send \.\.\.`/);
   assert.match(markdown, /Never tell the user to paste local logs\/status back into chat/);
+  assert.match(markdown, /https:\/\/mcp\.clintware\.com\/connect/);
+  assert.match(markdown, /Distinguish registration, authentication, authorization, tool exposure, and server reachability as separate states/);
   assert.ok(bootstrap.length < 400, `bootstrap too large: ${bootstrap.length}`);
   assert.match(bootstrap, /clintware_client_handshake/);
   assert.match(bootstrap, /clintware_instruction_manifest_get/);
+  assert.match(bootstrap, /mcp\.clintware\.com\/connect/);
   assert.match(index, /server\.registerTool\("clintware_master_prompt_get"/);
   assert.match(index, /server\.registerTool\("clintware_instruction_manifest_get"/);
   assert.match(index, /server\.registerTool\("clintware_instruction_file_get"/);
