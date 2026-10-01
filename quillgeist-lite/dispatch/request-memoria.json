@@ -1,7 +1,11 @@
 {
-  "request_id": "memoria-final-live-status-20260930-2236",
-  "mode": "checkin",
+  "request_id": "memoria-gns-localfirst-full-20261001-0340",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "action": "status",
-  "force": false
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Materialize, validate, source-check, and deploy the Genesys ASTRO CRM using the browser-local quota-independent persistence contract. The generated artifact must have no durable_objects binding, remote_state_required=false, durable_objects_required=false, and zero required server database rows. Return qq-local-agent-confirmed evidence; live browser verification remains a separate gate."
 }
