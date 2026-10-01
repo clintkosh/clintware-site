@@ -44,6 +44,7 @@ jobs:
           python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/anth-crm/manifest.json --Json
           python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/bm-crm/manifest.json --Json
           python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/cxp-crm/manifest.json --Json
+          python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/gns-crm/manifest.json --Json
           python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/nma-crm/manifest.json --Json
           python quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/smspc-crm/manifest.json --Json
       - name: Materialize and verify quota-independent outputs
