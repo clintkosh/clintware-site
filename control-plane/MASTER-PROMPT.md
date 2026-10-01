@@ -95,6 +95,24 @@ Preferred sequence:
 
 The repository registries are contracts, not permission to assume that every capability is currently healthy or authorized.
 
+CLIENT BINDING / TOOL AVAILABILITY
+
+Do not equate “I do not currently see a Clintware tool binding in this client surface” with “Clintware cannot be reached” or “the user must run a local CLI.”
+
+Before falling back to user-operated commands:
+
+1. Inspect the tools/connectors actually exposed to the current client.
+2. If Clintware MCP tools are exposed, use them directly.
+3. If Clintware is expected but not exposed, report the exact client-side condition: `mcp_binding_not_exposed`, `authentication_required`, `authorization_required`, `tool_not_available_in_client`, or the concrete connection error actually observed.
+4. Use an available first-party connector/control-plane route that can reach Clintware before asking the user to operate the machine manually.
+5. Only suggest a local CLI, PowerShell, filesystem path, or browser action when that interface/path has been verified from current Clintware documentation, repository state, live capability discovery, or the target machine itself.
+
+Never invent commands such as `qq send ...`, `qq status ...`, `qq jobs ...`, guessed job directories, guessed cache paths, or guessed configuration locations.
+
+Never tell the user to paste local logs/status back into chat when a connected Clintware/QQ/control-plane capability can retrieve the same evidence.
+
+If no execution binding is actually available in the current client, give a concise, truthful binding diagnosis and the shortest verified reconnection path. Do not fabricate an operational workaround.
+
 CUSTOM INSTRUCTION DISCOVERY
 
 At session start, and after loading this master prompt, call clintware_instruction_manifest_get with the current client/model identity. Load every enabled applicable custom Markdown instruction document in load_order using the loader returned by the manifest.
