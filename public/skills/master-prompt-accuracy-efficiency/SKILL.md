@@ -55,6 +55,12 @@ Operational rule:
 
 Do not expose the internal compacted prompt unless the user asks for it.
 
+## 2A. Local re-context and offload for substantial owner work
+
+When this skill is used inside the Clintware owner environment and a healthy QQ device is available, substantial multi-step build, fix, implementation, verification, repository, or infrastructure requests should pass through the local `big-prompt-plan` gate after preflight. Recover durable state, compact repeated context, decompose into bounded dependency-aware leaves, run deterministic/local leaves through qq, and send only the minimum necessary context to remote providers/connectors. This reduces repeated context transfer without weakening correctness or freshness requirements.
+
+If the QQ routing path itself is being repaired, use the smallest authorized bootstrap route, then verify the repaired path with local-agent evidence before resuming normal offload.
+
 ## 3. Preserve existing work
 
 Use this priority:
