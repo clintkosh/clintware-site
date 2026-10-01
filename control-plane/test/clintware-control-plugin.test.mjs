@@ -111,6 +111,12 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(index, /persona_path:INSTRUCTION_PERSONA_PATH/);
   assert.match(index, /required_at_session_start:true/);
   assert.match(index, /reload_on_reference:true/);
+  assert.match(index, /function controlPlaneConnect\(\)/);
+  assert.match(index, /url\.pathname===\"\/connect\"/);
+  assert.match(index, /https:\/\/mcp\.clintware\.com\/mcp/);
+  assert.match(index, /https:\/\/mcp\.clintware\.com\/connect/);
+  assert.match(index, /mcp_binding_not_exposed/);
+  assert.match(index, /Connect a client/);
   assert.match(index, /mcp_binding_not_exposed/);
   assert.match(index, /Never fabricate qq send\/status\/jobs syntax/);
   assert.match(index, /missing client-side MCP binding as proof that Clintware itself is unreachable/);
