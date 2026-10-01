@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-inspect-20261001-1155",
+  "request_id": "driznet-cwinteract-linkedin-foreground-inspect-20261001-1158",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "inspect",
+    "Action": "form",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
     "Query": "",
-    "StepsJson": "",
-    "Approved": "false",
+    "StepsJson": "{\"steps\":[{\"op\":\"wait\",\"ms\":1200}]}",
+    "Approved": "true",
     "MaxResults": "100",
-    "WaitMs": "450"
+    "WaitMs": "350"
   },
-  "objective": "Inspect the visible LinkedIn app on DRIZNET with CWInteract™ to determine whether the signed-in session exposes Company Page creation controls. Do not mutate anything.",
+  "objective": "Restore the installed LinkedIn app window on DRIZNET and inspect its accessible controls without changing LinkedIn data. This is a read-only foreground inspection.",
   "resume_after": false
 }
