@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("inspect","skill-single","skills")]
+  [ValidateSet("inspect","skill-single","skills","form")]
   [string]$Action = "inspect",
   [string]$WindowTitle = "",
   [string]$Query = "Skills",
@@ -50,9 +50,13 @@ function Summarize($Element) {
     @("Value",[Windows.Automation.ValuePattern]::Pattern),
     @("Invoke",[Windows.Automation.InvokePattern]::Pattern),
     @("SelectionItem",[Windows.Automation.SelectionItemPattern]::Pattern),
-    @("ExpandCollapse",[Windows.Automation.ExpandCollapsePattern]::Pattern)
+    @("ExpandCollapse",[Windows.Automation.ExpandCollapsePattern]::Pattern),
+    @("Toggle",[Windows.Automation.TogglePattern]::Pattern)
   )) {
-    try { if ($Element.TryGetCurrentPattern($pair[1],[ref]([object]$null))) { $patterns.Add($pair[0]) } } catch {}
+    try {
+      $patternObject = $null
+      if ($Element.TryGetCurrentPattern($pair[1],[ref]$patternObject)) { $patterns.Add($pair[0]) }
+    } catch {}
   }
   return [ordered]@{
     name=[string]$Element.Current.Name
@@ -156,10 +160,184 @@ function Find-SkillEditor($All,$Anchor) {
   return $candidates | Sort-Object score | Select-Object -First 1
 }
 
+function Test-SensitiveElement($Element) {
+  try {
+    $material = (([string]$Element.Current.Name) + " " + ([string]$Element.Current.AutomationId) + " " + ([string]$Element.Current.ClassName))
+    return $material -match "(?i)(password|passwd|passcode|one.?time|otp|verification.?code|security.?code|api.?key|access.?token|refresh.?token|private.?key|credit.?card|card.?number|cvv|cvc|social.?security|ssn)"
+  } catch { return $false }
+}
+
+function Find-Control($All,$Step) {
+  $name = [string]$Step.name
+  $contains = [string]$Step.contains
+  $automationId = [string]$Step.automation_id
+  $controlType = [string]$Step.control_type
+  $matches = New-Object System.Collections.Generic.List[object]
+  foreach($el in $All){
+    try {
+      $type = Get-ControlTypeName $el
+      if($controlType -and -not $type.Equals($controlType,[StringComparison]::OrdinalIgnoreCase)){ continue }
+      $nm = [string]$el.Current.Name
+      $aid = [string]$el.Current.AutomationId
+      if($automationId -and -not $aid.Equals($automationId,[StringComparison]::OrdinalIgnoreCase)){ continue }
+      if($name -and -not $nm.Equals($name,[StringComparison]::OrdinalIgnoreCase)){ continue }
+      if($contains -and $nm.IndexOf($contains,[StringComparison]::OrdinalIgnoreCase) -lt 0){ continue }
+      if(-not $automationId -and -not $name -and -not $contains){ continue }
+      $r = Get-Rect $el
+      if($r -and $r.width -gt 0 -and $r.height -gt 0 -and $el.Current.IsEnabled){ $matches.Add($el) }
+    } catch {}
+  }
+  if($matches.Count -eq 0){ return $null }
+  return $matches | Sort-Object { try { $_.Current.BoundingRectangle.Top } catch { 999999 } } | Select-Object -First 1
+}
+
+function Invoke-Control($Element) {
+  $obj=$null
+  if($Element.TryGetCurrentPattern([Windows.Automation.InvokePattern]::Pattern,[ref]$obj)){
+    ([Windows.Automation.InvokePattern]$obj).Invoke()
+    return
+  }
+  $obj=$null
+  if($Element.TryGetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern,[ref]$obj)){
+    ([Windows.Automation.SelectionItemPattern]$obj).Select()
+    return
+  }
+  $Element.SetFocus()
+  [Windows.Forms.SendKeys]::SendWait("{ENTER}")
+}
+
+function Set-ControlValue($Element,[string]$Text) {
+  if(Test-SensitiveElement $Element){ throw "Refusing to type into a credential/sensitive control." }
+  $obj=$null
+  if($Element.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$obj)){
+    ([Windows.Automation.ValuePattern]$obj).SetValue($Text)
+    return
+  }
+  $Element.SetFocus()
+  Start-Sleep -Milliseconds 100
+  [Windows.Forms.SendKeys]::SendWait("^a")
+  [Windows.Forms.SendKeys]::SendWait("{BACKSPACE}")
+  Send-SafeText $Text
+}
+
+function Toggle-Control($Element,[bool]$Wanted=$true) {
+  $obj=$null
+  if($Element.TryGetCurrentPattern([Windows.Automation.TogglePattern]::Pattern,[ref]$obj)){
+    $toggle=[Windows.Automation.TogglePattern]$obj
+    $isOn = $toggle.Current.ToggleState -eq [Windows.Automation.ToggleState]::On
+    if($isOn -ne $Wanted){ $toggle.Toggle() }
+    return
+  }
+  Invoke-Control $Element
+}
+
 $window=Get-EdgeWindow -Title $WindowTitle
 $root=[Windows.Automation.AutomationElement]::FromHandle($window.MainWindowHandle)
 if(-not $root){throw "Could not attach Windows UI Automation to the selected Edge window."}
 $all=Get-AllDescendants $root
+
+if($Action -eq "inspect"){
+  $anchors=if($Query){Find-Anchors $all $Query}else{@()}
+  if($anchors -and $anchors.Count -gt 0){
+    $anchor=$anchors | Sort-Object { try { $_.Current.BoundingRectangle.Top } catch { 999999 } } | Select-Object -First 1
+    $nearby=Get-NearbyControls $all $anchor $MaxResults
+    Emit-Json ([ordered]@{
+      ok=$true;action="inspect";window_title=$window.MainWindowTitle;query=$Query
+      anchor=(Summarize $anchor);nearby=$nearby
+    })
+    exit 0
+  }
+  $interactive=New-Object System.Collections.Generic.List[object]
+  foreach($el in $all){
+    try{
+      $type=Get-ControlTypeName $el
+      if($type -notin @("Edit","ComboBox","Button","CheckBox","RadioButton","Hyperlink","Text")){continue}
+      $s=Summarize $el
+      if(-not $s.rect -or $s.rect.width -le 0 -or $s.rect.height -le 0){continue}
+      if($Query -and ([string]$s.name).IndexOf($Query,[StringComparison]::OrdinalIgnoreCase) -lt 0 -and $interactive.Count -ge [math]::Floor($MaxResults/2)){continue}
+      $interactive.Add([pscustomobject]$s)
+      if($interactive.Count -ge $MaxResults){break}
+    }catch{}
+  }
+  Emit-Json ([ordered]@{ok=$true;action="inspect";window_title=$window.MainWindowTitle;query=$Query;anchor=$null;nearby=@($interactive)})
+  exit 0
+}
+
+if($Action -eq "form"){
+  if($Approved.Trim().ToLowerInvariant() -notin @("1","true","yes")){
+    throw "Edge UI Automation write actions require Approved=true."
+  }
+  if(-not $StepsJson){throw "StepsJson is required for form."}
+  $parsed=$StepsJson | ConvertFrom-Json
+  $steps=if($parsed.steps){@($parsed.steps)}else{@($parsed)}
+  if($steps.Count -gt 60){throw "At most 60 UI steps are allowed."}
+
+  [void][QQEdgeNative]::ShowWindow($window.MainWindowHandle,9)
+  [void][QQEdgeNative]::SetForegroundWindow($window.MainWindowHandle)
+  Start-Sleep -Milliseconds 250
+
+  $results=New-Object System.Collections.Generic.List[object]
+  foreach($step in $steps){
+    $op=([string]$step.op).ToLowerInvariant()
+    if($op -eq "wait"){
+      $ms=[math]::Min(5000,[math]::Max(0,[int]$step.ms))
+      Start-Sleep -Milliseconds $ms
+      $results.Add([pscustomobject]@{op="wait";ok=$true;ms=$ms})
+      continue
+    }
+
+    # Refresh the accessibility tree after each navigation-affecting action.
+    $all=Get-AllDescendants $root
+    $el=Find-Control $all $step
+    if(-not $el){throw ("UI control not found for step: " + ($step | ConvertTo-Json -Compress))}
+    if(Test-SensitiveElement $el){throw "Refusing to interact with a credential/sensitive control."}
+
+    if($op -eq "fill"){
+      Set-ControlValue $el ([string]$step.value)
+    } elseif($op -eq "click"){
+      Invoke-Control $el
+    } elseif($op -eq "check"){
+      Toggle-Control $el $true
+    } elseif($op -eq "uncheck"){
+      Toggle-Control $el $false
+    } elseif($op -eq "select"){
+      $el.SetFocus()
+      Start-Sleep -Milliseconds 120
+      [Windows.Forms.SendKeys]::SendWait("%{DOWN}")
+      Start-Sleep -Milliseconds 150
+      Send-SafeText ([string]$step.value)
+      [Windows.Forms.SendKeys]::SendWait("{ENTER}")
+    } elseif($op -eq "upload"){
+      $file=[string]$step.value
+      if(-not $file -or -not (Test-Path -LiteralPath $file)){throw ("Upload file does not exist: " + $file)}
+      Invoke-Control $el
+      Start-Sleep -Milliseconds 700
+      Send-SafeText $file
+      [Windows.Forms.SendKeys]::SendWait("{ENTER}")
+    } else {
+      throw ("Unsupported form op: " + $op)
+    }
+
+    Start-Sleep -Milliseconds ([math]::Max(150,$WaitMs))
+    $results.Add([pscustomobject]@{op=$op;ok=$true;control=(Summarize $el)})
+  }
+
+  $all=Get-AllDescendants $root
+  $post=New-Object System.Collections.Generic.List[object]
+  foreach($el in $all){
+    try{
+      $type=Get-ControlTypeName $el
+      if($type -notin @("Edit","ComboBox","Button","CheckBox","RadioButton","Hyperlink")){continue}
+      $s=Summarize $el
+      if($s.rect -and $s.rect.width -gt 0 -and $s.rect.height -gt 0){$post.Add([pscustomobject]$s)}
+      if($post.Count -ge $MaxResults){break}
+    }catch{}
+  }
+  Emit-Json ([ordered]@{ok=$true;action="form";window_title=$window.MainWindowTitle;results=@($results);post=@($post)})
+  exit 0
+}
+
+# Existing Skills editor compatibility.
 $anchors=Find-Anchors $all $Query
 if(-not $anchors -or $anchors.Count -eq 0){
   $named=@()
@@ -176,15 +354,6 @@ if(-not $anchors -or $anchors.Count -eq 0){
   exit 2
 }
 $anchor=$anchors | Sort-Object { try { $_.Current.BoundingRectangle.Top } catch { 999999 } } | Select-Object -First 1
-
-if($Action -eq "inspect"){
-  $nearby=Get-NearbyControls $all $anchor $MaxResults
-  Emit-Json ([ordered]@{
-    ok=$true;action="inspect";window_title=$window.MainWindowTitle;query=$Query
-    anchor=(Summarize $anchor);nearby=$nearby
-  })
-  exit 0
-}
 
 if($Approved.Trim().ToLowerInvariant() -notin @("1","true","yes")){
   throw "Edge UI Automation write actions require Approved=true."
