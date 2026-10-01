@@ -132,3 +132,90 @@ Final browser verifier output:
 Verification marker:
 
 `NMA_VERIFIED=source+role-logic+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile`
+
+
+## 2026-10-01 — Multi-stage populated portfolio update
+
+The synthetic portfolio was expanded so the product demonstrates an operating flow already in motion rather than a set of similarly seeded accounts.
+
+Deployed source for this update: `e780299d364b047108eb0b163f62d867060f53e8`  
+Verification workflow: `36873979087`  
+Verification job: `110408573511`  
+Cloud deployment version: `1762b3ba-2089-4220-bd2a-c046a936b5dd`
+
+### Lifecycle spread
+
+The live portfolio now includes six explicit operating phases:
+
+- Harbor Financial Group — `discover` — Discovery · estate mapping
+- Aster Health Systems — `govern` — Governance design · evidence mapping
+- Forge Industrial — `test` — Pre-production testing · release gates
+- Vector Commerce — `protect` — Runtime protection · SOC operationalization
+- Summit SaaS — `prove` — Adoption + value proof · MCP governance
+- Northwind Technology Services — `expand` — Renewal + expansion · multi-practice rollout
+
+Each of those accounts passed a live browser depth gate with **3 stakeholders, 3 KPIs, 3 actions, 3 combined risk/issue records, and at least 1 meeting**, plus stage-specific adoption/evidence and call-prep context.
+
+Action state is intentionally varied across the live portfolio. Verified statuses include:
+
+`In Progress · Scheduled · Planned · Complete · Blocked · Ready for Decision`
+
+The portfolio surface now exposes stage, progress, health, and next action so a reviewer can see the lifecycle spread without opening every account.
+
+### Data-coherence rule
+
+Seeded data is intentionally stage-aware. KPIs, risks, actions, meetings, priorities, owners, dates, and next actions are written to agree with the account's current lifecycle stage. The same generic record pack is no longer stamped across every account.
+
+### Safe seed migration
+
+Browser-local seed schema advanced to version 3. Built-in `synthetic_sample`, `template`, and `scenario` records may refresh when the seed changes, while user-created records are preserved. A seeded record that a user edits is promoted to user-owned `internal_record` provenance unless provenance is explicitly supplied, preventing future seed refreshes from silently replacing that work.
+
+### Permanent ASTRO default
+
+The same requirement was persisted into the reusable CRM build system:
+
+- `ASTRO_CRM_ONE_OFF_SKILL.md`
+- `skills/crm-one-off/SKILL.md`
+- `quillgeist-lite/tools/crm_astro.py`
+- `quillgeist-lite/tasks/crm-astro-build.ps1`
+
+Unless an empty template is explicitly requested, one-off CRM builds now default to a populated, multi-account, multi-stage synthetic portfolio with stakeholder, KPI, action, risk/issue, meeting, mixed-status, and flow-coherence requirements.
+
+### QQ / MEMORIA evidence for this update
+
+The first `crm-astro-build` execution on MEMORIA returned a valid local-agent pass but was later proven to have used stale source revision `7af9dce34d1b212f732b4e91642fb95ad3cffcdd`; it is therefore **not** counted as final validation of this update.
+
+A deterministic `repo-code-search` recovery then refreshed MEMORIA's maintained repository cache to current `origin/main` and confirmed `SAMPLE_SEED_VERSION=2` in the NMA project.
+
+Refresh request: `memoria-nma-repo-sync-20261001-0909`  
+Local job: `53dfbd0b-2844-49ea-8ff1-e28ba667a6ba`  
+Result: **passed**  
+Confirmation source: `qq-local-agent`  
+Transport: `websocket-event`
+
+A later attempt to force `RepoRoot` through remote dispatch was rejected before local execution because `RepoRoot` is intentionally not in the remote `crm-astro-build` allowlist. No execution credit is assigned to that rejected request.
+
+### Final live acceptance
+
+Final browser verifier:
+
+```json
+{
+  "ok": true,
+  "accounts": 7,
+  "lifecyclePhases": ["discover","govern","test","protect","prove","expand"],
+  "actionStatusVariety": ["In Progress","Scheduled","Planned","Complete","Blocked","Ready for Decision"],
+  "goldenRecords": 34,
+  "presentationSlides": 8,
+  "pdfBytes": 2996,
+  "browserLocalBytes": 121747,
+  "databaseRowsPerDemoSession": 0,
+  "mobileOverflow": false,
+  "errors": [],
+  "badResponses": []
+}
+```
+
+Verification marker:
+
+`NMA_VERIFIED=source+role-logic+multi-stage-seed-depth+quota-independent-runtime+do-retirement+dry-run+deploy+live-http+browser-crud+browser-persistence+hosted-chrome+presentation+pdf+mobile`
