@@ -1,10 +1,10 @@
 {
-  "request_id": "driznet-task-isolation-apply-20261001-0959",
+  "request_id": "driznet-task-isolation-apply-20261001-1002",
   "task_id": "scheduled-task-isolation",
   "target_device": "DRIZNET",
   "args": {
     "Mode": "Repair"
   },
-  "objective": "On DRIZNET, run the verified Task Isolation v1.2.0 repair. Refresh the bundled EXE into the user's Downloads folder, scan non-Microsoft scheduled PowerShell/cmd/script tasks, convert desktop-interactive console actions to true CREATE_NO_WINDOW background execution, restart already-running converted tasks under the background wrapper, preserve backups, and return exact qq-local-agent evidence.",
+  "objective": "On DRIZNET, run verified Clintware Task Isolation v1.2.0. Refresh the latest EXE and checksum into Downloads, scan non-Microsoft scheduled PowerShell/cmd/script jobs, convert desktop-interactive console actions to CREATE_NO_WINDOW background execution, restart any currently-running converted tasks under the background wrapper, preserve backups, and return exact qq-local-agent evidence.",
   "resume_after": true
 }
