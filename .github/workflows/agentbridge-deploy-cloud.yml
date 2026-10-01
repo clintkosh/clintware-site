@@ -166,9 +166,9 @@ jobs:
           ready=0
           for i in $(seq 1 60); do
             health=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/api/health || true)
-            page=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/ || true)
-            progress=$(curl -fsS --connect-timeout 5 --max-time 15 https://quillgeist.clintware.com/progress.html || true)
-            stats_code=$(curl -sS -o /tmp/qg-stats.json -w '%{http_code}' --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' || true)
+            page=$(curl -fsS --connect-timeout 5 --max-time 15 -H 'cache-control: no-cache' "https://quillgeist.clintware.com/?deploy=${GITHUB_SHA}" || true)
+            progress=$(curl -fsS --connect-timeout 5 --max-time 15 -H 'cache-control: no-cache' "https://quillgeist.clintware.com/progress.html?deploy=${GITHUB_SHA}" || true)
+            stats_code=$(curl -sS -o /tmp/qg-stats.json -w '%{http_code}' --connect-timeout 5 --max-time 15 -H 'cache-control: no-cache' "https://quillgeist.clintware.com/api/public/product-stats?days=30&deploy=${GITHUB_SHA}" || true)
             stats=$(cat /tmp/qg-stats.json 2>/dev/null || true)
             stats_cors=$(curl -sS -X OPTIONS -D - -o /dev/null --connect-timeout 5 --max-time 15 'https://quillgeist.clintware.com/api/public/product-stats?days=30' | tr -d '\r' || true)
             bootstrap_code=$(curl -sS -o /tmp/qg-bootstrap.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/account/bootstrap || true)
@@ -197,6 +197,17 @@ jobs:
             echo "Quillgeist live smoke diagnostics after bounded propagation wait:" >&2
             echo "health=$health" >&2
             echo "stats_code=$stats_code bootstrap_code=$bootstrap_code pair_code=$pair_code compact_code=$compact_code mcp_code=$mcp_code" >&2
+            echo "predicate_health_service=$(grep -Fq '"service":"Quillgeist Distribution Site"' <<< "$health" && echo PASS || echo FAIL)" >&2
+            echo "predicate_health_public_runtime=$(grep -Fq '"public_runtime":false' <<< "$health" && echo PASS || echo FAIL)" >&2
+            echo "predicate_page_local_only=$(grep -Fq 'local-only default' <<< "$page" && echo PASS || echo FAIL)" >&2
+            echo "predicate_page_no_server_credential=$(grep -Fq 'does not contain a Clintware server credential' <<< "$page" && echo PASS || echo FAIL)" >&2
+            echo "predicate_progress_journal=$(grep -Fq 'Show the work. Track the efficiency.' <<< "$progress" && echo PASS || echo FAIL)" >&2
+            echo "predicate_stats=$( { { test "$stats_code" = "200" && grep -Fq '"coverage":"participating Quillgeist installs and API/MCP calls with telemetry enabled"' <<< "$stats"; } || { test "$stats_code" = "503" && grep -Fq '"error":"aggregate_stats_unavailable"' <<< "$stats"; }; } && echo PASS || echo FAIL)" >&2
+            echo "predicate_stats_cors=$(grep -Fiq 'access-control-allow-origin: *' <<< "$stats_cors" && echo PASS || echo FAIL)" >&2
+            echo "predicate_bootstrap_retired=$( { test "$bootstrap_code" = "410" && grep -Fq '"self_host_required":true' /tmp/qg-bootstrap.json; } && echo PASS || echo FAIL)" >&2
+            echo "predicate_pair_retired=$( { test "$pair_code" = "410" && grep -Fq '"self_host_required":true' /tmp/qg-pair.json; } && echo PASS || echo FAIL)" >&2
+            echo "predicate_compact_retired=$(test "$compact_code" = "410" && echo PASS || echo FAIL)" >&2
+            echo "predicate_mcp_retired=$(test "$mcp_code" = "410" && echo PASS || echo FAIL)" >&2
             printf '%s\n' "$stats_cors" | grep -i '^access-control-' >&2 || true
           fi
           test "$ready" = 1
