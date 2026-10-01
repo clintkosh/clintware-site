@@ -29,7 +29,7 @@ const checks={
  browserPersistence:localApi.includes("localStorage")&&localApi.includes('mode:"browser-persistent"')&&html.includes("/nma-local-api.js"),
  seedMigration:localApi.includes("const VERSION=3")&&localApi.includes("function migrate(old)")&&localApi.includes("REPLACEABLE")&&localApi.includes('hit.record.provenance="internal_record"'),
  quotaIndependent:worker.includes("databaseRowsPerDemoSession:0")&&!wrangler.includes("durable_objects")&&wrangler.includes('"deleted_classes"')&&wrangler.includes('"DPLCRM"'),
- executionTruth:status.includes("blocked before DRIZNET delivery")&&status.includes("local execution is recorded as 0"),
+ executionTruth:status.includes("qq-local-agent")&&status.includes("349eb03a-d357-4c37-8264-84588614252a")&&status.includes("server-authorized deployment"),
  sourceCompanyClean:!(/Doppel|doppel\.com/i.test(worker+track+status+localApi+html)),
  publicBoundary:track.includes("Not an official Noma product")
 };
