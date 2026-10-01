@@ -23,10 +23,16 @@ Before saying Clintware, QQ, MEMORIA, or local execution is unavailable, inspect
 1. Native Clintware / Quillgeist / QQ capability, if exposed in the current ChatGPT session.
 2. Existing provider-specific connector when it is the better scoped tool.
 3. The established GitHub relay in this repository:
-   `ChatGPT → GitHub dispatch file → Clintware control plane → QQ on MEMORIA`.
+   `ChatGPT → GitHub dispatch file → Clintware control plane → QQ on the explicitly selected healthy device`.
 4. Only after those paths are unavailable or verified broken should the user be asked for another connection or manual intervention.
 
 Do not confuse "no native Clintware plugin visible" with "QQ cannot be reached."
+
+## Substantial-prompt re-context rule
+
+For substantial build/fix/implement/verify requests, recover durable state first and dispatch `big-prompt-plan` to the selected healthy QQ device before expanding work remotely. Use a stable project/`StateScope`, preserve only required dependency context, and execute deterministic leaves locally. Remote calls receive only the bounded leaf context they need. This is the default token/context-efficiency path, not an optional optimization.
+
+If the relay or Control Plane is the thing being repaired, bootstrap the repair through the available authorized GitHub/provider path, then prove the repair with a fresh `big-prompt-plan` or other appropriate local-agent-confirmed QQ job.
 
 ## GitHub fallback dispatch
 
