@@ -17,11 +17,11 @@ Use `clintware_quillgeist_web_search` for discovery. It queues live browser sear
 
 Use `clintware_quillgeist_web_read` when the URL is known and the task needs page text, headings, or links.
 
-Use `clintware_quillgeist_browser_run` for interaction or multi-step browser work.
+Use `clintware_quillgeist_browser_run` for interaction or multi-step browser work in the governed qq browser. When the task depends on the user's already signed-in normal Edge/Chrome window or a native Windows app, route through **CWInteract™** (`cwinteract`) instead of forcing the session into the isolated browser.
 
 Use `clintware_quillgeist_browser_assist` when authentication, MFA, consent, or another credential-bearing step must be completed by the user locally. The persistent QQ browser remains visible for the bounded assist window, then returns an inspected final page without exposing credentials.
 
-Before falling back to generic instructions or a paid model/provider path, use `clintware_quillgeist_lite_capabilities` when capability selection is uncertain. The browser skill maps to the reviewed `browser-work` task; opening a URL only maps to `open-edge-tab`.
+Before falling back to generic instructions or a paid model/provider path, use `clintware_quillgeist_lite_capabilities` when capability selection is uncertain. The browser skill maps to the reviewed `browser-work` task; opening a URL only maps to `open-edge-tab`; signed-in system-browser/native-app interaction maps to the canonical `cwinteract` task.
 
 Each execution tool returns a durable job ID. Call `clintware_quillgeist_lite_job` until the job reaches `passed` or `failed`. Never report a queued job as completed.
 
