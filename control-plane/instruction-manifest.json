@@ -1,6 +1,6 @@
 {
   "schema": "clintware-instruction-manifest/v1",
-  "version": 1,
+  "version": 2,
   "repository": "clintkosh/clintware-site",
   "branch": "main",
   "refresh": {
@@ -10,6 +10,19 @@
     "no_cached_assumption": true
   },
   "documents": [
+    {
+      "id": "catshadow-persona",
+      "path": "control-plane/CATSHADOW-PERSONA.md",
+      "title": "CATShadow / D@V1D Persona",
+      "kind": "persona",
+      "enabled": true,
+      "required": true,
+      "load_order": -10,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_instruction_file_get"
+    },
     {
       "id": "clintware-master-prompt",
       "path": "control-plane/MASTER-PROMPT.md",
@@ -25,5 +38,5 @@
     }
   ],
   "extension_root": "control-plane/instructions/",
-  "notes": "Add future custom Markdown instruction documents under extension_root and register them here. MCP-capable clients refresh this manifest and load every enabled applicable document in load_order."
+  "notes": "MCP-capable clients load every enabled applicable document in load_order. Add future custom Markdown files under control-plane/instructions/ and register them here; clients discover changes from MCP without rewriting their local bootstrap."
 }
