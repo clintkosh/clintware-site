@@ -161,6 +161,22 @@ $ManifestData = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
 $PersistenceMode = if ($ManifestData.persistence_mode) { [string]$ManifestData.persistence_mode } else { "browser-local" }
 $RemoteStateRequired = [bool]$ManifestData.remote_state_required
 $DurableObjectsRequired = [bool]$ManifestData.durable_objects_required
+$Mode = if ($ManifestData.mode) { [string]$ManifestData.mode } else { "one-off" }
+$SyntheticDataDefault = if ($null -ne $ManifestData.synthetic_data_default) { [bool]$ManifestData.synthetic_data_default } else { $Mode -eq "one-off" }
+$SeedExpectations = if ($ManifestData.seed_expectations) { $ManifestData.seed_expectations } else { [pscustomobject]@{
+  portfolio_accounts_min=5
+  lifecycle_stages_min=4
+  contacts_per_account_min=3
+  kpis_per_account_min=3
+  actions_per_account_min=2
+  risk_or_issue_per_account_min=1
+  mixed_statuses_required=$true
+  meeting_context_per_account=$true
+  flow_coherence_required=$true
+} }
+if ($SyntheticDataDefault) {
+  Write-Host ("ASTRO_SEED_DEFAULT // populated multi-stage synthetic portfolio required // accounts>={0} stages>={1} contacts/account>={2} kpis/account>={3}" -f $SeedExpectations.portfolio_accounts_min,$SeedExpectations.lifecycle_stages_min,$SeedExpectations.contacts_per_account_min,$SeedExpectations.kpis_per_account_min)
+}
 if ($PersistenceMode -in @("browser-local","stateless")) {
   $GeneratedWrangler = Join-Path $BuildRoot "wrangler.jsonc"
   if (Test-Path -LiteralPath $GeneratedWrangler -PathType Leaf) {
