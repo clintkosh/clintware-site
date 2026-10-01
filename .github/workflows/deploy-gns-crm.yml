@@ -1,0 +1,122 @@
+name: Deploy Genesys Customer Success CRM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/gns-crm/**"
+      - "projects/anth-crm/**"
+      - "projects/dplr-crm/**"
+      - "projects/dpl-crm/**"
+      - ".github/workflows/deploy-gns-crm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-gns-crm
+  cancel-in-progress: true
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Materialize and validate local-first runtime
+        run: |
+          set -euo pipefail
+          python3 quillgeist-lite/tools/crm_astro.py --Action validate --Manifest projects/gns-crm/manifest.json --Json
+          node projects/gns-crm/scripts/materialize.mjs
+          cd .build/gns-crm
+          npm install --no-audit --no-fund
+          npm run check
+          grep -Fq '"name":"clintware-gns-crm"' wrangler.jsonc
+          grep -Fq '"pattern":"gns.clintware.com"' wrangler.jsonc
+          grep -Fq 'const APP_ID="gns-crm"' src/index.js
+          grep -Fq 'const WORKSPACE_ID="gns-enterprise"' src/index.js
+          grep -Fq 'databaseRowsPerDemoSession:0' src/index.js
+          grep -Fq 'Northstar Retail Group (Synthetic)' public/cw-astro-local-bootstrap.js
+          grep -Fq 'Genesys Customer Success Director Operating System' public/index.html
+          ! grep -Fq '"durable_objects"' wrangler.jsonc
+
+      - name: Wrangler dry run
+        run: cd .build/gns-crm && npx wrangler deploy --dry-run
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/gns-crm
+
+      - name: Verify live stateless contract
+        run: |
+          set -euo pipefail
+          base=https://gns.clintware.com
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
+            if grep -Fq '"service":"clintware-gns-crm"' <<< "$h" \
+              && grep -Fq '"storage":"browser-local"' <<< "$h" \
+              && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$h" \
+              && grep -Fq 'Genesys Customer Success Director' <<< "$p"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for gns.clintware.com ($i/48)"
+            sleep 5
+          done
+          test "$ready" = "1"
+          code=$(curl -sS -o /tmp/gns-api.json -w '%{http_code}' "$base/api/state" | tr -cd '0-9')
+          test "$code" = "409"
+          grep -Fq 'browser_local_api' /tmp/gns-api.json
+
+      - name: Browser smoke
+        run: |
+          set -euo pipefail
+          google-chrome --version
+          mkdir -p /tmp/gns-browser
+          cd /tmp/gns-browser
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          cat >verify.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true,channel:'chrome'});
+          const context=await browser.newContext({viewport:{width:1440,height:960}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error'&&!/^Failed to load resource/i.test(m.text()))errors.push(m.text())});
+          const response=await page.goto('https://gns.clintware.com/',{waitUntil:'networkidle'});
+          if(!response?.ok())throw new Error('landing HTTP '+response?.status());
+          const title=await page.title();
+          const body=await page.locator('body').innerText();
+          if(!/Genesys/i.test(title+' '+body))throw new Error('Genesys identity missing');
+          const state=await page.evaluate(()=>fetch('/api/state').then(r=>r.json()));
+          if(state.access?.storage!=='browser-local')throw new Error('browser-local contract missing');
+          if(state.customer?.name!=='Northstar Retail Group (Synthetic)')throw new Error('golden account mismatch');
+          if(state.customers.length<5)throw new Error('sample portfolio incomplete');
+          const mobile=await context.newPage();
+          await mobile.setViewportSize({width:390,height:844});
+          const mr=await mobile.goto('https://gns.clintware.com/',{waitUntil:'networkidle'});
+          if(!mr?.ok())throw new Error('mobile HTTP '+mr?.status());
+          const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
+          if(overflow)throw new Error('mobile horizontal overflow');
+          if(errors.length)throw new Error('browser faults: '+errors.join(' | '));
+          console.log(JSON.stringify({ok:true,title,accounts:state.customers.length,records:state.records.length,mobileOverflow:false},null,2));
+          await browser.close();
+          JS
+          node verify.mjs
+
+      - name: Verification summary
+        run: echo 'GNS_VERIFIED=manifest+materialize+quota-independent+dry-run+server-authorized-deploy+live-http+browser-state+mobile'
