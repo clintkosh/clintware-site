@@ -1,12 +1,15 @@
 {
-  "request_id": "memoria-nma-stage-seed-20261001-0851",
-  "task_id": "crm-astro-build",
+  "request_id": "memoria-nma-repo-sync-20261001-0909",
+  "task_id": "repo-code-search",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "full",
-    "Project": "nma-crm",
-    "SkipInstall": "false"
+    "Query": "SAMPLE_SEED_VERSION=2",
+    "Path": "projects/nma-crm",
+    "Mode": "text",
+    "Max": "20",
+    "Json": "true",
+    "FilesOnly": "false"
   },
-  "objective": "Materialize and validate the updated NMA CRM with lifecycle-varied dense synthetic seed data. Confirm the portfolio spans discovery, governance, testing, runtime protection, value proof, and expansion stages; verify stage-specific stakeholders, KPIs, risks/issues, actions, meetings, browser-local persistence, safe seed migration, and source/runtime checks. Use local deterministic execution and return qq-local-agent confirmation. External deployment may hand off to the authorized server path if credentials are not local.",
+  "objective": "Refresh MEMORIA's maintained Clintware repository cache directly from origin/main, then confirm the final NMA multi-stage seed revision is present before rerunning crm-astro-build.",
   "resume_after": true
 }
