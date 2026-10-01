@@ -1,0 +1,389 @@
+{
+  "mode": "one-off",
+  "project_id": "cwn-crm",
+  "company": "ChowNow",
+  "name": "ChowNow Senior Sales & Customer Success Operations Manager Operating System + Cover Letter",
+  "domain": "https://cwn.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "cwn-candidate",
+  "role_mission": "Own the operating logic across Sales, onboarding, and Customer Success in a high-volume SMB environment by reducing manual work, defining clear lifecycle rules, improving Salesforce data quality, and turning business needs into buildable systems requirements.",
+  "operating_loop": [
+    "Acquire",
+    "Handoff",
+    "Onboard",
+    "Adopt",
+    "Retain",
+    "Recover",
+    "Improve"
+  ],
+  "roles": [
+    {
+      "id": "senior-sales-customer-success-operations-manager",
+      "name": "Senior Sales & Customer Success Operations Manager"
+    }
+  ],
+  "stakeholder_roles": [
+    "Sales / GTM Leader",
+    "Restaurant Success / CS Owner",
+    "Business Systems / Finance Partner"
+  ],
+  "tracks": [
+    {
+      "id": "pipeline",
+      "label": "Pipeline & Forecast Health",
+      "tab": "command",
+      "objective": "Define stage logic, forecast visibility, ownership, and decision-ready reporting."
+    },
+    {
+      "id": "handoff",
+      "label": "Sales-to-Onboarding Handoff",
+      "tab": "handoff",
+      "objective": "Make handoff criteria, required fields, ownership, and acceptance explicit."
+    },
+    {
+      "id": "onboarding",
+      "label": "Onboarding SLA & Escalation",
+      "tab": "implementation",
+      "objective": "Manage onboarding stages, checklists, SLAs, escalations, and impact tracking."
+    },
+    {
+      "id": "lifecycle",
+      "label": "Customer Lifecycle & Health",
+      "tab": "roi",
+      "objective": "Define stages, health inputs, risk alerts, segmentation, and the evidence behind each intervention."
+    },
+    {
+      "id": "capacity",
+      "label": "Portfolio & Capacity",
+      "tab": "rollout",
+      "objective": "Balance account workload, coverage, and high-impact task focus across the post-sales team."
+    },
+    {
+      "id": "data",
+      "label": "Salesforce Data Hygiene",
+      "tab": "issues",
+      "objective": "Audit fields, objects, lifecycle stages, and reporting logic against the actual business process."
+    },
+    {
+      "id": "risk",
+      "label": "Risk / Downgrade / Win-back",
+      "tab": "risks",
+      "objective": "Operationalize intervention logic for hibernated, downgrade, and win-back motions."
+    },
+    {
+      "id": "cadence",
+      "label": "Leadership Operating Review",
+      "tab": "meetings",
+      "objective": "Turn Sales and CS reporting into decisions, owners, and follow-through."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "ChowNow Senior Sales & Customer Success Operations Manager",
+      "url": "https://jobs.lever.co/chownow/300dcd24-6795-456a-b4e9-7d6091285314"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point Customer Success Operations: increased dedicated CSM coverage for >$50K accounts to 99% and maintained onboarding outreach within a two-week SLA.",
+    "Managed 20–40 SaaS accounts totaling approximately $3M ARR; portfolio visibility improved from about 40% to 99%, churn reduced to under 30%, and team efficiency improved 30%.",
+    "Dedrone: standardized enterprise onboarding to about one month, increased engagement 25%, increased renewals 20%, and supported stakeholder buy-in for an approximately $3M AWS-hosted solution.",
+    "Built and operated Salesforce, Custify, Jira, and Salesforce-to-Jira workflow/reporting patterns; led QBR/EBR, health/risk, escalation, onboarding, and adoption motions.",
+    "Led distributed customer-facing support teams; Cofense enablement and automation contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute faster first response.",
+    "Current proof-of-work includes AI-assisted workflow automation and browser-local Customer Success operating systems built through Clintware."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public ChowNow role context with clearly synthetic sample data. It is not an official ChowNow product, customer tenant, private process description, or representation of real ChowNow customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 5,
+    "lifecycle_stages_min": 4,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Senior Sales & Customer Success Operations Manager",
+    "Doppel": "ChowNow",
+    "Technical Services workspace": "Programs & operating work",
+    "Advanced technical investigations": "Operational issue triage",
+    "Advanced investigations": "Operational issue triage",
+    "Engineering handoffs": "Systems / cross-functional handoffs",
+    "Support scale & adoption": "Enablement, adoption & scale",
+    "Customer technical cadence": "Operating cadence",
+    "Customer reviews": "Business reviews",
+    "Technical delivery": "Program delivery",
+    "Service projects": "Operating workstreams",
+    "technical projects": "operating workstreams"
+  },
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "ChowNow's role is attractive because it is unusually explicit about what good operations should do: Find the friction, define what actually needs to change, translate the business need into a buildable requirement, and reduce the manual burden on Sales and Customer Success.\n\nThat matches how I have approached post-sales operations.  At Check Point, I built workflows across Salesforce, Custify, and Jira, improved portfolio visibility from roughly 40% to 99%, and supported a coverage model that reached 99% dedicated CSM coverage for accounts above $50K.  I have also managed customer portfolios directly, which gives me a practical view of when a field, workflow, health score, or report helps the team and when it simply creates more administrative work.\n\nI am also drawn to the full lifecycle scope of this role.  It includes pipeline and handoff discipline, onboarding stages and SLAs, customer health, segmentation, capacity planning, retention, win-back logic, and CRM hygiene.  Those pieces work best when they are designed as one connected operating model rather than a collection of separate processes.\n\nI would bring a systems-literate operator's perspective to ChowNow: Start from what the rep or post-sales team needs to decide, define the cleanest process and data contract, and partner with Business Systems to make that behavior durable."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear ChowNow Hiring Team,\n\nI am applying for the Senior Sales & Customer Success Operations Manager role because the position is centered on a problem I have repeatedly solved: Turning messy customer-facing workflows into clear operating rules, useful reporting, and scalable handoffs.\n\nAt Check Point, I built and improved workflows across Salesforce, Custify, and Jira, helped move portfolio visibility from roughly 40% to 99%, and supported 99% dedicated CSM coverage for accounts above $50K.  I also managed 20 to 40 SaaS accounts totaling approximately $3M ARR, so I understand the downstream cost when stages, handoffs, health logic, or CRM data do not match how the team actually works.\n\nThe breadth of ChowNow's role is especially relevant to me.  I have worked across onboarding, adoption, retention, escalation, portfolio management, reporting, and process improvement.  At Dedrone, I standardized enterprise onboarding to about one month while engagement increased 25% and renewals increased 20%.  I have also used automation to reduce repetitive work and improve handoffs, including Salesforce-to-Jira workflow patterns.\n\nI would approach ChowNow's Sales and CS Operations work by making lifecycle definitions explicit, identifying the minimum data needed for each decision, defining clear ownership and acceptance criteria, and then partnering closely with Business Systems on the technical implementation.\n\nI have also built a synthetic candidate CRM for this role through Clintware to model the lifecycle, health, onboarding, capacity, and risk logic described in the public job posting.  It is proof of how I think, not a claim about ChowNow's private systems.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation"
+  },
+  "seed_scenarios": [
+    {
+      "name": "Maple Street Kitchen (Synthetic)",
+      "industry": "Independent restaurant",
+      "stage": "Onboarding",
+      "health": "Watch",
+      "priority": "High",
+      "goal": "Move from signed deal to successful launch with clean handoff, SLA visibility, and low manual effort.",
+      "systems": [
+        "Salesforce",
+        "Outreach",
+        "Gong"
+      ],
+      "timeline": "First 30 days",
+      "dependency": "Menu and payment setup are blocking launch",
+      "kpis": [
+        {
+          "name": "Onboarding SLA adherence",
+          "target": "95%",
+          "baseline": "82%",
+          "current": "89%",
+          "source": "Synthetic onboarding tracker"
+        },
+        {
+          "name": "Time to launch",
+          "target": "<=14 days",
+          "baseline": "19 days",
+          "current": "16 days",
+          "source": "Synthetic lifecycle report"
+        },
+        {
+          "name": "Handoff completeness",
+          "target": "100%",
+          "baseline": "76%",
+          "current": "93%",
+          "source": "Synthetic Salesforce audit"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Resolve menu setup dependency",
+          "status": "In Progress"
+        },
+        {
+          "title": "Confirm payment configuration owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Launch blocker spans two owners",
+        "impact": "Restaurant launch date may slip and increase early churn risk.",
+        "mitigation": "One owner per blocker, daily checkpoint until accepted."
+      },
+      "meeting": "Onboarding escalation",
+      "meeting_type": "Launch review"
+    },
+    {
+      "name": "Juniper Pizza Co. (Synthetic)",
+      "industry": "Restaurant group",
+      "stage": "Adoption",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Increase adoption without adding unnecessary manual outreach.",
+      "systems": [
+        "Salesforce",
+        "Outreach"
+      ],
+      "timeline": "First 90 days",
+      "dependency": "Health logic overweights activity volume",
+      "kpis": [
+        {
+          "name": "Digital order adoption",
+          "target": "70% eligible orders",
+          "baseline": "48%",
+          "current": "63%",
+          "source": "Synthetic adoption report"
+        },
+        {
+          "name": "Health score precision",
+          "target": "<10% false-risk flags",
+          "baseline": "24%",
+          "current": "13%",
+          "source": "Synthetic health QA"
+        },
+        {
+          "name": "CS touch efficiency",
+          "target": "20% fewer manual touches",
+          "baseline": "0%",
+          "current": "14%",
+          "source": "Synthetic activity review"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Adjust health input weighting",
+          "status": "Review"
+        },
+        {
+          "title": "Automate low-risk adoption reminder",
+          "status": "In Progress"
+        }
+      ]
+    },
+    {
+      "name": "Harbor Cafe Group (Synthetic)",
+      "industry": "Multi-location restaurant",
+      "stage": "Renewal",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Protect renewal by separating product adoption, restaurant economics, and service friction.",
+      "systems": [
+        "Salesforce",
+        "Gong"
+      ],
+      "timeline": "Renewal in 60 days",
+      "dependency": "Two locations show downgrade intent",
+      "kpis": [
+        {
+          "name": "Renewal readiness",
+          "target": "Green",
+          "baseline": "Red",
+          "current": "Amber",
+          "source": "Synthetic renewal review"
+        },
+        {
+          "name": "Active location coverage",
+          "target": "100%",
+          "baseline": "75%",
+          "current": "88%",
+          "source": "Synthetic account rollup"
+        },
+        {
+          "name": "Risk-action closure",
+          "target": "90%",
+          "baseline": "50%",
+          "current": "72%",
+          "source": "Synthetic risk tracker"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Run downgrade root-cause review",
+          "status": "In Progress"
+        },
+        {
+          "title": "Build location-level save plan",
+          "status": "Planned"
+        }
+      ],
+      "renewal_date": "2026-12-01"
+    },
+    {
+      "name": "Cedar Bowl (Synthetic)",
+      "industry": "Independent restaurant",
+      "stage": "Hibernated / win-back",
+      "health": "Watch",
+      "priority": "Medium",
+      "goal": "Create evidence-based win-back sequencing without flooding low-propensity accounts.",
+      "systems": [
+        "Salesforce",
+        "Outreach"
+      ],
+      "timeline": "Win-back campaign",
+      "dependency": "Contactability and prior churn reason are incomplete",
+      "kpis": [
+        {
+          "name": "Win-back eligible coverage",
+          "target": "95%",
+          "baseline": "68%",
+          "current": "84%",
+          "source": "Synthetic CRM audit"
+        },
+        {
+          "name": "Sequence response",
+          "target": "12%",
+          "baseline": "6%",
+          "current": "9%",
+          "source": "Synthetic Outreach report"
+        },
+        {
+          "name": "Data completeness",
+          "target": "98%",
+          "baseline": "79%",
+          "current": "91%",
+          "source": "Synthetic Salesforce audit"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Backfill churn-reason field",
+          "status": "In Progress"
+        },
+        {
+          "title": "Refine sequence eligibility logic",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Pioneer Tacos (Synthetic)",
+      "industry": "Restaurant group",
+      "stage": "Capacity / segmentation",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Balance RSM workload after segmentation changes while keeping priority accounts covered.",
+      "systems": [
+        "Salesforce"
+      ],
+      "timeline": "Monthly capacity cycle",
+      "dependency": "Potential and revenue segments changed faster than portfolio assignments",
+      "kpis": [
+        {
+          "name": "Portfolio load variance",
+          "target": "<15%",
+          "baseline": "28%",
+          "current": "17%",
+          "source": "Synthetic capacity model"
+        },
+        {
+          "name": "Priority account coverage",
+          "target": "100%",
+          "baseline": "92%",
+          "current": "100%",
+          "source": "Synthetic assignment report"
+        },
+        {
+          "name": "Unassigned accounts",
+          "target": "0",
+          "baseline": "14",
+          "current": "2",
+          "source": "Synthetic Salesforce report"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Complete final account reallocations",
+          "status": "In Progress"
+        },
+        {
+          "title": "Publish new routing rules",
+          "status": "Done"
+        }
+      ]
+    }
+  ]
+}
