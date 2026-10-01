@@ -28,7 +28,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  local-factory-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate local runner source
+        run: |
+          set -euo pipefail
+          python3 -m py_compile quillgeist-lite/tools/crm_astro.py quillgeist-lite/tools/crm_cover_batch.py
+          python3 quillgeist-lite/tools/crm_cover_batch.py \
+            --Projects "gtl-crm,aso-crm,cwn-crm,tkm-crm,aim-crm" \
+            --Action plan \
+            --Workers 3 \
+            --RepoRoot .
+
+      - name: Validate QQ wrapper parses
+        shell: pwsh
+        run: |
+          $tokens=$null
+          $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "quillgeist-lite/tasks/crm-cover-batch.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if($errors.Count -gt 0){
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
   validate-deploy-verify:
+    needs: local-factory-contract
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
