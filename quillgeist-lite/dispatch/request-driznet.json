@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-create-link-20261001-1229",
+  "request_id": "driznet-cwinteract-linkedin-open-business-20261001-1231",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "inspect",
+    "Action": "form",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "Create a Company Page",
-    "StepsJson": "",
-    "Approved": "false",
-    "MaxResults": "30",
+    "Query": "",
+    "StepsJson": "{\"steps\":[{\"op\":\"click\",\"name\":\"For Business\",\"control_type\":\"Button\"},{\"op\":\"wait\",\"ms\":800}]}",
+    "Approved": "true",
+    "MaxResults": "100",
     "WaitMs": "250"
   },
-  "objective": "Locate the exact Create a Company Page control in the signed-in LinkedIn app before navigating. Do not mutate data.",
+  "objective": "Open LinkedIn's For Business menu in the signed-in desktop app on DRIZNET and inspect the resulting controls. Do not create or publish anything yet.",
   "resume_after": false
 }
