@@ -123,8 +123,18 @@ $ProjectRoot = Join-Path $Repo ("projects\{0}" -f $Project)
 $Materializer = Join-Path $ProjectRoot "scripts\materialize.mjs"
 $BuildRoot = Join-Path $Repo (".build\{0}" -f $Project)
 
+$PythonMarker = Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite\python3-check.json"
+if (-not (Test-Path -LiteralPath $PythonMarker -PathType Leaf)) {
+  throw "QQ Python runtime marker is missing. Run ensure-python first."
+}
+$PythonState = Get-Content -LiteralPath $PythonMarker -Raw | ConvertFrom-Json
+$PythonRuntime = [string]$PythonState.path
+if (-not $PythonRuntime -or -not (Test-Path -LiteralPath $PythonRuntime -PathType Leaf)) {
+  throw "QQ Python runtime marker does not reference a usable interpreter."
+}
+
 function Invoke-Validator([string]$Mode) {
-  & python $Validator --Action $Mode --Manifest $Manifest --Json
+  & $PythonRuntime $Validator --Action $Mode --Manifest $Manifest --Json
   if ($LASTEXITCODE -ne 0) { throw "CRM ASTRO manifest validation failed." }
 }
 
