@@ -1,15 +1,15 @@
 {
-  "request_id": "memoria-gns-crm-reseed-20261001-0839",
-  "job_id": "05b5d4e8-a5c6-45fa-93d0-0402037c11fc",
-  "task_id": "crm-astro-build",
+  "request_id": "email-route-discovery-20261001-0856b",
+  "job_id": "1ba66305-3af7-46d4-b68c-a57215ec0111",
+  "task_id": "repo-code-search",
   "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 20369,
+  "status": "failed",
+  "exit_code": 1,
+  "duration_ms": 1010,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T13:45:36.5448760Z",
-  "recorded_at": 1790862325,
+  "confirmed_at": "2026-10-01T14:02:16.3119659Z",
+  "recorded_at": 1790863325,
   "recovery_history": [],
-  "output_tail": "[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"action\": \"validate\",\r\n[run]   \"manifest\": \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Clintware\\\\code-search\\\\clintware-site\\\\projects\\\\gns-crm\\\\manifest.json\",\r\n[run]   \"project_id\": \"gns-crm\",\r\n[run]   \"company\": \"Genesys\",\r\n[run]   \"domain\": \"https://gns.clintware.com\",\r\n[run]   \"mode\": \"one-off\",\r\n[run]   \"track_count\": 9,\r\n[run]   \"groups\": null,\r\n[run]   \"errors\": [],\r\n[run]   \"application_profile\": null,\r\n[run]   \"crm_link_policy\": null,\r\n[run]   \"local_first\": true,\r\n[run]   \"persistence_mode\": \"browser-local\",\r\n[run]   \"remote_state_required\": false,\r\n[run]   \"durable_objects_required\": false,\r\n[run]   \"remote_state_reason\": \"\",\r\n[run]   \"quota_independent\": true,\r\n[run]   \"remote_shell_exposed\": false\r\n[run] }\r\n[run] DPLR reference mode retained temporarily for role-specific overlay materialization.\r\n[run] DPLR materialized at C:\\Users\\user\\AppData\\Local\\Clintware\\code-search\\clintware-site\\.build\\dplr-crm\r\n[run] Anthropic one-off persistence and GSI Customer Success production transform applied.\r\n[run] ANTH reference mode retained temporarily for downstream role-specific materialization.\r\n[run] ANTH CRM materialized at C:\\Users\\user\\AppData\\Local\\Clintware\\code-search\\clintware-site\\.build\\anth-crm\r\n[run] Genesys CRM+Cover production transform applied.\r\n[run] ASTRO browser-local runtime: {\"customers\":5,\"records\":86,\"storage\":\"browser-local\",\"durableObjectsRequired\":false}\r\n[run] GNS CRM materialized at C:\\Users\\user\\AppData\\Local\\Clintware\\code-search\\clintware-site\\.build\\gns-crm\r\n[run] added 34 packages in 14s\r\n[run] > clintware-gns-crm@1.0.0 check\r\n[run] > npm run prepare:prod && node --check src/index.js && node --check src/sample-customers.js && node --check public/app-config.js && node --check public/app-views.js && node --check public/app-ai.js && node --check public/app-router.js && node --check public/app-forms.js && node --check public/import-utils.js && node --check public/dplr-shell.js && node --check public/dplr-prep.js && node --check public/anth-track.js && node --check anth-production.mjs && node --check public/gns-track.js && node --check genesys-production.mjs && node --check public/cw-astro-local-bootstrap.js && node --check public/cw-astro-local-store.js\r\n[run] > clintware-gns-crm@1.0.0 prepare:prod\r\n[run] > node --check src/index.js\r\n[run] DEPLOYMENT_HANDOFF // local checks passed; server-authorized deployment required\r\n[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"action\": \"full\",\r\n[run]   \"project\": \"gns-crm\",\r\n[run]   \"build\": \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Clintware\\\\code-search\\\\clintware-site\\\\.build\\\\gns-crm\",\r\n[run]   \"local_first\": true,\r\n[run]   \"persistence_mode\": \"browser-local\",\r\n[run]   \"remote_state_required\": false,\r\n[run]   \"durable_objects_required\": false,\r\n[run]   \"source_mode\": \"dedicated-cache\",\r\n[run]   \"source_refreshed\": false,\r\n[run]   \"deployed\": false,\r\n[run]   \"remote_deployment_required\": true,\r\n[run]   \"note\": \"External deployment uses the server-authorized workflow when provider credentials are not present locally; live browser verification remains a separate evidence gate.\"\r\n[run] }"
+  "output_tail": "[run] \u001b[31;1mrepo-code-search.ps1: \u001b[31;1mCannot validate argument on parameter 'Mode'. The argument \"literal\" does not belong to the set \"text,regex\" specified by the ValidateSet attribute. Supply an argument that is in the set and then try the command again.\u001b[0m"
 }
