@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-runtime-version-check-20261001-1113",
-  "job_id": "c5572b35-362e-429e-8fb5-51e49aa9e153",
+  "request_id": "driznet-cwinteract-runtime-check-20261001-1121",
+  "job_id": "65eb731d-ab8f-4454-a226-941b2cca30bc",
   "task_id": "browser-work",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 3914,
+  "duration_ms": 3586,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:02:11.1394063Z",
-  "recorded_at": 1790870529,
+  "confirmed_at": "2026-10-01T16:05:42.4895500Z",
+  "recorded_at": 1790870740,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"read\",\"page\":{\"title\":\"\",\"url\":\"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version\",\"description\":\"\",\"headings\":[],\"text\":\"{\\\"ok\\\":true,\\\"runtime_version\\\":\\\"2026-10-01-task-isolation-v31\\\",\\\"source_revision\\\":\\\"8e61085c44250ac7862e7d58ca436b7ef553d47a\\\",\\\"control_plane_version\\\":\\\"2026-10-01-task-isolation-contract.4\\\",\\\"time\\\":\\\"2026-10-01T16:02:07.715Z\\\"}\",\"links\":[],\"images\":[],\"truncated\":false}}"
+  "output_tail": "[run] {\"ok\":true,\"action\":\"read\",\"page\":{\"title\":\"\",\"url\":\"https://mcp.clintware.com/api/v1/quillgeist-lite/runtime-version\",\"description\":\"\",\"headings\":[],\"text\":\"{\\\"ok\\\":true,\\\"runtime_version\\\":\\\"2026-10-01-task-isolation-v31\\\",\\\"source_revision\\\":\\\"8e61085c44250ac7862e7d58ca436b7ef553d47a\\\",\\\"control_plane_version\\\":\\\"2026-10-01-task-isolation-contract.4\\\",\\\"time\\\":\\\"2026-10-01T16:05:38.970Z\\\"}\",\"links\":[],\"images\":[],\"truncated\":false}}"
 }
