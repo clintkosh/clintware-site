@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-company-fields-20261001-1239",
-  "job_id": "c8ce181b-16a7-407a-837d-355ee5bd699b",
+  "request_id": "driznet-cwinteract-linkedin-page-type-company-20261001-1240",
+  "job_id": "cc6f0a95-c6b6-4e0e-890a-b2a042cb11c9",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 1383,
+  "duration_ms": 1344,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:28:07.0463678Z",
-  "recorded_at": 1790872085,
+  "confirmed_at": "2026-10-01T16:28:33.1046355Z",
+  "recorded_at": 1790872111,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"Page\",\"controls\":[{\"name\":\"Create a LinkedIn Page\",\"automation_id\":\"\",\"class\":\"t-32 t-black t-light text-align-center org-page-create-portal__organizations-header grid__col\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":245.0,\"top\":85.0,\"width\":721.0,\"height\":104.0,\"right\":966.0,\"bottom\":189.0},\"patterns\":[]},{\"name\":\"Connect with clients, employees, and the LinkedIn community. To get started, choose a page type.\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":303.0,\"top\":189.0,\"width\":605.0,\"height\":19.0,\"right\":908.0,\"bottom\":208.0},\"patterns\":[]},{\"name\":\"Showcase page Sub-pages associated with an existing page\",\"automation_id\":\"\",\"class\":\"org-page-create-portal__organization-btn mt4 mh3\",\"control_type\":\"Button\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":617.0,\"top\":256.0,\"width\":255.0,\"height\":177.0,\"right\":872.0,\"bottom\":433.0},\"patterns\":[\"Invoke\"]}]}"
+  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"Company\",\"controls\":[{\"name\":\"Company Small, medium, and large businesses\",\"automation_id\":\"\",\"class\":\"org-page-create-portal__organization-btn mt4 mh3\",\"control_type\":\"Button\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":339.0,\"top\":256.0,\"width\":255.0,\"height\":177.0,\"right\":594.0,\"bottom\":433.0},\"patterns\":[\"Invoke\"]}]}"
 }
