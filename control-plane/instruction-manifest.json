@@ -1,6 +1,6 @@
 {
   "schema": "clintware-instruction-manifest/v1",
-  "version": 4,
+  "version": 5,
   "repository": "clintkosh/clintware-site",
   "branch": "main",
   "refresh": {
@@ -11,8 +11,21 @@
   },
   "documents": [
     {
+      "id": "catshadow-bootstrap",
+      "path": "control-plane/instructions/CATSHADOW-DAV1D-CLINTWARE-BOOTSTRAP.md",
+      "title": "CATShadow / D@V1D / Clintware Bootstrap",
+      "kind": "bootstrap",
+      "enabled": true,
+      "required": true,
+      "load_order": -20,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_instruction_file_get"
+    },
+    {
       "id": "catshadow-persona",
-      "path": "control-plane/instructions/CATSHADOW-PERSONA.md",
+      "path": "control-plane/instructions/CATSHADOW.md",
       "title": "CATShadow / D@V1D Persona",
       "kind": "persona",
       "enabled": true,
@@ -51,5 +64,5 @@
     }
   ],
   "extension_root": "control-plane/instructions/",
-  "notes": "MCP-capable clients load every enabled applicable document in load_order. Add future custom Markdown files under control-plane/instructions/ and register them here; clients discover changes from MCP without rewriting their local bootstrap."
+  "notes": "MCP-capable clients load every enabled applicable document in load_order. Universal order begins with the full CATShadow/D@V1D/Clintware bootstrap, then canonical CATSHADOW.md, then other extensions such as Expert Mode, then the master prompt. Add future custom Markdown under control-plane/instructions/ and register it here."
 }
