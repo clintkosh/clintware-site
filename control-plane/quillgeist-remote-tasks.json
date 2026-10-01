@@ -216,6 +216,13 @@
         "ContextTokens",
         "Temperature"
       ]
+    },
+    "worker-pool-smoke": {
+      "runtime": "python",
+      "parameters": [
+        "Message",
+        "DelayMs"
+      ]
     }
   }
 }
