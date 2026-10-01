@@ -102,26 +102,57 @@ func runWorker(encoded string) int {
 		return 87
 	}
 
-	line := quoteCmd(spec.Command)
+	// Preserve the Scheduled Task's original Windows command line exactly.
+	// Do not bounce through cmd.exe or PowerShell; CreateProcessW with
+	// CREATE_NO_WINDOW is what prevents console allocation/focus theft.
+	app, err := syscall.UTF16PtrFromString(spec.Command)
+	if err != nil {
+		return 87
+	}
+	cmdLine := `"` + strings.ReplaceAll(spec.Command, `"`, `\"`) + `"`
 	if strings.TrimSpace(spec.Arguments) != "" {
-		line += " " + spec.Arguments
+		cmdLine += " " + spec.Arguments
 	}
-	c := exec.Command("cmd.exe", "/D", "/S", "/C", line)
-	if spec.WorkingDir != "" {
-		c.Dir = spec.WorkingDir
+	cmd, err := syscall.UTF16PtrFromString(cmdLine)
+	if err != nil {
+		return 87
 	}
-	c.Stdin, c.Stdout, c.Stderr = nil, nil, nil
-	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
-	if err := c.Run(); err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			return ee.ExitCode()
+	var dir *uint16
+	if strings.TrimSpace(spec.WorkingDir) != "" {
+		dir, err = syscall.UTF16PtrFromString(spec.WorkingDir)
+		if err != nil {
+			return 87
 		}
+	}
+
+	si := new(syscall.StartupInfo)
+	si.Cb = uint32(unsafe.Sizeof(*si))
+	pi := new(syscall.ProcessInformation)
+	const createNoWindow = 0x08000000
+	if err = syscall.CreateProcess(
+		app,
+		cmd,
+		nil,
+		nil,
+		false,
+		createNoWindow,
+		nil,
+		dir,
+		si,
+		pi,
+	); err != nil {
 		return 1
 	}
-	return 0
-}
+	defer syscall.CloseHandle(pi.Thread)
+	defer syscall.CloseHandle(pi.Process)
 
-func quoteCmd(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
+	_, _ = syscall.WaitForSingleObject(pi.Process, syscall.INFINITE)
+	var exitCode uint32
+	if err = syscall.GetExitCodeProcess(pi.Process, &exitCode); err != nil {
+		return 1
+	}
+	return int(exitCode)
+}
 
 func isAdmin() bool {
 	c := exec.Command("cmd.exe", "/D", "/C", "net session >nul 2>&1")
