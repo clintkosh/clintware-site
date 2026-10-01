@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "description": "Canonical remote-dispatch allowlist for Clintware Quillgeist/qq. Local execution details remain in quillgeist-lite/tasks.json; this file defines only tasks and arguments that the control plane may accept remotely.",
   "tasks": {
     "clintware-doctor": {
@@ -200,6 +200,22 @@
     "share-ai-network": {
       "runtime": "powershell",
       "parameters": []
+    },
+    "worker-pool-profile": {
+      "runtime": "python",
+      "parameters": [
+        "MaxWorkers"
+      ]
+    },
+    "local-model-work": {
+      "runtime": "python",
+      "parameters": [
+        "Prompt",
+        "Model",
+        "MaxTokens",
+        "ContextTokens",
+        "Temperature"
+      ]
     }
   }
 }
