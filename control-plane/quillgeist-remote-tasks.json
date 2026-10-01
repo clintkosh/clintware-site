@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "description": "Canonical remote-dispatch allowlist for Clintware Quillgeist/qq. Local execution details remain in quillgeist-lite/tasks.json; this file defines only tasks and arguments that the control plane may accept remotely.",
   "tasks": {
     "clintware-doctor": {
@@ -222,6 +222,12 @@
       "parameters": [
         "Message",
         "DelayMs"
+      ]
+    },
+    "scheduled-task-isolation": {
+      "runtime": "powershell",
+      "parameters": [
+        "Mode"
       ]
     }
   }
