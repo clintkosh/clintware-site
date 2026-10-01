@@ -20,6 +20,13 @@
     "ALLOWED_ORIGINS": "https://www.clintware.com,https://clintware.com",
     "MAIL_PROVIDER": "gmail"
   },
+  "d1_databases": [
+    {
+      "binding": "NEWSLETTER_DB",
+      "database_name": "clintware-blog-newsletter",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {
