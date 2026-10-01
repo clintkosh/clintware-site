@@ -1,17 +1,12 @@
 {
-  "request_id": "driznet-nma-crm-full-20260930-1234",
-  "task_id": "crm-astro-build",
+  "request_id": "driznet-jobs-v1-plan-20261001-0912",
+  "task_id": "big-prompt-plan",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "full",
-    "Project": "nma-crm",
-    "SkipInstall": "false"
+    "Prompt": "Build Jobs, the Clintware local-first job-application copilot, using docs/jobs-product-spec.md as the authoritative product spec. Recover relevant existing Clintware/Quillgeist/browser automation/job-search/CRM+cover-letter state first. Recursively decompose into dependency-aware implementation units. Prioritize deterministic local execution on DRIZNET, local storage, a local UI, job capture, application ledger, fit analysis, resume/answer selection, governed browser autofill, duplicate detection, and an explicit final-submit approval gate. Keep professional data local on the happy path. Do not mix CodeFEDDY. Preserve verification requirements and produce an actionable plan that can be executed/resumed by QQ.",
+    "Project": "Jobs",
+    "StateScope": "clintware/jobs",
+    "MaxDepth": "4"
   },
-  "objective": "Materialize the Noma role-specific CRM from the current DPLR adaptive base, validate the ASTRO manifest, run production transforms and dedicated NMA logic checks, install dependencies, run source checks, and deploy nma.clintware.com. Return local-agent-confirmed evidence; live browser verification remains a separate gate.",
-  "status": "closed",
-  "delivery_state": "delivery_failed",
-  "closed_at": "2026-09-30T18:25:00Z",
-  "close_reason": "Control Plane quota failure occurred before DRIZNET delivery; no local execution started.",
-  "superseded_by": "evidence/nma-crm/VERIFICATION.json",
-  "verified_outcome": "NMA CRM completed and independently verified through deterministic fallback; do not treat this legacy request file as active execution."
+  "objective": "Create the executable local-first Jobs v1 implementation plan on DRIZNET from docs/jobs-product-spec.md, preserving user-owned data, approval-gated submission, browser governance, resumability, and verification evidence."
 }
