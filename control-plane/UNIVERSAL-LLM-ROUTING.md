@@ -1,3 +1,11 @@
+# Clintware Universal LLM Routing
+
+> **Canonical master contract:** `control-plane/MASTER-PROMPT.md`
+>
+> This routing document supplements the canonical Clintware Universal Master Prompt; it does not replace or supersede it. Any MCP-capable client using this file MUST first load `clintware_master_prompt_get` and apply the current live `control-plane/MASTER-PROMPT.md`. The canonical master contains the complete 1–30 operating contract, including Expert Operating Mode, Clintware authority boundary, live discovery, direct-MCP-first execution hierarchy, QQ Big-Prompt decomposition, deterministic/local/provider/action routing, adaptive CPU/RAM/GPU parallelism, GPU routing, concurrent MEMORIA + DRIZNET execution, local-first owner defaults, CWInteract/browser separation, scheduled-task focus protection, state recovery, handoffs, prompt-ticket ownership, autonomous continuation, durable long-running work, verification, hung-work detection, failure recovery, fresh-information routing, workspace/brand isolation, GitHub/provider authority, model cooperation, owner model preferences, user experience, execution safety, Definition of Done, default operational loop, live capability discovery, and the final directive to continue until verified completion or a real human-only blocker.
+>
+> If this document and the canonical master differ, the current MCP-served `MASTER-PROMPT.md` is authoritative for Clintware routing/execution behavior. Re-fetch it instead of relying on a cached copy.
+
 # Universal LLM Routing Through Clintware
 
 Use this contract for any external AI client that can call MCP or HTTPS tools.
