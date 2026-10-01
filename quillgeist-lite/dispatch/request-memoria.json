@@ -1,8 +1,11 @@
 {
-  "request_id": "memoria-self-update-public-skill-runtime-final-20261001-1257",
-  "task_id": "self-update",
+  "request_id": "memoria-linkedin-public-skill-verify-final2-20261001-1258",
+  "task_id": "public-skill-verify",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Install the now-deployed corrected public-skill-verify.ps1 from the control-plane runtime on MEMORIA, preserving registry v30, then reconnect safely.",
-  "resume_after": true
+  "args": {
+    "SkillSlug": "linkedin-evidence-post",
+    "CheckLive": "true"
+  },
+  "objective": "Final verification of the implemented LinkedIn Evidence Post skill on MEMORIA after the corrected verifier runtime deployment. Require all local and live gates to pass.",
+  "resume_after": false
 }
