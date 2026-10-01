@@ -15,6 +15,19 @@ Use this skill at the start of substantial owner-operated Clintware tasks.
 4. Do not force local execution when it is unhealthy, saturated, materially slower, missing required fresh/private data, or unable to meet the quality bar.
 5. Keep ChatGPT focused on intent, reasoning, synthesis, and verification. Offload builds, tests, transforms, indexing, local browser work, Windows administration, and other deterministic execution whenever a reviewed qq capability exists.
 
+## Mandatory substantial-prompt gate
+
+For substantial owner requests such as multi-step build, repair, implementation, migration, verification, repository, infrastructure, or product work, use the QQ big-prompt path before broad remote execution whenever a healthy eligible QQ device is available.
+
+1. Recover the relevant durable project state, handoffs, prior decisions, active jobs, and unresolved prompt tickets.
+2. Re-context locally with the allowlisted `big-prompt-plan` task using a stable `StateScope`; compact repeated context before decomposition.
+3. Execute deterministic/local leaves through qq first. Use local models only when they meet the quality/freshness bar.
+4. Send only bounded leaf context to remote providers or connectors when fresh external authority, provider-native records, or consequential external actions require them.
+5. Verify each leaf from execution evidence and re-plan only unresolved/failed branches. Do not retransmit the full conversation to every worker.
+6. Record estimated context/token avoidance from the planner as an engineering estimate, not as provider billing telemetry.
+
+If the QQ/control-plane/dispatch path itself is the component being repaired, use the smallest authorized bootstrap path needed to restore it, then immediately run a local QQ verification job before declaring the routing path fixed.
+
 ## Device selection
 
 Call `clintware_quillgeist_lite_status` when device choice matters. Use `clintware_quillgeist_lite_checkin` for live watchdog state on candidate devices when status is stale or ambiguous.
