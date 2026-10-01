@@ -1,14 +1,14 @@
 {
-  "request_id": "memoria-local-model-acceptance-20261001-1550",
-  "task_id": "local-model-work",
+  "request_id": "memoria-local-ai-diagnostics-acceptance-20261001-1551",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Prompt": "Reply with exactly MEMORIA_LOCAL_MODEL_OK.",
-    "Model": "local-auto",
-    "MaxTokens": 32,
-    "ContextTokens": 2048,
-    "Temperature": 0
+    "Action": "diagnostics",
+    "Model": "",
+    "Prompt": "",
+    "ContextTokens": 4096,
+    "MaxTokens": 48
   },
-  "objective": "Post-repair MEMORIA acceptance: perform an actual bounded local-model generation through Quillgeist local inference. This must execute locally and return non-empty generated text.",
+  "objective": "Post-repair MEMORIA acceptance: collect sanitized diagnostics for local AI runtimes, installed models, Docker containers, mounts, and known error categories. Confirm n8n/Open WebUI/Immich/local-agent state without exporting secrets or raw private logs.",
   "resume_after": false
 }
