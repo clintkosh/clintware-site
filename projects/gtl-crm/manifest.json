@@ -1,0 +1,389 @@
+{
+  "mode": "one-off",
+  "project_id": "gtl-crm",
+  "company": "GitLab",
+  "name": "GitLab Senior Customer Success Operations Manager Operating System + Cover Letter",
+  "domain": "https://gtl.clintware.com",
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "gtl-candidate",
+  "role_mission": "Turn ambiguous Customer Success operating questions into clear, scalable processes, reporting, planning, and systems improvements across renewals, customer health, book-of-business management, and cross-functional Revenue Operations.",
+  "operating_loop": [
+    "Observe",
+    "Define",
+    "Model",
+    "Operationalize",
+    "Measure",
+    "Iterate"
+  ],
+  "roles": [
+    {
+      "id": "senior-customer-success-operations-manager",
+      "name": "Senior Customer Success Operations Manager"
+    }
+  ],
+  "stakeholder_roles": [
+    "CS Executive Sponsor",
+    "CS Operations / Analytics Owner",
+    "Revenue / Finance Partner"
+  ],
+  "tracks": [
+    {
+      "id": "portfolio",
+      "label": "Book of Business",
+      "tab": "customers",
+      "objective": "Prioritize customer segments and accounts around health, renewal timing, coverage, risk, and next action."
+    },
+    {
+      "id": "cadence",
+      "label": "CS Operating Cadence",
+      "tab": "command",
+      "objective": "Run renewal reviews, health reviews, and operating checkpoints from a single decision-ready view."
+    },
+    {
+      "id": "health",
+      "label": "Health & Renewal Reporting",
+      "tab": "roi",
+      "objective": "Define trustworthy health and renewal measures with explicit sources, definitions, owners, and cadence."
+    },
+    {
+      "id": "process",
+      "label": "Process Improvement",
+      "tab": "implementation",
+      "objective": "Turn ambiguous CS friction into scoped workstreams, owners, acceptance criteria, rollout, and adoption."
+    },
+    {
+      "id": "capacity",
+      "label": "Capacity & Segmentation",
+      "tab": "rollout",
+      "objective": "Model workload, segmentation, coverage, and planning decisions without hiding assumptions."
+    },
+    {
+      "id": "risk",
+      "label": "Operational Risk",
+      "tab": "risks",
+      "objective": "Surface reporting, process, tooling, or cross-functional risks before they affect customer outcomes."
+    },
+    {
+      "id": "reviews",
+      "label": "Leadership Reviews",
+      "tab": "meetings",
+      "objective": "Translate operating data into decisions, asks, and accountable follow-through for CS leadership."
+    },
+    {
+      "id": "systems",
+      "label": "Systems & Data",
+      "tab": "handoff",
+      "objective": "Define requirements for the systems and reporting CSMs rely on without inventing private implementation details."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "GitLab Senior Customer Success Operations Manager",
+      "url": "https://job-boards.greenhouse.io/gitlab/jobs/8604996002"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point Customer Success Operations: increased dedicated CSM coverage for >$50K accounts to 99% and maintained onboarding outreach within a two-week SLA.",
+    "Managed 20–40 SaaS accounts totaling approximately $3M ARR; portfolio visibility improved from about 40% to 99%, churn reduced to under 30%, and team efficiency improved 30%.",
+    "Dedrone: standardized enterprise onboarding to about one month, increased engagement 25%, increased renewals 20%, and supported stakeholder buy-in for an approximately $3M AWS-hosted solution.",
+    "Built and operated Salesforce, Custify, Jira, and Salesforce-to-Jira workflow/reporting patterns; led QBR/EBR, health/risk, escalation, onboarding, and adoption motions.",
+    "Led distributed customer-facing support teams; Cofense enablement and automation contributed to 30% ticket deflection, 40% fewer support tickets, and a 30-minute faster first response.",
+    "Current proof-of-work includes AI-assisted workflow automation and browser-local Customer Success operating systems built through Clintware."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public GitLab role context with clearly synthetic sample data. It is not an official GitLab product, customer tenant, private process description, or representation of real GitLab customers.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "Candidate/demo workspace state is single-browser and does not require shared server-authoritative storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 5,
+    "lifecycle_stages_min": 4,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Senior Customer Success Operations Manager",
+    "Doppel": "GitLab",
+    "Technical Services workspace": "Programs & operating work",
+    "Advanced technical investigations": "Operational issue triage",
+    "Advanced investigations": "Operational issue triage",
+    "Engineering handoffs": "Systems / cross-functional handoffs",
+    "Support scale & adoption": "Enablement, adoption & scale",
+    "Customer technical cadence": "Operating cadence",
+    "Customer reviews": "Business reviews",
+    "Technical delivery": "Program delivery",
+    "Service projects": "Operating workstreams",
+    "technical projects": "operating workstreams"
+  },
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "GitLab stands out because the role is explicitly about the kind of operating work I have repeatedly gravitated toward: turning ambiguity into a system that Customer Success can actually use.  The combination of customer-health reporting, renewal cadence, book-of-business management, planning, documentation, and cross-functional Revenue Operations is closely aligned to how I have worked across Customer Success and Support.\n\nAt Check Point, I helped move portfolio visibility from roughly 40% to 99%, built reporting and workflow structure across Salesforce, Custify, and Jira, and supported a model that reached 99% dedicated CSM coverage for accounts above $50K.  I have also managed enterprise portfolios directly, so I understand how an operating decision lands on the CSM and the customer rather than treating the process as an abstract systems exercise.\n\nGitLab's all-remote, documentation-heavy culture and expectation that AI be used as a productivity multiplier are also a strong fit for how I work now.  I use AI to accelerate analysis and repeatable work, while keeping human validation over metrics, customer commitments, and consequential decisions.\n\nI would bring a practical operator's perspective: Make the source of truth clearer, remove avoidable manual work, and make the next decision easier to see."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear GitLab Hiring Team,\n\nI am applying for the Senior Customer Success Operations Manager role because it closely matches the work I have done at the intersection of Customer Success, systems, reporting, and process improvement.\n\nAt Check Point, I helped improve portfolio visibility from roughly 40% to 99%, supported 99% dedicated CSM coverage for accounts above $50K, and built operating workflows across Salesforce, Custify, and Jira.  I also managed 20 to 40 SaaS accounts totaling approximately $3M ARR, which gave me the field perspective to understand what Customer Success teams actually need from their operating systems, reporting, renewal cadence, and cross-functional partners.\n\nMy strongest work tends to begin with an ambiguous operating problem.  I define the decision that needs to be made, identify the data and ownership required, build the process or reporting path, and then stay with it through rollout and adoption.  That approach has also informed the AI-assisted workflow systems I now build through Clintware, where automation handles repeatable preparation while human judgment remains responsible for validation and consequential decisions.\n\nGitLab's emphasis on documentation, iteration, systems thinking, and practical use of AI makes this role particularly compelling.  I would be interested in helping the Customer Success organization make health, renewal, capacity, and book-of-business decisions more consistent and easier to act on.\n\nThank you for your consideration.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation"
+  },
+  "seed_scenarios": [
+    {
+      "name": "Northstar Cloud (Synthetic)",
+      "industry": "Enterprise software",
+      "stage": "Renewal planning",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Restore health confidence and align renewal actions to verified adoption and support signals.",
+      "systems": [
+        "CRM",
+        "CS platform",
+        "Analytics"
+      ],
+      "timeline": "Q4 renewal cycle",
+      "dependency": "Health score definitions are inconsistent across segments",
+      "kpis": [
+        {
+          "name": "Renewal readiness",
+          "target": "Green by next renewal review",
+          "baseline": "Amber",
+          "current": "Amber",
+          "source": "Synthetic renewal review"
+        },
+        {
+          "name": "Health signal completeness",
+          "target": "95% required fields current",
+          "baseline": "78%",
+          "current": "84%",
+          "source": "Synthetic health audit"
+        },
+        {
+          "name": "Executive action closure",
+          "target": "90% by due date",
+          "baseline": "70%",
+          "current": "82%",
+          "source": "Synthetic action ledger"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Reconcile health-source definitions across segment reports",
+          "status": "In Progress"
+        },
+        {
+          "title": "Close executive actions before renewal review",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Conflicting health definitions across reports",
+        "impact": "Leadership may prioritize the wrong renewal risks.",
+        "mitigation": "Publish one metric contract and source hierarchy."
+      },
+      "meeting": "Weekly renewal review",
+      "meeting_type": "Renewal review",
+      "renewal_date": "2026-12-15"
+    },
+    {
+      "name": "Atlas DevOps (Synthetic)",
+      "industry": "Technology",
+      "stage": "Adoption",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Increase adoption depth while keeping book-of-business workload predictable.",
+      "systems": [
+        "CRM",
+        "Product usage analytics"
+      ],
+      "timeline": "Current quarter",
+      "dependency": "Usage data arrives on a different cadence than CSM notes",
+      "kpis": [
+        {
+          "name": "Adoption depth",
+          "target": "4 priority workflows active",
+          "baseline": "2",
+          "current": "3",
+          "source": "Synthetic product usage"
+        },
+        {
+          "name": "CSM capacity load",
+          "target": "<= 90% planned capacity",
+          "baseline": "95%",
+          "current": "88%",
+          "source": "Synthetic capacity model"
+        },
+        {
+          "name": "Next-action freshness",
+          "target": "95% accounts updated weekly",
+          "baseline": "80%",
+          "current": "91%",
+          "source": "Synthetic CRM audit"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Normalize weekly usage snapshot",
+          "status": "In Progress"
+        },
+        {
+          "title": "Rebalance two low-touch accounts",
+          "status": "Done"
+        }
+      ]
+    },
+    {
+      "name": "Summit Financial (Synthetic)",
+      "industry": "Financial services",
+      "stage": "Expansion discovery",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Identify expansion only where verified value and stakeholder coverage support it.",
+      "systems": [
+        "CRM",
+        "Analytics"
+      ],
+      "timeline": "Next executive review",
+      "dependency": "Executive sponsor coverage is incomplete",
+      "kpis": [
+        {
+          "name": "Value evidence completeness",
+          "target": "100% expansion claims sourced",
+          "baseline": "65%",
+          "current": "90%",
+          "source": "Synthetic value ledger"
+        },
+        {
+          "name": "Executive coverage",
+          "target": "3 active decision roles",
+          "baseline": "1",
+          "current": "2",
+          "source": "Synthetic stakeholder map"
+        },
+        {
+          "name": "Expansion readiness",
+          "target": "Decision-ready",
+          "baseline": "Discovery",
+          "current": "Validate",
+          "source": "Synthetic account review"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Validate value evidence with sponsor",
+          "status": "In Progress"
+        },
+        {
+          "title": "Add finance stakeholder to next review",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Harbor Health (Synthetic)",
+      "industry": "Healthcare",
+      "stage": "Onboarding",
+      "health": "Watch",
+      "priority": "High",
+      "goal": "Create clear ownership and early health visibility for a newly onboarded account.",
+      "systems": [
+        "CRM",
+        "CS platform"
+      ],
+      "timeline": "First 45 days",
+      "dependency": "Sales handoff omitted one success metric",
+      "kpis": [
+        {
+          "name": "Handoff completeness",
+          "target": "100% required fields",
+          "baseline": "75%",
+          "current": "92%",
+          "source": "Synthetic handoff checklist"
+        },
+        {
+          "name": "Onboarding milestone closure",
+          "target": "90% on time",
+          "baseline": "80%",
+          "current": "86%",
+          "source": "Synthetic milestone tracker"
+        },
+        {
+          "name": "Health baseline established",
+          "target": "By day 30",
+          "baseline": "Not established",
+          "current": "In Progress",
+          "source": "Synthetic success plan"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Confirm missing success metric with account team",
+          "status": "In Progress"
+        },
+        {
+          "title": "Publish onboarding health baseline",
+          "status": "Planned"
+        }
+      ]
+    },
+    {
+      "name": "Canyon Retail (Synthetic)",
+      "industry": "Retail",
+      "stage": "Mature / steady state",
+      "health": "Healthy",
+      "priority": "Low",
+      "goal": "Maintain efficient coverage while protecting data quality and renewal visibility.",
+      "systems": [
+        "CRM",
+        "Analytics"
+      ],
+      "timeline": "Semiannual planning",
+      "dependency": "Low-touch segment rules have drifted",
+      "kpis": [
+        {
+          "name": "Coverage adherence",
+          "target": "95%",
+          "baseline": "90%",
+          "current": "94%",
+          "source": "Synthetic coverage report"
+        },
+        {
+          "name": "Data hygiene",
+          "target": "98% critical-field accuracy",
+          "baseline": "92%",
+          "current": "96%",
+          "source": "Synthetic CRM audit"
+        },
+        {
+          "name": "Renewal forecast confidence",
+          "target": "High",
+          "baseline": "Medium",
+          "current": "High",
+          "source": "Synthetic renewal review"
+        }
+      ],
+      "actions": [
+        {
+          "title": "Refresh low-touch engagement rules",
+          "status": "Planned"
+        },
+        {
+          "title": "Audit segment assignment logic",
+          "status": "Done"
+        }
+      ]
+    }
+  ]
+}
