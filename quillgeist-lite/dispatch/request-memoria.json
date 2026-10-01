@@ -1,10 +1,10 @@
 {
-  "request_id": "memoria-diagnostics-20261001-1620",
-  "task_id": "local-ai",
+  "request_id": "memoria-finish-local-ai-20261001-1622",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "diagnostics"
+    "MaxPasses": "1"
   },
-  "objective": "Inspect current AI and Immich services, Docker mount integrity and exact errors before repair",
+  "objective": "Run reviewed recovery once, preserving existing models databases photos and backups; return concrete failures for repair and checkpoint unresolved work",
   "resume_after": false
 }
