@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-01T21:08:12.793856+00:00",
+  "checked_at": "2026-10-01T21:10:47.859506+00:00",
   "control_plane_health": {
     "ok": true,
     "service": "Clintware Control Plane",
@@ -72,7 +72,7 @@
     },
     "health_mode": "constant-cost-config",
     "durable_state_reads": 0,
-    "time": "2026-10-01T21:08:06.973Z"
+    "time": "2026-10-01T21:10:39.790Z"
   },
   "status": {
     "ok": true,
@@ -83,7 +83,7 @@
     "live_service_presence": [
       {
         "device_id": "MEMORIA",
-        "connected_at": "2026-10-01T21:04:58.958Z",
+        "connected_at": "2026-10-01T21:08:58.656Z",
         "service_version": "",
         "runner_alive": false,
         "runner_state": "",
@@ -103,7 +103,7 @@
     "live_service_devices": [
       {
         "device_id": "MEMORIA",
-        "last_seen": "2026-10-01T21:04:58.958Z",
+        "last_seen": "2026-10-01T21:08:58.656Z",
         "runner_alive": false,
         "service_version": "",
         "updated_at": "",
@@ -175,7 +175,7 @@
         "status": "queued",
         "delivery_state": "waiting_for_device",
         "created_at": "2026-10-01T21:03:16.894Z",
-        "updated_at": "2026-10-01T21:06:55.523Z"
+        "updated_at": "2026-10-01T21:09:22.804Z"
       },
       {
         "job_id": "593e6c68-59b4-4a44-9611-2e84f083286a",
@@ -208,7 +208,7 @@
         "status": "running",
         "delivery_state": "acknowledged",
         "created_at": "2026-10-01T21:03:07.606Z",
-        "updated_at": "2026-10-01T21:04:37.684Z"
+        "updated_at": "2026-10-01T21:08:11.799Z"
       },
       {
         "job_id": "41f2d27d-9a62-4f5b-87bb-0627758dd732",
@@ -230,7 +230,7 @@
         "status": "queued",
         "delivery_state": "waiting_for_device",
         "created_at": "2026-10-01T21:02:23.092Z",
-        "updated_at": "2026-10-01T21:06:55.638Z"
+        "updated_at": "2026-10-01T21:09:22.851Z"
       },
       {
         "job_id": "bcd06dc4-2309-4b37-9533-d65ed2bfa41e",
@@ -701,7 +701,7 @@
         "device_id": "MEMORIA",
         "label": "MEMORIA / batman",
         "registered_at": "2026-09-26T05:25:34.942Z",
-        "last_seen": "2026-10-01T21:04:58.958Z",
+        "last_seen": "2026-10-01T21:08:58.656Z",
         "runner_alive": false,
         "service_version": "",
         "updated_at": "",
@@ -714,6 +714,50 @@
       }
     ],
     "diagnostics": [
+      {
+        "diagnostic_id": "9aa565c5-46b1-49db-8e78-0fcf7a56ee5d",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_deferred_runner_busy",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:34.2851416Z",
+        "received_at": "2026-10-01T21:09:22.982Z"
+      },
+      {
+        "diagnostic_id": "3a64581e-9ab7-4188-a106-2ddd07c79c60",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:34.1852102Z",
+        "received_at": "2026-10-01T21:09:22.887Z"
+      },
+      {
+        "diagnostic_id": "cfc0aa90-862e-4361-81ec-588ed7c28c1e",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_deferred_runner_busy",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:10.4704991Z",
+        "received_at": "2026-10-01T21:08:59.172Z"
+      },
+      {
+        "diagnostic_id": "7a866035-af5b-4227-949f-bdfa47b99af5",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:10.0497015Z",
+        "received_at": "2026-10-01T21:08:58.996Z"
+      },
       {
         "diagnostic_id": "f9e00262-3d99-4edb-afa0-93e2b7908fd4",
         "device_id": "MEMORIA",
@@ -889,53 +933,25 @@
         "service_version": "1.4.0-health-contract",
         "timestamp": "2026-10-01T21:03:28.3947964Z",
         "received_at": "2026-10-01T21:03:17.083Z"
-      },
-      {
-        "diagnostic_id": "85d48e6e-0f45-4e48-9b53-7d44a34e1265",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay channel initialized.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-10-01T21:03:28.3219249Z",
-        "received_at": "2026-10-01T21:03:16.959Z"
-      },
-      {
-        "diagnostic_id": "d808c233-0415-407d-9072-8b8be4b71629",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Connected to Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-10-01T21:03:28.3079438Z",
-        "received_at": "2026-10-01T21:03:16.944Z"
-      },
-      {
-        "diagnostic_id": "e3f9d25e-b08a-4a5e-a873-972324e8855c",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "message": "credential_selected device=MEMORIA source=machine",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-10-01T21:03:28.1019335Z",
-        "received_at": "2026-10-01T21:03:16.894Z"
-      },
-      {
-        "diagnostic_id": "6c7dd314-34e7-41ce-bbf9-dfd5713110a5",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
-        "runner_alive": true,
-        "service_version": "1.10.0",
-        "timestamp": "2026-10-01T21:03:27.8554749Z",
-        "received_at": "2026-10-01T21:03:16.894Z"
       }
     ],
     "checkins": [
+      {
+        "request_id": "status-driznet-20261001210812",
+        "target_device": "DRIZNET",
+        "action": "status",
+        "status": "offline",
+        "requested_at": "2026-10-01T21:08:12.637Z",
+        "replied_at": null
+      },
+      {
+        "request_id": "status-memoria-20261001210811",
+        "target_device": "MEMORIA",
+        "action": "status",
+        "status": "replied",
+        "requested_at": "2026-10-01T21:08:11.771Z",
+        "replied_at": "2026-10-01T21:08:11.799Z"
+      },
       {
         "request_id": "status-driznet-20261001210331",
         "target_device": "DRIZNET",
@@ -1079,22 +1095,6 @@
         "status": "replied",
         "requested_at": "2026-10-01T12:19:56.662Z",
         "replied_at": "2026-10-01T12:19:56.684Z"
-      },
-      {
-        "request_id": "status-driznet-20261001121304",
-        "target_device": "DRIZNET",
-        "action": "status",
-        "status": "replied",
-        "requested_at": "2026-10-01T12:13:04.565Z",
-        "replied_at": "2026-10-01T12:13:04.588Z"
-      },
-      {
-        "request_id": "status-memoria-20261001121304",
-        "target_device": "MEMORIA",
-        "action": "status",
-        "status": "replied",
-        "requested_at": "2026-10-01T12:13:04.060Z",
-        "replied_at": "2026-10-01T12:13:04.086Z"
       }
     ],
     "service_presence": [
@@ -1114,7 +1114,7 @@
         "progress_age_seconds": -1,
         "health_state": "",
         "updated_at": "",
-        "connected_at": "2026-10-01T21:04:58.958Z",
+        "connected_at": "2026-10-01T21:08:58.656Z",
         "source": "live-websocket"
       },
       {
@@ -1139,6 +1139,50 @@
   "diagnostics": {
     "ok": true,
     "diagnostics": [
+      {
+        "diagnostic_id": "9aa565c5-46b1-49db-8e78-0fcf7a56ee5d",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_deferred_runner_busy",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:34.2851416Z",
+        "received_at": "2026-10-01T21:09:22.982Z"
+      },
+      {
+        "diagnostic_id": "3a64581e-9ab7-4188-a106-2ddd07c79c60",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:34.1852102Z",
+        "received_at": "2026-10-01T21:09:22.887Z"
+      },
+      {
+        "diagnostic_id": "cfc0aa90-862e-4361-81ec-588ed7c28c1e",
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "wake",
+        "message": "wake_deferred_runner_busy",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:10.4704991Z",
+        "received_at": "2026-10-01T21:08:59.172Z"
+      },
+      {
+        "diagnostic_id": "7a866035-af5b-4227-949f-bdfa47b99af5",
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "runner_alive": true,
+        "service_version": "1.4.0-health-contract",
+        "timestamp": "2026-10-01T21:09:10.0497015Z",
+        "received_at": "2026-10-01T21:08:58.996Z"
+      },
       {
         "diagnostic_id": "f9e00262-3d99-4edb-afa0-93e2b7908fd4",
         "device_id": "MEMORIA",
@@ -2194,50 +2238,6 @@
         "service_version": "1.4.0-health-contract",
         "timestamp": "2026-10-01T21:02:33.9142142Z",
         "received_at": "2026-10-01T21:02:22.614Z"
-      },
-      {
-        "diagnostic_id": "83798ce8-49a0-4b6e-b2f0-07ca7eab284d",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "wake",
-        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
-        "runner_alive": true,
-        "service_version": "1.4.0-health-contract",
-        "timestamp": "2026-10-01T21:02:13.6634691Z",
-        "received_at": "2026-10-01T21:02:02.380Z"
-      },
-      {
-        "diagnostic_id": "3ae43c0e-359f-43ff-a85d-034b4fff4fb4",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "runner_alive": false,
-        "service_version": "1.4.0-health-contract",
-        "timestamp": "2026-10-01T21:02:13.3800748Z",
-        "received_at": "2026-10-01T21:02:02.250Z"
-      },
-      {
-        "diagnostic_id": "432a1afa-811a-466c-8894-14814581aab8",
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "message": "stale_runner_task_ended output=SUCCESS: The scheduled task \"Clintware Quillgeist Lite Runner\" has been terminated successfully.\r\n",
-        "runner_alive": false,
-        "service_version": "1.4.0-health-contract",
-        "timestamp": "2026-10-01T21:02:12.5087973Z",
-        "received_at": "2026-10-01T21:02:01.171Z"
-      },
-      {
-        "diagnostic_id": "7a47292c-b0ea-495e-ba48-cd3953b5e8aa",
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "message": "runner_task_enable exit=0 output=INFO: Scheduled task \"Clintware Quillgeist Lite Runner\" has already been enabled.\r\nSUCCESS: The parameters of scheduled task \"Clintware Quillgeist Lite Runner\" have been changed.\r\n",
-        "runner_alive": false,
-        "service_version": "1.4.0-health-contract",
-        "timestamp": "2026-10-01T21:02:12.3998401Z",
-        "received_at": "2026-10-01T21:02:01.048Z"
       }
     ]
   },
@@ -2271,7 +2271,7 @@
       "target_device": "MEMORIA",
       "status": "queued",
       "created_at": "2026-10-01T21:03:16.894Z",
-      "updated_at": "2026-10-01T21:06:55.523Z",
+      "updated_at": "2026-10-01T21:09:22.804Z",
       "completed_at": null,
       "exit_code": null,
       "duration_ms": null,
@@ -2307,7 +2307,7 @@
       "target_device": "MEMORIA",
       "status": "running",
       "created_at": "2026-10-01T21:03:07.606Z",
-      "updated_at": "2026-10-01T21:04:37.684Z",
+      "updated_at": "2026-10-01T21:08:11.799Z",
       "completed_at": null,
       "exit_code": null,
       "duration_ms": null,
@@ -2533,7 +2533,7 @@
       "target_device": "DRIZNET",
       "status": "queued",
       "created_at": "2026-10-01T21:02:23.092Z",
-      "updated_at": "2026-10-01T21:06:55.638Z",
+      "updated_at": "2026-10-01T21:09:22.851Z",
       "completed_at": null,
       "exit_code": null,
       "duration_ms": null,
@@ -4643,69 +4643,31 @@
     "MEMORIA": {
       "request": {
         "ok": true,
-        "request_id": "status-memoria-20261001210811",
+        "request_id": "status-memoria-20261001211047",
         "protocol": "clintware-quillgeist-lite-checkin/v1",
         "target_device": "MEMORIA",
         "action": "status",
         "force": false,
-        "status": "awaiting_reply",
-        "requested_at": "2026-10-01T21:08:11.771Z",
-        "delivered": 1,
+        "status": "offline",
+        "requested_at": "2026-10-01T21:10:47.142Z",
+        "delivered": 0,
         "replied_at": null,
         "reply": null,
         "force_wake_delivered": 0,
         "persistence": "durable",
         "persistence_error": ""
-      },
-      "result": {
-        "ok": true,
-        "checkin": {
-          "request_id": "status-memoria-20261001210811",
-          "protocol": "clintware-quillgeist-lite-checkin/v1",
-          "target_device": "MEMORIA",
-          "action": "status",
-          "force": false,
-          "status": "replied",
-          "requested_at": "2026-10-01T21:08:11.771Z",
-          "delivered": 1,
-          "replied_at": "2026-10-01T21:08:11.799Z",
-          "reply": {
-            "device_id": "MEMORIA",
-            "protocol": "clintware-quillgeist-lite-checkin/v1",
-            "service_version": "1.4.0-health-contract",
-            "runner_alive": true,
-            "runner_state": "busy",
-            "job_id": "9c29aa10-462f-4872-8dc2-a85ae8f93763",
-            "task_id": "finish-local-ai",
-            "heartbeat_at": "",
-            "service_started_at": "",
-            "maintenance": false,
-            "busy": true,
-            "heartbeat_age_seconds": 0.9563954,
-            "progress_age_seconds": 0,
-            "health_state": "busy_progressing",
-            "updated_at": "2026-10-01T21:08:11.799Z",
-            "request_id": "status-memoria-20261001210811",
-            "action": "status",
-            "action_result": "status",
-            "message": "watchdog responsive",
-            "replied_at": "2026-10-01T21:08:11.799Z"
-          },
-          "force_wake_delivered": 0
-        },
-        "persistence": "durable"
       }
     },
     "DRIZNET": {
       "request": {
         "ok": true,
-        "request_id": "status-driznet-20261001210812",
+        "request_id": "status-driznet-20261001211047",
         "protocol": "clintware-quillgeist-lite-checkin/v1",
         "target_device": "DRIZNET",
         "action": "status",
         "force": false,
         "status": "offline",
-        "requested_at": "2026-10-01T21:08:12.637Z",
+        "requested_at": "2026-10-01T21:10:47.667Z",
         "delivered": 0,
         "replied_at": null,
         "reply": null,
