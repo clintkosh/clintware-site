@@ -1,5 +1,5 @@
 {
-  "version": 29,
+  "version": 30,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
   "runtimes": [
@@ -459,6 +459,21 @@
       ],
       "approval": "pre-approved",
       "timeout_seconds": 600
+    },
+    "public-skill-verify": {
+      "title": "Verify a public Clintware skill locally and against its deployed Clintware URLs",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/public-skill-verify.ps1",
+      "parameters": [
+        "SkillSlug",
+        "CheckLive"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 1200,
+      "parallel_safe": true,
+      "resource_class": "io",
+      "concurrency_group": "public-skill-verify",
+      "max_parallel": 2
     }
   }
 }
