@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-01T20:56:21.323726+00:00",
+  "checked_at": "2026-10-01T20:58:29.022663+00:00",
   "control_plane_health": {
     "ok": true,
     "service": "Clintware Control Plane",
@@ -72,7 +72,7 @@
     },
     "health_mode": "constant-cost-config",
     "durable_state_reads": 0,
-    "time": "2026-10-01T20:56:13.409Z"
+    "time": "2026-10-01T20:58:23.132Z"
   },
   "status": {
     "ok": true,
@@ -165,7 +165,7 @@
         "heartbeat_age_seconds": -1,
         "progress_age_seconds": -1,
         "health_state": "",
-        "updated_at": "2026-10-01T20:54:42.383Z",
+        "updated_at": "2026-10-01T20:56:20.833Z",
         "source": "live-websocket"
       },
       {
@@ -183,25 +183,25 @@
         "heartbeat_age_seconds": -1,
         "progress_age_seconds": -1,
         "health_state": "",
-        "updated_at": "2026-10-01T20:54:41.777Z",
+        "updated_at": "2026-10-01T20:56:19.876Z",
         "source": "live-websocket"
       }
     ],
     "live_service_devices": [
       {
         "device_id": "DRIZNET",
-        "last_seen": "2026-10-01T20:54:42.383Z",
+        "last_seen": "2026-10-01T20:56:20.833Z",
         "runner_alive": false,
         "service_version": "",
-        "updated_at": "2026-10-01T20:54:42.383Z",
+        "updated_at": "2026-10-01T20:56:20.833Z",
         "source": "live-websocket"
       },
       {
         "device_id": "MEMORIA",
-        "last_seen": "2026-10-01T20:54:41.777Z",
+        "last_seen": "2026-10-01T20:56:19.876Z",
         "runner_alive": false,
         "service_version": "",
-        "updated_at": "2026-10-01T20:54:41.777Z",
+        "updated_at": "2026-10-01T20:56:19.876Z",
         "source": "live-websocket"
       }
     ],
@@ -259,7 +259,7 @@
         "status": "running",
         "delivery_state": "acknowledged",
         "created_at": "2026-10-01T20:50:46.508Z",
-        "updated_at": "2026-10-01T20:55:22.402Z"
+        "updated_at": "2026-10-01T20:58:23.111Z"
       },
       {
         "job_id": "85dc64a0-d609-48c7-8feb-3c7279cd495f",
@@ -796,20 +796,20 @@
         "device_id": "MEMORIA",
         "label": "MEMORIA / batman",
         "registered_at": "2026-09-26T05:25:34.942Z",
-        "last_seen": "2026-10-01T20:54:41.777Z",
+        "last_seen": "2026-10-01T20:56:19.876Z",
         "runner_alive": false,
         "service_version": "",
-        "updated_at": "2026-10-01T20:54:41.777Z",
+        "updated_at": "2026-10-01T20:56:19.876Z",
         "source": "live-websocket"
       },
       {
         "device_id": "DRIZNET",
         "label": "DRIZNET / batman",
         "registered_at": "2026-09-22T20:47:30.020Z",
-        "last_seen": "2026-10-01T20:54:42.383Z",
+        "last_seen": "2026-10-01T20:56:20.833Z",
         "runner_alive": false,
         "service_version": "",
-        "updated_at": "2026-10-01T20:54:42.383Z",
+        "updated_at": "2026-10-01T20:56:20.833Z",
         "source": "live-websocket"
       }
     ],
@@ -1037,6 +1037,22 @@
     ],
     "checkins": [
       {
+        "request_id": "status-driznet-20261001205620",
+        "target_device": "DRIZNET",
+        "action": "status",
+        "status": "replied",
+        "requested_at": "2026-10-01T20:56:20.808Z",
+        "replied_at": "2026-10-01T20:56:20.833Z"
+      },
+      {
+        "request_id": "status-memoria-20261001205619",
+        "target_device": "MEMORIA",
+        "action": "status",
+        "status": "replied",
+        "requested_at": "2026-10-01T20:56:19.852Z",
+        "replied_at": "2026-10-01T20:56:19.876Z"
+      },
+      {
         "request_id": "status-driznet-20261001205442",
         "target_device": "DRIZNET",
         "action": "status",
@@ -1179,22 +1195,6 @@
         "status": "replied",
         "requested_at": "2026-10-01T09:07:25.199Z",
         "replied_at": "2026-10-01T09:07:25.220Z"
-      },
-      {
-        "request_id": "status-driznet-20261001090721",
-        "target_device": "DRIZNET",
-        "action": "status",
-        "status": "replied",
-        "requested_at": "2026-10-01T09:07:21.077Z",
-        "replied_at": "2026-10-01T09:07:21.103Z"
-      },
-      {
-        "request_id": "status-memoria-20261001090720",
-        "target_device": "MEMORIA",
-        "action": "status",
-        "status": "replied",
-        "requested_at": "2026-10-01T09:07:20.284Z",
-        "replied_at": "2026-10-01T09:07:20.310Z"
       }
     ],
     "service_presence": [
@@ -1213,7 +1213,7 @@
         "heartbeat_age_seconds": -1,
         "progress_age_seconds": -1,
         "health_state": "",
-        "updated_at": "2026-10-01T20:54:42.383Z",
+        "updated_at": "2026-10-01T20:56:20.833Z",
         "connected_at": "2026-10-01T20:33:47.095Z",
         "source": "live-websocket"
       },
@@ -1232,7 +1232,7 @@
         "heartbeat_age_seconds": -1,
         "progress_age_seconds": -1,
         "health_state": "",
-        "updated_at": "2026-10-01T20:54:41.777Z",
+        "updated_at": "2026-10-01T20:56:19.876Z",
         "connected_at": "2026-10-01T20:42:04.142Z",
         "source": "live-websocket"
       }
@@ -2361,111 +2361,111 @@
       "target_device": "MEMORIA",
       "status": "running",
       "created_at": "2026-10-01T20:50:46.508Z",
-      "updated_at": "2026-10-01T20:55:22.402Z",
+      "updated_at": "2026-10-01T20:58:23.111Z",
       "completed_at": null,
       "exit_code": null,
       "duration_ms": null,
       "output_tail": "",
       "recent_logs": [
         {
-          "seq": 148,
-          "line": "AUTOPILOT // PASS reconcile-existing-stack",
-          "timestamp": "2026-10-01T20:55:29.8476978Z"
+          "seq": 466,
+          "line": "\u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m",
+          "timestamp": "2026-10-01T20:58:24.4577639Z"
         },
         {
-          "seq": 149,
-          "line": "AUTOPILOT // BEGIN repair-existing-storage",
-          "timestamp": "2026-10-01T20:55:29.8535829Z"
+          "seq": 467,
+          "line": "\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m 278 | \u001b[0m \u2026 amaModel) { \u001b[36;1mthrow \"Gateway model inventory did not expose an Ollama c\u001b[0m \u2026\u001b[0m",
+          "timestamp": "2026-10-01T20:58:24.4626603Z"
         },
         {
-          "seq": 150,
-          "line": "{",
-          "timestamp": "2026-10-01T20:55:33.6578632Z"
+          "seq": 468,
+          "line": "\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m",
+          "timestamp": "2026-10-01T20:58:24.4661422Z"
         },
         {
-          "seq": 151,
-          "line": "  \"ok\": false,",
-          "timestamp": "2026-10-01T20:55:33.6627122Z"
+          "seq": 469,
+          "line": "\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mGateway model inventory did not expose an Ollama chat model.\u001b[0m",
+          "timestamp": "2026-10-01T20:58:24.4703902Z"
         },
         {
-          "seq": 152,
-          "line": "  \"results\": [",
-          "timestamp": "2026-10-01T20:55:33.6665778Z"
+          "seq": 470,
+          "line": "AUTOPILOT // BLOCKED local-ai-integrate // local-ai-integrate failed with exit code 1",
+          "timestamp": "2026-10-01T20:58:24.5295081Z"
         },
         {
-          "seq": 153,
-          "line": "    {",
-          "timestamp": "2026-10-01T20:55:33.6715795Z"
+          "seq": 471,
+          "line": "AUTOPILOT // BEGIN local-ai-parity",
+          "timestamp": "2026-10-01T20:58:24.5356558Z"
         },
         {
-          "seq": 154,
-          "line": "      \"container\": \"n8n-local\",",
-          "timestamp": "2026-10-01T20:55:33.6760694Z"
+          "seq": 472,
+          "line": "LOCAL_AI_PARITY_OK shared Lite/Full fit behavior is aligned",
+          "timestamp": "2026-10-01T20:58:24.6747650Z"
         },
         {
-          "seq": 155,
-          "line": "      \"action\": \"existing_host_data_preserved\"",
-          "timestamp": "2026-10-01T20:55:33.6800781Z"
+          "seq": 473,
+          "line": "AUTOPILOT // PASS local-ai-parity",
+          "timestamp": "2026-10-01T20:58:24.6940032Z"
         },
         {
-          "seq": 156,
-          "line": "    },",
-          "timestamp": "2026-10-01T20:55:33.6843058Z"
+          "seq": 474,
+          "line": "AUTOPILOT // MISSING Open WebUI",
+          "timestamp": "2026-10-01T20:58:26.2367449Z"
         },
         {
-          "seq": 157,
-          "line": "    {",
-          "timestamp": "2026-10-01T20:55:33.6882884Z"
+          "seq": 475,
+          "line": "AUTOPILOT // HEALTHY Ollama",
+          "timestamp": "2026-10-01T20:58:26.2408522Z"
         },
         {
-          "seq": 158,
-          "line": "      \"container\": \"open-webui-local\",",
-          "timestamp": "2026-10-01T20:55:33.6934005Z"
+          "seq": 476,
+          "line": "AUTOPILOT // MISSING n8n",
+          "timestamp": "2026-10-01T20:58:28.2759948Z"
         },
         {
-          "seq": 159,
-          "line": "      \"error\": \"backup_contains_links\",",
-          "timestamp": "2026-10-01T20:55:33.6972000Z"
+          "seq": 477,
+          "line": "AUTOPILOT // HEALTHY Quillgeist Gateway",
+          "timestamp": "2026-10-01T20:58:28.2797049Z"
         },
         {
-          "seq": 160,
-          "line": "      \"backup\": \"F:\\\\AI-Data\\\\Backups\\\\LOCAL-CHATGPT\\\\qq-storage-20261001-155529\\\\open-webui-local\"",
-          "timestamp": "2026-10-01T20:55:33.7010033Z"
+          "seq": 478,
+          "line": "AUTOPILOT // HEALTHY BitNet",
+          "timestamp": "2026-10-01T20:58:28.2835515Z"
         },
         {
-          "seq": 161,
-          "line": "    }",
-          "timestamp": "2026-10-01T20:55:33.7060803Z"
+          "seq": 479,
+          "line": "AUTOPILOT // HEALTHY SearXNG",
+          "timestamp": "2026-10-01T20:58:28.2881228Z"
         },
         {
-          "seq": 162,
-          "line": "  ],",
-          "timestamp": "2026-10-01T20:55:33.7106391Z"
+          "seq": 480,
+          "line": "AUTOPILOT // HEALTHY Pipelines",
+          "timestamp": "2026-10-01T20:58:28.2917266Z"
         },
         {
-          "seq": 163,
-          "line": "  \"deleted_user_files\": false,",
-          "timestamp": "2026-10-01T20:55:33.7160385Z"
+          "seq": 481,
+          "line": "AUTOPILOT // HEALTHY Web Search Agent",
+          "timestamp": "2026-10-01T20:58:28.2983891Z"
         },
         {
-          "seq": 164,
-          "line": "  \"excluded_drive_accessed\": false",
-          "timestamp": "2026-10-01T20:55:33.7209384Z"
+          "seq": 482,
+          "line": "AUTOPILOT // HEALTHY Media Agent",
+          "timestamp": "2026-10-01T20:58:30.3295438Z"
         },
         {
-          "seq": 165,
-          "line": "}",
-          "timestamp": "2026-10-01T20:55:33.7271016Z"
+          "seq": 483,
+          "line": "AUTOPILOT // MISSING ComfyUI",
+          "timestamp": "2026-10-01T20:58:32.3727607Z"
         },
         {
-          "seq": 166,
-          "line": "AUTOPILOT // BLOCKED repair-existing-storage // repair-existing-storage failed with exit code 2",
-          "timestamp": "2026-10-01T20:55:33.7326685Z"
+          "seq": 484,
+          "line": "AUTOPILOT // MISSING Immich",
+          "timestamp": "2026-10-01T20:58:34.4269059Z"
         },
         {
-          "seq": 167,
-          "line": "AUTOPILOT // BEGIN recover-local-agents",
-          "timestamp": "2026-10-01T20:55:33.7371873Z"
+          "seq": 485,
+          "line": "AUTOPILOT // CONTINUE // unresolved services: Open WebUI, n8n, ComfyUI, Immich",
+          "timestamp": "2026-10-01T20:58:34.4298514Z"
         }
       ]
     },
@@ -4594,13 +4594,13 @@
     "MEMORIA": {
       "request": {
         "ok": true,
-        "request_id": "status-memoria-20261001205619",
+        "request_id": "status-memoria-20261001205827",
         "protocol": "clintware-quillgeist-lite-checkin/v1",
         "target_device": "MEMORIA",
         "action": "status",
         "force": false,
         "status": "awaiting_reply",
-        "requested_at": "2026-10-01T20:56:19.852Z",
+        "requested_at": "2026-10-01T20:58:27.865Z",
         "delivered": 1,
         "replied_at": null,
         "reply": null,
@@ -4611,15 +4611,15 @@
       "result": {
         "ok": true,
         "checkin": {
-          "request_id": "status-memoria-20261001205619",
+          "request_id": "status-memoria-20261001205827",
           "protocol": "clintware-quillgeist-lite-checkin/v1",
           "target_device": "MEMORIA",
           "action": "status",
           "force": false,
           "status": "replied",
-          "requested_at": "2026-10-01T20:56:19.852Z",
+          "requested_at": "2026-10-01T20:58:27.865Z",
           "delivered": 1,
-          "replied_at": "2026-10-01T20:56:19.876Z",
+          "replied_at": "2026-10-01T20:58:27.892Z",
           "reply": {
             "device_id": "MEMORIA",
             "protocol": "clintware-quillgeist-lite-checkin/v1",
@@ -4632,15 +4632,15 @@
             "service_started_at": "",
             "maintenance": false,
             "busy": true,
-            "heartbeat_age_seconds": 0.9764189,
-            "progress_age_seconds": 0.9762139999999999,
+            "heartbeat_age_seconds": 4.6526575999999995,
+            "progress_age_seconds": 0,
             "health_state": "busy_progressing",
-            "updated_at": "2026-10-01T20:56:19.876Z",
-            "request_id": "status-memoria-20261001205619",
+            "updated_at": "2026-10-01T20:58:27.892Z",
+            "request_id": "status-memoria-20261001205827",
             "action": "status",
             "action_result": "status",
             "message": "watchdog responsive",
-            "replied_at": "2026-10-01T20:56:19.876Z"
+            "replied_at": "2026-10-01T20:58:27.892Z"
           },
           "force_wake_delivered": 0
         },
@@ -4650,13 +4650,13 @@
     "DRIZNET": {
       "request": {
         "ok": true,
-        "request_id": "status-driznet-20261001205620",
+        "request_id": "status-driznet-20261001205828",
         "protocol": "clintware-quillgeist-lite-checkin/v1",
         "target_device": "DRIZNET",
         "action": "status",
         "force": false,
         "status": "awaiting_reply",
-        "requested_at": "2026-10-01T20:56:20.808Z",
+        "requested_at": "2026-10-01T20:58:28.529Z",
         "delivered": 1,
         "replied_at": null,
         "reply": null,
@@ -4667,15 +4667,15 @@
       "result": {
         "ok": true,
         "checkin": {
-          "request_id": "status-driznet-20261001205620",
+          "request_id": "status-driznet-20261001205828",
           "protocol": "clintware-quillgeist-lite-checkin/v1",
           "target_device": "DRIZNET",
           "action": "status",
           "force": false,
           "status": "replied",
-          "requested_at": "2026-10-01T20:56:20.808Z",
+          "requested_at": "2026-10-01T20:58:28.529Z",
           "delivered": 1,
-          "replied_at": "2026-10-01T20:56:20.833Z",
+          "replied_at": "2026-10-01T20:58:28.551Z",
           "reply": {
             "device_id": "DRIZNET",
             "protocol": "clintware-quillgeist-lite-checkin/v1",
@@ -4688,15 +4688,15 @@
             "service_started_at": "",
             "maintenance": false,
             "busy": false,
-            "heartbeat_age_seconds": 1.1607216999999999,
-            "progress_age_seconds": 1339.8590184,
+            "heartbeat_age_seconds": 8.739084,
+            "progress_age_seconds": 1467.5788341999998,
             "health_state": "healthy",
-            "updated_at": "2026-10-01T20:56:20.833Z",
-            "request_id": "status-driznet-20261001205620",
+            "updated_at": "2026-10-01T20:58:28.551Z",
+            "request_id": "status-driznet-20261001205828",
             "action": "status",
             "action_result": "status",
             "message": "watchdog responsive",
-            "replied_at": "2026-10-01T20:56:20.833Z"
+            "replied_at": "2026-10-01T20:58:28.551Z"
           },
           "force_wake_delivered": 0
         },
