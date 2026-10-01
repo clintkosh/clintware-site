@@ -111,19 +111,44 @@ jobs:
       - name: Publish executable to site and QQ runtime
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path downloads,quillgeist-lite/tools | Out-Null
-          Copy-Item Clintware-TaskIsolation.exe downloads/Clintware-TaskIsolation.exe -Force
-          Copy-Item Clintware-TaskIsolation-SHA256.txt downloads/Clintware-TaskIsolation-SHA256.txt -Force
-          Copy-Item Clintware-TaskIsolation.exe quillgeist-lite/tools/Clintware-TaskIsolation.exe -Force
-          Copy-Item Clintware-TaskIsolation-SHA256.txt quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt -Force
+          $tmp = Join-Path $env:RUNNER_TEMP "task-isolation-publish"
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          Copy-Item Clintware-TaskIsolation.exe (Join-Path $tmp "Clintware-TaskIsolation.exe") -Force
+          Copy-Item Clintware-TaskIsolation-SHA256.txt (Join-Path $tmp "Clintware-TaskIsolation-SHA256.txt") -Force
           git config user.name "clintware-build"
           git config user.email "actions@users.noreply.github.com"
-          git add tools/task-isolation/main.go downloads/Clintware-TaskIsolation.exe downloads/Clintware-TaskIsolation-SHA256.txt quillgeist-lite/tools/Clintware-TaskIsolation.exe quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
+
+          $published = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            git fetch origin main
+            if ($LASTEXITCODE -ne 0) { throw "git fetch failed" }
+            git reset --hard origin/main
+            if ($LASTEXITCODE -ne 0) { throw "git reset failed" }
+
+            New-Item -ItemType Directory -Force -Path downloads,quillgeist-lite/tools | Out-Null
+            Copy-Item (Join-Path $tmp "Clintware-TaskIsolation.exe") downloads/Clintware-TaskIsolation.exe -Force
+            Copy-Item (Join-Path $tmp "Clintware-TaskIsolation-SHA256.txt") downloads/Clintware-TaskIsolation-SHA256.txt -Force
+            Copy-Item (Join-Path $tmp "Clintware-TaskIsolation.exe") quillgeist-lite/tools/Clintware-TaskIsolation.exe -Force
+            Copy-Item (Join-Path $tmp "Clintware-TaskIsolation-SHA256.txt") quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt -Force
+
+            git add downloads/Clintware-TaskIsolation.exe downloads/Clintware-TaskIsolation-SHA256.txt quillgeist-lite/tools/Clintware-TaskIsolation.exe quillgeist-lite/tools/Clintware-TaskIsolation-SHA256.txt
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Published binaries are already current."
+              $published = $true
+              break
+            }
+
             git commit -m "Publish hardened Task Isolation Windows build"
-            git push
+            git push origin HEAD:main
+            if ($LASTEXITCODE -eq 0) {
+              $published = $true
+              break
+            }
+            Write-Host "Concurrent main update detected; retrying publish ($attempt/5)."
+            Start-Sleep -Seconds ($attempt * 2)
           }
+          if (-not $published) { throw "Could not publish Task Isolation build after bounded retries." }
 
       - uses: actions/upload-artifact@v4
         with:
