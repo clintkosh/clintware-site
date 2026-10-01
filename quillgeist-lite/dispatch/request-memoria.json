@@ -1,9 +1,9 @@
 {
-  "request_id": "memoria-ensure-python-20261001-0352",
+  "request_id": "memoria-ensure-python-retry-20261001-0658",
   "task_id": "ensure-python",
   "target_device": "MEMORIA",
   "args": {
     "Force": "false"
   },
-  "objective": "Install or repair Python 3 on MEMORIA through the reviewed QQ runtime, verify a discoverable non-WindowsApps Python 3 executable, and return qq-local-agent-confirmed evidence."
+  "objective": "Ensure MEMORIA has a discoverable real Python 3 runtime for reviewed QQ tasks, excluding WindowsApps aliases, and return local-agent evidence."
 }
