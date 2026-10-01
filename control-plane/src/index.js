@@ -1801,6 +1801,10 @@ export class RegistryHub extends DurableObject {
               duration_ms:Number(data.duration_ms||0),
               output:clip(data.output||"",40000),
               log_lines:Number(data.log_lines||0),
+              worker_slot:Number(data.worker_slot||0),
+              gpu_index:Number.isFinite(Number(data.gpu_index))?Number(data.gpu_index):-1,
+              resource_class:clip(data.resource_class||"",40),
+              concurrency_group:clip(data.concurrency_group||"",80),
               confirmation_source:"qq-local-agent",
               device_id:clip(attachment.device_id||"",120),
               confirmed_at:clip(data.completed_at||nowIso(),80)
