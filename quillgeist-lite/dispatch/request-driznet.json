@@ -1,17 +1,17 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-company-form-inspect-20261001-1237",
+  "request_id": "driznet-cwinteract-linkedin-company-fields-20261001-1239",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "args": {
     "Action": "inspect",
     "AppName": "LinkedIn",
     "WindowTitle": "LinkedIn",
-    "Query": "",
+    "Query": "Page",
     "StepsJson": "",
     "Approved": "false",
-    "MaxResults": "100",
+    "MaxResults": "80",
     "WaitMs": "250"
   },
-  "objective": "Inspect the current LinkedIn app window after navigating to Create a Company Page. Return form controls and current title; do not submit or change fields.",
+  "objective": "Inspect LinkedIn company creation form controls containing 'Page' to identify page name, public URL, and submission controls. Do not change fields.",
   "resume_after": false
 }
