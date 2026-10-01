@@ -10,7 +10,7 @@ import QUILLGEIST_REMOTE_TASK_REGISTRY from "../quillgeist-remote-tasks.json" wi
 import INSTRUCTION_MANIFEST_DEFAULT from "../instruction-manifest.json" with { type: "json" };
 import { CLINTWARE_MASTER_PROMPT, CLINTWARE_MASTER_PROMPT_ID, CLINTWARE_MASTER_PROMPT_PATH } from "./master-prompt.js";
 
-const VERSION = "2026-10-01-dynamic-instruction-manifest.1";
+const VERSION = "2026-10-01-mcp-connect-contract.1";
 const QUILLGEIST_RUNTIME_VERSION = "2026-10-01-task-isolation-v31";
 const JSON_HEADERS = {"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const json = (value, status=200, extra={}) => new Response(JSON.stringify(value), {status, headers:{...JSON_HEADERS,...extra}});
@@ -3407,7 +3407,8 @@ function createMcpServer(env,mcpRequest,mcpAuth){
         "For a hands-free ChatGPT handoff, set target_client to chatgpt. Clintware will route the sanitized packet to the private PowerChatBridge inbox automatically.",
         "Do not interpret a missing client-side MCP binding as proof that Clintware itself is unreachable. First inspect the tools/connectors exposed to this client and use Clintware directly when present.",
         "If the Clintware binding is absent or unusable, report the concrete binding state (mcp_binding_not_exposed, authentication_required, authorization_required, tool_not_available_in_client, or the actual connection error) rather than inventing a qq CLI command or guessed local path.",
-        "Never fabricate qq send/status/jobs syntax, job directories, cache paths, or local configuration locations. Only provide manual commands or paths that are verified from live Clintware capability data, repository documentation, or the target machine."
+        "Never fabricate qq send/status/jobs syntax, job directories, cache paths, or local configuration locations. Only provide manual commands or paths that are verified from live Clintware capability data, repository documentation, or the target machine.",
+        "When Clintware MCP is not registered in the host client, direct setup to https://mcp.clintware.com/connect. After registration/authentication, retry clintware_client_handshake rather than inventing a local workaround."
       ]
     })}]};
   });
