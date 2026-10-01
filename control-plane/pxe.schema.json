@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clintware.com/schemas/pxe/v1.json",
+  "title": "Clintware Prompt Exchange Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pxe_version",
+    "artifact_id",
+    "work_item_id",
+    "revision",
+    "content",
+    "execution_policy",
+    "security"
+  ],
+  "properties": {
+    "pxe_version": { "const": "clintware-pxe/v1" },
+    "artifact_id": { "type": "string", "pattern": "^prm_[A-Za-z0-9._-]+$" },
+    "work_item_id": { "type": "string", "pattern": "^CWS-[1-9][0-9]*$" },
+    "branch": { "type": "string", "minLength": 1, "default": "main" },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "parents", "created_at"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^sha256:[a-fA-F0-9]{64}$" },
+        "parents": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^sha256:[a-fA-F0-9]{64}$" },
+          "uniqueItems": true
+        },
+        "author": { "type": "string" },
+        "device": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task"],
+      "properties": {
+        "policy": { "$ref": "#/$defs/blocks" },
+        "task": { "$ref": "#/$defs/blocks" },
+        "context": { "$ref": "#/$defs/blocks" },
+        "examples": { "$ref": "#/$defs/blocks" },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["content_hash"],
+            "properties": {
+              "content_hash": { "type": "string", "pattern": "^sha256:[a-fA-F0-9]{64}$" },
+              "mime_type": { "type": "string" },
+              "classification": { "$ref": "#/$defs/classification" }
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["logical_name", "input_schema", "side_effect"],
+        "properties": {
+          "logical_name": { "type": "string", "minLength": 1 },
+          "input_schema": { "type": "object" },
+          "required_scopes": { "type": "array", "items": { "type": "string" } },
+          "side_effect": { "enum": ["none", "read", "write", "destructive"] }
+        }
+      }
+    },
+    "output_contract": {
+      "type": "object",
+      "properties": {
+        "format": { "enum": ["text", "markdown", "json", "json_schema", "artifact"] },
+        "schema_ref": { "type": "string" },
+        "strict": { "type": "boolean", "default": false }
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locality", "fallback"],
+      "properties": {
+        "allowed_provider_classes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "locality": { "enum": ["local_only", "prefer_local", "balanced", "remote_allowed"] },
+        "max_data_classification": { "$ref": "#/$defs/classification" },
+        "fallback": { "type": "boolean" },
+        "require_lossless_render": { "type": "boolean", "default": true }
+      }
+    },
+    "model_preferences": {
+      "type": "object",
+      "properties": {
+        "capabilities_required": { "type": "array", "items": { "type": "string" } },
+        "preferred_provider": { "type": ["string", "null"] },
+        "quality_priority": { "type": "number", "minimum": 0, "maximum": 1 },
+        "latency_priority": { "type": "number", "minimum": 0, "maximum": 1 },
+        "cost_priority": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disclosure_policy", "secret_refs"],
+      "properties": {
+        "disclosure_policy": { "enum": ["selective", "local_only", "approved_remote"] },
+        "secret_refs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^secretref:[A-Za-z0-9._/-]+$" },
+          "uniqueItems": true
+        },
+        "integrity_hash": { "type": "string", "pattern": "^sha256:[a-fA-F0-9]{64}$" }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "openai": { "type": "object" },
+        "google": { "type": "object" },
+        "anthropic": { "type": "object" },
+        "local": { "type": "object" }
+      }
+    }
+  },
+  "$defs": {
+    "classification": {
+      "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED", "LOCAL_ONLY", "SECRET_REF"]
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "classification"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["text", "json", "reference", "secret_ref"] },
+        "text": { "type": "string" },
+        "value": {},
+        "reference": { "type": "string" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string" },
+            "source_id": { "type": "string" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "classification": { "const": "SECRET_REF" } } },
+          "then": {
+            "properties": {
+              "type": { "const": "secret_ref" },
+              "text": { "maxLength": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/block" }
+    }
+  }
+}

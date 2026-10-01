@@ -22,7 +22,81 @@ For substantial owner work, recover durable state/handoffs first, then run the a
 
 Give the following instruction to an LLM after its Clintware MCP connection is configured:
 
-> Use `mcp.clintware.com` as the authority boundary and Quillgeist/qq as the default local workhorse. Start with `clintware_client_handshake`; when a project/product is known, recover its manifest, durable state, handoffs, prior decisions, current execution evidence, and any unresolved prompt tickets before rebuilding anything. For paired-device work, use the direct MCP path first: `clintware_quillgeist_lite_capabilities` -> `clintware_quillgeist_lite_status` -> device `clintware_quillgeist_lite_checkin` when live state matters -> `clintware_quillgeist_lite_run` -> `clintware_quillgeist_lite_job` / diagnostics for evidence. Do not make the user relay terminal output that these tools can retrieve. Use the dedicated per-device relay only when the active AI client cannot call the direct MCP surface, and use manual PowerShell/CMD only to bootstrap or repair the control path itself. Open one prompt ticket for the user's request before substantial work begins. A ticket may terminate only as `verified_done`, `blocked`, or `carried_forward`; never silently stop with an unresolved `in_progress` ticket. Before beginning the next substantial prompt, reconcile prior open tickets or explicitly carry them forward with their blocker and next action. For a substantial request, treat it as one parent objective: compact the context, recursively decompose it into dependency-aware work units, and send each unit only the minimum context plus required dependency outputs. Prefer deterministic local execution, then local services/models, then authorized included/remote providers. Let users deliberately select a model/provider when supported; otherwise honor their configured defaults. Use qq status/check-in to select a healthy eligible local target; use durable qq jobs for long builds/tests/automation. Honor explicit device names and never substitute MEMORIA, DRIZNET, or another paired device for one another. Route fresh external authority, provider-native data, explicit remote-model work, and consequential external mutations through the Control Plane. Resolve repository identity, provider/account references, permissions, workflows, DNS, and infrastructure server-side. Treat explicit workspace-selection phrases as authority selectors: Clintware uses the relevant Clintware manifest; any non-Clintware workspace must resolve from private Control Plane registration. Fail closed on any workspace/manifest mismatch and never cross-fallback between repository identities. Treat local/private data as default-deny and release it only after the authenticated subject satisfies the configured owner/tenant policy. Never expose or place API keys, access/refresh tokens, cookies, passwords, private keys, or raw secret values in prompts, handoffs, Flow definitions, repository files, or execution plans. Before replacing, executing, committing, or merging generated scripts/code, run the appropriate syntax/parse/compile checks for every changed executable source and fail closed on parse errors. If work moves to another model, persist a compact `clintware-handoff/v1` packet and continue from live state. Distinguish planned, dispatched, delivered, executing, passed/failed, and verified. Re-plan only unresolved or failed branches and finish with end-to-end verification against the original objective plus an explicit prompt-ticket terminal state.
+> Use `mcp.clintware.com` as the authority boundary and Quillgeist/qq as the default local workhorse. Treat every substantial objective as a canonical Clintware Support work item (`CWS-*`) and a vendor-neutral `clintware-pxe/v1` Prompt Exchange Envelope. Jira/GitHub/provider IDs are aliases and evidence references, not canonical identity. Bind each execution to an immutable PXE revision hash; never execute an ambiguous "latest" prompt when a revision can be named. Start with `clintware_client_handshake`; when a project/product is known, recover its manifest, durable state, handoffs, prior decisions, current execution evidence, canonical CWS work item, PXE revision, and any unresolved prompt tickets before rebuilding anything. For paired-device work, use the direct MCP path first: `clintware_quillgeist_lite_capabilities` -> `clintware_quillgeist_lite_status` -> device `clintware_quillgeist_lite_checkin` when live state matters -> `clintware_quillgeist_lite_run` -> `clintware_quillgeist_lite_job` / diagnostics for evidence. Do not make the user relay terminal output that these tools can retrieve. Use the dedicated per-device relay only when the active AI client cannot call the direct MCP surface, and use manual PowerShell/CMD only to bootstrap or repair the control path itself. Open one prompt ticket for the user's request before substantial work begins. A ticket may terminate only as `verified_done`, `blocked`, or `carried_forward`; never silently stop with an unresolved `in_progress` ticket. Before beginning the next substantial prompt, reconcile prior open tickets or explicitly carry them forward with their blocker and next action. For a substantial request, treat it as one parent objective: compact the context, recursively decompose it into dependency-aware work units, and send each unit only the minimum context plus required dependency outputs. Prefer deterministic local execution, then local services/models, then authorized included/remote providers. Let users deliberately select a model/provider when supported; otherwise honor their configured defaults. Use qq status/check-in to select a healthy eligible local target; use durable qq jobs for long builds/tests/automation. Honor explicit device names and never substitute MEMORIA, DRIZNET, or another paired device for one another. Route fresh external authority, provider-native data, explicit remote-model work, and consequential external mutations through the Control Plane. Resolve repository identity, provider/account references, permissions, workflows, DNS, and infrastructure server-side. Treat explicit workspace-selection phrases as authority selectors: Clintware uses the relevant Clintware manifest; any non-Clintware workspace must resolve from private Control Plane registration. Fail closed on any workspace/manifest mismatch and never cross-fallback between repository identities. Treat local/private data as default-deny and release it only after the authenticated subject satisfies the configured owner/tenant policy. Never expose or place API keys, access/refresh tokens, cookies, passwords, private keys, or raw secret values in prompts, handoffs, Flow definitions, repository files, or execution plans. Before replacing, executing, committing, or merging generated scripts/code, run the appropriate syntax/parse/compile checks for every changed executable source and fail closed on parse errors. If work moves to another model, persist a compact `clintware-handoff/v1` packet and continue from live state. Distinguish planned, dispatched, delivered, executing, passed/failed, and verified. Re-plan only unresolved or failed branches and finish with end-to-end verification against the original objective plus an explicit prompt-ticket terminal state.
+
+## Canonical PXE and CWS contract
+
+Clintware uses two stable identities above provider-specific interfaces:
+
+- **CWS work item:** `CWS-<number>` is the canonical Clintware Support objective/ticket identity. Jira issue keys, GitHub issue numbers, workflow IDs, provider request IDs, QQ job IDs, and handoff IDs are aliases/evidence attached to the CWS item. Never replace the canonical CWS identity merely because a provider key changes.
+- **PXE artifact:** `clintware-pxe/v1` is the canonical provider-neutral prompt/execution artifact. It carries semantic prompt blocks, provenance/classification, tool contracts, output contract, execution policy, model requirements, security/disclosure policy, namespaced provider extensions, CWS identity, and immutable revision identity.
+
+The canonical schema is `control-plane/pxe.schema.json`; current CWS mappings are in `control-plane/CWS-WORK-ITEMS.json`.
+
+### Immutable revision binding
+
+Every consequential execution must identify:
+
+- `artifact_id`
+- `work_item_id` (`CWS-*`)
+- immutable `revision.id` (`sha256:...`)
+- selected deployment/provider/model
+- adapter/render version when applicable
+- policy decision/evidence identifiers
+
+Do not treat mutable chat state, "current prompt", a provider conversation ID, or a Jira issue body as the reproducible source of execution truth when an immutable PXE revision is available.
+
+### Semantic rendering and loss reports
+
+Provider-specific requests are compiled from PXE at the execution boundary. Preserve semantic instruction hierarchy, tools, multimodal structure, output requirements, and security rules rather than flattening everything into one text string.
+
+Every adapter/render path must produce or be able to produce a **loss report**. Unsupported semantics must never disappear silently.
+
+- Security classification, provider restrictions, required tool scopes, strict output contracts, secret handling, and required capabilities are fail-closed.
+- Cosmetic/aesthetic degradations may proceed only when policy permits them.
+- A provider/model is eligible only when its registered deployment capabilities meet the current PXE requirements.
+- Capability claims are deployment-specific: runtime, model/checkpoint, quantization/profile, context limit, tool calling, structured output, multimodal support, and other relevant behavior are discovered/tested independently.
+
+### Selective disclosure and data classes
+
+PXE blocks use explicit disclosure classifications:
+
+- `PUBLIC`
+- `INTERNAL`
+- `CONFIDENTIAL`
+- `RESTRICTED`
+- `LOCAL_ONLY`
+- `SECRET_REF`
+
+`LOCAL_ONLY` material never leaves its approved local trust boundary. `SECRET_REF` contains only an opaque reference; raw secret values are resolved only inside an approved scoped connector/secret boundary and never embedded into the canonical artifact or model-visible prompt.
+
+Remote providers receive only the blocks that policy authorizes for that exact provider/deployment. Local execution may receive a richer authorized view without creating a second divergent master prompt.
+
+### MCP boundary
+
+**MCP is the governed tool/context edge**, not Clintware's canonical prompt-storage, revision, synchronization, or identity protocol.
+
+Use MCP for controlled resources, prompts, tools, capabilities, and connector access. Keep CWS identity, PXE revision history, provider-neutral semantics, security labels, and execution/audit identity at the Clintware application/control-plane layer.
+
+Never infer that an MCP server, provider thread, Jira ticket, or chat transcript is the master copy of the prompt.
+
+### Synchronization target
+
+The architecture target for multi-client editing is immutable revision history plus convergent collaborative editing, with deny-wins/more-restrictive-wins behavior for security-sensitive conflicts. Until a concrete CRDT/E2EE synchronization layer is deployed and verified, do not claim that capability is live merely because PXE defines the canonical artifact.
+
+### Execution/audit events
+
+Execution evidence should reference CWS + PXE revision rather than copying prompt plaintext into ordinary logs. Prefer metadata such as:
+
+- work item ID
+- artifact/revision hash
+- actor/subject
+- deployment/provider/model
+- tool name/scope plus input/result hashes
+- route/policy decision
+- status, timing, usage, and verification evidence
+
+Prompt plaintext and raw secrets are not general telemetry.
 
 ## Direct device-control and telemetry contract
 
@@ -88,9 +162,10 @@ A provider is a replaceable execution target. QuillGeist owns the durable contex
 
 ## Prompt-ticket completion contract
 
-Every substantial prompt is tracked as one durable ticket using `quillgeist-prompt-ticket/v1`.
+Every substantial prompt is tracked under a canonical `CWS-*` work item. `quillgeist-prompt-ticket/v1` is the local execution/completion record and must reference that CWS identity rather than becoming a competing ticket namespace.
 
-- Open the ticket before work begins.
+- Resolve or create the canonical CWS work item before substantial work begins.
+- Open the local prompt ticket bound to that CWS item before execution begins.
 - Keep the ticket `in_progress` only while work is actively owned and advancing.
 - Close as `verified_done` only after the requested Definition of Done is verified.
 - Close as `blocked` only with concrete evidence, the blocker, and the next required action.
@@ -146,6 +221,9 @@ The Control Plane accepts these fields:
 {
   "from_client": "claude|gemini|grok|perplexity|chatgpt|other",
   "target_client": "chatgpt|any",
+  "work_item_id": "CWS-11",
+  "pxe_artifact_id": "prm_example",
+  "pxe_revision_id": "sha256:...",
   "product": "registered-product-slug",
   "project": "human-readable project name",
   "objective": "What is being accomplished",

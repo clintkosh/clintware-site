@@ -208,6 +208,17 @@ A generic external deployment can define its own identity alias in its own contr
 
 The Control Plane exposes a vendor-neutral handshake and compact work-handoff protocol so different LLM clients can continue the same Clintware project without sharing underlying provider credentials.
 
+Clintware now separates canonical identity from provider-specific surfaces:
+
+- `CWS-*` is the canonical Clintware Support work-item namespace. Jira keys such as legacy `KAN-*` values are provider aliases and may change without changing the canonical work identity.
+- `clintware-pxe/v1` is the canonical Prompt Exchange Envelope for provider-neutral prompt semantics, revision identity, selective disclosure, tool/output contracts, and namespaced provider extensions.
+- `control-plane/pxe.schema.json` defines PXE v1.
+- `control-plane/CWS-WORK-ITEMS.json` records current canonical work-item mappings/evidence.
+- `control-plane/scripts/validate-pxe-contract.py` is the repository/CI guard.
+- MCP remains the governed tool/context edge. It does not replace canonical PXE revision history or CWS identity.
+
+Consequential executions should bind to an immutable PXE revision hash and provider adapters must surface a loss report when semantics cannot be represented faithfully.
+
 MCP tools:
 
 - `clintware_client_handshake`

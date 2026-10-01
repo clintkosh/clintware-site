@@ -64,6 +64,9 @@ jobs:
           PYTHONPATH: agentbridge-node
         run: python3 -m unittest agentbridge-node/tests/test_big_prompt.py agentbridge-node/tests/test_prompt_planner.py
 
+      - name: Validate canonical CWS and PXE contract
+        run: python3 control-plane/scripts/validate-pxe-contract.py
+
       - name: Render validation config
         run: node control-plane/scripts/render-wrangler.mjs 00000000000000000000000000000000
 
