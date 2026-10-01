@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CONTROL_PLANE = os.environ.get("CONTROL_PLANE", "https://mcp.clintware.com").rstrip("/")
 TOKEN = os.environ.get("CONTROL_PLANE_MCP_TOKEN", "")
@@ -613,6 +614,89 @@ if req.get("mode") == "inspect":
         "inspection": public,
     })
     print("INSPECT_OK " + json.dumps(public, indent=2), flush=True)
+    sys.exit(0)
+
+
+if req.get("mode") == "batch":
+    specs = req.get("jobs") or []
+    if not isinstance(specs, list) or not specs or len(specs) > 32:
+        raise SystemExit("batch_jobs_must_be_array_1_to_32")
+
+    created_rows = []
+    for index, spec in enumerate(specs):
+        if not isinstance(spec, dict):
+            raise SystemExit(f"batch_job_invalid:{index}")
+        task_id = str(spec.get("task_id") or "")
+        args = spec.get("args") or {}
+        if task_id not in ALLOWED:
+            raise SystemExit(f"task_not_allowed:{index}:{task_id!r}")
+        if not isinstance(args, dict):
+            raise SystemExit(f"batch_args_invalid:{index}")
+        unknown = set(args) - ALLOWED[task_id]
+        if unknown:
+            raise SystemExit(f"argument_not_allowed:{index}:{sorted(unknown)}")
+        body = {
+            "task_id": task_id,
+            "args": args,
+            "objective": str(spec.get("objective") or req.get("objective") or ""),
+            "target_device": str(spec.get("target_device") or ""),
+            "resume_after": bool(spec.get("resume_after", False)),
+        }
+        status, created = create_job_with_settle(body, settle_seconds=180)
+        if status not in (200, 201, 202) or not created.get("ok"):
+            created_rows.append({"index": index, "ok": False, "task_id": task_id, "target_device": body["target_device"], "error": scrub(created)})
+            continue
+        created_rows.append({
+            "index": index,
+            "ok": True,
+            "task_id": task_id,
+            "target_device": str(created.get("target_device") or body["target_device"]),
+            "job_id": str(created.get("job_id") or ""),
+        })
+
+    runnable = [row for row in created_rows if row.get("ok") and row.get("job_id")]
+    verify_seconds = max(30, min(3600, int(req.get("verify_seconds") or 600)))
+
+    def wait_row(row):
+        job, transport = wait_for_job(row["job_id"], max_seconds=verify_seconds)
+        result = job.get("result") or {}
+        return {
+            **row,
+            "status": str(job.get("status") or "unknown"),
+            "confirmation_transport": transport,
+            "confirmation_source": result.get("confirmation_source"),
+            "confirmed_device": result.get("device_id") or row.get("target_device"),
+            "exit_code": result.get("exit_code"),
+            "duration_ms": result.get("duration_ms"),
+            "worker_slot": result.get("worker_slot"),
+            "gpu_index": result.get("gpu_index"),
+            "resource_class": result.get("resource_class"),
+            "concurrency_group": result.get("concurrency_group"),
+            "confirmed_at": result.get("confirmed_at") or job.get("completed_at"),
+            "output_tail": scrub(result.get("output")),
+        }
+
+    final_rows = [row for row in created_rows if not row.get("ok")]
+    if runnable:
+        with ThreadPoolExecutor(max_workers=min(16, len(runnable))) as pool:
+            futures = {pool.submit(wait_row, row): row for row in runnable}
+            for future in as_completed(futures):
+                row = futures[future]
+                try:
+                    final_rows.append(future.result())
+                except Exception as exc:
+                    final_rows.append({**row, "status": "observer_failed", "error": str(exc)[:1000]})
+
+    final_rows.sort(key=lambda row: int(row.get("index") or 0))
+    summary = {
+        "request_id": req.get("request_id"),
+        "mode": "batch",
+        "jobs": final_rows,
+        "recorded_at": int(time.time()),
+    }
+    write_result(summary)
+    passed = sum(1 for row in final_rows if row.get("status") == "passed")
+    print(f"BATCH_SUMMARY total={len(final_rows)} passed={passed}", flush=True)
     sys.exit(0)
 
 
