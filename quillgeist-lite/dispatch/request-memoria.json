@@ -1,14 +1,10 @@
 {
-  "request_id": "memoria-local-ai-recovery-inventory-20261001-1544",
-  "task_id": "local-ai",
+  "request_id": "memoria-finish-local-ai-20261001-1546",
+  "task_id": "finish-local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "recovery-inventory",
-    "Model": "",
-    "Prompt": "",
-    "ContextTokens": 4096,
-    "MaxTokens": 48
+    "MaxPasses": 6
   },
-  "objective": "Inventory all pending/recoverable MEMORIA local AI/server continuation work from approved local roots without exporting private raw contents or touching excluded drives. Identify preserved data, launchers, handoffs/TODO markers, Immich artifacts, and dependencies so the completion run can cover every remaining branch.",
+  "objective": "Finish all remaining MEMORIA local AI/server work using the canonical QQ workflow. Preserve all existing models, databases, backups, Immich media/database, and incremental BitNet build state. Reconcile services, repair approved storage, recover local agents, restore existing Immich, verify BitNet, integrate Open WebUI/n8n/Ollama through the Quillgeist gateway, and continue repair passes until all required local service endpoints are healthy or a genuine hard blocker remains. Do not use the excluded D: drive and do not replace existing user data with fresh empty state.",
   "resume_after": false
 }
