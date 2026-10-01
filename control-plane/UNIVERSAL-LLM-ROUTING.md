@@ -55,6 +55,19 @@ Once an LLM accepts a substantial parent objective, it owns that objective until
 
 For every retry loop, remain bounded: avoid blind repetition, compare new evidence to prior evidence, and change strategy when a retry reproduces the same failure.
 
+## Adaptive parallel execution contract
+
+For substantial local work, use the machine's adaptive qq worker pool rather than assuming one local task at a time.
+
+- Query or honor the current `worker-pool-profile` when load matters. Capacity is derived from live CPU load, available RAM, GPU/VRAM capacity, and a bounded hard cap.
+- Break large objectives into dependency-aware units. Units with no real dependency should be eligible to execute concurrently; do not create artificial serial chains merely because they came from the same parent prompt.
+- Prefer GPU-class workers for local-model inference, generation, embeddings, vision, rendering, and other GPU-eligible workloads when healthy GPU capacity is available. Fall back conservatively to CPU when no safe GPU slot exists.
+- CPU, I/O, and GPU worker limits are distinct. Do not consume all RAM or saturate the desktop merely because more logical cores exist.
+- Only explicitly `parallel_safe` reviewed tasks may enter the worker pool. Maintenance, service repair, self-update, browser control, deployment, storage mutation, build/link operations, and other conflict-prone tasks remain serialized unless their task contract explicitly declares safe concurrency.
+- Respect concurrency groups and per-task maxima. Two independent read/search/planning jobs may overlap; conflicting mutation jobs must not.
+- MEMORIA and DRIZNET may execute independent work concurrently. Never serialize one device behind the other when their dependency graph does not require it.
+- Preserve end-to-end ownership: parallel fan-out must rejoin at verification, and the parent objective is not complete until all required branches are terminal and the original Definition of Done passes.
+
 ## QuillGeist big-prompt contract
 
 The user's single prompt is the parent objective. QuillGeist is the context/orchestration layer, not a new foundation model.
