@@ -1,7 +1,8 @@
 {
-  "request_id": "memoria-force-recover-bitnet-20260930-2140",
-  "mode": "checkin",
+  "request_id": "memoria-selfupdate-after-force-recovery-20260930-2142",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "action": "restart_runner",
-  "force": true
+  "args": {},
+  "objective": "Refresh MEMORIA Quillgeist Lite from the current reviewed runtime after forced watchdog recovery so heartbeat v2, current health behavior, direct-control routing support, and the hardened BitNet task are installed before resuming local AI work.",
+  "resume_after": true
 }
