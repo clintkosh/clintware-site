@@ -1,6 +1,6 @@
 {
   "schema": "clintware-instruction-manifest/v1",
-  "version": 3,
+  "version": 4,
   "repository": "clintkosh/clintware-site",
   "branch": "main",
   "refresh": {
@@ -18,6 +18,19 @@
       "enabled": true,
       "required": true,
       "load_order": -10,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_instruction_file_get"
+    },
+    {
+      "id": "clintware-expert-mode",
+      "path": "control-plane/instructions/EXPERT-MODE.md",
+      "title": "Clintware Expert Mode",
+      "kind": "quality",
+      "enabled": true,
+      "required": true,
+      "load_order": -5,
       "clients": [
         "*"
       ],

@@ -38,6 +38,8 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.equal(mod.CLINTWARE_MASTER_PROMPT_PATH, "control-plane/MASTER-PROMPT.md");
   assert.match(markdown, /^CLINTWARE UNIVERSAL MASTER PROMPT/m);
   assert.match(markdown, /30\. CURRENT REVIEWED CAPABILITY EXAMPLES/);
+  assert.match(markdown, /PROACTIVENESS:/);
+  assert.match(markdown, /Anticipate follow-up questions/);
   assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
   assert.ok(bootstrap.length < 400, `bootstrap too large: ${bootstrap.length}`);
   assert.match(bootstrap, /clintware_client_handshake/);
@@ -57,6 +59,7 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
 test("instruction manifest keeps extension loading explicit and client-aware", async () => {
   const manifest = JSON.parse(await readFile(new URL("control-plane/instruction-manifest.json", repoRoot), "utf8"));
   const persona = manifest.documents.find((doc) => doc.id === "catshadow-persona");
+  const expert = manifest.documents.find((doc) => doc.id === "clintware-expert-mode");
   const master = manifest.documents.find((doc) => doc.id === "clintware-master-prompt");
   assert.equal(manifest.schema, "clintware-instruction-manifest/v1");
   assert.equal(manifest.extension_root, "control-plane/instructions/");
@@ -67,10 +70,15 @@ test("instruction manifest keeps extension loading explicit and client-aware", a
   assert.equal(persona.path, "control-plane/instructions/CATSHADOW-PERSONA.md");
   assert.equal(persona.required, true);
   assert.equal(persona.loader, "clintware_instruction_file_get");
+  assert.ok(expert);
+  assert.equal(expert.path, "control-plane/instructions/EXPERT-MODE.md");
+  assert.equal(expert.required, true);
+  assert.equal(expert.loader, "clintware_instruction_file_get");
   assert.ok(master);
   assert.equal(master.path, "control-plane/MASTER-PROMPT.md");
   assert.equal(master.required, true);
   assert.deepEqual(master.clients, ["*"]);
   assert.equal(master.loader, "clintware_master_prompt_get");
-  assert.ok(persona.load_order < master.load_order);
+  assert.ok(persona.load_order < expert.load_order);
+  assert.ok(expert.load_order < master.load_order);
 });
