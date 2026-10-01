@@ -1,0 +1,249 @@
+name: Deploy CRM+Cover Application Factory
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/crm-cover-factory/**"
+      - "projects/gtl-crm/**"
+      - "projects/aso-crm/**"
+      - "projects/cwn-crm/**"
+      - "projects/tkm-crm/**"
+      - "projects/aim-crm/**"
+      - "projects/dplr-crm/scripts/browser-local-runtime.mjs"
+      - "ASTRO_CRM_COVER_SKILL.md"
+      - "ASTRO_CRM_ONE_OFF_SKILL.md"
+      - "quillgeist-lite/tools/crm_astro.py"
+      - "quillgeist-lite/tools/crm_cover_batch.py"
+      - "quillgeist-lite/tasks/crm-cover-batch.ps1"
+      - "quillgeist-lite/tasks.json"
+      - ".github/workflows/deploy-crm-cover-application-factory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clintware-crm-cover-application-factory
+  cancel-in-progress: true
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - project: gtl-crm
+            domain: gtl.clintware.com
+            company: GitLab
+            role: Senior Customer Success Operations Manager
+          - project: aso-crm
+            domain: aso.clintware.com
+            company: AlphaSense
+            role: Senior Manager, Customer Success Operations
+          - project: cwn-crm
+            domain: cwn.clintware.com
+            company: ChowNow
+            role: Senior Sales & Customer Success Operations Manager
+          - project: tkm-crm
+            domain: tkm.clintware.com
+            company: Tekmetric
+            role: Director, Customer Success Operations
+          - project: aim-crm
+            domain: aim.clintware.com
+            company: AlphaSense
+            role: Implementation Manager
+    env:
+      PROJECT: ${{ matrix.project }}
+      DOMAIN: ${{ matrix.domain }}
+      COMPANY: ${{ matrix.company }}
+      ROLE: ${{ matrix.role }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate role manifest
+        run: |
+          set -euo pipefail
+          python3 quillgeist-lite/tools/crm_astro.py             --Action validate             --Manifest "projects/$PROJECT/manifest.json"             --Json
+
+      - name: Materialize shared DPLR implementation reference
+        env:
+          CW_ASTRO_REFERENCE_MODE: "1"
+        run: |
+          set -euo pipefail
+          node projects/dplr-crm/scripts/materialize.mjs
+          test -d .build/dplr-crm
+
+      - name: Materialize role-specific CRM+Cover package
+        run: |
+          set -euo pipefail
+          node "projects/$PROJECT/scripts/materialize.mjs"
+          test -f ".build/$PROJECT/APPLICATION.md"
+          test -f ".build/$PROJECT/public/role-profile.js"
+          test -f ".build/$PROJECT/public/cw-astro-local-bootstrap.js"
+          grep -Fq "$DOMAIN" ".build/$PROJECT/wrangler.jsonc"
+          grep -Fq '"storage":"browser-local"' ".build/$PROJECT/public/cw-astro-local-bootstrap.js" || true
+          ! grep -Fq '"durable_objects"' ".build/$PROJECT/wrangler.jsonc"
+
+      - name: Install and source checks
+        working-directory: .build/${{ matrix.project }}
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+          node --check public/role-profile.js
+          grep -Fq "Application and Interview Quality Gates" public/cw-astro-local-bootstrap.js
+          grep -Fq "Tailored cover letter" public/role-profile.js
+          grep -Fq "Download application PDF" public/role-profile.js
+          grep -Fq "Meeting Brief" public/role-profile.js
+          grep -Fq "%PDF-1.4" public/role-profile.js
+          test "$(grep -o '(Synthetic)' public/cw-astro-local-bootstrap.js | wc -l)" -ge 5
+
+      - name: Wrangler dry run
+        working-directory: .build/${{ matrix.project }}
+        run: npx wrangler deploy --dry-run
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy --cwd .build/${{ matrix.project }}
+
+      - name: Verify live HTTP and browser-local contract
+        run: |
+          set -euo pipefail
+          base="https://$DOMAIN"
+          ready=0
+          for i in $(seq 1 48); do
+            h=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/health" || true)
+            p=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/" || true)
+            rp=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/role-profile.js" || true)
+            bs=$(curl -fsS --connect-timeout 5 --max-time 15 "$base/cw-astro-local-bootstrap.js" || true)
+            if grep -Fq "\"service\":\"clintware-$PROJECT\"" <<< "$h"               && grep -Fq '"storage":"browser-local"' <<< "$h"               && grep -Fq '"databaseRowsPerDemoSession":0' <<< "$h"               && grep -Fq '/role-profile.js' <<< "$p"               && grep -Fq "$COMPANY" <<< "$rp"               && grep -Fq "$ROLE" <<< "$rp"               && grep -Fq '(Synthetic)' <<< "$bs"; then
+              ready=1
+              break
+            fi
+            echo "Waiting for $DOMAIN ($i/48)"
+            sleep 5
+          done
+          test "$ready" = "1"
+          code=$(curl -sS -o /tmp/api-state.json -w '%{http_code}' "$base/api/state" | tr -cd '0-9')
+          test "$code" = "409"
+          grep -Fq 'browser_local_api' /tmp/api-state.json
+
+      - name: Interactive browser smoke
+        run: |
+          set -euo pipefail
+          mkdir -p "/tmp/$PROJECT-browser"
+          cd "/tmp/$PROJECT-browser"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          cat > verify.mjs <<'JS'
+          import fs from "node:fs";
+          import { chromium } from "playwright";
+
+          const base="https://"+process.env.DOMAIN;
+          const company=process.env.COMPANY;
+          const role=process.env.ROLE;
+          const browser=await chromium.launch({headless:true,channel:"chrome"});
+          const context=await browser.newContext({viewport:{width:1440,height:960},acceptDownloads:true});
+          const page=await context.newPage();
+          const errors=[];
+          page.on("pageerror",e=>errors.push("page:"+String(e)));
+          page.on("console",m=>{if(m.type()==="error"&&!/^Failed to load resource/i.test(m.text()))errors.push("console:"+m.text())});
+
+          const response=await page.goto(base,{waitUntil:"networkidle"});
+          if(!response?.ok())throw new Error("landing HTTP "+response?.status());
+          await page.waitForSelector("[data-customer-open]",{timeout:20000});
+          const cards=await page.locator("[data-customer-open]").count();
+          if(cards<5)throw new Error("seed portfolio too small: "+cards);
+          const body=await page.locator("body").innerText();
+          if(!body.includes(company)||!body.includes(role))throw new Error("role/company identity missing");
+
+          await page.locator("[data-customer-open]").first().click();
+          await page.waitForSelector("button[data-tab='prep']");
+
+          const customerId=await page.evaluate(()=>window.CWAstroLocalStore.state().customer.id);
+          const created=await page.evaluate(async customerId=>{
+            const r=await fetch("/api/records",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+              customerId,type:"stakeholder",provenance:"internal_record",
+              data:{name:"CI QA Stakeholder",role:"QA verification",organization:"Synthetic smoke",decisionRole:"Verification only",status:"Active",email:"",phone:"",notes:"Disposable browser-context smoke record"}
+            })});
+            return r.json();
+          },customerId);
+          if(!created.id)throw new Error("stakeholder create failed");
+
+          const kpi=await page.evaluate(()=>window.CWAstroLocalStore.state().records.find(r=>r.type==="kpi"));
+          if(!kpi?.id)throw new Error("no KPI record available");
+          await page.evaluate(async id=>{
+            const r=await fetch("/api/records/"+encodeURIComponent(id),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({data:{currentValue:"CI verified"}})});
+            if(!r.ok)throw new Error("KPI patch failed");
+          },kpi.id);
+
+          await page.reload({waitUntil:"networkidle"});
+          const persisted=await page.evaluate(()=>({
+            contact:window.CWAstroLocalStore.state().records.some(r=>r.type==="stakeholder"&&r.data?.name==="CI QA Stakeholder"),
+            kpi:window.CWAstroLocalStore.state().records.some(r=>r.type==="kpi"&&r.data?.currentValue==="CI verified")
+          }));
+          if(!persisted.contact||!persisted.kpi)throw new Error("browser-local persistence failed");
+
+          await page.locator("button[data-tab='prep']").click();
+          await page.waitForSelector("#prep-pdf");
+          const prepDownload=page.waitForEvent("download");
+          await page.locator("#prep-pdf").click();
+          const prep=await prepDownload;
+          const prepPath="/tmp/"+process.env.PROJECT+"-meeting-brief.pdf";
+          await prep.saveAs(prepPath);
+          const prepBytes=fs.readFileSync(prepPath);
+          if(prepBytes.length<500||prepBytes.subarray(0,4).toString()!=="%PDF")throw new Error("meeting brief PDF invalid");
+
+          await page.locator("button[data-tab='application']").click();
+          await page.waitForSelector("#download-application-pdf");
+          const appText=await page.locator("main").innerText();
+          if(!/Why company/i.test(appText)||!/Tailored cover letter/i.test(appText))throw new Error("application copy surface missing");
+          const appDownload=page.waitForEvent("download");
+          await page.locator("#download-application-pdf").click();
+          const app=await appDownload;
+          const appPath="/tmp/"+process.env.PROJECT+"-application.pdf";
+          await app.saveAs(appPath);
+          const appBytes=fs.readFileSync(appPath);
+          if(appBytes.length<500||appBytes.subarray(0,4).toString()!=="%PDF")throw new Error("application PDF invalid");
+
+          const mobile=await context.newPage();
+          await mobile.setViewportSize({width:390,height:844});
+          const mr=await mobile.goto(base,{waitUntil:"networkidle"});
+          if(!mr?.ok())throw new Error("mobile HTTP "+mr?.status());
+          await mobile.waitForSelector("[data-customer-open]");
+          const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+2);
+          if(overflow)throw new Error("mobile horizontal overflow");
+          if(errors.length)throw new Error(errors.join(" | "));
+
+          console.log(JSON.stringify({
+            ok:true,company,role,accounts:cards,
+            persistence:persisted,
+            meetingBriefPdfBytes:prepBytes.length,
+            applicationPdfBytes:appBytes.length,
+            mobileOverflow:false
+          },null,2));
+          await browser.close();
+          JS
+          node verify.mjs
+
+      - name: Verification summary
+        run: |
+          echo "CRM_COVER_VERIFIED=$PROJECT domain=$DOMAIN manifest+shared-dplr+materialize+source-check+dry-run+deploy+live-http+browser-persistence+meeting-pdf+application-pdf+mobile"
