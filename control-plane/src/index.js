@@ -24,7 +24,7 @@ const sha256 = async (s) => {
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 };
 const INSTRUCTION_MANIFEST_PATH="control-plane/instruction-manifest.json";
-const INSTRUCTION_PERSONA_PATH="control-plane/instructions/CATSHADOW-PERSONA.md";
+const INSTRUCTION_PERSONA_PATH="control-plane/instructions/CATSHADOW.md";
 const INSTRUCTION_EXTENSION_ROOT="control-plane/instructions/";
 const INSTRUCTION_RAW_BASE="https://raw.githubusercontent.com/clintkosh/clintware-site/main/";
 const instructionPathAllowed=(path)=>{
