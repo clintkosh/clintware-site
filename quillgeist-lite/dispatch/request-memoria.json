@@ -1,10 +1,13 @@
 {
-  "request_id": "memoria-finish-local-ai-20261001-1622",
-  "task_id": "finish-local-ai",
+  "request_id": "memoria-linkedin-skill-live-read-20261001-1243",
+  "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
-    "MaxPasses": "1"
+    "Action": "read",
+    "Url": "https://www.clintware.com/skills/linkedin-evidence-post/SKILL.md",
+    "MaxChars": "30000",
+    "Headless": "true"
   },
-  "objective": "Run reviewed recovery once, preserving existing models databases photos and backups; return concrete failures for repair and checkpoint unresolved work",
+  "objective": "Verify from MEMORIA that the deployed LinkedIn Evidence Post skill URL resolves and contains the expected skill frontmatter and framework. Read-only.",
   "resume_after": false
 }
