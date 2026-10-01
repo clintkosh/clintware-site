@@ -1,4 +1,4 @@
 {
-  "requested_at": "2026-10-01T12:12:00Z",
-  "reason": "Verify current Control Plane workspace isolation and GitHub identity configuration after moving external workspace aliases to private manifests. Capture current MEMORIA/DRIZNET QQ status."
+  "requested_at": "2026-10-01T12:13:00Z",
+  "reason": "Refresh live QQ and Control Plane status after the converged private-workspace routing deployment; verify generated status remains brand-isolated."
 }
