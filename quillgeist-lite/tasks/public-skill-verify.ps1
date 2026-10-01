@@ -5,7 +5,25 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$Git = Get-Command git -ErrorAction SilentlyContinue
+if (-not $Git) { throw "Git is required for public skill verification." }
+
+$LocalBase = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME ".clintware" }
+$CacheRoot = Join-Path $LocalBase "Clintware\code-search"
+$RepoRoot = Join-Path $CacheRoot "clintware-site"
+$RepoUrl = "https://github.com/clintkosh/clintware-site.git"
+
+New-Item -ItemType Directory -Force -Path $CacheRoot | Out-Null
+if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot ".git") -PathType Container)) {
+    if (Test-Path -LiteralPath $RepoRoot) { Remove-Item -LiteralPath $RepoRoot -Recurse -Force }
+    & $Git.Source clone --depth 1 --branch main --single-branch $RepoUrl $RepoRoot
+    if ($LASTEXITCODE -ne 0) { throw "Could not create the maintained Clintware verification checkout." }
+} else {
+    & $Git.Source -C $RepoRoot fetch origin main --depth 1
+    if ($LASTEXITCODE -ne 0) { throw "Could not refresh the maintained Clintware verification checkout." }
+    & $Git.Source -C $RepoRoot reset --hard origin/main
+    if ($LASTEXITCODE -ne 0) { throw "Could not synchronize the maintained Clintware verification checkout." }
+}
 $PublicSkill = Join-Path $RepoRoot ("public\skills\" + $SkillSlug + "\SKILL.md")
 $SourceSkill = Join-Path $RepoRoot ("skills\" + $SkillSlug + "\SKILL.md")
 $PublicIndex = Join-Path $RepoRoot "public\skills\index.html"
