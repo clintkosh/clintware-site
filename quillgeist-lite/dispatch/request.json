@@ -1,13 +1,11 @@
 {
-  "request_id": "memoria-qq-runtime-v30-check-20261001-1254",
-  "task_id": "browser-work",
+  "request_id": "memoria-linkedin-public-skill-verify-generic-20261001-1258",
+  "task_id": "public-skill-verify",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "read",
-    "Url": "https://mcp.clintware.com/api/v1/quillgeist-lite/runtime/tasks.json",
-    "MaxChars": "100000",
-    "Headless": "true"
+    "SkillSlug": "linkedin-evidence-post",
+    "CheckLive": "true"
   },
-  "objective": "From MEMORIA, read the deployed QQ runtime task registry and verify whether registry version 30 with public-skill-verify is available. Read-only.",
+  "objective": "Run the complete public-skill verifier on MEMORIA for linkedin-evidence-post and return local-agent-confirmed evidence for source/public parity, sanitization, production build, public positioning, catalog/inventory, and live URL checks.",
   "resume_after": false
 }
