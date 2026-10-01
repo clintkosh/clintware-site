@@ -369,6 +369,7 @@ $cliArgs = @(
   "-n","32",
   "-c","2048",
   "-t",[string]([math]::Max(2,[math]::Min(8,[Environment]::ProcessorCount))),
+  "-st",
   "--no-display-prompt"
 )
 $cliProc = Start-Process -FilePath $cli -ArgumentList $cliArgs -WindowStyle Hidden -PassThru -RedirectStandardOutput $CliStdout -RedirectStandardError $CliStderr
