@@ -1,15 +1,15 @@
 {
-  "request_id": "driznet-cwinteract-linkedin-form-website-20261001-1250",
-  "job_id": "77841192-5408-4bda-b17a-a635593f7d64",
+  "request_id": "driznet-cwinteract-linkedin-form-industry-20261001-1252",
+  "job_id": "6c9fe227-5524-446d-a9b0-49a2a9a9624e",
   "task_id": "cwinteract",
   "target_device": "DRIZNET",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 1500,
+  "duration_ms": 1445,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T16:32:04.6821188Z",
-  "recorded_at": 1790872322,
+  "confirmed_at": "2026-10-01T16:32:32.0058025Z",
+  "recorded_at": 1790872350,
   "recovery_history": [],
-  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"Website\",\"controls\":[{\"name\":\"Website\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":273.0,\"top\":476.0,\"width\":50.0,\"height\":20.0,\"right\":323.0,\"bottom\":496.0},\"patterns\":[]},{\"name\":\"Website\",\"automation_id\":\"single-line-text-form-component-urn-li-fsu-pageCreationFormItem-WEBSITE\",\"class\":\" artdeco-text-input--input\",\"control_type\":\"Edit\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":273.0,\"top\":498.0,\"width\":665.0,\"height\":33.0,\"right\":938.0,\"bottom\":531.0},\"patterns\":[\"Value\"]}]}"
+  "output_tail": "[run] {\"ok\":true,\"action\":\"inspect\",\"window_title\":\"(2) LinkedIn\",\"pid\":18116,\"query\":\"Industry\",\"controls\":[{\"name\":\"Industry\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":273.0,\"top\":546.0,\"width\":51.0,\"height\":20.0,\"right\":324.0,\"bottom\":566.0},\"patterns\":[]},{\"name\":\"Industry*\",\"automation_id\":\"single-typeahead-entity-form-component-urn-li-fsu-pageCreationFormItem-INDUSTRY\",\"class\":\"basic-input \",\"control_type\":\"ComboBox\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":273.0,\"top\":568.0,\"width\":665.0,\"height\":33.0,\"right\":938.0,\"bottom\":601.0},\"patterns\":[\"Value\",\"ExpandCollapse\"]},{\"name\":\"Industry\",\"automation_id\":\"\",\"class\":\"\",\"control_type\":\"Text\",\"enabled\":true,\"focusable\":false,\"rect\":{\"left\":305.0,\"top\":1553.0,\"width\":51.0,\"height\":20.0,\"right\":356.0,\"bottom\":1573.0},\"patterns\":[]}]}"
 }
