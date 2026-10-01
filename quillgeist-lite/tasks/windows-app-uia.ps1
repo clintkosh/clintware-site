@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("discover","launch","inspect","form")]
+  [ValidateSet("discover","launch","inspect","tabscan","form")]
   [string]$Action = "discover",
   [string]$AppName = "LinkedIn",
   [string]$WindowTitle = "LinkedIn",
