@@ -1,8 +1,11 @@
 {
-  "request_id": "memoria-selfupdate-after-cp-converged-20261001-0716",
-  "task_id": "self-update",
+  "request_id": "memoria-gns-final-after-runtime-convergence-20261001-0719",
+  "task_id": "crm-astro-build",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA after the converged Control Plane deployment so the local runtime and pinned source cache use the current reviewed revision containing the validated Genesys fixes.",
-  "resume_after": true
+  "args": {
+    "Action": "full",
+    "Project": "gns-crm",
+    "SkipInstall": "false"
+  },
+  "objective": "Build, validate, check, and deploy the Genesys CRM+Cover ASTRO from the converged reviewed source revision and return qq-local-agent deployment evidence."
 }
