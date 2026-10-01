@@ -1,5 +1,5 @@
 {
-  "version": 27,
+  "version": 28,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
   "runtimes": [
@@ -425,6 +425,23 @@
       "resource_class": "cpu",
       "concurrency_group": "worker-smoke",
       "max_parallel": 8
+    },
+    "windows-app-uia": {
+      "title": "Inspect and operate a visible signed-in Windows app through reviewed UI Automation without handling credentials",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/windows-app-uia.ps1",
+      "parameters": [
+        "Action",
+        "AppName",
+        "WindowTitle",
+        "Query",
+        "StepsJson",
+        "Approved",
+        "MaxResults",
+        "WaitMs"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600
     }
   }
 }
