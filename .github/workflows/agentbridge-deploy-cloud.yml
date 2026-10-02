@@ -3,6 +3,12 @@ name: Deploy Quillgeist Cloud
 on:
   push:
     branches: [main]
+    paths:
+      - "agentbridge-cloud/**"
+      - "agentbridge-node/agentbridge_node/local_gateway.py"
+      - "public/tools/quillgeist/**"
+      - "tests/test_quillgeist_saas.py"
+      - ".github/workflows/agentbridge-deploy-cloud.yml"
   pull_request:
     paths:
       - "agentbridge-cloud/**"
@@ -49,6 +55,8 @@ jobs:
           node --check agentbridge-cloud/public/public-stats.js
           node --check agentbridge-cloud/public/progress.js
           node --check agentbridge-cloud/public/sw.js
+          python3 -m py_compile agentbridge-node/agentbridge_node/local_gateway.py
+          python3 -m unittest tests.test_quillgeist_saas -v
       - name: Wrangler config validates
         run: |
           set -euo pipefail
