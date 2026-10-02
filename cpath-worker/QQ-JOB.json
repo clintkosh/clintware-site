@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "job_id": "CWS-120-CODEPATH-VERIFY",
+  "parent_issue": 120,
+  "project": "CodePath Claude Corps Delivery OS",
+  "role_job_id": "5204061007",
+  "execution_policy": {
+    "local_first": true,
+    "preferred_targets": [
+      "MEMORIA",
+      "DRIZNET"
+    ],
+    "fallback_allowed": true,
+    "remote_provider_work": "only when required for external verification or deployment",
+    "secrets": "inherit from local Clintware/QQ control plane; never embed in this file"
+  },
+  "repository": {
+    "full_name": "clintkosh/clintware-site",
+    "branch": "main",
+    "worktree": "cpath-worker"
+  },
+  "objective": "Synchronize the latest CodePath Delivery OS, validate the 10-mentor/200-fellow seeded demo, verify local Worker syntax and live role-specific health, and return a concise PASS/FAIL report.",
+  "preconditions": [
+    "git is available",
+    "PowerShell 7 preferred",
+    "repository is already cloned or QQ can resolve the Clintware workspace",
+    "network access is available for live cpath.clintware.com verification"
+  ],
+  "steps": [
+    {
+      "id": "sync",
+      "command": "git fetch origin main; git checkout main; git pull --ff-only origin main",
+      "cwd": "<repo-root>"
+    },
+    {
+      "id": "verify",
+      "command": "pwsh -NoProfile -File .\\cpath-worker\\verify-memoria.ps1",
+      "cwd": "<repo-root>"
+    }
+  ],
+  "success_gates": [
+    "10 seeded mentors present",
+    "20 fellows generated per mentor",
+    "200-fellow release marker present",
+    "seed state key is cpath-claude-corps-delivery-v2",
+    "Worker syntax passes when node is installed",
+    "live /health returns ok=true",
+    "live jobId is 5204061007",
+    "live surface is mentor-delivery-accountability-system",
+    "live page contains current full-scale release markers"
+  ],
+  "result_contract": {
+    "format": "json",
+    "fields": [
+      "job_id",
+      "machine",
+      "status",
+      "commit",
+      "timestamp",
+      "checks",
+      "error"
+    ],
+    "status_values": [
+      "PASS",
+      "FAIL"
+    ]
+  }
+}
