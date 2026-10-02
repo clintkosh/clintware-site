@@ -381,5 +381,33 @@
         }
       ]
     }
-  ]
+  ],
+  "role_verification": {
+    "source_url": "https://job-boards.greenhouse.io/alphasense/jobs/8816770002",
+    "verified_at": "2026-10-02",
+    "source_status": "verified_current_public_posting"
+  },
+  "company_values": {
+    "framework_name": "Careers culture themes",
+    "source_url": "https://www.alpha-sense.com/careers/",
+    "verified_at": "2026-10-02",
+    "values": [
+      {
+        "name": "People First",
+        "meaning": "Lead with empathy, inclusion, support, and meaningful ownership.",
+        "role_connection": "Implementation succeeds through stakeholder alignment, clear communication, change management, and a clean handoff to AM/CS."
+      },
+      {
+        "name": "Product-led",
+        "meaning": "Start with exceptional customer value and user needs, then innovate with speed and purpose.",
+        "role_connection": "Keeps rollout milestones and adoption interventions focused on sustained product usage rather than go-live activity alone."
+      },
+      {
+        "name": "Growth Mindset",
+        "meaning": "Use curiosity, resilience, feedback, and ownership to keep evolving.",
+        "role_connection": "Supports learning from each rollout and turning recurring deployment friction into a better implementation playbook."
+      }
+    ],
+    "application_rule": "Use the official public framework as interview/application context. Connect it to documented candidate evidence and role outcomes without claiming insider culture knowledge or manufacturing personal fit."
+  }
 }
