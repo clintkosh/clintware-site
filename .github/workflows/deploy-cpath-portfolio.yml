@@ -55,7 +55,13 @@ jobs:
             'Building effective agents',
             'G-DCY144YM9P',
             "localStorage",
-            'job-boards.greenhouse.io/codepath/jobs/5204061007'
+            'job-boards.greenhouse.io/codepath/jobs/5204061007',
+            "for(let i=0;i<20;i++)",
+            'highByMentor',
+            "cohort:cohorts",
+            "project:projects",
+            "track:tracks",
+            "cpath-claude-corps-delivery-v2"
           ]
           missing=[x for x in required if x not in html]
           assert not missing, f'Missing required content: {missing}'
@@ -69,7 +75,10 @@ jobs:
           unsafe=[h for h in p.hrefs if re.match(r'^(javascript|data):',h,re.I)]
           assert not unsafe, f'Unsafe href schemes: {unsafe}'
           assert 'real fellow, mentor, or CodePath operational data' in html
-          print('Delivery OS content, interaction markers, analytics and accessibility checks passed')
+          assert html.count("{name:'") >= 10, 'Expected at least 10 seeded mentor records'
+          assert '10 mentors · 200 fellows at scale' in html
+          assert "for(let i=0;i<20;i++)" in html, 'Expected 20 fellows per mentor generator'
+          print('Delivery OS content, 200-fellow seed markers, interaction markers, analytics and accessibility checks passed')
           PY
           npx --yes wrangler@4 deploy --dry-run --config cpath-worker/wrangler.jsonc
 
@@ -99,7 +108,7 @@ jobs:
             headers=$(mktemp)
             body=$(mktemp)
             code=$(curl -sS -D "$headers" --connect-timeout 5 --max-time 20 -o "$body" -w '%{http_code}' "https://cpath.clintware.com/?release=${GITHUB_SHA}" || true)
-            if [ "$code" = "200" ]               && grep -Fq 'Claude Corps Delivery OS' "$body"               && grep -Fq 'Mentor health at a glance' "$body"               && grep -Fq 'Curriculum change requests' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
+            if [ "$code" = "200" ]               && grep -Fq 'Claude Corps Delivery OS' "$body"               && grep -Fq 'Mentor health at a glance' "$body"               && grep -Fq 'Curriculum change requests' "$body"               && grep -Fq '10 mentors · 200 fellows at scale' "$body"               && grep -Fq 'cpath-claude-corps-delivery-v2' "$body"               && grep -Fq 'G-DCY144YM9P' "$body"               && grep -Eqi '^x-robots-tag:.*noindex' "$headers"; then
               ready=1
               rm -f "$headers" "$body"
               break
