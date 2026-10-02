@@ -306,3 +306,24 @@ A LinkedIn draft that sounds more polished than human, exposes private context u
 Before creating or materially changing any agent that discovers public questions, drafts community responses, publishes replies, or manages professional/community participation, read and apply `ASTRO_RESPONDER_AGENT_SKILL.md`.
 
 A responder agent is incomplete until platform policy, identity, evidence, independent quality gates, resource limits, auditability, approval boundaries, and kill controls have been verified. A platform-specific prohibition must not be bypassed through another adapter or execution path.
+
+## Universal evidence provenance and decision-artifact integrity
+
+Before creating, changing, exporting, or sending any decision-facing interview kit, CRM, presentation, PDF, DOCX, case study, report, dashboard, cover letter, application answer, or external email, read and apply `docs/EVIDENCE_PROVENANCE_STANDARD.md`.
+
+This is a repository invariant.
+
+Required rules:
+
+1. Every consequential metric, percentage, financial figure, timeline, rate, count, forecast, ROI value, or derived number must resolve to an original source or an explicit TARGET / DERIVED / ESTIMATE / SYNTHETIC / PUBLIC FACT / LOGISTICS classification.
+2. Maintain a machine-readable claim ledger when the deliverable family contains consequential numbers.
+3. Run the triple gate: source/logic check -> final-artifact extraction reconciliation -> human logic/visual review.
+4. If a source cannot be located, remove the number or downgrade it to a sourced qualitative statement. Never preserve an orphan metric because it looks persuasive.
+5. CRM KPI records must carry provenance metadata and synthetic demo metrics must remain visibly synthetic.
+6. Presentations and case studies must tie quantitative claims to a source map or notes/appendix and label illustrative math on-slide.
+7. External messages must re-verify names, recipients, role/company, dates/times/time zone, metrics, links, attachments, and claims before release.
+8. For interview/application work, always create a one-line ROLE PROBLEM HYPOTHESIS, update it against what the interviewer actually says, build an evidence-based interviewer decision/operating profile, and map the operational org around the role/interviewer without inventing reporting lines.
+9. For technical roles, include a current role-specific refresher from primary/authoritative technical sources. Refresher knowledge is not candidate-experience evidence.
+10. Use `scripts/validate-evidence-provenance.py` against generated artifacts when applicable. A failed provenance gate blocks release.
+
+The Neuron7 unsupported-metric failure is the permanent regression case.
