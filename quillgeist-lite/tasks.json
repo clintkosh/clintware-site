@@ -1,5 +1,5 @@
 {
-  "version": 31,
+  "version": 32,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. QQ keeps an independent watchdog path available while interactive work is busy. Local CloudMist can enroll multiple owner-controlled machines into a capability-aware local compute/failover pool; Work/cloud execution is optional and never required for routine local-first operation.",
   "runtimes": [
@@ -528,6 +528,34 @@
       "parallel_safe": false,
       "resource_class": "mixed",
       "concurrency_group": "crm-factory",
+      "max_parallel": 1
+    },
+    "driznet-server-core": {
+      "title": "Build, repair, or verify the DRIZNET internal-storage local AI server core",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/driznet-server-core.ps1",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 7200,
+      "parallel_safe": false,
+      "resource_class": "mixed",
+      "concurrency_group": "driznet-server",
+      "max_parallel": 1
+    },
+    "driznet-media": {
+      "title": "Build, repair, or verify DRIZNET ComfyUI and local media agent on internal storage",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/driznet-media.ps1",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 10800,
+      "parallel_safe": false,
+      "resource_class": "gpu",
+      "concurrency_group": "driznet-server",
       "max_parallel": 1
     }
   }
