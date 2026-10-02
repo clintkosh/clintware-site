@@ -1096,6 +1096,134 @@ def storage_probe():
         run([docker, "rm", "-f", name], 10)
 
 
+def _replace_data_bind(source, target, inside, volume):
+    """Change one reviewed short-form data mount, preserving all other YAML."""
+    path_pattern = re.escape(str(target).replace("\\", "/")).replace("/", r"[/\\]")
+    pattern = re.compile(r"(?im)^(\s*-\s*)([\"']?)" + path_pattern + ":" + re.escape(inside) + r"(?::rw)?\2\s*$")
+    replaced, count = pattern.subn(lambda m: m.group(1) + volume + ":" + inside, source)
+    if count != 1:
+        raise ValueError("expected_one_short_form_data_bind")
+    definition = "  " + volume + ":\n    external: true\n    name: " + volume + "\n"
+    header = re.compile(r"(?m)^volumes:\s*$")
+    if len(header.findall(replaced)) > 1:
+        raise ValueError("ambiguous_volumes_header")
+    if header.search(replaced):
+        replaced = header.sub("volumes:\n" + definition.rstrip(), replaced, count=1)
+    else:
+        replaced = replaced.rstrip() + "\n\nvolumes:\n" + definition
+    return replaced
+
+
+def repair_native_volumes():
+    """Copy small recovered app databases into native Docker volumes, with rollback."""
+    import uuid
+    import sqlite3
+    if os.name != "nt" or platform.node().lower() != "memoria":
+        return {"ok": False, "error": "memoria_only"}
+    docker = shutil.which("docker")
+    if not docker:
+        return {"ok": False, "error": "docker_missing"}
+    compose = Path(r"C:\AI\LOCAL-CHATGPT\docker\docker-compose.yml")
+    results = []
+    specs = [("n8n-local", "n8n-local", Path(r"F:\AI-Data\Docker\n8n"), "/home/node/.n8n", "1000:1000", "http://127.0.0.1:5678/healthz"),
+             ("open-webui-local", "open-webui", Path(r"F:\AI-Data\Docker\open-webui"), "/app/backend/data", "0:0", "http://127.0.0.1:3015/health")]
+    for name, service, target, inside, owner, health in specs:
+        try:
+            urllib.request.urlopen(health, timeout=3).close()
+            results.append({"container": name, "healthy": True, "action": "already_healthy"})
+            continue
+        except Exception:
+            pass
+        original = compose.read_text(encoding="utf-8-sig")
+        if re.search(r"(?i)(?:\bD:|/mnt/d/)", original):
+            return {"ok": False, "error": "compose_excluded_drive", "results": results}
+        suffix = uuid.uuid4().hex[:10]
+        volume = "qq_memoria_" + service.replace("-", "_") + "_" + suffix
+        try:
+            changed = _replace_data_bind(original, target, inside, volume)
+        except ValueError as exc:
+            results.append({"container": name, "error": str(exc)})
+            continue
+        # No link traversal and no large-model migration.
+        files = []
+        for folder, dirs, names in os.walk(target, followlinks=False):
+            for entry in dirs + names:
+                p = Path(folder) / entry
+                if p.is_symlink() or getattr(p.lstat(), "st_file_attributes", 0) & 1024:
+                    return {"ok": False, "error": "data_reparse_point_preserved", "results": results}
+            files.extend(Path(folder) / entry for entry in names)
+        total = sum(p.stat().st_size for p in files)
+        if total > 256 * 1024 * 1024:
+            results.append({"container": name, "error": "native_copy_size_limit", "bytes": total})
+            continue
+        for db in (p for p in files if p.name in {"webui.db", "database.sqlite", "chroma.sqlite3"}):
+            with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as connection:
+                if connection.execute("PRAGMA quick_check").fetchone() != ("ok",):
+                    return {"ok": False, "error": "source_database_integrity_failed", "results": results}
+        rc, image = run([docker, "inspect", "--format", "{{.Image}}", name], 15)
+        if rc or not re.fullmatch(r"sha256:[0-9a-f]{64}", image.strip()):
+            results.append({"container": name, "error": "existing_image_missing"})
+            continue
+        backup = compose.with_name("docker-compose.qq-preserved-" + suffix + ".yml")
+        backup.write_text(original, encoding="utf-8")
+        rc, _ = run([docker, "volume", "create", "--label", "clintware.recovery=memoria", volume], 20)
+        if rc:
+            results.append({"container": name, "error": "native_volume_create_failed"})
+            continue
+        helper = "qq-copy-" + suffix
+        committed = False
+        row = {"container": name, "volume": volume, "source_preserved": str(target), "source_bytes": total, "compose_backup": str(backup)}
+        try:
+            rc, _ = run([docker, "stop", "-t", "20", name], 35)
+            if rc:
+                raise RuntimeError("service_stop_failed")
+            rc, _ = run([docker, "create", "--name", helper, "--network", "none", "--mount", "type=volume,source=" + volume + ",target=/recovery", "--entrypoint", "sh", image.strip(), "-c", "chown -R " + owner + " /recovery && chmod -R u+rwX /recovery"], 30)
+            if rc:
+                raise RuntimeError("copy_helper_create_failed")
+            rc, _ = run([docker, "cp", str(target) + "/.", helper + ":/recovery"], 120)
+            if rc:
+                raise RuntimeError("native_data_copy_failed")
+            rc, _ = run([docker, "start", "-a", helper], 45)
+            if rc:
+                raise RuntimeError("native_data_permissions_failed")
+            candidate = compose.with_name("docker-compose.qq-candidate-" + suffix + ".yml")
+            candidate.write_text(changed, encoding="utf-8")
+            rc, _ = run([docker, "compose", "-f", str(candidate), "config", "-q"], 30)
+            if rc:
+                raise RuntimeError("candidate_compose_invalid")
+            if compose.read_text(encoding="utf-8-sig") != original:
+                raise RuntimeError("compose_changed_during_recovery")
+            os.replace(candidate, compose)
+            committed = True
+            rc, _ = run([docker, "compose", "-f", str(compose), "up", "-d", "--no-deps", "--force-recreate", "--no-build", "--pull", "never", service], 120)
+            if rc:
+                raise RuntimeError("native_service_start_failed")
+            healthy = False
+            deadline = time.monotonic() + 75
+            while time.monotonic() < deadline:
+                try:
+                    urllib.request.urlopen(health, timeout=3).close()
+                    healthy = True
+                    break
+                except Exception:
+                    time.sleep(3)
+            if not healthy:
+                raise RuntimeError("native_service_health_failed")
+            row.update(healthy=True, action="native_volume_recovered")
+        except (OSError, ValueError, RuntimeError) as exc:
+            row.update(error=str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__, healthy=False)
+            if committed:
+                compose.write_text(original, encoding="utf-8")
+                rc, _ = run([docker, "compose", "-f", str(compose), "up", "-d", "--no-deps", "--force-recreate", "--no-build", "--pull", "never", service], 120)
+                row["rollback_exit_code"] = rc
+            else:
+                run([docker, "start", name], 30)
+        finally:
+            run([docker, "rm", "-f", helper], 15)
+        results.append(row)
+    return {"ok": all(r.get("healthy") for r in results), "results": results, "original_data_deleted": False, "excluded_drive_accessed": False}
+
+
 def n8n_workflow_definitions():
     """Credential-free, manual-only local readiness workflows."""
     import uuid
@@ -1152,14 +1280,17 @@ def prepare_n8n_workflows():
     # existing matching ID is skipped, never overwritten by another import.
     for workflow in definitions:
         wid = workflow["id"]
-        export_path = "/data/Automation/n8n/existing-" + wid + ".json"
+        export_path = "/tmp/qq-existing-" + wid + ".json"
         rc, _ = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "export:workflow", "--id=" + wid, "--output=" + export_path], 60)
-        exists = rc == 0 and (output / ("existing-" + wid + ".json")).is_file()
+        exists = rc == 0
         row = {"id": wid, "name": workflow["name"], "existing_preserved": exists}
         if not exists:
             one = output / (wid + ".json")
             one.write_text(json.dumps([workflow], indent=2), encoding="utf-8")
-            rc, logs = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "import:workflow", "--input=/data/Automation/n8n/" + one.name], 90)
+            inside_file = "/tmp/qq-" + one.name
+            rc, logs = run([docker, "cp", str(one), "n8n-local:" + inside_file], 30)
+            if rc == 0:
+                rc, logs = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "import:workflow", "--input=" + inside_file], 90)
             row["imported"] = rc == 0
             if rc:
                 row["error"] = "workflow_import_failed"
@@ -1182,12 +1313,18 @@ def prepare_n8n_workflows():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "storage-probe", "prepare-n8n-workflows", "repair-storage", "repair-comfy-runtime", "recover-agents"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "storage-probe", "repair-native-volumes", "prepare-n8n-workflows", "repair-storage", "repair-comfy-runtime", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "repair-native-volumes":
+        result = repair_native_volumes()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
     if a.Action == "storage-probe":
         result = storage_probe()
         print(json.dumps(result, indent=2))
