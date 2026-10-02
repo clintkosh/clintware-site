@@ -1,15 +1,15 @@
 {
-  "request_id": "work-memoria-n8n-workflows-20261002-0812",
-  "job_id": "39b4fda8-e64f-47a3-b62d-280983340026",
+  "request_id": "work-memoria-bind-probe-20261002-0814",
+  "job_id": "e8745701-800e-4bf4-9566-36561de5b114",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
-  "status": "failed",
-  "exit_code": 2,
-  "duration_ms": 2568,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 1468,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-02T08:08:57.4860165Z",
-  "recorded_at": 1790928525,
+  "confirmed_at": "2026-10-02T08:10:08.0499192Z",
+  "recorded_at": 1790928596,
   "recovery_history": [],
-  "output_tail": "[run] {\r\n[run]   \"ok\": false,\r\n[run]   \"file\": \"F:\\\\AI-Data\\\\Automation\\\\n8n\\\\memoria-readiness-workflows.json\",\r\n[run]   \"workflows\": [],\r\n[run]   \"automatic_triggers\": false,\r\n[run]   \"credentials_embedded\": false,\r\n[run]   \"error\": \"n8n_not_healthy\",\r\n[run]   \"prepared\": true\r\n[run] }"
+  "output_tail": "[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"probe\": {\r\n[run]     \"host_marker_visible\": false,\r\n[run]     \"read_errno\": 2,\r\n[run]     \"writable\": false,\r\n[run]     \"write_errno\": 30,\r\n[run]     \"mounts\": [\r\n[run]       \"570 561 0:46 /mnt/host/f/AI-Data/Docker/open-webui /probe ro,relatime - overlay none ro,lowerdir=/distro,upperdir=/distro-rw/rw/upper,workdir=/distro-rw/rw/work,uuid=on\"\r\n[run]     ]\r\n[run]   },\r\n[run]   \"host_writable\": true\r\n[run] }"
 }
