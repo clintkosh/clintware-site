@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "description": "Canonical remote-dispatch allowlist for Clintware Quillgeist/qq. Local execution details remain in quillgeist-lite/tasks.json; this file defines only tasks and arguments that the control plane may accept remotely.",
   "tasks": {
     "clintware-doctor": {
@@ -261,6 +261,16 @@
       "parameters": [
         "SkillSlug",
         "CheckLive"
+      ]
+    },
+    "crm-cover-batch": {
+      "runtime": "powershell",
+      "parameters": [
+        "Projects",
+        "Action",
+        "Workers",
+        "GenerateCopy",
+        "Model"
       ]
     }
   }
