@@ -1,8 +1,13 @@
 {
-  "request_id": "astro-pulse-rollout-memoria-20261002-1459",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-server-plan-20261002-1700",
+  "task_id": "big-prompt-plan",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Install the reviewed Clintware QQ runtime that adds live resource presence, adaptive load-balancing telemetry, and the current CRM+Cover factory task bundle. Preserve active work and resume normal queued work after the safe restart.",
+  "args": {
+    "Prompt": "Finish the DRIZNET local AI server completely using DRIZNET internal storage only. Preserve all existing C:\\AI work and Ollama models. DRIZNET is independent from MEMORIA. Required right-sized service plane: Quillgeist local gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, local web-search agent, and the planned media/ComfyUI path where supported; keep Discord helper configuration-safe and do not require external Toshiba storage. Verify endpoints and real local inference before completion.",
+    "Project": "driznet-local-ai-server",
+    "StateScope": "DRIZNET",
+    "MaxDepth": "3"
+  },
+  "objective": "Produce the dependency-aware execution plan for completing DRIZNET's internal-storage local AI server while the actual mutations remain targeted to DRIZNET.",
   "resume_after": true
 }
