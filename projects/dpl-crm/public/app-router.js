@@ -30,7 +30,7 @@ function bind(){
  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>edit(b.dataset.add));
  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let r=S.records.find(x=>x.id===b.dataset.edit);edit(r.type,r)});
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm('Archive this record?')){await api('/records/'+b.dataset.del,{method:'DELETE'});load(S.customer.id)}});
- let cs=document.querySelector('#cust');if(cs)cs.onchange=x=>{if(x.target.value){if(typeof stopLiveAudio==='function'&&LIVE?.active)void stopLiveAudio();load(x.target.value)}};
+ let cs=document.querySelector('#cust');if(cs)cs.onchange=x=>{if(x.target.value){if(typeof stopLiveAudio==='function'&&LIVE?.active)void stopLiveAudio();tab='command';load(x.target.value)}};
  let nc=document.querySelector('#newc');if(nc)nc.onclick=newCustomer;
  let nc2=document.querySelector('#newc2');if(nc2)nc2.onclick=newCustomer;
  let im=document.querySelector('#import');if(im)im.onclick=importCustomers;
