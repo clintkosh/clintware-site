@@ -250,6 +250,9 @@ jobs:
           code=$(curl -sS --connect-timeout 5 --max-time 20 -o /tmp/admin-api.json -w '%{http_code}' https://mcp.clintware.com/admin/api/overview)
           test "$code" = "401"
           grep -Fq '"error":"unauthorized"' /tmp/admin-api.json
+          pulse_code=$(curl -sS --connect-timeout 5 --max-time 20 -o /tmp/admin-pulse.json -w '%{http_code}' https://mcp.clintware.com/admin/api/pulse)
+          test "$pulse_code" = "401"
+          grep -Fq '"error":"unauthorized"' /tmp/admin-pulse.json
           cfg=$(curl -fsS --connect-timeout 5 --max-time 20 https://auth.clintware.com/client-config/control-plane-admin)
           echo "$cfg" | grep -Fq '"redirect_uri":"https://mcp.clintware.com/admin/callback"'
           echo "$cfg" | grep -Fq '"client_id":"https://auth.clintware.com/client/clintware-web"'
