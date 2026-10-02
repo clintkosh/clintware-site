@@ -1,6 +1,6 @@
 {
   "schema": "clintware-instruction-manifest/v1",
-  "version": 6,
+  "version": 7,
   "repository": "clintkosh/clintware-site",
   "branch": "main",
   "refresh": {
@@ -61,8 +61,49 @@
         "*"
       ],
       "loader": "clintware_master_prompt_get"
+    },
+    {
+      "id": "architecture-overflow",
+      "path": "control-plane/instructions/ARCHITECTURE-OVERFLOW.md",
+      "title": "Clintware Architecture Overflow",
+      "kind": "architecture",
+      "enabled": true,
+      "required": true,
+      "load_order": 35,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_instruction_file_get"
+    },
+    {
+      "id": "local-ai-efficiency",
+      "path": "control-plane/instructions/LOCAL-AI-EFFICIENCY.md",
+      "title": "Clintware Local AI Efficiency Overflow",
+      "kind": "architecture",
+      "enabled": true,
+      "required": true,
+      "load_order": 36,
+      "clients": [
+        "*"
+      ],
+      "loader": "clintware_instruction_file_get"
+    },
+    {
+      "id": "chatgpt-context-bridge",
+      "path": "control-plane/instructions/CHATGPT-CONTEXT-BRIDGE.md",
+      "title": "ChatGPT Clintware Context Bridge",
+      "kind": "client",
+      "enabled": true,
+      "required": true,
+      "load_order": 37,
+      "clients": [
+        "chatgpt",
+        "gpt",
+        "openai"
+      ],
+      "loader": "clintware_instruction_file_get"
     }
   ],
   "extension_root": "control-plane/instructions/",
-  "notes": "MCP-capable clients load every enabled applicable document in load_order. The canonical execution contract is control-plane/MASTER-PROMPT.md via clintware_master_prompt_get; the bootstrap now verifies its complete numbered 1-30 operating contract and final autonomous-continuation directive. UNIVERSAL-LLM-ROUTING.md is supplemental and must never replace the canonical master. Universal order begins with the full CATShadow/D@V1D/Clintware bootstrap, then canonical CATSHADOW.md, then Expert Mode, then the master prompt."
+  "notes": "Canonical master remains control-plane/MASTER-PROMPT.md. Fast-moving architecture lives in required MCP-loaded overflow MDs. ChatGPT additionally loads the client bridge so Project/chat sessions inspect direct Clintware tools and the reviewed GitHub relay before declaring Clintware disconnected."
 }
