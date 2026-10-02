@@ -1,10 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-diag-20261002-1657",
-  "task_id": "local-ai",
+  "request_id": "chatgpt-driznet-registry32-20261002-1710",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "diagnostics"
-  },
-  "objective": "Inventory DRIZNET Docker availability, existing containers, C:\\AI launchers, agents, and local AI service prerequisites before materializing the right-sized internal-storage server bundle.",
+  "args": {},
+  "objective": "Refresh DRIZNET with the canonical registry containing durable internal-storage server-core and media tasks, preserving active work and resuming normally.",
   "resume_after": true
 }
