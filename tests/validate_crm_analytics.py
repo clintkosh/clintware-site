@@ -40,8 +40,12 @@ def worker_targets() -> list[tuple[str, str]]:
         if not CRM_CONFIG_MARKERS.search(config):
             continue
         sources = [config]
-        for suffix in ("*.js", "*.ts", "*.tsx", "*.html"):
-            sources.extend(read_text(path) for path in sorted((project / "src").rglob(suffix)))
+        for source_root in ("src", "public"):
+            root = project / source_root
+            if not root.exists():
+                continue
+            for suffix in ("*.js", "*.ts", "*.tsx", "*.html"):
+                sources.extend(read_text(path) for path in sorted(root.rglob(suffix)))
         combined = "\n".join(sources)
         targets.append((str(project.relative_to(ROOT)), combined))
     return targets
