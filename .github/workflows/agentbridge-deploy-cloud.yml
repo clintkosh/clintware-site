@@ -56,6 +56,7 @@ jobs:
           node --check agentbridge-cloud/public/progress.js
           node --check agentbridge-cloud/public/sw.js
           python3 -m py_compile agentbridge-node/agentbridge_node/local_gateway.py
+          node --test agentbridge-cloud/test/*.test.mjs
           python3 -m unittest tests.test_quillgeist_saas -v
       - name: Wrangler config validates
         run: |
@@ -72,6 +73,8 @@ jobs:
           grep -Fq 'quillgeist_compact_context' agentbridge-cloud/src/public-api.js
           grep -Fq 'quillgeist_product_impact' agentbridge-cloud/src/public-api.js
           grep -Fq '/api/v1/compact' agentbridge-cloud/src/public-api.js
+          grep -Fq 'quillgeist_compile_route' agentbridge-cloud/src/public-api.js
+          grep -Fq '/api/v1/route' agentbridge-cloud/src/public-api.js
           grep -Eq 'allowedHostnames:[[:space:]]*\[host\]' agentbridge-cloud/src/public-api.js
           grep -Fq 'onClintwareDistribution&&retiredPublicRuntime' agentbridge-cloud/src/entry.js
           grep -Fq 'public_runtime:false' agentbridge-cloud/src/entry.js
@@ -198,6 +201,7 @@ jobs:
             bootstrap_code=$(curl -sS -o /tmp/qg-bootstrap.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/account/bootstrap || true)
             pair_code=$(curl -sS -o /tmp/qg-pair.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/pair/request -H 'content-type: application/json' --data '{"pair_code":"ABCDEFGH","device_id":"smoke","device_token":"not-secret"}' || true)
             compact_code=$(curl -sS -o /tmp/qg-compact.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/v1/compact -H 'content-type: application/json' --data '{"text":"smoke"}' || true)
+            route_code=$(curl -sS -o /tmp/qg-route.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/api/v1/route -H 'content-type: application/json' --data '{"task":"smoke","task_type":"general"}' || true)
             mcp_code=$(curl -sS -o /tmp/qg-mcp.json -w '%{http_code}' -X POST https://quillgeist.clintware.com/mcp -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' || true)
             if grep -Fq '"service":"Quillgeist Distribution Site"' <<< "$health" \
               && grep -Fq '"public_runtime":false' <<< "$health" \
@@ -212,6 +216,7 @@ jobs:
               && test "$bootstrap_code" = "410" \
               && test "$pair_code" = "410" \
               && test "$compact_code" = "410" \
+              && test "$route_code" = "410" \
               && test "$mcp_code" = "410" \
               && grep -Fq '"self_host_required":true' /tmp/qg-bootstrap.json \
               && grep -Fq '"self_host_required":true' /tmp/qg-pair.json; then
@@ -223,7 +228,7 @@ jobs:
           if [ "$ready" != 1 ]; then
             echo "Quillgeist live smoke diagnostics after bounded propagation wait:" >&2
             echo "health=$health" >&2
-            echo "stats_code=$stats_code bootstrap_code=$bootstrap_code pair_code=$pair_code compact_code=$compact_code mcp_code=$mcp_code" >&2
+            echo "stats_code=$stats_code bootstrap_code=$bootstrap_code pair_code=$pair_code compact_code=$compact_code route_code=$route_code mcp_code=$mcp_code" >&2
             echo "predicate_health_service=$(grep -Fq '"service":"Quillgeist Distribution Site"' <<< "$health" && echo PASS || echo FAIL)" >&2
             echo "predicate_health_public_runtime=$(grep -Fq '"public_runtime":false' <<< "$health" && echo PASS || echo FAIL)" >&2
             echo "predicate_page_local_only=$(grep -Fq 'local-only default' <<< "$page" && echo PASS || echo FAIL)" >&2
@@ -233,7 +238,8 @@ jobs:
             echo "predicate_stats_cors=$(grep -Fiq 'access-control-allow-origin: *' <<< "$stats_cors" && echo PASS || echo FAIL)" >&2
             echo "predicate_bootstrap_retired=$( { test "$bootstrap_code" = "410" && grep -Fq '"self_host_required":true' /tmp/qg-bootstrap.json; } && echo PASS || echo FAIL)" >&2
             echo "predicate_pair_retired=$( { test "$pair_code" = "410" && grep -Fq '"self_host_required":true' /tmp/qg-pair.json; } && echo PASS || echo FAIL)" >&2
-            echo "predicate_compact_retired=$(test "$compact_code" = "410" && echo PASS || echo FAIL)" >&2
+            echo "predicate_compact_retired=$(test "$compact_code" = "410" && echo PASS || echo FAIL)"
+            echo "predicate_route_retired=$(test "$route_code" = "410" && echo PASS || echo FAIL)" >&2
             echo "predicate_mcp_retired=$(test "$mcp_code" = "410" && echo PASS || echo FAIL)" >&2
             printf '%s\n' "$stats_cors" | grep -i '^access-control-' >&2 || true
           fi
