@@ -48,6 +48,8 @@ $script:PendingQuestions = @{}
 $script:LastQuestionPoll = [DateTime]::MinValue
 $script:LastPendingNotice = [DateTime]::MinValue
 $script:LastHeartbeatWrite = [DateTime]::MinValue
+$script:LastPresenceSent = [DateTime]::MinValue
+$script:QQDeviceId = ""
 $script:HeartbeatSequence = 0
 $script:ProgressSequence = 0
 $script:LastProgressAt = (Get-Date).ToUniversalTime()
@@ -161,6 +163,21 @@ function Write-RunnerHeartbeat {
 
   try {
     $networkState = if ($script:RunnerSocket -and $script:RunnerSocket.State -eq [Net.WebSockets.WebSocketState]::Open) { "connected" } else { "disconnected" }
+    $profile = $null
+    try { $profile = Get-QQWorkerProfile } catch {}
+    $maxWorkers = 1
+    $cpuLoad = $null
+    $memoryLoad = $null
+    $memoryAvailable = $null
+    $gpuWorkers = 0
+    try { $maxWorkers = [Math]::Max(1,[int]$profile.limits.max_workers) } catch {}
+    try { $cpuLoad = $profile.cpu_load_percent } catch {}
+    try { $memoryLoad = $profile.memory.load_percent } catch {}
+    try { $memoryAvailable = $profile.memory.available_gib } catch {}
+    try { $gpuWorkers = [int]$profile.limits.gpu_workers } catch {}
+    $activeWorkers = [int]$script:ActiveWorkers.Count
+    $queuedJobs = [int]$script:QueuedJobs.Count
+    $availableWorkers = [Math]::Max(0,$maxWorkers-$activeWorkers)
     $payload = [ordered]@{
       version = "2"
       runner_id = $env:COMPUTERNAME
@@ -174,6 +191,15 @@ function Write-RunnerHeartbeat {
       progress_sequence = $script:ProgressSequence
       progress_at = $script:LastProgressAt.ToString("o")
       network_state = $networkState
+      active_workers = $activeWorkers
+      queued_jobs = $queuedJobs
+      worker_capacity = $maxWorkers
+      available_workers = $availableWorkers
+      cpu_load_percent = $cpuLoad
+      memory_load_percent = $memoryLoad
+      memory_available_gib = $memoryAvailable
+      gpu_worker_capacity = $gpuWorkers
+      scheduler_mode = "adaptive"
       timestamp = $now.ToUniversalTime().ToString("o")
     }
     $temp = $HeartbeatPath + ".new"
@@ -185,6 +211,57 @@ function Write-RunnerHeartbeat {
     Move-Item $temp $HeartbeatPath -Force
     $script:LastHeartbeatWrite = $now
   } catch {}
+}
+
+function Send-QQRunnerPresence {
+  param([System.Net.WebSockets.ClientWebSocket]$Socket)
+
+  if (-not $Socket -or $Socket.State -ne [Net.WebSockets.WebSocketState]::Open) { return }
+  $now = Get-Date
+  if (($now - $script:LastPresenceSent).TotalSeconds -lt 15) { return }
+
+  try {
+    $profile = Get-QQWorkerProfile
+    $capacity = 1
+    $cpuLoad = $null
+    $memoryLoad = $null
+    $memoryAvailable = $null
+    $gpuWorkers = 0
+    try { $capacity = [Math]::Max(1,[int]$profile.limits.max_workers) } catch {}
+    try { $cpuLoad = $profile.cpu_load_percent } catch {}
+    try { $memoryLoad = $profile.memory.load_percent } catch {}
+    try { $memoryAvailable = $profile.memory.available_gib } catch {}
+    try { $gpuWorkers = [int]$profile.limits.gpu_workers } catch {}
+
+    $active = [int]$script:ActiveWorkers.Count
+    $queued = [int]$script:QueuedJobs.Count
+    $available = [Math]::Max(0,$capacity-$active)
+    $state = if ($active -gt 0) { "busy" } elseif ($available -gt 0) { "ready" } else { "saturated" }
+
+    Send-Json $Socket @{
+      type = "runner_presence"
+      protocol = "clintware-quillgeist-lite-presence/v1"
+      device_id = $(if($script:QQDeviceId){$script:QQDeviceId}else{$env:COMPUTERNAME})
+      runner_id = $env:COMPUTERNAME
+      version = "1.11.0"
+      state = $state
+      runner_alive = $true
+      busy = ($active -gt 0)
+      active_workers = $active
+      queued_jobs = $queued
+      worker_capacity = $capacity
+      available_workers = $available
+      cpu_load_percent = $cpuLoad
+      memory_load_percent = $memoryLoad
+      memory_available_gib = $memoryAvailable
+      gpu_worker_capacity = $gpuWorkers
+      scheduler_mode = "adaptive"
+      timestamp = $now.ToUniversalTime().ToString("o")
+    }
+    $script:LastPresenceSent = $now
+  } catch {
+    try { Queue-RunnerDiagnostic "INFO" ("runner_presence_failed: " + $_.Exception.Message) "presence" } catch {}
+  }
 }
 
 function Queue-RunnerDiagnostic {
@@ -2861,6 +2938,7 @@ try {
       $readyRegistry = Get-Registry
       Write-RunnerHeartbeat -State "connecting" -Force
       $credential = Get-QQDeviceCredential
+      $script:QQDeviceId = [string]$credential.DeviceId
       $ws = New-Object System.Net.WebSockets.ClientWebSocket
       $ws.Options.SetRequestHeader("Authorization","Bearer " + $credential.Token)
       $ws.Options.SetRequestHeader("X-Quillgeist-Runner-Id",$env:COMPUTERNAME)
@@ -2879,11 +2957,11 @@ try {
       Send-Json $ws @{
         type = "hello"
         runner_id = $env:COMPUTERNAME
-        version = "1.10.0"
+        version = "1.11.0"
         source_revision = $(try { (Get-Content -LiteralPath (Join-Path $RuntimeRoot "source-revision.txt") -Raw).Trim() } catch { "" })
         registry_version = [string]$readyRegistry.version
         runtimes = @("powershell","python","c")
-        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection","adaptive_worker_pool","parallel_safe_tasks","gpu_worker_routing","cwinteract","desktop_ui_automation","system_browser_interaction")
+        capabilities = @("interactive_relay","question_poll","allowlisted_tasks","local_shell_escape","web_search","web_read","browser_automation","manual_browser_login","responder_agent","portable_local_responder","local_first_inference","infra_usage_gauge","event_driven_usage","subscription_responder","provider_usage_estimates","reset_countdown","workers_ai_responder","fast_responder_fallback","capability_inventory","capability_aware_routing","browser_auth_assist","browser_continuation","scheduled_task_isolation","desktop_focus_protection","adaptive_worker_pool","parallel_safe_tasks","gpu_worker_routing","live_resource_pulse","load_balanced_device_routing","cwinteract","desktop_ui_automation","system_browser_interaction")
       }
 
       Flush-RunnerDiagnostics
@@ -2924,6 +3002,7 @@ try {
       while ($ws.State -eq [Net.WebSockets.WebSocketState]::Open) {
         Pump-QQParallelWorkers $ws
         Start-QQQueuedJobs $ws
+        Send-QQRunnerPresence $ws
         if ($script:ActiveWorkers.Count -gt 0) {
           $first = @($script:ActiveWorkers.Values)[0]
           Write-RunnerHeartbeat -State "busy" -JobId ([string]$first.Job.job_id) -TaskId ([string]$first.Job.task_id) -Phase ("parallel-workers:" + $script:ActiveWorkers.Count)
