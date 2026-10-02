@@ -1,7 +1,6 @@
 {
-  "requested_at": "2026-10-01T21:13:30Z",
-  "reason": "Stop stale MEMORIA finish-local-ai execution so queued repaired continuation can start.",
+  "request_id": "work-memoria-resume-20261002-0744",
+  "action": "status",
   "target_device": "MEMORIA",
-  "action": "restart_runner",
-  "force": true
+  "force": false
 }
