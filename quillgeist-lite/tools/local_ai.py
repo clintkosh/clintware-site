@@ -416,6 +416,33 @@ def diagnostics():
     for folder in (root, root / "scripts"):
         if folder.is_dir():
             result["launchers"].extend(str(p) for p in list(folder.iterdir())[:100] if p.is_file() and p.suffix.lower() in {".ps1", ".bat", ".cmd"})
+    # Metadata only: distinguish stale Docker binds from missing host data.
+    result["storage_path_metadata"] = []
+    for folder in (Path(r"F:\AI-Data"), Path(r"F:\AI-Data\Docker"), Path(r"F:\AI-Data\Docker\n8n"), Path(r"F:\AI-Data\Docker\open-webui"), Path(r"C:\AI\ComfyUI\output"), Path(r"C:\AI\ComfyUI\temp")):
+        row = {"path": str(folder)}
+        try:
+            info = folder.lstat()
+            row.update(attributes=getattr(info, "st_file_attributes", None), is_symlink=folder.is_symlink())
+            if folder.is_symlink() or getattr(info, "st_file_attributes", 0) & 1024:
+                row["link_target"] = os.readlink(folder)
+        except OSError as exc:
+            row.update(error=type(exc).__name__, errno=exc.errno, winerror=getattr(exc, "winerror", None))
+        result["storage_path_metadata"].append(row)
+    result["backup_candidates"] = []
+    backup_root = Path(r"F:\AI-Data\Backups\LOCAL-CHATGPT")
+    if backup_root.is_dir():
+        for folder in sorted(backup_root.glob("qq-storage-*"), reverse=True)[:5]:
+            for name, dbname in (("n8n-local", "database.sqlite"), ("open-webui-local", "webui.db")):
+                db = folder / name / dbname
+                if db.is_file():
+                    result["backup_candidates"].append({"container": name, "path": str(db), "bytes": db.stat().st_size})
+    result["comfy_filesystem_errors"] = []
+    comfy_log = Path(r"F:\AI-Data\Logs\LOCAL-CHATGPT\qq-comfyui.log")
+    if comfy_log.is_file():
+        with comfy_log.open("rb") as handle:
+            handle.seek(max(0, comfy_log.stat().st_size - 12000))
+            tail = handle.read().decode("utf-8", errors="replace")
+        result["comfy_filesystem_errors"] = re.findall(r"(?:FileExistsError|FileNotFoundError|PermissionError):[^\r\n]{0,500}", tail)[-6:]
     result["data_directories"] = []
     for folder in (Path(r"F:\AI-Data\Docker\n8n"), Path(r"F:\AI-Data\Docker\open-webui"), Path(r"F:\AI-Data\Backups"), Path(r"F:\AI-Data\Immich")):
         row = {"path": str(folder), "exists": folder.exists()}
