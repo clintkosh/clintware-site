@@ -1,0 +1,934 @@
+{
+  "mode": "one-off",
+  "project_id": "blstr-crm",
+  "company": "Bolster",
+  "name": "Partner + Enterprise Coverage Operations Workspace + Cover Letter",
+  "domain": "https://blstr.clintware.com",
+  "domain_override_authorized": true,
+  "base_project": "adaptive-astro-one-off",
+  "implementation_reference": "dplr-crm",
+  "unofficial_candidate_artifact": true,
+  "synthetic_data_default": true,
+  "seed_version": 1,
+  "workspace_id": "blstr-candidate",
+  "role_problem_hypothesis": "The team must deliver seamless technical coverage across a white-label partner ecosystem and directly sold strategic accounts, but ownership shifts across account management, baseline support, paid integration/services, product expertise, and internal escalation; the role exists to make those boundaries operationally clear, step into uncovered gaps, and keep adoption, handoffs, and recurring product signal moving.",
+  "role_mission": "Run one evidence-based coverage system across partner-sourced and direct enterprise customers: assign clear CSM and technical ownership, route requests to the right service lane, keep integrations and takedown workflows moving, surface recurring friction, and convert customer signal into better adoption, documentation, packaging, and product feedback.",
+  "operating_loop": [
+    "Intake",
+    "Classify",
+    "Assign",
+    "Resolve / Route",
+    "Adopt",
+    "Measure",
+    "Learn"
+  ],
+  "roles": [
+    {
+      "id": "technical-account-manager",
+      "name": "Technical Account Manager"
+    }
+  ],
+  "stakeholder_roles": [
+    "Customer Security / Fraud Owner",
+    "Customer Success / Account Owner",
+    "Technical / Integration Owner"
+  ],
+  "public_presentation": {
+    "mode": "operator-workspace",
+    "name": "Coverage Console",
+    "subtitle": "partner + enterprise technical operations · candidate-built synthetic workspace",
+    "mark": "C",
+    "source_label": "Source platform",
+    "show_target_identity": false,
+    "show_application_surface": false,
+    "default_dark": true,
+    "theme": {
+      "bg": "#070a12",
+      "panel": "#0f1420",
+      "panel2": "#151d2b",
+      "line": "#27334a",
+      "text": "#f5f7ff",
+      "muted": "#94a3bd",
+      "blue": "#7c6cf2",
+      "cyan": "#63d5df",
+      "green": "#75dda0",
+      "amber": "#f5c46c",
+      "red": "#ff8097",
+      "lime": "#b5e66c",
+      "rail": "#0b1019",
+      "hover": "#151d2b",
+      "focus": "rgba(124,108,242,.24)"
+    }
+  },
+  "tracks": [
+    {
+      "id": "coverage",
+      "label": "Coverage & Assignment",
+      "tab": "coverage",
+      "objective": "Keep CSM, technical owner, partner/service lane, ownership boundary, and next action visible across both partner-sourced and directly sold accounts."
+    },
+    {
+      "id": "flow",
+      "label": "Signal & Handoff Flow",
+      "tab": "flow",
+      "objective": "Show how account, support, entitlement, platform, API, and customer-success signals should move without duplicating the source systems."
+    },
+    {
+      "id": "routing",
+      "label": "Routing & Escalation",
+      "tab": "handoff",
+      "objective": "Classify each request into account management, baseline support, paid integration/services, internal technical ownership, or Product/Engineering with an explicit evidence-backed handoff."
+    },
+    {
+      "id": "onboarding",
+      "label": "Onboarding & Integrations",
+      "tab": "implementation",
+      "objective": "Coordinate setup, protected assets, training, integrations, automated takedowns, maintenance expectations, dependencies, and acceptance criteria."
+    },
+    {
+      "id": "adoption",
+      "label": "Adoption & Workflow Tuning",
+      "tab": "adoption",
+      "objective": "Track whether customers are using the platform and automation patterns as intended, with interventions tied to sourced signals rather than generic health scoring."
+    },
+    {
+      "id": "risk",
+      "label": "Risk & Technical Blockers",
+      "tab": "risks",
+      "objective": "Surface unresolved ownership, product/configuration blockers, escalation aging, and customer-impact risk before they become handoff failures."
+    },
+    {
+      "id": "signal",
+      "label": "Recurring Themes",
+      "tab": "issues",
+      "objective": "Turn repeated customer and partner friction into documentation, packaging, pricing, enablement, or product signal with explicit provenance."
+    },
+    {
+      "id": "meetings",
+      "label": "Customer / Partner Cadence",
+      "tab": "meetings",
+      "objective": "Prepare concise customer and partner reviews from current account state, open issues, decisions, adoption evidence, and next actions."
+    }
+  ],
+  "public_sources": [
+    {
+      "label": "Technical Account Manager job posting",
+      "url": "https://jobs.lever.co/bolster/4fdea070-99b1-4818-9bc3-6da8b9a25725"
+    },
+    {
+      "label": "Current platform overview",
+      "url": "https://bolster.ai/"
+    },
+    {
+      "label": "Adjacent Customer Success Engineer posting",
+      "url": "https://jobs.lever.co/bolster/602ac14e-5e49-4357-b488-400ef0f26be5"
+    }
+  ],
+  "candidate_evidence": [
+    "Check Point/Avanan: operated customer-facing escalation and workflow processes across email security, SSO, DLP, Salesforce, Custify, Jira, Support, Product, and Engineering.",
+    "Candidate-tracked Check Point/Avanan operating result: usable portfolio visibility improved from roughly 40% toward 99%, and team efficiency improved 30%.",
+    "Cofense: direct L3/support leadership in phishing defense with enterprise troubleshooting, escalation quality, documentation, and repeatable resolution workflows.",
+    "Dedrone: standardized enterprise onboarding to roughly one month and increased engagement 25%, with customer success work spanning technical dependencies, enablement, and executive alignment.",
+    "Managed approximately 20–40 SaaS customers with about $3M in account value across recurring and strategic customer motions."
+  ],
+  "disclosure": "Candidate-built Clintware operating prototype using public role/company context and clearly synthetic account, stakeholder, case, routing, assignment, and KPI data. It is not an official product, customer tenant, private process description, or representation of real customer records or the company's internal system stack.",
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "persistence_reason": "The demonstration is single-browser candidate proof-of-work. Browser-local state is sufficient for account assignments, synthetic operational records, meeting prep, and generated briefs without consuming server-authoritative object storage.",
+  "seed_expectations": {
+    "portfolio_accounts_min": 7,
+    "lifecycle_stages_min": 5,
+    "contacts_per_account_min": 3,
+    "kpis_per_account_min": 3,
+    "actions_per_account_min": 2,
+    "risk_or_issue_per_account_min": 1,
+    "mixed_statuses_required": true,
+    "meeting_context_per_account": true,
+    "flow_coherence_required": true
+  },
+  "ui_replacements": {
+    "Technical Customer Engineering": "Coverage Operations",
+    "Technical Services workspace": "Technical coverage workspace",
+    "Advanced technical investigations": "Advanced issue investigation",
+    "Advanced investigations": "Advanced issue investigation",
+    "Engineering handoffs": "Product / Engineering handoffs",
+    "Support scale & adoption": "Coverage scale & adoption",
+    "Customer technical cadence": "Customer / partner cadence",
+    "Customer reviews": "Operating reviews",
+    "Technical delivery": "Technical delivery",
+    "Service projects": "Coverage workstreams",
+    "technical projects": "coverage workstreams",
+    "Public references": "Public context",
+    "Doppel-published evidence": "public source evidence"
+  },
+  "coverage_model": {
+    "assignments": [
+      {
+        "account": "Meridian Finance (Synthetic)",
+        "motion": "Partner-sourced",
+        "csm": "Partner SAM (Synthetic)",
+        "tam": "Avery Chen (Synthetic)",
+        "lane": "Paid integration package + uncovered product-depth gap",
+        "next_action": "Confirm integration-package boundary, then own protected-asset maintenance runbook."
+      },
+      {
+        "account": "Atlas Retail Group (Synthetic)",
+        "motion": "Partner-sourced",
+        "csm": "Partner SAM (Synthetic)",
+        "tam": "Jordan Lee (Synthetic)",
+        "lane": "Baseline support -> technical owner for ongoing tuning",
+        "next_action": "Close duplicate handoff pattern and publish tuning ownership rule."
+      },
+      {
+        "account": "Northstar Travel (Synthetic)",
+        "motion": "Partner-sourced",
+        "csm": "Partner SAM (Synthetic)",
+        "tam": "Avery Chen (Synthetic)",
+        "lane": "Baseline break-fix + API escalation",
+        "next_action": "Reproduce callback failures with correlation IDs before Product/Engineering escalation."
+      },
+      {
+        "account": "Pinecrest Bank (Synthetic)",
+        "motion": "Direct enterprise",
+        "csm": "Morgan Rivera (Synthetic)",
+        "tam": "Jordan Lee (Synthetic)",
+        "lane": "CSM-led onboarding + technical implementation",
+        "next_action": "Complete protected-asset discovery and automated-takedown acceptance test."
+      },
+      {
+        "account": "Harbor Marketplace (Synthetic)",
+        "motion": "Direct enterprise",
+        "csm": "Morgan Rivera (Synthetic)",
+        "tam": "Avery Chen (Synthetic)",
+        "lane": "CSM-led adoption + workflow tuning",
+        "next_action": "Tune social/app-store monitoring and confirm adoption decision criteria."
+      },
+      {
+        "account": "Redwood SaaS (Synthetic)",
+        "motion": "Direct enterprise",
+        "csm": "Taylor Brooks (Synthetic)",
+        "tam": "Jordan Lee (Synthetic)",
+        "lane": "CSM + technical risk recovery",
+        "next_action": "Separate asset-quality issue from product behavior before escalation."
+      },
+      {
+        "account": "Keystone Health Network (Synthetic)",
+        "motion": "Direct enterprise",
+        "csm": "Taylor Brooks (Synthetic)",
+        "tam": "Avery Chen (Synthetic)",
+        "lane": "Strategic review + expansion discovery",
+        "next_action": "Validate which adjacent monitoring workflow has evidence of value before expansion discussion."
+      }
+    ],
+    "rules": [
+      {
+        "when": "Account, billing, or user-management question",
+        "owner": "Partner account owner",
+        "action": "Route to the account-management lane; technical owner stays informed only when product context changes the answer."
+      },
+      {
+        "when": "Baseline product break-fix",
+        "owner": "Partner baseline support",
+        "action": "Keep issue in baseline support unless scope, entitlement, or product-depth evidence shows the need to move."
+      },
+      {
+        "when": "Initial setup, configuration, or training covered by purchased integration",
+        "owner": "Integration / services package",
+        "action": "Use the purchased service lane and record acceptance criteria so the handoff can close cleanly."
+      },
+      {
+        "when": "Ongoing tuning or deeper product help is outside included coverage",
+        "owner": "Technical owner",
+        "action": "Step into the uncovered gap, establish the problem statement, and keep one customer-facing owner."
+      },
+      {
+        "when": "Direct strategic account needs product expertise",
+        "owner": "CSM + technical owner",
+        "action": "CSM owns relationship/outcome; technical owner owns product depth, troubleshooting, configuration, and integration guidance."
+      },
+      {
+        "when": "Reproducible defect or code-level behavior",
+        "owner": "Product / Engineering",
+        "action": "Escalate with expected vs actual behavior, impact, minimal reproduction, logs/correlation IDs, what was ruled out, and the specific decision needed."
+      }
+    ]
+  },
+  "system_map": [
+    {
+      "name": "CRM / Account System",
+      "purpose": "Account, segment, customer-success owner, partner motion, renewal/commercial context, and strategic account assignment.",
+      "truth_line": "Representative system of record. Public adjacent role context references Salesforce as an example; this demo does not claim the private internal CRM."
+    },
+    {
+      "name": "Support / Case Queue",
+      "purpose": "Break-fix cases, severity, aging, entitlement lane, prior troubleshooting, and escalation history.",
+      "truth_line": "Representative support queue. Public adjacent role context references Zendesk/Salesforce as examples, not confirmed internal tooling."
+    },
+    {
+      "name": "Partner Service Catalog",
+      "purpose": "Included baseline support, paid integration package, professional/managed-services scope, named-resource entitlement, and ownership boundary.",
+      "truth_line": "Modeled directly from the public TAM job description's tiered partner-service structure."
+    },
+    {
+      "name": "Platform Asset + Takedown State",
+      "purpose": "Protected assets, monitoring channels, detected threats, automated-takedown configuration, enforcement state, and maintenance needs.",
+      "truth_line": "Modeled from the public platform and TAM job description; synthetic records only."
+    },
+    {
+      "name": "API / Integration Telemetry",
+      "purpose": "Authentication, endpoint, payload, status/error, rate limit, callback/webhook, correlation ID, and minimal reproduction evidence.",
+      "truth_line": "Role-relevant diagnostic model; not a claim about a specific private telemetry product."
+    },
+    {
+      "name": "CS / Meeting Context",
+      "purpose": "Customer objective, adoption decision, open risk, next action, CSM/TAM coordination, and partner feedback.",
+      "truth_line": "Candidate operating model layered over source systems; not a replacement for them."
+    }
+  ],
+  "routing_rules": [
+    {
+      "signal": "Who owns this request?",
+      "owner": "Ownership classifier",
+      "rule": "Check commercial/account issue -> baseline break-fix -> purchased integration/services -> uncovered product-depth gap -> direct enterprise technical motion."
+    },
+    {
+      "signal": "Customer is being bounced",
+      "owner": "Technical owner",
+      "rule": "Stop organizational ping-pong. Name one accountable owner, summarize what is known, route internally, and keep the customer from repeating context."
+    },
+    {
+      "signal": "API/integration issue",
+      "owner": "Technical owner",
+      "rule": "Scope impact -> verify contract -> authn/authz -> endpoint/method -> headers/payload -> status/body -> rate/retry -> callback/network -> logs/correlation ID -> minimal repro -> escalation."
+    },
+    {
+      "signal": "Recurring issue across accounts",
+      "owner": "CS + Product + Sales",
+      "rule": "Tag the pattern, count occurrences from sourced cases, identify whether the fix belongs in documentation, packaging, pricing, enablement, automation, or product."
+    },
+    {
+      "signal": "Adoption opportunity",
+      "owner": "CSM + technical owner",
+      "rule": "Connect customer objective to current workflow usage, verify evidence, remove technical friction, and expand only from proven adjacent value."
+    }
+  ],
+  "application_bundle": {
+    "profile": "crm+cover",
+    "local_factory": true,
+    "why_company": {
+      "enabled": true,
+      "word_min": 180,
+      "word_max": 260,
+      "draft": "The part of this opportunity that stands out is the operating problem behind the title: one technical owner has to make a white-label partner ecosystem and a direct enterprise customer motion feel coherent to the customer. That requires understanding where account management, baseline support, paid integrations, professional or managed services, and internal product expertise begin and end, then stepping into the gaps without creating another layer of handoff friction.\n\nThat maps closely to work I have done across phishing defense, email security, enterprise support, Customer Success, and CS Operations. At Check Point/Avanan, I worked across Salesforce, Custify, Jira, Support, Product, and Engineering while owning customer escalations and operating workflows. At Cofense, I worked in phishing defense and L3 support, where clean reproduction, evidence, documentation, and Engineering handoffs mattered every day.\n\nI also like that the role is not only reactive support. The direct-enterprise side asks the technical partner to sit beside the CSM, answer product questions, unblock integrations, tune workflows, and help customers expand how they use the platform. That combination of technical depth, customer judgment, and operational improvement is the work I repeatedly gravitate toward.\n\nI would approach it by making ownership visible, preserving customer context across handoffs, and converting recurring friction into better documentation, routing, automation, and product signal."
+    },
+    "cover_letter": {
+      "enabled": true,
+      "draft": "Dear Hiring Team,\n\nI am applying for the Technical Account Manager opportunity because the role combines the parts of post-sales work where I have repeatedly been most useful: technical troubleshooting, cybersecurity context, customer ownership, and improving the system around recurring issues.\n\nMy background includes phishing defense and L3 support at Cofense, modern email-security Customer Success and operations at Check Point/Avanan, and enterprise onboarding and adoption work at Dedrone. At Check Point/Avanan, I built workflows across Salesforce, Custify, and Jira that improved usable portfolio visibility from roughly 40% toward 99% while team efficiency improved 30%. The value of that work was not the tooling itself. It was making ownership, risk, context, and next actions easier for customer-facing teams to act on.\n\nThe dual customer motion in this role is particularly relevant to me. I am comfortable working beside CSMs with named enterprise customers, and I understand why a white-label partner relationship requires sharper service boundaries, escalation discipline, and documentation so customers do not experience the org chart as their problem.\n\nI built a browser-local synthetic operating workspace to model that flow: CSM and technical-owner assignment, partner-support routing, onboarding and integration state, recurring support themes, technical escalation evidence, and meeting preparation. It is candidate proof-of-work based on public role context, not a claim about private internal systems.\n\nClinton Kosh"
+    },
+    "crm_link_policy": "live-verified-only",
+    "interview_quality_gates": "source+compression+core-before-extras+follow-up-restraint+human-validation+provenance+final-artifact-reconciliation"
+  },
+  "evidence_provenance": {
+    "version": 1,
+    "claims": [
+      {
+        "id": "CAND-AVANON-VIS",
+        "label": "Usable portfolio visibility improvement",
+        "rendered_values": [
+          "40%",
+          "99%"
+        ],
+        "claim_class": "MEASURED",
+        "scope": "Check Point/Avanan customer operations",
+        "time_window": "candidate-tracked period",
+        "source": {
+          "kind": "candidate_evidence",
+          "ref": "candidate-provided established career evidence",
+          "locator": "Check Point/Avanan usable portfolio visibility"
+        },
+        "formula": null,
+        "inputs": [],
+        "assumptions": [],
+        "confidence": "candidate-provided",
+        "allowed_contexts": [
+          "cover-letter",
+          "interview",
+          "crm-about"
+        ]
+      },
+      {
+        "id": "CAND-AVANON-EFF",
+        "label": "Team efficiency improvement",
+        "rendered_values": [
+          "30%"
+        ],
+        "claim_class": "MEASURED",
+        "scope": "Check Point/Avanan customer operations",
+        "time_window": "candidate-tracked period",
+        "source": {
+          "kind": "candidate_evidence",
+          "ref": "candidate-provided established career evidence",
+          "locator": "Check Point/Avanan team efficiency"
+        },
+        "formula": null,
+        "inputs": [],
+        "assumptions": [],
+        "confidence": "candidate-provided",
+        "allowed_contexts": [
+          "cover-letter",
+          "interview",
+          "crm-about"
+        ]
+      }
+    ],
+    "allowlist": []
+  },
+  "seed_scenarios": [
+    {
+      "name": "Meridian Finance (Synthetic)",
+      "industry": "Financial services",
+      "stage": "Partner onboarding",
+      "health": "Watch",
+      "priority": "High",
+      "motion": "Partner-sourced",
+      "goal": "Move a newly sold white-label customer through setup without duplicating partner services or leaving product-depth gaps unowned.",
+      "context": "Partner-owned account with a purchased integration package and an unresolved boundary around ongoing protected-asset maintenance.",
+      "scope": "Initial setup, protected assets, automated takedowns, training, maintenance ownership.",
+      "systems": [
+        "CRM / Account System",
+        "Support / Case Queue",
+        "Partner Service Catalog",
+        "Platform Asset + Takedown State"
+      ],
+      "timeline": "First 30 days",
+      "dependency": "Integration package covers initial setup, but ongoing tuning ownership is not yet explicit.",
+      "stakeholder_roles": [
+        "Partner Service Account Manager",
+        "Customer Fraud / Brand Protection Lead",
+        "Technical Integration Owner"
+      ],
+      "kpis": [
+        {
+          "name": "Coverage assignment completeness",
+          "target": "100%",
+          "baseline": "71%",
+          "current": "92%",
+          "source": "Synthetic assignment ledger",
+          "source_id": "SYN-MER-COVERAGE",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of active work items with one named accountable lane and technical owner.",
+          "scenario_purpose": "Demonstrate explicit ownership in a partner-sourced onboarding motion."
+        },
+        {
+          "name": "Protected-asset setup completeness",
+          "target": "100%",
+          "baseline": "0%",
+          "current": "78%",
+          "source": "Synthetic platform asset tracker",
+          "source_id": "SYN-MER-ASSETS",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of agreed protected assets configured and validated.",
+          "scenario_purpose": "Demonstrate onboarding progress tied to platform state."
+        },
+        {
+          "name": "Open ownership ambiguities",
+          "target": "0",
+          "baseline": "4",
+          "current": "1",
+          "source": "Synthetic handoff review",
+          "source_id": "SYN-MER-AMBIG",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of active requests without a confirmed service/technical owner.",
+          "scenario_purpose": "Demonstrate support-boundary cleanup."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Confirm maintenance ownership after integration package closes",
+          "owner": "Technical owner + Partner SAM",
+          "status": "In Progress"
+        },
+        {
+          "title": "Validate automated takedown configuration acceptance criteria",
+          "owner": "Technical owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Post-implementation ownership gap",
+        "impact": "Customer may be bounced after initial configuration closes.",
+        "mitigation": "Publish one routing rule and named technical owner before handoff.",
+        "status": "Open"
+      },
+      "meeting": "Partner onboarding boundary review",
+      "meeting_type": "Partner / customer onboarding"
+    },
+    {
+      "name": "Atlas Retail Group (Synthetic)",
+      "industry": "Retail",
+      "stage": "Partner steady state",
+      "health": "Watch",
+      "priority": "Medium",
+      "goal": "Reduce repeated tuning requests that bounce between baseline support and deeper product guidance.",
+      "context": "Partner-sourced customer with recurring monitoring-tuning questions after initial onboarding.",
+      "scope": "Ongoing monitoring configuration, tuning, documentation, and support-boundary clarity.",
+      "systems": [
+        "Support / Case Queue",
+        "Partner Service Catalog",
+        "Platform Asset + Takedown State",
+        "CS / Meeting Context"
+      ],
+      "timeline": "Steady-state monthly review",
+      "dependency": "Same tuning question has entered two different support lanes.",
+      "stakeholder_roles": [
+        "Partner Support Lead",
+        "Customer Security Operations Lead",
+        "Technical Owner"
+      ],
+      "kpis": [
+        {
+          "name": "Repeat handoff rate",
+          "target": "<10%",
+          "baseline": "34%",
+          "current": "18%",
+          "source": "Synthetic support-case audit",
+          "source_id": "SYN-ATL-HANDOFF",
+          "claim_class": "SYNTHETIC",
+          "definition": "Share of sampled requests transferred more than once before reaching the accountable lane.",
+          "scenario_purpose": "Demonstrate reduction of customer ping-pong."
+        },
+        {
+          "name": "Known-answer coverage",
+          "target": "90%",
+          "baseline": "52%",
+          "current": "76%",
+          "source": "Synthetic knowledge audit",
+          "source_id": "SYN-ATL-KB",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of recurring tuning patterns with a reviewed routing or resolution playbook.",
+          "scenario_purpose": "Demonstrate shift-left documentation."
+        },
+        {
+          "name": "Open recurring themes",
+          "target": "<=2",
+          "baseline": "7",
+          "current": "3",
+          "source": "Synthetic theme register",
+          "source_id": "SYN-ATL-THEMES",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of recurring unresolved support themes active in the current review period.",
+          "scenario_purpose": "Demonstrate feedback-loop closure."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Publish tuning ownership decision tree",
+          "owner": "Technical owner",
+          "status": "Review"
+        },
+        {
+          "title": "Tag and merge duplicate recurring-theme records",
+          "owner": "Technical owner + Support",
+          "status": "In Progress"
+        }
+      ],
+      "risk": {
+        "title": "Customer ping-pong",
+        "impact": "Repeated transfers reduce trust and consume partner/support capacity.",
+        "mitigation": "Use explicit service-lane classification and preserve case context through transfer.",
+        "status": "Open"
+      },
+      "meeting": "Recurring support pattern review",
+      "meeting_type": "Partner operations"
+    },
+    {
+      "name": "Northstar Travel (Synthetic)",
+      "industry": "Travel technology",
+      "stage": "Partner escalation",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Resolve an API callback failure with enough evidence to prevent an unnecessary or low-quality Engineering escalation.",
+      "context": "Partner-sourced account with intermittent callback failures after a configuration change.",
+      "scope": "API troubleshooting, case evidence, minimal reproduction, escalation-quality gate.",
+      "systems": [
+        "Support / Case Queue",
+        "API / Integration Telemetry",
+        "Partner Service Catalog",
+        "CS / Meeting Context"
+      ],
+      "timeline": "Current incident window",
+      "dependency": "Failures are intermittent and prior cases lack correlation IDs.",
+      "stakeholder_roles": [
+        "Partner Support Engineer",
+        "Customer Integration Engineer",
+        "Technical Owner"
+      ],
+      "kpis": [
+        {
+          "name": "Cases with correlation IDs",
+          "target": "100%",
+          "baseline": "38%",
+          "current": "86%",
+          "source": "Synthetic case evidence audit",
+          "source_id": "SYN-NOR-CORR",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of active integration cases with request or event correlation identifiers.",
+          "scenario_purpose": "Demonstrate escalation-evidence quality."
+        },
+        {
+          "name": "Reproduction completeness",
+          "target": "100%",
+          "baseline": "40%",
+          "current": "80%",
+          "source": "Synthetic diagnostic checklist",
+          "source_id": "SYN-NOR-REPRO",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of required reproduction fields captured for the active defect candidate.",
+          "scenario_purpose": "Demonstrate technical investigation readiness."
+        },
+        {
+          "name": "Unowned escalation steps",
+          "target": "0",
+          "baseline": "3",
+          "current": "0",
+          "source": "Synthetic incident plan",
+          "source_id": "SYN-NOR-OWNER",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of active escalation steps without a named owner.",
+          "scenario_purpose": "Demonstrate accountable incident coordination."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Capture failing and successful callback samples with correlation IDs",
+          "owner": "Technical owner + Partner Support",
+          "status": "In Progress"
+        },
+        {
+          "title": "Build minimal reproduction and explicit Engineering ask",
+          "owner": "Technical owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Premature Engineering escalation",
+        "impact": "Engineering may need to repeat discovery and customer resolution time may increase.",
+        "mitigation": "Complete evidence checklist before defect handoff.",
+        "status": "Open"
+      },
+      "meeting": "API escalation working session",
+      "meeting_type": "Technical escalation"
+    },
+    {
+      "name": "Pinecrest Bank (Synthetic)",
+      "industry": "Banking",
+      "stage": "Direct onboarding",
+      "health": "Healthy",
+      "priority": "High",
+      "goal": "Launch a named enterprise account with clean CSM/technical ownership, protected-asset coverage, integration readiness, and automated-takedown acceptance.",
+      "context": "Direct enterprise customer in initial rollout with a CSM relationship and technical implementation workstream.",
+      "scope": "Discovery, protected assets, integrations, takedown automation, customer training.",
+      "systems": [
+        "CRM / Account System",
+        "Platform Asset + Takedown State",
+        "API / Integration Telemetry",
+        "CS / Meeting Context"
+      ],
+      "timeline": "First 45 days",
+      "dependency": "One data-feed integration awaits customer security approval.",
+      "stakeholder_roles": [
+        "Customer Success Manager",
+        "Customer Brand Security Lead",
+        "Customer Integration Owner"
+      ],
+      "kpis": [
+        {
+          "name": "Protected-asset inventory validated",
+          "target": "100%",
+          "baseline": "0%",
+          "current": "88%",
+          "source": "Synthetic platform asset tracker",
+          "source_id": "SYN-PIN-ASSET",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of agreed protected assets reviewed and accepted by customer owner.",
+          "scenario_purpose": "Demonstrate direct-enterprise onboarding."
+        },
+        {
+          "name": "Integration acceptance",
+          "target": "100%",
+          "baseline": "0%",
+          "current": "75%",
+          "source": "Synthetic integration checklist",
+          "source_id": "SYN-PIN-INT",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of planned integration acceptance criteria passed.",
+          "scenario_purpose": "Demonstrate technical implementation state."
+        },
+        {
+          "name": "Training completion",
+          "target": "100%",
+          "baseline": "0%",
+          "current": "83%",
+          "source": "Synthetic enablement tracker",
+          "source_id": "SYN-PIN-TRAIN",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of named operational users completing role-relevant onboarding.",
+          "scenario_purpose": "Demonstrate enablement progress."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Close customer approval for data-feed integration",
+          "owner": "CSM + Customer Security",
+          "status": "In Progress"
+        },
+        {
+          "title": "Run automated-takedown acceptance test",
+          "owner": "Technical owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Integration approval dependency",
+        "impact": "Automation go-live may slip if security review is not completed.",
+        "mitigation": "Keep acceptance criteria and owner visible; proceed with independent setup work in parallel.",
+        "status": "Open"
+      },
+      "meeting": "Enterprise onboarding checkpoint",
+      "meeting_type": "CSM + technical implementation"
+    },
+    {
+      "name": "Harbor Marketplace (Synthetic)",
+      "industry": "Marketplace",
+      "stage": "Direct adoption",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Tune multi-channel monitoring and show which workflows are actually improving analyst operations before discussing expansion.",
+      "context": "Direct enterprise account already live across domains and social monitoring, evaluating broader app-store/marketplace coverage.",
+      "scope": "Workflow tuning, adoption, alert quality, takedown automation, adjacent use-case discovery.",
+      "systems": [
+        "Platform Asset + Takedown State",
+        "CS / Meeting Context",
+        "CRM / Account System"
+      ],
+      "timeline": "Quarterly adoption cycle",
+      "dependency": "Customer has not yet defined the threshold that makes a new monitoring channel worth operationalizing.",
+      "stakeholder_roles": [
+        "Customer Success Manager",
+        "Customer Fraud Operations Lead",
+        "Customer Security Analyst Lead"
+      ],
+      "kpis": [
+        {
+          "name": "Reviewed workflow coverage",
+          "target": "100%",
+          "baseline": "55%",
+          "current": "82%",
+          "source": "Synthetic workflow review",
+          "source_id": "SYN-HAR-WORK",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of active monitoring workflows reviewed against current customer operating goals.",
+          "scenario_purpose": "Demonstrate adoption and tuning discipline."
+        },
+        {
+          "name": "Automated-takedown eligible coverage",
+          "target": "90%",
+          "baseline": "61%",
+          "current": "79%",
+          "source": "Synthetic enforcement configuration",
+          "source_id": "SYN-HAR-AUTO",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of synthetic eligible workflow cases configured for automation after review.",
+          "scenario_purpose": "Demonstrate automation adoption without claiming real product performance."
+        },
+        {
+          "name": "Unvalidated expansion hypotheses",
+          "target": "0",
+          "baseline": "4",
+          "current": "1",
+          "source": "Synthetic account plan",
+          "source_id": "SYN-HAR-EXP",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of adjacent-use-case ideas lacking a stated customer problem and evidence criterion.",
+          "scenario_purpose": "Demonstrate evidence-led expansion."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Define customer decision criterion for app-store monitoring",
+          "owner": "CSM + Customer Fraud Lead",
+          "status": "In Progress"
+        },
+        {
+          "title": "Review automation exceptions before expansion discussion",
+          "owner": "Technical owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Expansion before value definition",
+        "impact": "New use case could add complexity without a measurable customer outcome.",
+        "mitigation": "Require customer-defined problem and evidence criterion before commercial motion.",
+        "status": "Watch"
+      },
+      "meeting": "Adoption and workflow tuning review",
+      "meeting_type": "Executive / technical review"
+    },
+    {
+      "name": "Redwood SaaS (Synthetic)",
+      "industry": "SaaS",
+      "stage": "Direct risk recovery",
+      "health": "At Risk",
+      "priority": "High",
+      "goal": "Separate asset-quality/configuration problems from product behavior so the team fixes the right layer and preserves customer trust.",
+      "context": "Direct enterprise customer reports noisy monitoring after a rapid protected-asset expansion.",
+      "scope": "Asset quality, configuration, false-positive investigation, product-vs-data boundary.",
+      "systems": [
+        "Platform Asset + Takedown State",
+        "Support / Case Queue",
+        "API / Integration Telemetry",
+        "CS / Meeting Context"
+      ],
+      "timeline": "Two-week recovery plan",
+      "dependency": "New assets were imported without the same review process as the original set.",
+      "stakeholder_roles": [
+        "Customer Success Manager",
+        "Customer Security Operations Manager",
+        "Technical Owner"
+      ],
+      "kpis": [
+        {
+          "name": "Asset review completeness",
+          "target": "100%",
+          "baseline": "44%",
+          "current": "81%",
+          "source": "Synthetic asset QA tracker",
+          "source_id": "SYN-RED-ASSET",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of newly added synthetic assets reviewed against configuration criteria.",
+          "scenario_purpose": "Demonstrate data/configuration validation before product escalation."
+        },
+        {
+          "name": "Cases classified by layer",
+          "target": "100%",
+          "baseline": "35%",
+          "current": "90%",
+          "source": "Synthetic triage queue",
+          "source_id": "SYN-RED-LAYER",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of active issues classified as source-data, configuration, integration, or product-behavior candidates.",
+          "scenario_purpose": "Demonstrate diagnostic separation."
+        },
+        {
+          "name": "Open critical recovery actions",
+          "target": "0",
+          "baseline": "6",
+          "current": "2",
+          "source": "Synthetic recovery plan",
+          "source_id": "SYN-RED-ACT",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of open actions marked critical in the synthetic recovery plan.",
+          "scenario_purpose": "Demonstrate risk recovery progress."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Complete asset-quality review for new imports",
+          "owner": "Technical owner + Customer Security",
+          "status": "In Progress"
+        },
+        {
+          "title": "Escalate only reproducible product-behavior candidates",
+          "owner": "Technical owner",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Wrong-layer escalation",
+        "impact": "Product/Engineering time may be consumed by configuration or source-data issues.",
+        "mitigation": "Classify issue layer before escalation and attach evidence.",
+        "status": "Open"
+      },
+      "meeting": "Risk recovery checkpoint",
+      "meeting_type": "Customer escalation"
+    },
+    {
+      "name": "Keystone Health Network (Synthetic)",
+      "industry": "Healthcare",
+      "stage": "Strategic review",
+      "health": "Healthy",
+      "priority": "Medium",
+      "goal": "Use a mature direct account review to connect current value evidence, open technical work, and a credible next-phase use case without inventing expansion economics.",
+      "context": "Mature direct account with stable domain monitoring and interest in adjacent dark-web and marketplace workflows.",
+      "scope": "Business review, operational value evidence, technical readiness, next-phase discovery.",
+      "systems": [
+        "CRM / Account System",
+        "Platform Asset + Takedown State",
+        "CS / Meeting Context"
+      ],
+      "timeline": "Quarterly business review",
+      "dependency": "Adjacent use case is interesting but the customer has not yet defined a decision metric.",
+      "stakeholder_roles": [
+        "Customer Success Manager",
+        "Customer Security Director",
+        "Customer Operations Lead"
+      ],
+      "kpis": [
+        {
+          "name": "Success-criteria evidence coverage",
+          "target": "100%",
+          "baseline": "70%",
+          "current": "94%",
+          "source": "Synthetic success plan",
+          "source_id": "SYN-KEY-EVID",
+          "claim_class": "SYNTHETIC",
+          "definition": "Percent of agreed synthetic success criteria with a current evidence source and owner.",
+          "scenario_purpose": "Demonstrate evidence-led strategic review."
+        },
+        {
+          "name": "Open technical commitments",
+          "target": "0",
+          "baseline": "4",
+          "current": "1",
+          "source": "Synthetic action register",
+          "source_id": "SYN-KEY-COMMIT",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of open technical commitments in the current review period.",
+          "scenario_purpose": "Demonstrate closed-loop technical ownership."
+        },
+        {
+          "name": "Validated next-phase use cases",
+          "target": "1",
+          "baseline": "0",
+          "current": "0",
+          "source": "Synthetic discovery notes",
+          "source_id": "SYN-KEY-NEXT",
+          "claim_class": "SYNTHETIC",
+          "definition": "Count of adjacent use cases with a customer-stated problem, owner, and evidence criterion.",
+          "scenario_purpose": "Demonstrate disciplined expansion discovery."
+        }
+      ],
+      "actions": [
+        {
+          "title": "Close remaining technical commitment before QBR",
+          "owner": "Technical owner",
+          "status": "In Progress"
+        },
+        {
+          "title": "Define decision metric for next-phase workflow",
+          "owner": "CSM + Customer Security Director",
+          "status": "Planned"
+        }
+      ],
+      "risk": {
+        "title": "Premature expansion narrative",
+        "impact": "Commercial conversation could outrun customer-defined value.",
+        "mitigation": "Keep next-phase work in discovery until customer problem and evidence criterion are explicit.",
+        "status": "Watch"
+      },
+      "meeting": "Strategic account review",
+      "meeting_type": "QBR / technical review"
+    }
+  ]
+}
