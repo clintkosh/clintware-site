@@ -1,10 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-core2-20261002-1721",
-  "task_id": "driznet-server-core",
+  "request_id": "chatgpt-driznet-finalrefresh-20261002-1720",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "setup"
-  },
-  "objective": "Retry the DRIZNET internal-storage local AI server core after the parser-safe task patch. Build and verify gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, web-search agent, real local inference, and search; preserve C:\\AI and Ollama models; use no external drive.",
+  "args": {},
+  "objective": "Refresh DRIZNET with the fully validated final internal-server task sources after successful control-plane deployment.",
   "resume_after": true
 }
