@@ -1043,6 +1043,42 @@ def recovery_plan():
             "bounded_scan": True, "scan_limit_reached": time.monotonic() >= deadline or scanned >= 25000 or len(documents) >= 50}
 
 
+def storage_probe():
+    """Check Docker's view of the approved F: bind using a disposable marker."""
+    import uuid
+    docker = shutil.which("docker")
+    if os.name != "nt" or platform.node().lower() != "memoria" or not docker:
+        return {"ok": False, "error": "memoria_docker_required"}
+    target = Path(r"F:\AI-Data\Docker\open-webui")
+    name = "qq-storage-probe-" + uuid.uuid4().hex[:12]
+    marker = target / (name + ".txt")
+    token = uuid.uuid4().hex
+    rc, image = run([docker, "inspect", "--format", "{{.Image}}", "open-webui-local"], 15)
+    if rc or not re.fullmatch(r"sha256:[0-9a-f]{64}", image.strip()):
+        return {"ok": False, "error": "existing_image_unavailable"}
+    probe = ("import json,pathlib,os\n"
+             "p=pathlib.Path('/probe/') / " + repr(marker.name) + "\n"
+             "r={'host_marker_visible':p.exists()}\n"
+             "try:\n r['same_host_data']=p.read_text()==" + repr(token) + "\n"
+             "except OSError as e:r['read_errno']=e.errno\n"
+             "q=pathlib.Path('/probe/') / " + repr(name + ".write") + "\n"
+             "try:\n q.write_text('probe');q.unlink();r['writable']=True\n"
+             "except OSError as e:r.update(writable=False,write_errno=e.errno)\n"
+             "r['mounts']=[x.strip() for x in pathlib.Path('/proc/self/mountinfo').read_text().splitlines() if ' /probe ' in x]\n"
+             "print(json.dumps(r))")
+    try:
+        marker.write_text(token, encoding="utf-8")
+        rc, raw = run([docker, "run", "--rm", "--name", name, "--network", "none", "--read-only", "--cap-drop", "ALL", "--memory", "256m",
+                       "--mount", "type=bind,source=" + str(target) + ",target=/probe", "--entrypoint", "python", image.strip(), "-c", probe], 40)
+        if rc:
+            return {"ok": False, "error": "container_probe_failed", "exit_code": rc}
+        return {"ok": True, "probe": json.loads(raw), "host_writable": True}
+    finally:
+        marker.unlink(missing_ok=True)
+        (target / (name + ".write")).unlink(missing_ok=True)
+        run([docker, "rm", "-f", name], 10)
+
+
 def n8n_workflow_definitions():
     """Credential-free, manual-only local readiness workflows."""
     import uuid
@@ -1129,12 +1165,18 @@ def prepare_n8n_workflows():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "prepare-n8n-workflows", "repair-storage", "repair-comfy-runtime", "recover-agents"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "storage-probe", "prepare-n8n-workflows", "repair-storage", "repair-comfy-runtime", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "storage-probe":
+        result = storage_probe()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
     if a.Action == "prepare-n8n-workflows":
         result = prepare_n8n_workflows()
         print(json.dumps(result, indent=2))
