@@ -1,0 +1,8 @@
+{
+  "updated_at":"2026-10-02",
+  "benchmark_count":1,
+  "measured":{"repository_refresh_seconds":2.996,"validate_materialize_check_deploy_seconds":22.220,"browser_verification_seconds":13.560,"role_specific_tracks":8,"production_assets_uploaded":14},
+  "modeled":{"cloud_model_tokens_avoided_low":30000,"cloud_model_tokens_avoided_high":60000,"implementation_token_reduction_low_pct":60,"implementation_token_reduction_high_pct":80},
+  "boundary":"One completed internal benchmark. Token reduction is a directional estimate, not provider billing telemetry, customer traction, or a financial-savings claim.",
+  "source":"/docs/quillgeist-role-crm-case-study.md"
+}
