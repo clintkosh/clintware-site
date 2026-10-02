@@ -998,21 +998,33 @@ def recovery_plan():
     """Read owner-requested handoffs locally; export only fixed feature categories."""
     import hashlib
     home = Path(os.environ.get("USERPROFILE", ""))
-    roots = [home / "Desktop", home / "OneDrive" / "Desktop", Path(r"C:\AI"), home / ".codex"]
-    skip = {".git", "node_modules", "venv", ".venv", "site-packages", "models", "secrets", "auth", "sessions", "archived_sessions", "logs", "cache", "__pycache__", "3rdparty"}
+    roots = [home / "Desktop", home / "OneDrive" / "Desktop", home / ".codex", Path(r"C:\AI\LOCAL-CHATGPT"), Path(r"C:\AI")]
+    skip = {".git", "node_modules", "venv", ".venv", "site-packages", "models", "secrets", "auth", "sessions", "archived_sessions", "logs", "cache", "__pycache__", "3rdparty", "custom_nodes", "comfyui", "python_embeded", "repositories", "extensions", "backups"}
     features = {"chat": r"open.?webui|chatbot|chat server", "local_inference": r"bitnet|ollama|llama", "automation": r"n8n|workflow", "photo_library": r"immich", "image_generation": r"comfyui|stable.diffusion", "coding": r"codex|aider|interpreter", "speech": r"whisper|text.to.speech|speech.to.text|\btts\b|\bstt\b", "music": r"musicgen|audiocraft", "discord": r"discord", "faceswap": r"faceswap|deepfacelive", "web_search": r"searx|web.search"}
     documents = []
+    root_evidence = []
+    seen = set()
     deadline = time.monotonic() + 20
     scanned = 0
     for root in roots:
         try:
-            if getattr(root.lstat(), "st_file_attributes", 0) & 1024:
-                continue
+            info = root.lstat()
+            row = {"path": str(root), "exists": True}
+            if getattr(info, "st_file_attributes", 0) & 1024:
+                destination = os.readlink(root)
+                row["link_target"] = destination
+                root_evidence.append(row)
+                if not destination.removeprefix("\\\\?\\").lower().startswith(str(home).lower() + "\\"):
+                    continue
+                root = Path(destination.removeprefix("\\\\?\\"))
+            else:
+                root_evidence.append(row)
         except OSError:
+            root_evidence.append({"path": str(root), "exists": False})
             continue
         stack = [(root, 0)]
         while stack and time.monotonic() < deadline and scanned < 25000 and len(documents) < 50:
-            folder, depth = stack.pop()
+            folder, depth = stack.pop(0)
             try:
                 for entry in os.scandir(folder):
                     scanned += 1
@@ -1023,8 +1035,13 @@ def recovery_plan():
                         if depth < 5 and entry.name.lower() not in skip:
                             stack.append((Path(entry.path), depth + 1))
                         continue
-                    if not entry.name.lower().endswith(".md") or info.st_size > 200000:
+                    if not entry.name.lower().endswith((".md", ".txt")) or info.st_size > 200000:
                         continue
+                    if not re.search(r"plan|handoff|resume|readme|memoria|todo|continu|\bai\b|local.ai", entry.name, re.I):
+                        continue
+                    if entry.path.lower() in seen:
+                        continue
+                    seen.add(entry.path.lower())
                     body = Path(entry.path).read_text(encoding="utf-8-sig", errors="replace")
                     if not re.search(r"memoria|local.chatgpt|immich|bitnet|comfyui|n8n", body, re.I):
                         continue
@@ -1038,7 +1055,7 @@ def recovery_plan():
     folder.mkdir(parents=True, exist_ok=True)
     snapshot_file = folder / "memoria-recovered-markdown.json"
     snapshot_file.write_text(json.dumps({"documents": documents}, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"ok": True, "documents": [{k: v for k, v in row.items() if k != "content"} for row in documents],
+    return {"ok": True, "roots": root_evidence, "documents": [{k: v for k, v in row.items() if k != "content"} for row in documents],
             "local_plan": str(snapshot_file), "private_contents_exported": False, "excluded_drive_accessed": False, "entries_scanned": scanned,
             "bounded_scan": True, "scan_limit_reached": time.monotonic() >= deadline or scanned >= 25000 or len(documents) >= 50}
 
