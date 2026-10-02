@@ -224,3 +224,78 @@ Before saying a kit is complete, confirm:
 Canonical sequence:
 
 `CALENDAR + GMAIL -> QUALIFY / DEDUPE -> FRESH STAGE KIT -> QUESTION TEST -> DIRECT PROOF -> CONCEPTUAL BRIDGE / TRUTH LINE -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + QA -> DELIVERY -> LANDTHEPLANE PROVENANCE -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE`
+
+## Evidence provenance, role-problem, interviewer-profile, org-map, and refresher gate
+
+Apply `docs/EVIDENCE_PROVENANCE_STANDARD.md` to every interview kit.
+
+### Metric / claim integrity
+
+Before a kit is releasable:
+
+1. Build or refresh a claim ledger for every consequential numeric value used in the kit.
+2. Classify each value as MEASURED, TARGET, DERIVED, ESTIMATE, SYNTHETIC, PUBLIC FACT, or LOGISTICS.
+3. Preserve scope, time window, ownership, and source location.
+4. Render the final PDF/DOCX/cockpit, extract the final visible text, and reconcile consequential numbers against the ledger.
+5. Perform a separate human logic/visual review so a syntactically matched value cannot still misrepresent the source.
+6. If provenance is unclear, remove the number, relabel it appropriately, or return to the original source. Never defend an orphan metric.
+
+The Neuron7 case-study metric regression is a release-blocking regression case.
+
+### One-line role problem hypothesis and interview match
+
+Every stage kit must contain one concise statement:
+
+`COMPANY / TEAM NEEDS <OUTCOME> BUT <CONSTRAINT / FAILURE MODE>; THIS ROLE EXISTS TO <OWNERSHIP / CHANGE>.`
+
+Label it **ROLE PROBLEM HYPOTHESIS** before direct confirmation. Source it from the job description, public company context, recruiter thread, and prior transcripts.
+
+During the interview, listen for the interviewer's own definition of the problem. Afterward classify the hypothesis as MATCHED, MODIFIED, DISPROVEN, or UNCONFIRMED and carry the newest wording into the next round.
+
+### Interviewer decision / operating profile
+
+For every known interviewer, add an evidence-based profile with:
+- verified role and stage;
+- what the interviewer is responsible for deciding;
+- likely evaluation themes supported by role/stage/background/transcript evidence;
+- observable communication or follow-up patterns when supported;
+- what to emphasize and avoid;
+- confidence and source boundary.
+
+Do not diagnose personality, intelligence, motives, or private traits. Use professional operating evidence only.
+
+### Operational org map
+
+Map the role around the interviewer when enough evidence exists. Show verified versus inferred links explicitly.
+
+At minimum map:
+- hiring manager / functional owner;
+- target role;
+- CSM / Sales / Support / Product / Engineering / Services peers as relevant;
+- customer/user stakeholders;
+- escalation path;
+- commercial / product / customer decision ownership;
+- where the interviewer sits relative to the role;
+- where failure creates friction.
+
+Prefer an ASCII live-use map in the cockpit when it improves retrieval.
+
+### Role-specific technical refresher
+
+For technical roles, retrieve current authoritative technical guidance relevant to the role. Prefer vendor docs, RFCs/standards, OWASP/NIST/CISA, cloud/provider docs, then reputable technical references.
+
+For each topic include:
+- mental model;
+- common failure modes;
+- diagnostic sequence;
+- evidence to collect before escalation;
+- terminology traps;
+- current best practices;
+- source links;
+- candidate experience boundary.
+
+Example API rail:
+
+`SCOPE -> CONTRACT -> AUTHN/AUTHZ -> ENDPOINT/METHOD -> HEADERS/PAYLOAD -> STATUS/BODY -> RATE/RETRY -> PAGINATION/STATE -> WEBHOOK/CALLBACK -> NETWORK/TLS/DNS -> LOGS/CORRELATION ID -> MINIMAL REPRO -> OWNER/ESCALATION`
+
+The refresher is preparation, not evidence that the candidate previously owned every technology described.
