@@ -241,6 +241,28 @@ Each worker must have:
 - independent validation status;
 - no automatic production deployment from the local batch runner unless explicitly requested.
 
+### Synthetic portfolio variation
+
+Generated sample portfolios must not look copied from one account to the next.
+
+- Use materially different lifecycle stages across accounts.
+- Use stable project/account-derived progress so rebuilds remain reproducible.
+- Do not vary verified role facts, candidate evidence, or sourced metrics.
+- Repeated generated progress values across the whole portfolio, including the former repeated 33% pattern, must fail acceptance unless the repetition is intentional and documented.
+- Default generated work should provide enough milestones to show distinct progress states such as 20%, 40%, 60%, and 80%.
+- Progress, stage, risks, actions, and next milestone must tell the same story.
+- Generated numerical examples remain explicitly synthetic.
+
+### Global account selector
+
+Choosing an account from the top customer selector must activate that customer and navigate to its Command Center even when the current view is Portfolio.  Browser acceptance must exercise this path from the default landing view.
+
+### Role and company-principles alignment
+
+Each local CRM+Cover factory manifest must include the current public job source, the date it was checked, and an official company source for current values, operating principles, or careers culture.  Record at least three current principles with a concise explanation of how each relates to the role.
+
+Keep company statements, job requirements, and candidate evidence separate.  Use the employer's current terminology and do not infer internal practices that are not public.
+
 ### Local cover-letter generation
 
 Every factory manifest must contain a complete deterministic Why Company and cover-letter draft so the package remains usable without a local model.
