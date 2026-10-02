@@ -1,6 +1,6 @@
 param([ValidateSet("setup","verify")][string]$Action="setup")
 $ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue"
-if($env:COMPUTERNAME -not match '(?i)^DRIZNET$'){throw "DRIZNET-only"}
+if($env:COMPUTERNAME -notmatch '(?i)^DRIZNET$'){throw "DRIZNET-only"}
 $R="C:\AI\LOCAL-CHATGPT";$S=Join-Path $R "scripts";$L=Join-Path $R "logs";$C="C:\AI\ComfyUI"
 function T($u,$t=5){try{$r=Invoke-WebRequest $u -UseBasicParsing -TimeoutSec $t;return($r.StatusCode -ge 200 -and $r.StatusCode -lt 500)}catch{return $false}}
 function W($u,$s=120){$e=(Get-Date).AddSeconds($s);do{if(T $u 5){return $true};Start-Sleep 2}while((Get-Date) -lt $e);return $false}
@@ -22,7 +22,7 @@ import json,urllib.request
 B="http://127.0.0.1:8188"
 class H(BaseHTTPRequestHandler):
  def j(self,s,d):
-  b=json.dumps(d).encode();self.send_response(s);self.send_header("content-type","application/json");self.send_header("content-le ngth",str(len(b)));self.end_headers();self.wfile.write(b)
+  b=json.dumps(d).encode();self.send_response(s);self.send_header("content-type","application/json");self.send_header("content-length",str(len(b)));self.end_headers();self.wfile.write(b)
  def do_GET(self):
   if self.path=="/health":
    try:urllib.request.urlopen(B+"/system_stats",timeout=5).close();self.j(200,{"ok":True,"comfyui":True})
@@ -35,9 +35,9 @@ class H(BaseHTTPRequestHandler):
  def do_POST(self):
   if self.path!="/prompt":self.j(404,{"error":"not_found"});return
   try:
-   n=int(self.headers.get("content-le ngth") or 0);body=self.rfile.read(n);q=urllib.request.Request(B+"/prompt",data=body,method="POST",headers={"content-type":"application/json"})
+   n=int(self.headers.get("content-length") or 0);body=self.rfile.read(n);q=urllib.request.Request(B+"/prompt",data=body,method="POST",headers={"content-type":"application/json"})
    with urllib.request.urlopen(q,timeout=30) as r:raw=r.read()
-   self.send_response(200);self.send_header("content-type","application/json");self.send_header("content-le ngth",str(len(raw)));self.end_headers();self.wfile.write(raw)
+   self.send_response(200);self.send_header("content-type","application/json");self.send_header("content-length",str(len(raw)));self.end_headers();self.wfile.write(raw)
   except Exception as e:self.j(502,{"ok":False,"error":type(e).__name__})
  def log_message(self,*a):pass
 ThreadingHTTPServer(("127.0.0.1",8799),H).serve_forever()
