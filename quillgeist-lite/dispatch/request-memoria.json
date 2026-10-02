@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-comfy-repair-20261002-0758",
+  "request_id": "work-memoria-agents-restart-20261002-0800",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "repair-comfy-runtime"
+    "Action": "recover-agents"
   },
-  "objective": "Restore approved missing ComfyUI junction target directories and verify existing local runtime. Preserve all models and excluded drive.",
+  "objective": "Restart and verify existing hidden local agent tasks after restoring ComfyUI directory targets. Preserve models and excluded drive.",
   "resume_after": false
 }
