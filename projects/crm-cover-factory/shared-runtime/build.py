@@ -9,7 +9,7 @@ def main():
   if t["slug"]in by:raise SystemExit("duplicate tenant slug: "+t["slug"])
   by[t["slug"]]=t
  shutil.rmtree(OUT,ignore_errors=True);PUBLIC.mkdir(parents=True,exist_ok=True);(PUBLIC/"tenants").mkdir(parents=True,exist_ok=True)
- for n in("index.html","app.js","styles.css"):shutil.copy2(HERE/n,PUBLIC/n)
+ for n in("index.html","app.js","styles.css"):shutil.copy2(HERE/n,PUBLIC/n)\n shutil.copy2(HERE/"src"/"analytics.js",PUBLIC/"analytics.js")
  months={}
  for t in by.values():months.setdefault(str(t.get("source_date")or"unknown")[:7],[]).append(t)
  index=[]
