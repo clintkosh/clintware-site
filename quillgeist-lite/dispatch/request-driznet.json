@@ -1,8 +1,14 @@
 {
-  "request_id": "chatgpt-driznet-refresh-20261002-1646",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-inference2-20261002-1647",
+  "task_id": "local-ai",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET with the canonical Quillgeist local AI decoding fix, preserve current work, and resume queued work after restart.",
+  "args": {
+    "Action": "benchmark",
+    "Model": "qwen3.5:9b",
+    "Prompt": "Reply exactly DRIZNET_AI_READY.",
+    "MaxTokens": "32",
+    "ContextTokens": "4096"
+  },
+  "objective": "Re-run DRIZNET local inference after canonical output-decoding repair and return local-agent confirmation evidence.",
   "resume_after": true
 }
