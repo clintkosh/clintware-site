@@ -1043,14 +1043,104 @@ def recovery_plan():
             "bounded_scan": True, "scan_limit_reached": time.monotonic() >= deadline or scanned >= 25000 or len(documents) >= 50}
 
 
+def n8n_workflow_definitions():
+    """Credential-free, manual-only local readiness workflows."""
+    import uuid
+    groups = [
+        ("cwMemHealth26", "MEMORIA - Service Readiness", [
+            ("Open WebUI", "http://host.docker.internal:3015/health"),
+            ("Ollama", "http://host.docker.internal:11434/api/tags"),
+            ("BitNet", "http://host.docker.internal:11436/health"),
+            ("Search Agent", "http://host.docker.internal:8788/health"),
+            ("Media Agent", "http://host.docker.internal:8799/health"),
+            ("ComfyUI", "http://host.docker.internal:8188/system_stats")]),
+        ("cwMemComfy26", "MEMORIA - GPU and Image Queue", [
+            ("GPU and Runtime", "http://host.docker.internal:8188/system_stats"),
+            ("Image Queue", "http://host.docker.internal:8188/queue"),
+            ("Available Checkpoints", "http://host.docker.internal:8188/object_info/CheckpointLoaderSimple")]),
+        ("cwMemImmich26", "MEMORIA - Immich Recovery Readiness", [
+            ("Immich Ping", "http://host.docker.internal:2283/api/server/ping")])]
+    workflows = []
+    for wid, name, endpoints in groups:
+        nodes = [{"id": "manual", "name": "Run Readiness Check", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {}}]
+        destinations = []
+        for index, (label, url) in enumerate(endpoints):
+            nodes.append({"id": "check-" + str(index), "name": label, "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2,
+                          "position": [320, index * 160], "parameters": {"url": url, "options": {"timeout": 5000,
+                          "response": {"response": {"fullResponse": True, "neverError": True, "responseFormat": "json"}}}},
+                          "onError": "continueRegularOutput"})
+            destinations.append({"node": label, "type": "main", "index": 0})
+        workflows.append({"id": wid, "name": name, "active": False, "versionId": str(uuid.uuid5(uuid.NAMESPACE_URL, "clintware/memoria/" + wid)),
+                          "nodes": nodes, "connections": {"Run Readiness Check": {"main": [destinations]}}, "settings": {"executionOrder": "v1"},
+                          "tags": [], "pinData": {}})
+    return workflows
+
+
+def prepare_n8n_workflows():
+    """Install manual health workflows without credentials, schedules or repairs."""
+    if os.name != "nt" or platform.node().lower() != "memoria":
+        return {"ok": False, "error": "memoria_only"}
+    docker = shutil.which("docker")
+    if not docker:
+        return {"ok": False, "error": "docker_missing"}
+    output = Path(r"F:\AI-Data\Automation\n8n")
+    output.mkdir(parents=True, exist_ok=True)
+    definitions = n8n_workflow_definitions()
+    path = output / "memoria-readiness-workflows.json"
+    path.write_text(json.dumps(definitions, indent=2), encoding="utf-8")
+    result = {"ok": True, "file": str(path), "workflows": [], "automatic_triggers": False, "credentials_embedded": False}
+    try:
+        urllib.request.urlopen("http://127.0.0.1:5678/healthz", timeout=5).close()
+    except Exception:
+        return {**result, "ok": False, "error": "n8n_not_healthy", "prepared": True}
+    rc, version = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "--version"], 30)
+    result["n8n_version"] = version.strip()[:40] if rc == 0 else "unknown"
+    # Preserve all existing workflows. IDs are dedicated to this pack, and an
+    # existing matching ID is skipped, never overwritten by another import.
+    for workflow in definitions:
+        wid = workflow["id"]
+        export_path = "/data/Automation/n8n/existing-" + wid + ".json"
+        rc, _ = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "export:workflow", "--id=" + wid, "--output=" + export_path], 60)
+        exists = rc == 0 and (output / ("existing-" + wid + ".json")).is_file()
+        row = {"id": wid, "name": workflow["name"], "existing_preserved": exists}
+        if not exists:
+            one = output / (wid + ".json")
+            one.write_text(json.dumps([workflow], indent=2), encoding="utf-8")
+            rc, logs = run([docker, "exec", "-u", "node", "n8n-local", "n8n", "import:workflow", "--input=/data/Automation/n8n/" + one.name], 90)
+            row["imported"] = rc == 0
+            if rc:
+                row["error"] = "workflow_import_failed"
+                row["error_types"] = sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)):", logs)))
+                result["ok"] = False
+                result["workflows"].append(row)
+                continue
+        # Bounded read-only execution; no schedule or external notification.
+        rc, logs = run([docker, "exec", "-u", "node", "-e", "N8N_RUNNERS_BROKER_PORT=5689", "n8n-local", "n8n", "execute", "--id=" + wid], 90)
+        row["execution_exit_code"] = rc
+        row["executed"] = rc == 0
+        row["unreachable_endpoint_reported"] = bool(re.search(r"ECONNREFUSED|ETIMEDOUT|ENOTFOUND", logs))
+        row["execution_is_not_service_acceptance"] = True
+        if rc:
+            result["ok"] = False
+            row["error_types"] = sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)):", logs)))
+        result["workflows"].append(row)
+    return result
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "repair-storage", "repair-comfy-runtime", "recover-agents"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "prepare-n8n-workflows", "repair-storage", "repair-comfy-runtime", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "prepare-n8n-workflows":
+        result = prepare_n8n_workflows()
+        print(json.dumps(result, indent=2))
+        if not result["ok"]:
+            raise SystemExit(2)
+        return
     if a.Action == "recovery-plan":
         print(json.dumps(recovery_plan(), indent=2))
         return
