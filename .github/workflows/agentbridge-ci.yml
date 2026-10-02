@@ -97,19 +97,24 @@ jobs:
         run: |
           node --check agentbridge-cloud/src/index.js
           node --check agentbridge-cloud/src/entry.js
+          node --check agentbridge-cloud/src/public-api.js
           node --check agentbridge-cloud/src/telemetry.js
           node --check agentbridge-cloud/src/help.js
           node --check agentbridge-cloud/public/app.js
+          node --check agentbridge-cloud/public/saas.js
+          node --test agentbridge-cloud/test/*.test.mjs
+          python3 -m unittest tests.test_quillgeist_saas -v
           node --check agentbridge-cloud/public/fluid.js
           node --check agentbridge-cloud/public/progress.js
           node --check agentbridge-cloud/public/sw.js
       - name: Validate Wrangler config
         run: |
           grep -Fq '"main": "src/entry.js"' agentbridge-cloud/wrangler.jsonc
-          grep -Fq '"name":"TELEMETRY_HUB"' agentbridge-cloud/wrangler.jsonc
-          grep -Fq '"name":"PRODUCT_METRICS_HUB"' agentbridge-cloud/wrangler.jsonc
-          grep -Fq '"name":"HELP_HUB"' agentbridge-cloud/wrangler.jsonc
-          grep -Fq '"pattern":"quillgeist.clintware.com","custom_domain":true' agentbridge-cloud/wrangler.jsonc
+          grep -Eq '"name"[[:space:]]*:[[:space:]]*"TELEMETRY_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Eq '"name"[[:space:]]*:[[:space:]]*"PRODUCT_METRICS_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Eq '"name"[[:space:]]*:[[:space:]]*"HELP_HUB"' agentbridge-cloud/wrangler.jsonc
+          grep -Eq '"pattern"[[:space:]]*:[[:space:]]*"quillgeist\.clintware\.com"' agentbridge-cloud/wrangler.jsonc
+          grep -Eq '"pattern"[[:space:]]*:[[:space:]]*"qg\.clintware\.com"' agentbridge-cloud/wrangler.jsonc
           grep -Fq 'name: Deploy Quillgeist Cloud' .github/workflows/agentbridge-deploy-cloud.yml
           XDG_CONFIG_HOME=/tmp/quillgeist-ci-xdg npx --yes --cache /tmp/quillgeist-ci-npm-cache wrangler@4 deploy --dry-run --config agentbridge-cloud/wrangler.jsonc
       - name: Validate Help Center documentation invariant
