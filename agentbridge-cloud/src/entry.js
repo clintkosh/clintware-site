@@ -80,6 +80,18 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     try{
+      if(url.hostname.toLowerCase()==="qg.clintware.com"){
+        const canonical=new URL(request.url);
+        canonical.hostname="quillgeist.clintware.com";
+        return Response.redirect(canonical.toString(),301);
+      }
+      if(request.method==="GET"&&(url.pathname==="/app"||url.pathname==="/app/")){
+        const appUrl=new URL(request.url);
+        appUrl.pathname="/app.html";
+        appUrl.search="";
+        appUrl.hash="";
+        return env.ASSETS.fetch(new Request(appUrl,request));
+      }
       const retiredPublicRuntime =
         url.pathname === "/mcp" ||
         url.pathname === "/api/v1" || url.pathname.startsWith("/api/v1/") ||
