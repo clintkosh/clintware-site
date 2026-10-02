@@ -19,7 +19,7 @@ GIB = 1024 ** 3
 
 def run(argv, timeout=8):
     try:
-        p = subprocess.run(argv, text=True, capture_output=True, timeout=timeout)
+        p = subprocess.run(argv, text=True, capture_output=True, timeout=timeout, encoding="utf-8", errors="replace")
         output = "\n".join(x for x in (p.stdout.strip(), p.stderr.strip()) if x).strip()
         return p.returncode, output[:20000]
     except (OSError, subprocess.TimeoutExpired):
