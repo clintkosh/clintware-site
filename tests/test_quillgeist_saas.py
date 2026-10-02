@@ -20,13 +20,14 @@ class QuillgeistSaaSPortalTests(unittest.TestCase):
         self.assertNotIn("mcp.clintware.com/api", script)
         self.assertNotIn("CLOUDFLARE", script)
 
-    def test_local_gateway_explicitly_allows_portal_origin(self):
+    def test_local_gateway_keeps_browser_access_generic_and_auth_gated(self):
         source = (ROOT / "agentbridge-node" / "agentbridge_node" / "local_gateway.py").read_text(encoding="utf-8")
-        self.assertIn('"https://quillgeist.clintware.com"', source)
-        self.assertIn('"https://qg.clintware.com"', source)
+        self.assertNotIn('"https://quillgeist.clintware.com"', source)
+        self.assertNotIn('"https://qg.clintware.com"', source)
         self.assertIn("access-control-allow-private-network", source)
         self.assertIn("def do_OPTIONS", source)
         self.assertIn("gateway_cors_origins", source)
+        self.assertIn('len(expected) >= 32 and origin.startswith("https://")', source)
 
     def test_product_page_points_to_separate_workspace(self):
         page = (ROOT / "public" / "tools" / "quillgeist" / "index.html").read_text(encoding="utf-8")
