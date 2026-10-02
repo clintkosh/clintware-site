@@ -9,7 +9,7 @@
   "implementation_reference": "dplr-crm",
   "unofficial_candidate_artifact": true,
   "synthetic_data_default": true,
-  "seed_version": 1,
+  "seed_version": 2,
   "workspace_id": "blstr-candidate",
   "role_problem_hypothesis": "The team must deliver seamless technical coverage across a white-label partner ecosystem and directly sold strategic accounts, but ownership shifts across account management, baseline support, paid integration/services, product expertise, and internal escalation; the role exists to make those boundaries operationally clear, step into uncovered gaps, and keep adoption, handoffs, and recurring product signal moving.",
   "role_mission": "Run one evidence-based coverage system across partner-sourced and direct enterprise customers: assign clear CSM and technical ownership, route requests to the right service lane, keep integrations and takedown workflows moving, surface recurring friction, and convert customer signal into better adoption, documentation, packaging, and product feedback.",
