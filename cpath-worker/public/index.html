@@ -294,7 +294,7 @@ textarea{width:100%;min-height:100px;border:1px solid var(--line);border-radius:
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 (function(){
-const KEY='cpath-claude-corps-delivery-v1';
+const KEY='cpath-claude-corps-delivery-v2';
 const mentorSeed=[
 {name:'Priya Shah',pod:'Atlas',zone:'Central',fellows:20,cadence:true,quality:82,pr:88,milestone:90,host:76,commons:93,risk:'medium',weak:'Host-manager engagement',plan:'Two structured host touchpoints per week',one:'Oct 5'},
 {name:'Marcus Lee',pod:'Beacon',zone:'East',fellows:20,cadence:true,quality:91,pr:94,milestone:96,host:91,commons:97,risk:'low',weak:'Scaling peer feedback',plan:'Delegate two reviews using rubric',one:'Oct 6'},
@@ -306,26 +306,63 @@ const mentorSeed=[
 {name:'Owen Brooks',pod:'Harbor',zone:'East',fellows:20,cadence:true,quality:83,pr:85,milestone:86,host:79,commons:92,risk:'medium',weak:'Host engagement',plan:'Escalate missing host response at 48h',one:'Oct 8'},
 {name:'Maya Thompson',pod:'Ion',zone:'West',fellows:20,cadence:true,quality:89,pr:91,milestone:93,host:89,commons:94,risk:'low',weak:'Portfolio pattern sharing',plan:'Tag repeated blockers in Friday roll-up',one:'Oct 6'},
 {name:'Theo Nguyen',pod:'Juniper',zone:'Central',fellows:20,cadence:true,quality:85,pr:89,milestone:87,host:83,commons:91,risk:'low',weak:'Live-session pacing',plan:'Use agenda timeboxes + recap checks',one:'Oct 5'}];
-const first=['Jordan','Taylor','Morgan','Riley','Cameron','Avery','Drew','Casey','Sam','Jamie','Quinn','Parker','Reese','Alex','Devon','Skyler','Rowan','Kendall','Emerson','Finley'];
-const last=['A.','B.','C.','D.','E.','F.','G.','H.','J.','K.'];
+const first=['Jordan','Taylor','Morgan','Riley','Cameron','Avery','Drew','Casey','Sam','Jamie','Quinn','Parker','Reese','Alex','Devon','Skyler','Rowan','Kendall','Emerson','Finley','Nia','Mateo','Sofia','Ethan','Mina','Caleb','Lena','Isaac','Amara','Leo','Zoe','Miles','Ivy','Nolan','Leila','Julian','Naomi','Eli','Maya','Adrian'];
+const last=['Adams','Bennett','Chen','Diaz','Ellis','Foster','Garcia','Hughes','Iqbal','Johnson','Kim','Lopez','Martin','Nguyen','Owens','Patel','Quintero','Reed','Singh','Turner','Usman','Vega','Walker','Xu','Young','Zhang','Brooks','Campbell','Davis','Evans','Flores','Green','Hall','Irwin','Jackson','Khan','Lewis','Mitchell','Nelson','Ortiz'];
+const projects=['Northstar Health','CivicBridge','BrightCart','Harbor Finance','SignalWorks','Greenline Logistics','OpenShelf','CareGrid','Atlas Learning','Juniper Retail'];
+const tracks=['AI workflow automation','Knowledge assistant','Data operations','Customer support AI','Security triage'];
+const cohorts=['Fall 26 · A','Fall 26 · B','Fall 26 · C','Fall 26 · D'];
+const highByMentor={0:[17],2:[0,1,2,11],5:[3,14],7:[4,13]};
 let fellows=[];let n=0;
-mentorSeed.forEach(function(m,mi){for(let i=0;i<8;i++){const high=(mi===2&&i<3)||(mi===5&&i===1)||(mi===7&&i===2);const med=!high&&((i+mi)%5===0);fellows.push({id:'F'+(++n),name:first[(mi*3+i)%first.length]+' '+last[(i+mi)%last.length],mentor:m.name,pod:m.pod,risk:high?'high':med?'medium':'low',milestone:high?55+((i*7)%15):med?72+((i*5)%12):88+((i*3)%11),prAge:high?48+(i*6):med?26+(i*3):8+(i*2),host:high?'Missing':med?'Watch':'Engaged',next:high?'Recovery plan':'Next milestone'});}});
+mentorSeed.forEach(function(m,mi){
+  for(let i=0;i<20;i++){
+    const high=(highByMentor[mi]||[]).includes(i);
+    const med=!high&&((i+(mi*2))%6===0);
+    const milestone=high?52+((i*7+mi)%17):med?70+((i*5+mi)%16):86+((i*3+mi)%14);
+    const prAge=high?46+((i*7+mi)%31):med?25+((i*4+mi)%17):5+((i*3+mi)%19);
+    const host=high?(i%2?'Missing':'Late'):med?(i%2?'Watch':'Late'):'Engaged';
+    fellows.push({
+      id:'F'+String(++n).padStart(3,'0'),
+      name:first[(mi*11+i)%first.length]+' '+last[(mi*7+i*3)%last.length],
+      mentor:m.name,pod:m.pod,zone:m.zone,
+      cohort:cohorts[(mi+i)%cohorts.length],
+      project:projects[(mi*3+i)%projects.length],
+      track:tracks[(mi+i*2)%tracks.length],
+      risk:high?'high':med?'medium':'low',
+      milestone:Math.min(99,milestone),
+      prAge:prAge,
+      host:host,
+      hostManager:['Engaged','Engaged','Engaged','Awaiting response','Scheduled'][(mi+i)%5],
+      commons:high?1+(i%2):med?2+(i%2):3+(i%3),
+      confidence:high?'Low':med?'Mixed':'Strong',
+      lastTouch:['Today','Yesterday','2d ago','3d ago'][(mi+i)%4],
+      next:high?'Recovery plan':med?'Mentor check-in':'Next milestone'
+    });
+  }
+});
 const seed={mode:'leader',selected:'Priya Shah',notes:{},tasks:[
 {id:'t1',title:'Recover Cedar review SLA',sub:'Elena · 3 fellow PRs over 48h; agree same-day recovery plan',done:false,sev:'high'},
 {id:'t2',title:'Run three overdue milestone interventions',sub:'Cedar ×2 · Forge ×1; owner and due date required today',done:false,sev:'high'},
 {id:'t3',title:'Coach Priya on host engagement',sub:'Atlas · move from 76% to 90%+ with two structured touchpoints',done:false,sev:'medium'},
 {id:'t4',title:'Turn prompt-quality pattern into change request',sub:'Atlas + Forge + Harbor show the same failure mode',done:false,sev:'medium'},
-{id:'t5',title:'Publish Friday portfolio roll-up',sub:'Decisions, outcomes, risks, top patterns, and asks',done:false,sev:'low'}],
+{id:'t5',title:'Publish Friday portfolio roll-up',sub:'Decisions, outcomes, risks, top patterns, and asks',done:false,sev:'low'},
+{id:'t6',title:'Close Harbor host-manager gap',sub:'Owen · 4 fellows have late or missing host response',done:false,sev:'medium'},
+{id:'t7',title:'Recognize Beacon review discipline',sub:'Marcus · 94% PR SLA and strong fellow independence; capture repeatable practice',done:true,sev:'low'},
+{id:'t8',title:'Calibrate mentor rubric on two sample sessions',sub:'Priya + Daniel · compare scoring and tighten examples before next 1:1 cycle',done:false,sev:'medium'},
+{id:'t9',title:'Confirm Cedar recovery ownership',sub:'Elena · overdue review queue has a named owner and 24h close target',done:false,sev:'high'}],
 mentors:mentorSeed,fellows:fellows,
 signals:[
 {title:'Prompt decomposition breaks after first milestone',pods:'Atlas · Forge · Harbor',count:11,severity:'high',action:'Add worked example + mentor calibration'},
 {title:'Host feedback arrives too late to change work',pods:'Atlas · Cedar',count:7,severity:'medium',action:'Introduce 48h host-response escalation'},
 {title:'Fellows overuse autonomous agents before defining acceptance criteria',pods:'Cedar · Delta · Ion',count:9,severity:'medium',action:'Add workflow-before-agent checkpoint'},
-{title:'Strong mentors use artifact-based feedback consistently',pods:'Beacon · Grove',count:14,severity:'low',action:'Promote as reusable coaching pattern'}],
+{title:'Strong mentors use artifact-based feedback consistently',pods:'Beacon · Grove',count:14,severity:'low',action:'Promote as reusable coaching pattern'},
+{title:'Fellows with explicit acceptance tests recover from blockers faster',pods:'Delta · Echo · Ion',count:18,severity:'low',action:'Add acceptance-test checkpoint to milestone template'},
+{title:'Late PR review correlates with lower fellow confidence',pods:'Cedar · Forge · Harbor',count:13,severity:'high',action:'Create aging-PR intervention threshold'}],
 changes:[
 {id:'c1',title:'CR-014 · Acceptance criteria before agent execution',state:'Drafting',owner:'Clinton',evidence:'9 fellows · 3 pods'},
 {id:'c2',title:'CR-011 · Add prompt-decomposition worked example',state:'Accepted',owner:'Curriculum',evidence:'11 fellows · 3 pods'},
-{id:'c3',title:'CR-008 · Host-manager response escalation standard',state:'Pilot',owner:'Program Ops',evidence:'7 fellows · 2 pods'}
+{id:'c3',title:'CR-008 · Host-manager response escalation standard',state:'Pilot',owner:'Program Ops',evidence:'7 fellows · 2 pods'},
+{id:'c4',title:'CR-016 · Aging-PR intervention threshold',state:'Review',owner:'Mentor Lead',evidence:'13 fellows · 3 pods'},
+{id:'c5',title:'CR-017 · Acceptance-test milestone checkpoint',state:'Proposed',owner:'Curriculum',evidence:'18 fellows · 3 pods'}
 ]};
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(seed)}catch(e){return structuredClone(seed)}}
 let state=load();
@@ -333,14 +370,14 @@ function persist(){localStorage.setItem(KEY,JSON.stringify(state));document.getE
 function toast(s){const el=document.getElementById('toast');el.textContent=s;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},1600)}
 function riskLabel(r){return r==='high'?'High':r==='medium'?'Watch':'Low'}
 function selMentor(){return state.mentors.find(function(m){return m.name===state.selected})||state.mentors[0]}
-function renderKPIs(){const cadence=Math.round(state.mentors.filter(function(m){return m.cadence}).length/state.mentors.length*100);const high=state.fellows.filter(function(f){return f.risk==='high'}).length;const pr=Math.round(state.mentors.reduce(function(a,m){return a+m.pr},0)/state.mentors.length);document.getElementById('kCadence').textContent=cadence+'%';document.getElementById('kRisk').textContent=high;document.getElementById('kPR').textContent=pr+'%';document.getElementById('kSignals').textContent=state.signals.length;document.getElementById('riskBadge').textContent=high+' intervention';}
+function renderKPIs(){const cadence=Math.round(state.mentors.filter(function(m){return m.cadence}).length/state.mentors.length*100);const high=state.fellows.filter(function(f){return f.risk==='high'}).length;const pr=Math.round(state.mentors.reduce(function(a,m){return a+m.pr},0)/state.mentors.length);document.getElementById('kCadence').textContent=cadence+'%';document.getElementById('kRisk').textContent=high;document.getElementById('kPR').textContent=pr+'%';document.getElementById('kSignals').textContent=state.signals.length;document.getElementById('riskBadge').textContent=high+' intervention · '+state.fellows.length+' seeded';}
 function renderQueue(){const q=document.getElementById('leaderQueue');q.innerHTML='';state.tasks.forEach(function(t){const d=document.createElement('label');d.className='task'+(t.done?' done':'');d.innerHTML='<input type="checkbox" data-task="'+t.id+'" '+(t.done?'checked':'')+'><span><b>'+t.title+'</b><small>'+t.sub+'</small></span><span class="badge '+(t.sev==='high'?'red':t.sev==='medium'?'amber':'green')+'">'+t.sev+'</span>';q.appendChild(d)});const open=state.tasks.filter(function(t){return !t.done}).length;document.getElementById('queueCount').textContent=open+' open';}
 function rowMentor(m){return '<tr data-mentor="'+m.name+'"><td><strong>'+m.name+'</strong></td><td>'+m.pod+'</td><td>'+ (m.cadence?'Complete':'Missed') +'</td><td class="score">'+m.quality+'</td><td>'+m.pr+'%</td><td>'+m.milestone+'%</td><td>'+m.host+'%</td><td>'+m.commons+'%</td><td><span class="risk '+m.risk+'">'+riskLabel(m.risk)+'</span></td></tr>'}
 function renderMentors(){document.getElementById('mentorBody').innerHTML=state.mentors.map(rowMentor).join('');const s=(document.getElementById('mentorSearch').value||'').toLowerCase();const rf=document.getElementById('riskFilter').value;const filtered=state.mentors.filter(function(m){return(!s||m.name.toLowerCase().includes(s)||m.pod.toLowerCase().includes(s))&&(rf==='all'||m.risk===rf)});document.getElementById('mentorDevBody').innerHTML=filtered.map(function(m){return '<tr data-mentor="'+m.name+'"><td><strong>'+m.name+'</strong></td><td>'+m.pod+'</td><td>'+m.fellows+'</td><td>'+m.weak+'</td><td>'+m.plan+'</td><td>'+m.one+'</td><td><span class="risk '+m.risk+'">'+riskLabel(m.risk)+'</span></td></tr>'}).join('');const es=document.getElementById('esMentor');es.innerHTML=state.mentors.map(function(m){return '<option>'+m.name+'</option>'}).join('');}
 function renderDetail(){const m=selMentor();document.getElementById('detailName').textContent=m.name;document.getElementById('detailSub').textContent='Mentor · Pod '+m.pod+' · '+m.zone;const r=document.getElementById('detailRisk');r.textContent=m.risk==='high'?'Immediate plan':m.risk==='medium'?'Needs coaching':'On track';r.className='badge '+(m.risk==='high'?'red':m.risk==='medium'?'amber':'green');document.getElementById('dCadence').textContent=m.cadence?'On track':'Missed';document.getElementById('dQuality').textContent=m.quality;document.getElementById('dPr').textContent=m.pr+'%';document.getElementById('dMilestone').textContent=m.milestone+'%';document.getElementById('dHost').textContent=m.host+'%';document.getElementById('dCommons').textContent=m.commons+'%';document.getElementById('coachNote').value=state.notes[m.name]||'';}
-function renderFellows(){const s=(document.getElementById('fellowSearch').value||'').toLowerCase();const rf=document.getElementById('fellowRisk').value;const list=state.fellows.filter(function(f){return(!s||f.name.toLowerCase().includes(s)||f.pod.toLowerCase().includes(s)||f.mentor.toLowerCase().includes(s))&&(rf==='all'||f.risk===rf)}).slice(0,40);document.getElementById('fellowCards').innerHTML=list.map(function(f){return '<article class="fellow"><span class="risk '+f.risk+'">'+(f.risk==='high'?'Intervention':f.risk==='medium'?'Watch':'On track')+'</span><h3>'+f.name+'</h3><p>'+f.pod+' · '+f.mentor+'</p><div class="meter"><i style="width:'+f.milestone+'%"></i></div><div class="meta"><span class="mini">Milestone '+f.milestone+'%</span><span class="mini">PR '+f.prAge+'h</span><span class="mini">Host '+f.host+'</span></div></article>'}).join('')||'<p class="note">No fellows match this filter.</p>';}
+function renderFellows(){const s=(document.getElementById('fellowSearch').value||'').toLowerCase();const rf=document.getElementById('fellowRisk').value;const list=state.fellows.filter(function(f){return(!s||f.name.toLowerCase().includes(s)||f.pod.toLowerCase().includes(s)||f.mentor.toLowerCase().includes(s)||f.project.toLowerCase().includes(s)||f.track.toLowerCase().includes(s))&&(rf==='all'||f.risk===rf)});document.getElementById('fellowCards').innerHTML=list.map(function(f){return '<article class="fellow"><span class="risk '+f.risk+'">'+(f.risk==='high'?'Intervention':f.risk==='medium'?'Watch':'On track')+'</span><h3>'+f.name+'</h3><p>'+f.cohort+' · '+f.pod+' · '+f.mentor+'</p><p style="margin-top:5px"><strong>'+f.project+'</strong> · '+f.track+'</p><div class="meter"><i style="width:'+f.milestone+'%"></i></div><div class="meta"><span class="mini">Milestone '+f.milestone+'%</span><span class="mini">PR '+f.prAge+'h</span><span class="mini">Host '+f.host+'</span><span class="mini">Commons '+f.commons+'</span><span class="mini">Confidence '+f.confidence+'</span><span class="mini">'+f.lastTouch+'</span></div></article>'}).join('')||'<p class="note">No fellows match this filter.</p>';}
 function renderSignals(){document.getElementById('signalGrid').innerHTML=state.signals.map(function(s){return '<article class="signal"><span class="badge '+(s.severity==='high'?'red':s.severity==='medium'?'amber':'green')+'">'+s.count+' cases</span><h3>'+s.title+'</h3><p>'+s.pods+'</p><footer><span class="mini">'+s.action+'</span></footer></article>'}).join('');document.getElementById('changeRequests').innerHTML=state.changes.map(function(c){return '<article class="req"><div><h3>'+c.title+'</h3><p>'+c.evidence+' · Owner: '+c.owner+'</p></div><span class="badge blue">'+c.state+'</span></article>'}).join('');}
-function renderMode(){document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode)});const leader=state.mode==='leader';document.getElementById('alertTitle').textContent=leader?'Portfolio attention:':'Your mentor workspace:';document.getElementById('alertText').textContent=leader?'one mentor missed cadence, three milestone reviews are overdue, and a repeated prompt-quality issue appears across three pods.':'your selected pod is shown with the same commitments your leader sees, so coaching and accountability use one source of truth.';}
+function renderMode(){document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode)});const leader=state.mode==='leader';document.getElementById('alertTitle').textContent=leader?'Portfolio attention:':'Your mentor workspace:';document.getElementById('alertText').textContent=leader?'one mentor missed cadence, nine fellows need intervention, aging PRs cluster in Cedar/Forge/Harbor, and repeated prompt-quality issues span multiple pods.':'your selected pod is shown with the same commitments your leader sees, so coaching and accountability use one source of truth.';}
 function renderAll(){renderKPIs();renderQueue();renderMentors();renderDetail();renderFellows();renderSignals();renderMode()}
 document.addEventListener('click',function(e){const tab=e.target.closest('[data-tab]');if(tab){document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.remove('active')});tab.classList.add('active');document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});document.getElementById('view-'+tab.dataset.tab).classList.add('active');return}const mr=e.target.closest('[data-mentor]');if(mr){state.selected=mr.dataset.mentor;persist();renderDetail();document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab==='overview')});document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});document.getElementById('view-overview').classList.add('active');toast('Opened '+state.selected);return}const mode=e.target.closest('[data-mode]');if(mode){state.mode=mode.dataset.mode;persist();renderMode();toast(state.mode==='leader'?'Leader view active':'Mentor view active');return}const cb=e.target.closest('[data-task]');if(cb){const t=state.tasks.find(function(x){return x.id===cb.dataset.task});if(t){t.done=cb.checked;persist();renderQueue()}return}});
 document.getElementById('mentorSearch').addEventListener('input',renderMentors);document.getElementById('riskFilter').addEventListener('change',renderMentors);document.getElementById('fellowSearch').addEventListener('input',renderFellows);document.getElementById('fellowRisk').addEventListener('change',renderFellows);
