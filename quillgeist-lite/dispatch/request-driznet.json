@@ -1,8 +1,10 @@
 {
-  "request_id": "astro-pulse-rollout-driznet-20261002-1459",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-state-20261002-1637",
+  "task_id": "local-ai",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Install the reviewed Clintware QQ runtime that adds live resource presence, adaptive load-balancing telemetry, and the current CRM+Cover factory task bundle. Preserve active work and resume normal queued work after the safe restart.",
+  "args": {
+    "Action": "status"
+  },
+  "objective": "Return current DRIZNET local AI runtime, installed model, memory, and readiness evidence so the remaining server work can be completed without conflating DRIZNET with MEMORIA.",
   "resume_after": true
 }
