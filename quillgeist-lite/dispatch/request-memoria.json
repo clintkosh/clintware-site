@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-n8n-workflows-20261002-0812",
+  "request_id": "work-memoria-bind-probe-20261002-0814",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "prepare-n8n-workflows"
+    "Action": "storage-probe"
   },
-  "objective": "Prepare manual local readiness workflows and import/test only if n8n is healthy. Never overwrite existing workflows or embed credentials.",
+  "objective": "Compare a disposable host marker against Docker F bind and probe writes; no network or data changes beyond isolated removable test files.",
   "resume_after": false
 }
