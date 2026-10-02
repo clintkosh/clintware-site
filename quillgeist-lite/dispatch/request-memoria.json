@@ -1,8 +1,12 @@
 {
-  "request_id": "memoria-final-doctor-20261001-1552",
-  "task_id": "clintware-doctor",
+  "request_id": "work-memoria-plan-20261002-0745",
+  "task_id": "big-prompt-plan",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Final MEMORIA readiness verification after local AI/server completion. Confirm machine identity, local runtimes, scheduled-task isolation, storage, and that QQ remains healthy and able to accept work.",
+  "args": {
+    "Prompt": "Resume MEMORIA local AI recovery and desktop Codex handoffs. Diagnose and repair Open WebUI, n8n, ComfyUI and Immich; verify real inference and workflows. Preserve all models databases backups and excluded D drive. Use local reviewed tasks and report measured usage separately from estimates.",
+    "Project": "memoria-local-ai",
+    "StateScope": "memoria-local-ai-recovery",
+    "MaxDepth": 3
+  },
   "resume_after": false
 }
