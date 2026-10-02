@@ -92,3 +92,22 @@ A kit fails if it is not dark mode. A scan fails if Gmail was not checked. A bui
 ## Canonical execution sequence
 
 **CALENDAR + GMAIL -> QUALIFY / EXACT-INSTANCE DEDUPE -> FRESH STAGE KIT -> DARK COCKPIT -> PRIVATE ASTRO LENS -> TRANSCRIPT / EVIDENCE DELTA -> RENDER + VISUAL QA -> DELIVERY -> LANDTHEPLANE PROVENANCE -> LOCAL EXE Q&A / STAR UPDATE -> REBUILD + VERIFY WHEN ACCESSIBLE**
+
+## Evidence provenance and operating-context gate
+
+Before releasing any interview kit, apply the evidence-provenance standard:
+
+- Every consequential number must map to an original source or an explicit MEASURED / TARGET / DERIVED / ESTIMATE / SYNTHETIC / PUBLIC FACT / LOGISTICS class.
+- Keep a claim ledger for the kit.
+- Triple-check source/logic, final-artifact extracted text, and rendered human meaning.
+- If provenance is unclear, remove or relabel the number. Never improvise a defense for an orphan metric.
+- Include an **Evidence / Metric Source Map** in the full kit.
+
+Every kit must also include:
+1. **ROLE PROBLEM HYPOTHESIS** in one sentence: outcome + constraint + why the role exists. During/after the interview mark it MATCHED, MODIFIED, DISPROVEN, or UNCONFIRMED from actual interviewer evidence.
+2. **INTERVIEWER DECISION / OPERATING PROFILE** based only on role, stage, public background, recruiter guidance, and transcript behavior. Never diagnose personality or motives.
+3. **OPERATIONAL ORG MAP** showing the target role, interviewer, manager/leader, peers, customer, escalation path, decision owners, and key dependencies. Label inferred links.
+4. **ROLE-SPECIFIC TECHNICAL REFRESHER** from current primary/authoritative sources for the technical concepts likely to be tested. Keep refresher knowledge separate from candidate experience.
+
+For APIs use the default diagnostic rail when relevant:
+**SCOPE -> CONTRACT -> AUTHN/AUTHZ -> ENDPOINT/METHOD -> HEADERS/PAYLOAD -> STATUS/BODY -> RATE/RETRY -> PAGINATION/STATE -> WEBHOOK/CALLBACK -> NETWORK/TLS/DNS -> LOGS/CORRELATION ID -> MINIMAL REPRO -> OWNER/ESCALATION**.
