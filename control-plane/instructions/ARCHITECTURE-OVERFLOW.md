@@ -76,3 +76,28 @@ The current implementation must preserve these recent decisions:
 - explicit workspace isolation;
 - compact handoffs and delta-state rehydration rather than full-history retransmission;
 - exact terminal evidence before calling work complete.
+
+
+## Local-AI prompt/cache discipline
+
+For local model work, preserve a stable prompt-prefix ordering so static instructions remain byte-stable across repeated requests and model/provider KV caches can be reused where supported:
+
+1. stable universal/master prefix;
+2. stable workspace/project rules;
+3. task-class routing contract;
+4. compact recovered state/delta;
+5. current task;
+6. volatile tool/results suffix.
+
+Benchmark before enabling persistent KV, embedding-cache, speculative, or quantization changes. Pin model/artifact versions for correctness canaries and record cache-hit, latency, and answer-quality evidence before claiming savings.
+
+BitNet is an eligible local text model, not a universal substitute for embeddings, vision, image generation, or tool-calling models.
+
+
+## Chat surface defaults
+
+Normal ChatGPT chat is the default interactive reasoning surface. Use Work only when explicitly requested.
+
+Use QQ/local execution for local Windows work when quality and freshness do not require a remote provider.
+
+Do not send the complete account/chat history to local or remote workers. Recover the minimum relevant state, compile only the needed instruction subset, and preserve a stable prompt prefix where cache reuse helps.
