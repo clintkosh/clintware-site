@@ -67,7 +67,7 @@
     <label class="label" for="gatewayKey">Bearer key (optional)</label>
     <input id="gatewayKey" class="control" type="password" autocomplete="off" placeholder="Stored only in this browser">
     <div class="actions"><button id="connectBtn" class="btn primary">Connect + load models</button><button id="forgetBtn" class="btn danger">Forget local config</button></div>
-    <div class="notice" style="margin-top:12px">Default local gateway: <code>http://127.0.0.1:11435</code>. A self-hosted provider router may expose additional model IDs through the same API contract.</div>
+    <div class="notice" style="margin-top:12px">Default local gateway: <code>http://127.0.0.1:11435</code>. When using this hosted HTTPS workspace, configure a 32+ character local gateway bearer key or explicitly add this browser origin through <code>gateway_cors_origins</code>. Provider credentials stay in your local/self-host router; only the gateway key is stored in this browser.</div>
     <div id="models" class="models" style="margin-top:10px"><div class="small">Connect to discover models.</div></div>
   </section>
 
