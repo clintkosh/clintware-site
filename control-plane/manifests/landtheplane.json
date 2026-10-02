@@ -1,7 +1,7 @@
 {
   "product": "landtheplane",
   "environment": "production",
-  "version": 3,
+  "version": 4,
   "repo": {
     "owner": "clintkosh",
     "name": "clintware-site",
@@ -47,10 +47,10 @@
     "analytics.read:landtheplane",
     "flow.read:landtheplane",
     "flow.write:landtheplane",
-    "flow.run:landtheplane"
+    "flow.run:landtheplane",
+    "research.invoke"
   ],
   "deny": [
-    "research.invoke",
     "secrets.read",
     "secrets.export",
     "billing.manage",
