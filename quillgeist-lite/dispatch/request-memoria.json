@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-services-20261002-0804",
+  "request_id": "work-memoria-postrepair-diag-20261002-0806",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "services"
+    "Action": "diagnostics"
   },
-  "objective": "Verify local service endpoints after storage and ComfyUI repair.",
+  "objective": "Determine remaining Open WebUI and n8n failure after preserved-data restoration and mount refresh.",
   "resume_after": false
 }
