@@ -387,5 +387,43 @@
         }
       ]
     }
-  ]
+  ],
+  "role_verification": {
+    "source_url": "https://job-boards.greenhouse.io/tekmetric/jobs/6129037004",
+    "verified_at": "2026-10-02",
+    "source_status": "verified_current_public_posting"
+  },
+  "company_values": {
+    "framework_name": "Pillars of Excellence",
+    "source_url": "https://www.tekmetric.com/careers",
+    "verified_at": "2026-10-02",
+    "values": [
+      {
+        "name": "Customer Results First",
+        "meaning": "Customer results are the North Star.",
+        "role_connection": "Aligns onboarding analytics, enablement, time-to-live, graduation, and early-churn signals to shop outcomes rather than process activity."
+      },
+      {
+        "name": "Stay Curious",
+        "meaning": "Challenge assumptions and seek to understand before deciding.",
+        "role_connection": "Supports diagnosing onboarding friction, validating data, and testing process or enablement improvements."
+      },
+      {
+        "name": "Mission Over Ego",
+        "meaning": "Put the shared mission above personal or team agendas.",
+        "role_connection": "Fits cross-functional continuity from Sales through onboarding, hypercare, and Customer Success graduation."
+      },
+      {
+        "name": "Winning Matters",
+        "meaning": "Pursue ambitious outcomes with urgency, focus, and integrity.",
+        "role_connection": "Matches a hands-on builder role expected to improve metrics while protecting the customer experience."
+      },
+      {
+        "name": "Bring Good Energy",
+        "meaning": "Use trust, empathy, and belief in teammates to power strong work.",
+        "role_connection": "Supports enablement, coaching, and change adoption across a large onboarding and services organization."
+      }
+    ],
+    "application_rule": "Use the official public framework as interview/application context. Connect it to documented candidate evidence and role outcomes without claiming insider culture knowledge or manufacturing personal fit."
+  }
 }
