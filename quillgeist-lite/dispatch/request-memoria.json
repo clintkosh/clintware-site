@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-agents-restart-20261002-0800",
+  "request_id": "work-memoria-services-20261002-0804",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "recover-agents"
+    "Action": "services"
   },
-  "objective": "Restart and verify existing hidden local agent tasks after restoring ComfyUI directory targets. Preserve models and excluded drive.",
+  "objective": "Verify local service endpoints after storage and ComfyUI repair.",
   "resume_after": false
 }
