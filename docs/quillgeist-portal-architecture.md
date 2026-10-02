@@ -92,8 +92,25 @@ The immediate validation gate remains external:
 Internal efficiency evidence supports the technical claim but does not replace external traction.
 
 
-## ALT SaaS portal prototype
+## Browser-local SaaS workspace
 
-A non-production alternate portal prototype lives at `/portal-alt.html`. It exists to iterate the human SaaS layer without changing the public local-only distribution boundary. It demonstrates the intended subscription surface: intent/routing preview, usage and savings, device/runtime health, workflow reuse, provider policy, evidence, team controls, and billing/connectors roadmap. Any seeded values are explicitly labeled demo data and are not customer traction or live account state.
+Canonical browser workspace: `https://quillgeist.clintware.com/app`.
 
-The production gate remains unchanged: do not reconnect the retired Clintware-hosted public runtime merely to make the prototype interactive. Production authenticated portal work must use an explicitly authorized tenant/runtime boundary.
+The public workspace is a separate human SaaS surface while preserving the local-only distribution boundary. It stores configuration in the browser and connects directly from that browser to an explicitly selected Quillgeist local/self-host gateway.
+
+Current working behavior includes:
+- live model discovery through the local OpenAI-compatible gateway;
+- independently selectable primary/synthesis model;
+- independently selectable model per sub-search branch;
+- dependency-free sub-search fan-out with `Promise.all`;
+- bounded branch outputs joined into final synthesis;
+- browser-local gateway URL/key/policy persistence;
+- local execution ledger and timing/model-use evidence;
+- local gateway CORS/private-network support for the canonical Quillgeist domains;
+- deterministic routing preview and self-host `/api/v1/route` capability for policy compilation.
+
+The public Clintware distribution host does not expose account pairing, shared execution, `/api/v1/compact`, `/api/v1/route`, or MCP execution. Those remain retired there. A customer/user activates runtime capability only through a local or explicitly self-hosted boundary they control.
+
+A future shared Pro/Team tenant may add authenticated server-authoritative state, but it must be deliberately enabled behind a verified tenant boundary rather than reusing the retired public runtime.
+
+`/portal-alt.html` remains a non-production visual prototype only and is not the canonical SaaS workspace.
