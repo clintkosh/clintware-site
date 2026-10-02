@@ -637,6 +637,31 @@ def _materialize_internal_backup_links(root: Path, container_root: str):
     return {"ok": True, "materialized_links": len(plans)}
 
 
+def _recreate_restored_bind(docker, name, inside, target):
+    """Refresh only the restored service from its existing validated compose."""
+    compose = Path(r"C:\AI\LOCAL-CHATGPT\docker\docker-compose.yml")
+    source = compose.read_text(encoding="utf-8-sig")
+    if re.search(r"(?i)(?:\bD:|/mnt/d/|/run/desktop/mnt/host/d/)", source):
+        return {"ok": False, "error": "compose_references_excluded_drive"}
+    rc, raw = run([docker, "compose", "-f", str(compose), "config", "--format", "json"], 30)
+    if rc:
+        return {"ok": False, "error": "compose_validation_failed"}
+    config = json.loads(raw)
+    matches = [(key, value) for key, value in config.get("services", {}).items() if value.get("container_name") == name]
+    if len(matches) != 1:
+        return {"ok": False, "error": "compose_service_identity_ambiguous"}
+    key, service = matches[0]
+    mounts = service.get("volumes", [])
+    if any(re.match(r"(?i)^(d:|/mnt/d/|/run/desktop/mnt/host/d/)", str(m.get("source", ""))) for m in mounts):
+        return {"ok": False, "error": "compose_mount_excluded_drive"}
+    expected = str(target).replace("\\", "/").lower()
+    data_mounts = [m for m in mounts if m.get("target") == inside]
+    if len(data_mounts) != 1 or data_mounts[0].get("type") != "bind" or str(data_mounts[0].get("source", "")).replace("\\", "/").lower() != expected:
+        return {"ok": False, "error": "compose_data_mount_changed"}
+    rc, _ = run([docker, "compose", "-f", str(compose), "up", "-d", "--no-deps", "--force-recreate", "--no-build", "--pull", "never", key], 120)
+    return {"ok": rc == 0, "exit_code": rc, "service": key, "image_downloaded": False}
+
+
 def repair_storage():
     """Restore missing host bind folders from a preserved copy of the same container data."""
     import sqlite3
@@ -649,7 +674,7 @@ def repair_storage():
                ("open-webui-local", "/app/backend/data", Path(r"F:\AI-Data\Docker\open-webui"))]
     results = []
     for name, inside, target in targets:
-        if target.exists():
+        if target.exists() and (not target.is_dir() or any(target.iterdir())):
             results.append({"container": name, "action": "existing_host_data_preserved"})
             continue
         rc, raw = run([docker, "inspect", "--format", "{{json .Mounts}}", name], 10)
@@ -693,18 +718,43 @@ def repair_storage():
                         raise RuntimeError("backup_database_integrity_failed")
             target.parent.mkdir(parents=True, exist_ok=True)
             stage = target.with_name(target.name + ".qq-restored-" + str(os.getpid()))
-            if stage.exists() or target.exists():
+            if stage.exists() or (target.exists() and any(target.iterdir())):
                 raise RuntimeError("destination_changed_during_backup")
             shutil.copytree(backup, stage)
+            # A Docker copy can retain read-only Windows attributes. Only the
+            # restored copy is made writable; the consistent backup is untouched.
+            import stat
+            for copied in stage.rglob("*"):
+                if copied.is_file():
+                    copied.chmod(copied.stat().st_mode | stat.S_IWRITE)
+            preserved_empty = None
+            if target.exists():
+                preserved_empty = target.with_name(target.name + ".qq-empty-" + str(time.time_ns()))
+                target.rename(preserved_empty)
             # Rename is atomic and fails on Windows if another process created target.
-            stage.rename(target)
+            try:
+                stage.rename(target)
+            except OSError:
+                if preserved_empty is not None and not target.exists():
+                    preserved_empty.rename(target)
+                raise
             results.append({"container": name, "action": "restored_missing_bind_folder",
                             "backup": str(backup), "preserved_files": sum(p.is_file() for p in entries),
+                            "preserved_empty_folder": str(preserved_empty) if preserved_empty else None,
                             "new_empty_data_folder": not any(p.is_file() for p in entries)})
         except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
             results.append({"container": name, "error": type(exc).__name__, "errno": getattr(exc, "errno", None), "winerror": getattr(exc, "winerror", None), "backup": str(backup)})
         finally:
             run([docker, "start", name], 30)
+        if results and results[-1].get("action") == "restored_missing_bind_folder":
+            try:
+                refreshed = _recreate_restored_bind(docker, name, inside, target)
+                results[-1]["bind_refresh"] = refreshed
+                if not refreshed.get("ok"):
+                    results[-1]["error"] = "restored_data_bind_refresh_failed"
+            except (OSError, ValueError) as exc:
+                results[-1]["error"] = "restored_data_bind_refresh_failed"
+                results[-1]["detail"] = type(exc).__name__
     return {"ok": not any("error" in x for x in results), "results": results,
             "deleted_user_files": False, "excluded_drive_accessed": False}
 
@@ -724,6 +774,33 @@ def repair_comfy_runtime():
     config_text = config.read_text(encoding="utf-8-sig", errors="replace")
     if re.search(r"(?i)(?:\bD:|/mnt/d/)", config_text):
         return {"ok": False, "error": "comfy_config_references_excluded_drive"}
+
+    # Preserve existing junctions and recreate only their approved missing F:
+    # target directories. Never replace a junction or follow another drive.
+    junction_repairs = []
+    for leaf in ("user", "output", "temp", "input"):
+        link = root / leaf
+        try:
+            info = link.lstat()
+        except FileNotFoundError:
+            continue
+        if not getattr(info, "st_file_attributes", 0) & 1024:
+            continue
+        destination = os.readlink(link)
+        if destination.startswith("\\\\?\\"):
+            destination = destination[4:]
+        expected = Path(r"F:\AI-Data\ComfyUI") / leaf
+        if os.path.normcase(destination) != os.path.normcase(str(expected)):
+            return {"ok": False, "error": "comfy_junction_target_not_approved", "entry": leaf}
+        for ancestor in reversed(expected.parents):
+            try:
+                if getattr(ancestor.lstat(), "st_file_attributes", 0) & 1024:
+                    return {"ok": False, "error": "comfy_target_parent_is_reparse_point"}
+            except FileNotFoundError:
+                pass
+        if not expected.exists():
+            expected.mkdir(parents=True, exist_ok=True)
+            junction_repairs.append(str(expected))
 
     probe_code = (
         "import json,sys\n"
@@ -775,7 +852,7 @@ def repair_comfy_runtime():
             break
         except Exception:
             time.sleep(2)
-    result = {"ok": True, "triton_ready": True, "comfy_health": healthy, "before": before, "after": after, "install": install}
+    result = {"ok": True, "triton_ready": True, "comfy_health": healthy, "before": before, "after": after, "install": install, "junction_targets_restored": junction_repairs}
     if not healthy:
         result["note"] = "runtime dependency repaired; recover-agents will recreate/start the hidden ComfyUI task"
     return result
