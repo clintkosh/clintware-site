@@ -84,7 +84,7 @@ function customer(s,i){
 function richRows(s,customerName){
   const p="synthetic_sample";
   const explicitMilestones=Array.isArray(s.milestones)&&s.milestones.length?s.milestones:null;
-  const doneCount=scenarioProgress.get(s)||2;
+  const doneCount=Math.max(1,Math.min(4,Number(s.synthetic_done_count||scenarioProgress.get(s)||2)));
   const milestoneBlueprint=[
     {title:"Validate current state and decision criteria",owner:"Role owner + stakeholder"},
     {title:"Confirm ownership, source-of-truth, and success contract",owner:"Role owner + systems partner"},
@@ -193,7 +193,7 @@ fs.writeFileSync(workerPath,worker);
 
 const samples=scenarios.slice(1).map((s,i)=>{
   const c=customer(s,i+1);
-  return {n:c.name,i:c.industry,st:c.stage,sm:s.context||m.role_mission,sc:s.scope||m.role_mission,sys:(s.systems||[]).join("; "),g:s.goal||"",met:s.success||s.kpis.map(x=>x.name+": "+x.target).join("; "),tl:s.timeline||"",dep:s.dependency||"",cs:"Synthetic context",pv:"synthetic_sample",portfolio:c.portfolio,kpis:s.kpis,actions:s.actions,risk:s.risk,meeting:s.meeting,meeting_type:s.meeting_type,meeting_date:s.meeting_date,milestones:s.milestones||[],renewal_date:s.renewal_date||"",renewal_plan:s.renewal_plan||"",expansion:s.expansion||""};
+  return {n:c.name,i:c.industry,st:c.stage,sm:s.context||m.role_mission,sc:s.scope||m.role_mission,sys:(s.systems||[]).join("; "),g:s.goal||"",met:s.success||s.kpis.map(x=>x.name+": "+x.target).join("; "),tl:s.timeline||"",dep:s.dependency||"",cs:"Synthetic context",pv:"synthetic_sample",portfolio:c.portfolio,health:s.health||"Watch",synthetic_done_count:scenarioProgress.get(s)||2,kpis:s.kpis,actions:s.actions,risk:s.risk,meeting:s.meeting,meeting_type:s.meeting_type,meeting_date:s.meeting_date,milestones:s.milestones||[],renewal_date:s.renewal_date||"",renewal_plan:s.renewal_plan||"",expansion:s.expansion||""};
 });
 fs.writeFileSync(path.join(out,"src","sample-customers.js"),"export const SAMPLE_SEED_VERSION=3;\nexport const SAMPLE_CUSTOMERS="+JSON.stringify(samples,null,2)+";\n");
 
