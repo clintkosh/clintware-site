@@ -23,7 +23,8 @@ function createHarness(allowed = true, status = { connected_devices: [], runner_
     clip: (value, max = 120) => String(value ?? "").slice(0, max),
     audit: async () => {},
     registryHub: () => ({ fetch: async request => {
-      const path = new URL(request.url).pathname;
+      const url = typeof request === "string" ? request : request.url;
+      const path = new URL(url).pathname;
       if (path.endsWith("/quillgeist-lite-status")) {
         requests.push({ path, body: null });
         return new Response(JSON.stringify(status));
