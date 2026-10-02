@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-02T19:08:00Z",
+  "financial_savings_claimed": false,
+  "benchmarks": [
+    {
+      "id": "role-crm-internal-001",
+      "status": "verified_internal_benchmark",
+      "source": "docs/quillgeist-role-crm-case-study.md",
+      "measured": {
+        "repository_refresh_seconds": 2.996,
+        "validate_materialize_check_deploy_seconds": 22.220,
+        "browser_verification_seconds": 13.560,
+        "role_specific_tracks": 8,
+        "production_assets_uploaded": 14,
+        "functional_checks": [
+          "TCO recalculation passed",
+          "vendor-score recalculation passed"
+        ]
+      },
+      "modeled": {
+        "cloud_model_tokens_avoided_low": 30000,
+        "cloud_model_tokens_avoided_high": 60000,
+        "implementation_token_reduction_low_pct": 60,
+        "implementation_token_reduction_high_pct": 80,
+        "evidence_class": "directional_estimate",
+        "boundary": "Not provider billing telemetry and not a financial-savings claim."
+      }
+    }
+  ],
+  "current_projects": [
+    {
+      "project": "blstrsync-crm",
+      "architecture": "QQ-compatible local-first materializer + browser-local runtime + authorized deployment handoff",
+      "qq_executed_from_current_chat": false,
+      "bitnet_executed_from_current_chat": false,
+      "counted_in_savings_totals": false,
+      "reason": "The current ChatGPT runtime does not expose the user's local QQ/BitNet execution transport. Repository and authorized deployment tooling are used as the fallback, and this project is excluded from local-savings totals rather than being misreported."
+    }
+  ]
+}
