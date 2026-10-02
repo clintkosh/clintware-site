@@ -1,14 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-inference2-20261002-1647",
+  "request_id": "chatgpt-driznet-services-20261002-1648",
   "task_id": "local-ai",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "benchmark",
-    "Model": "qwen3.5:9b",
-    "Prompt": "Reply exactly DRIZNET_AI_READY.",
-    "MaxTokens": "32",
-    "ContextTokens": "4096"
+    "Action": "services"
   },
-  "objective": "Re-run DRIZNET local inference after canonical output-decoding repair and return local-agent confirmation evidence.",
+  "objective": "Probe DRIZNET local AI service endpoints and return which server/UI/automation surfaces are actually healthy or absent.",
   "resume_after": true
 }
