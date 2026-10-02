@@ -1,6 +1,6 @@
 {
-  "request_id": "work-memoria-resume-20261002-0744",
+  "request_id": "driznet-core-status-20261002-1717",
   "action": "status",
-  "target_device": "MEMORIA",
+  "target_device": "DRIZNET",
   "force": false
 }
