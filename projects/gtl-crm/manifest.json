@@ -385,5 +385,38 @@
         }
       ]
     }
-  ]
+  ],
+  "role_verification": {
+    "source_url": "https://job-boards.greenhouse.io/gitlab/jobs/8604996002",
+    "verified_at": "2026-10-02",
+    "source_status": "verified_current_public_posting"
+  },
+  "company_values": {
+    "framework_name": "Current operating principles",
+    "source_url": "https://handbook.gitlab.com/handbook/company/operating-principles/",
+    "verified_at": "2026-10-02",
+    "values": [
+      {
+        "name": "Speed with Quality",
+        "meaning": "Move quickly with stronger guardrails and prove what is built.",
+        "role_connection": "Directly supports rapid CS process iteration while preserving reporting accuracy and source validation."
+      },
+      {
+        "name": "Ownership Mindset",
+        "meaning": "People closest to the work act with autonomy and own the result.",
+        "role_connection": "Matches end-to-end ownership of renewal cadence, health reporting, process changes, and cross-functional resolution."
+      },
+      {
+        "name": "Customer Outcomes",
+        "meaning": "Measure what changes for the customer, not internal activity.",
+        "role_connection": "Keeps CS Operations metrics tied to value realization, customer health, and decisions rather than administrative throughput."
+      },
+      {
+        "name": "Culture of Excellence",
+        "meaning": "Precision, high-quality execution, business impact, and respectful collaboration.",
+        "role_connection": "Fits evidence-first reporting, clear documentation, and cross-functional operating discipline."
+      }
+    ],
+    "application_rule": "Use the official public framework as interview/application context. Connect it to documented candidate evidence and role outcomes without claiming insider culture knowledge or manufacturing personal fit."
+  }
 }
