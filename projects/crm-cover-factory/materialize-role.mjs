@@ -21,12 +21,33 @@ fs.cpSync(refBuild,out,{recursive:true});
 
 const clone=x=>JSON.parse(JSON.stringify(x));
 const slug=s=>String(s||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||"item";
+function stableHash(value){
+  let h=2166136261>>>0;
+  for(const ch of String(value||"")){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
+  return h>>>0;
+}
+function stageScore(stage){
+  const x=String(stage||"").toLowerCase();
+  if(/pre-sale|kickoff|pilot|onboarding|discovery/.test(x))return 1;
+  if(/implementation|launch|hypercare|escalation|risk recovery/.test(x))return 2;
+  if(/adoption|expansion|qbr|renewal|scale|capacity|planning|process/.test(x))return 3;
+  if(/graduation|mature|steady state/.test(x))return 4;
+  return 2;
+}
 const scenarios=Array.isArray(m.seed_scenarios)?m.seed_scenarios:[];
 if(scenarios.length<5)throw new Error("CRM+Cover role manifests require at least five seed scenarios.");
 for(const s of scenarios){
   if(!Array.isArray(s.kpis)||s.kpis.length<3)throw new Error("Each seed scenario requires at least three KPIs: "+s.name);
   if(!Array.isArray(s.actions)||s.actions.length<2)throw new Error("Each seed scenario requires at least two actions: "+s.name);
 }
+const scenarioProgress=new Map();
+const ranked=scenarios.map((s,i)=>({s,i,score:stageScore(s.stage),tie:stableHash(projectId+"|"+s.name+"|"+s.stage)}))
+  .sort((a,b)=>a.score-b.score||a.tie-b.tie||a.i-b.i);
+ranked.forEach((row,rank)=>{
+  const done=Math.max(1,Math.min(4,1+Math.round((rank/Math.max(1,ranked.length-1))*3)));
+  scenarioProgress.set(row.s,done);
+});
+if(new Set([...scenarioProgress.values()]).size<Math.min(4,scenarios.length))throw new Error("Synthetic progress variation could not produce enough distinct lifecycle states.");
 const stakeholderRoles=Array.isArray(m.stakeholder_roles)&&m.stakeholder_roles.length>=3?m.stakeholder_roles:[
   "Executive Sponsor / Value Owner","Operational Owner","Systems / Data Owner"
 ];
@@ -54,18 +75,30 @@ function customer(s,i){
       kickoff:s.current_state||s.stage,
       unvalidatedDependencies:s.dependency||"No critical dependency recorded",
       successMetrics:s.success||s.kpis.map(x=>x.name+": "+x.target).join("; "),
-      currentSystems:(s.systems||[]).join("; ")
+      currentSystems:(s.systems||[]).join("; "),
+      syntheticProgressModel:"Stable role-stage variation · "+String((scenarioProgress.get(s)||2)*20)+"% illustrative completion"
     }
   };
 }
 
 function richRows(s,customerName){
   const p="synthetic_sample";
-  const milestones=(Array.isArray(s.milestones)&&s.milestones.length?s.milestones:[
-    {title:"Validate current state and decision criteria",owner:"Role owner + stakeholder",due:"Current cycle",status:"Done",column:"Done"},
-    {title:"Close highest-risk dependency",owner:"Role owner + cross-functional partner",due:"Next checkpoint",status:"In Progress",column:"In Progress"},
-    {title:"Measure target outcome and prepare next decision",owner:"Role owner",due:"End of cycle",status:"Planned",column:"Ready"}
-  ]);
+  const explicitMilestones=Array.isArray(s.milestones)&&s.milestones.length?s.milestones:null;
+  const doneCount=scenarioProgress.get(s)||2;
+  const milestoneBlueprint=[
+    {title:"Validate current state and decision criteria",owner:"Role owner + stakeholder"},
+    {title:"Confirm ownership, source-of-truth, and success contract",owner:"Role owner + systems partner"},
+    {title:"Close the highest-risk dependency",owner:"Role owner + cross-functional partner"},
+    {title:"Run the customer / business outcome checkpoint",owner:"Role owner + stakeholder"},
+    {title:"Measure outcome and prepare the next decision",owner:"Role owner"}
+  ];
+  const milestones=explicitMilestones||milestoneBlueprint.map((x,i)=>{
+    let status="Planned",column="Ready";
+    if(i<doneCount){status="Done";column="Done"}
+    else if(i===doneCount){status="In Progress";column=(s.health==="At Risk"&&i>1?"Blocked":"In Progress")}
+    else if(i===doneCount+1){status="Review";column="Review"}
+    return {...x,due:i<doneCount?"Completed":i===doneCount?"Current checkpoint":"Planned",status,column}
+  });
   const rows=[
     ["handoff",p,{title:"Role operating context",value:s.context||m.role_mission,validation:"Synthetic candidate scenario",note:s.goal||""}],
     ["handoff",p,{title:"Customer / business objective",value:s.goal||"",validation:"Synthetic candidate scenario",note:s.success||""}],
@@ -120,6 +153,7 @@ function richRows(s,customerName){
 const golden=customer(scenarios[0],0);
 const goldenRows=richRows(scenarios[0],golden.name);
 const KB_SEED=[
+  ...(Array.isArray(m.company_values?.values)&&m.company_values.values.length?[{id:"kb-company-values",slug:"company-values-role-alignment",title:m.company+" Values / Culture Alignment",summary:"Official public company values or culture themes connected to this role and candidate evidence.",category:"Role Alignment",tags:["company","values","role-fit","public-source"],status:"published",source:"public_research",authorLabel:"Official public company source",body:m.company_values.values.map(v=>v.name+": "+(v.meaning||"")+"\nROLE CONNECTION: "+(v.role_connection||"")).join("\n\n")+"\n\nSOURCE: "+(m.company_values.source_url||"")}]:[]),
   {id:"kb-role-playbook",slug:"role-operating-playbook",title:m.roles[0].name+" Operating Playbook",summary:"Evidence-first operating principles for this candidate demo.",category:"Operating Model",tags:["role","operations","evidence"],status:"published",source:"internal_best_practice",authorLabel:"Clintware ASTRO",body:"Start from the business outcome. Maintain a visible source of truth. Separate facts, assumptions, and synthetic examples. Surface risk early. Define owners and next dates. Validate consequential numbers before they leave draft. Automate preparation and hygiene, while keeping human judgment over commitments and external communication."},
   {id:"kb-quality-gates",slug:"application-quality-gates",title:"Application and Interview Quality Gates",summary:"Permanent controls learned from prior interview and case-study review.",category:"Application QA",tags:["interview","quality","ai"],status:"published",source:"internal_best_practice",authorLabel:"Clintware ASTRO",body:"SOURCE GATE: No orphan metrics. ANSWER GATE: Answer, proof, role link, stop. CORE BEFORE EXTRAS: Requested deliverable before bonus artifacts. PERSONAL CONNECTION: Keep it reciprocal and brief; do not manufacture intimacy afterward. FOLLOW-UP: 100-175 words. AI: Human validates consequential claims and outbound communication. RED TEAM: Ask where every number came from before submission."}
 ];
@@ -189,6 +223,8 @@ const profile={
   mission:m.role_mission,operatingLoop:m.operating_loop||[],tracks:m.tracks||[],
   disclosure:m.disclosure,uiReplacements:m.ui_replacements||{},
   publicPresentation:m.public_presentation||{},
+  roleVerification:m.role_verification||{},
+  companyValues:m.company_values||{},
   roleProblem:m.role_problem_hypothesis||"",
   coverageModel:m.coverage_model||{},
   systemMap:m.system_map||[],
@@ -263,6 +299,9 @@ function appPage(){const b=P.applicationBundle||{},cl=b.cover_letter?.draft||"",
  return head("Application",P.company+" · "+P.role,"CRM+Cover package. Public role facts, synthetic demo data, and candidate evidence remain explicitly separated.")+
  '<div class="grid g2" style="margin-top:18px"><div class="card"><div class="eyebrow">Role mission</div><p>'+esc(P.mission)+'</p><div class="eyebrow">Operating loop</div><p>'+esc(P.operatingLoop.join(" -> "))+'</p></div><div class="card"><div class="eyebrow">Quality gates</div><ul>'+P.qualityGates.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div></div>'+
  '<div class="section"><h2>Role map</h2></div><div class="grid g2">'+P.tracks.map(t=>'<div class="card"><div class="eyebrow">'+esc(t.tab)+'</div><h3>'+esc(t.label)+'</h3><p>'+esc(t.objective)+'</p></div>').join("")+'</div>'+
+ '<div class="section"><h2>Role & values fit</h2></div><div class="grid g2">'+(Array.isArray(P.companyValues?.values)?P.companyValues.values.map(v=>'<div class="card"><div class="eyebrow">Official public value / culture theme</div><h3>'+esc(v.name)+'</h3><p>'+esc(v.meaning||"")+'</p><p><strong>Role connection:</strong> '+esc(v.role_connection||"")+'</p></div>').join(""):"")+'</div>'+
+ (P.companyValues?.source_url?'<p class="muted">Values source: <a href="'+esc(P.companyValues.source_url)+'" target="_blank" rel="noreferrer">'+esc(P.companyValues.source_url)+'</a> · verified '+esc(P.companyValues.verified_at||P.roleVerification?.verified_at||"current build")+'</p>':'')+
+ (P.roleVerification?.source_url?'<p class="muted">Role source: <a href="'+esc(P.roleVerification.source_url)+'" target="_blank" rel="noreferrer">verified job posting</a> · '+esc(P.roleVerification.verified_at||"")+'</p>':'')+
  '<div class="section"><h2>Why company</h2><button class="btn" data-copy-app="why">Copy</button></div><div class="card"><pre style="white-space:pre-wrap">'+esc(why)+'</pre></div>'+
  '<div class="section"><h2>Tailored cover letter</h2><div class="actions"><button class="btn primary" data-copy-app="cover">Copy cover letter</button><button class="btn" id="download-application-pdf">Download application PDF</button></div></div><div class="card"><pre style="white-space:pre-wrap">'+esc(cl)+'</pre></div>'+
  '<div class="callout"><strong>Synthetic boundary</strong><span>'+esc(P.disclosure||"Candidate-built role-specific operating prototype.")+'</span></div>'+
