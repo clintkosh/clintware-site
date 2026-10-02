@@ -1,0 +1,16 @@
+import fs from "node:fs";
+import path from "node:path";
+const root=path.resolve(process.cwd());
+const read=p=>fs.readFileSync(path.join(root,p),"utf8");
+const html=read("public/index.html"),app=read("public/app.js"),data=read("public/data.js"),usage=read("public/usage-proof.js"),manifest=JSON.parse(read("manifest.json"));
+const fail=m=>{throw new Error(m)};
+if(manifest.roles.length!==3)fail("Super3 requires three roles");
+if(manifest.tracks.length!==12)fail("Super3 requires twelve operating tracks");
+for(const v of ["Trust","Think Big","Mutual Respect","Customer Success"])if(!read("manifest.json").includes(v))fail("Missing value: "+v);
+for(const s of ["Team Lens","Track","Motion","Account"])if(!app.includes(s))fail("Missing selector: "+s);
+for(const p of ["Customer Journey","Coverage & Ownership","Handoffs","Technical Work","Threat & Takedown","Adoption & Value","Risks & Escalations","Recurring Themes","Meetings & Reviews","Training Center","Evidence & Build"])if(!JSON.stringify(manifest).includes(p))fail("Missing operating surface: "+p);
+if(!data.includes("Synthetic"))fail("Synthetic disclosure missing from seed");
+if(!usage.includes("Not provider billing telemetry")&&!usage.includes("not a financial-savings claim"))fail("Usage evidence boundary missing");
+if(!html.includes("noindex,nofollow,noarchive"))fail("Candidate-demo robots boundary missing");
+for(const f of ["public/training/csm.html","public/training/tam.html","public/training/partner.html","public/walkthrough.html"])if(!fs.existsSync(path.join(root,f)))fail("Missing training/walkthrough asset: "+f);
+console.log(JSON.stringify({ok:true,roles:manifest.roles.length,tracks:manifest.tracks.length,training_guides:3,walkthrough:true,synthetic_boundary:true,usage_boundary:true},null,2));
