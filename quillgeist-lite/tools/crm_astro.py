@@ -99,8 +99,11 @@ def validate(data):
                     if str(data.get("implementation_reference") or "").strip()!="dplr-crm":
                         errors.append("local_factory_requires_dplr_crm_reference")
                     host=(urlparse(domain).hostname or "").lower()
-                    if not re.fullmatch(r"[a-z0-9]{3}\.clintware\.com",host):
-                        errors.append("local_factory_domain_must_be_three_letter_clintware_subdomain")
+                    explicit_domain_override=bool(data.get("domain_override_authorized",False))
+                    if not explicit_domain_override and not re.fullmatch(r"[a-z0-9]{3}\.clintware\.com",host):
+                        errors.append("local_factory_domain_must_be_three_letter_clintware_subdomain_unless_explicitly_overridden")
+                    if explicit_domain_override and not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,15}\.clintware\.com",host):
+                        errors.append("local_factory_explicit_domain_override_invalid")
                     sources=data.get("public_sources")
                     if not isinstance(sources,list) or not any(isinstance(x,dict) and str(x.get("url") or "").startswith("http") for x in sources):
                         errors.append("local_factory_requires_public_job_source")
@@ -201,7 +204,9 @@ def result(action,path,data):
             "multi-account multi-stage synthetic seed contract for one-off demos",
             "DPLR-derived local CRM+Cover factory validation",
             "three-letter Clintware domain validation for local application factory builds",
-            "parallel local CRM+Cover build compatibility independent of QQ"
+            "parallel local CRM+Cover build compatibility independent of QQ",
+            "explicit user-authorized compact-domain override beyond the three-letter default",
+            "synthetic KPI provenance fields and generated evidence-provenance ledger"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
