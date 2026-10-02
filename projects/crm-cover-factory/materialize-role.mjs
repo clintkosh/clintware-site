@@ -294,6 +294,23 @@ fs.writeFileSync(path.join(out,"APPLICATION.md"),"# "+m.company+" · "+m.roles[0
 
 const claimLedger=clone(m.evidence_provenance||{version:1,claims:[],allowlist:[]});
 claimLedger.claims=Array.isArray(claimLedger.claims)?claimLedger.claims:[];
+const metricTokenRe=/(?:[$€£])?[-+]?\d[\d,]*(?:\.\d+)?(?:\s?%|\s?[KkMmBb])?/g;
+for(const [i,evidence] of (Array.isArray(m.candidate_evidence)?m.candidate_evidence:[]).entries()){
+  const values=(String(evidence).match(metricTokenRe)||[]).filter(v=>/%|[$€£]|[KkMmBb]$/.test(v)||Number(String(v).replace(/,/g,""))>=100);
+  if(!values.length)continue;
+  claimLedger.claims.push({
+    id:"CAND-AUTO-"+String(i+1).padStart(2,"0"),
+    label:"Candidate evidence "+(i+1),
+    rendered_values:[...new Set(values)],
+    claim_class:"MEASURED",
+    scope:m.company+" candidate evidence",
+    time_window:"candidate-provided career history",
+    source:{kind:"candidate_evidence",ref:"projects/"+projectId+"/manifest.json",locator:"candidate_evidence["+(i+1)+"]"},
+    formula:null,inputs:[],assumptions:[],
+    confidence:"candidate-provided",
+    allowed_contexts:["application","interview","crm-about"]
+  });
+}
 for(const s of scenarios){
   for(const k of (s.kpis||[])){
     const vals=[k.target,k.baseline,k.current].filter(v=>v!==undefined&&v!==null&&String(v).trim());
