@@ -1,5 +1,5 @@
 {
-  "request_id": "driznet-recovery-audit-20261002-0812",
+  "request_id": "driznet-recovery-editor-linkedin-20261002-0814",
   "mode": "batch",
   "verify_seconds": 180,
   "jobs": [
@@ -19,6 +19,28 @@
         "Action": "inspect"
       },
       "objective": "DRIZNET only: inspect current inference/server/model state for local chat readiness."
+    },
+    {
+      "task_id": "big-prompt-plan",
+      "target_device": "DRIZNET",
+      "args": {
+        "Prompt": "DRIZNET ONLY. Recover durable local state and scan Codex MD, README, resume/continuation/project descriptions in C:\\AI, desktop and local Codex roots. Finish right-sized local AI chat server and local skill tool/web editor replacement CWInteract. External Toshiba drive is authorized temporarily: verify volume identity/free space before storage use; preserve C:\\AI source and unique data, keep baseline laptop functionality usable unplugged. Verify real chat generation, streaming, restart recovery and model inventory. Preserve planned Discord chatbot and camera livestream functionality. Offload LinkedIn Skills/profile work ONLY to QQ/CWInteract in the owner's existing local browser; no Work Mode browser. Recover exact prior approved edits from local records, start with Skills, preserve headline, no Open to Work, keep Clintware professional and CodeFEDDY separate, no invented experience. Apply recovered approved changes and read them back. Report concrete executed steps, remaining blockers and measured local/provider usage; no completion claim from a plan alone. Persist continuation and track CWS support work if authenticated Jira available.",
+        "Project": "driznet-local-ai-cwinteract",
+        "StateScope": "driznet-recovery-20261002",
+        "MaxDepth": "3"
+      },
+      "objective": "DRIZNET ONLY. Recover durable local state and scan Codex MD, README, resume/continuation/project descriptions in C:\\AI, desktop and local Codex roots. Finish right-sized local AI chat server and local skill tool/web editor replacement CWInteract. External Toshiba drive is authorized temporarily: verify volume identity/free space before storage use; preserve C:\\AI source and unique data, keep baseline laptop functionality usable unplugged. Verify real chat generation, streaming, restart recovery and model inventory. Preserve planned Discord chatbot and camera livestream functionality. Offload LinkedIn Skills/profile work ONLY to QQ/CWInteract in the owner's existing local browser; no Work Mode browser. Recover exact prior approved edits from local records, start with Skills, preserve headline, no Open to Work, keep Clintware professional and CodeFEDDY separate, no invented experience. Apply recovered approved changes and read them back. Report concrete executed steps, remaining blockers and measured local/provider usage; no completion claim from a plan alone. Persist continuation and track CWS support work if authenticated Jira available."
+    },
+    {
+      "task_id": "cwinteract",
+      "target_device": "DRIZNET",
+      "args": {
+        "Action": "inspect",
+        "AppName": "LinkedIn",
+        "WindowTitle": "LinkedIn",
+        "MaxResults": "80"
+      },
+      "objective": "Inspect the existing local LinkedIn browser through CWInteract for pending authorized skills/profile work. Do not use Work Mode browser."
     }
   ]
 }
