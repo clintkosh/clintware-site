@@ -462,7 +462,50 @@
         "status": "Open"
       },
       "meeting": "Partner onboarding boundary review",
-      "meeting_type": "Partner / customer onboarding"
+      "meeting_type": "Partner / customer onboarding",
+      "milestones": [
+        {
+          "title": "Confirm partner service entitlement",
+          "owner": "Partner SAM + Technical Owner",
+          "due": "Day 2",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Partner onboarding"
+        },
+        {
+          "title": "Complete protected-asset discovery",
+          "owner": "Technical Owner",
+          "due": "Day 7",
+          "status": "In Progress",
+          "column": "In Progress",
+          "sprint": "Partner onboarding"
+        },
+        {
+          "title": "Validate automated takedown configuration",
+          "owner": "Technical Owner",
+          "due": "Day 10",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Partner onboarding"
+        },
+        {
+          "title": "Run customer admin training",
+          "owner": "Integration Services",
+          "due": "Day 14",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Partner onboarding"
+        },
+        {
+          "title": "Publish post-package ownership handoff",
+          "owner": "Partner SAM + Technical Owner",
+          "due": "Day 21",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Partner onboarding"
+        }
+      ],
+      "current_state": "Partner onboarding: service entitlement confirmed; asset discovery is active; automation/training/handoff remain ahead."
     },
     {
       "name": "Atlas Retail Group (Synthetic)",
@@ -540,7 +583,50 @@
         "status": "Open"
       },
       "meeting": "Recurring support pattern review",
-      "meeting_type": "Partner operations"
+      "meeting_type": "Partner operations",
+      "milestones": [
+        {
+          "title": "Audit recurring tuning cases",
+          "owner": "Technical Owner",
+          "due": "This cycle",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Steady-state optimization"
+        },
+        {
+          "title": "Classify support-lane ownership",
+          "owner": "Technical Owner + Partner Support",
+          "due": "This cycle",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Steady-state optimization"
+        },
+        {
+          "title": "Draft tuning decision tree",
+          "owner": "Technical Owner",
+          "due": "This cycle",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Steady-state optimization"
+        },
+        {
+          "title": "Review decision tree with partner support",
+          "owner": "Partner Support Lead",
+          "due": "This cycle",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Steady-state optimization"
+        },
+        {
+          "title": "Publish final knowledge article and monitor recurrence",
+          "owner": "Technical Owner",
+          "due": "Next cycle",
+          "status": "In Progress",
+          "column": "In Progress",
+          "sprint": "Steady-state optimization"
+        }
+      ],
+      "current_state": "Partner steady state: ownership analysis and decision-tree work are complete; publication and recurrence monitoring remain."
     },
     {
       "name": "Northstar Travel (Synthetic)",
@@ -618,7 +704,50 @@
         "status": "Open"
       },
       "meeting": "API escalation working session",
-      "meeting_type": "Technical escalation"
+      "meeting_type": "Technical escalation",
+      "milestones": [
+        {
+          "title": "Confirm incident scope and impact",
+          "owner": "Technical Owner",
+          "due": "Hour 1",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "API escalation"
+        },
+        {
+          "title": "Capture successful and failing request samples",
+          "owner": "Partner Support",
+          "due": "Hour 2",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "API escalation"
+        },
+        {
+          "title": "Collect correlation IDs and auth context",
+          "owner": "Technical Owner",
+          "due": "Hour 3",
+          "status": "In Progress",
+          "column": "In Progress",
+          "sprint": "API escalation"
+        },
+        {
+          "title": "Build minimal reproduction",
+          "owner": "Technical Owner",
+          "due": "Hour 4",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "API escalation"
+        },
+        {
+          "title": "Escalate reproducible defect candidate",
+          "owner": "Technical Owner + Product/Engineering",
+          "due": "After repro",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "API escalation"
+        }
+      ],
+      "current_state": "Active API escalation: scope and samples are captured; correlation evidence and minimal reproduction are still being completed."
     },
     {
       "name": "Pinecrest Bank (Synthetic)",
@@ -696,7 +825,50 @@
         "status": "Open"
       },
       "meeting": "Enterprise onboarding checkpoint",
-      "meeting_type": "CSM + technical implementation"
+      "meeting_type": "CSM + technical implementation",
+      "milestones": [
+        {
+          "title": "Complete business and protected-asset discovery",
+          "owner": "CSM + Technical Owner",
+          "due": "Week 1",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Enterprise onboarding"
+        },
+        {
+          "title": "Configure core protected assets",
+          "owner": "Technical Owner",
+          "due": "Week 2",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Enterprise onboarding"
+        },
+        {
+          "title": "Validate primary integration path",
+          "owner": "Technical Owner + Customer Integration",
+          "due": "Week 3",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Enterprise onboarding"
+        },
+        {
+          "title": "Run automated-takedown acceptance test",
+          "owner": "Technical Owner",
+          "due": "Week 4",
+          "status": "In Progress",
+          "column": "In Progress",
+          "sprint": "Enterprise onboarding"
+        },
+        {
+          "title": "Graduate to steady-state CSM/TAM cadence",
+          "owner": "CSM + Technical Owner",
+          "due": "Week 5",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Enterprise onboarding"
+        }
+      ],
+      "current_state": "Direct onboarding: discovery, asset configuration, and primary integration validation are complete; acceptance testing is underway."
     },
     {
       "name": "Harbor Marketplace (Synthetic)",
@@ -773,7 +945,58 @@
         "status": "Watch"
       },
       "meeting": "Adoption and workflow tuning review",
-      "meeting_type": "Executive / technical review"
+      "meeting_type": "Executive / technical review",
+      "milestones": [
+        {
+          "title": "Baseline current monitoring workflows",
+          "owner": "Technical Owner",
+          "due": "Week 1",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Adoption optimization"
+        },
+        {
+          "title": "Review domain and social tuning",
+          "owner": "Technical Owner + Customer Fraud Ops",
+          "due": "Week 1",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Adoption optimization"
+        },
+        {
+          "title": "Validate automation exception set",
+          "owner": "Technical Owner",
+          "due": "Week 2",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Adoption optimization"
+        },
+        {
+          "title": "Define app-store monitoring decision criteria",
+          "owner": "CSM + Customer Fraud Ops",
+          "due": "Week 2",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Adoption optimization"
+        },
+        {
+          "title": "Run adjacent-use-case pilot",
+          "owner": "Technical Owner",
+          "due": "Week 3",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Adoption optimization"
+        },
+        {
+          "title": "Review pilot evidence before expansion motion",
+          "owner": "CSM + Technical Owner",
+          "due": "Week 4",
+          "status": "In Progress",
+          "column": "Review",
+          "sprint": "Adoption optimization"
+        }
+      ],
+      "current_state": "Adoption optimization: core tuning and pilot preparation are complete; pilot evidence is under review before any expansion motion."
     },
     {
       "name": "Redwood SaaS (Synthetic)",
@@ -851,7 +1074,58 @@
         "status": "Open"
       },
       "meeting": "Risk recovery checkpoint",
-      "meeting_type": "Customer escalation"
+      "meeting_type": "Customer escalation",
+      "milestones": [
+        {
+          "title": "Reproduce reported noisy-monitoring examples",
+          "owner": "Technical Owner",
+          "due": "Day 1",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Risk recovery"
+        },
+        {
+          "title": "Audit newly imported protected assets",
+          "owner": "Technical Owner + Customer Security",
+          "due": "Day 3",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Risk recovery"
+        },
+        {
+          "title": "Classify cases by source-data/configuration/product layer",
+          "owner": "Technical Owner",
+          "due": "Day 4",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Risk recovery"
+        },
+        {
+          "title": "Correct asset/configuration issues",
+          "owner": "Technical Owner + Customer Security",
+          "due": "Day 7",
+          "status": "In Progress",
+          "column": "In Progress",
+          "sprint": "Risk recovery"
+        },
+        {
+          "title": "Escalate reproducible product behavior only",
+          "owner": "Technical Owner + Product/Engineering",
+          "due": "As needed",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Risk recovery"
+        },
+        {
+          "title": "Confirm recovery acceptance with CSM/customer",
+          "owner": "CSM + Technical Owner",
+          "due": "Day 10",
+          "status": "Planned",
+          "column": "Ready",
+          "sprint": "Risk recovery"
+        }
+      ],
+      "current_state": "Risk recovery: root-cause layer classification is complete; corrective configuration work is active before any Product/Engineering escalation."
     },
     {
       "name": "Keystone Health Network (Synthetic)",
@@ -928,7 +1202,42 @@
         "status": "Watch"
       },
       "meeting": "Strategic account review",
-      "meeting_type": "QBR / technical review"
+      "meeting_type": "QBR / technical review",
+      "milestones": [
+        {
+          "title": "Reconcile prior-quarter technical commitments",
+          "owner": "Technical Owner",
+          "due": "Pre-QBR",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Strategic review"
+        },
+        {
+          "title": "Refresh success-criteria evidence",
+          "owner": "CSM + Technical Owner",
+          "due": "Pre-QBR",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Strategic review"
+        },
+        {
+          "title": "Validate remaining open technical commitment",
+          "owner": "Technical Owner",
+          "due": "Pre-QBR",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Strategic review"
+        },
+        {
+          "title": "Document next-phase discovery question",
+          "owner": "CSM",
+          "due": "Pre-QBR",
+          "status": "Done",
+          "column": "Done",
+          "sprint": "Strategic review"
+        }
+      ],
+      "current_state": "Strategic review ready: prior commitments and success evidence are reconciled; next-phase discovery can be discussed without inventing expansion economics."
     }
   ],
   "org_map": {
@@ -1037,5 +1346,11 @@
       "experience_boundary": "This model is derived from the public role's explicit support structure and Clinton's adjacent escalation/CS operations history; it is not a claim about the partner's private procedures.",
       "source_url": "https://jobs.lever.co/bolster/4fdea070-99b1-4818-9bc3-6da8b9a25725"
     }
-  ]
+  ],
+  "progress_model": {
+    "label": "Workflow progress",
+    "definition": "Completed synthetic operating milestones divided by total milestones in the current scenario. This is demo workflow completion, not product efficacy, customer ROI, security efficacy, or a real customer metric.",
+    "source": "Synthetic milestone records in this manifest",
+    "display_rule": "Different account stages use different milestone sets; progress must reflect the selected account's actual synthetic milestone completion."
+  }
 }
