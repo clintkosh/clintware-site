@@ -79,6 +79,8 @@ const config = fs.readFileSync(path.join(out, "public/app-config.js"), "utf8");
 if (!config.includes('localStorage.getItem("dplrtheme")||"light"')) throw new Error("DPLR must default to N7-style light mode");
 const forms = fs.readFileSync(path.join(out, "public/app-forms.js"), "utf8");
 if (!forms.includes("o.remove();tab='command';load(x.customer.id)")) throw new Error("New-customer navigation patch missing");
+const router = fs.readFileSync(path.join(out, "public/app-router.js"), "utf8");
+if (!router.includes("tab='command';load(x.target.value)")) throw new Error("Global account switcher navigation patch missing");
 
 if (process.env.CW_ASTRO_REFERENCE_MODE !== "1") {
   // Apply role-specific seed enrichment while the reference Worker still exists,
