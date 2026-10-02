@@ -1,11 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-storage-20261002-1650",
-  "task_id": "storage-audit",
+  "request_id": "chatgpt-driznet-diag-20261002-1657",
+  "task_id": "local-ai",
   "target_device": "DRIZNET",
   "args": {
-    "ExpectedComputer": "DRIZNET",
-    "LargestFiles": "30"
+    "Action": "diagnostics"
   },
-  "objective": "Audit DRIZNET fixed storage, C:\\AI/project footprint, installed model/Docker usage, and safe persistent capacity for the right-sized local AI server. Do not plan around removable Toshiba storage.",
+  "objective": "Inventory DRIZNET Docker availability, existing containers, C:\\AI launchers, agents, and local AI service prerequisites before materializing the right-sized internal-storage server bundle.",
   "resume_after": true
 }
