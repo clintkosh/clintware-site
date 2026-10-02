@@ -10,6 +10,9 @@ on:
       - "projects/cwn-crm/**"
       - "projects/tkm-crm/**"
       - "projects/aim-crm/**"
+      - "projects/blstr-crm/**"
+      - "docs/EVIDENCE_PROVENANCE_STANDARD.md"
+      - "scripts/validate-evidence-provenance.py"
       - "projects/dplr-crm/scripts/browser-local-runtime.mjs"
       - "ASTRO_CRM_COVER_SKILL.md"
       - "ASTRO_CRM_ONE_OFF_SKILL.md"
@@ -46,7 +49,7 @@ jobs:
           set -euo pipefail
           python3 -m py_compile quillgeist-lite/tools/crm_astro.py quillgeist-lite/tools/crm_cover_batch.py
           python3 quillgeist-lite/tools/crm_cover_batch.py \
-            --Projects "gtl-crm,aso-crm,cwn-crm,tkm-crm,aim-crm" \
+            --Projects "gtl-crm,aso-crm,cwn-crm,tkm-crm,aim-crm,blstr-crm" \
             --Action materialize \
             --Workers 3 \
             --RepoRoot .
@@ -55,7 +58,7 @@ jobs:
           grep -Fq '"ok": true' "$summary"
           grep -Fq '"workers": 3' "$summary"
           grep -Fq '"qq_required": false' "$summary"
-          for p in gtl-crm aso-crm cwn-crm tkm-crm aim-crm; do
+          for p in gtl-crm aso-crm cwn-crm tkm-crm aim-crm blstr-crm; do
             test -f ".build/$p/public/role-profile.js"
             test -f ".build/$p/APPLICATION.md"
           done
@@ -87,27 +90,45 @@ jobs:
             domain: gtl.clintware.com
             company: GitLab
             role: Senior Customer Success Operations Manager
+            public_identity: "true"
+            display_name: "Role-specific operating workspace"
           - project: aso-crm
             domain: aso.clintware.com
             company: AlphaSense
             role: Senior Manager, Customer Success Operations
+            public_identity: "true"
+            display_name: "Role-specific operating workspace"
           - project: cwn-crm
             domain: cwn.clintware.com
             company: ChowNow
             role: Senior Sales & Customer Success Operations Manager
+            public_identity: "true"
+            display_name: "Role-specific operating workspace"
           - project: tkm-crm
             domain: tkm.clintware.com
             company: Tekmetric
             role: Director, Customer Success Operations
+            public_identity: "true"
+            display_name: "Role-specific operating workspace"
           - project: aim-crm
             domain: aim.clintware.com
             company: AlphaSense
             role: Implementation Manager
+            public_identity: "true"
+            display_name: "AlphaSense · Implementation Manager"
+          - project: blstr-crm
+            domain: blstr.clintware.com
+            company: Bolster
+            role: Technical Account Manager
+            public_identity: "false"
+            display_name: "Coverage Console"
     env:
       PROJECT: ${{ matrix.project }}
       DOMAIN: ${{ matrix.domain }}
       COMPANY: ${{ matrix.company }}
       ROLE: ${{ matrix.role }}
+      PUBLIC_IDENTITY: ${{ matrix.public_identity }}
+      DISPLAY_NAME: ${{ matrix.display_name }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -142,6 +163,7 @@ jobs:
           test -f ".build/$PROJECT/APPLICATION.md"
           test -f ".build/$PROJECT/public/role-profile.js"
           test -f ".build/$PROJECT/public/cw-astro-local-bootstrap.js"
+          test -f ".build/$PROJECT/evidence-provenance.json"
           grep -Fq "$DOMAIN" ".build/$PROJECT/wrangler.jsonc"
           grep -Fq '"storage":"browser-local"' ".build/$PROJECT/public/cw-astro-local-bootstrap.js" || true
           ! grep -Fq '"durable_objects"' ".build/$PROJECT/wrangler.jsonc"
@@ -153,6 +175,7 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
           node --check public/role-profile.js
+          python3 ../../scripts/validate-evidence-provenance.py --ledger evidence-provenance.json --artifact APPLICATION.md
           grep -Fq "Application and Interview Quality Gates" public/cw-astro-local-bootstrap.js
           grep -Fq "Tailored cover letter" public/role-profile.js
           grep -Fq "Download application PDF" public/role-profile.js
@@ -205,6 +228,8 @@ jobs:
           const base="https://"+process.env.DOMAIN;
           const company=process.env.COMPANY;
           const role=process.env.ROLE;
+          const publicIdentity=String(process.env.PUBLIC_IDENTITY||"true")==="true";
+          const displayName=process.env.DISPLAY_NAME||company+" · "+role;
           const browser=await chromium.launch({headless:true,channel:"chrome"});
           const context=await browser.newContext({viewport:{width:1440,height:960},acceptDownloads:true});
           const page=await context.newPage();
@@ -222,9 +247,17 @@ jobs:
           await page.waitForSelector("[data-customer-open]",{timeout:20000});
           const cards=await page.locator("[data-customer-open]").count();
           if(cards<5)throw new Error("seed portfolio too small: "+cards);
-          await page.waitForFunction(([company,role])=>document.body.innerText.includes(company)&&document.body.innerText.includes(role),[company,role],{timeout:20000});
+          await page.waitForFunction(([company,role,publicIdentity,displayName])=>{
+            const body=document.body.innerText;
+            return publicIdentity?(body.includes(company)&&body.includes(role)):body.includes(displayName);
+          },[company,role,publicIdentity,displayName],{timeout:20000});
           const body=await page.locator("body").innerText();
-          if(!body.includes(company)||!body.includes(role))throw new Error("role/company identity missing");
+          if(publicIdentity){
+            if(!body.includes(company)||!body.includes(role))throw new Error("role/company identity missing");
+          }else{
+            if(!body.includes(displayName))throw new Error("neutral workspace identity missing");
+            if(body.includes(company)||body.includes(role))throw new Error("suppressed target identity leaked into visible UI");
+          }
 
           await page.locator("[data-customer-open]").first().click();
           await page.waitForSelector("button[data-tab='prep']");
