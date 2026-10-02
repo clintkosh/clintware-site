@@ -12,7 +12,7 @@ spec.loader.exec_module(module)
 
 
 class StorageRecoveryTests(unittest.TestCase):
-    def run_case(self, backup_ok):
+    def run_case(self, backup_ok, existing_empty=False):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             paths = {
@@ -21,9 +21,13 @@ class StorageRecoveryTests(unittest.TestCase):
                 r"F:\AI-Data\Backups\LOCAL-CHATGPT": base / "backups",
             }
             paths[r"F:\AI-Data\Docker\open-webui"].mkdir()
+            (paths[r"F:\AI-Data\Docker\open-webui"] / "preserved.txt").write_text("existing data")
+            if existing_empty:
+                paths[r"F:\AI-Data\Docker\n8n"].mkdir()
             calls = []
             original_path, original_os, original_run = module.Path, module.os, module.run
             original_which = module.shutil.which
+            original_refresh = module._recreate_restored_bind
             def fake_run(args, timeout):
                 calls.append(args)
                 if args[1] == "inspect":
@@ -39,6 +43,7 @@ class StorageRecoveryTests(unittest.TestCase):
                 module.os = types.SimpleNamespace(name="nt", getpid=lambda: 1234)
                 module.run = fake_run
                 module.shutil.which = lambda name: "docker"
+                module._recreate_restored_bind = lambda *args: {"ok": True}
                 result = module.repair_storage()
                 if backup_ok:
                     self.assertTrue(result["ok"])
@@ -46,12 +51,19 @@ class StorageRecoveryTests(unittest.TestCase):
                     self.assertTrue(list((base / "backups").rglob("config")))
                 else:
                     self.assertFalse(result["ok"])
-                    self.assertFalse((base / "n8n").exists())
+                    self.assertEqual((base / "n8n").exists(), existing_empty)
                 self.assertTrue(any(args[1] == "start" for args in calls))
                 self.assertFalse(any(args[1] in ("rm", "volume") for args in calls))
             finally:
                 module.Path, module.os, module.run = original_path, original_os, original_run
                 module.shutil.which = original_which
+                module._recreate_restored_bind = original_refresh
+
+    def test_empty_target_preserves_key_and_original_directory(self):
+        self.run_case(True, existing_empty=True)
+
+    def test_failed_backup_preserves_empty_target(self):
+        self.run_case(False, existing_empty=True)
 
     def test_backup_failure_preserves_missing_target(self):
         self.run_case(False)
