@@ -152,7 +152,8 @@ async function runRoleResearch(jtext,reqs){
     status.textContent='Live external context added · '+(data.source_count||0)+' public sources · '+(data.model||data.provider||'Exa');
     const raw=String(data.text||'').slice(0,9000);
     text.innerHTML='<pre style="white-space:pre-wrap;margin:0;font:11px/1.55 var(--mono);color:var(--muted)">'+esc(raw)+'</pre>';
-    sources.innerHTML=(data.citations||[]).slice(0,6).map((x,i)=>'<a href="'+esc(x.url||'#')+'" target="_blank" rel="noopener noreferrer">['+(i+1)+'] '+esc(x.title||x.url||'Source')+'</a>').join('');
+    const safeSources=(data.citations||[]).filter(x=>/^https?:\/\//i.test(String(x.url||''))).slice(0,6);
+    sources.innerHTML=safeSources.map((x,i)=>'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">['+(i+1)+'] '+esc(x.title||x.url||'Source')+'</a>').join('');
     box.classList.remove('hidden');
   }catch(e){status.textContent='Live research unavailable; the local evidence map still completed.'}
 }
