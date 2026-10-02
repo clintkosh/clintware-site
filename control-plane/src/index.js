@@ -3182,6 +3182,18 @@ async function invokeResearchProvider(env,body){
   // the query, but product policy still gates research.invoke.
   if(query){
     const started=Date.now();
+    const queryDigest=(await sha256(query)).slice(0,24);
+    const queryCache=(typeof caches!=="undefined")&&caches.default?caches.default:null;
+    const queryCacheKey=`https://cache.clintware-control-plane.internal/research/query-${queryDigest}.json`;
+    if(queryCache){
+      try{
+        const hit=await queryCache.match(new Request(queryCacheKey));
+        if(hit){
+          const data=await hit.json();
+          if(data&&data.available===true)return {...data,ok:true,cache:"hit",search_calls:0,source_count:(data.citations||[]).length,purpose};
+        }
+      }catch{}
+    }
     const research=await genericResearch(env,query);
     if(!research.available)return {ok:true,available:false,provider:"clintware-research",reason:research.reason||"research_unavailable",purpose,cache:"miss",latency_ms:Date.now()-started,citations:research.citations||[]};
     let text=research.context||"";
@@ -3199,7 +3211,13 @@ async function invokeResearchProvider(env,body){
         if(synthesized){text=synthesized;model=`exa-search+${SYNTHESIS_MODEL}`;}
       }catch{}
     }
-    return {ok:true,available:true,provider:"clintware-research",model,text,citations:research.citations||[],search_calls:1,source_count:(research.citations||[]).length,latency_ms:Date.now()-started,cache:"miss",purpose};
+    const payload={ok:true,available:true,provider:"clintware-research",model,text,citations:research.citations||[],search_calls:1,source_count:(research.citations||[]).length,latency_ms:Date.now()-started,cache:"miss",purpose};
+    if(queryCache){
+      try{
+        await queryCache.put(new Request(queryCacheKey),new Response(JSON.stringify({available:true,provider:payload.provider,model:payload.model,text:payload.text,citations:payload.citations}),{headers:{"content-type":"application/json","cache-control":`max-age=${RESEARCH_CACHE_TTL}`}}));
+      }catch{}
+    }
+    return payload;
   }
 
   const cache=(typeof caches!=="undefined")&&caches.default?caches.default:null;
