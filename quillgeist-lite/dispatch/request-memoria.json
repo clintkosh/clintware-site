@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-storage-repair-20261002-0756",
+  "request_id": "work-memoria-comfy-repair-20261002-0758",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "repair-storage"
+    "Action": "repair-comfy-runtime"
   },
-  "objective": "Restore preserved data into empty host bind directories and refresh only matching existing services. Preserve backups, nonempty data and excluded drive.",
+  "objective": "Restore approved missing ComfyUI junction target directories and verify existing local runtime. Preserve all models and excluded drive.",
   "resume_after": false
 }
