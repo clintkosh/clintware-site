@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-const API_VERSION = "2026-08-23";
+const API_VERSION = "2026-10-02";
 const MAX_BODY_BYTES = 262_144;
 const MAX_TEXT_CHARS = 200_000;
 const DEFAULT_THRESHOLD_CHARS = 6_000;
@@ -75,6 +75,76 @@ function dedupe(lines) {
   }
   flush();
   return out;
+}
+
+export function compileRoute(input = {}) {
+  const task = String(input.task ?? "").trim();
+  const taskType = String(input.task_type ?? "general").trim().toLowerCase() || "general";
+  const policy = String(input.policy ?? "balanced").trim().toLowerCase() || "balanced";
+  const mainModel = String(input.main_model ?? "auto").trim() || "auto";
+  const subsearchModel = String(input.subsearch_model ?? "auto").trim() || "auto";
+  const subsearchEnabled = input.subsearch_enabled !== false;
+  const subsearchCount = Math.max(0, Math.min(8, Number(input.subsearch_count ?? 2) || 0));
+
+  const primaryDefaults = {
+    image: "xai:auto-image",
+    vision: "auto:vision",
+    code: "local:auto-code",
+    fresh: "auto:fresh",
+    private: "local:auto",
+    action: "clintware:action",
+    general: "auto:reasoning",
+  };
+  const subsearchDefaults = {
+    fresh: "web:auto",
+    image: "google:auto-vision",
+    vision: "google:auto-vision",
+    code: "local:auto-code",
+    private: "local:auto",
+    action: "web:auto",
+    general: "web:auto",
+  };
+
+  let primary = mainModel === "auto" ? (primaryDefaults[taskType] || primaryDefaults.general) : mainModel;
+  let subsearch = subsearchModel === "auto" ? (subsearchDefaults[taskType] || subsearchDefaults.general) : subsearchModel;
+
+  if (policy === "local_first" && mainModel === "auto" && !["fresh", "action", "image"].includes(taskType)) primary = "local:auto";
+  if (policy === "private" && mainModel === "auto") primary = "local:auto";
+  if (policy === "lowest_cost" && mainModel === "auto" && !["fresh", "action"].includes(taskType)) primary = "local:auto";
+  if (policy === "fastest" && mainModel === "auto") primary = taskType === "fresh" ? "web:auto" : "local:auto-fast";
+
+  const branches = [];
+  if (subsearchEnabled && subsearchCount > 0) {
+    for (let i = 0; i < subsearchCount; i += 1) {
+      branches.push({
+        id: `subsearch-${i + 1}`,
+        model: subsearch,
+        purpose: taskType === "fresh" ? "fresh-source retrieval" : "bounded supporting search/research",
+      });
+    }
+  }
+
+  return {
+    version: API_VERSION,
+    task,
+    task_type: taskType,
+    policy,
+    primary: {
+      model: primary,
+      role: "final synthesis",
+    },
+    subsearch: {
+      enabled: branches.length > 0,
+      model: subsearch,
+      branches,
+    },
+    execution: {
+      authority: taskType === "action" ? "clintware-control-plane" : "quillgeist",
+      local_first: ["local_first", "private", "lowest_cost"].includes(policy),
+      requires_fresh_authority: taskType === "fresh",
+      state_conflict_serialization: taskType === "action",
+    },
+  };
 }
 
 export function compactText(text, options = {}) {
@@ -253,6 +323,7 @@ function apiIndex(origin = "https://self-hosted.invalid") {
     mcp_url: origin + "/mcp",
     endpoints: {
       compact: { method: "POST", path: "/api/v1/compact" },
+      route: { method: "POST", path: "/api/v1/route" },
       impact: { method: "GET", path: "/api/v1/impact?days=30" },
       openapi: { method: "GET", path: "/api/v1/openapi.json" },
     },
@@ -300,6 +371,35 @@ function openApiDocument(origin = "https://self-hosted.invalid") {
           },
         },
       },
+      "/api/v1/route": {
+        post: {
+          operationId: "compileRoute",
+          summary: "Compile a capability-first primary and sub-search model routing plan",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    task: { type: "string", maxLength: 200000 },
+                    task_type: { type: "string", enum: ["general","image","vision","code","fresh","private","action"], default: "general" },
+                    policy: { type: "string", enum: ["balanced","best_quality","lowest_cost","fastest","local_first","private","manual","custom"], default: "balanced" },
+                    main_model: { type: "string", default: "auto" },
+                    subsearch_model: { type: "string", default: "auto" },
+                    subsearch_enabled: { type: "boolean", default: true },
+                    subsearch_count: { type: "integer", minimum: 0, maximum: 8, default: 2 }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            "200": { description: "Compiled route plan" },
+            "422": { description: "Restricted data detected; request not processed" }
+          }
+        }
+      },
       "/api/v1/impact": {
         get: {
           operationId: "getProductImpact",
@@ -338,6 +438,21 @@ export async function handlePublicApi(request, env, ctx) {
       },
     });
   }
+  if (request.method === "POST" && url.pathname === "/api/v1/route") {
+    try {
+      const body = await readJsonLimited(request);
+      const task = String(body.task ?? "");
+      if (task.length > MAX_TEXT_CHARS) return json({ error: "task_too_large", max_chars: MAX_TEXT_CHARS }, 413, cors);
+      const restricted = restrictedDataCategory(task);
+      if (restricted) {
+        return json({ error: "restricted_data_not_accepted", category: restricted, message: "Remove restricted data before using Quillgeist routing." }, 422, cors);
+      }
+      return json(compileRoute(body), 200, cors);
+    } catch (error) {
+      return json({ error: String(error?.message || "bad_request") }, Number(error?.status || 400), cors);
+    }
+  }
+
   if (request.method === "POST" && url.pathname === "/api/v1/compact") {
     try {
       const body = await readJsonLimited(request);
@@ -410,6 +525,31 @@ function createQuillgeistMcpServer(env) {
           }),
         }],
       };
+    },
+  );
+
+  server.registerTool(
+    "quillgeist_compile_route",
+    {
+      title: "Compile a Quillgeist route",
+      description: "Compile a capability-first primary model and optional bounded sub-search model plan. Model values are routing aliases resolved by the connected runtime/control plane rather than embedded provider credentials.",
+      inputSchema: {
+        task: z.string().max(MAX_TEXT_CHARS).optional(),
+        task_type: z.enum(["general","image","vision","code","fresh","private","action"]).optional(),
+        policy: z.enum(["balanced","best_quality","lowest_cost","fastest","local_first","private","manual","custom"]).optional(),
+        main_model: z.string().min(1).max(120).optional(),
+        subsearch_model: z.string().min(1).max(120).optional(),
+        subsearch_enabled: z.boolean().optional(),
+        subsearch_count: z.number().int().min(0).max(8).optional(),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async (input) => {
+      const restricted = restrictedDataCategory(String(input.task ?? ""));
+      if (restricted) {
+        return { isError: true, content: [{ type: "text", text: JSON.stringify({ error: "restricted_data_not_accepted", category: restricted }) }] };
+      }
+      return { content: [{ type: "text", text: JSON.stringify(compileRoute(input)) }] };
     },
   );
 
