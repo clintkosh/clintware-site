@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-md-plan-20261002-0808",
+  "request_id": "work-memoria-n8n-workflows-20261002-0812",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "recovery-plan"
+    "Action": "prepare-n8n-workflows"
   },
-  "objective": "Read requested Desktop, C AI and Codex Markdown plans locally, preserve private text locally and report fixed feature categories only. Do not access excluded drive.",
+  "objective": "Prepare manual local readiness workflows and import/test only if n8n is healthy. Never overwrite existing workflows or embed credentials.",
   "resume_after": false
 }
