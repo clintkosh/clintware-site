@@ -53,3 +53,11 @@ test("wake channel stays persistent across queued-job notifications", () => {
   assert.doesNotMatch(block, /ws\.close\(/);
   assert.match(block, /clintware-quillgeist-lite-wake\/v1/);
 });
+
+
+test("CRM+Cover batch remote task exposes only bounded application-factory controls", () => {
+  assert.deepEqual(remoteTasks.tasks["crm-cover-batch"], {
+    runtime: "powershell",
+    parameters: ["Projects", "Action", "Workers", "GenerateCopy", "Model"],
+  });
+});
