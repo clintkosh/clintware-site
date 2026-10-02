@@ -4868,7 +4868,7 @@ export default {
         const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
         const delivery=await broadcastResp.json();
         await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
-        return json({ok:true,job_id:created.job.job_id,task_id,target_device:created.job.target_device||"",status:"queued",delivery},202);
+        return json({ok:true,job_id:created.job.job_id,task_id,target_device:created.job.target_device||"",routing:created.job.routing||null,status:"queued",delivery},202);
       }
       const quillgeistLiteJobStreamMatch=url.pathname.match(/^\/api\/v1\/quillgeist-lite\/jobs\/([^/]+)\/stream$/);
       if(request.method==="GET"&&quillgeistLiteJobStreamMatch){
