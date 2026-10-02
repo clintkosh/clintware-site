@@ -1,15 +1,45 @@
 {
-  "request_id": "memoria-linkedin-public-skill-verify-final-20261001-1249",
-  "job_id": "9dc122f5-e36a-4242-9a2e-7dda7c44e8b1",
-  "task_id": "public-skill-verify",
-  "target_device": "MEMORIA",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 514,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-01T17:49:51.2743396Z",
-  "recorded_at": 1790876980,
-  "recovery_history": [],
-  "output_tail": "\u001b[31;1mException: \u001b[0mC:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\\tasks\\public-skill-verify.ps1:51\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m  51 | \u001b[0m         \u001b[36;1mthrow \"Required file missing: $required\"\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mRequired file missing:\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mC:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\public\\skills\\linkedin-evidence-post\\SKILL.md\u001b[0m"
+  "request_id": "driznet-recovery-audit-20261002-0812",
+  "mode": "batch",
+  "jobs": [
+    {
+      "index": 0,
+      "ok": true,
+      "task_id": "storage-audit",
+      "target_device": "DRIZNET",
+      "job_id": "d0a04f0f-0ae5-4a6f-a204-54b5d3b18f73",
+      "status": "failed",
+      "confirmation_transport": "websocket-event",
+      "confirmation_source": "qq-local-agent",
+      "confirmed_device": "DRIZNET",
+      "exit_code": 1,
+      "duration_ms": 396,
+      "worker_slot": 1,
+      "gpu_index": -1,
+      "resource_class": "",
+      "concurrency_group": "",
+      "confirmed_at": "2026-10-02T08:11:53.9334981Z",
+      "output_tail": "The process cannot access the file 'C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\workers\\d0a04f0f-0ae5-4a6f-a204-54b5d3b18f73.log' because it is being used by another process."
+    },
+    {
+      "index": 1,
+      "ok": true,
+      "task_id": "local-ai",
+      "target_device": "DRIZNET",
+      "job_id": "fa488cdf-3bfb-4506-b635-05ab88fc5fd0",
+      "status": "failed",
+      "confirmation_transport": "websocket-event",
+      "confirmation_source": "qq-local-agent",
+      "confirmed_device": "DRIZNET",
+      "exit_code": 2,
+      "duration_ms": 535,
+      "worker_slot": 0,
+      "gpu_index": -1,
+      "resource_class": "",
+      "concurrency_group": "",
+      "confirmed_at": "2026-10-02T08:12:06.6652752Z",
+      "output_tail": "[run] usage: local_ai.py [-h]\r\n[run]                    [--Action {status,fit,benchmark,recommend,services,reconcile,providers,provider-test,diagnostics,recovery-inventory,recovery-plan,storage-probe,prepare-n8n-workflows,repair-storage,repair-comfy-runtime,recover-agents}]\r\n[run]                    [--Model MODEL] [--Prompt PROMPT]\r\n[run]                    [--ContextTokens CONTEXTTOKENS] [--MaxTokens MAXTOKENS]\r\n[run] local_ai.py: error: argument --Action: invalid choice: 'inspect' (choose from 'status', 'fit', 'benchmark', 'recommend', 'services', 'reconcile', 'providers', 'provider-test', 'diagnostics', 'recovery-inventory', 'recovery-plan', 'storage-probe', 'prepare-n8n-workflows', 'repair-storage', 'repair-comfy-runtime', 'recover-agents')"
+    }
+  ],
+  "recorded_at": 1790928727
 }
