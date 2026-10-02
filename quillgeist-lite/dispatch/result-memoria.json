@@ -1,15 +1,15 @@
 {
-  "request_id": "work-memoria-comfy-repair-20261002-0758",
-  "job_id": "d3285b8b-bc1f-4878-ae2c-2908ba6f91ea",
+  "request_id": "work-memoria-agents-restart-20261002-0800",
+  "job_id": "a69cb948-bf15-4c8a-8339-dc546aa4f064",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 65332,
+  "duration_ms": 3541,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-02T07:58:44.5074690Z",
-  "recorded_at": 1790927912,
+  "confirmed_at": "2026-10-02T07:59:27.3014363Z",
+  "recorded_at": 1790927955,
   "recovery_history": [],
-  "output_tail": "[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"triton_ready\": true,\r\n[run]   \"comfy_health\": false,\r\n[run]   \"before\": {\r\n[run]     \"python\": \"3.10.20\",\r\n[run]     \"torch\": \"2.10.0+cu130\",\r\n[run]     \"cuda\": \"13.0\",\r\n[run]     \"triton\": \"3.8.0\",\r\n[run]     \"triton_ok\": true\r\n[run]   },\r\n[run]   \"after\": {\r\n[run]     \"python\": \"3.10.20\",\r\n[run]     \"torch\": \"2.10.0+cu130\",\r\n[run]     \"cuda\": \"13.0\",\r\n[run]     \"triton\": \"3.8.0\",\r\n[run]     \"triton_ok\": true\r\n[run]   },\r\n[run]   \"install\": {\r\n[run]     \"attempted\": false\r\n[run]   },\r\n[run]   \"junction_targets_restored\": [\r\n[run]     \"F:\\\\AI-Data\\\\ComfyUI\\\\user\",\r\n[run]     \"F:\\\\AI-Data\\\\ComfyUI\\\\output\",\r\n[run]     \"F:\\\\AI-Data\\\\ComfyUI\\\\temp\",\r\n[run]     \"F:\\\\AI-Data\\\\ComfyUI\\\\input\"\r\n[run]   ],\r\n[run]   \"note\": \"runtime dependency repaired; recover-agents will recreate/start the hidden ComfyUI task\"\r\n[run] }"
+  "output_tail": "[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"results\": [\r\n[run]     {\r\n[run]       \"service\": \"Web Search Agent\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ Web Search Agent\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-web-search-agent.log\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"service\": \"Media Agent\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ Media Agent\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-media-agent.log\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"service\": \"ComfyUI\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ ComfyUI\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-comfyui.log\"\r\n[run]     }\r\n[run]   ]\r\n[run] }"
 }
