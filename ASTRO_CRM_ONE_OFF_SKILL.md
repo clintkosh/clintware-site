@@ -677,3 +677,67 @@ When the user asks for company-reflective presentation without explicit target b
 - allow a neutral product/workspace name instead of the target company or role title;
 - avoid job-description prose in the primary UI;
 - put role mapping, disclosure, and application rationale behind an unobtrusive "About / Why this system" surface rather than making them the dashboard hero.
+
+## Multi-owner coverage and source-system projection pattern
+
+When a verified role spans two or more ownership motions, do not force all work into a single generic account-owner field.
+
+Examples include:
+- CSM + TAM;
+- CSM + Solutions Engineer;
+- Partner account manager + vendor technical owner;
+- Support + Professional Services;
+- Implementation + long-term Customer Success;
+- named account ownership plus pooled/recovery coverage.
+
+For these roles, add a first-class **Coverage / Assignment** surface when it materially helps the role.
+
+Default fields:
+- account / queue / segment;
+- motion (direct, partner, pooled, named, recovery, implementation, etc.);
+- relationship owner;
+- technical / delivery owner;
+- service or entitlement lane;
+- current boundary / responsibility;
+- next action;
+- escalation destination;
+- source / provenance.
+
+The purpose is to prevent "the customer experiences the org chart" failure mode.
+
+### Source-system projection rule
+
+A tailored CRM is usually an operating layer across source systems, not a replacement for them.
+
+When useful, model the role-relevant flow as:
+
+`SOURCE SYSTEM -> NORMALIZED SIGNAL -> OWNERSHIP / ROUTING -> ACTION -> CUSTOMER OUTCOME -> FEEDBACK LOOP`
+
+For every projected source, label whether it is:
+- explicitly named in the verified role;
+- named in adjacent public company material;
+- a representative category (for example "CRM / Account System");
+- synthetic/demo-only.
+
+Never claim a private internal stack from adjacent evidence.
+
+### Reusable routing pattern
+
+For tiered technical post-sales work, prefer a visible routing decision model:
+
+`ACCOUNT / COMMERCIAL -> BASELINE BREAK-FIX -> PAID IMPLEMENTATION / SERVICES -> DEEP PRODUCT OWNERSHIP -> PRODUCT / ENGINEERING`
+
+Keep one accountable customer-facing owner even when internal ownership changes.
+
+### Custom operator-workspace default
+
+When a user asks for a proof-of-work system that reflects the target company's public design without looking like a job advertisement:
+
+- use a neutral functional workspace name;
+- keep the company and role out of the primary visible UI when requested;
+- keep the target mapping in internal manifest/application artifacts;
+- preserve synthetic-data and candidate-built disclosure without turning the dashboard into marketing copy;
+- reflect public density, contrast, accent hierarchy, spacing, and interaction patterns rather than copying logos or proprietary assets;
+- default to dark/high-contrast only when it fits the requested/operator context, otherwise follow the target/public product relationship.
+
+This pattern should be reusable through `public_presentation`, `coverage_model`, `system_map`, `routing_rules`, and role-specific technical refresher fields rather than hard-coded into one company implementation.
