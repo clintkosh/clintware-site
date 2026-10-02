@@ -53,7 +53,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: deploy --cwd meet-worker --keep-vars
+          command: deploy --cwd meet-worker --keep-vars --var GOOGLE_CALENDAR_ID:clint.kosh@gmail.com
 
       - name: Configure scheduler secrets
         env:
@@ -103,6 +103,8 @@ jobs:
           google_bridge_secret=$(printf 'clintware-google-delegated:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)
           broker_identity=$(curl --fail-with-body -sS -X POST https://auth.clintware.com/internal/google-access-token \
             -H "x-clintware-google-secret: $google_bridge_secret" \
+            -H "content-type: application/json" \
+            --data '{"email":"clint.kosh@gmail.com"}' \
             -H "accept: application/json")
           broker_email=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("email") or "").lower())' <<< "$broker_identity")
           test "$broker_email" = "clint.kosh@gmail.com"

@@ -14,7 +14,19 @@ import {
   calendarRepairDelayMs,
   filterSlotsAgainstGoogleBusy,
   requestedTimeIsGoogleBusy,
+  probeGoogleCalendar,
 } from "../src/google-calendar.js";
+
+test("scheduler rejects a support identity before accessing Calendar", async () => {
+  const env = {
+    GOOGLE_DELEGATED_BRIDGE_SECRET: "test-bridge",
+    AUTH_BROKER: { fetch: async (_url, init) => {
+      assert.equal(JSON.parse(init.body).email, "clint.kosh@gmail.com");
+      return Response.json({ access_token: "test-token", email: "support@clintware.com" });
+    } },
+  };
+  await assert.rejects(probeGoogleCalendar(env), { code: "google_calendar_wrong_account" });
+});
 
 test("zoned conversion handles Central time DST", () => {
   const ms = zonedLocalToUtc("2026-09-21", "09:00", "America/Chicago");

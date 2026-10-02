@@ -48,7 +48,9 @@ async function brokerAccessToken(env) {
     headers: {
       "x-clintware-google-secret": env.GOOGLE_DELEGATED_BRIDGE_SECRET,
       accept: "application/json",
+      "content-type": "application/json",
     },
+    body: JSON.stringify({ email: "clint.kosh@gmail.com" }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.access_token) {
@@ -56,6 +58,12 @@ async function brokerAccessToken(env) {
     error.code = response.status === 404 ? "google_calendar_not_connected" : "google_calendar_broker_token_failed";
     error.status = response.status;
     error.detail = String(data.error || data.message || "").slice(0, 240);
+    throw error;
+  }
+  if (String(data.email || "").toLowerCase() !== "clint.kosh@gmail.com") {
+    const error = new Error("google_calendar_wrong_account");
+    error.code = "google_calendar_wrong_account";
+    error.status = 403;
     throw error;
   }
   return data.access_token;

@@ -1,11 +1,11 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { delegatedScopes, readDelegatedGrant, schedulingAccount, writeDelegatedGrant } from "./delegated-grants.js";
 
 const DEFAULT_GOOGLE_CLIENT_ID = "378690450945-nnb0d9st2d9s5lj2alt7q1hdm3pfige7.apps.googleusercontent.com";
 const GOOGLE_CALLBACK = "https://auth.clintware.com/callback";
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_JWKS = "https://www.googleapis.com/oauth2/v3/certs";
-const GRANT_KEY = "delegated:google:primary";
 const STATUS_KEY = "delegated:google:last-status";
 const BIND_COOKIE = "__Host-clintware-google-delegated";
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -232,6 +232,8 @@ export async function beginDelegatedGoogle(request, env) {
   const binding = randomToken(32);
   const verifier = randomToken(48);
   const nonce = randomToken(24);
+  const expectedEmail = schedulingAccount(returnTo);
+  const scopes = delegatedScopes(SCOPES, returnTo);
   const state = await seal(env, {
     kind: "google_delegated",
     createdAt: Date.now(),
@@ -239,13 +241,16 @@ export async function beginDelegatedGoogle(request, env) {
     verifier,
     nonce,
     returnTo,
+    expectedEmail,
+    scope: scopes.join(" "),
   }, "state");
 
   const auth = new URL(GOOGLE_AUTH);
   auth.searchParams.set("client_id", googleClientId(env));
   auth.searchParams.set("redirect_uri", GOOGLE_CALLBACK);
   auth.searchParams.set("response_type", "code");
-  auth.searchParams.set("scope", SCOPES.join(" "));
+  auth.searchParams.set("scope", scopes.join(" "));
+  if (expectedEmail) auth.searchParams.set("login_hint", expectedEmail);
   auth.searchParams.set("access_type", "offline");
   auth.searchParams.set("prompt", "consent");
   auth.searchParams.set("include_granted_scopes", "true");
@@ -344,6 +349,11 @@ export async function finishDelegatedGoogle(request, env) {
     return json({ error: "google_delegated_nonce_mismatch" }, 400, { "set-cookie": clearCookie() });
   }
   const email = String(claims.email || "").toLowerCase();
+  const expectedEmail = state.expectedEmail || schedulingAccount(safeReturnTo(state.returnTo));
+  if (expectedEmail && email !== expectedEmail) {
+    await recordDelegatedStatus(env, { state: "error", stage: "account_validation", error: "google_delegated_wrong_scheduler_account" });
+    return json({ error: "google_delegated_wrong_scheduler_account", expected_email: expectedEmail }, 403, { "set-cookie": clearCookie() });
+  }
   if (!email || !allowedEmails(env).includes(email) || !(claims.email_verified === true || claims.email_verified === "true")) {
     await recordDelegatedStatus(env, { state: "error", stage: "account_validation", error: "google_delegated_account_not_allowed" });
     return json({ error: "google_delegated_account_not_allowed" }, 403, { "set-cookie": clearCookie() });
@@ -353,10 +363,10 @@ export async function finishDelegatedGoogle(request, env) {
     refreshToken: tokens.refresh_token,
     email,
     subject: String(claims.sub || ""),
-    scope: String(tokens.scope || SCOPES.join(" ")),
+    scope: String(tokens.scope || state.scope || SCOPES.join(" ")),
     createdAt: Date.now(),
   }, "grant");
-  await env.OAUTH_KV.put(GRANT_KEY, grant);
+  await writeDelegatedGrant(env.OAUTH_KV, (value) => unseal(env, value, "grant"), grant, email);
   await recordDelegatedStatus(env, { state: "connected", stage: "complete" });
 
   return new Response(null, {
@@ -369,15 +379,8 @@ export async function finishDelegatedGoogle(request, env) {
   });
 }
 
-async function loadGrant(env) {
-  if (!env.OAUTH_KV) return null;
-  const sealed = await env.OAUTH_KV.get(GRANT_KEY);
-  if (!sealed) return null;
-  try {
-    return await unseal(env, sealed, "grant");
-  } catch {
-    return null;
-  }
+async function loadGrant(env, email = "") {
+  return readDelegatedGrant(env.OAUTH_KV, (value) => unseal(env, value, "grant"), email);
 }
 
 export async function delegatedGoogleStatus(env) {
@@ -395,7 +398,9 @@ export async function internalGoogleAccessToken(request, env) {
   if (!expected || !(await secureEq(expected, supplied))) return json({ error: "unauthorized" }, 401);
   if (!env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) return json({ error: "google_client_credentials_missing" }, 503);
 
-  const grant = await loadGrant(env);
+  const input = await request.json().catch(() => ({}));
+  const expectedEmail = String(input?.email || "").trim().toLowerCase();
+  const grant = await loadGrant(env, expectedEmail);
   if (!grant?.refreshToken) return json({ error: "google_delegated_grant_missing" }, 404);
 
   const response = await fetch(GOOGLE_TOKEN, {
