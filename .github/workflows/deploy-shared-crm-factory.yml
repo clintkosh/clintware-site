@@ -1,4 +1,5 @@
 name: Bootstrap or Break-glass Shared CRM Factory
+# local-first primary: normal steady-state deploys should run through Quillgeist Local CloudMist
 on:
   push:
     branches: [main]
