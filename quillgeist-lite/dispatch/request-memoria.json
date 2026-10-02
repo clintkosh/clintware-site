@@ -1,10 +1,14 @@
 {
-  "request_id": "work-memoria-diagnostics-20261002-0746",
-  "task_id": "local-ai",
+  "request_id": "work-memoria-inference-20261002-0748",
+  "task_id": "local-model-work",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "diagnostics"
+    "Prompt": "What is 2 plus 2? Respond with the number only.",
+    "Model": "local-auto",
+    "MaxTokens": 16,
+    "ContextTokens": 2048,
+    "Temperature": 0
   },
-  "objective": "Read-only current local AI service and storage failure diagnosis. Preserve excluded D drive and all data.",
+  "objective": "Verify actual local inference and capture measured model usage; no model downloads or external providers.",
   "resume_after": false
 }
