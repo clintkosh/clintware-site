@@ -104,6 +104,25 @@ DRIZNET_AI_GATEWAY=http://127.0.0.1:11435/v1
 DRIZNET_AI_GATEWAY_KEY=
 DRIZNET_AI_MODEL=ollama/qwen3.5:9b
 '@|Set-Content (Join-Path $R "discord\.env.example") -Encoding UTF8
+ @'
+import os,json,urllib.request
+import discord
+TOKEN=os.environ.get("DRIZNET_DISCORD_TOKEN","").strip()
+KEY=os.environ.get("DRIZNET_AI_GATEWAY_KEY","").strip()
+MODEL=os.environ.get("DRIZNET_AI_MODEL","ollama/qwen3.5:9b")
+if not TOKEN: raise SystemExit("DRIZNET_DISCORD_TOKEN is not configured.")
+if not KEY: raise SystemExit("DRIZNET_AI_GATEWAY_KEY is not configured.")
+client=discord.Client(intents=discord.Intents.all())
+def ask(q):
+ p=json.dumps({"model":MODEL,"messages":[{"role":"user","content":q}],"max_tokens":400}).encode()
+ r=urllib.request.Request("http://127.0.0.1:11435/v1/chat/completions",data=p,method="POST",headers={"content-type":"application/json","authorization":"Bearer "+KEY})
+ with urllib.request.urlopen(r,timeout=120) as x:return json.loads(x.read().decode())["choices"][0]["message"]["content"]
+@client.event
+async def on_message(m):
+ if m.author!=client.user and m.content.startswith("!ai "): await m.reply(ask(m.content[4:])[:1900])
+client.run(TOKEN)
+'@|Set-Content (Join-Path $R "discord\bot.py") -Encoding UTF8
+ Set-Content (Join-Path $R "discord\requirements.txt") "discord.py>=2.6,<3" -Encoding ASCII
 }
 $checks=[ordered]@{"Open WebUI"="http://127.0.0.1:3015";"Ollama"="http://127.0.0.1:11434/api/tags";"Gateway"="http://127.0.0.1:11435/health";"SearXNG"="http://127.0.0.1:8088";"n8n"="http://127.0.0.1:5678";"Pipelines"="http://127.0.0.1:9099";"Search"="http://127.0.0.1:8788/health"};$rows=@();foreach($x in $checks.GetEnumerator()){$rows+=[pscustomobject]@{name=$x.Key;ok=(T $x.Value 8);url=$x.Value}}
 $key=(Get-Content $K -Raw).Trim();$h=@{Authorization="Bearer $key";"Content-Type"="application/json"};$b=@{model="ollama/qwen3.5:9b";messages=@(@{role="user";content="Reply exactly DRIZNET_SERVER_READY."});max_tokens=32;temperature=0}|ConvertTo-Json -Depth 6
