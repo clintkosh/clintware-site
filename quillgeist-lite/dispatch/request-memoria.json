@@ -1,10 +1,8 @@
 {
-  "request_id": "work-memoria-native-recovery-20261002-0818",
-  "task_id": "local-ai",
+  "request_id": "astro-pulse-rollout-memoria-20261002-1459",
+  "task_id": "self-update",
   "target_device": "MEMORIA",
-  "args": {
-    "Action": "repair-native-volumes"
-  },
-  "objective": "Recover two failing app databases into small native Docker volumes after proven read-only F host sharing. Preserve original F data, validate database integrity, retain Compose backup, rollback unhealthy services, no models/media moved.",
-  "resume_after": false
+  "args": {},
+  "objective": "Install the reviewed Clintware QQ runtime that adds live resource presence, adaptive load-balancing telemetry, and the current CRM+Cover factory task bundle. Preserve active work and resume normal queued work after the safe restart.",
+  "resume_after": true
 }
