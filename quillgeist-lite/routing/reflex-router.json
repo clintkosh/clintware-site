@@ -1,0 +1,59 @@
+{
+  "schema": "clintware-reflex-router/v1",
+  "default_mode": "auto",
+  "modes": ["auto", "deterministic", "bitnet", "jev", "local_llm", "remote_llm"],
+  "decision_order": [
+    "hard_policy_gates",
+    "explicit_user_selection",
+    "deterministic_rules",
+    "bitnet_local_classifier",
+    "jev_calibrated_judge",
+    "local_llm",
+    "remote_llm"
+  ],
+  "auto": {
+    "prefer_local": true,
+    "bitnet_min_confidence": 0.86,
+    "jev_min_confidence": 0.80,
+    "escalate_on_disagreement": true,
+    "pin_explicit_selection": true,
+    "fresh_external_facts_require_authority_route": true,
+    "consequential_external_mutations_require_control_plane": true
+  },
+  "bitnet": {
+    "role": "local_system_one",
+    "use_for": ["intent", "task_class", "skill_route", "tool_route", "complexity", "privacy_class", "local_vs_remote", "completion_gate"],
+    "never_use_as_sole_authority_for": ["destructive_action", "credential_scope", "external_mutation", "security_boundary_change"],
+    "fallback": "jev_or_local_llm"
+  },
+  "jev": {
+    "role": "calibrated_optional_judge",
+    "transport": "provider_adapter",
+    "shadow_first": true,
+    "use_for": ["ambiguous_route", "model_selection", "tool_selection", "skill_selection", "verification", "context_keep_drop"],
+    "fallback": "local_llm"
+  },
+  "local_llm": {
+    "preferred_device": "MEMORIA",
+    "role": "reasoning_and_generation",
+    "fallback": "control_plane_remote"
+  },
+  "observability": {
+    "log_decision_metadata": true,
+    "log_prompt_plaintext": false,
+    "fields": ["work_item_id", "pxe_revision", "mode", "selected_route", "confidence", "reason_code", "latency_ms", "fallback", "verification"]
+  },
+  "ui": {
+    "label": "Decision routing",
+    "default": "Auto",
+    "options": [
+      {"id": "auto", "label": "Auto", "description": "Deterministic first, BitNet locally, Jev for ambiguous calibrated judgments, then larger models only when needed."},
+      {"id": "deterministic", "label": "Rules only", "description": "No model used for routing."},
+      {"id": "bitnet", "label": "BitNet local", "description": "Force the local fast decision layer; fail/escalate when confidence is insufficient."},
+      {"id": "jev", "label": "Jev", "description": "Force Jev decision adapter when configured and authorized."},
+      {"id": "local_llm", "label": "Local LLM", "description": "Use the selected local reasoning model for routing and execution."},
+      {"id": "remote_llm", "label": "Remote LLM", "description": "Use an authorized remote model through the Clintware control plane."}
+    ],
+    "advanced": ["confidence_thresholds", "shadow_mode", "fallback_policy", "route_ledger", "per_task_override"]
+  }
+}
