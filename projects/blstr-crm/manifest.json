@@ -1352,5 +1352,38 @@
     "definition": "Completed synthetic operating milestones divided by total milestones in the current scenario. This is demo workflow completion, not product efficacy, customer ROI, security efficacy, or a real customer metric.",
     "source": "Synthetic milestone records in this manifest",
     "display_rule": "Different account stages use different milestone sets; progress must reflect the selected account's actual synthetic milestone completion."
+  },
+  "role_verification": {
+    "source_url": "https://jobs.lever.co/bolster/4fdea070-99b1-4818-9bc3-6da8b9a25725",
+    "verified_at": "2026-10-02",
+    "source_status": "verified_current_public_posting"
+  },
+  "company_values": {
+    "framework_name": "Core values",
+    "source_url": "https://bolster.ai/about-us",
+    "verified_at": "2026-10-02",
+    "values": [
+      {
+        "name": "Trust",
+        "meaning": "Build trust with employees, customers, and partners.",
+        "role_connection": "Central to a dual-motion TAM role bridging Bolster, a major partner's support ecosystem, and enterprise customers."
+      },
+      {
+        "name": "Think Big",
+        "meaning": "Pursue creative, diverse, long-term solutions to impactful problems.",
+        "role_connection": "Fits improving partner handoffs, recurring support themes, packaging, documentation, and scalable technical account motions."
+      },
+      {
+        "name": "Mutual Respect",
+        "meaning": "Keep respect at the forefront even in difficult conversations.",
+        "role_connection": "Directly supports escalations and boundary-setting across customer, partner support, services, CSM, Product, and Sales teams."
+      },
+      {
+        "name": "Customer Success",
+        "meaning": "Bolster succeeds when its customers succeed.",
+        "role_connection": "Keeps onboarding, tuning, adoption, escalation, and technical guidance anchored to customer outcomes."
+      }
+    ],
+    "application_rule": "Use the official public framework as interview/application context. Connect it to documented candidate evidence and role outcomes without claiming insider culture knowledge or manufacturing personal fit."
   }
 }
