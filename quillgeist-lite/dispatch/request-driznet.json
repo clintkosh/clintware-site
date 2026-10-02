@@ -1,10 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-core-20261002-1715",
-  "task_id": "driznet-server-core",
+  "request_id": "chatgpt-driznet-corepatch-20261002-1719",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "setup"
-  },
-  "objective": "Build the complete right-sized DRIZNET local AI server core on internal C: storage only: authenticated Quillgeist gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, and local web-search agent. Preserve existing C:\\AI work and Ollama models; use no external drive; verify real local inference and search before passing.",
+  "args": {},
+  "objective": "Refresh DRIZNET with the published core-task tokenization fix before retrying the internal server build.",
   "resume_after": true
 }
