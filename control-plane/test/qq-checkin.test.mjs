@@ -61,3 +61,19 @@ test("CRM+Cover batch remote task exposes only bounded application-factory contr
     parameters: ["Projects", "Action", "Workers", "GenerateCopy", "Model"],
   });
 });
+
+
+test("central QQ job creation load-balances untargeted work before broadcast", () => {
+  const start = source.indexOf("async putQuillgeistLiteJob(job)");
+  const end = source.indexOf("async updateQuillgeistLiteJob", start);
+  const block = source.slice(start, end);
+  assert.match(block, /this\.ctx\.getWebSockets\("quillgeist-lite"\)/);
+  assert.match(block, /adaptive-resource-score/);
+  assert.match(block, /available_workers/);
+  assert.match(block, /queued_jobs/);
+  assert.match(block, /cpu_load_percent/);
+  assert.match(block, /memory_load_percent/);
+  assert.match(block, /gpu_worker_capacity/);
+  assert.match(block, /routing\.selected_device=target_device/);
+  assert.match(block, /target_device,/);
+});
