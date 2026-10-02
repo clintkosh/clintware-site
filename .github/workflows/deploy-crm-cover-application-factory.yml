@@ -259,6 +259,22 @@ jobs:
             if(body.includes(company)||body.includes(role))throw new Error("suppressed target identity leaked into visible UI");
           }
 
+          // From the default Portfolio view, the global switcher must enter the selected account.
+          const optionValues=await page.locator("#cust option").evaluateAll(opts=>opts.map(o=>o.value).filter(Boolean).slice(0,5));
+          if(optionValues.length<5)throw new Error("global customer switcher missing seeded accounts");
+          const progress=[];
+          for(const id of optionValues){
+            await page.locator("#cust").selectOption(id);
+            await page.waitForFunction(id=>window.CWAstroLocalStore?.state()?.customer?.id===id,id,{timeout:20000});
+            await page.waitForFunction(()=>typeof deploymentState==="function"&&document.querySelector("button[data-tab='command'][aria-current='page']"),null,{timeout:20000});
+            progress.push(await page.evaluate(()=>deploymentState().pct));
+          }
+          if(new Set(progress).size<4)throw new Error("synthetic progress insufficiently varied: "+progress.join(","));
+          if(progress.every(v=>v===33)||progress.includes(33))throw new Error("legacy repeated 33-percent progress fingerprint detected: "+progress.join(","));
+          const portfolioNav=page.locator(".dplr-primary button[data-tab='customers']").first();
+          if(await portfolioNav.count())await portfolioNav.click();else await page.locator("button[data-tab='customers']").first().click();
+          await page.waitForSelector("[data-customer-open]",{timeout:20000});
+
           await page.locator("[data-customer-open]").first().click();
           await page.waitForSelector("button[data-tab='prep']");
 
@@ -305,6 +321,9 @@ jobs:
             await page.waitForSelector("#download-application-pdf");
             const appText=await page.locator("main").innerText();
             if(!/Why company/i.test(appText)||!/Tailored cover letter/i.test(appText))throw new Error("application copy surface missing");
+            if(!/Role & values fit/i.test(appText))throw new Error("role and values alignment surface missing");
+            const roleSource=page.locator('main a',{hasText:"verified job posting"});
+            if(await roleSource.count()<1)throw new Error("verified role source link missing from application surface");
             const appDownload=page.waitForEvent("download");
             await page.locator("#download-application-pdf").click();
             const app=await appDownload;
@@ -335,6 +354,9 @@ jobs:
             persistence:persisted,
             meetingBriefPdfBytes:prepBytes.length,
             applicationPdfBytes:publicIdentity?appBytes.length:null,
+            syntheticProgress:progress,
+            progressStates:new Set(progress).size,
+            topSwitcherVerified:true,
             mobileOverflow:false
           },null,2));
           await browser.close();
