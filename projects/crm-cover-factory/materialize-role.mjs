@@ -124,6 +124,30 @@ const KB_SEED=[
   {id:"kb-quality-gates",slug:"application-quality-gates",title:"Application and Interview Quality Gates",summary:"Permanent controls learned from prior interview and case-study review.",category:"Application QA",tags:["interview","quality","ai"],status:"published",source:"internal_best_practice",authorLabel:"Clintware ASTRO",body:"SOURCE GATE: No orphan metrics. ANSWER GATE: Answer, proof, role link, stop. CORE BEFORE EXTRAS: Requested deliverable before bonus artifacts. PERSONAL CONNECTION: Keep it reciprocal and brief; do not manufacture intimacy afterward. FOLLOW-UP: 100-175 words. AI: Human validates consequential claims and outbound communication. RED TEAM: Ask where every number came from before submission."}
 ];
 
+for(const r of (Array.isArray(m.technical_refreshers)?m.technical_refreshers:[])){
+  KB_SEED.push({
+    id:"kb-refresh-"+slug(r.title||r.topic),
+    slug:"refresh-"+slug(r.title||r.topic),
+    title:r.title||r.topic||"Technical refresher",
+    summary:r.summary||"Current role-relevant technical refresher.",
+    category:"Technical Refresher",
+    tags:["technical","refresher",...(Array.isArray(r.tags)?r.tags:[])],
+    status:"published",
+    source:"public_research",
+    authorLabel:"Authoritative source refresher",
+    body:[
+      r.mental_model?"MENTAL MODEL: "+r.mental_model:"",
+      r.failure_modes?"COMMON FAILURE MODES: "+r.failure_modes:"",
+      r.diagnostic_sequence?"DIAGNOSTIC: "+r.diagnostic_sequence:"",
+      r.evidence_to_collect?"EVIDENCE: "+r.evidence_to_collect:"",
+      r.traps?"TRAPS: "+r.traps:"",
+      r.best_practices?"BEST PRACTICES: "+r.best_practices:"",
+      r.experience_boundary?"EXPERIENCE BOUNDARY: "+r.experience_boundary:"",
+      r.source_url?"SOURCE: "+r.source_url:""
+    ].filter(Boolean).join("\n\n")
+  });
+}
+
 const workerPath=path.join(out,"src","index.js");
 let worker=fs.readFileSync(workerPath,"utf8");
 const a=worker.indexOf("const CUSTOMER=");
@@ -169,6 +193,8 @@ const profile={
   coverageModel:m.coverage_model||{},
   systemMap:m.system_map||[],
   routingRules:m.routing_rules||[],
+  orgMap:m.org_map||{},
+  technicalRefreshers:m.technical_refreshers||[],
   applicationBundle:m.application_bundle||{},
   qualityGates:[
     "Every consequential metric must resolve to a source or be labeled hypothetical.",
@@ -223,7 +249,8 @@ function coveragePage(){
  '<div class="tablewrap"><table class="table"><thead><tr><th>Account / queue</th><th>Motion</th><th>CSM</th><th>Technical owner</th><th>Partner / support lane</th><th>Next action</th></tr></thead><tbody>'+
  a.map(x=>'<tr><td>'+esc(x.account)+'</td><td>'+esc(x.motion)+'</td><td>'+esc(x.csm||"—")+'</td><td>'+esc(x.tam||"—")+'</td><td>'+esc(x.lane||"—")+'</td><td>'+esc(x.next_action||"—")+'</td></tr>').join("")+
  '</tbody></table></div>'+
- (rules.length?'<div class="section"><h2>Assignment rules</h2></div><div class="grid g2">'+rules.map(x=>'<div class="card"><div class="eyebrow">'+esc(x.when||"Routing rule")+'</div><h3>'+esc(x.owner||"Owner")+'</h3><p>'+esc(x.action||"")+'</p></div>').join("")+'</div>':'');
+ (rules.length?'<div class="section"><h2>Assignment rules</h2></div><div class="grid g2">'+rules.map(x=>'<div class="card"><div class="eyebrow">'+esc(x.when||"Routing rule")+'</div><h3>'+esc(x.owner||"Owner")+'</h3><p>'+esc(x.action||"")+'</p></div>').join("")+'</div>':'')+
+ ((P.orgMap?.edges||[]).length?'<div class="section"><h2>Operating relationship map</h2><p class="muted">'+esc(P.orgMap.note||"Functional operating map; inferred links are labeled.")+'</p></div><div class="grid g2">'+P.orgMap.edges.map(x=>'<div class="card"><div class="eyebrow">'+esc(x.evidence||"Functional link")+'</div><h3>'+esc(x.from||"Input")+' → '+esc(x.to||"Output")+'</h3><p>'+esc(x.purpose||"")+'</p></div>').join("")+'</div>':'');
 }
 function flowPage(){
  const systems=Array.isArray(P.systemMap)?P.systemMap:[];
