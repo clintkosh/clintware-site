@@ -105,7 +105,8 @@ function richRows(s,customerName){
       lastUpdated:k.last_updated||"Synthetic seed"
     }]);
   }
-  stakeholderRoles.slice(0,3).forEach((role,i)=>rows.push(["stakeholder",p,{name:["Alex Morgan","Taylor Reed","Jordan Lee"][i]+" (Synthetic)",role,organization:customerName,email:"",phone:"",decisionRole:role,status:i===0?"Active":"Engaged",notes:"Synthetic stakeholder for role-specific operating proof."}]));
+  const scenarioStakeholders=Array.isArray(s.stakeholder_roles)&&s.stakeholder_roles.length>=3?s.stakeholder_roles:stakeholderRoles;
+  scenarioStakeholders.slice(0,3).forEach((role,i)=>rows.push(["stakeholder",p,{name:["Alex Morgan","Taylor Reed","Jordan Lee"][i]+" (Synthetic)",role,organization:customerName,email:"",phone:"",decisionRole:role,status:i===0?"Active":"Engaged",notes:"Synthetic stakeholder for role-specific operating proof."}]));
   for(const a of s.actions)rows.push(["action",p,{title:a.title,owner:a.owner||"Role owner",due:a.due||"Next checkpoint",status:a.status||"Planned",audience:a.audience||"Internal / Customer"}]);
   (s.systems||[]).forEach(sys=>rows.push(["integration",p,{name:sys,purpose:"Role-relevant system / data source",connectorStatus:"Synthetic context",technicalValidation:s.dependency||"Validate ownership, field definitions, and source-of-truth boundaries."}]));
   s.kpis.slice(0,2).forEach(k=>rows.push(["adoption",p,{name:k.name,value:k.current||"In progress",period:s.timeline||"Current cycle",source:k.source||"Synthetic source to validate",owner:k.owner||"Role owner"}]));
