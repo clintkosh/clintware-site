@@ -1,14 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-inference-20261002-1644",
-  "task_id": "local-ai",
+  "request_id": "chatgpt-driznet-refresh-20261002-1646",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "benchmark",
-    "Model": "qwen3.5:9b",
-    "Prompt": "Reply exactly DRIZNET_AI_READY.",
-    "MaxTokens": "32",
-    "ContextTokens": "4096"
-  },
-  "objective": "Prove DRIZNET can execute a local Ollama inference end to end and return bounded execution evidence.",
+  "args": {},
+  "objective": "Refresh DRIZNET with the canonical Quillgeist local AI decoding fix, preserve current work, and resume queued work after restart.",
   "resume_after": true
 }
