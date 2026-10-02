@@ -3,36 +3,79 @@
   "name": "clintware-agentbridge",
   "main": "src/entry.js",
   "compatibility_date": "2026-08-23",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    {"pattern":"quillgeist.clintware.com","custom_domain":true}
+    {
+      "pattern": "quillgeist.clintware.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "qg.clintware.com",
+      "custom_domain": true
+    }
   ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/ws/*", "/mcp*"]
+    "run_worker_first": [
+      "/api/*",
+      "/ws/*",
+      "/mcp*"
+    ]
   },
   "durable_objects": {
     "bindings": [
-      {"name":"ACCOUNT_HUB","class_name":"AccountHub"},
-      {"name":"DEVICE_HUB","class_name":"DeviceHub"},
-      {"name":"PAIRING_HUB","class_name":"PairingHub"},
-      {"name":"SCHEDULE_HUB","class_name":"ScheduleHub"},
-      {"name":"TELEMETRY_HUB","class_name":"TelemetryHub"},
-      {"name":"PRODUCT_METRICS_HUB","class_name":"ProductMetricsHub"},
-      {"name":"HELP_HUB","class_name":"HelpHub"}
+      {
+        "name": "ACCOUNT_HUB",
+        "class_name": "AccountHub"
+      },
+      {
+        "name": "DEVICE_HUB",
+        "class_name": "DeviceHub"
+      },
+      {
+        "name": "PAIRING_HUB",
+        "class_name": "PairingHub"
+      },
+      {
+        "name": "SCHEDULE_HUB",
+        "class_name": "ScheduleHub"
+      },
+      {
+        "name": "TELEMETRY_HUB",
+        "class_name": "TelemetryHub"
+      },
+      {
+        "name": "PRODUCT_METRICS_HUB",
+        "class_name": "ProductMetricsHub"
+      },
+      {
+        "name": "HELP_HUB",
+        "class_name": "HelpHub"
+      }
     ]
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["AccountHub","DeviceHub","PairingHub","ScheduleHub"]
+      "new_sqlite_classes": [
+        "AccountHub",
+        "DeviceHub",
+        "PairingHub",
+        "ScheduleHub"
+      ]
     },
     {
       "tag": "v2",
-      "new_sqlite_classes": ["TelemetryHub","ProductMetricsHub","HelpHub"]
+      "new_sqlite_classes": [
+        "TelemetryHub",
+        "ProductMetricsHub",
+        "HelpHub"
+      ]
     }
   ],
   "observability": {
