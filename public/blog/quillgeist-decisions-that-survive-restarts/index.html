@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><meta name="newsletter-notify" content="false">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
   <meta charset="utf-8">
@@ -34,7 +34,7 @@
 <p>The native harness therefore distinguishes replay-safe work from interrupted effects that need reconciliation.  Retry limits and ownership checks are part of the implementation.  That is the same judgment I would apply to a customer escalation: Recover what is recoverable, establish what happened, and avoid creating a second problem while fixing the first.</p>
 <h2>What the tests establish</h2>
 <p>The initial repository validation passed <strong>26 checks</strong> across the new durability and routing tests and existing prompt-planning suites.  Coverage includes duplicate request handling, workspace separation, concurrent claims, checkpoint recovery, stale-worker rejection, retry bounds, and authority precedence.  A reviewed machine smoke task exercises the new recovery path using a temporary database.</p>
-<p>These results establish repository behavior in the build environment.  They do not establish that Clef is serving on my Windows machines or that every existing QQ task has migrated to checkpointed execution.</p>
+<p>These results establish repository behavior in the build environment.  They do not establish that Clef is serving on my Windows machines or that every existing Quillgeist Lite task has migrated to checkpointed execution.</p>
 <h2>What still needs proof</h2>
 <p>Live Clef inference, per-task confidence calibration, and migration of the existing runner's task lifecycle remain rollout gates.  No Pi Durable backend is installed in this change; the current implementation is native.  The Clef adapter is an integration boundary, not a deployed model.</p>
 <p>Hardware fit also comes first.  Clef-flash uses a 9B backbone.  A fast vendor benchmark does not tell me whether that model is an efficient fit for a particular laptop.  My desktop and laptop remain separate execution targets, with separate local state and verification requirements.</p>
