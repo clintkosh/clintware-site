@@ -1541,7 +1541,36 @@ export class RegistryHub extends DurableObject {
     }
 
     const task_id=clip(job.task_id,120);
-    const target_device=clip(job.target_device||"",120);
+    let target_device=clip(job.target_device||"",120);
+    let routing={routing_mode:target_device?"explicit-device":"adaptive-resource-score",selected_device:target_device,candidates:[]};
+    if(!target_device){
+      const now=Date.now();
+      const connected=[];
+      for(const ws of this.ctx.getWebSockets("quillgeist-lite")){
+        try{
+          const a=ws.deserializeAttachment()||{};
+          const deviceId=clip(a.device_id||"",120);
+          if(!deviceId||ws.readyState!==1)continue;
+          connected.push(deviceId);
+          const p=a.runner_presence||{};
+          const age=Math.max(0,(now-Date.parse(p.updated_at||p.timestamp||0))/1000);
+          if(p.runner_alive===false||age>45)continue;
+          const available=Math.max(0,Number(p.available_workers)||0);
+          const capacity=Math.max(1,Number(p.worker_capacity)||1);
+          const active=Math.max(0,Number(p.active_workers)||0);
+          const queued=Math.max(0,Number(p.queued_jobs)||0);
+          const cpu=Number.isFinite(Number(p.cpu_load_percent))?Number(p.cpu_load_percent):50;
+          const memory=Number.isFinite(Number(p.memory_load_percent))?Number(p.memory_load_percent):50;
+          const gpu=Math.max(0,Number(p.gpu_worker_capacity)||0);
+          const score=(available*100)+(gpu*8)-(active*12)-(queued*30)-(cpu*0.45)-(memory*0.35);
+          routing.candidates.push({device_id:deviceId,available_workers:available,worker_capacity:capacity,active_workers:active,queued_jobs:queued,cpu_load_percent:cpu,memory_load_percent:memory,gpu_worker_capacity:gpu,score:Math.round(score*100)/100});
+        }catch{}
+      }
+      routing.candidates.sort((a,b)=>b.score-a.score||b.available_workers-a.available_workers||a.device_id.localeCompare(b.device_id));
+      if(routing.candidates.length)target_device=routing.candidates[0].device_id;
+      else if(connected.length){connected.sort();target_device=connected[0];routing.routing_mode="connected-device-fallback";}
+      routing.selected_device=target_device;
+    }
     const runtime_version=clip(job.runtime_version||QUILLGEIST_RUNTIME_VERSION,80);
     const singletonMaintenance=new Set(["self-update","repair-local-service","restart-window","bootstrap-admin-console"]);
     let index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
@@ -1565,6 +1594,7 @@ export class RegistryHub extends DurableObject {
       requested_by:clip(job.requested_by||"mcp",120),
       objective:clip(job.objective||"",2000),
       target_device,
+      routing,
       runtime_version,
       resume_after:Boolean(job.resume_after),
       status:"queued",
