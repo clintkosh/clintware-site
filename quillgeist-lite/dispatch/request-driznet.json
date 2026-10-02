@@ -1,8 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-registry32b-20261002-1713",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-core-20261002-1715",
+  "task_id": "driznet-server-core",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET again now that the control-plane deployment step has published the v32 runtime bundle with durable server-core and media tasks.",
+  "args": {
+    "Action": "setup"
+  },
+  "objective": "Build the complete right-sized DRIZNET local AI server core on internal C: storage only: authenticated Quillgeist gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, and local web-search agent. Preserve existing C:\\AI work and Ollama models; use no external drive; verify real local inference and search before passing.",
   "resume_after": true
 }
