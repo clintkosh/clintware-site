@@ -5,12 +5,14 @@ import datetime as dt
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import urllib.request
 import uuid
 
 ROOT_DEFAULT = pathlib.Path(__file__).resolve().parents[2]
+PROJECT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
 
 def run(cmd, cwd, env=None, timeout=7200):
     p=subprocess.run(cmd,cwd=str(cwd),env=env,text=True,capture_output=True,timeout=timeout)
@@ -115,6 +117,9 @@ def main():
     repo=pathlib.Path(args.RepoRoot).expanduser().resolve()
     projects=[x.strip() for x in args.Projects.split(",") if x.strip()]
     if not projects:raise SystemExit("No projects supplied")
+    invalid=[p for p in projects if not PROJECT_ID_RE.fullmatch(p)]
+    if invalid:raise SystemExit("Invalid project id(s): "+", ".join(invalid))
+    if len(projects)>20:raise SystemExit("At most 20 projects may be materialized in one batch.")
     workers=args.Workers if args.Workers>0 else max(2,min(4,max(1,(os.cpu_count() or 4)//2)))
     run_id=dt.datetime.now().strftime("%Y%m%d_%H%M%S")+"_"+uuid.uuid4().hex[:8]
     run_dir=repo/".local"/"application-runs"/run_id
