@@ -281,3 +281,18 @@ The CRM+Cover package is done when:
 - additional material would add length rather than signal.
 
 Do not add another artifact merely to make the application look more elaborate.
+
+## Provenance-first CRM+Cover release gate
+
+Every CRM+Cover package inherits `docs/EVIDENCE_PROVENANCE_STANDARD.md`.
+
+Before finalizing Why Company, cover letter, CRM copy, downloadable PDF, or follow-up:
+- reconcile every consequential number to the claim ledger;
+- distinguish candidate evidence, public facts, targets, derived values, estimates, and synthetic demo values;
+- re-check final rendered/exported artifacts, not just source text;
+- verify recipients, names, role/company, dates, links, and attachments before external messaging;
+- fail closed on orphan metrics.
+
+The package should also carry an internal one-line ROLE PROBLEM HYPOTHESIS and an operational org map. These are used to shape the work even when they are not displayed as application marketing.
+
+When a CRM is public as proof-of-work, default to an operator-product presentation rather than an employer-targeting page. If requested, reflect the target company's public design relationships without explicitly naming the target company or role in the primary interface.
