@@ -299,17 +299,22 @@ jobs:
           const prepBytes=fs.readFileSync(prepPath);
           if(prepBytes.length<500||prepBytes.subarray(0,4).toString()!=="%PDF")throw new Error("meeting brief PDF invalid");
 
-          await page.locator("button[data-tab='application']").click();
-          await page.waitForSelector("#download-application-pdf");
-          const appText=await page.locator("main").innerText();
-          if(!/Why company/i.test(appText)||!/Tailored cover letter/i.test(appText))throw new Error("application copy surface missing");
-          const appDownload=page.waitForEvent("download");
-          await page.locator("#download-application-pdf").click();
-          const app=await appDownload;
-          const appPath="/tmp/"+process.env.PROJECT+"-application.pdf";
-          await app.saveAs(appPath);
-          const appBytes=fs.readFileSync(appPath);
-          if(appBytes.length<500||appBytes.subarray(0,4).toString()!=="%PDF")throw new Error("application PDF invalid");
+          let appBytes=Buffer.alloc(0);
+          if(publicIdentity){
+            await page.getByRole("button",{name:"Application",exact:true}).click();
+            await page.waitForSelector("#download-application-pdf");
+            const appText=await page.locator("main").innerText();
+            if(!/Why company/i.test(appText)||!/Tailored cover letter/i.test(appText))throw new Error("application copy surface missing");
+            const appDownload=page.waitForEvent("download");
+            await page.locator("#download-application-pdf").click();
+            const app=await appDownload;
+            const appPath="/tmp/"+process.env.PROJECT+"-application.pdf";
+            await app.saveAs(appPath);
+            appBytes=fs.readFileSync(appPath);
+            if(appBytes.length<500||appBytes.subarray(0,4).toString()!=="%PDF")throw new Error("application PDF invalid");
+          }else{
+            if(await page.locator("button[data-tab='application']").count())throw new Error("neutral operator workspace exposes application navigation");
+          }
 
           const mobile=await context.newPage();
           await mobile.setViewportSize({width:390,height:844});
@@ -329,7 +334,7 @@ jobs:
             ok:true,company,role,accounts:cards,
             persistence:persisted,
             meetingBriefPdfBytes:prepBytes.length,
-            applicationPdfBytes:appBytes.length,
+            applicationPdfBytes:publicIdentity?appBytes.length:null,
             mobileOverflow:false
           },null,2));
           await browser.close();
