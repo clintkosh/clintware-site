@@ -1,6 +1,6 @@
 param([ValidateSet("setup","verify")][string]$Action="setup")
 $ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue"
-if($env:COMPUTERNAME -not match '(?i)^DRIZNET$'){throw "DRIZNET-only"}
+if($env:COMPUTERNAME -notmatch '(?i)^DRIZNET$'){throw "DRIZNET-only"}
 $R="C:\AI\LOCAL-CHATGPT";$D=Join-Path $R "docker";$Data=Join-Path $R "data";$C=Join-Path $R "config";$S=Join-Path $R "scripts";$G=Join-Path $R "quillgeist-gateway";$P=Join-Path $G "agentbridge_node";$E=Join-Path $D ".env";$Y=Join-Path $D "docker-compose.yml";$K=Join-Path $C "quillgeist-gateway.key"
 function T($u,$t=5){try{$x=Invoke-WebRequest $u -UseBasicParsing -TimeoutSec $t;return($x.StatusCode -ge 200 -and $x.StatusCode -lt 500)}catch{return $false}}
 function W($u,$s=90){$e=(Get-Date).AddSeconds($s);do{if(T $u 5){return $true};Start-Sleep 2}while((Get-Date) -lt $e);return $false}
@@ -81,7 +81,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import json,urllib.parse,urllib.request
 class H(BaseHTTPRequestHandler):
  def j(self,s,d):
-  b=json.dumps(d).encode();self.send_response(s);self.send_header("content-type","application/json");self.send_header("content-le ngth",str(len(b)));self.end_headers();self.wfile.write(b)
+  b=json.dumps(d).encode();self.send_response(s);self.send_header("content-type","application/json");self.send_header("content-length",str(len(b)));self.end_headers();self.wfile.write(b)
  def do_GET(self):
   u=urllib.parse.urlparse(self.path)
   if u.path=="/health":
