@@ -2,13 +2,13 @@ param([ValidateSet("setup","verify")][string]$Action="setup")
 $ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue"
 if($env:COMPUTERNAME -notmatch '(?i)^DRIZNET$'){throw"DRIZNET-only"}
 $R="C:\AI\LOCAL-CHATGPT";$S=Join-Path $R "scripts";$L=Join-Path $R "logs";$C="C:\AI\ComfyUI"
-function T($u,$t=5){try{$r=Invoke-WebRequest $u -UseBasicParsing -TimeoutSec $t;return($r.StatusCode-ge 200-and$r.StatusCode-lt 500)}catch{return$false}}
-function W($u,$s=120){$e=(Get-Date).AddSeconds($s);do{if(T $u 5){return$true};Start-Sleep 2}while((Get-Date)-lt$e);return$false}
-function Py(){foreach($p in @((Join-Path $env:USERPROFILE "Miniconda3\python.exe"),(Get-Command python.exe -ErrorAction SilentlyContinue).Source)){if($p-and(Test-Path $p)-and$p-notmatch'WindowsApps'){return$p}};throw"Python missing"}
+function T($u,$t=5){try{$r=Invoke-WebRequest $u -UseBasicParsing -TimeoutSec $t;return($r.StatusCode-ge 200-and $r.StatusCode-lt 500)}catch{return$false}}
+function W($u,$s=120){$e=(Get-Date).AddSeconds($s);do{if(T $u 5){return$true};Start-Sleep 2}while((Get-Date)-lt $e);return$false}
+function Py(){foreach($p in @((Join-Path $env:USERPROFILE "Miniconda3\python.exe"),(Get-Command python.exe -ErrorAction SilentlyContinue).Source)){if($p -and(Test-Path $p)-and $p -notmatch'WindowsApps'){return$p}};throw"Python missing"}
 function Pw(){if($p=Get-Command pwsh.exe -ErrorAction SilentlyContinue){return$p.Source};"$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"}
 function ST($n,$f,$wd){$u=[Security.Principal.WindowsIdentity]::GetCurrent().Name;$a=New-ScheduledTaskAction -Execute (Pw) -Argument ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$f+'"') -WorkingDirectory $wd;$tr=New-ScheduledTaskTrigger -AtLogOn -User $u;$pr=New-ScheduledTaskPrincipal -UserId $u -LogonType Interactive -RunLevel Highest;$st=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);Register-ScheduledTask -TaskName $n -Action $a -Trigger $tr -Principal $pr -Settings $st -Force|Out-Null;Start-ScheduledTask $n}
 New-Item -ItemType Directory -Force -Path $R,$S,$L,(Split-Path $C -Parent)|Out-Null
-if($Action-eq"setup"){
+if($Action -eq"setup"){
  $py=Py;if(-not($g=Get-Command git.exe -ErrorAction SilentlyContinue)){$g=Get-Command git -ErrorAction SilentlyContinue};if(-not$g){throw"Git missing"}
  if(-not(Test-Path (Join-Path $C "main.py"))){&$g.Source clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git $C;if($LASTEXITCODE){throw"ComfyUI clone failed"}}
  $v=Join-Path $C "venv\Scripts\python.exe";if(-not(Test-Path $v)){&$py -m venv (Join-Path $C "venv");if($LASTEXITCODE){throw"venv failed"}}
