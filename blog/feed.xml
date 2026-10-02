@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <rss version="2.0">
   <channel>
-    <title>Clintware Blog</title>
+    <item><title>Making Quillgeist More Reliable</title><link>https://www.clintware.com/blog/quillgeist-decisions-that-survive-restarts/</link><guid>https://www.clintware.com/blog/quillgeist-decisions-that-survive-restarts/</guid><pubDate>Fri, 02 Oct 2026 13:00:00 GMT</pubDate><description>How I extended Quillgeist with durable local planning and optional decision-model routing, and why operational judgment matters more than adding another model.</description></item><title>Clintware Blog</title>
     <link>https://www.clintware.com/blog/</link>
     <description>Field notes on applied AI, Customer Success, workflow transformation, and useful software.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 04 Aug 2026 00:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2026 13:00:00 GMT</lastBuildDate>
     <item>
       <title>Building the Next Step</title>
       <link>https://www.clintware.com/blog/building-the-next-step/</link>

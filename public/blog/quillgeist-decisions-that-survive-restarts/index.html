@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCY144YM9P"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DCY144YM9P',{anonymize_ip:true});</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="How I extended Quillgeist with durable local planning and optional decision-model routing, and why operational judgment matters more than adding another model.">
+  <meta name="theme-color" content="#07090d">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Making Quillgeist More Reliable | Clintware™">
+  <meta property="og:description" content="How I extended Quillgeist with durable local planning and optional decision-model routing, and why operational judgment matters more than adding another model.">
+  <meta property="og:url" content="https://www.clintware.com/blog/quillgeist-decisions-that-survive-restarts/">
+  <meta property="article:published_time" content="2026-10-02">
+  <link rel="canonical" href="https://www.clintware.com/blog/quillgeist-decisions-that-survive-restarts/">
+  <title>Making Quillgeist More Reliable | Clintware™</title>
+  <link rel="stylesheet" href="/assets/clintware.css">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6169557480632773" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="site-header"><div class="container nav-row"><a class="brand" href="/">CLINT<span class="brand-accent">WARE</span>™</a><nav class="site-nav" data-site-nav aria-label="Primary navigation"></nav><button class="nav-toggle" data-nav-toggle type="button" aria-expanded="false" aria-label="Open navigation">☰</button></div></header>
+  <main><header class="article-header"><div class="article-shell"><div class="crumbs"><a href="/">Home</a><span>/</span><a href="/blog/">Build Notes</a></div><span class="section-kicker">BUILD NOTE · OCTOBER 2, 2026</span><h1>Making Quillgeist More Reliable</h1><p class="article-dek">How I extended Quillgeist with durable local planning and optional decision-model routing, and why operational judgment matters more than adding another model.</p><div class="article-meta">By Clinton Kosh · Implementation note</div><div class="article-rule"></div></div></header><article class="article-shell article-body"><p>I added persistent local plans and an optional decision-model adapter to Quillgeist.  These changes give interrupted work a recovery path and prepare the router to use decision models for bounded choices.</p>
+<h2>Two releases sharpened the design</h2>
+<p>Cloudflare's <a href="https://blog.cloudflare.com/clef-decision-models/" rel="noopener noreferrer">Clef announcement</a> describes decision models that score permitted choices instead of generating prose.  Cloudflare publishes Clef and Clef-flash under Apache 2.0 and describes Jev API compatibility.  That makes them candidates for bounded routing decisions before a larger model reasons about a task.</p>
+<p>Earendil's <a href="https://earendil.com/posts/pi-durable/" rel="noopener noreferrer">Pi Durable release</a> approaches the other half: Making agent work survive interruptions.  Its experimental status matters.  I adopted durability principles through a native local interface rather than making every project depend directly on a new API.</p>
+<h2>What I changed</h2>
+<p>I extended Quillgeist's existing local execution architecture in three places.</p>
+<p><strong>First, preserve the plan.</strong> Big-prompt planning now ingests its output into a machine-local SQLite harness.  The harness records request identity and a content fingerprint, rejects conflicting reuse, supports atomic worker claims, preserves checkpoints, and fences stale workers from committing after ownership changes.  Its event journal makes state transitions inspectable.</p>
+<p><strong>Second, make decision providers replaceable.</strong> The existing router now accepts optional Clef-flash and Clef classifiers alongside its earlier options.  A bounded loopback adapter validates choices and probabilities, limits response size, and enforces a timeout.  Missing or malformed model output can fall back to the existing local path.</p>
+<p><strong>Third, keep authority ahead of model preference.</strong> I corrected the router so a known external-authority requirement is evaluated before an explicit model override.  Selecting a local model must never turn publishing, private account access, or another consequential action into an ordinary local task.</p>
+<h2>Recovery needs judgment</h2>
+<p>Duplicate submission protection is useful.  It is not a guarantee that every external action happens exactly once.</p>
+<p>If a read-only calculation stops, retrying may be straightforward.  If a process stops after sending an external request but before saving the response, its outcome may be unknown.  Repeating it could create duplicate work.</p>
+<p>The native harness therefore distinguishes replay-safe work from interrupted effects that need reconciliation.  Retry limits and ownership checks are part of the implementation.  That is the same judgment I would apply to a customer escalation: Recover what is recoverable, establish what happened, and avoid creating a second problem while fixing the first.</p>
+<h2>What the tests establish</h2>
+<p>The initial repository validation passed <strong>26 checks</strong> across the new durability and routing tests and existing prompt-planning suites.  Coverage includes duplicate request handling, workspace separation, concurrent claims, checkpoint recovery, stale-worker rejection, retry bounds, and authority precedence.  A reviewed machine smoke task exercises the new recovery path using a temporary database.</p>
+<p>These results establish repository behavior in the build environment.  They do not establish that Clef is serving on my Windows machines or that every existing QQ task has migrated to checkpointed execution.</p>
+<h2>What still needs proof</h2>
+<p>Live Clef inference, per-task confidence calibration, and migration of the existing runner's task lifecycle remain rollout gates.  No Pi Durable backend is installed in this change; the current implementation is native.  The Clef adapter is an integration boundary, not a deployed model.</p>
+<p>Hardware fit also comes first.  Clef-flash uses a 9B backbone.  A fast vendor benchmark does not tell me whether that model is an efficient fit for a particular laptop.  My desktop and laptop remain separate execution targets, with separate local state and verification requirements.</p>
+<p>I am not publishing a cost-reduction percentage for this change.  That needs comparable successful workloads and actual usage records.  Avoided calls, estimated context savings, latency, and billed spend answer different questions.</p>
+<h2>Why this work matters to me</h2>
+<p>I want AI adoption to produce workflows people can trust and maintain.  That means deciding where automation helps, connecting the right systems, protecting handoffs, and measuring whether the outcome improved.</p>
+<p>Building this extension is one way I practice that operating discipline.  The next step is to qualify live decision inference and verify the rollout on each machine.  The useful proof is a system that can finish the right work, preserve what it knows, and show how the result was verified.</p>
+<p><a href="/work/">My professional background</a> connects that building work to Customer Success, technical support, implementation, and operations leadership.</p></article></main><footer class="site-footer"><div class="container footer-row"><span>© <span data-year></span> Clintware™ · GO FURTHEST.™</span><span class="footer-links"><a href="/work/">Professional</a><a href="/tools/">Products</a><a href="/startup/">Startup / YC</a><a href="/blog/">Build Notes</a><a href="/contact/">Contact</a></span></div></footer>
+  <script src="/assets/clintware.js" defer></script>
+</body>
+</html>
