@@ -385,5 +385,38 @@
         }
       ]
     }
-  ]
+  ],
+  "role_verification": {
+    "source_url": "https://jobs.lever.co/chownow/300dcd24-6795-456a-b4e9-7d6091285314",
+    "verified_at": "2026-10-02",
+    "source_status": "verified_current_public_posting"
+  },
+  "company_values": {
+    "framework_name": "Company values",
+    "source_url": "https://get.chownow.com/careers/",
+    "verified_at": "2026-10-02",
+    "values": [
+      {
+        "name": "Restaurants Come First",
+        "meaning": "Independent restaurants are central to ChowNow's decisions.",
+        "role_connection": "Keeps Sales and CS Operations focused on reducing administrative burden and improving lifecycle decisions that help restaurant partners thrive."
+      },
+      {
+        "name": "Celebrate Diversity",
+        "meaning": "Support progress by ensuring people receive the resources they need and voices are heard.",
+        "role_connection": "Reinforces inclusive cross-functional requirements gathering and process design across Sales, onboarding, and Restaurant Success."
+      },
+      {
+        "name": "Raise a Hand",
+        "meaning": "Present solutions, collaborate, lead by example, and take initiative.",
+        "role_connection": "Matches the role's expectation to spot workflow friction and turn it into a specific, buildable operational requirement."
+      },
+      {
+        "name": "Keep Reaching",
+        "meaning": "Set ambitious goals and keep seeking new opportunities to improve.",
+        "role_connection": "Fits continuous optimization of forecasting, onboarding SLAs, health logic, capacity, win-back, and CRM hygiene."
+      }
+    ],
+    "application_rule": "Use the official public framework as interview/application context. Connect it to documented candidate evidence and role outcomes without claiming insider culture knowledge or manufacturing personal fit."
+  }
 }
