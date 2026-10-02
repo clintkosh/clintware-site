@@ -1,15 +1,15 @@
 {
-  "request_id": "work-memoria-agents-restart-20261002-0800",
-  "job_id": "a69cb948-bf15-4c8a-8339-dc546aa4f064",
+  "request_id": "work-memoria-services-20261002-0804",
+  "job_id": "20285266-8465-48cb-8809-c07885a6c065",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "status": "passed",
   "exit_code": 0,
-  "duration_ms": 3541,
+  "duration_ms": 4755,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-02T07:59:27.3014363Z",
-  "recorded_at": 1790927955,
+  "confirmed_at": "2026-10-02T08:01:15.4566456Z",
+  "recorded_at": 1790928063,
   "recovery_history": [],
-  "output_tail": "[run] {\r\n[run]   \"ok\": true,\r\n[run]   \"results\": [\r\n[run]     {\r\n[run]       \"service\": \"Web Search Agent\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ Web Search Agent\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-web-search-agent.log\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"service\": \"Media Agent\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ Media Agent\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-media-agent.log\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"service\": \"ComfyUI\",\r\n[run]       \"healthy\": true,\r\n[run]       \"task\": \"MEMORIA QQ ComfyUI\",\r\n[run]       \"log\": \"F:\\\\AI-Data\\\\Logs\\\\LOCAL-CHATGPT\\\\qq-comfyui.log\"\r\n[run]     }\r\n[run]   ]\r\n[run] }"
+  "output_tail": "[run] {\r\n[run]   \"services\": [\r\n[run]     {\r\n[run]       \"name\": \"Open WebUI\",\r\n[run]       \"url\": \"http://127.0.0.1:3015\",\r\n[run]       \"ok\": false,\r\n[run]       \"error\": \"<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"Ollama\",\r\n[run]       \"url\": \"http://127.0.0.1:11434/api/tags\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"SearXNG\",\r\n[run]       \"url\": \"http://127.0.0.1:8088\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"n8n\",\r\n[run]       \"url\": \"http://127.0.0.1:5678\",\r\n[run]       \"ok\": false,\r\n[run]       \"error\": \"<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>\"\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"Pipelines\",\r\n[run]       \"url\": \"http://127.0.0.1:9099\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"Web Search Agent\",\r\n[run]       \"url\": \"http://127.0.0.1:8788/health\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"Media Agent\",\r\n[run]       \"url\": \"http://127.0.0.1:8799/health\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     },\r\n[run]     {\r\n[run]       \"name\": \"ComfyUI\",\r\n[run]       \"url\": \"http://127.0.0.1:8188/system_stats\",\r\n[run]       \"ok\": true,\r\n[run]       \"status\": 200\r\n[run]     }\r\n[run]   ]\r\n[run] }"
 }
