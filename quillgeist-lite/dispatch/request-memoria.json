@@ -1,12 +1,10 @@
 {
-  "request_id": "work-memoria-plan-20261002-0745",
-  "task_id": "big-prompt-plan",
+  "request_id": "work-memoria-diagnostics-20261002-0746",
+  "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Prompt": "Resume MEMORIA local AI recovery and desktop Codex handoffs. Diagnose and repair Open WebUI, n8n, ComfyUI and Immich; verify real inference and workflows. Preserve all models databases backups and excluded D drive. Use local reviewed tasks and report measured usage separately from estimates.",
-    "Project": "memoria-local-ai",
-    "StateScope": "memoria-local-ai-recovery",
-    "MaxDepth": 3
+    "Action": "diagnostics"
   },
+  "objective": "Read-only current local AI service and storage failure diagnosis. Preserve excluded D drive and all data.",
   "resume_after": false
 }
