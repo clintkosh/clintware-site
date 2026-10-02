@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-storage-detail-20261002-0749",
+  "request_id": "work-memoria-storage-repair-20261002-0756",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "diagnostics"
+    "Action": "repair-storage"
   },
-  "objective": "Read-only storage path metadata, backup candidates and ComfyUI filesystem failure. Preserve excluded drive and all files.",
+  "objective": "Restore preserved data into empty host bind directories and refresh only matching existing services. Preserve backups, nonempty data and excluded drive.",
   "resume_after": false
 }
