@@ -296,3 +296,19 @@ Before finalizing Why Company, cover letter, CRM copy, downloadable PDF, or foll
 The package should also carry an internal one-line ROLE PROBLEM HYPOTHESIS and an operational org map. These are used to shape the work even when they are not displayed as application marketing.
 
 When a CRM is public as proof-of-work, default to an operator-product presentation rather than an employer-targeting page. If requested, reflect the target company's public design relationships without explicitly naming the target company or role in the primary interface.
+
+## Multi-owner CRM+Cover proof pattern
+
+When the role's distinctive challenge is coordination across multiple ownership motions, the CRM+Cover package should prove that operating judgment directly.
+
+Prefer:
+- a Coverage / Assignment view;
+- a source-system projection map;
+- routing rules for ownership boundaries;
+- an operational org map;
+- synthetic examples across materially different stages;
+- evidence-backed technical refreshers for the most likely technical seams.
+
+The cover letter should explain the underlying operating problem, not describe every CRM feature.
+
+If the public proof-of-work is intentionally neutral (no target company or role name in the primary UI), keep the application mapping in the private/package layer and only add the public CRM URL to application copy after live browser verification confirms the neutral presentation and functional workflows.
