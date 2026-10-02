@@ -1,138 +1,109 @@
-const CONFIG_KEY="quillgeist-saas-config-v1";
-const DEFAULT_ROLES=[
-  {role:"Evidence",hint:"Find evidence, assumptions, unknowns, and facts that materially change the answer."},
-  {role:"Implementation",hint:"Develop a concrete implementation path, edge cases, dependencies, and verification."},
-  {role:"Critic",hint:"Challenge the plan, identify failure modes, contradictions, and simpler alternatives."}
-];
-let models=[];
-let lanes=[];
-let running=false;
-const $=s=>document.querySelector(s);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const now=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-const config=()=>{try{return JSON.parse(localStorage.getItem(CONFIG_KEY)||"{}")}catch{return{}}};
-function saveConfig(){
-  const value={gatewayUrl:$("#gatewayUrl").value.trim(),gatewayKey:$("#gatewayKey").value,policy:$("#policy").value,primaryModel:$("#primaryModel").value,lanes:lanes.map(x=>({enabled:x.enabled,role:x.role,hint:x.hint,model:x.model}))};
-  localStorage.setItem(CONFIG_KEY,JSON.stringify(value));
+const KEY="quillgeist-saas-v1";
+const LEDGER_KEY="quillgeist-saas-ledger-v1";
+const $=id=>document.getElementById(id);
+let discovered=null;
+let lastRoute=null;
+
+const defaults={policy:"balanced",taskType:"general",mainModel:"auto",subModel:"auto",subCount:2,subEnabled:true,gateway:"",task:"Research the latest relevant evidence, compare it, then produce a concise implementation recommendation."};
+
+function load(){
+  let s={...defaults};
+  try{s={...s,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{}
+  for(const k of ["policy","taskType","mainModel","subModel","gateway","task"]) if($(k)) $(k).value=s[k]??defaults[k];
+  $("subCount").value=Number(s.subCount??2);
+  $("subEnabled").checked=s.subEnabled!==false;
+  renderLedger();
+  updateMetrics();
 }
-function baseUrl(){return $("#gatewayUrl").value.trim().replace(/\/+$/,"")}
-function headers(){const h={accept:"application/json","content-type":"application/json"};const key=$("#gatewayKey").value.trim();if(key)h.authorization="Bearer "+key;return h}
-function setStatus(kind,text){$("#statusDot").className="dot"+(kind==="ok"?" ok":kind==="bad"?" bad":"");$("#statusText").textContent=text}
-function log(type,message){const root=$("#ledger");if(root.querySelector(".small"))root.innerHTML="";const row=document.createElement("div");row.className="event";row.innerHTML="<span>"+esc(now())+"</span><b>"+esc(type)+"</b><span>"+esc(message)+"</span>";root.prepend(row)}
-async function request(path,opt={}){
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),Number(opt.timeout||120000));
+function state(){
+  return {policy:$("policy").value,taskType:$("taskType").value,mainModel:$("mainModel").value,subModel:$("subModel").value,subCount:Math.max(0,Math.min(8,Number($("subCount").value)||0)),subEnabled:$("subEnabled").checked,gateway:$("gateway").value.trim().replace(/\/$/,""),task:$("task").value};
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(state()));setStatus($("routeStatus"),"Policy saved in this browser.","ok")}
+function setStatus(el,msg,type=""){el.className="status"+(type?" "+type:"");el.textContent=msg}
+function localCompile(x){
+  const primaryDefaults={image:"xai:auto-image",vision:"auto:vision",code:"local:auto-code",fresh:"auto:fresh",private:"local:auto",action:"clintware:action",general:"auto:reasoning"};
+  const subDefaults={fresh:"web:auto",image:"google:auto-vision",vision:"google:auto-vision",code:"local:auto-code",private:"local:auto",action:"web:auto",general:"web:auto"};
+  let primary=x.mainModel==="auto"?(primaryDefaults[x.taskType]||primaryDefaults.general):x.mainModel;
+  let sub=x.subModel==="auto"?(subDefaults[x.taskType]||subDefaults.general):x.subModel;
+  if(x.policy==="local_first"&&x.mainModel==="auto"&&!["fresh","action","image"].includes(x.taskType))primary="local:auto";
+  if(x.policy==="private"&&x.mainModel==="auto")primary="local:auto";
+  if(x.policy==="lowest_cost"&&x.mainModel==="auto"&&!["fresh","action"].includes(x.taskType))primary="local:auto";
+  if(x.policy==="fastest"&&x.mainModel==="auto")primary=x.taskType==="fresh"?"web:auto":"local:auto-fast";
+  const branches=x.subEnabled?Array.from({length:x.subCount},(_,i)=>({id:"subsearch-"+(i+1),model:sub,purpose:x.taskType==="fresh"?"fresh-source retrieval":"bounded supporting search/research"})):[];
+  return {version:"browser-local-v1",task:x.task,task_type:x.taskType,policy:x.policy,primary:{model:primary,role:"final synthesis"},subsearch:{enabled:branches.length>0,model:sub,branches},execution:{authority:x.taskType==="action"?"clintware-control-plane":"quillgeist",local_first:["local_first","private","lowest_cost"].includes(x.policy),requires_fresh_authority:x.taskType==="fresh",state_conflict_serialization:x.taskType==="action"},source:"browser-local"};
+}
+function capabilities(){
+  const eps=discovered?.endpoints||{};
+  return {route:eps.route?.path||null,compact:eps.compact?.path||null};
+}
+async function probe(){
+  const x=state();
+  if(!x.gateway){discovered=null;setStatus($("gatewayStatus"),"No gateway configured. Route compilation will run browser-local only.","warn");updateMetrics();return}
   try{
-    const r=await fetch(baseUrl()+path,{...opt,headers:{...headers(),...(opt.headers||{})},signal:controller.signal});
-    const body=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error((body.error&&body.error.message)||body.error||body.message||("HTTP "+r.status));
-    return body;
-  }finally{clearTimeout(timer)}
+    const r=await fetch(x.gateway+"/api/v1",{headers:{accept:"application/json"}});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    discovered=await r.json();
+    const c=capabilities();
+    setStatus($("gatewayStatus"),`Connected. API ${discovered.version||"unknown"} · route ${c.route?"available":"not advertised"} · compact ${c.compact?"available":"not advertised"}`,"ok");
+    localStorage.setItem(KEY,JSON.stringify(x));
+  }catch(e){discovered=null;setStatus($("gatewayStatus"),"Gateway discovery failed: "+e.message,"bad")}
+  updateMetrics();
 }
-async function connect(){
-  setStatus("","Checking gateway…");log("CONNECT",baseUrl());
+async function compile(){
+  const x=state();
+  let out=null,source="browser-local";
+  const c=capabilities();
+  if(x.gateway&&c.route){
+    try{
+      const r=await fetch(x.gateway+c.route,{method:"POST",headers:{"content-type":"application/json","accept":"application/json"},body:JSON.stringify({task:x.task,task_type:x.taskType,policy:x.policy,main_model:x.mainModel,subsearch_model:x.subModel,subsearch_enabled:x.subEnabled,subsearch_count:x.subCount})});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      out=await r.json();source="gateway";
+      setStatus($("routeStatus"),"Route compiled by discovered Quillgeist gateway.","ok");
+    }catch(e){setStatus($("routeStatus"),"Gateway route failed; browser-local compiler used: "+e.message,"warn")}
+  }
+  if(!out)out=localCompile(x);
+  out.source=source;
+  lastRoute=out;
+  $("route").textContent=JSON.stringify(out,null,2);
+  addLedger(out);
+  updateMetrics();
+  localStorage.setItem(KEY,JSON.stringify(x));
+}
+async function compact(){
+  const x=state(),c=capabilities();
+  if(!x.gateway||!c.compact){setStatus($("gatewayStatus"),"Configured gateway does not currently advertise context compaction.","warn");return}
   try{
-    const health=await request("/health",{method:"GET",timeout:12000});
-    const list=await request("/v1/models",{method:"GET",timeout:20000});
-    models=(list.data||[]).map(x=>String(x.id||"")).filter(Boolean);
-    if(!models.length)throw new Error("Gateway returned no models.");
-    setStatus("ok",(health.service||"Gateway")+" · "+models.length+" model"+(models.length===1?"":"s"));
-    renderModelOptions();renderModels();saveConfig();log("READY",models.join(", "));
-  }catch(e){setStatus("bad","Gateway unavailable");log("ERROR",e.message);throw e}
+    const r=await fetch(x.gateway+c.compact,{method:"POST",headers:{"content-type":"application/json","accept":"application/json"},body:JSON.stringify({text:x.task,record_aggregate_metrics:false})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    setStatus($("gatewayStatus"),`Compaction round trip passed · ${j.metrics?.raw_tokens_est||0} → ${j.metrics?.output_tokens_est||0} est. tokens`,"ok");
+  }catch(e){setStatus($("gatewayStatus"),"Compaction test failed: "+e.message,"bad")}
 }
-function modelOptions(selected){return models.map(m=>'<option value="'+esc(m)+'" '+(m===selected?"selected":"")+'>'+esc(m)+'</option>').join("")}
-function renderModelOptions(){
-  const cfg=config();const primary=$("#primaryModel");const desired=primary.value||cfg.primaryModel||models[0]||"local-auto";primary.innerHTML=modelOptions(desired);
-  if(models.includes(desired))primary.value=desired;
-  lanes.forEach((lane,i)=>{if(!models.includes(lane.model))lane.model=models[Math.min(i,models.length-1)]||models[0]||"local-auto"});
-  renderLanes();
+function ledger(){try{return JSON.parse(localStorage.getItem(LEDGER_KEY)||"[]")}catch{return[]}}
+function addLedger(route){
+  const rows=ledger();rows.unshift({ts:new Date().toISOString(),route});localStorage.setItem(LEDGER_KEY,JSON.stringify(rows.slice(0,50)));renderLedger()
 }
-function renderModels(){$("#models").innerHTML=models.map(m=>'<div class="model-row">'+esc(m)+'</div>').join("")}
-function addLane(seed={}){
-  if(lanes.length>=6)return;
-  const d=DEFAULT_ROLES[lanes.length%DEFAULT_ROLES.length];
-  lanes.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),enabled:seed.enabled!==false,role:seed.role||d.role,hint:seed.hint||d.hint,model:seed.model||models[Math.min(lanes.length,Math.max(0,models.length-1))]||models[0]||"local-auto",output:"",status:"idle"});
-  renderLanes();saveConfig();
+function renderLedger(){
+  const rows=ledger();$("ledger").innerHTML=rows.length?rows.map(x=>`<article class="entry"><div class="entryTop"><b>${escapeHtml(x.route?.primary?.model||"unknown")} + ${escapeHtml(x.route?.subsearch?.model||"none")}</b><small>${new Date(x.ts).toLocaleString()} · ${escapeHtml(x.route?.source||"local")}</small></div><pre>${escapeHtml(JSON.stringify({task_type:x.route?.task_type,policy:x.route?.policy,branches:x.route?.subsearch?.branches?.length||0,authority:x.route?.execution?.authority},null,2))}</pre></article>`).join(""):'<div class="note">No compiled routes yet.</div>'
 }
-function renderLanes(){
-  const root=$("#lanes");
-  root.innerHTML=lanes.map((x,i)=>'<div class="lane" data-id="'+esc(x.id)+'"><div class="lane-head"><input type="checkbox" data-action="enabled" '+(x.enabled?"checked":"")+' title="Enable branch"><input class="control" data-action="role" value="'+esc(x.role)+'" aria-label="Branch role"><select class="control" data-action="model">'+(models.length?modelOptions(x.model):'<option>'+esc(x.model)+'</option>')+'</select><button class="btn" data-action="remove">×</button></div><label class="label">Sub-search instruction</label><input class="control" data-action="hint" value="'+esc(x.hint)+'"><div class="lane-output"><span class="tag">'+esc(x.status)+'</span>'+(x.output?"\n"+esc(x.output):"")+'</div></div>').join("");
-  root.querySelectorAll(".lane").forEach(node=>{
-    const id=node.dataset.id;const lane=lanes.find(x=>x.id===id);
-    node.addEventListener("change",e=>{const a=e.target.dataset.action;if(!a||!lane)return;if(a==="enabled")lane.enabled=e.target.checked;else lane[a]=e.target.value;saveConfig()});
-    node.querySelectorAll("input[data-action=role],input[data-action=hint]").forEach(el=>el.addEventListener("input",e=>{lane[e.target.dataset.action]=e.target.value;saveConfig()}));
-    node.querySelector("[data-action=remove]").addEventListener("click",()=>{lanes=lanes.filter(x=>x.id!==id);renderLanes();saveConfig()});
-  });
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function updateMetrics(){
+  $("mRoute").textContent=capabilities().route?"GATEWAY":"LOCAL";
+  const x=lastRoute||localCompile(state());
+  $("mPrimary").textContent=(x.primary?.model||"auto").replace(":auto","");
+  $("mSub").textContent=(x.subsearch?.model||"auto").replace(":auto","");
 }
-function previewRoute(){
-  const enabled=lanes.filter(x=>x.enabled);const unique=[...new Set([$("#primaryModel").value,...enabled.map(x=>x.model)].filter(Boolean))];
-  log("ROUTE",$("#policy").value+" · "+enabled.length+" branches · "+unique.length+" models");
-  enabled.forEach(x=>{x.status="planned";x.output="Model: "+x.model+"\nInstruction: "+x.hint});
-  $("#finalResult").textContent="Route preview\n\nPrimary: "+($("#primaryModel").value||"not selected")+"\nPolicy: "+$("#policy").value+"\nParallel branches:\n"+enabled.map((x,i)=>"  "+(i+1)+". "+x.role+" -> "+x.model).join("\n")+"\n\nThe branches are dependency-free and will fan out concurrently; their bounded outputs will rejoin at the primary synthesis model.";
-  renderLanes();updateMetrics(enabled,unique,0);
+async function copyRoute(){
+  if(!lastRoute)await compile();
+  try{await navigator.clipboard.writeText(JSON.stringify(lastRoute,null,2));setStatus($("routeStatus"),"Route JSON copied.","ok")}catch{setStatus($("routeStatus"),"Clipboard unavailable. Select the route JSON manually.","warn")}
 }
-async function chat(model,messages,maxTokens=700){
-  const body={model,messages,temperature:.25,max_tokens:maxTokens,stream:false};
-  const data=await request("/v1/chat/completions",{method:"POST",body:JSON.stringify(body),timeout:180000});
-  return {text:String((((data.choices||[])[0]||{}).message||{}).content||""),model:String(data.model||model),usage:data.usage||{},meta:data.quillgeist||{}};
-}
-function branchMessages(prompt,lane){
-  return [
-    {role:"system",content:"You are a bounded Quillgeist sub-search branch. Work independently. Return dense evidence and actionable findings only. Do not synthesize the other branches."},
-    {role:"user",content:"ROLE: "+lane.role+"\nSUB-SEARCH: "+lane.hint+"\n\nPARENT OBJECTIVE:\n"+prompt}
-  ];
-}
-function synthesisMessages(prompt,results){
-  const evidence=results.map((r,i)=>"BRANCH "+(i+1)+" ["+r.role+" | "+r.model+"]\n"+r.text).join("\n\n---\n\n");
-  return [
-    {role:"system",content:"You are Quillgeist synthesis. Preserve the user's objective, reconcile branch evidence, call out conflicts, and produce the strongest final answer with concrete next actions and verification. Do not mention hidden chain-of-thought."},
-    {role:"user",content:"PARENT OBJECTIVE:\n"+prompt+"\n\nPARALLEL SUB-SEARCH RESULTS:\n"+evidence}
-  ];
-}
-function updateMetrics(enabled,unique,elapsed){$("#mBranches").textContent=enabled.length;$("#mModels").textContent=unique.length;$("#mElapsed").textContent=elapsed?elapsed.toFixed(1)+"s":"—"}
-async function runGraph(){
-  if(running)return;const prompt=$("#prompt").value.trim();if(!prompt)return;
-  if(!models.length){try{await connect()}catch{return}}
-  const primary=$("#primaryModel").value||models[0];const enabled=lanes.filter(x=>x.enabled);
-  running=true;$("#runBtn").disabled=true;$("#finalResult").textContent="Executing "+enabled.length+" parallel branch"+(enabled.length===1?"":"es")+"…";const started=performance.now();
-  log("START","Primary "+primary+" · "+enabled.length+" branches");
-  try{
-    enabled.forEach(x=>{x.status="running";x.output="";});renderLanes();
-    const settled=await Promise.all(enabled.map(async lane=>{
-      const t=performance.now();
-      try{
-        const r=await chat(lane.model,branchMessages(prompt,lane),650);
-        lane.status="passed";lane.output=r.text;log("BRANCH",lane.role+" · "+r.model+" · "+((performance.now()-t)/1000).toFixed(1)+"s");
-        return {ok:true,role:lane.role,model:r.model,text:r.text,usage:r.usage};
-      }catch(e){
-        lane.status="failed";lane.output=e.message;log("FAIL",lane.role+" · "+e.message);
-        return {ok:false,role:lane.role,model:lane.model,text:"Branch failed: "+e.message,usage:{}};
-      }finally{renderLanes()}
-    }));
-    const usable=settled.filter(x=>x.ok);
-    let final;
-    if(usable.length){
-      log("JOIN",usable.length+" branch results -> "+primary);
-      final=await chat(primary,synthesisMessages(prompt,usable),1100);
-    }else{
-      log("FALLBACK","No branch passed; running primary directly");
-      final=await chat(primary,[{role:"system",content:"Answer the objective directly with concrete actions and verification."},{role:"user",content:prompt}],1100);
-    }
-    $("#finalResult").textContent=final.text||"(empty response)";
-    const elapsed=(performance.now()-started)/1000;const unique=[...new Set([final.model,...settled.map(x=>x.model)])];
-    updateMetrics(enabled,unique,elapsed);log("VERIFIED","Synthesis returned from "+final.model+" in "+elapsed.toFixed(1)+"s");
-    saveConfig();
-  }catch(e){$("#finalResult").textContent="Run failed: "+e.message;log("ERROR",e.message)}
-  finally{running=false;$("#runBtn").disabled=false}
-}
-function restore(){
-  const cfg=config();if(cfg.gatewayUrl)$("#gatewayUrl").value=cfg.gatewayUrl;if(cfg.gatewayKey)$("#gatewayKey").value=cfg.gatewayKey;if(cfg.policy)$("#policy").value=cfg.policy;
-  lanes=[];(cfg.lanes&&cfg.lanes.length?cfg.lanes:DEFAULT_ROLES).forEach(x=>addLane(x));renderLanes();
-}
-$("#connectBtn").addEventListener("click",()=>connect().catch(()=>{}));
-$("#forgetBtn").addEventListener("click",()=>{localStorage.removeItem(CONFIG_KEY);$("#gatewayKey").value="";$("#gatewayUrl").value="http://127.0.0.1:11435";models=[];setStatus("","Config forgotten");renderModels();renderModelOptions()});
-$("#addLaneBtn").addEventListener("click",()=>addLane());
-$("#previewBtn").addEventListener("click",previewRoute);
-$("#runBtn").addEventListener("click",runGraph);
-$("#clearBtn").addEventListener("click",()=>{lanes.forEach(x=>{x.output="";x.status="idle"});renderLanes();$("#finalResult").textContent="No run yet.";$("#ledger").innerHTML='<div class="small">No events yet.</div>';updateMetrics([],[],0)});
-$("#primaryModel").addEventListener("change",saveConfig);$("#policy").addEventListener("change",saveConfig);$("#gatewayUrl").addEventListener("change",saveConfig);$("#gatewayKey").addEventListener("change",saveConfig);
-restore();
+$("compile").addEventListener("click",compile);
+$("save").addEventListener("click",save);
+$("copy").addEventListener("click",copyRoute);
+$("probe").addEventListener("click",probe);
+$("compact").addEventListener("click",compact);
+$("clearGateway").addEventListener("click",()=>{$("gateway").value="";discovered=null;save();setStatus($("gatewayStatus"),"Gateway cleared. Browser-local mode active.","warn");updateMetrics()});
+$("clearLedger").addEventListener("click",()=>{localStorage.removeItem(LEDGER_KEY);renderLedger()});
+for(const id of ["policy","taskType","mainModel","subModel","subCount","subEnabled"])$(id).addEventListener("change",()=>{save();updateMetrics()});
+load();
+if(state().gateway)probe();
+compile();
