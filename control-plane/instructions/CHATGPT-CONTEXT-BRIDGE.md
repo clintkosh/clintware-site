@@ -34,3 +34,12 @@ For eligible local execution:
 `ChatGPT -> direct Clintware MCP when exposed -> reviewed GitHub relay fallback when necessary -> mcp.clintware.com -> QQ health/runner -> MEMORIA/DRIZNET -> local evidence`.
 
 Do not invent a local `qq` shell command when the actual reviewed transport is MCP/relay based.
+
+
+## Recent-history and account-context recovery
+
+When the owner asks to continue, reconcile, scan recent chats, or reuse prior architecture, use the account-level recent/personal context capability available to ChatGPT before asking for repetition.
+
+Do not claim visibility into a different ChatGPT account unless that account is explicitly connected to the current session. Distinguish current-account history, Project files, connected sources, and other-account data.
+
+When recent history conflicts with stale repository assumptions, verify live Clintware state and preserve the latest explicitly confirmed architectural decision.
