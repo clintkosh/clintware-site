@@ -1,10 +1,14 @@
 {
-  "request_id": "chatgpt-driznet-state-20261002-1637",
+  "request_id": "chatgpt-driznet-inference-20261002-1644",
   "task_id": "local-ai",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "status"
+    "Action": "benchmark",
+    "Model": "qwen3.5:9b",
+    "Prompt": "Reply exactly DRIZNET_AI_READY.",
+    "MaxTokens": "32",
+    "ContextTokens": "4096"
   },
-  "objective": "Return current DRIZNET local AI runtime, installed model, memory, and readiness evidence so the remaining server work can be completed without conflating DRIZNET with MEMORIA.",
+  "objective": "Prove DRIZNET can execute a local Ollama inference end to end and return bounded execution evidence.",
   "resume_after": true
 }
