@@ -16,6 +16,14 @@ from . import local_inference
 _MAX_BODY = 1024 * 1024
 _LOOPBACK = {"127.0.0.1", "localhost", "::1"}
 
+_DEFAULT_BROWSER_ORIGINS = {
+    "https://quillgeist.clintware.com",
+    "https://qg.clintware.com",
+    "http://localhost",
+    "http://127.0.0.1",
+    "null",
+}
+
 
 def _public_model_id(model: dict) -> str:
     runtime = str(model.get("runtime") or "local")
@@ -232,11 +240,39 @@ def complete(payload: dict, config: dict | None = None) -> tuple[int, dict]:
 class GatewayHandler(BaseHTTPRequestHandler):
     server_version = "QuillgeistLocalGateway/1"
 
+    def _cors_origin(self) -> str:
+        origin = str(self.headers.get("origin") or "").strip()
+        if not origin:
+            return ""
+        allowed = set(getattr(self.server, "quillgeist_cors_origins", set()) or set())
+        if origin in allowed:
+            return origin
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            return origin
+        return ""
+
+    def _cors_headers(self) -> dict:
+        origin = self._cors_origin()
+        if not origin:
+            return {}
+        headers = {
+            "access-control-allow-origin": origin,
+            "vary": "Origin",
+            "access-control-allow-methods": "GET,POST,OPTIONS",
+            "access-control-allow-headers": "authorization,content-type",
+            "access-control-max-age": "600",
+        }
+        if str(self.headers.get("access-control-request-private-network") or "").lower() == "true":
+            headers["access-control-allow-private-network"] = "true"
+        return headers
+
     def _json(self, status: int, value: dict) -> None:
         body = json.dumps(value).encode("utf-8")
         self.send_response(status)
         self.send_header("content-type", "application/json; charset=utf-8")
         self.send_header("cache-control", "no-store")
+        for key, value in self._cors_headers().items():
+            self.send_header(key, value)
         self.send_header("content-length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -268,10 +304,25 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("content-type", "text/event-stream; charset=utf-8")
         self.send_header("cache-control", "no-store")
+        for key, value in self._cors_headers().items():
+            self.send_header(key, value)
         self.send_header("connection", "close")
         self.send_header("content-length", str(len(raw)))
         self.end_headers()
         self.wfile.write(raw)
+
+    def do_OPTIONS(self) -> None:
+        headers = self._cors_headers()
+        if str(self.headers.get("origin") or "").strip() and not headers:
+            self.send_response(403)
+            self.send_header("content-length", "0")
+            self.end_headers()
+            return
+        self.send_response(204)
+        for key, value in headers.items():
+            self.send_header(key, value)
+        self.send_header("content-length", "0")
+        self.end_headers()
 
     def do_GET(self) -> None:
         if self.path == "/health":
@@ -338,6 +389,16 @@ def serve(config: dict | None = None, *, host: str = "127.0.0.1", port: int = 11
     server = ThreadingHTTPServer((host, port), GatewayHandler)
     server.quillgeist_config = settings
     server.quillgeist_api_key = key
+    configured_origins = {
+        item.strip()
+        for item in str(
+            settings.get("gateway_cors_origins")
+            or os.environ.get("QUILLGEIST_GATEWAY_CORS_ORIGINS")
+            or ""
+        ).split(",")
+        if item.strip()
+    }
+    server.quillgeist_cors_origins = _DEFAULT_BROWSER_ORIGINS | configured_origins
     server.quillgeist_listen = f"http://{host}:{port}"
     print(json.dumps({
         "ok": True,
@@ -345,6 +406,7 @@ def serve(config: dict | None = None, *, host: str = "127.0.0.1", port: int = 11
         "listen": server.quillgeist_listen,
         "loopback_only": loopback_only,
         "auth_required": bool(key),
+        "browser_origins": sorted(server.quillgeist_cors_origins),
     }))
     server.serve_forever()
 
