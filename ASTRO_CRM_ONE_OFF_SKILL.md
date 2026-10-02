@@ -647,3 +647,33 @@ Do not expand the app merely because the reusable CRM foundation contains more f
 A large CRM is appropriate when its breadth reflects verified responsibilities such as multi-account ownership, implementation, support, CS Operations, analytics, renewals, executive reporting, delivery coordination, Jira / Confluence workflows, AI-assisted operations, or other role-relevant functions.
 
 Every added surface must be justified by a role requirement, user instruction, observed usability gap, or failed verification.
+
+## Evidence-provenance and metric-integrity gate
+
+Apply `docs/EVIDENCE_PROVENANCE_STANDARD.md` to every one-off CRM.
+
+This is part of the functional definition of done, not optional documentation.
+
+Required defaults:
+
+1. Every KPI record carries `source_id`, `claim_class`, `definition`, `source`, `last_updated`, and `synthetic` when applicable.
+2. Synthetic seed values default to `claim_class: SYNTHETIC` and must include a scenario-purpose / logic source. Never imply they are target-company results.
+3. Public company/product numbers used in the UI must map to a current public source.
+4. Candidate metrics used in application/Why-this-build surfaces must map to candidate evidence.
+5. Derived values must preserve formula and source inputs.
+6. Generated CRM PDFs and exports must pass final-artifact metric reconciliation, not only source-code review.
+7. A KPI or chart with no resolvable provenance is a failed build.
+8. The role/problem hypothesis used to shape the CRM must be explicit in the internal manifest/evidence layer even when it is not rendered as marketing copy.
+9. Capture an operational org map that explains how the role receives work, hands off work, escalates, collaborates, and delivers outcomes.
+10. When the role is technical, include a source-backed technical refresher / operating knowledge surface only when it helps the actual workflow. Keep that knowledge separate from candidate experience claims.
+
+### Operator-workspace presentation rule
+
+A candidate CRM should look like a real operator workspace, not a job advertisement.
+
+When the user asks for company-reflective presentation without explicit target branding:
+- mirror only public visual relationships such as density, contrast, accent behavior, spacing, and interaction patterns;
+- do not copy logos or proprietary assets;
+- allow a neutral product/workspace name instead of the target company or role title;
+- avoid job-description prose in the primary UI;
+- put role mapping, disclosure, and application rationale behind an unobtrusive "About / Why this system" surface rather than making them the dashboard hero.
