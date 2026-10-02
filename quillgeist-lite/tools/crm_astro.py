@@ -110,6 +110,20 @@ def validate(data):
                     evidence=data.get("candidate_evidence")
                     if not isinstance(evidence,list) or len([x for x in evidence if str(x).strip()])<3:
                         errors.append("local_factory_requires_candidate_evidence")
+                    role_verification=data.get("role_verification")
+                    if not isinstance(role_verification,dict) or not str(role_verification.get("source_url") or "").startswith("http") or not str(role_verification.get("verified_at") or "").strip():
+                        errors.append("local_factory_requires_verified_role_source")
+                    company_values=data.get("company_values")
+                    if not isinstance(company_values,dict) or not str(company_values.get("source_url") or "").startswith("http"):
+                        errors.append("local_factory_requires_official_company_values_source")
+                    else:
+                        value_rows=company_values.get("values")
+                        if not isinstance(value_rows,list) or len(value_rows)<3:
+                            errors.append("local_factory_requires_three_company_value_or_culture_rows")
+                        else:
+                            for vidx,v in enumerate(value_rows):
+                                if not isinstance(v,dict) or not str(v.get("name") or "").strip() or not str(v.get("meaning") or "").strip() or not str(v.get("role_connection") or "").strip():
+                                    errors.append(f"company_value_{vidx+1}_missing_name_meaning_or_role_connection")
                     scenarios=data.get("seed_scenarios")
                     if not isinstance(scenarios,list) or len(scenarios)<5:
                         errors.append("local_factory_requires_five_seed_scenarios")
@@ -206,7 +220,9 @@ def result(action,path,data):
             "three-letter Clintware domain validation for local application factory builds",
             "parallel local CRM+Cover build compatibility independent of QQ",
             "explicit user-authorized compact-domain override beyond the three-letter default",
-            "synthetic KPI provenance fields and generated evidence-provenance ledger"
+            "synthetic KPI provenance fields and generated evidence-provenance ledger",
+            "stable per-account synthetic lifecycle variation without cloned 33-percent progress fingerprints",
+            "verified role source plus official company values/culture alignment"
         ]
     elif action=="plan":
         pid=data.get("project_id","PROJECT")
@@ -228,7 +244,10 @@ def result(action,path,data):
                 "insert the CRM URL only after live + interactive browser verification",
                 "run redundancy, claim, and synthetic-data disclosure checks",
                 "apply source, answer-compression, core-before-extras, follow-up-restraint, and human-validation gates",
-                "when local_factory is enabled, materialize from the shared DPLR reference and preserve three-letter domain identity"
+                "when local_factory is enabled, materialize from the shared DPLR reference and preserve three-letter domain identity",
+                "verify generated accounts span distinct stable progress states rather than cloned percentages",
+                "verify global customer selection navigates into the selected account Command Center",
+                "verify role alignment uses the current public posting and company-value/culture source"
             ]
     return base
 
