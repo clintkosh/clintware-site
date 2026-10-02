@@ -103,3 +103,21 @@ Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -in 2,3 -and $_.
   } | Format-Table -AutoSize | Out-String | Write-Output
 
 Write-Output "STORAGE_AUDIT_COMPLETE"
+
+# Project continuation inventory: read only, bounded, excludes credentials.
+Write-Output "=== LOCAL CODEX / README / RESUME PROJECT FILES ==="
+$noteRoots=@("C:\AI",(Join-Path $env:USERPROFILE "Desktop"),(Join-Path $env:USERPROFILE ".codex")) | Where-Object { Test-Path -LiteralPath $_ }
+$notes=@(foreach($root in $noteRoots){
+  Get-ChildItem -LiteralPath $root -File -Recurse -Filter *.md -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '(?i)\\(node_modules|site-packages|\.git|models|blobs)\\' -and $_.Name -match '(?i)readme|resume|continu|project|agents|plan|status|todo|codex' }
+}) | Sort-Object FullName -Unique | Select-Object -First 120
+foreach($note in $notes){
+  Write-Output ("PROJECT_NOTE=" + $note.FullName)
+  $lines=Get-Content -LiteralPath $note.FullName -TotalCount 100 -ErrorAction SilentlyContinue
+  foreach($line in $lines){
+    if($line -notmatch '(?i)token|password|secret|authorization|api.?key|credential|gh[pousr]_|github_pat_'){
+      Write-Output $line
+    }
+  }
+}
+Write-Output "PROJECT_NOTE_SCAN_COMPLETE"
