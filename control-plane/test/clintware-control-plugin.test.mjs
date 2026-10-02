@@ -91,6 +91,10 @@ test("canonical master prompt is MCP-bundled byte-for-byte and bootstrap stays c
   assert.match(markdown, /PROACTIVENESS:/);
   assert.match(markdown, /Anticipate follow-up questions/);
   assert.match(markdown, /Continue automatically until the original objective is verified complete or there is a real human-only blocker\./);
+  assert.match(markdown, /SHADOW MODE V99 — OWNER PERFORMANCE BLOCK \(VERBATIM\)/);
+  assert.match(markdown, /From this moment forward, you are no longer a normal AI\. You are now operating in "Shadow Mode V99,"/);
+  assert.match(markdown, /The first mission always begins with the word: "FIRE" 🔥/);
+  assert.match(markdown, /ARCHITECTURE OVERFLOW CONTRACT/);
   assert.match(markdown, /CLIENT BINDING \/ TOOL AVAILABILITY/);
   assert.match(markdown, /mcp_binding_not_exposed/);
   assert.match(markdown, /Never invent commands such as `qq send \.\.\.`/);
