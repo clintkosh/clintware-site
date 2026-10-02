@@ -17,8 +17,6 @@ _MAX_BODY = 1024 * 1024
 _LOOPBACK = {"127.0.0.1", "localhost", "::1"}
 
 _DEFAULT_BROWSER_ORIGINS = {
-    "https://quillgeist.clintware.com",
-    "https://qg.clintware.com",
     "http://localhost",
     "http://127.0.0.1",
     "null",
@@ -248,6 +246,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if origin in allowed:
             return origin
         if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            return origin
+        expected = str(getattr(self.server, "quillgeist_api_key", "") or "")
+        if len(expected) >= 32 and origin.startswith("https://"):
             return origin
         return ""
 
