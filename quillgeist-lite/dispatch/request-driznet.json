@@ -1,10 +1,11 @@
 {
-  "request_id": "chatgpt-driznet-reconcile-20261002-1649",
-  "task_id": "local-ai",
+  "request_id": "chatgpt-driznet-storage-20261002-1650",
+  "task_id": "storage-audit",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "reconcile"
+    "ExpectedComputer": "DRIZNET",
+    "LargestFiles": "30"
   },
-  "objective": "Start and reconcile any existing DRIZNET C:\\AI\\LOCAL-CHATGPT services without installing MEMORIA-specific components; return before/after service health and the launcher used.",
+  "objective": "Audit DRIZNET fixed storage, C:\\AI/project footprint, installed model/Docker usage, and safe persistent capacity for the right-sized local AI server. Do not plan around removable Toshiba storage.",
   "resume_after": true
 }
