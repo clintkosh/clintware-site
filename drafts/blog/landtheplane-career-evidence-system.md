@@ -1,4 +1,6 @@
-# LandThePlane: Turning a Job Search Into a Career Evidence System
+# LandThePlane: From Interview Prep to a Career Evidence System
+
+*How a job-search tool became a record of what you can prove, what you are learning, and what changes over time.*
 
 **Draft · October 2, 2026**
 
@@ -10,7 +12,7 @@ Most job-search software treats each application as a new transaction.  I wanted
 
 That became LandThePlane.
 
-## The First Wedge: Retrieve Better Under Pressure
+## 01 / The First Wedge: Retrieve Better Under Pressure
 
 The earliest version was interview preparation.
 
@@ -24,7 +26,7 @@ The point is not to memorize a polished monologue.  The point is to know the evi
 
 That idea changed the product.  The core problem was no longer “generate better interview answers.”  It became “build a better evidence retrieval system.”
 
-## September 3: The Evidence Loop Became the Product
+## 02 / September 3: The Evidence Loop Became the Product
 
 By early September, the model was becoming clearer:
 
@@ -36,7 +38,7 @@ The durable asset is not a generated answer.  It is the candidate-owned evidence
 
 The interview is the first place that evidence gets pressure-tested.  It is not the final destination.
 
-## September 11–12: From Prep Tool to Search Operating System
+## 03 / September 11–12: From Prep Tool to Search Operating System
 
 The next step was connecting preparation to the actual search.
 
@@ -46,7 +48,7 @@ Turbo Sprint extended the same idea to high-fit applications.  Instead of produc
 
 The common thread was becoming obvious.  LandThePlane was not supposed to invent a better version of the candidate.  It was supposed to make the real version easier to understand and easier to prove.
 
-## September 16–18: Interview Feedback Became Structured Learning
+## 04 / September 16–18: Interview Feedback Became Structured Learning
 
 A major shift came when interview review stopped being just “what went wrong?”
 
@@ -64,7 +66,7 @@ That became the Interpretation Gap layer and the deeper Crucible preparation sta
 
 The goal is learning, not overfitting.
 
-## September 25–30: The System Expanded Around the Search
+## 05 / September 25–30: The System Expanded Around the Search
 
 As the search continued, more surrounding workflows proved useful.
 
@@ -74,7 +76,7 @@ At the same time, Quillgeist became the local execution layer behind more of the
 
 The architecture started matching the product philosophy: keep durable evidence and decisions independent from whichever model happens to be helping today.
 
-## October 2: Current Context Without Polluting Candidate Evidence
+## 06 / October 2: Current Context Without Polluting Candidate Evidence
 
 The current alpha adds another piece: live public role and company context through Exa.
 
@@ -86,7 +88,7 @@ LandThePlane now keeps the resume-side evidence map local while sending only a c
 
 That distinction sounds small.  It is one of the product’s most important rules.
 
-## Resume Delta: Tailor Without Inventing
+## 07 / Resume Delta: Tailor Without Inventing
 
 I also wanted the useful part of role-specific resume tooling without building another keyword-stuffing machine.
 
@@ -104,7 +106,7 @@ The current founder dogfood record includes **five source-controlled public resu
 
 The important unit is not “number of resumes generated.”  It is “number of evidence-backed decisions that survive into the next version.”
 
-## Why the Product Does Not End When You Get the Job
+## 08 / Why the Product Does Not End When You Get the Job
 
 The name LandThePlane originally points at the obvious finish line: get the job.
 
@@ -118,7 +120,7 @@ So the loop becomes:
 
 That is the larger bet.
 
-## The Unexpected Part: The System Teaches You About Yourself
+## 09 / The Part I Did Not Expect: The System Teaches You About Yourself
 
 The most valuable output of a long search is not only a job offer.
 
@@ -128,17 +130,27 @@ Over time, the evidence graph becomes a mirror.
 
 That is why I think LandThePlane can become more useful the longer someone uses it.  The system should not only help a person present themselves better.  It should help them understand what they actually do well, where the proof is thin, what they want to build next, and how that changes over time.
 
-## What Is Working Now
+## 10 / What Is Working Now
 
 The current alpha includes a browser-local evidence mapper, live Exa-backed role context, Crucible preparation, interview review, a prep provenance journal, an evidence-backed Resume Delta ledger, ASTRO-style briefs, Gmail evidence reconciliation and verified drafts, Turbo Sprint application microsites, Communication Guard, Signal Engine, and Offer Gate/Career Shield.
 
 Those are working product surfaces.  They are not the same thing as product-market fit.
+
+## 11 / What I Am Not Building
+
+I am not trying to build a system that makes a candidate sound more impressive than the evidence supports.  I am not interested in a keyword-stuffing resume generator, a memorized-answer machine, or a tool that treats every interviewer preference as a new universal rule.
+
+The operating rule is simpler: **preserve the evidence, expose the gap, learn from the outcome, and make the smallest useful change.**
 
 The next questions are much more important than another feature list:
 
 Will people reuse the same evidence across multiple rounds?  Will accepted resume deltas survive into later applications?  Will interview learning improve retrieval without making answers robotic?  Will the system still be useful after someone is hired?  Will people keep using it long enough for the evidence graph to become meaningfully better than a folder full of documents?
 
 Those are the tests that matter now.
+
+## 12 / Bottom Line
+
+The job search was the pressure test.  The durable product is the evidence that survives it.
 
 LandThePlane started as a way to land the plane.
 
