@@ -42,17 +42,17 @@ Get-CimInstance Win32_LogicalDisk | Sort-Object DeviceID | ForEach-Object {
 } | Format-Table -AutoSize | Out-String | Write-Output
 
 $rows=New-Object System.Collections.ArrayList
-$home=$env:USERPROFILE
+$AuditUserRoot=$env:USERPROFILE
 $local=$env:LOCALAPPDATA
 $roam=$env:APPDATA
 
 $candidates=@(
-  @("Ollama model store",(Join-Path $home ".ollama\models"),"MOVE_CANDIDATE"),
+  @("Ollama model store",(Join-Path $AuditUserRoot ".ollama\models"),"MOVE_CANDIDATE"),
   @("Ollama local data",(Join-Path $local "Ollama"),"KEEP_OR_MOVE"),
-  @("Hugging Face cache",(Join-Path $home ".cache\huggingface"),"CACHE_OR_MOVE"),
-  @("Torch cache",(Join-Path $home ".cache\torch"),"CACHE_OR_MOVE"),
-  @("User cache",(Join-Path $home ".cache"),"CACHE_REVIEW"),
-  @("Downloads",(Join-Path $home "Downloads"),"REVIEW"),
+  @("Hugging Face cache",(Join-Path $AuditUserRoot ".cache\huggingface"),"CACHE_OR_MOVE"),
+  @("Torch cache",(Join-Path $AuditUserRoot ".cache\torch"),"CACHE_OR_MOVE"),
+  @("User cache",(Join-Path $AuditUserRoot ".cache"),"CACHE_REVIEW"),
+  @("Downloads",(Join-Path $AuditUserRoot "Downloads"),"REVIEW"),
   @("User temp",(Join-Path $local "Temp"),"SAFE_CACHE_REVIEW"),
   @("pip cache",(Join-Path $local "pip\Cache"),"SAFE_CACHE_REVIEW"),
   @("npm cache",(Join-Path $local "npm-cache"),"SAFE_CACHE_REVIEW"),
@@ -70,7 +70,7 @@ Write-Output "=== SELECTED DIRECTORY SIZES ==="
 $rows | Sort-Object GiB -Descending | Format-Table -AutoSize | Out-String | Write-Output
 
 Write-Output "=== LARGE FILES IN USER / AI AREAS ==="
-$scanRoots=@($home,"C:\AI","C:\models","C:\ProgramData\DockerDesktop","C:\ProgramData\Docker") | Where-Object { Test-Path -LiteralPath $_ }
+$scanRoots=@($AuditUserRoot,"C:\AI","C:\models","C:\ProgramData\DockerDesktop","C:\ProgramData\Docker") | Where-Object { Test-Path -LiteralPath $_ }
 $files=@()
 foreach($root in $scanRoots | Select-Object -Unique){
   try {
