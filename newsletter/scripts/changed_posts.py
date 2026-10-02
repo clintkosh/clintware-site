@@ -19,6 +19,7 @@ class MetadataParser(HTMLParser):
         self.in_title = False
         self.description = ""
         self.canonical = ""
+        self.newsletter_notify = True
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {name.lower(): value or "" for name, value in attrs}
@@ -28,6 +29,8 @@ class MetadataParser(HTMLParser):
             self.description = values.get("content", "")
         if tag.lower() == "link" and values.get("rel", "").lower() == "canonical":
             self.canonical = values.get("href", "")
+        if tag.lower() == "meta" and values.get("name", "").lower() == "newsletter-notify":
+            self.newsletter_notify = values.get("content", "").strip().lower() not in {"false", "0", "no", "off"}
 
     def handle_endtag(self, tag: str) -> None:
         if tag.lower() == "title":
@@ -56,6 +59,8 @@ def post_payload(path: Path) -> dict[str, str] | None:
         return None
     parser = MetadataParser()
     parser.feed(path.read_text(encoding="utf-8"))
+    if not parser.newsletter_notify:
+        return None
     title = clean("".join(parser.title_parts).replace("| Clintware", ""), 160)
     excerpt = clean(parser.description, 500)
     canonical = clean(parser.canonical, 500)
