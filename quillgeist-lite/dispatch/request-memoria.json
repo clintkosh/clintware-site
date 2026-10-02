@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-bind-probe-20261002-0814",
+  "request_id": "work-memoria-owner-plan-20261002-0817",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "storage-probe"
+    "Action": "recovery-plan"
   },
-  "objective": "Compare a disposable host marker against Docker F bind and probe writes; no network or data changes beyond isolated removable test files.",
+  "objective": "Recover owner handoff plans from Desktop C AI and local Codex, excluding third-party dependency READMEs and preserving private contents locally.",
   "resume_after": false
 }
