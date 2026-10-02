@@ -994,14 +994,66 @@ def provider_test(prompt: str):
             pass
 
 
+def recovery_plan():
+    """Read owner-requested handoffs locally; export only fixed feature categories."""
+    import hashlib
+    home = Path(os.environ.get("USERPROFILE", ""))
+    roots = [home / "Desktop", home / "OneDrive" / "Desktop", Path(r"C:\AI"), home / ".codex"]
+    skip = {".git", "node_modules", "venv", ".venv", "site-packages", "models", "secrets", "auth", "sessions", "archived_sessions", "logs", "cache", "__pycache__", "3rdparty"}
+    features = {"chat": r"open.?webui|chatbot|chat server", "local_inference": r"bitnet|ollama|llama", "automation": r"n8n|workflow", "photo_library": r"immich", "image_generation": r"comfyui|stable.diffusion", "coding": r"codex|aider|interpreter", "speech": r"whisper|text.to.speech|speech.to.text|\btts\b|\bstt\b", "music": r"musicgen|audiocraft", "discord": r"discord", "faceswap": r"faceswap|deepfacelive", "web_search": r"searx|web.search"}
+    documents = []
+    deadline = time.monotonic() + 20
+    scanned = 0
+    for root in roots:
+        try:
+            if getattr(root.lstat(), "st_file_attributes", 0) & 1024:
+                continue
+        except OSError:
+            continue
+        stack = [(root, 0)]
+        while stack and time.monotonic() < deadline and scanned < 25000 and len(documents) < 50:
+            folder, depth = stack.pop()
+            try:
+                for entry in os.scandir(folder):
+                    scanned += 1
+                    info = entry.stat(follow_symlinks=False)
+                    if entry.is_symlink() or getattr(info, "st_file_attributes", 0) & 1024:
+                        continue
+                    if entry.is_dir(follow_symlinks=False):
+                        if depth < 5 and entry.name.lower() not in skip:
+                            stack.append((Path(entry.path), depth + 1))
+                        continue
+                    if not entry.name.lower().endswith(".md") or info.st_size > 200000:
+                        continue
+                    body = Path(entry.path).read_text(encoding="utf-8-sig", errors="replace")
+                    if not re.search(r"memoria|local.chatgpt|immich|bitnet|comfyui|n8n", body, re.I):
+                        continue
+                    categories = [name for name, pattern in features.items() if re.search(pattern, body, re.I)]
+                    documents.append({"path": entry.path, "sha256": hashlib.sha256(body.encode()).hexdigest(), "features": categories,
+                                      "pending_markers": len(re.findall(r"(?im)^\s*(?:[-*]\s*)?(?:\[\s\]|TODO\b|FIXME\b|PENDING\b|BLOCKED\b)", body)),
+                                      "excluded_drive_reference": bool(re.search(r"(?i)(?:\bD:|/mnt/d/)", body)), "content": body})
+            except OSError:
+                continue
+    folder = Path(os.environ.get("LOCALAPPDATA", "")) / "Clintware" / "QuillgeistLite" / "workflows"
+    folder.mkdir(parents=True, exist_ok=True)
+    snapshot_file = folder / "memoria-recovered-markdown.json"
+    snapshot_file.write_text(json.dumps({"documents": documents}, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True, "documents": [{k: v for k, v in row.items() if k != "content"} for row in documents],
+            "local_plan": str(snapshot_file), "private_contents_exported": False, "excluded_drive_accessed": False, "entries_scanned": scanned,
+            "bounded_scan": True, "scan_limit_reached": time.monotonic() >= deadline or scanned >= 25000 or len(documents) >= 50}
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "repair-storage", "repair-comfy-runtime", "recover-agents"])
+    p.add_argument("--Action", default="status", choices=["status", "fit", "benchmark", "recommend", "services", "reconcile", "providers", "provider-test", "diagnostics", "recovery-inventory", "recovery-plan", "repair-storage", "repair-comfy-runtime", "recover-agents"])
     p.add_argument("--Model", default="")
     p.add_argument("--Prompt", default="")
     p.add_argument("--ContextTokens", type=int, default=4096)
     p.add_argument("--MaxTokens", type=int, default=48)
     a = p.parse_args()
+    if a.Action == "recovery-plan":
+        print(json.dumps(recovery_plan(), indent=2))
+        return
     if a.Action == "repair-comfy-runtime":
         result = repair_comfy_runtime()
         print(json.dumps(result, indent=2))
