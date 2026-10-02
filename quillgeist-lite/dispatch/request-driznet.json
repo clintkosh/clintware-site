@@ -1,8 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-registry32-20261002-1710",
+  "request_id": "chatgpt-driznet-registry32b-20261002-1713",
   "task_id": "self-update",
   "target_device": "DRIZNET",
   "args": {},
-  "objective": "Refresh DRIZNET with the canonical registry containing durable internal-storage server-core and media tasks, preserving active work and resuming normally.",
+  "objective": "Refresh DRIZNET again now that the control-plane deployment step has published the v32 runtime bundle with durable server-core and media tasks.",
   "resume_after": true
 }
