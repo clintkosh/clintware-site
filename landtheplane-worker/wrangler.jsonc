@@ -3,14 +3,25 @@
   "name": "clintware-landtheplane",
   "main": "src/oauth-wrapper.js",
   "compatibility_date": "2026-08-19",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": true,
   "preview_urls": false,
   "routes": [
-    { "pattern": "landtheplane.clintware.com", "custom_domain": true }
+    {
+      "pattern": "landtheplane.clintware.com",
+      "custom_domain": true
+    }
   ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
-  }
+  },
+  "services": [
+    {
+      "binding": "CONTROL_PLANE",
+      "service": "clintware-control-plane"
+    }
+  ]
 }

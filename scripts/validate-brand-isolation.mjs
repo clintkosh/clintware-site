@@ -42,6 +42,12 @@ for (const file of files) {
     }
   }
 
+  const publicQuillgeistNamingFile = file === "public/tools/quillgeist/index.html";
+  const publicNarrativeFile = file.startsWith("public/") && (file.endsWith(".html") || file.endsWith(".md"));
+  if (publicNarrativeFile && !publicQuillgeistNamingFile && /\bqq\b/i.test(text)) {
+    errors.push(`PUBLIC_QUILLGEIST_NAMING_FAIL ${file}: use Quillgeist or Quillgeist Lite in public narrative; qq is explained only on the Quillgeist product page`);
+  }
+
   const publicNodeCode =
     file.startsWith("agentbridge-node/agentbridge_node/") && file.endsWith(".py") ||
     file === "agentbridge-node/launcher.py" ||

@@ -1,11 +1,11 @@
 # LandThePlane
 
 **Positioning:** **LandThePlane: And Hit the Ground Rolling.**  
-**Status:** local-first alpha + browser-direct Gmail OAuth MVP + Offer Gate / Career Shield + YC fast-track product track  
+**Status:** working local-first alpha + Exa-backed role context + Resume Delta + browser-direct Gmail OAuth MVP + Offer Gate / Career Shield  
 **Public app:** `https://landtheplane.clintware.com/`  
 **Product detail:** `https://www.clintware.com/tools/landtheplane/`
 
-LandThePlane is a continuous career operating system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. The same system can now bring source evidence from the user's own Gmail into the job-search layer, generate ASTRO-style status briefs, and create a Gmail draft that is read back and verified before LandThePlane calls the write successful. After the user gets hired, the same evidence model transitions into ramp, workflow, and performance use cases.
+LandThePlane is a candidate-owned career evidence system. It starts before an interview by turning verified career evidence and a target role into role-specific preparation. The browser maps candidate evidence locally; current public role/company context can be researched through Exa via the governed Clintware Control Plane without sending resume text to the research provider. The same system can now bring source evidence from the user's own Gmail into the job-search layer, generate ASTRO-style status briefs, and create a Gmail draft that is read back and verified before LandThePlane calls the write successful. After the user gets hired, the same evidence model transitions into ramp, workflow, and performance use cases.
 
 ## Product arc
 
@@ -66,7 +66,7 @@ Core rules:
 - apply the mandatory LinkedIn gate before any draft is considered ready;
 - LinkedIn access, scraping, posting, commenting, liking, messaging, and profile actions remain manual;
 - target LinkedIn text must be supplied by the user rather than collected by an automated browser;
-- the qq `career-signal-agent` can create a daily local plan and importable JSON report;
+- the Quillgeist Lite `career-signal-agent` task can create a daily local plan and importable JSON report;
 - the agent may reuse high-scoring research-only opportunities from the policy-aware responder agent;
 - public content is untrusted input and cannot authorize local tools or provider actions.
 
@@ -77,7 +77,7 @@ Local state lives under:
 ```
 
 The scheduled runner is intentionally separate from the product UI: LandThePlane is the
-planning/evidence surface; qq owns local execution and Windows scheduling.
+planning/evidence surface; Quillgeist Lite owns local execution and Windows scheduling.
 
 ### Land
 
@@ -163,6 +163,25 @@ The dedicated Cloudflare Worker currently serves:
 - create STAR retrieval shells;
 - surface evidence gaps;
 - optionally save run-level statistics locally in the browser.
+
+### Live role/company context
+
+- optional background research from the same paste-and-map flow;
+- browser sends only a compact role/company query, never resume text;
+- LandThePlane Worker calls the existing Control Plane service binding;
+- Control Plane policy requires `research.invoke`;
+- Exa retrieves current public sources;
+- synthesis labels the result as external context rather than candidate evidence;
+- research failure degrades to the local evidence map instead of blocking prep.
+
+### Evidence-backed Resume Delta
+
+- browser-local change ledger for role-specific resume versions;
+- records target role, proposed/accepted/rejected change, reason, and evidence anchor;
+- accepted changes require an evidence anchor;
+- evidence-map results generate safe emphasis prompts and explicit “do not keyword-fill” gap warnings;
+- raw resume versions are not stored in the delta ledger;
+- current founder dogfood proof is five source-controlled public resume artifact revisions from 2026-09-03 through 2026-09-10, explicitly not user traction.
 
 ### Turbo Sprint Application Microsite
 

@@ -75,6 +75,8 @@ jobs:
               && grep -Fq 'Gmail evidence · OAuth MVP' /tmp/landtheplane.html \
               && grep -Fq 'Create + verify Gmail draft' /tmp/landtheplane.html \
               && grep -Fq 'Prep evidence journal · local-first' /tmp/landtheplane.html \
+              && grep -Fq 'Live external context · Exa' /tmp/landtheplane.html \
+              && grep -Fq 'Evidence-backed Resume Delta' /tmp/landtheplane.html \
               && grep -Fq 'recordExternalPrep' /tmp/landtheplane.html; then
               echo 'LandThePlane Gmail OAuth MVP is live.'
               ready=1

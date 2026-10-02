@@ -34,7 +34,9 @@ class QuillgeistSaaSPortalTests(unittest.TestCase):
         self.assertIn("Adaptive intent compiler for AI.", page)
         self.assertIn("https://quillgeist.clintware.com/app", page)
         self.assertIn("model switching", page.lower())
-        self.assertIn("Quillgeist Lite / QQ", page)
+        self.assertIn("Quillgeist Lite", page)
+        self.assertIn("nicknamed <code>qq</code>", page)
+        self.assertNotIn("Quillgeist Lite / QQ", page)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-30",
+  "updated_at": "2026-10-02",
   "purpose": "Unified evidence/progress registry for Clintware YC candidates and operational venture ideas. Empty metrics are never rendered as fake traction.",
   "ui_contract": {
     "summary_jobs": [
@@ -69,10 +69,20 @@
       "stage": "Working alpha",
       "surface_mode": "live",
       "progress_url": "https://landtheplane.clintware.com/#progress",
-      "current_proof": "Evidence mapping, Brief Builder, interview review, adaptive self-introduction standard, and browser-local longitudinal prep statistics.",
-      "next_gate": "Verified prep-run provenance across generation channels, repeat evidence reuse across rounds/roles, and external retention.",
-      "metric_source": "browser_local_plus_curated_milestones",
-      "metrics": []
+      "current_proof": "Local evidence mapping, Exa-backed public role context through the governed Control Plane, evidence-backed Resume Delta tracking, Brief Builder, interview review, Gmail evidence/draft MVP, and browser-local longitudinal prep statistics.",
+      "next_gate": "Repeat outside-user evidence reuse across rounds/roles, accepted resume-delta reuse, verified prep-run provenance across generation channels, and post-hire retention.",
+      "metric_source": "browser_local_plus_curated_founder_dogfood",
+      "metrics": [
+        {
+          "id": "public_resume_artifact_revisions",
+          "label": "Tracked public resume artifact revisions",
+          "value": 5,
+          "unit": "revisions",
+          "period": "2026-09-03_to_2026-09-10",
+          "evidence_type": "founder_dogfood",
+          "traction": false
+        }
+      ]
     },
     {
       "id": "promptiris",
