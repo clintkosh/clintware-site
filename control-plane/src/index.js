@@ -1378,6 +1378,12 @@ export class RegistryHub extends DurableObject {
         return {device_id:attachment.device_id,connected_at:attachment.connected_at,runner:attachment.runner||null};
       }catch{return null;}
     }).filter(Boolean);
+    const liveRunnerPresence=runnerSockets.map(ws=>{
+      try{
+        const attachment=ws.deserializeAttachment()||{};
+        return attachment.runner_presence?{...attachment.runner_presence,device_id:attachment.device_id||attachment.runner_presence.device_id,source:"live-runner-websocket"}:null;
+      }catch{return null;}
+    }).filter(Boolean);
     const liveServicePresence=this.quillgeistLiteLiveServicePresence();
     const liveServiceDevices=liveServicePresence.map(p=>({
       device_id:p.device_id,
@@ -1393,13 +1399,15 @@ export class RegistryHub extends DurableObject {
       wake_online:wakeSockets.length,
       connected_devices,
       live_service_presence:liveServicePresence,
-      live_service_devices:liveServiceDevices
+      live_service_devices:liveServiceDevices,
+      live_runner_presence:liveRunnerPresence
     };
     try{
       const index=await this.ctx.storage.get("quillgeist_lite_job_index")||[];
       const runner=await this.ctx.storage.get("quillgeist_lite_runner")||null;
       const persistedServiceDevices=(await this.ctx.storage.get("quillgeist_lite_device_index")||[]).slice(0,20);
       const persistedPresence=(await this.ctx.storage.get("quillgeist_lite_presence_index")||[]).slice(0,20);
+      const persistedRunnerPresence=(await this.ctx.storage.get("quillgeist_lite_runner_presence_index")||[]).slice(0,20);
       const mergeByDevice=(persisted,live)=>{
         const map=new Map();
         for(const row of persisted||[])if(row?.device_id)map.set(String(row.device_id),row);
@@ -1417,7 +1425,8 @@ export class RegistryHub extends DurableObject {
         service_devices:mergeByDevice(persistedServiceDevices,liveServiceDevices),
         diagnostics:(await this.ctx.storage.get("quillgeist_lite_diagnostics")||[]).slice(-20).reverse(),
         checkins:(await this.ctx.storage.get("quillgeist_lite_checkin_index")||[]).slice(0,20),
-        service_presence:mergeByDevice(persistedPresence,liveServicePresence)
+        service_presence:mergeByDevice(persistedPresence,liveServicePresence),
+        runner_presence:mergeByDevice(persistedRunnerPresence,liveRunnerPresence)
       };
     }catch(e){
       return {
@@ -1432,7 +1441,8 @@ export class RegistryHub extends DurableObject {
         service_devices:liveServiceDevices,
         diagnostics:[],
         checkins:[],
-        service_presence:liveServicePresence
+        service_presence:liveServicePresence,
+        runner_presence:liveRunnerPresence
       };
     }
   }
@@ -1712,6 +1722,41 @@ export class RegistryHub extends DurableObject {
         return;
       }
       if(attachment.receiver==="quillgeist-lite"){
+        if(data?.type==="runner_presence"){
+          const deviceId=clip(attachment.device_id||data?.device_id||data?.runner_id||"unknown",120);
+          const presence={
+            device_id:deviceId,
+            protocol:"clintware-quillgeist-lite-presence/v1",
+            runner_id:clip(data?.runner_id||deviceId,120),
+            version:clip(data?.version||"",80),
+            state:clip(data?.state||"unknown",40),
+            runner_alive:data?.runner_alive!==false,
+            busy:Boolean(data?.busy),
+            active_workers:Math.max(0,Number(data?.active_workers)||0),
+            queued_jobs:Math.max(0,Number(data?.queued_jobs)||0),
+            worker_capacity:Math.max(1,Number(data?.worker_capacity)||1),
+            available_workers:Math.max(0,Number(data?.available_workers)||0),
+            cpu_load_percent:Number.isFinite(Number(data?.cpu_load_percent))?Number(data.cpu_load_percent):null,
+            memory_load_percent:Number.isFinite(Number(data?.memory_load_percent))?Number(data.memory_load_percent):null,
+            memory_available_gib:Number.isFinite(Number(data?.memory_available_gib))?Number(data.memory_available_gib):null,
+            gpu_worker_capacity:Math.max(0,Number(data?.gpu_worker_capacity)||0),
+            scheduler_mode:clip(data?.scheduler_mode||"adaptive",40),
+            timestamp:clip(data?.timestamp||nowIso(),80),
+            updated_at:nowIso()
+          };
+          try{ws.serializeAttachment({...attachment,device_id:deviceId,last_seen:presence.updated_at,runner_presence:presence});}catch{}
+          try{
+            await this.ctx.storage.put(`quillgeist_lite_runner_presence:${deviceId}`,presence);
+            let index=await this.ctx.storage.get("quillgeist_lite_runner_presence_index")||[];
+            index=index.filter(x=>x.device_id!==deviceId);
+            index.unshift(presence);
+            await this.ctx.storage.put("quillgeist_lite_runner_presence_index",index.slice(0,20));
+            await this.ctx.storage.put("quillgeist_lite_runner",{...(await this.ctx.storage.get("quillgeist_lite_runner")||{}),runner_id:deviceId,last_seen:presence.updated_at,resource_presence:presence});
+          }catch(e){
+            console.error(JSON.stringify({event:"quillgeist_runner_presence_persistence_degraded",device_id:deviceId,message:clip(String(e?.message||e),240)}));
+          }
+          return;
+        }
         if(data?.type==="hello"){
           const runner={runner_id:clip(data.runner_id||"unknown",120),version:clip(data.version||"",80),capabilities:clipList(data.capabilities,20,120),connected_at:attachment.connected_at||nowIso(),last_seen:nowIso()};
           runner.source_revision=clip(data.source_revision||"",40);
@@ -3620,6 +3665,39 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
   },async({task_id,args,objective,target_device,resume_after})=>{
     if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    let selectedTarget=clip(target_device||"",120);
+    let routing={routing_mode:selectedTarget?"explicit-device":"adaptive-resource-score",selected_device:selectedTarget,candidates:[]};
+    if(!selectedTarget){
+      try{
+        const sr=await registryHub(env).fetch("https://internal/quillgeist-lite-status");
+        const st=await sr.json();
+        const connected=new Set((st.connected_devices||[]).map(x=>String(x.device_id||"")).filter(Boolean));
+        const now=Date.now();
+        const candidates=(st.runner_presence||[]).filter(p=>{
+          const age=Math.max(0,(now-Date.parse(p.updated_at||p.timestamp||0))/1000);
+          return p&&p.runner_alive!==false&&connected.has(String(p.device_id||""))&&age<=45;
+        }).map(p=>{
+          const available=Math.max(0,Number(p.available_workers)||0);
+          const capacity=Math.max(1,Number(p.worker_capacity)||1);
+          const active=Math.max(0,Number(p.active_workers)||0);
+          const queued=Math.max(0,Number(p.queued_jobs)||0);
+          const cpu=Number.isFinite(Number(p.cpu_load_percent))?Number(p.cpu_load_percent):50;
+          const memory=Number.isFinite(Number(p.memory_load_percent))?Number(p.memory_load_percent):50;
+          const gpu=Math.max(0,Number(p.gpu_worker_capacity)||0);
+          const score=(available*100)+(gpu*8)-(active*12)-(queued*30)-(cpu*0.45)-(memory*0.35);
+          return {device_id:String(p.device_id||""),available_workers:available,worker_capacity:capacity,active_workers:active,queued_jobs:queued,cpu_load_percent:cpu,memory_load_percent:memory,gpu_worker_capacity:gpu,score:Math.round(score*100)/100};
+        }).sort((a,b)=>b.score-a.score||b.available_workers-a.available_workers||a.device_id.localeCompare(b.device_id));
+        routing.candidates=candidates.slice(0,8);
+        if(candidates.length)selectedTarget=candidates[0].device_id;
+        if(!selectedTarget){
+          const fallback=[...(st.connected_devices||[])].map(x=>String(x.device_id||"")).filter(Boolean).sort();
+          if(fallback.length){selectedTarget=fallback[0];routing.routing_mode="connected-device-fallback";}
+        }
+        routing.selected_device=selectedTarget;
+      }catch(e){
+        routing.routing_error=clip(String(e?.message||e),240);
+      }
+    }
     const task=QUILLGEIST_LITE_TASKS[task_id];
     if(!task)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"task_not_allowed"})}]};
     const allowed=new Set(task.parameters||[]);
@@ -3632,7 +3710,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
       args:args||{},
       objective:objective||"",
       requested_by:mcpAuth?.client_id||"mcp",
-      target_device:target_device||"",
+      target_device:selectedTarget,
       resume_after:Boolean(resume_after)
     })}));
     const created=await createdResp.json();
@@ -3640,7 +3718,7 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     const broadcastResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-broadcast",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({job:created.job})}));
     const delivery=await broadcastResp.json();
     await audit(env,"quillgeist-lite","local_task_queued",created.job.job_id,{task_id,online_receivers:Number(delivery.delivered||0)},true,"");
-    return {content:[{type:"text",text:JSON.stringify({ok:true,job_id:created.job.job_id,task_id,status:"queued",delivery,continuation:"If this job fails, inspect it with clintware_quillgeist_lite_job and choose the next allowlisted task. The runner stays connected."})}]};
+    return {content:[{type:"text",text:JSON.stringify({ok:true,job_id:created.job.job_id,task_id,status:"queued",target_device:selectedTarget,routing,delivery,continuation:"If this job fails, inspect it with clintware_quillgeist_lite_job and choose the next allowlisted task. The runner stays connected."})}]};
   });
 
   server.registerTool("clintware_quillgeist_lite_job",{
