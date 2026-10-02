@@ -930,5 +930,112 @@
       "meeting": "Strategic account review",
       "meeting_type": "QBR / technical review"
     }
+  ],
+  "org_map": {
+    "note": "Functional operating map based on the public role description. It is not a claim about private reporting lines. 'Verified' means the relationship is explicit in the posting; 'Inferred' means normal operating interpretation.",
+    "edges": [
+      {
+        "from": "Partner Service Account Manager",
+        "to": "Technical owner",
+        "purpose": "Account/billing/user context and white-label customer coordination when the issue crosses into product depth.",
+        "evidence": "Verified functional relationship"
+      },
+      {
+        "from": "Partner baseline support",
+        "to": "Technical owner",
+        "purpose": "Escalate beyond baseline break-fix when the customer needs deeper configuration, tuning, or uncovered help.",
+        "evidence": "Verified functional relationship"
+      },
+      {
+        "from": "Partner integration / managed services",
+        "to": "Technical owner",
+        "purpose": "Clarify service-package scope, preserve context, and avoid duplicate delivery.",
+        "evidence": "Verified functional relationship"
+      },
+      {
+        "from": "Enterprise CSM",
+        "to": "Technical owner",
+        "purpose": "Run named strategic accounts in lockstep: CSM owns relationship/outcome; technical owner provides product depth and unblocks technical work.",
+        "evidence": "Verified functional relationship"
+      },
+      {
+        "from": "Technical owner",
+        "to": "Product / Engineering",
+        "purpose": "Feed reproducible product issues and recurring technical themes with evidence rather than raw customer escalation.",
+        "evidence": "Inferred operating link from public responsibilities"
+      },
+      {
+        "from": "Technical owner",
+        "to": "Sales / Customer Success",
+        "purpose": "Return recurring pain points that may improve documentation, packaging, pricing, onboarding, and account strategy.",
+        "evidence": "Verified functional relationship"
+      },
+      {
+        "from": "Customer Security / Fraud Team",
+        "to": "CSM + Technical owner",
+        "purpose": "Provide business objective, risk profile, implementation constraints, workflow feedback, and adoption evidence.",
+        "evidence": "Verified customer-side operating relationship"
+      }
+    ]
+  },
+  "technical_refreshers": [
+    {
+      "topic": "API troubleshooting",
+      "title": "API Troubleshooting: Evidence Before Escalation",
+      "summary": "A compact diagnostic rail for integration-heavy SaaS support.",
+      "tags": [
+        "api",
+        "integration",
+        "http"
+      ],
+      "mental_model": "Treat an API incident as a contract problem first: what request was intended, who was authorized, what the server returned, and whether the same behavior can be reproduced with the smallest possible request.",
+      "failure_modes": "Authentication/authorization mismatch; wrong endpoint or method; malformed headers/payload; schema/version drift; rate limiting; pagination/state mistakes; webhook/callback failure; DNS/TLS/network issues; unsafe assumptions about third-party responses.",
+      "diagnostic_sequence": "SCOPE/IMPACT -> REQUEST CONTRACT -> AUTHN/AUTHZ -> ENDPOINT + METHOD -> HEADERS + PAYLOAD/SCHEMA -> STATUS + BODY -> RATE LIMIT/RETRY -> PAGINATION/STATE -> WEBHOOK/CALLBACK -> NETWORK/TLS/DNS -> LOGS + CORRELATION ID -> MINIMAL REPRO -> OWNER/ESCALATION.",
+      "evidence_to_collect": "Timestamp, environment, account/tenant, endpoint/method, sanitized request/response, status/body, headers relevant to auth/rate limit, correlation/request ID, exact reproduction steps, working-vs-failing comparison, recent change, and business impact.",
+      "traps": "Do not retry non-idempotent operations blindly. Do not convert 401/403 into 'the API is down.' Separate authentication from authorization. Do not escalate without the exact expected-versus-actual behavior.",
+      "best_practices": "RFC 9110 distinguishes safe/idempotent behavior and when automatic retry is appropriate. OWASP's API Security Top 10 highlights authorization, authentication, inventory, resource-consumption, configuration, and third-party API consumption risks.",
+      "experience_boundary": "Clinton has adjacent hands-on API/integration troubleshooting and escalation experience; this refresher is current preparation and does not claim software-engineering ownership of every API pattern.",
+      "source_url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+      "secondary_source": "https://owasp.org/projects/api-security-project"
+    },
+    {
+      "topic": "Domain abuse and takedown routing",
+      "title": "Domain Abuse / Takedown: Match the Enforcement Path to the Abuse",
+      "summary": "A current mental model for differentiating rapid abuse mitigation from formal domain-name dispute processes.",
+      "tags": [
+        "domain",
+        "phishing",
+        "takedown",
+        "udrp"
+      ],
+      "mental_model": "A 'takedown' is not one universal action. The path depends on the asset, abuse type, rights basis, hosting/registrar/platform, evidence, and urgency. Operational response may involve registrar/host/platform abuse channels, while trademark-based abusive domain registration can involve UDRP or court action.",
+      "failure_modes": "Wrong target entity; incomplete evidence; confusing host and registrar; assuming UDRP is an instant phishing-removal mechanism; missing trademark/rights basis; losing timestamps/screenshots/headers; failing to track enforcement status across platforms.",
+      "diagnostic_sequence": "IDENTIFY ASSET -> CAPTURE EVIDENCE -> CLASSIFY ABUSE -> MAP REGISTRAR/HOST/PLATFORM -> CHOOSE RAPID ABUSE VS RIGHTS/DISPUTE PATH -> SUBMIT -> TRACK -> ESCALATE -> VERIFY REMOVAL / RESOLUTION.",
+      "evidence_to_collect": "URL/domain, timestamps, screenshots, headers/artifacts when relevant, impersonated brand/assets, registration/hosting context, platform account/app listing, prior enforcement attempt, customer impact, and case/reference IDs.",
+      "traps": "UDRP is a trademark-based domain-name dispute mechanism, not a generic emergency abuse ticket. Platform, registrar, hosting-provider, and legal processes have different evidentiary and timing requirements.",
+      "best_practices": "ICANN states that most trademark-based domain disputes are resolved by agreement, court action, or arbitration, while abusive registrations such as cybersquatting can use expedited UDRP administrative proceedings through approved providers.",
+      "experience_boundary": "Clinton's direct history is strongest in phishing/email security and customer technical operations; this refresher extends into broader digital-risk enforcement mechanics without claiming prior ownership of formal UDRP proceedings.",
+      "source_url": "https://www.icann.org/resources/pages/udrp-rules-2024-02-21-en",
+      "secondary_source": "https://www.icann.org/resources/pages/help/dndr/udrp-en"
+    },
+    {
+      "topic": "Partner support boundary",
+      "title": "Tiered Support Boundary: Route by Entitlement, Capability, and Outcome",
+      "summary": "An operating model for preventing customer ping-pong across account management, break-fix, paid integration, managed services, and vendor product expertise.",
+      "tags": [
+        "partner",
+        "support",
+        "services",
+        "handoff"
+      ],
+      "mental_model": "The customer should not have to understand the org chart. Classify the request by business/account ownership, break-fix, purchased implementation/services scope, ongoing product-depth need, or reproducible product defect, then keep one accountable customer-facing owner.",
+      "failure_modes": "Routing by title instead of issue type; duplicate discovery; missing entitlement/package context; paid-service work done for free without clarity; vendor gap left unowned; customer asked to repeat evidence after every handoff.",
+      "diagnostic_sequence": "CUSTOMER OUTCOME -> ISSUE TYPE -> ENTITLEMENT/SERVICE PACKAGE -> CURRENT OWNER -> WHAT HAS BEEN TRIED -> GAP -> NEXT OWNER -> ACCEPTANCE CRITERIA -> CUSTOMER-FACING UPDATE.",
+      "evidence_to_collect": "Customer/account, purchase/channel motion, service entitlement, case history, current owner, issue classification, impact, evidence already gathered, next action, and closure condition.",
+      "traps": "Do not treat every technical question as Engineering work. Do not use 'not our scope' as the customer-facing end state. Do not silently absorb recurring out-of-scope work; feed it into packaging/pricing/documentation decisions.",
+      "best_practices": "Use a visible assignment matrix, preserve context across transfers, and tag recurring boundary failures so documentation, service packaging, or product workflow can improve.",
+      "experience_boundary": "This model is derived from the public role's explicit support structure and Clinton's adjacent escalation/CS operations history; it is not a claim about the partner's private procedures.",
+      "source_url": "https://jobs.lever.co/bolster/4fdea070-99b1-4818-9bc3-6da8b9a25725"
+    }
   ]
 }
