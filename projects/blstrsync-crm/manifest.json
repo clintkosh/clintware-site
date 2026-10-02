@@ -1,0 +1,66 @@
+{
+  "mode": "one-off",
+  "project_id": "blstrsync-crm",
+  "company": "Bolster",
+  "name": "Super 3 Team Custom Synergy System",
+  "domain": "https://blstrsync.clintware.com",
+  "base_project": "super3-synergy",
+  "implementation_reference": "super3-synergy",
+  "domain_override_authorized": true,
+  "persistence_mode": "browser-local",
+  "remote_state_required": false,
+  "durable_objects_required": false,
+  "synthetic_data_default": true,
+  "roles": [
+    {"id":"csm","name":"Customer Success Manager"},
+    {"id":"tam","name":"Technical Account Manager"},
+    {"id":"partner","name":"Partner Team"}
+  ],
+  "tracks": [
+    {"id":"command","label":"Command Center","tab":"command","objective":"One shared account state with role-specific next decisions."},
+    {"id":"journey","label":"Customer Journey","tab":"journey","objective":"Preserve outcome, lifecycle, promises, decisions, and evidence across every handoff."},
+    {"id":"coverage","label":"Coverage & Ownership","tab":"coverage","objective":"Make CSM, TAM, Partner, Support, Services, Product, and Engineering ownership explicit."},
+    {"id":"handoffs","label":"Handoffs","tab":"handoffs","objective":"Transfer work without making the customer repeat context or guess who owns the next move."},
+    {"id":"technical","label":"Technical Work","tab":"technical","objective":"Coordinate configuration, APIs, integrations, troubleshooting, and evidence-ready escalation."},
+    {"id":"threats","label":"Threat & Takedown","tab":"threats","objective":"Track protected assets, monitoring, enforcement state, exceptions, and maintenance work."},
+    {"id":"adoption","label":"Adoption & Value","tab":"adoption","objective":"Tie product usage and technical enablement to customer-defined outcomes before expansion."},
+    {"id":"risks","label":"Risks & Escalations","tab":"risks","objective":"Surface customer-impact risk early with owner, evidence, next decision, and communication state."},
+    {"id":"themes","label":"Recurring Themes","tab":"themes","objective":"Turn repeated friction into documentation, enablement, packaging, automation, pricing, or product signal."},
+    {"id":"meetings","label":"Meetings & Reviews","tab":"meetings","objective":"Generate concise customer, partner, and internal reviews from current evidence."},
+    {"id":"training","label":"Training Center","tab":"training","objective":"Give CSMs, TAMs, and Partner teams role-specific operating guidance from the same system."},
+    {"id":"evidence","label":"Evidence & Build","tab":"evidence","objective":"Keep metric provenance, synthetic-data boundaries, build evidence, and internal efficiency proof visible."}
+  ],
+  "role_problem_hypothesis": "Customers must experience one coherent technical-success motion even though responsibility can cross a partner account team, baseline support, paid integration or managed services, the vendor TAM, CSM, Product, Engineering, and SOC. The system exists to preserve context, make ownership explicit, coordinate the three customer-facing teams, and turn recurring friction into scalable improvement.",
+  "values": [
+    {"id":"trust","label":"Trust","design":"Every claim has a source boundary; handoffs keep context; owners and commitments remain visible."},
+    {"id":"think-big","label":"Think Big","design":"Recurring themes become reusable documentation, automation, service design, packaging, or product improvement."},
+    {"id":"mutual-respect","label":"Mutual Respect","design":"No customer ping-pong; disagreements preserve context, state the boundary, and name the next owner."},
+    {"id":"customer-success","label":"Customer Success","design":"Customer-defined outcome and adoption state anchor technical and commercial decisions."}
+  ],
+  "public_sources": [
+    {"label":"Technical Account Manager role","url":"https://jobs.lever.co/bolster/4fdea070-99b1-4818-9bc3-6da8b9a25725"},
+    {"label":"Company values and mission","url":"https://bolster.ai/about-us"},
+    {"label":"Digital risk platform context","url":"https://bolster.ai/solutions/digital-risk-protection"},
+    {"label":"Customer Success Engineer role","url":"https://jobs.lever.co/bolster/602ac14e-5e49-4357-b488-400ef0f26be5"}
+  ],
+  "disclosure": "Candidate-built synthetic operating prototype based on public role and product context. It is not an official company system, not a representation of private internal tooling, and contains no real customer records.",
+  "usage_proof": {
+    "evidence_class": "internal_controlled_benchmark",
+    "measured": {
+      "repository_refresh_seconds": 2.996,
+      "validate_materialize_check_deploy_seconds": 22.220,
+      "browser_verification_seconds": 13.560,
+      "role_specific_tracks": 8,
+      "production_assets_uploaded": 14,
+      "functional_checks": ["TCO recalculation passed", "vendor-score recalculation passed"]
+    },
+    "modeled": {
+      "cloud_model_tokens_avoided_low": 30000,
+      "cloud_model_tokens_avoided_high": 60000,
+      "implementation_token_reduction_low_pct": 60,
+      "implementation_token_reduction_high_pct": 80,
+      "boundary": "Directional estimate based on a completed local Quillgeist build; not provider billing telemetry and not a financial-savings claim."
+    },
+    "source": "docs/quillgeist-role-crm-case-study.md"
+  }
+}
