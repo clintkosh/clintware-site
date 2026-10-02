@@ -3665,6 +3665,12 @@ function createMcpServer(env,mcpRequest,mcpAuth){
     annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
   },async({task_id,args,objective,target_device,resume_after})=>{
     if(!mcpProductAllowed(mcpAuth,"quillgeist-lite"))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"product_not_allowed"})}]};
+    const task=QUILLGEIST_LITE_TASKS[task_id];
+    if(!task)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"task_not_allowed"})}]};
+    const allowed=new Set(task.parameters||[]);
+    for(const key of Object.keys(args||{})){
+      if(!allowed.has(key))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"argument_not_allowed",argument:key})}]};
+    }
     let selectedTarget=clip(target_device||"",120);
     let routing={routing_mode:selectedTarget?"explicit-device":"adaptive-resource-score",selected_device:selectedTarget,candidates:[]};
     if(!selectedTarget){
@@ -3697,12 +3703,6 @@ function createMcpServer(env,mcpRequest,mcpAuth){
       }catch(e){
         routing.routing_error=clip(String(e?.message||e),240);
       }
-    }
-    const task=QUILLGEIST_LITE_TASKS[task_id];
-    if(!task)return {isError:true,content:[{type:"text",text:JSON.stringify({error:"task_not_allowed"})}]};
-    const allowed=new Set(task.parameters||[]);
-    for(const key of Object.keys(args||{})){
-      if(!allowed.has(key))return {isError:true,content:[{type:"text",text:JSON.stringify({error:"argument_not_allowed",argument:key})}]};
     }
     const createdResp=await registryHub(env).fetch(new Request("https://internal/quillgeist-lite-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
       job_id:crypto.randomUUID(),
