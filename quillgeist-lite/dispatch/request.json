@@ -1,10 +1,24 @@
 {
-  "request_id": "memoria-resume-all-local-ai-20261001",
-  "task_id": "finish-local-ai",
-  "target_device": "MEMORIA",
-  "args": {
-    "MaxPasses": "4"
-  },
-  "objective": "Resume the existing MEMORIA local AI server recovery/build from current durable state. Preserve unique AI work and data, do not replace the existing Immich media database, do not move MEMORIA work to DRIZNET, repair only verified gaps, and continue through bounded passes until the local AI stack is verified complete or a hard blocker is recorded with evidence.",
-  "resume_after": true
+  "request_id": "driznet-recovery-audit-20261002-0812",
+  "mode": "batch",
+  "verify_seconds": 180,
+  "jobs": [
+    {
+      "task_id": "storage-audit",
+      "target_device": "DRIZNET",
+      "args": {
+        "ExpectedComputer": "DRIZNET",
+        "LargestFiles": "30"
+      },
+      "objective": "DRIZNET only. Read storage/model state and local Codex Markdown, README/resume/project continuation notes under C:\\AI and desktop. External Toshiba drive now authorized temporarily; preserve all unique code/data. Do not touch MEMORIA."
+    },
+    {
+      "task_id": "local-ai",
+      "target_device": "DRIZNET",
+      "args": {
+        "Action": "inspect"
+      },
+      "objective": "DRIZNET only: inspect current inference/server/model state for local chat readiness."
+    }
+  ]
 }
