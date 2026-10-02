@@ -38,6 +38,10 @@ Unless the user explicitly names a language/runtime:
 Efficiency is a tiebreaker after quality, not a substitute for quality.
 
 
+## Local CloudMist routing
+
+Local CloudMist is the default multi-machine execution abstraction when more than one healthy owner-controlled Quillgeist node is available. Work is optional and must never be a durable dependency when reviewed local tasks can own execution. Route by capability, resource class, health, queue/load, and affinity; preserve an ordered failover set; fail over only on delivery failure, stale/no-progress health, or task failure; and never duplicate a still-executing job merely because another node is idle. New machines join through the reviewed CloudMist onboarding pass. Hosted CI or Work may bootstrap/recover the local plane, but steady-state deterministic builds, tests, transforms, local-model work, and CRM factory generation consume CloudMist capacity first when the quality bar is met.
+
 ## Default prompt offload and latency policy
 
 For owner-operated ChatGPT/MCP work, treat QQ/local execution as the default workhorse when it can meet the same correctness and quality bar.

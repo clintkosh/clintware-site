@@ -1,7 +1,7 @@
 {
-  "version": 30,
+  "version": 31,
   "product": "Clintware Quillgeist Lite",
-  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. qq keeps an independent watchdog check-in path available while the interactive runner is busy, updating, restarting, or reconnecting. Parallel-safe tasks may run in the adaptive CPU/RAM/GPU worker pool while conflicting mutations remain serialized.",
+  "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. QQ keeps an independent watchdog path available while interactive work is busy. Local CloudMist can enroll multiple owner-controlled machines into a capability-aware local compute/failover pool; Work/cloud execution is optional and never required for routine local-first operation.",
   "runtimes": [
     "powershell",
     "python",
@@ -474,6 +474,61 @@
       "resource_class": "io",
       "concurrency_group": "public-skill-verify",
       "max_parallel": 2
+    },
+    "cloud-mist": {
+      "title": "Inspect, enroll, heartbeat, export, or route work across the Local CloudMist node pool",
+      "runtime": "python",
+      "script": "quillgeist-lite/tools/cloud_mist.py",
+      "parameters": [
+        "Action",
+        "Label",
+        "Roles",
+        "MaxWorkers",
+        "ResourceClass",
+        "RequiredCapability",
+        "PoolFile",
+        "PreferredNode",
+        "Gpu"
+      ],
+      "timeout_seconds": 120,
+      "parallel_safe": true,
+      "resource_class": "cpu",
+      "concurrency_group": "cloud-mist-control",
+      "max_parallel": 2
+    },
+    "cloud-mist-onboard": {
+      "title": "Onboard this machine into Local CloudMist and produce a capability/health report in one pass",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/cloud-mist-onboard.ps1",
+      "parameters": [
+        "Label",
+        "Roles",
+        "MaxWorkers",
+        "Gpu",
+        "SkipDoctor"
+      ],
+      "timeout_seconds": 1200,
+      "parallel_safe": false,
+      "resource_class": "mixed",
+      "concurrency_group": "cloud-mist-onboard",
+      "max_parallel": 1
+    },
+    "crm-factory": {
+      "title": "Ingest, build, check, or locally deploy the shared multi-tenant job CRM factory",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/crm-factory.ps1",
+      "parameters": [
+        "Action",
+        "Input",
+        "Date",
+        "RepoRoot",
+        "Approved"
+      ],
+      "timeout_seconds": 3600,
+      "parallel_safe": false,
+      "resource_class": "mixed",
+      "concurrency_group": "crm-factory",
+      "max_parallel": 1
     }
   }
 }

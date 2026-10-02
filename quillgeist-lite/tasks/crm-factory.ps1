@@ -1,0 +1,7 @@
+[CmdletBinding()]param([ValidateSet("build","check","ingest","deploy")][string]$Action="check",[string]$Input="",[string]$Date="",[string]$RepoRoot="",[ValidateSet("true","false")][string]$Approved="false")
+$ErrorActionPreference="Stop";$Root=if($RepoRoot){[IO.Path]::GetFullPath($RepoRoot)}else{[IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))};$Marker=Join-Path $env:LOCALAPPDATA "Clintware\QuillgeistLite\python3-check.json";$Py=if(Test-Path $Marker){[string](Get-Content $Marker -Raw|ConvertFrom-Json).path}else{(Get-Command python -ErrorAction Stop).Source};$F=Join-Path $Root "projects\crm-cover-factory"
+if($Action-eq"ingest"){if(-not$Input){throw "Input is required for ingest."};$a=@((Join-Path $F "ingest-job-scan.py"),"--Input",$Input);if($Date){$a+=@("--Date",$Date)};& $Py @a;if($LASTEXITCODE-ne 0){exit $LASTEXITCODE}}
+& $Py (Join-Path $F "shared-runtime\build.py");if($LASTEXITCODE-ne 0){exit $LASTEXITCODE};$B=Join-Path $Root ".build\crm-factory"
+if($Action-in@("check","deploy")){node --check (Join-Path $B "public\app.js");if($LASTEXITCODE-ne 0){exit $LASTEXITCODE};$u=Get-Content (Join-Path $B "usage-estimate.json")-Raw|ConvertFrom-Json;if([int]$u.tenant_count-lt 1){throw "CRM factory has no tenants."}}
+if($Action-eq"deploy"){if($Approved-ne"true"){throw "Deploy requires Approved=true."};Push-Location $B;try{npx --yes wrangler@4 deploy}finally{Pop-Location};if($LASTEXITCODE-ne 0){exit $LASTEXITCODE}}
+Get-Content (Join-Path $B "usage-estimate.json")-Raw

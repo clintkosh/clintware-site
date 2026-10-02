@@ -83,6 +83,16 @@ The default decision order is quality-first. Once candidate paths can meet the r
 
 Use `capabilities`, `inventory`, or `abilities` in the local console to inspect the current inventory. The durable browser aliases are `browser skill → browser-work` and `open URL only → open-edge-tab`.
 
+## Local CloudMist
+
+Quillgeist can treat multiple owner-controlled machines as one capability-aware local execution pool. MEMORIA, DRIZNET, or a newly enrolled server can advertise reviewed tasks, CPU/RAM/GPU inventory, worker limits, and health. Work is optional; hosted/browser capabilities are escalation paths when a local node cannot meet the task's quality, freshness, authority, or interface requirement.
+
+    run cloud-mist-onboard Label=MEMORIA Roles=general,build,ai,storage
+    run cloud-mist Action=status
+    run cloud-mist Action=route RequiredCapability=crm-factory ResourceClass=cpu
+
+See [CLOUD_MIST.md](CLOUD_MIST.md).
+
 ## Interactive local console
 
 The visible qq window accepts local commands while its Control Plane WebSocket remains active:

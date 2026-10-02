@@ -334,3 +334,11 @@ Prefer:
 The cover letter should explain the underlying operating problem, not describe every CRM feature.
 
 If the public proof-of-work is intentionally neutral (no target company or role name in the primary UI), keep the application mapping in the private/package layer and only add the public CRM URL to application copy after live browser verification confirms the neutral presentation and functional workflows.
+
+## Shared multi-tenant factory default
+
+For high-volume job search, the default first pass is one shared CRM runtime with many role tenants. Do not create one Worker, Pages project, DNS record, repository, or build pipeline per application.
+
+VERIFIED JOB SCAN -> DEDUPE AGAINST EXISTING EXACT ROLE CRMS -> TENANT RECORD -> LOCAL CLOUDMIST BUILD/ENRICHMENT -> SHARED STATIC RUNTIME -> BROWSER-LOCAL WORKING STATE -> PROMOTE ONLY WHEN WARRANTED
+
+Every viable role may receive a lightweight tenant workspace. Strong/interviewing roles may receive richer tenant research, proof mapping, meeting prep, and locally generated application copy without creating new cloud infrastructure. A separate bespoke ASTRO deployment is an exception for materially unique interaction, branding, or integration needs. Prefer Workers Static Assets with browser-local state; move tenant shards to R2 only when asset sizes justify it. Quillgeist Local CloudMist owns steady-state generation. ChatGPT Work is optional.
