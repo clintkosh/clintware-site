@@ -1,10 +1,10 @@
 {
-  "request_id": "work-memoria-postrepair-diag-20261002-0806",
+  "request_id": "work-memoria-md-plan-20261002-0808",
   "task_id": "local-ai",
   "target_device": "MEMORIA",
   "args": {
-    "Action": "diagnostics"
+    "Action": "recovery-plan"
   },
-  "objective": "Determine remaining Open WebUI and n8n failure after preserved-data restoration and mount refresh.",
+  "objective": "Read requested Desktop, C AI and Codex Markdown plans locally, preserve private text locally and report fixed feature categories only. Do not access excluded drive.",
   "resume_after": false
 }
