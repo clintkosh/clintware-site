@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-n8n-repair-20261003-1351",
-  "task_id": "driznet-n8n-doctor",
+  "request_id": "chatgpt-driznet-core-verify-20261003-1352",
+  "task_id": "driznet-server-core",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "repair"
+    "Action": "verify"
   },
-  "objective": "Repair DRIZNET n8n by restoring the persisted encryption key, recreate only n8n, verify port 5678. If repair fails, preserve the full old n8n data on C: before clean reinitialization. Do not delete the backup or use external storage.",
+  "objective": "Non-mutating final verification of DRIZNET core: Open WebUI, Ollama, Quillgeist gateway, SearXNG, n8n, Pipelines, web search agent, local inference canary, and search canary.",
   "resume_after": true
 }
