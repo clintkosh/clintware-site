@@ -1,8 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-refresh-server-20261003-1332",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-core-20261003-1333",
+  "task_id": "driznet-server-core",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET Quillgeist runtime and task registry so the durable driznet-server-core and driznet-media tasks are available, then resume queued work.",
+  "args": {
+    "Action": "setup"
+  },
+  "objective": "Finish DRIZNET internal-storage local AI server core: Quillgeist gateway, Open WebUI, SearXNG, n8n, Pipelines, web-search agent, persistent startup, and real inference/search verification. Preserve existing Ollama models and C:\\AI. Do not use external storage.",
   "resume_after": true
 }
