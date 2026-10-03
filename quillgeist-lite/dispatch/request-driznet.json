@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-n8n-diagnose2-20261003-1350",
+  "request_id": "chatgpt-driznet-n8n-repair-20261003-1351",
   "task_id": "driznet-n8n-doctor",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "diagnose"
+    "Action": "repair"
   },
-  "objective": "Diagnose the current DRIZNET n8n startup failure and return container state, persistent-state metadata, and recent logs.",
+  "objective": "Repair DRIZNET n8n by restoring the persisted encryption key, recreate only n8n, verify port 5678. If repair fails, preserve the full old n8n data on C: before clean reinitialization. Do not delete the backup or use external storage.",
   "resume_after": true
 }
