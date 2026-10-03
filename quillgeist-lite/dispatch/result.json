@@ -1,64 +1,26 @@
 {
-  "request_id": "memoria-full-parity-20261003-1122",
+  "request_id": "memoria-google-loop-inspect-20261003-1124",
   "mode": "batch",
   "jobs": [
     {
       "index": 0,
       "ok": true,
-      "task_id": "self-update",
+      "task_id": "cwinteract",
       "target_device": "MEMORIA",
-      "job_id": "b40292d4-eb3b-48fd-a5cd-38c5252fa6de",
-      "status": "passed",
+      "job_id": "4f9366e9-02d4-4d2c-ab12-d5fff3cf4c63",
+      "status": "failed",
       "confirmation_transport": "websocket-event",
       "confirmation_source": "qq-local-agent",
       "confirmed_device": "MEMORIA",
-      "exit_code": 0,
-      "duration_ms": 11831,
+      "exit_code": 1,
+      "duration_ms": 1665,
       "worker_slot": 0,
       "gpu_index": -1,
       "resource_class": "",
       "concurrency_group": "",
-      "confirmed_at": "2026-10-03T16:23:16.2885301Z",
-      "output_tail": "[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] SYNC // reconciling QQ from the packaged runtime\r\n[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 70132\r\n[run] DEDUPE_QQ_READY // kept=70132 closed=0\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n[run] SYNC // refreshing reviewed QQ runner from Clintware\r\n[run] RUNTIME // reviewed Miniconda-first Python resolver installed\r\n[run] SYNC // refreshing qq window, MCP monitor, and ASCII splash assets\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] SYNC // refreshing reviewed QQ task registry\r\n[run] REGISTRY // reviewed task registry v32 installed\r\n[run] HEALTH // canonical admin reconcile entry point refreshed\r\n[run] SERVICE // aligning QQ health service with reviewed Clintware source\r\n[run] REPAIR // Quillgeist Lite self-heal 2026.09.30.13-health-contract\r\n[run] SERVICE // refreshing stale-task recovery watchdog\r\n[run] CONFIG // health-service configuration validated\r\n[run] SERVICE // replacing watchdog binary\r\n[run] SERVICE // arming restart dead-man\r\n[run] TASK // runner task enabled\r\n[run] TASK // automatic runner recovery is configured\r\n[run] SERVICE // validating Windows service registration\r\n[run] SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\"\r\n[run] SERVICE // account LocalSystem / start Auto\r\n[run] SERVICE // native health watchdog running\r\n[run] FALLBACK // installing scheduled qq recovery watchdog\r\n[run] RECOVERY // fallback repair paths persisted\r\n[run] FALLBACK // recovery watchdog active every minute\r\n[run] FALLBACK // independent recovery layer ensured\r\n[run] TASK // runner restart deferred because an active qq job is using this session\r\n[run] SELF-HEAL // canonical repair logic cached locally\r\n[run] READY // qq recovery repaired; native service or scheduled fallback is supervising the runner.\r\n[run] READY // QQ runtime and Python resolver reconciled.\r\n[run] CHECK-IN // independent watchdog remains available while the runner restarts\r\n[run] RESUME // queued work will replay in priority/FIFO order after reconnect\r\n[run] RESTART // canonical QQ runner restart queued after result delivery"
-    },
-    {
-      "index": 1,
-      "ok": true,
-      "task_id": "browser-setup",
-      "target_device": "MEMORIA",
-      "job_id": "42b171c2-87bc-4c59-bb27-ab14bf61e2e9",
-      "status": "passed",
-      "confirmation_transport": "websocket-event",
-      "confirmation_source": "qq-local-agent",
-      "confirmed_device": "MEMORIA",
-      "exit_code": 0,
-      "duration_ms": 1950,
-      "worker_slot": 0,
-      "gpu_index": -1,
-      "resource_class": "",
-      "concurrency_group": "",
-      "confirmed_at": "2026-10-03T16:23:18.3429300Z",
-      "output_tail": "[run] READY // qq browser runtime already installed\r\n[run] C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\browser-runtime\\Scripts\\python.exe"
-    },
-    {
-      "index": 2,
-      "ok": true,
-      "task_id": "self-heal",
-      "target_device": "MEMORIA",
-      "job_id": "32e1cf44-6b7b-40bf-a8a2-1db135aa236c",
-      "status": "passed",
-      "confirmation_transport": "websocket-event",
-      "confirmation_source": "qq-local-agent",
-      "confirmed_device": "MEMORIA",
-      "exit_code": 0,
-      "duration_ms": 3909,
-      "worker_slot": 0,
-      "gpu_index": -1,
-      "resource_class": "",
-      "concurrency_group": "",
-      "confirmed_at": "2026-10-03T16:23:22.3623686Z",
-      "output_tail": "[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 70132\r\n[run] DEDUPE_QQ_READY // kept=70132 closed=0\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled"
+      "confirmed_at": "2026-10-03T16:25:11.1274697Z",
+      "output_tail": "[run] \u001b[31;1mcwinteract.ps1: \u001b[31;1mCannot validate argument on parameter 'MaxResults'. The 120 argument is greater than the maximum allowed range of 100. Supply an argument that is less than or equal to 100 and then try the command again.\u001b[0m"
     }
   ],
-  "recorded_at": 1791044588
+  "recorded_at": 1791044697
 }
