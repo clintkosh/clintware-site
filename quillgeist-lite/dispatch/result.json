@@ -1,14 +1,14 @@
 {
-  "request_id": "cpath-rerun-inspect-20261003-1904",
+  "request_id": "qq-final-node-alignment-inspect-20261003-1906",
   "mode": "inspect",
-  "recorded_at": 1791054219,
+  "recorded_at": 1791054359,
   "inspection": {
     "online": 1,
     "recovery_online": 0,
     "wake_online": 2,
     "recovery": null,
     "runner_version": "1.11.0",
-    "runner_last_seen": "2026-10-03T19:03:35.076Z",
+    "runner_last_seen": "2026-10-03T19:05:59.293Z",
     "runner": {
       "runner_id": "MEMORIA",
       "version": "1.11.0",
@@ -34,8 +34,8 @@
         "capability_inventory",
         "capability_aware_routing"
       ],
-      "connected_at": "2026-10-03T19:03:31.316Z",
-      "last_seen": "2026-10-03T19:03:35.076Z",
+      "connected_at": "2026-10-03T19:03:54.933Z",
+      "last_seen": "2026-10-03T19:05:59.293Z",
       "source_revision": "e5950d0fab5a6c3a272b13dab33f5f8d47ce4fc8",
       "registry_version": "34",
       "resource_presence": {
@@ -50,19 +50,19 @@
         "queued_jobs": 0,
         "worker_capacity": 6,
         "available_workers": 6,
-        "cpu_load_percent": 17.7,
+        "cpu_load_percent": 7.7,
         "memory_load_percent": 47,
-        "memory_available_gib": 33.2,
+        "memory_available_gib": 33.25,
         "gpu_worker_capacity": 0,
         "scheduler_mode": "adaptive",
-        "timestamp": "2026-10-03T19:03:49.0769858Z",
-        "updated_at": "2026-10-03T19:03:35.076Z"
+        "timestamp": "2026-10-03T19:06:13.2906069Z",
+        "updated_at": "2026-10-03T19:05:59.293Z"
       }
     },
     "connected_devices": [
       {
         "device_id": "MEMORIA",
-        "connected_at": "2026-10-03T19:03:31.316Z",
+        "connected_at": "2026-10-03T19:03:54.933Z",
         "runner": {
           "runner_id": "MEMORIA",
           "version": "1.11.0",
@@ -88,8 +88,8 @@
             "capability_inventory",
             "capability_aware_routing"
           ],
-          "connected_at": "2026-10-03T19:03:31.316Z",
-          "last_seen": "2026-10-03T19:03:31.360Z",
+          "connected_at": "2026-10-03T19:03:54.933Z",
+          "last_seen": "2026-10-03T19:03:54.971Z",
           "source_revision": "e5950d0fab5a6c3a272b13dab33f5f8d47ce4fc8",
           "registry_version": "34"
         }
@@ -100,7 +100,7 @@
         "device_id": "MEMORIA",
         "label": "MEMORIA / batman",
         "registered_at": "2026-09-26T05:25:34.942Z",
-        "last_seen": "2026-10-03T19:03:15.967Z",
+        "last_seen": "2026-10-03T19:04:04.041Z",
         "runner_alive": false,
         "service_version": "",
         "updated_at": "",
@@ -110,7 +110,7 @@
         "device_id": "DRIZNET",
         "label": "DRIZNET / batman",
         "registered_at": "2026-09-22T20:47:30.020Z",
-        "last_seen": "2026-10-03T19:02:55.734Z",
+        "last_seen": "2026-10-03T19:05:04.078Z",
         "runner_alive": false,
         "service_version": "",
         "updated_at": "",
@@ -193,6 +193,86 @@
     ],
     "diagnostics": [
       {
+        "device_id": "DRIZNET",
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_deferred_runner_busy",
+        "timestamp": "2026-10-03T19:05:04.9291044Z"
+      },
+      {
+        "device_id": "DRIZNET",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-10-03T19:05:04.7570670Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "desktop-focus",
+        "kind": "other",
+        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 0 candidate task(s). | Converted 0 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-03T19:04:13.0470462Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 0 candidate task(s). | Converted 0 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-03T19:04:13.0424467Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Interactive relay channel initialized.",
+        "timestamp": "2026-10-03T19:04:09.2694036Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Connected to Clintware Control Plane.",
+        "timestamp": "2026-10-03T19:04:09.2319777Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_selected device=MEMORIA source=machine",
+        "timestamp": "2026-10-03T19:04:08.8210744Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-10-03T19:03:58.0440708Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner-auth",
+        "kind": "other",
+        "message": "credential_probe",
+        "timestamp": "2026-10-03T19:04:08.6734635Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "runner-log",
+        "kind": "other",
+        "message": "2026-10-03T14:03:58 [WARN] Disconnected. Reconnecting in 10 seconds; bounded backoff prevents Cloudflare request storms.",
+        "timestamp": "2026-10-03T19:04:00.9142126Z"
+      },
+      {
         "device_id": "MEMORIA",
         "level": "INFO",
         "phase": "desktop-focus",
@@ -207,86 +287,6 @@
         "kind": "other",
         "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 1 candidate task(s). | Converted 1 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
         "timestamp": "2026-10-03T19:03:49.0215828Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_state=alive",
-        "timestamp": "2026-10-03T19:03:45.8840684Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Interactive relay channel initialized.",
-        "timestamp": "2026-10-03T19:03:45.5563327Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Connected to Clintware Control Plane.",
-        "timestamp": "2026-10-03T19:03:45.5297931Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "kind": "other",
-        "message": "credential_selected device=MEMORIA source=machine",
-        "timestamp": "2026-10-03T19:03:45.2279781Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Interactive relay mode: local questions route through the Clintware Control Plane.",
-        "timestamp": "2026-10-03T19:03:44.4531789Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Runtimes enabled: PowerShell, Python, C.",
-        "timestamp": "2026-10-03T19:03:44.4263556Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Runtime host: PowerShell 7.6.6 / Core.",
-        "timestamp": "2026-10-03T19:03:44.3962875Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner",
-        "kind": "other",
-        "message": "Clintware Quillgeist Lite starting.",
-        "timestamp": "2026-10-03T19:03:44.3454980Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "INFO",
-        "phase": "runner-auth",
-        "kind": "other",
-        "message": "credential_probe",
-        "timestamp": "2026-10-03T19:03:45.0287220Z"
-      },
-      {
-        "device_id": "MEMORIA",
-        "level": "WARN",
-        "phase": "health",
-        "kind": "other",
-        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
-        "timestamp": "2026-10-03T19:03:42.0304341Z"
       }
     ]
   }
