@@ -1,45 +1,26 @@
 {
-  "request_id": "memoria-nextauth-loop-fix-20261003-1130",
+  "request_id": "memoria-browser-emergency-stop-20261003-1134",
   "mode": "batch",
   "jobs": [
     {
       "index": 0,
       "ok": true,
-      "task_id": "cwinteract",
-      "target_device": "MEMORIA",
-      "job_id": "959e6233-ee59-40e5-8dc5-fc58c6d4789f",
-      "status": "passed",
-      "confirmation_transport": "websocket-event",
-      "confirmation_source": "qq-local-agent",
-      "confirmed_device": "MEMORIA",
-      "exit_code": 0,
-      "duration_ms": 51266,
-      "worker_slot": 0,
-      "gpu_index": -1,
-      "resource_class": "",
-      "concurrency_group": "",
-      "confirmed_at": "2026-10-03T16:35:34.7777966Z",
-      "output_tail": "[run] {\"ok\":true,\"action\":\"tabscan\",\"window_title\":\"Create your Google Account and 247 more pages - Personal - Microsoft\u200b Edge\",\"pid\":31584,\"query\":\"NextAuth\",\"focus_sequence\":[]}"
-    },
-    {
-      "index": 1,
-      "ok": true,
       "task_id": "self-heal",
       "target_device": "MEMORIA",
-      "job_id": "4bfeb088-507b-4f5e-8905-163f781a1341",
+      "job_id": "94aaf8f1-b824-4e7c-b3d5-d9680b1042ee",
       "status": "passed",
       "confirmation_transport": "websocket-event",
       "confirmation_source": "qq-local-agent",
       "confirmed_device": "MEMORIA",
       "exit_code": 0,
-      "duration_ms": 3632,
+      "duration_ms": 3370,
       "worker_slot": 0,
       "gpu_index": -1,
       "resource_class": "",
       "concurrency_group": "",
-      "confirmed_at": "2026-10-03T16:35:38.4678740Z",
+      "confirmed_at": "2026-10-03T16:35:55.0624776Z",
       "output_tail": "[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // no duplicate qq launcher processes found\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled"
     }
   ],
-  "recorded_at": 1791045324
+  "recorded_at": 1791045341
 }
