@@ -1,8 +1,20 @@
 {
-  "request_id": "memoria-google-loop-inspect-20261003-1124",
+  "request_id": "cloudmist-hang-recovery-20261003-1127",
   "mode": "batch",
-  "verify_seconds": 240,
+  "verify_seconds": 300,
   "jobs": [
+    {
+      "task_id": "self-heal",
+      "target_device": "MEMORIA",
+      "args": {},
+      "objective": "Recover MEMORIA immediately if any QQ work is stale or hung, preserve queued work, and verify native watchdog plus scheduled fallback supervision."
+    },
+    {
+      "task_id": "self-heal",
+      "target_device": "DRIZNET",
+      "args": {},
+      "objective": "Verify DRIZNET has the same stale-task recovery, watchdog, queued-work replay, and no-focus supervision contract as MEMORIA."
+    },
     {
       "task_id": "cwinteract",
       "target_device": "MEMORIA",
@@ -11,9 +23,9 @@
         "AppName": "Edge",
         "WindowTitle": "Edge",
         "Query": "Google",
-        "MaxResults": "120"
+        "MaxResults": "100"
       },
-      "objective": "Inspect the existing signed-in Edge session on MEMORIA for the repeating Google sign-in/error tabs. Capture enough visible UI context to identify the actual error and recurring page without opening another browser or changing the account. Do not submit credentials or dismiss the error yet."
+      "objective": "Retry the Google sign-in-loop inspection with the valid result limit. Capture the actual visible error/state from the existing Edge session without opening another browser or changing credentials."
     }
   ]
 }
