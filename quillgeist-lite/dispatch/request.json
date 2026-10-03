@@ -1,25 +1,13 @@
 {
-  "request_id": "memoria-nextauth-loop-fix-20261003-1130",
+  "request_id": "memoria-browser-emergency-stop-20261003-1134",
   "mode": "batch",
-  "verify_seconds": 300,
+  "verify_seconds": 180,
   "jobs": [
-    {
-      "task_id": "cwinteract",
-      "target_device": "MEMORIA",
-      "args": {
-        "Action": "tabscan",
-        "AppName": "Edge",
-        "WindowTitle": "Edge",
-        "Query": "NextAuth",
-        "MaxResults": "100"
-      },
-      "objective": "Inspect the CURRENT Edge tab showing 'Error: This action with HTTP GET is not supported by NextAuth.js'. Capture visible context and identify which local Clintware/QQ/Work flow opened it. Do not open another sign-in tab and do not ask the user to authenticate again."
-    },
     {
       "task_id": "self-heal",
       "target_device": "MEMORIA",
       "args": {},
-      "objective": "Stop stale or repeating browser-auth work from relaunching tabs while preserving unrelated queued work. Ensure duplicate/no-focus browser launch protections remain active."
+      "objective": "EMERGENCY STOP: cancel or suppress stale/repeating QQ browser-auth work on MEMORIA immediately. Do not open, navigate, focus, or interact with any browser tab. Preserve unrelated queued work but prevent browser automation from resuming until explicitly requested by the user. Reconcile duplicate/no-focus protections and return control of Edge to the user."
     }
   ]
 }
