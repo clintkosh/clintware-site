@@ -1,25 +1,19 @@
 {
-  "request_id": "memoria-full-parity-20261003-1122",
+  "request_id": "memoria-google-loop-inspect-20261003-1124",
   "mode": "batch",
-  "verify_seconds": 300,
+  "verify_seconds": 240,
   "jobs": [
     {
-      "task_id": "self-update",
+      "task_id": "cwinteract",
       "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Bring MEMORIA to the current reviewed QQ runtime and task registry, matching DRIZNET functionality while preserving active work and avoiding duplicate windows."
-    },
-    {
-      "task_id": "browser-setup",
-      "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Install or repair MEMORIA's governed local browser automation runtime so QQ can perform browser work locally."
-    },
-    {
-      "task_id": "self-heal",
-      "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Reconcile MEMORIA services, watchdog, browser assets, launch policy, and task registry after the parity upgrade."
+      "args": {
+        "Action": "tabscan",
+        "AppName": "Edge",
+        "WindowTitle": "Edge",
+        "Query": "Google",
+        "MaxResults": "120"
+      },
+      "objective": "Inspect the existing signed-in Edge session on MEMORIA for the repeating Google sign-in/error tabs. Capture enough visible UI context to identify the actual error and recurring page without opening another browser or changing the account. Do not submit credentials or dismiss the error yet."
     }
   ]
 }
