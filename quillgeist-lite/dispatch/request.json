@@ -1,13 +1,19 @@
 {
-  "request_id": "memoria-manual-resume-handshake-20261003-1138",
+  "request_id": "memoria-nextauth-exact-inspect-20261003-1140",
   "mode": "batch",
   "verify_seconds": 300,
   "jobs": [
     {
-      "task_id": "self-heal",
+      "task_id": "cwinteract",
       "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Refine the durable MANUAL TAKEOVER GUARD. When human activity interrupts browser/UI automation, immediately pause conflicting UI actions and enter MANUAL state. After human activity stops and the UI is stable, do NOT silently resume. Emit one compact confirmation request describing the paused task and proposed next action, e.g. 'Manual control ended. Resume <task> from <safe checkpoint>?' Resume only after an explicit affirmative response. If declined or no response, remain paused without repeated prompts. Never replay stale clicks or form submissions; re-observe current UI and resume from a safe checkpoint. Keep Next/Continue/Submit/Sign in/Create/Authorize and equivalent consequential boundary actions protected unless the resumed task explicitly authorizes them. Preserve unrelated non-UI work. Apply this as a durable default and reconcile it on self-heal/restart. Keep current browser automation paused after installing the rule."
+      "args": {
+        "Action": "tabscan",
+        "AppName": "Edge",
+        "WindowTitle": "Edge",
+        "Query": "This action with HTTP GET is not supported by NextAuth.js",
+        "MaxResults": "100"
+      },
+      "objective": "Human has completed Google registration/sign-in using clint@clintware.com and the SAME NextAuth GET error is visible again. Take over diagnostically: inspect the existing error tab and surrounding browser UI, identify the exact URL/route or visible origin if exposed, and determine which Clintware/QQ browser-auth flow generated it. Do not ask the human to sign in again. Do not create another auth tab. Do not replay stale clicks. Return compact evidence sufficient to fix the GET-vs-POST route defect."
     }
   ]
 }
