@@ -1,13 +1,13 @@
 {
-  "request_id": "chatgpt-driznet-server-plan-20261002-1700",
-  "task_id": "big-prompt-plan",
+  "request_id": "memoria-browser-loop-resolve-20261003-1149",
+  "task_id": "browser-work",
   "target_device": "MEMORIA",
   "args": {
-    "Prompt": "Finish the DRIZNET local AI server completely using DRIZNET internal storage only. Preserve all existing C:\\AI work and Ollama models. DRIZNET is independent from MEMORIA. Required right-sized service plane: Quillgeist local gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, local web-search agent, and the planned media/ComfyUI path where supported; keep Discord helper configuration-safe and do not require external Toshiba storage. Verify endpoints and real local inference before completion.",
-    "Project": "driznet-local-ai-server",
-    "StateScope": "DRIZNET",
-    "MaxDepth": "3"
+    "Prompt": "Resume and complete the MEMORIA infinite browser sign-in/tab loop repair. User has manually signed Edge back into their established main OpenAI account. Respect manual-takeover guard: if user is actively typing/clicking/navigating, immediately stand down; after manual activity stops, ask once before resuming browser interaction. Do not create any OpenAI account or organization, do not change accounts, do not submit credentials, and do not open replacement sign-in tabs. Inspect the existing Edge session and local QQ/CWInteract/browser-work launch sources. Identify the exact recurring launcher/auth trigger that is opening Google/OpenAI sign-in tabs and the actual visible error/state. Stop/disable only the offending recurring trigger, preserving legitimate QQ/browser functionality. Reconcile browser-work, cwinteract, watchdog, scheduled-task isolation, and no-focus policy. Close only automation-created duplicate sign-in tabs when safe, leaving the user's active/manual tab untouched. Verify for a sustained observation interval that no new duplicate sign-in tabs are spawned. Emit compact event-driven state changes only: RUNNING, STALLED, RECOVERING, FAILED, DONE, plus exact root cause and verification evidence. Self-detect stale/hung work and recover without external polling. Do not claim DONE until the loop is stopped and verified.",
+    "Project": "memoria-browser-loop-repair",
+    "StateScope": "MEMORIA",
+    "MaxResults": "100"
   },
-  "objective": "Produce the dependency-aware execution plan for completing DRIZNET's internal-storage local AI server while the actual mutations remain targeted to DRIZNET.",
+  "objective": "Eliminate MEMORIA's recurring Google/OpenAI sign-in tab loop while preserving the user's established OpenAI session and preventing automation/manual-control conflicts.",
   "resume_after": true
 }
