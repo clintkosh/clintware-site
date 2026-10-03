@@ -1,9 +1,9 @@
 {
-  "request_id": "cpath-verify-memoria-20261003-1902",
+  "request_id": "cpath-verify-memoria-rerun-20261003-1903",
   "task_id": "cpath-verify",
   "target_device": "MEMORIA",
   "args": {
     "Action": "full"
   },
-  "objective": "Verify the CodePath Claude Corps Delivery OS locally and live: 10 mentors / 200 seeded fellows, seed v2, worker syntax, live health job 5204061007, and current cpath.clintware.com release."
+  "objective": "Rerun the corrected CodePath Claude Corps Delivery OS verification locally and live after deploying the PowerShell binder fix."
 }
