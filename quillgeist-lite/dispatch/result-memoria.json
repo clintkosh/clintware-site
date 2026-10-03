@@ -1,15 +1,15 @@
 {
-  "request_id": "cpath-verify-memoria-20261003-1902",
-  "job_id": "f4901761-e2da-4807-979e-bbe4c1980d72",
+  "request_id": "cpath-verify-memoria-rerun-20261003-1903",
+  "job_id": "beec90be-16a5-496e-80b1-242b867c3e2a",
   "task_id": "cpath-verify",
   "target_device": "MEMORIA",
-  "status": "failed",
-  "exit_code": 1,
-  "duration_ms": 4533,
+  "status": "passed",
+  "exit_code": 0,
+  "duration_ms": 1827,
   "confirmation_source": "qq-local-agent",
   "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-03T19:00:58.4377131Z",
-  "recorded_at": 1791054044,
+  "confirmed_at": "2026-10-03T19:03:33.7549522Z",
+  "recorded_at": 1791054199,
   "recovery_history": [],
-  "output_tail": "From https://github.com/clintkosh/clintware-site\r\n * branch            c13cc5730099599f671bf16564e3461107557b24 -> FETCH_HEAD\r\nHEAD is now at c13cc57 Allow CodePath verification through QQ control plane\r\n\u001b[31;1mcpath-verify.ps1: \u001b[31;1mArgument types do not match\u001b[0m"
+  "output_tail": "From https://github.com/clintkosh/clintware-site\r\n * branch            e5950d0fab5a6c3a272b13dab33f5f8d47ce4fc8 -> FETCH_HEAD\r\nHEAD is now at e5950d0 Fix PowerShell collection binding in QQ CodePath verifier\r\n{\r\n  \"ok\": true,\r\n  \"task\": \"cpath-verify\",\r\n  \"action\": \"full\",\r\n  \"machine\": \"MEMORIA\",\r\n  \"commit\": \"e5950d0fab5a6c3a272b13dab33f5f8d47ce4fc8\",\r\n  \"role_job_id\": \"5204061007\",\r\n  \"scale\": \"10 mentors / 200 seeded fellows\",\r\n  \"confirmation_target\": \"https://cpath.clintware.com\",\r\n  \"checks\": [\r\n    {\r\n      \"name\": \"seed\",\r\n      \"ok\": true,\r\n      \"detail\": \"10 mentors x 20 fellows; enriched seed v2\"\r\n    },\r\n    {\r\n      \"name\": \"worker_syntax\",\r\n      \"ok\": true,\r\n      \"detail\": \"node --check passed\"\r\n    },\r\n    {\r\n      \"name\": \"live\",\r\n      \"ok\": true,\r\n      \"detail\": \"health + current 200-fellow release verified\"\r\n    }\r\n  ],\r\n  \"verified_at\": \"2026-10-03T19:03:33.6490251+00:00\"\r\n}"
 }
