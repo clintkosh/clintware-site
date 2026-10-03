@@ -72,7 +72,7 @@ if (-not (Test-Path -LiteralPath $Verifier -PathType Leaf)) { throw "Missing Cod
 if (-not (Test-Path -LiteralPath $Index -PathType Leaf)) { throw "Missing CodePath index: $Index" }
 if (-not (Test-Path -LiteralPath $Worker -PathType Leaf)) { throw "Missing CodePath worker: $Worker" }
 
-$checks = New-Object System.Collections.Generic.List[object]
+$checks = @()
 
 if ($Action -in @("full","local")) {
   $html = Get-Content -LiteralPath $Index -Raw
@@ -90,15 +90,15 @@ if ($Action -in @("full","local")) {
 
   $mentorCount = ([regex]::Matches($html, "\{name:'[^']+',pod:'[^']+'")).Count
   if ($mentorCount -lt 10) { throw "Expected at least 10 seeded mentors, found $mentorCount." }
-  $checks.Add([pscustomobject]@{name="seed";ok=$true;detail="10 mentors x 20 fellows; enriched seed v2"}) | Out-Null
+  $checks += [pscustomobject]@{name="seed";ok=$true;detail="10 mentors x 20 fellows; enriched seed v2"}
 
   $node = Get-Command node -ErrorAction SilentlyContinue
   if ($node) {
     & $node.Source --check $Worker
     if ($LASTEXITCODE -ne 0) { throw "CodePath worker.js failed node --check." }
-    $checks.Add([pscustomobject]@{name="worker_syntax";ok=$true;detail="node --check passed"}) | Out-Null
+    $checks += [pscustomobject]@{name="worker_syntax";ok=$true;detail="node --check passed"}
   } else {
-    $checks.Add([pscustomobject]@{name="worker_syntax";ok=$null;detail="node not installed; skipped"}) | Out-Null
+    $checks += [pscustomobject]@{name="worker_syntax";ok=$null;detail="node not installed; skipped"}
   }
 }
 
@@ -114,7 +114,7 @@ if ($Action -in @("full","live")) {
   foreach ($marker in @("Claude Corps Delivery OS","10 mentors · 200 fellows at scale","cpath-claude-corps-delivery-v2")) {
     if (-not $page.Content.Contains($marker)) { throw "Live CodePath page missing release marker: $marker" }
   }
-  $checks.Add([pscustomobject]@{name="live";ok=$true;detail="health + current 200-fellow release verified"}) | Out-Null
+  $checks += [pscustomobject]@{name="live";ok=$true;detail="health + current 200-fellow release verified"}
 }
 
 [ordered]@{
@@ -126,6 +126,6 @@ if ($Action -in @("full","live")) {
   role_job_id = "5204061007"
   scale = "10 mentors / 200 seeded fellows"
   confirmation_target = "https://cpath.clintware.com"
-  checks = @($checks)
+  checks = $checks
   verified_at = [DateTimeOffset]::UtcNow.ToString("o")
 } | ConvertTo-Json -Depth 6
