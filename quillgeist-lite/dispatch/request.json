@@ -1,5 +1,5 @@
 {
-  "request_id": "memoria-manual-takeover-guard-20261003-1136",
+  "request_id": "memoria-manual-resume-handshake-20261003-1138",
   "mode": "batch",
   "verify_seconds": 300,
   "jobs": [
@@ -7,7 +7,7 @@
       "task_id": "self-heal",
       "target_device": "MEMORIA",
       "args": {},
-      "objective": "Install/enforce a MANUAL TAKEOVER GUARD for browser/UI automation. If user activity is detected in the controlled browser/window while QQ automation is active (typing, clicking, focus/selection changes, navigation, form edits, or other human interaction), immediately pause/cancel conflicting queued and active browser actions, relinquish UI control, and enter MANUAL state. Never click Next, Continue, Submit, Sign in, Create, authorize, or equivalent boundary actions while MANUAL state is active. Do not resume browser automation merely because the user becomes idle; resume only after a new explicit user instruction authorizes automation. Preserve unrelated non-UI work. Apply this as a durable default for MEMORIA browser/UI tasks and reconcile it on self-heal/restart. Keep the current browser automation STOPPED after installation."
+      "objective": "Refine the durable MANUAL TAKEOVER GUARD. When human activity interrupts browser/UI automation, immediately pause conflicting UI actions and enter MANUAL state. After human activity stops and the UI is stable, do NOT silently resume. Emit one compact confirmation request describing the paused task and proposed next action, e.g. 'Manual control ended. Resume <task> from <safe checkpoint>?' Resume only after an explicit affirmative response. If declined or no response, remain paused without repeated prompts. Never replay stale clicks or form submissions; re-observe current UI and resume from a safe checkpoint. Keep Next/Continue/Submit/Sign in/Create/Authorize and equivalent consequential boundary actions protected unless the resumed task explicitly authorizes them. Preserve unrelated non-UI work. Apply this as a durable default and reconcile it on self-heal/restart. Keep current browser automation paused after installing the rule."
     }
   ]
 }
