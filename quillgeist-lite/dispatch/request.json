@@ -1,20 +1,8 @@
 {
-  "request_id": "cloudmist-hang-recovery-20261003-1127",
+  "request_id": "memoria-nextauth-loop-fix-20261003-1130",
   "mode": "batch",
   "verify_seconds": 300,
   "jobs": [
-    {
-      "task_id": "self-heal",
-      "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Recover MEMORIA immediately if any QQ work is stale or hung, preserve queued work, and verify native watchdog plus scheduled fallback supervision."
-    },
-    {
-      "task_id": "self-heal",
-      "target_device": "DRIZNET",
-      "args": {},
-      "objective": "Verify DRIZNET has the same stale-task recovery, watchdog, queued-work replay, and no-focus supervision contract as MEMORIA."
-    },
     {
       "task_id": "cwinteract",
       "target_device": "MEMORIA",
@@ -22,10 +10,16 @@
         "Action": "tabscan",
         "AppName": "Edge",
         "WindowTitle": "Edge",
-        "Query": "Google",
+        "Query": "NextAuth",
         "MaxResults": "100"
       },
-      "objective": "Retry the Google sign-in-loop inspection with the valid result limit. Capture the actual visible error/state from the existing Edge session without opening another browser or changing credentials."
+      "objective": "Inspect the CURRENT Edge tab showing 'Error: This action with HTTP GET is not supported by NextAuth.js'. Capture visible context and identify which local Clintware/QQ/Work flow opened it. Do not open another sign-in tab and do not ask the user to authenticate again."
+    },
+    {
+      "task_id": "self-heal",
+      "target_device": "MEMORIA",
+      "args": {},
+      "objective": "Stop stale or repeating browser-auth work from relaunching tabs while preserving unrelated queued work. Ensure duplicate/no-focus browser launch protections remain active."
     }
   ]
 }
