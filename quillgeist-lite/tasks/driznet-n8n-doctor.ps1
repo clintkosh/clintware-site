@@ -13,6 +13,7 @@ if(-not $docker){$docker=Get-Command docker -ErrorAction Stop}
 function Healthy(){try{$r=Invoke-WebRequest "http://127.0.0.1:5678" -UseBasicParsing -TimeoutSec 5;return($r.StatusCode-ge 200-and$r.StatusCode-lt 500)}catch{return $false}}
 function Logs(){try{return((& $docker.Source logs --tail 160 driznet-n8n 2>&1|Out-String).Trim())}catch{return $_.Exception.Message}}
 function ContainerState(){try{return((& $docker.Source inspect -f "{{.State.Status}}|{{.State.ExitCode}}|{{.State.Error}}" driznet-n8n 2>&1|Out-String).Trim())}catch{return "missing"}}
+function TailText([string]$text){if(-not $text){return ""};if($text.Length-le 5000){return $text};return $text.Substring($text.Length-5000)}
 function SetEnv($name,$value){$lines=@();if(Test-Path $EnvPath){$lines=@(Get-Content $EnvPath)};$out=New-Object System.Collections.Generic.List[string];$done=$false;foreach($line in $lines){if($line -match ("^"+[Regex]::Escape($name)+"=")){if(-not $done){$out.Add($name+"="+$value);$done=$true}}else{$out.Add([string]$line)}};if(-not $done){$out.Add($name+"="+$value)};[IO.File]::WriteAllLines($EnvPath,$out,(New-Object Text.UTF8Encoding($false)))}
 function WaitHealthy($seconds){$end=(Get-Date).AddSeconds($seconds);do{if(Healthy){return $true};Start-Sleep 3}while((Get-Date)-lt$end);return $false}
 
@@ -54,8 +55,8 @@ if($Action-eq"repair"){
    $reset=$true
  }
  $after=Logs
- [ordered]@{ok=$healthy;action="repair";state=(ContainerState);config_key_present_before=$configKeyPresent;recovered_existing_key=$recovered;clean_reinitialize_performed=$reset;backup_path=$backup;database_present_before=(Test-Path $db);logs_before=$before[-[Math]::Min(5000,$before.Length)..-1] -join '';logs_after=$after[-[Math]::Min(5000,$after.Length)..-1] -join ''}|ConvertTo-Json -Depth 5
+ [ordered]@{ok=$healthy;action="repair";state=(ContainerState);config_key_present_before=$configKeyPresent;recovered_existing_key=$recovered;clean_reinitialize_performed=$reset;backup_path=$backup;database_present_before=(Test-Path $db);logs_before=(TailText $before);logs_after=(TailText $after)}|ConvertTo-Json -Depth 5
  if(-not $healthy){exit 2}
 }else{
- [ordered]@{ok=(Healthy);action="diagnose";state=(ContainerState);config_key_present=$configKeyPresent;database_present=(Test-Path $db);database_bytes=(if(Test-Path $db){(Get-Item $db).Length}else{0});logs=$before}|ConvertTo-Json -Depth 5
+ [ordered]@{ok=(Healthy);action="diagnose";state=(ContainerState);config_key_present=$configKeyPresent;database_present=(Test-Path $db);database_bytes=$(if(Test-Path $db){(Get-Item $db).Length}else{0});logs=$before}|ConvertTo-Json -Depth 5
 }
