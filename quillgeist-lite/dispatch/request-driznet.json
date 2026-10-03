@@ -1,8 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-n8n-refresh-20261003-1345",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-n8n-diagnose-20261003-1347",
+  "task_id": "driznet-n8n-doctor",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET with the targeted n8n doctor/repair task, preserving all current local AI services and data.",
+  "args": {
+    "Action": "diagnose"
+  },
+  "objective": "Diagnose why DRIZNET n8n is not listening. Return bounded container state, persisted-state metadata, and recent n8n logs without exposing secrets.",
   "resume_after": true
 }
