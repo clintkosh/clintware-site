@@ -1,64 +1,26 @@
 {
-  "request_id": "driznet-confirm-corrected-diagnostics-20261002-0815",
+  "request_id": "memoria-self-heal-20261003-1117",
   "mode": "batch",
   "jobs": [
     {
       "index": 0,
       "ok": true,
-      "task_id": "local-ai",
-      "target_device": "DRIZNET",
-      "job_id": "fdecff6a-66b2-48f3-af4a-5759e7a974c1",
+      "task_id": "self-heal",
+      "target_device": "MEMORIA",
+      "job_id": "b26088c5-b74e-49c5-8f9a-2c76634b37fc",
       "status": "passed",
       "confirmation_transport": "websocket-event",
       "confirmation_source": "qq-local-agent",
-      "confirmed_device": "DRIZNET",
+      "confirmed_device": "MEMORIA",
       "exit_code": 0,
-      "duration_ms": 1251,
+      "duration_ms": 4680,
       "worker_slot": 0,
       "gpu_index": -1,
       "resource_class": "",
       "concurrency_group": "",
-      "confirmed_at": "2026-10-02T08:14:53.3044385Z",
-      "output_tail": "[run] {\r\n[run]   \"scope\": \"owner-machine\",\r\n[run]   \"platform\": \"Windows-10-10.0.26200-SP0\",\r\n[run]   \"memory\": {\r\n[run]     \"total_bytes\": 66334429184,\r\n[run]     \"available_bytes\": 37424709632,\r\n[run]     \"total_gib\": 61.78,\r\n[run]     \"available_gib\": 34.85\r\n[run]   },\r\n[run]   \"runtimes\": [\r\n[run]     {\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"ready\": true,\r\n[run]       \"path\": \"C:\\\\Users\\\\batman\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.EXE\"\r\n[run]     }\r\n[run]   ],\r\n[run]   \"models\": [\r\n[run]     {\r\n[run]       \"id\": \"ollama:qwen3.5:9b\",\r\n[run]       \"name\": \"qwen3.5:9b\",\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"size_bytes\": 6594474711,\r\n[run]       \"path\": null,\r\n[run]       \"fit\": {\r\n[run]         \"fit\": \"likely\",\r\n[run]         \"estimated_working_set_gib\": 8.62,\r\n[run]         \"available_after_reserve_gib\": 32.85,\r\n[run]         \"context_tokens\": 4096,\r\n[run]         \"reserve_gib\": 2.0,\r\n[run]         \"method\": \"conservative local estimate; benchmark before trusting production settings\"\r\n[run]       }\r\n[run]     },\r\n[run]     {\r\n[run]       \"id\": \"ollama:llama3.2:3b\",\r\n[run]       \"name\": \"llama3.2:3b\",\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"size_bytes\": 2019393189,\r\n[run]       \"path\": null,\r\n[run]       \"fit\": {\r\n[run]         \"fit\": \"likely\",\r\n[run]         \"estimated_working_set_gib\": 4.13,\r\n[run]         \"available_after_reserve_gib\": 32.85,\r\n[run]         \"context_tokens\": 4096,\r\n[run]         \"reserve_gib\": 2.0,\r\n[run]         \"method\": \"conservative local estimate; benchmark before trusting production settings\"\r\n[run]       }\r\n[run]     },\r\n[run]     {\r\n[run]       \"id\": \"ollama:qwen3:4b\",\r\n[run]       \"name\": \"qwen3:4b\",\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"size_bytes\": 2497293931,\r\n[run]       \"path\": null,\r\n[run]       \"fit\": {\r\n[run]         \"fit\": \"likely\",\r\n[run]         \"estimated_working_set_gib\": 4.58,\r\n[run]         \"available_after_reserve_gib\": 32.85,\r\n[run]         \"context_tokens\": 4096,\r\n[run]         \"reserve_gib\": 2.0,\r\n[run]         \"method\": \"conservative local estimate; benchmark before trusting production settings\"\r\n[run]       }\r\n[run]     },\r\n[run]     {\r\n[run]       \"id\": \"ollama:llama3.2-vision:latest\",\r\n[run]       \"name\": \"llama3.2-vision:latest\",\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"size_bytes\": 7816589186,\r\n[run]       \"path\": null,\r\n[run]       \"fit\": {\r\n[run]         \"fit\": \"likely\",\r\n[run]         \"estimated_working_set_gib\": 9.94,\r\n[run]         \"available_after_reserve_gib\": 32.85,\r\n[run]         \"context_tokens\": 4096,\r\n[run]         \"reserve_gib\": 2.0,\r\n[run]         \"method\": \"conservative local estimate; benchmark before trusting production settings\"\r\n[run]       }\r\n[run]     },\r\n[run]     {\r\n[run]       \"id\": \"ollama:qwen2.5:14b\",\r\n[run]       \"name\": \"qwen2.5:14b\",\r\n[run]       \"runtime\": \"ollama\",\r\n[run]       \"size_bytes\": 8988124069,\r\n[run]       \"path\": null,\r\n[run]       \"fit\": {\r\n[run]         \"fit\": \"likely\",\r\n[run]         \"estimated_working_set_gib\": 11.21,\r\n[run]         \"available_after_reserve_gib\": 32.85,\r\n[run]         \"context_tokens\": 4096,\r\n[run]         \"reserve_gib\": 2.0,\r\n[run]         \"method\": \"conservative local estimate; benchmark before trusting production settings\"\r\n[run]       }\r\n[run]     }\r\n[run]   ],\r\n[run]   \"network_required\": false,\r\n[run]   \"model_downloads_performed\": false\r\n[run] }"
-    },
-    {
-      "index": 1,
-      "ok": true,
-      "task_id": "cwinteract",
-      "target_device": "DRIZNET",
-      "job_id": "50e3d8cd-1d22-4b9a-b749-4e7cf0154abd",
-      "status": "passed",
-      "confirmation_transport": "websocket-event",
-      "confirmation_source": "qq-local-agent",
-      "confirmed_device": "DRIZNET",
-      "exit_code": 0,
-      "duration_ms": 40414,
-      "worker_slot": 0,
-      "gpu_index": -1,
-      "resource_class": "",
-      "concurrency_group": "",
-      "confirmed_at": "2026-10-02T08:15:47.3928251Z",
-      "output_tail": "[run] {\"ok\":true,\"action\":\"tabscan\",\"window_title\":\"Advizex panel kit ready but email blocked and 38 more pages - Personal - Microsoft\u200b Edge\",\"pid\":19112,\"query\":\"LinkedIn\",\"focus_sequence\":[{\"name\":\"Superpowers for LinkedIn\\nNo access needed\",\"automation_id\":\"view_1013\",\"class\":\"ToolbarActionView\",\"control_type\":\"Button\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":1725.0,\"top\":767.0,\"width\":32.0,\"height\":32.0,\"right\":1757.0,\"bottom\":799.0},\"patterns\":[\"ExpandCollapse\"]},{\"name\":\"Superpowers for LinkedIn\\nNo access needed\",\"automation_id\":\"view_1013\",\"class\":\"ToolbarActionView\",\"control_type\":\"Button\",\"enabled\":true,\"focusable\":true,\"rect\":{\"left\":1725.0,\"top\":767.0,\"width\":32.0,\"height\":32.0,\"right\":1757.0,\"bottom\":799.0},\"patterns\":[\"ExpandCollapse\"]}]}"
-    },
-    {
-      "index": 2,
-      "ok": true,
-      "task_id": "self-update",
-      "target_device": "DRIZNET",
-      "job_id": "a84d76ae-a5b9-44d4-a886-a329b38a4064",
-      "status": "passed",
-      "confirmation_transport": "websocket-event",
-      "confirmation_source": "qq-local-agent",
-      "confirmed_device": "DRIZNET",
-      "exit_code": 0,
-      "duration_ms": 9162,
-      "worker_slot": 0,
-      "gpu_index": -1,
-      "resource_class": "",
-      "concurrency_group": "",
-      "confirmed_at": "2026-10-02T08:14:51.8345004Z",
-      "output_tail": "[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] SYNC // reconciling QQ from the packaged runtime\r\n[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\batman\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 23864\r\n[run] DEDUPE_QQ_READY // kept=23864 closed=0\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled\r\n[run] SYNC // refreshing reviewed QQ runner from Clintware\r\n[run] RUNTIME // reviewed Miniconda-first Python resolver installed\r\n[run] SYNC // refreshing qq window, MCP monitor, and ASCII splash assets\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\batman\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] SYNC // refreshing reviewed QQ task registry\r\n[run] REGISTRY // reviewed task registry v30 installed\r\n[run] HEALTH // canonical admin reconcile entry point refreshed\r\n[run] SERVICE // aligning QQ health service with reviewed Clintware source\r\n[run] REPAIR // Quillgeist Lite self-heal 2026.09.30.13-health-contract\r\n[run] SERVICE // refreshing stale-task recovery watchdog\r\n[run] CONFIG // health-service configuration validated\r\n[run] SERVICE // replacing watchdog binary\r\n[run] SERVICE // arming restart dead-man\r\n[run] TASK // runner task enabled\r\n[run] TASK // automatic runner recovery is configured\r\n[run] SERVICE // validating Windows service registration\r\n[run] SERVICE // registered path \"C:\\ProgramData\\Clintware\\QuillgeistLite\\QuillgeistLiteHealthService.exe\"\r\n[run] SERVICE // account LocalSystem / start Auto\r\n[run] SERVICE // native health watchdog running\r\n[run] FALLBACK // installing scheduled qq recovery watchdog\r\n[run] RECOVERY // fallback repair paths persisted\r\n[run] FALLBACK // recovery watchdog active every minute\r\n[run] FALLBACK // independent recovery layer ensured\r\n[run] TASK // runner restart deferred because an active qq job is using this session\r\n[run] SELF-HEAL // canonical repair logic cached locally\r\n[run] READY // qq recovery repaired; native service or scheduled fallback is supervising the runner.\r\n[run] READY // QQ runtime and Python resolver reconciled.\r\n[run] CHECK-IN // independent watchdog remains available while the runner restarts\r\n[run] RESUME // queued work will replay in priority/FIFO order after reconnect\r\n[run] RESTART // canonical QQ runner restart queued after result delivery"
+      "confirmed_at": "2026-10-03T16:19:51.1375521Z",
+      "output_tail": "[run] AUTO_REPAIR // reconciling qq against canonical Clintware source\r\n[run] QQ RUNTIME CACHE // complete reviewed bundle already installed\r\n[run] AUTO_REPAIR // using packaged local source C:\\Users\\user\\AppData\\Local\\Clintware\\QuillgeistLite\\runtime\\quillgeist-lite\r\n[run] AUTO_REPAIR // refreshed runner.ps1\r\n[run] AUTO_REPAIR // refreshed launcher.ps1\r\n[run] AUTO_REPAIR // refreshed boot_splash.py\r\n[run] AUTO_REPAIR // refreshed terminal_repair.py\r\n[run] AUTO_REPAIR // refreshed provider_responder.py\r\n[run] AUTO_REPAIR // refreshed browser_agent.py\r\n[run] AUTO_REPAIR // refreshed start-qq-window.ps1\r\n[run] AUTO_REPAIR // refreshed dedupe-qq-windows.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-powershell.ps1\r\n[run] AUTO_REPAIR // refreshed repair-local-service.ps1\r\n[run] AUTO_REPAIR // refreshed ensure-browser-runtime.ps1\r\n[run] AUTO_REPAIR // refreshed browser-work.ps1\r\n[run] DEDUPE_QQ // inspecting Clintware-owned qq windows\r\n[run] DEDUPE_QQ // keeping recent heartbeat PID 70132\r\n[run] DEDUPE_QQ_READY // kept=70132 closed=0\r\n[run] AUTO_REPAIR // duplicate qq windows reconciled\r\n[run] AUTO_REPAIR // no-focus supervised launch action verified\r\n[run] PYTHON // terminal self-repair 2026.09.27.4\r\n[run] PYTHON // launcher refreshed atomically\r\n[run] PYTHON // ASCII-only terminal branding active\r\n[run] PYTHON // Windows Terminal profile written atomically\r\n[run] VERIFY // PowerShell absolute path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\n[run] VERIFY // profile GUID: {4a4b4fda-d945-42f1-a682-46c7534c2c5a}\r\n[run] VERIFY // fragment: C:\\Users\\user\\AppData\\Local\\Microsoft\\Windows Terminal\\Fragments\\Clintware\\quillgeist-lite-v2.json\r\n[run] VERIFY // branding: ASCII-only; raster background disabled\r\n[run] READY // Quillgeist Lite terminal profile self-test passed\r\n[run] AUTO_REPAIR // glass terminal profile verified\r\n[run] AUTO_REPAIR // runner already healthy; no duplicate window opened\r\n[run] AUTO_REPAIR_READY // canonical files, service, profile, and launch policy reconciled"
     }
   ],
-  "recorded_at": 1790928948
+  "recorded_at": 1791044377
 }
