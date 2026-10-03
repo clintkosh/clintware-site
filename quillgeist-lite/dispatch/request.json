@@ -1,13 +1,19 @@
 {
-  "request_id": "memoria-self-heal-20261003-1117",
+  "request_id": "cloudmist-dual-pulse-20261003-1121",
   "mode": "batch",
   "verify_seconds": 180,
   "jobs": [
     {
-      "task_id": "self-heal",
+      "task_id": "local-ai",
       "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Reconcile the local QQ runtime and no-focus launch behavior while preserving active work."
+      "args": {"Action": "status"},
+      "objective": "Return a fresh MEMORIA pulse through QQ and confirm active communication with the Clintware relay."
+    },
+    {
+      "task_id": "local-ai",
+      "target_device": "DRIZNET",
+      "args": {"Action": "status"},
+      "objective": "Return a fresh DRIZNET pulse through QQ and confirm active communication with the Clintware relay."
     }
   ]
 }
