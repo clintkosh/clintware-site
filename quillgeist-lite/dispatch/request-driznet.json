@@ -1,8 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-corefix-refresh-20261003-1339",
-  "task_id": "self-update",
+  "request_id": "chatgpt-driznet-core-repair-20261003-1340",
+  "task_id": "driznet-server-core",
   "target_device": "DRIZNET",
-  "args": {},
-  "objective": "Refresh DRIZNET with the n8n persistence repair and corrected inference readiness canary, preserving all existing services and data.",
+  "args": {
+    "Action": "setup"
+  },
+  "objective": "Repair DRIZNET core in place using persisted n8n encryption state, start any stopped core service, and pass endpoint plus local inference/search verification. No external storage.",
   "resume_after": true
 }
