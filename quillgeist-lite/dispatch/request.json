@@ -1,33 +1,13 @@
 {
-  "request_id": "driznet-confirm-corrected-diagnostics-20261002-0815",
+  "request_id": "memoria-self-heal-20261003-1117",
   "mode": "batch",
   "verify_seconds": 180,
   "jobs": [
     {
-      "task_id": "local-ai",
-      "target_device": "DRIZNET",
-      "args": {
-        "Action": "status"
-      },
-      "objective": "Correct failed inspect request; inspect DRIZNET local inference status."
-    },
-    {
-      "task_id": "cwinteract",
-      "target_device": "DRIZNET",
-      "args": {
-        "Action": "tabscan",
-        "AppName": "Edge",
-        "WindowTitle": "Edge",
-        "Query": "LinkedIn",
-        "MaxResults": "80"
-      },
-      "objective": "Find LinkedIn in existing DRIZNET Edge tabs through local CWInteract; no Work Mode browser."
-    },
-    {
-      "task_id": "self-update",
-      "target_device": "DRIZNET",
+      "task_id": "self-heal",
+      "target_device": "MEMORIA",
       "args": {},
-      "objective": "Refresh DRIZNET reviewed runtime to include fixed storage audit and local Codex/README continuation scan. Preserve active work; do not open or focus duplicate windows."
+      "objective": "Reconcile the local QQ runtime and no-focus launch behavior while preserving active work."
     }
   ]
 }
