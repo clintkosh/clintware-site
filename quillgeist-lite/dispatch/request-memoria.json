@@ -1,7 +1,9 @@
 {
-  "request_id": "cpath-memoria-refresh-v34-20261003-1901",
-  "task_id": "self-update",
+  "request_id": "cpath-verify-memoria-20261003-1902",
+  "task_id": "cpath-verify",
   "target_device": "MEMORIA",
-  "args": {},
-  "objective": "Refresh MEMORIA after the final Control Plane deployment so QQ installs reviewed registry v34 and the cpath-verify task."
+  "args": {
+    "Action": "full"
+  },
+  "objective": "Verify the CodePath Claude Corps Delivery OS locally and live: 10 mentors / 200 seeded fellows, seed v2, worker syntax, live health job 5204061007, and current cpath.clintware.com release."
 }
