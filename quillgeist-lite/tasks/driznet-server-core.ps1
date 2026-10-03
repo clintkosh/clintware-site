@@ -14,7 +14,10 @@ New-Item -ItemType Directory -Force -Path $R,$D,$Data,$C,$S,$G,$P,(Join-Path $Da
 if($Action -eq "setup"){
  $py=Py;$rt=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
  foreach($n in @("__init__.py","local_inference.py","local_gateway.py")){$src=Join-Path $rt ("agentbridge-node\agentbridge_node\"+$n);if(-not (Test-Path $src)){throw "Missing $src"};Copy-Item $src (Join-Path $P $n) -Force}
- if(-not (Test-Path $K)){Set-Content $K (Sec) -Encoding ASCII};$key=(Get-Content $K -Raw).Trim();$n8=Sec;$pipe=Sec;$searx=Sec
+ if(-not (Test-Path $K)){Set-Content $K (Sec) -Encoding ASCII};$key=(Get-Content $K -Raw).Trim();$n8="";$pipe="";$searx=""
+ if(Test-Path $E){foreach($line in Get-Content $E){if($line -match "^N8N_ENCRYPTION_KEY=(.+)$"){$n8=$matches[1]};if($line -match "^PIPELINES_API_KEY=(.+)$"){$pipe=$matches[1]};if($line -match "^SEARXNG_SECRET=(.+)$"){$searx=$matches[1]}}}
+ $n8Config=Join-Path $Data "n8n\config";if(Test-Path $n8Config){try{$cfg=Get-Content $n8Config -Raw|ConvertFrom-Json;if($cfg.encryptionKey){$n8=[string]$cfg.encryptionKey}}catch{}}
+ if(-not $n8){$n8=Sec};if(-not $pipe){$pipe=Sec};if(-not $searx){$searx=Sec}
  @("QUILLGEIST_GATEWAY_API_KEY=$key","OPENAI_API_KEY=$key","OPENAI_API_BASE_URL=http://host.docker.internal:11435/v1","N8N_ENCRYPTION_KEY=$n8","PIPELINES_API_KEY=$pipe","SEARXNG_SECRET=$searx","TZ=America/Chicago")|Set-Content $E -Encoding UTF8
  $gs=Join-Path $S "START-GATEWAY.ps1";$gb=@'
 $ErrorActionPreference="Stop"
@@ -74,7 +77,7 @@ services:
     env_file: [".env"]
     volumes: ["C:/AI/LOCAL-CHATGPT/data/pipelines:/app/pipelines"]
 '@|Set-Content $Y -Encoding UTF8
- $dk=Dk;Push-Location $D;try{&$dk compose -f $Y config -q;if($LASTEXITCODE){throw "Compose invalid"};&$dk compose -f $Y pull;if($LASTEXITCODE){throw "Pull failed"};&$dk compose -f $Y up -d;if($LASTEXITCODE){throw "Startup failed"}}finally{Pop-Location}
+ $dk=Dk;Push-Location $D;try{&$dk compose -f $Y config -q;if($LASTEXITCODE){throw "Compose invalid"};&$dk compose -f $Y up -d --pull missing;if($LASTEXITCODE){throw "Startup failed"}}finally{Pop-Location}
  foreach($u in @("http://127.0.0.1:8088","http://127.0.0.1:3015","http://127.0.0.1:5678","http://127.0.0.1:9099")){if(-not (W $u 180)){throw "Failed $u"}}
  $wa=Join-Path $S "web_search_agent.py";@'
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
