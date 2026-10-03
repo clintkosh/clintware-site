@@ -1,5 +1,5 @@
 {
-  "version": 32,
+  "version": 33,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. QQ keeps an independent watchdog path available while interactive work is busy. Local CloudMist can enroll multiple owner-controlled machines into a capability-aware local compute/failover pool; Work/cloud execution is optional and never required for routine local-first operation.",
   "runtimes": [
@@ -555,6 +555,20 @@
       "timeout_seconds": 10800,
       "parallel_safe": false,
       "resource_class": "gpu",
+      "concurrency_group": "driznet-server",
+      "max_parallel": 1
+    },
+    "driznet-n8n-doctor": {
+      "title": "Diagnose or repair DRIZNET n8n while preserving a C: backup before clean reinitialization",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/driznet-n8n-doctor.ps1",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 1800,
+      "parallel_safe": false,
+      "resource_class": "io",
       "concurrency_group": "driznet-server",
       "max_parallel": 1
     }
