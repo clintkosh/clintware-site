@@ -1,10 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-core-repair-20261003-1340",
-  "task_id": "driznet-server-core",
+  "request_id": "chatgpt-driznet-n8n-refresh-20261003-1345",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "setup"
-  },
-  "objective": "Repair DRIZNET core in place using persisted n8n encryption state, start any stopped core service, and pass endpoint plus local inference/search verification. No external storage.",
+  "args": {},
+  "objective": "Refresh DRIZNET with the targeted n8n doctor/repair task, preserving all current local AI services and data.",
   "resume_after": true
 }
