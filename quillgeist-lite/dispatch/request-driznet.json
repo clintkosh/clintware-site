@@ -1,10 +1,10 @@
 {
-  "request_id": "chatgpt-driznet-core-verify-20261003-1352",
-  "task_id": "driznet-server-core",
+  "request_id": "chatgpt-driznet-media-setup-20261003-1353",
+  "task_id": "driznet-media",
   "target_device": "DRIZNET",
   "args": {
-    "Action": "verify"
+    "Action": "setup"
   },
-  "objective": "Non-mutating final verification of DRIZNET core: Open WebUI, Ollama, Quillgeist gateway, SearXNG, n8n, Pipelines, web search agent, local inference canary, and search canary.",
+  "objective": "Finish DRIZNET media server locally on internal storage: install/repair ComfyUI under C:\\AI\\ComfyUI, register persistent hidden startup, start local media agent on port 8799, and verify both endpoints. Do not use external storage.",
   "resume_after": true
 }
