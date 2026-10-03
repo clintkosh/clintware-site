@@ -1,19 +1,4 @@
 {
-  "request_id": "cpath-runtime-refresh-20261003-1852",
-  "mode": "batch",
-  "verify_seconds": 240,
-  "jobs": [
-    {
-      "task_id": "self-update",
-      "target_device": "MEMORIA",
-      "args": {},
-      "objective": "Refresh MEMORIA to the current reviewed QQ runtime and task registry so the new CodePath verification task is available."
-    },
-    {
-      "task_id": "self-update",
-      "target_device": "DRIZNET",
-      "args": {},
-      "objective": "Refresh DRIZNET to the current reviewed QQ runtime and task registry as local fallback for CodePath verification."
-    }
-  ]
+  "request_id": "cpath-rerun-inspect-20261003-1904",
+  "mode": "inspect"
 }
