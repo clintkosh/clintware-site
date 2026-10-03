@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 34,
   "product": "Clintware Quillgeist Lite",
   "description": "Allowlisted local tasks dispatched by the Clintware Control Plane. QQ keeps an independent watchdog path available while interactive work is busy. Local CloudMist can enroll multiple owner-controlled machines into a capability-aware local compute/failover pool; Work/cloud execution is optional and never required for routine local-first operation.",
   "runtimes": [
@@ -571,6 +571,20 @@
       "resource_class": "io",
       "concurrency_group": "driznet-server",
       "max_parallel": 1
+    },
+    "cpath-verify": {
+      "title": "Verify the CodePath Claude Corps Delivery OS locally and live",
+      "runtime": "powershell",
+      "script": "quillgeist-lite/tasks/cpath-verify.ps1",
+      "parameters": [
+        "Action"
+      ],
+      "approval": "pre-approved",
+      "timeout_seconds": 600,
+      "parallel_safe": true,
+      "resource_class": "io",
+      "concurrency_group": "diagnostics",
+      "max_parallel": 2
     }
   }
 }
