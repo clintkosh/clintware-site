@@ -1,13 +1,19 @@
 {
-  "request_id": "memoria-background-repair-no-focus-20261003-1351",
+  "request_id": "cpath-runtime-refresh-20261003-1852",
   "mode": "batch",
-  "verify_seconds": 300,
+  "verify_seconds": 240,
   "jobs": [
     {
-      "task_id": "self-heal",
+      "task_id": "self-update",
       "target_device": "MEMORIA",
       "args": {},
-      "objective": "Finish the MEMORIA auth/browser-loop repair in strict BACKGROUND/NO-FOCUS mode. The user is actively playing GTA. Never activate, raise, focus, foreground, maximize, restore, or switch to Edge, Terminal, PowerShell, QQ, or any other window. Never synthesize Alt-Tab or equivalent. Preserve the current foreground application and user input. Suppress any queued browser/UI action that would steal focus. Continue only non-foreground repair, watchdog, launcher suppression, configuration, process/service, file, and diagnostic work. If a remaining step inherently requires visible browser/UI interaction, pause that step and report WAITING_FOR_UI instead of taking focus. Keep manual-takeover protections durable after restart and self-heal."
+      "objective": "Refresh MEMORIA to the current reviewed QQ runtime and task registry so the new CodePath verification task is available."
+    },
+    {
+      "task_id": "self-update",
+      "target_device": "DRIZNET",
+      "args": {},
+      "objective": "Refresh DRIZNET to the current reviewed QQ runtime and task registry as local fallback for CodePath verification."
     }
   ]
 }
