@@ -1,19 +1,13 @@
 {
-  "request_id": "memoria-nextauth-exact-inspect-20261003-1140",
+  "request_id": "memoria-background-repair-no-focus-20261003-1351",
   "mode": "batch",
   "verify_seconds": 300,
   "jobs": [
     {
-      "task_id": "cwinteract",
+      "task_id": "self-heal",
       "target_device": "MEMORIA",
-      "args": {
-        "Action": "tabscan",
-        "AppName": "Edge",
-        "WindowTitle": "Edge",
-        "Query": "This action with HTTP GET is not supported by NextAuth.js",
-        "MaxResults": "100"
-      },
-      "objective": "Human has completed Google registration/sign-in using clint@clintware.com and the SAME NextAuth GET error is visible again. Take over diagnostically: inspect the existing error tab and surrounding browser UI, identify the exact URL/route or visible origin if exposed, and determine which Clintware/QQ browser-auth flow generated it. Do not ask the human to sign in again. Do not create another auth tab. Do not replay stale clicks. Return compact evidence sufficient to fix the GET-vs-POST route defect."
+      "args": {},
+      "objective": "Finish the MEMORIA auth/browser-loop repair in strict BACKGROUND/NO-FOCUS mode. The user is actively playing GTA. Never activate, raise, focus, foreground, maximize, restore, or switch to Edge, Terminal, PowerShell, QQ, or any other window. Never synthesize Alt-Tab or equivalent. Preserve the current foreground application and user input. Suppress any queued browser/UI action that would steal focus. Continue only non-foreground repair, watchdog, launcher suppression, configuration, process/service, file, and diagnostic work. If a remaining step inherently requires visible browser/UI interaction, pause that step and report WAITING_FOR_UI instead of taking focus. Keep manual-takeover protections durable after restart and self-heal."
     }
   ]
 }
