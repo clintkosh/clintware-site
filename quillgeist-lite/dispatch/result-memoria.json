@@ -1,15 +1,288 @@
 {
-  "request_id": "chatgpt-driznet-server-plan-20261002-1700",
-  "job_id": "eb57ee6b-bebd-480e-8761-1f936b70e07a",
-  "task_id": "big-prompt-plan",
-  "target_device": "MEMORIA",
-  "status": "passed",
-  "exit_code": 0,
-  "duration_ms": 905,
-  "confirmation_source": "qq-local-agent",
-  "confirmation_transport": "websocket-event",
-  "confirmed_at": "2026-10-02T21:59:32.7821646Z",
-  "recorded_at": 1790978360,
-  "recovery_history": [],
-  "output_tail": "{\r\n  \"mode\": \"qq_big_prompt\",\r\n  \"project\": \"driznet-local-ai-server\",\r\n  \"state_scope\": \"DRIZNET\",\r\n  \"original_prompt\": \"Finish the DRIZNET local AI server completely using DRIZNET internal storage only. Preserve all existing C:\\\\AI work and Ollama models. DRIZNET is independent from MEMORIA. Required right-sized service plane: Quillgeist local gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, local web-search agent, and the planned media/ComfyUI path where supported; keep Discord helper configuration-safe and do not require external Toshiba storage. Verify endpoints and real local inference before completion.\",\r\n  \"master_prompt\": \"QUILLGEIST AUTOCOMPACT EXECUTION PLAN\\nProtocol: Work through the steps in order without asking for repeated OK/continue confirmations. Before each next step, re-compact the unresolved requirements plus only the prior outputs needed by that step; do not resend irrelevant completed context. After each step, verify its requested outcome and repair only failed or defective parts before moving on. If a provider, tool, image, file, or batch limit is reached, resume with the next legal-sized batch and keep prior accepted work. Do not restart completed work unless QA finds a defect. Preserve exact names, counts, files, quoted text, constraints, and definition-of-done requirements. Pause only when a required value is genuinely missing or a policy, permission, destructive, financial, security, or other confirmation boundary requires user approval.\\nExecute the following dependency-ordered steps. Treat all steps as parts of the same original request:\\n\\n[STEP 1/2]\\nFinish the DRIZNET local AI server completely using DRIZNET internal storage only. Preserve all existing C:\\\\AI work and Ollama models. DRIZNET is independent from MEMORIA. Required right-sized service plane: Quillgeist local gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, local web-search agent, and the planned media/ComfyUI path where supported\\n\\n[STEP 2/2]\\nkeep Discord helper configuration-safe and do not require external Toshiba storage. Verify endpoints and real local inference before completion.\\n\\nBegin with STEP 1 now. After QA, re-compact only the unresolved requirements and required prior outputs for STEP 2, then continue automatically; repeat until final end-to-end QA and delivery.\",\r\n  \"units\": [\r\n    {\r\n      \"id\": \"u001\",\r\n      \"path\": \"1\",\r\n      \"depth\": 0,\r\n      \"prompt\": \"Finish the DRIZNET local AI server completely using DRIZNET internal storage only. Preserve all existing C:\\\\AI work and Ollama models. DRIZNET is independent from MEMORIA. Required right-sized service plane: Quillgeist local gateway, Open WebUI, SearXNG/search-RAG, n8n, Pipelines, local web-search agent, and the planned media/ComfyUI path where supported\",\r\n      \"lane\": \"qq_local_model\",\r\n      \"broker\": \"qq\",\r\n      \"provider_hint\": \"\",\r\n      \"depends_on\": [],\r\n      \"estimated_tokens\": 89,\r\n      \"requires_fresh_authority\": false,\r\n      \"mutates_external\": false,\r\n      \"resource_class\": \"gpu\",\r\n      \"gpu_eligible\": true,\r\n      \"parallel_group\": \"gpu-ready\",\r\n      \"status\": \"planned\"\r\n    },\r\n    {\r\n      \"id\": \"u002\",\r\n      \"path\": \"2\",\r\n      \"depth\": 0,\r\n      \"prompt\": \"keep Discord helper configuration-safe and do not require external Toshiba storage. Verify endpoints and real local inference before completion.\",\r\n      \"lane\": \"qq_deterministic\",\r\n      \"broker\": \"qq\",\r\n      \"provider_hint\": \"\",\r\n      \"depends_on\": [\r\n        \"u001\"\r\n      ],\r\n      \"estimated_tokens\": 36,\r\n      \"requires_fresh_authority\": false,\r\n      \"mutates_external\": false,\r\n      \"resource_class\": \"gpu\",\r\n      \"gpu_eligible\": true,\r\n      \"parallel_group\": \"serial\",\r\n      \"status\": \"planned\"\r\n    }\r\n  ],\r\n  \"raw_tokens_est\": 126,\r\n  \"remote_units\": 0,\r\n  \"local_units\": 2,\r\n  \"naive_remote_context_tokens_est\": 0,\r\n  \"routed_remote_context_tokens_est\": 0,\r\n  \"avoided_remote_context_tokens_est\": 0,\r\n  \"max_depth\": 3,\r\n  \"parallel_units\": 1,\r\n  \"sequential_units\": 1,\r\n  \"routing_contract\": \"Route deterministic/local work through qq first. Independent dependency-free units may execute concurrently through the adaptive CPU/RAM/GPU worker pool. Prefer GPU-class workers for local-model/inference units when GPU capacity is healthy. Route fresh external authority, explicit provider work, and external mutations through the configured control plane. Each unit receives only its prompt, dependency outputs, and the minimum durable state required to continue.\",\r\n  \"credential_contract\": \"Plans contain no reusable provider secrets. The control plane resolves opaque provider/account references to server-side credentials. Official local provider clients keep their own supported local sign-in state.\",\r\n  \"triggered_by\": [\r\n    \"forced\",\r\n    \"qq_big_prompt_default\"\r\n  ],\r\n  \"unit_count\": 2\r\n}"
+  "request_id": "cpath-memoria-inspect-20261003-1900",
+  "mode": "inspect",
+  "recorded_at": 1791053969,
+  "inspection": {
+    "online": 1,
+    "recovery_online": 0,
+    "wake_online": 1,
+    "recovery": null,
+    "runner_version": "1.11.0",
+    "runner_last_seen": "2026-10-03T18:59:23.811Z",
+    "runner": {
+      "runner_id": "MEMORIA",
+      "version": "1.11.0",
+      "capabilities": [
+        "interactive_relay",
+        "question_poll",
+        "allowlisted_tasks",
+        "local_shell_escape",
+        "web_search",
+        "web_read",
+        "browser_automation",
+        "manual_browser_login",
+        "responder_agent",
+        "portable_local_responder",
+        "local_first_inference",
+        "infra_usage_gauge",
+        "event_driven_usage",
+        "subscription_responder",
+        "provider_usage_estimates",
+        "reset_countdown",
+        "workers_ai_responder",
+        "fast_responder_fallback",
+        "capability_inventory",
+        "capability_aware_routing"
+      ],
+      "connected_at": "2026-10-03T18:58:36.806Z",
+      "last_seen": "2026-10-03T18:59:23.811Z",
+      "source_revision": "b07f97837d016de8f406407c5e8adf0cc4be9196",
+      "registry_version": "33",
+      "resource_presence": {
+        "device_id": "MEMORIA",
+        "protocol": "clintware-quillgeist-lite-presence/v1",
+        "runner_id": "MEMORIA",
+        "version": "1.11.0",
+        "state": "ready",
+        "runner_alive": true,
+        "busy": false,
+        "active_workers": 0,
+        "queued_jobs": 0,
+        "worker_capacity": 6,
+        "available_workers": 6,
+        "cpu_load_percent": 29.4,
+        "memory_load_percent": 47,
+        "memory_available_gib": 33.5,
+        "gpu_worker_capacity": 0,
+        "scheduler_mode": "adaptive",
+        "timestamp": "2026-10-03T18:59:37.8376243Z",
+        "updated_at": "2026-10-03T18:59:23.811Z"
+      }
+    },
+    "connected_devices": [
+      {
+        "device_id": "MEMORIA",
+        "connected_at": "2026-10-03T18:58:36.806Z",
+        "runner": {
+          "runner_id": "MEMORIA",
+          "version": "1.11.0",
+          "capabilities": [
+            "interactive_relay",
+            "question_poll",
+            "allowlisted_tasks",
+            "local_shell_escape",
+            "web_search",
+            "web_read",
+            "browser_automation",
+            "manual_browser_login",
+            "responder_agent",
+            "portable_local_responder",
+            "local_first_inference",
+            "infra_usage_gauge",
+            "event_driven_usage",
+            "subscription_responder",
+            "provider_usage_estimates",
+            "reset_countdown",
+            "workers_ai_responder",
+            "fast_responder_fallback",
+            "capability_inventory",
+            "capability_aware_routing"
+          ],
+          "connected_at": "2026-10-03T18:58:36.806Z",
+          "last_seen": "2026-10-03T18:58:36.843Z",
+          "source_revision": "b07f97837d016de8f406407c5e8adf0cc4be9196",
+          "registry_version": "33"
+        }
+      }
+    ],
+    "service_devices": [
+      {
+        "device_id": "MEMORIA",
+        "label": "MEMORIA / batman",
+        "registered_at": "2026-09-26T05:25:34.942Z",
+        "last_seen": "2026-10-03T18:59:22.668Z",
+        "runner_alive": false,
+        "service_version": "",
+        "updated_at": "",
+        "source": "live-websocket"
+      },
+      {
+        "device_id": "DRIZNET",
+        "label": "DRIZNET / batman",
+        "registered_at": "2026-09-22T20:47:30.020Z"
+      }
+    ],
+    "jobs": [
+      {
+        "job_id": "91f26e4d-556e-4e00-b773-5beb78204b90",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "422694a9-af8b-4020-81d2-e3b3e65939d4",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "queued"
+      },
+      {
+        "job_id": "f40b4f9c-e11d-4336-a8e3-b44d028b1827",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "94f1cc7a-ea51-4923-888c-e142fe3ded70",
+        "task_id": "driznet-media",
+        "target_device": "DRIZNET",
+        "status": "running"
+      },
+      {
+        "job_id": "dd86a470-6a39-4079-a9d5-8e9794b0708e",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "76ad2677-2f8b-49d2-9bac-99dbacb3b655",
+        "task_id": "self-update",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "d3dd8c97-c19c-4c64-a14c-1f503a76f964",
+        "task_id": "driznet-server-core",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "88b46185-a832-4bbc-8f45-15e3358f372b",
+        "task_id": "driznet-n8n-doctor",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "59f4fc75-9914-417b-b053-8750ec70c767",
+        "task_id": "self-heal",
+        "target_device": "MEMORIA",
+        "status": "passed"
+      },
+      {
+        "job_id": "e94540ad-6a59-411b-8e3e-2d3f6a80c2fc",
+        "task_id": "driznet-n8n-doctor",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "8be32eb0-87ff-4c0b-a5a1-b546c6628198",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      },
+      {
+        "job_id": "1b149e44-e90f-432f-8d5b-739e110a80dd",
+        "task_id": "self-update",
+        "target_device": "DRIZNET",
+        "status": "passed"
+      }
+    ],
+    "diagnostics": [
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Job 91f26e4d-556e-4e00-b773-5beb78204b90 finished with status passed",
+        "timestamp": "2026-10-03T18:59:37.8322992Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "heartbeat",
+        "kind": "other",
+        "message": "runner_alive",
+        "timestamp": "2026-10-03T18:59:37.6526304Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_state=alive",
+        "timestamp": "2026-10-03T18:59:37.5352345Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_deferred_runner_busy",
+        "timestamp": "2026-10-03T18:59:36.8681328Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "wake",
+        "kind": "other",
+        "message": "wake_received_runner_pid_alive_but_control_plane_disconnected",
+        "timestamp": "2026-10-03T18:59:36.7251692Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_started",
+        "timestamp": "2026-10-03T18:59:36.5230661Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "service",
+        "kind": "other",
+        "message": "health_service_stopped",
+        "timestamp": "2026-10-03T18:59:33.0963146Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Running task self-update [powershell] (quillgeist-lite/tasks/self-update.ps1)",
+        "timestamp": "2026-10-03T18:58:55.6957124Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "Refreshed reviewed task source: self-update",
+        "timestamp": "2026-10-03T18:58:55.6530141Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "desktop-focus",
+        "kind": "other",
+        "message": "scheduled_task_isolation=TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 0 candidate task(s). | Converted 0 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-03T18:58:54.7154347Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "INFO",
+        "phase": "runner",
+        "kind": "other",
+        "message": "TASK-ISOLATION // TASK-ISOLATION // Downloads sha256: bb0e72fa216af6cad21ff56aa908f677d47e7d5f5f45187f5219f93cb340710b | version=1.2.0 | mode=apply | Found 0 candidate task(s). | Converted 0 task(s) to true no-console background execution. | Restarted 0 currently-running task(s) under the new background wrapper. | Microsoft tasks and Clintware Quillgeist Lite managed tasks were left unchanged. | Backups: C:\\ProgramData\\Clintware\\TaskIsolation\\backups | Restore: Clintware-TaskIsolation.exe --restore",
+        "timestamp": "2026-10-03T18:58:54.7120156Z"
+      },
+      {
+        "device_id": "MEMORIA",
+        "level": "WARN",
+        "phase": "health",
+        "kind": "other",
+        "message": "runner_restart_requested exit=0 output=SUCCESS: Attempted to run the scheduled task \"Clintware Quillgeist Lite Runner\".\r\n",
+        "timestamp": "2026-10-03T18:58:52.3412753Z"
+      }
+    ]
+  }
 }
