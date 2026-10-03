@@ -1,10 +1,8 @@
 {
-  "request_id": "chatgpt-driznet-n8n-diagnose-20261003-1347",
-  "task_id": "driznet-n8n-doctor",
+  "request_id": "chatgpt-driznet-registry33-refresh-20261003-1349",
+  "task_id": "self-update",
   "target_device": "DRIZNET",
-  "args": {
-    "Action": "diagnose"
-  },
-  "objective": "Diagnose why DRIZNET n8n is not listening. Return bounded container state, persisted-state metadata, and recent n8n logs without exposing secrets.",
+  "args": {},
+  "objective": "Refresh DRIZNET again and confirm the control-plane runtime has advanced from registry v32 to v33 so the n8n doctor task is locally available.",
   "resume_after": true
 }
